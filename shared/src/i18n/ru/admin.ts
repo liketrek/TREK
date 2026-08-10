@@ -124,6 +124,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': 'Сведения о месте',
   'admin.placesDetails.subtitle':
     'Загрузка подробной информации о месте (часы работы, рейтинг, веб-сайт) из Google Places API. Отключите для экономии квоты API.',
+  'admin.placesEnrich.title': 'Обогащение мест',
+  'admin.placesEnrich.subtitle':
+    'Показывает изображения и описание при добавлении места. Wikipedia и OpenStreetMap используются всегда; Google добавляется, если включены «Фото мест» или «Детали мест».',
   'admin.bagTracking.title': 'Отслеживание багажа',
   'admin.bagTracking.subtitle': 'Включить вес и привязку к багажу для вещей',
   'admin.collab.chat.title': 'Чат',
@@ -217,6 +220,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Обновить → v{version}',
   'admin.plugins.enabledToggle': 'Включить плагин',
   'plugins.notFound': 'Плагин не найден',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'Плагины',
   'admin.plugins.subtitle': 'Устанавливайте сторонние плагины и управляйте ими на вашем экземпляре.',
   'admin.plugins.disabledTitle': 'Плагины отключены',

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 
 // Prevent node-cron from scheduling anything at import time
 vi.mock('node-cron', () => ({
@@ -40,6 +40,20 @@ vi.mock('../../src/nest/audit/audit-log.logger', () => ({
 
 import fs from 'node:fs';
 import { buildCronExpression, cleanupOldBackups } from '../../src/scheduler';
+
+// readdirSync and statSync are overloaded in node:fs, and vi.mocked() picks the last
+// overload (Dirent[] / BigIntStats) rather than the one the scheduler calls. These handles
+// point at the very same mock functions from the factory above, pinned to the plain
+// string[] / Stats signatures that cleanupOldBackups actually uses.
+const readdirSyncMock = fs.readdirSync as unknown as Mock<(path: string) => string[]>;
+const statSyncMock = fs.statSync as unknown as Mock<(path: string) => fs.Stats>;
+const unlinkSyncMock = fs.unlinkSync as unknown as Mock<(path: string) => void>;
+
+// cleanupOldBackups reads nothing but mtimeMs off a stat result, so the stubs below stay
+// deliberately partial instead of faking a whole fs.Stats.
+function statStub(partial: Partial<fs.Stats>): fs.Stats {
+  return partial as fs.Stats;
+}
 
 interface BackupSettings {
   enabled: boolean;
@@ -149,70 +163,70 @@ describe('cleanupOldBackups', () => {
   }
 
   beforeEach(() => {
-    vi.mocked(fs.readdirSync).mockReset();
-    vi.mocked(fs.statSync).mockReset();
-    vi.mocked(fs.unlinkSync as ReturnType<typeof vi.fn>).mockReset();
-    (vi.mocked(fs.statSync) as ReturnType<typeof vi.fn>).mockReturnValue({ mtime: new Date(), mtimeMs: NOW, birthtimeMs: NOW, size: 0 });
+    readdirSyncMock.mockReset();
+    statSyncMock.mockReset();
+    unlinkSyncMock.mockReset();
+    statSyncMock.mockReturnValue(statStub({ mtime: new Date(), mtimeMs: NOW, birthtimeMs: NOW, size: 0 }));
   });
 
   it('never deletes manual backup-*.zip files regardless of age', () => {
     const manual = isoFilename(365 * 5, 'backup');
     const auto = isoFilename(0);
-    vi.mocked(fs.readdirSync).mockReturnValue([manual, auto] as unknown as string[]);
+    readdirSyncMock.mockReturnValue([manual, auto]);
     cleanupOldBackups(7, NOW);
-    const deleted = (vi.mocked(fs.unlinkSync as ReturnType<typeof vi.fn>)).mock.calls.map((c: unknown[]) => c[0] as string);
-    expect(deleted.some((p: string) => p.includes(manual))).toBe(false);
+    const deleted = unlinkSyncMock.mock.calls.map(([p]) => p);
+    expect(deleted.some(p => p.includes(manual))).toBe(false);
   });
 
   it('keeps auto-backups newer than retention', () => {
     const recent = isoFilename(3);
-    vi.mocked(fs.readdirSync).mockReturnValue([recent] as unknown as string[]);
+    readdirSyncMock.mockReturnValue([recent]);
     cleanupOldBackups(7, NOW);
-    expect(vi.mocked(fs.unlinkSync as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+    expect(unlinkSyncMock).not.toHaveBeenCalled();
   });
 
   it('deletes auto-backups older than retention', () => {
     const old = isoFilename(30);
-    vi.mocked(fs.readdirSync).mockReturnValue([old] as unknown as string[]);
+    readdirSyncMock.mockReturnValue([old]);
     cleanupOldBackups(7, NOW);
-    expect(vi.mocked(fs.unlinkSync as ReturnType<typeof vi.fn>)).toHaveBeenCalledOnce();
-    const [calledPath] = (vi.mocked(fs.unlinkSync as ReturnType<typeof vi.fn>)).mock.calls[0] as string[];
+    expect(unlinkSyncMock).toHaveBeenCalledOnce();
+    const [calledPath] = unlinkSyncMock.mock.calls[0];
     expect(calledPath).toContain(old);
   });
 
   it('overlayfs regression: birthtimeMs=0 does not delete a same-day backup', () => {
     const fresh = isoFilename(0);
-    vi.mocked(fs.readdirSync).mockReturnValue([fresh] as unknown as string[]);
-    (vi.mocked(fs.statSync) as ReturnType<typeof vi.fn>).mockReturnValue({ birthtimeMs: 0, mtimeMs: NOW, mtime: new Date(NOW), size: 100 });
+    readdirSyncMock.mockReturnValue([fresh]);
+    statSyncMock.mockReturnValue(statStub({ birthtimeMs: 0, mtimeMs: NOW, mtime: new Date(NOW), size: 100 }));
     cleanupOldBackups(7, NOW);
-    expect(vi.mocked(fs.unlinkSync as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+    expect(unlinkSyncMock).not.toHaveBeenCalled();
   });
 
   it('malformed filename falls back to mtimeMs: keeps recent file', () => {
-    vi.mocked(fs.readdirSync).mockReturnValue(['auto-backup-garbage.zip'] as unknown as string[]);
-    (vi.mocked(fs.statSync) as ReturnType<typeof vi.fn>).mockReturnValue({ birthtimeMs: 0, mtimeMs: NOW - 1 * DAY, mtime: new Date(NOW - 1 * DAY), size: 0 });
+    readdirSyncMock.mockReturnValue(['auto-backup-garbage.zip']);
+    statSyncMock.mockReturnValue(statStub({ birthtimeMs: 0, mtimeMs: NOW - 1 * DAY, mtime: new Date(NOW - 1 * DAY), size: 0 }));
     cleanupOldBackups(7, NOW);
-    expect(vi.mocked(fs.unlinkSync as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+    expect(unlinkSyncMock).not.toHaveBeenCalled();
   });
 
   it('malformed filename falls back to mtimeMs: deletes stale file', () => {
-    vi.mocked(fs.readdirSync).mockReturnValue(['auto-backup-garbage.zip'] as unknown as string[]);
-    (vi.mocked(fs.statSync) as ReturnType<typeof vi.fn>).mockReturnValue({ birthtimeMs: 0, mtimeMs: NOW - 30 * DAY, mtime: new Date(NOW - 30 * DAY), size: 0 });
+    readdirSyncMock.mockReturnValue(['auto-backup-garbage.zip']);
+    statSyncMock.mockReturnValue(statStub({ birthtimeMs: 0, mtimeMs: NOW - 30 * DAY, mtime: new Date(NOW - 30 * DAY), size: 0 }));
     cleanupOldBackups(7, NOW);
-    expect(vi.mocked(fs.unlinkSync as ReturnType<typeof vi.fn>)).toHaveBeenCalledOnce();
+    expect(unlinkSyncMock).toHaveBeenCalledOnce();
   });
 
   it('ignores non-zip files and does not crash', () => {
     const old = isoFilename(30);
-    vi.mocked(fs.readdirSync).mockReturnValue([old, 'notes.txt'] as unknown as string[]);
+    readdirSyncMock.mockReturnValue([old, 'notes.txt']);
     cleanupOldBackups(7, NOW);
-    const calls = (vi.mocked(fs.unlinkSync as ReturnType<typeof vi.fn>)).mock.calls as string[][];
-    expect(calls.every(([p]: string[]) => !p.includes('notes.txt'))).toBe(true);
+    const calls = unlinkSyncMock.mock.calls;
+    expect(calls.every(([p]) => !p.includes('notes.txt'))).toBe(true);
     expect(calls.length).toBe(1);
   });
 
   it('swallows readdirSync errors without throwing', () => {
-    vi.mocked(fs.readdirSync).mockImplementation(() => { throw new Error('ENOENT'); });
+    readdirSyncMock.mockImplementation(() => { throw new Error('ENOENT'); });
     expect(() => cleanupOldBackups(7, NOW)).not.toThrow();
   });
 });

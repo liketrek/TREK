@@ -39,7 +39,8 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createReservation } from '../../helpers/factories';
-import { getCached, setCache, getCountryFromCoords, getCountryFromAddress, isPointInCountryBox, reverseGeocodeCountry, getRegionGeo, getCountryGeo } from '../../../src/nest/atlas/atlas-geo';
+import { getCountryFromCoords, getCountryFromAddress, isPointInCountryBox, reverseGeocodeCountry, getRegionGeo, getCountryGeo } from '../../../src/nest/atlas/atlas-geo';
+import { cacheKeyFor, getCached, setCached } from '../../../src/nest/geo/nominatim.client';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { AtlasService } from '../../../src/nest/atlas/atlas.service';
 
@@ -201,32 +202,43 @@ describe('getStats', () => {
   });
 });
 
-// ── getCached / setCache ────────────────────────────────────────────────────
+// ── the shared geocode cache ──────────────────────────────────────
 
-describe('getCached and setCache', () => {
-  it('ATLAS-SVC-001: getCached returns undefined for unknown coordinates', () => {
-    // Use uniquely large lat values to guarantee no prior cache entry
-    const result = getCached(9001.001, 9001.001);
-    expect(result).toBeUndefined();
+/**
+ * The cache moved to geo/ with the client, and its key gained the query shape.
+ * That is not cosmetic: atlas asks at zoom 3 and 8, maps at zoom 18, and a key
+ * of coordinates alone would answer a street lookup with a country name.
+ */
+const countryKey = (lat: number, lng: number) => cacheKeyFor(lat, lng, 'country');
+
+describe('the shared geocode cache', () => {
+  it('ATLAS-SVC-001: a miss is undefined, not null', () => {
+    // Uniquely large lat values guarantee no prior entry.
+    expect(getCached(countryKey(9001.001, 9001.001))).toBeUndefined();
   });
 
-  it('ATLAS-SVC-002: setCache then getCached returns the stored code', () => {
-    setCache(9002.002, 9002.002, 'DE');
-    const result = getCached(9002.002, 9002.002);
-    expect(result).toBe('DE');
+  it('ATLAS-SVC-002: what goes in comes back out', () => {
+    setCached(countryKey(9002.002, 9002.002), 'DE');
+    expect(getCached(countryKey(9002.002, 9002.002))).toBe('DE');
   });
 
-  it('ATLAS-SVC-003: setCache can store null (country unknown)', () => {
-    setCache(9003.003, 9003.003, null);
-    const result = getCached(9003.003, 9003.003);
-    expect(result).toBeNull();
+  it('ATLAS-SVC-003: null is a stored value, meaning "asked, nobody knows"', () => {
+    setCached(countryKey(9003.003, 9003.003), null);
+    expect(getCached(countryKey(9003.003, 9003.003))).toBeNull();
   });
 
-  it('ATLAS-SVC-004: different coordinates return different cached values', () => {
-    setCache(9004.004, 9004.004, 'FR');
-    setCache(9004.005, 9004.005, 'ES');
-    expect(getCached(9004.004, 9004.004)).toBe('FR');
-    expect(getCached(9004.005, 9004.005)).toBe('ES');
+  it('ATLAS-SVC-004: different coordinates stay separate', () => {
+    setCached(countryKey(9004.004, 9004.004), 'FR');
+    setCached(countryKey(9004.005, 9004.005), 'ES');
+    expect(getCached(countryKey(9004.004, 9004.004))).toBe('FR');
+    expect(getCached(countryKey(9004.005, 9004.005))).toBe('ES');
+  });
+
+  it('ATLAS-SVC-004b: the same coordinates under different query shapes do not collide', () => {
+    setCached(cacheKeyFor(9005.005, 9005.005, 'country'), 'IT');
+    setCached(cacheKeyFor(9005.005, 9005.005, 'region'), 'Tuscany');
+    expect(getCached(cacheKeyFor(9005.005, 9005.005, 'country'))).toBe('IT');
+    expect(getCached(cacheKeyFor(9005.005, 9005.005, 'region'))).toBe('Tuscany');
   });
 });
 

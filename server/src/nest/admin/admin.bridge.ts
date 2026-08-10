@@ -5,7 +5,6 @@ import { AddonsService } from '../addons/addons.service';
 import { SettingsService } from '../settings/settings.service';
 import { AuthService } from '../auth/auth.service';
 import { PasskeyService } from '../auth/passkey.service';
-import { AtlasService } from '../atlas/atlas.service';
 import { UserCleanupService } from '../auth/user-cleanup.service';
 import { WebauthnConfigService } from '../auth/webauthn-config.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
@@ -17,6 +16,7 @@ import { NtfyService } from '../notifications/transports/ntfy.service';
 import { WebhookService } from '../notifications/transports/webhook.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AdminService } from './admin.service';
+import { EphemeralTokenService } from '../auth/ephemeral-token.service';
 
 /**
  * Non-Nest entry point for the admin domain — for code running OUTSIDE the Nest
@@ -41,18 +41,16 @@ const webauthn = new WebauthnConfigService(dbs);
 const userCleanup = new UserCleanupService(dbs);
 const mailer = new MailerService(dbs);
 const notifPrefs = new NotificationPreferencesService(dbs, mailer);
-const auth = new AuthService(dbs, permissions, new AtlasService(dbs), new TripMembershipService(dbs), webauthn, userCleanup, mailer);
+const auth = new AuthService(dbs, permissions, new TripMembershipService(dbs), webauthn, userCleanup, mailer, new EphemeralTokenService());
 const admin = new AdminService(
   dbs,
-  new SettingsService(dbs),
   new AddonsService(dbs),
   new PasskeyService(dbs, auth, webauthn),
-  new PackingService(dbs, permissions, realtime),
   auth,
   permissions,
   new NotificationsService(dbs, realtime, mailer, new WebhookService(dbs), new NtfyService(dbs), notifPrefs),
   userCleanup,
-  notifPrefs,
+  new RealtimeService(),
 );
 
 export function checkAndNotifyVersion(): Promise<void> {

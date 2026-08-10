@@ -20,6 +20,8 @@ import { ReservationsModule } from '../reservations/reservations.module';
 import { TodoModule } from '../todo/todo.module';
 import { PackingModule } from '../packing/packing.module';
 import { DaysModule } from '../days/days.module';
+import { DayNotesModule } from '../day-notes/day-notes.module';
+import { AccommodationsModule } from '../accommodations/accommodations.module';
 import { AssignmentsModule } from '../assignments/assignments.module';
 import { LlmParseModule } from '../llm-parse/llm-parse.module';
 import { FilesModule } from '../files/files.module';
@@ -61,7 +63,7 @@ import { JourneyDomainModule } from '../journey/journey-domain.module';
     PluginGuardsModule,
     PluginOAuthModule,
     WeatherModule, TagsModule, CategoriesModule, BudgetModule, ReservationsModule,
-    TodoModule, PackingModule, DaysModule, AssignmentsModule, LlmParseModule,
+    TodoModule, PackingModule, DaysModule, DayNotesModule, AccommodationsModule, AssignmentsModule, LlmParseModule,
     FilesModule, CollabModule, VacayModule, TripsModule, PlacesModule,
     PermissionsModule, AuditModule, AddonsModule, CollectionsModule, AtlasModule,
     NotificationsModule, TripMembershipModule, JourneyDomainModule,

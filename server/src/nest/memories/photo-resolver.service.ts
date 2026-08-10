@@ -6,25 +6,29 @@ import type { TrekPhoto } from '../../types';
 import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { TrekPhotosRepository } from '../photos/trek-photos.repository';
 import { UPLOADS_ROOT } from './uploads-root';
-import { ImmichService } from './immich.service';
-import { SynologyService } from './synology.service';
 import { ThumbnailService } from './thumbnail.service';
 import { TrekPhotoCacheService } from './trek-photo-cache.service';
 import { fail, success, type AssetInfo, type ServiceResult } from './memories.helpers';
+import { PhotoProviderRegistry } from './photo-provider.registry';
+import type { PhotoAssetRef } from './photo-provider';
 
 /**
  * Resolves a stored trek_photo to bytes or metadata by asking whichever provider
  * owns it. The storage half of the old photoResolverService lives in
  * nest/photos/trek-photos.repository.ts; this is the dispatch half.
+ *
+ * It no longer knows WHICH providers exist (#584). It held ImmichService and
+ * SynologyService and a `switch` over their ids; it holds the registry now, so
+ * a third backend is a registration in memories.module.ts rather than a case
+ * added in two places here and a third in journey-public.controller.ts.
  */
 @Injectable()
 export class PhotoResolverService {
   constructor(
     private readonly photos: TrekPhotosRepository,
-    private readonly immich: ImmichService,
-    private readonly synology: SynologyService,
     private readonly thumbnails: ThumbnailService,
     private readonly cache: TrekPhotoCacheService,
+    private readonly providers: PhotoProviderRegistry,
   ) {}
 
   // ── Streaming ────────────────────────────────────────────────────────────
@@ -114,39 +118,45 @@ export class PhotoResolverService {
       }
     }
 
-    switch (photo.provider) {
-      case 'local': {
-        res.status(404).json({ error: 'File not found' });
-        return;
-      }
-      case 'immich': {
-        if (kind === 'thumbnail') {
-          await this.streamCachedThumbnail(
-            res, photo,
-            () => this.immich.fetchImmichThumbnailBytes(userId, photo.asset_id!, photo.owner_id!),
-            () => this.immich.streamImmichAsset(res, userId, photo.asset_id!, kind, photo.owner_id!, { mediaType: photo.media_type }),
-          );
-          return;
-        }
-        await this.immich.streamImmichAsset(res, userId, photo.asset_id!, kind, photo.owner_id!, { mediaType: photo.media_type, range });
-        return;
-      }
-      case 'synologyphotos': {
-        const passphrase = photo.passphrase ? (decrypt_api_key(photo.passphrase) || undefined) : undefined;
-        if (kind === 'thumbnail') {
-          await this.streamCachedThumbnail(
-            res, photo,
-            () => this.synology.fetchSynologyThumbnailBytes(userId, photo.owner_id!, photo.asset_id!, passphrase),
-            () => this.synology.streamSynologyAsset(res, userId, photo.owner_id!, photo.asset_id!, kind, undefined, passphrase),
-          );
-          return;
-        }
-        await this.synology.streamSynologyAsset(res, userId, photo.owner_id!, photo.asset_id!, kind, undefined, passphrase);
-        return;
-      }
-      default:
-        res.status(400).json({ error: `Unknown provider: ${photo.provider}` });
+    // 'local' is not a provider: the bytes are on this disk, the block above
+    // already tried to send them, and there is no backend left to ask.
+    if (photo.provider === 'local') {
+      res.status(404).json({ error: 'File not found' });
+      return;
     }
+
+    const provider = this.providers.get(photo.provider);
+    if (!provider) {
+      res.status(400).json({ error: `Unknown provider: ${photo.provider}` });
+      return;
+    }
+
+    const ref = this.refFor(photo, userId);
+    if (kind === 'thumbnail') {
+      await this.streamCachedThumbnail(
+        res, photo,
+        () => provider.fetchThumbnailBytes(ref),
+        // The fallback streams the thumbnail itself, so it carries no Range.
+        () => provider.streamAsset(res, ref, kind),
+      );
+      return;
+    }
+    await provider.streamAsset(res, { ...ref, range }, kind);
+  }
+
+  /**
+   * The stored row as a provider-shaped request. One place decrypts the
+   * Synology share passphrase, and one place decides which of the two user ids
+   * means "whose credentials".
+   */
+  private refFor(photo: TrekPhoto, userId: number): PhotoAssetRef {
+    return {
+      userId,
+      ownerId: photo.owner_id!,
+      assetId: photo.asset_id!,
+      passphrase: photo.passphrase ? (decrypt_api_key(photo.passphrase) || undefined) : undefined,
+      mediaType: photo.media_type,
+    };
   }
 
   // ── Asset Info ────────────────────────────────────────────────────────────
@@ -158,29 +168,21 @@ export class PhotoResolverService {
     const photo = this.photos.resolve(photoId);
     if (!photo) return fail('Photo not found', 404);
 
-    switch (photo.provider) {
-      case 'local': {
-        return success({
-          id: String(photo.id),
-          takenAt: photo.created_at,
-          city: null,
-          country: null,
-          width: photo.width,
-          height: photo.height,
-          fileName: photo.file_path?.split('/').pop() || null,
-        } as AssetInfo);
-      }
-      case 'immich': {
-        const result = await this.immich.getAssetInfo(userId, photo.asset_id!, photo.owner_id!);
-        if (result.error) return fail(result.error, result.status || 500);
-        return success(result.data as AssetInfo);
-      }
-      case 'synologyphotos': {
-        const passphrase = photo.passphrase ? (decrypt_api_key(photo.passphrase) || undefined) : undefined;
-        return this.synology.getSynologyAssetInfo(userId, photo.asset_id!, photo.owner_id!, passphrase);
-      }
-      default:
-        return fail(`Unknown provider: ${photo.provider}`, 400);
+    // Local rows answer from the row itself — nothing to ask.
+    if (photo.provider === 'local') {
+      return success({
+        id: String(photo.id),
+        takenAt: photo.created_at,
+        city: null,
+        country: null,
+        width: photo.width,
+        height: photo.height,
+        fileName: photo.file_path?.split('/').pop() || null,
+      } as AssetInfo);
     }
+
+    const provider = this.providers.get(photo.provider);
+    if (!provider) return fail(`Unknown provider: ${photo.provider}`, 400);
+    return provider.getAssetInfo(this.refFor(photo, userId));
   }
 }

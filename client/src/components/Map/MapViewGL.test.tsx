@@ -942,6 +942,24 @@ describe('MapViewGL', () => {
     expect(glMarkers.created).toHaveLength(before)
   })
 
+  it.each([
+    ['mapbox-gl', () => mapboxgl.Popup],
+    ['maplibre-gl', () => maplibregl.Popup],
+  ] as const)('FE-COMP-MAPVIEWGL-068: the %s hover card clears its marker without a tail', async (provider, popupOf) => {
+    loadOnAttach()
+    const { unmount } = render(<MapViewGL places={[]} fitKey={1} glProvider={provider} />)
+    await act(async () => {})
+
+    // The tail is hidden in index.css, and it used to contribute 10px of the
+    // gap itself — the offset has to make those up or the card sits on top of
+    // the marker it describes.
+    const options = (popupOf() as unknown as { mock: { calls: [Record<string, unknown>][] } }).mock.calls[0]?.[0]
+    expect(options).toMatchObject({ className: 'trek-map-popup', offset: 26, closeButton: false })
+    // Leaves the map listeners attached otherwise, and the next case reads them
+    // back out of the same mock.
+    unmount()
+  })
+
   it('FE-COMP-MAPVIEWGL-027: clicking a GPX track selects its place unless a marker or cluster is on top', async () => {
     loadOnAttach()
     const onMarkerClick = vi.fn()

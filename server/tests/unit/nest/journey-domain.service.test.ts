@@ -591,7 +591,7 @@ describe('updateEntry', () => {
       author_id: 999999,
     };
 
-    const updated = svc.updateEntry(entry.id, user.id, malicious as Parameters<typeof updateEntry>[2]);
+    const updated = svc.updateEntry(entry.id, user.id, malicious as Parameters<typeof svc.updateEntry>[2]);
 
     expect(updated).not.toBeNull();
     expect(updated!.title).toBe('Updated'); // legit field still applied

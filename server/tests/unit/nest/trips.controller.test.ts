@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { HttpException } from '@nestjs/common';
+import { INTERCEPTORS_METADATA } from '@nestjs/common/constants';
+import fs from 'fs';
+import path from 'path';
 import type { Request } from 'express';
 
 vi.mock('../../../src/nest/audit/client-ip', () => ({ getClientIp: vi.fn(() => '1.2.3.4') }));
@@ -17,7 +20,10 @@ const unsplashStub = {
 } as unknown as UnsplashService;
 
 import { TripsController } from '../../../src/nest/trips/trips.controller';
+import type { AuditService } from '../../../src/nest/audit/audit.service';
 import type { TripsService } from '../../../src/nest/trips/trips.service';
+import type { CalendarService } from '../../../src/nest/calendar/calendar.service';
+import type { TripReadModelService } from '../../../src/nest/trip-read-model/trip-read-model.service';
 import { NotFoundError, ValidationError } from '../../../src/nest/trips/trips.service';
 import type { User } from '../../../src/types';
 import { activeTripResponseSchema, tripCreateRequestSchema, tripTransferOwnershipRequestSchema } from '@trek/shared';
@@ -29,7 +35,12 @@ const req = { headers: {} } as Request;
 // wrapper keeps the historical construction sites positional.
 const writeAudit = vi.fn();
 const audit = { writeAudit } as unknown as AuditService;
-const tc = (s: TripsService) => new TripsController(s, audit, new RuntimeEnvService(), unsplashStub);
+// calendar is optional so the call sites that never reach the ICS route stay as
+// they were; the two that do pass a stub.
+// calendar and readModel are optional so the call sites that reach neither the
+// ICS route nor the bundle stay as they were; the ones that do pass a stub.
+const tc = (s: TripsService, calendar?: Partial<CalendarService>, readModel?: Partial<TripReadModelService>) =>
+  new TripsController(s, audit, new RuntimeEnvService(), unsplashStub, (calendar ?? {}) as CalendarService, (readModel ?? {}) as TripReadModelService);
 
 function svc(o: Partial<TripsService> = {}): TripsService {
   return {
@@ -40,6 +51,14 @@ function svc(o: Partial<TripsService> = {}): TripsService {
     ...o,
   } as unknown as TripsService;
 }
+
+// The DTO ratchet types create()'s body from the shared contract, where
+// day_count is a number. Two cases below deliberately hand the handler a string,
+// because that is what an unvalidated client sends and what the handler still
+// guards against with Number(day_count) || 7. Naming the pre-pipe shape keeps
+// those payloads exactly as they were instead of retyping them into the contract.
+type CreateBody = Parameters<TripsController['create']>[1];
+const prePipeCreateBody = (body: unknown) => body as CreateBody;
 
 function thrown(fn: () => unknown): { status: number; body: unknown } {
   try { fn(); } catch (err) {
@@ -95,6 +114,41 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
     });
   });
 
+  describe('GET /cover-images/search', () => {
+    it('passes the caller through to the service and unwraps the photo list', async () => {
+      const searchCoverImages = vi.fn().mockResolvedValue({ photos: [{ id: 'p1' }] });
+      const s = svc({ searchCoverImages } as Partial<TripsService>);
+      expect(await tc(s).coverImages(user, 'kyoto')).toEqual({ photos: [{ id: 'p1' }] });
+      // The Unsplash key is resolved per user behind the service; dropping the id
+      // here would silently search every request with an admin's key.
+      expect(searchCoverImages).toHaveBeenCalledWith('kyoto', 1);
+    });
+
+    it('sends an absent query as "" so the service keeps owning the empty-query 400', async () => {
+      const searchCoverImages = vi.fn().mockResolvedValue({ error: 'Search query is required', status: 400 });
+      const s = svc({ searchCoverImages } as Partial<TripsService>);
+      expect(await thrownAsync(() => tc(s).coverImages(user, undefined))).toEqual({ status: 400, body: { error: 'Search query is required' } });
+      expect(searchCoverImages).toHaveBeenCalledWith('', 1);
+    });
+
+    it('keeps the upstream status instead of flattening it into the catch-all 500', async () => {
+      const s = svc({ searchCoverImages: vi.fn().mockResolvedValue({ error: 'Rate limit reached', status: 429 }) } as Partial<TripsService>);
+      // A 429 that arrives as a 500 makes the client retry immediately and burn
+      // the rest of the hourly Unsplash quota.
+      expect(await thrownAsync(() => tc(s).coverImages(user, 'kyoto'))).toEqual({ status: 429, body: { error: 'Rate limit reached' } });
+    });
+
+    it('maps an unexpected failure to a 500 that does not leak the cause', async () => {
+      const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        const s = svc({ searchCoverImages: vi.fn().mockRejectedValue(new Error('ECONNREFUSED api.unsplash.com')) } as Partial<TripsService>);
+        expect(await thrownAsync(() => tc(s).coverImages(user, 'kyoto'))).toEqual({ status: 500, body: { error: 'Error searching for cover images' } });
+      } finally {
+        err.mockRestore();
+      }
+    });
+  });
+
   describe('POST / (create)', () => {
     it('403 without trip_create; a missing title 400s in the ZodValidationPipe', () => {
       expect(thrown(() => tc(svc({ can: vi.fn().mockReturnValue(false) })).create(user, { title: 'T' }, req))).toEqual({ status: 403, body: { error: 'No permission to create trips' } });
@@ -118,13 +172,13 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
 
     it('infers start_date from end_date (-6 days) and parses day_count', () => {
       const create = vi.fn().mockReturnValue({ trip: { id: 9 }, tripId: 9, reminderDays: 0 });
-      tc(svc({ create } as Partial<TripsService>)).create(user, { title: 'T', end_date: '2026-07-07', day_count: '40' }, req);
+      tc(svc({ create } as Partial<TripsService>)).create(user, prePipeCreateBody({ title: 'T', end_date: '2026-07-07', day_count: '40' }), req);
       expect(create).toHaveBeenCalledWith(1, expect.objectContaining({ start_date: '2026-07-01', end_date: '2026-07-07', day_count: 40 }));
     });
 
     it('clamps a non-numeric day_count to the default of 7', () => {
       const create = vi.fn().mockReturnValue({ trip: { id: 9 }, tripId: 9, reminderDays: 0 });
-      tc(svc({ create } as Partial<TripsService>)).create(user, { title: 'T', day_count: 'abc' }, req);
+      tc(svc({ create } as Partial<TripsService>)).create(user, prePipeCreateBody({ title: 'T', day_count: 'abc' }), req);
       expect(create).toHaveBeenCalledWith(1, expect.objectContaining({ day_count: 7 }));
     });
 
@@ -244,129 +298,11 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
     });
   });
 
-  describe('members', () => {
-    it('GET 404 without access, else owner+members+current_user_id', () => {
-      expect(thrown(() => tc(svc({ canAccessTrip: vi.fn().mockReturnValue(undefined) })).members(user, '9'))).toEqual({ status: 404, body: { error: 'Trip not found' } });
-      const s = svc({ listMembers: vi.fn().mockReturnValue({ owner: { id: 1 }, members: [] }) } as Partial<TripsService>);
-      expect(tc(s).members(user, '9')).toEqual({ owner: { id: 1 }, members: [], current_user_id: 1 });
-    });
-
-    it('POST 403 without member_manage, else adds + notifies', () => {
-      expect(thrown(() => tc(svc({ can: vi.fn().mockReturnValue(false) })).addMember(user, '9', { identifier: 'bob@x.y' }))).toEqual({ status: 403, body: { error: 'No permission to manage members' } });
-      const addMember = vi.fn().mockReturnValue({ member: { id: 2, email: 'bob@x.y' }, targetUserId: 2, tripTitle: 'T' });
-      const notifyInvite = vi.fn();
-      const s = svc({ addMember, notifyInvite } as Partial<TripsService>);
-      expect(tc(s).addMember(user, '9', { identifier: 'bob@x.y' })).toEqual({ member: { id: 2, email: 'bob@x.y' } });
-      expect(notifyInvite).toHaveBeenCalledWith('9', user, 2, 'T', 'bob@x.y');
-    });
-
-    it('POST 404 without trip access', () => {
-      const s = svc({ canAccessTrip: vi.fn().mockReturnValue(undefined) });
-      expect(thrown(() => tc(s).addMember(user, '9', { identifier: 'bob@x.y' }))).toEqual({ status: 404, body: { error: 'Trip not found' } });
-    });
-
-    it('POST maps NotFoundError to 404, ValidationError to 400, re-throws others', () => {
-      const nf = svc({ addMember: vi.fn().mockImplementation(() => { throw new NotFoundError('no user'); }) } as Partial<TripsService>);
-      expect(thrown(() => tc(nf).addMember(user, '9', { identifier: 'bob@x.y' }))).toEqual({ status: 404, body: { error: 'no user' } });
-      const ve = svc({ addMember: vi.fn().mockImplementation(() => { throw new ValidationError('already a member'); }) } as Partial<TripsService>);
-      expect(thrown(() => tc(ve).addMember(user, '9', { identifier: 'bob@x.y' }))).toEqual({ status: 400, body: { error: 'already a member' } });
-      const other = svc({ addMember: vi.fn().mockImplementation(() => { throw new Error('boom'); }) } as Partial<TripsService>);
-      expect(() => tc(other).addMember(user, '9', { identifier: 'bob@x.y' })).toThrow('boom');
-    });
-
-    it('DELETE 404 without trip access', () => {
-      const s = svc({ canAccessTrip: vi.fn().mockReturnValue(undefined) });
-      expect(thrown(() => tc(s).removeMember(user, '9', '2'))).toEqual({ status: 404, body: { error: 'Trip not found' } });
-    });
-
-    it('DELETE self needs no permission; removing others needs member_manage', () => {
-      const removeMember = vi.fn();
-      const s = svc({ can: vi.fn().mockReturnValue(false), removeMember } as Partial<TripsService>);
-      // self-removal (targetId === user.id) bypasses the permission check
-      expect(tc(s).removeMember(user, '9', '1')).toEqual({ success: true });
-      expect(thrown(() => tc(s).removeMember(user, '9', '2'))).toEqual({ status: 403, body: { error: 'No permission to remove members' } });
-    });
-  });
-
-  describe('POST /:id/transfer (#973)', () => {
-    it('404 without trip access', () => {
-      const s = svc({ canAccessTrip: vi.fn().mockReturnValue(undefined) });
-      expect(thrown(() => tc(s).transferOwnership(user, '9', { newOwnerId: 2 }, req))).toEqual({ status: 404, body: { error: 'Trip not found' } });
-    });
-
-    it('403 when the requester is not the owner', () => {
-      // access.user_id (5) differs from the requesting user (1)
-      const s = svc({ canAccessTrip: vi.fn().mockReturnValue({ user_id: 5 }) });
-      expect(thrown(() => tc(s).transferOwnership(user, '9', { newOwnerId: 2 }, req))).toEqual({ status: 403, body: { error: 'Only the owner can transfer ownership' } });
-    });
-
-    it('a non-numeric newOwnerId 400s in the ZodValidationPipe', () => {
-      // The hand-rolled 'newOwnerId is required' 400 moved into the global
-      // pipe (trips DTO ratchet) — the schema rejects non-numeric ids.
-      expect(tripTransferOwnershipRequestSchema.safeParse({ newOwnerId: 'nope' }).success).toBe(false);
-      expect(tripTransferOwnershipRequestSchema.safeParse({}).success).toBe(false);
-    });
-
-    it('transfers, audits and broadcasts the refreshed trip', () => {
-      const transferOwnership = vi.fn().mockReturnValue({ tripTitle: 'Roadtrip', fromEmail: 'a@x.y', toEmail: 'b@x.y' });
-      const get = vi.fn().mockReturnValue({ id: 9, user_id: 2 });
-      const broadcast = vi.fn();
-      const s = svc({ transferOwnership, get, broadcast } as Partial<TripsService>);
-      expect(tc(s).transferOwnership(user, '9', { newOwnerId: 2 }, req, 'sock')).toEqual({ success: true });
-      expect(transferOwnership).toHaveBeenCalledWith('9', 2, user.id);
-      expect(broadcast).toHaveBeenCalledWith('9', 'trip:updated', { trip: { id: 9, user_id: 2 } }, 'sock');
-    });
-
-    it('maps NotFoundError to 404 and ValidationError to 400', () => {
-      const nf = svc({ transferOwnership: vi.fn().mockImplementation(() => { throw new NotFoundError('User not found'); }) } as Partial<TripsService>);
-      expect(thrown(() => tc(nf).transferOwnership(user, '9', { newOwnerId: 2 }, req))).toEqual({ status: 404, body: { error: 'User not found' } });
-      const ve = svc({ transferOwnership: vi.fn().mockImplementation(() => { throw new ValidationError('New owner must be a trip member'); }) } as Partial<TripsService>);
-      expect(thrown(() => tc(ve).transferOwnership(user, '9', { newOwnerId: 2 }, req))).toEqual({ status: 400, body: { error: 'New owner must be a trip member' } });
-    });
-  });
-
-  describe('guests (#1362)', () => {
-    it('404 without access, 403 for a non-owner, 400 without a name; else creates', () => {
-      expect(thrown(() => tc(svc({ canAccessTrip: vi.fn().mockReturnValue(undefined) })).createGuest(user, '9', { name: 'Anna' }))).toEqual({ status: 404, body: { error: 'Trip not found' } });
-      // access.user_id (5) ≠ requester (1) → not the owner
-      expect(thrown(() => tc(svc({ canAccessTrip: vi.fn().mockReturnValue({ user_id: 5 }) })).createGuest(user, '9', { name: 'Anna' }))).toEqual({ status: 403, body: { error: 'Only the owner can manage guests' } });
-      // A whitespace-only name still 400s with the legacy body — the service
-      // throws after trimming (the schema only enforces 1..50 chars).
-      const wsGuest = svc({ createGuest: vi.fn().mockImplementation(() => { throw new ValidationError('Guest name is required'); }) } as Partial<TripsService>);
-      expect(thrown(() => tc(wsGuest).createGuest(user, '9', { name: '  ' }))).toEqual({ status: 400, body: { error: 'Guest name is required' } });
-      const createGuest = vi.fn().mockReturnValue({ member: { id: 7, username: 'Anna', is_guest: true } });
-      const s = svc({ createGuest } as Partial<TripsService>);
-      expect(tc(s).createGuest(user, '9', { name: 'Anna' })).toEqual({ member: { id: 7, username: 'Anna', is_guest: true } });
-      expect(createGuest).toHaveBeenCalledWith('9', 'Anna', user.id);
-    });
-
-    it('rename: 403 non-owner, 404 when the guest is missing, else success', () => {
-      expect(thrown(() => tc(svc({ canAccessTrip: vi.fn().mockReturnValue({ user_id: 5 }) })).renameGuest(user, '9', '7', { name: 'Bob' }))).toEqual({ status: 403, body: { error: 'Only the owner can manage guests' } });
-      const miss = svc({ renameGuest: vi.fn().mockReturnValue(false) } as Partial<TripsService>);
-      expect(thrown(() => tc(miss).renameGuest(user, '9', '7', { name: 'Bob' }))).toEqual({ status: 404, body: { error: 'Guest not found' } });
-      const ok = svc({ renameGuest: vi.fn().mockReturnValue(true) } as Partial<TripsService>);
-      expect(tc(ok).renameGuest(user, '9', '7', { name: 'Bob' })).toEqual({ success: true });
-    });
-
-    it('delete: 403 non-owner, 404 when the guest is missing, else success', () => {
-      expect(thrown(() => tc(svc({ canAccessTrip: vi.fn().mockReturnValue({ user_id: 5 }) })).deleteGuest(user, '9', '7'))).toEqual({ status: 403, body: { error: 'Only the owner can manage guests' } });
-      const miss = svc({ deleteGuest: vi.fn().mockReturnValue(false) } as Partial<TripsService>);
-      expect(thrown(() => tc(miss).deleteGuest(user, '9', '7'))).toEqual({ status: 404, body: { error: 'Guest not found' } });
-      const ok = svc({ deleteGuest: vi.fn().mockReturnValue(true) } as Partial<TripsService>);
-      expect(tc(ok).deleteGuest(user, '9', '7')).toEqual({ success: true });
-    });
-
-    it('maps a ValidationError from createGuest to 400', () => {
-      const ve = svc({ createGuest: vi.fn().mockImplementation(() => { throw new ValidationError('Guest name must be 50 characters or fewer'); }) } as Partial<TripsService>);
-      expect(thrown(() => tc(ve).createGuest(user, '9', { name: 'x'.repeat(60) }))).toEqual({ status: 400, body: { error: 'Guest name must be 50 characters or fewer' } });
-    });
-  });
-
   it('GET /:id/bundle 404 then aggregates', () => {
     expect(thrown(() => tc(svc({ get: vi.fn().mockReturnValue(undefined) } as Partial<TripsService>)).bundle(user, '9'))).toEqual({ status: 404, body: { error: 'Trip not found' } });
     const bundle = vi.fn().mockReturnValue({ trip: { id: 9 }, days: [] });
-    const s = svc({ get: vi.fn().mockReturnValue({ user_id: 1 }), bundle } as Partial<TripsService>);
-    expect(tc(s).bundle(user, '9')).toEqual({ trip: { id: 9 }, days: [] });
+    const s = svc({ get: vi.fn().mockReturnValue({ user_id: 1 }) } as Partial<TripsService>);
+    expect(tc(s, undefined, { bundle }).bundle(user, '9')).toEqual({ trip: { id: 9 }, days: [] });
   });
 
   describe('POST /:id/cover', () => {
@@ -396,6 +332,84 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
         else process.env.DEMO_MODE = prev;
       }
     });
+
+    /**
+     * The multer options are a module-private const wired into the route through
+     * @UseInterceptors, so the handler tests above never reach them: a broken
+     * destination/filename/filter would still let every case in this file pass.
+     * Pulling the interceptor back off the route and reading the multer instance
+     * it built (multer keeps storage, limits and fileFilter verbatim) exercises
+     * the real callbacks instead of asserting an object literal.
+     */
+    type StorageCb = (err: Error | null, value: string) => void;
+    type CoverUpload = {
+      storage: {
+        getDestination: (req: unknown, file: Express.Multer.File, cb: StorageCb) => void;
+        getFilename: (req: unknown, file: Express.Multer.File, cb: StorageCb) => void;
+      };
+      limits: { fileSize: number };
+      fileFilter: (req: unknown, file: Express.Multer.File, cb: (err: Error | null, accept: boolean) => void) => void;
+    };
+    function coverUpload(): CoverUpload {
+      const [Interceptor] = Reflect.getMetadata(INTERCEPTORS_METADATA, TripsController.prototype.cover) as Array<new () => { multer: CoverUpload }>;
+      return new Interceptor().multer;
+    }
+    const coversDir = path.join('uploads', 'covers');
+
+    it('creates uploads/covers on the first upload and reuses it afterwards', () => {
+      // A fresh container has no uploads/covers, and multer does not create the
+      // destination itself, so without the mkdir the very first cover upload on
+      // a new instance fails with ENOENT.
+      const exists = vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+      const mkdir = vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
+      try {
+        const { getDestination } = coverUpload().storage;
+        const cb = vi.fn();
+        getDestination(req, file, cb);
+        expect(mkdir).toHaveBeenCalledWith(expect.stringContaining(coversDir), { recursive: true });
+        expect(cb).toHaveBeenCalledWith(null, expect.stringContaining(coversDir));
+        exists.mockReturnValue(true);
+        mkdir.mockClear();
+        getDestination(req, file, cb);
+        expect(mkdir).not.toHaveBeenCalled();
+        expect(cb).toHaveBeenLastCalledWith(null, expect.stringContaining(coversDir));
+      } finally {
+        exists.mockRestore();
+        mkdir.mockRestore();
+      }
+    });
+
+    it('gives every stored cover a fresh name and keeps the original extension', () => {
+      const { getFilename } = coverUpload().storage;
+      const cb = vi.fn();
+      const upload = { originalname: 'sunset.JPG' } as Express.Multer.File;
+      getFilename(req, upload, cb);
+      getFilename(req, upload, cb);
+      const [first, second] = cb.mock.calls.map((c) => c[1] as string);
+      // Keeping the client's name would let one trip's upload overwrite another's;
+      // dropping the extension leaves the static handler with no mime to serve.
+      expect(first).toMatch(/^[0-9a-f-]{36}\.JPG$/);
+      expect(second).not.toBe(first);
+    });
+
+    it('accepts the four allowed image types and rejects svg, a faked extension and a non-image mime', () => {
+      const { fileFilter, limits } = coverUpload();
+      const verdict = (originalname: string, mimetype: string) => {
+        const cb = vi.fn();
+        fileFilter(req, { originalname, mimetype } as Express.Multer.File, cb);
+        return cb.mock.calls[0];
+      };
+      expect(verdict('a.jpg', 'image/jpeg')).toEqual([null, true]);
+      // The extension check is case-insensitive; phones hand up .JPG/.PNG.
+      expect(verdict('a.WEBP', 'image/webp')).toEqual([null, true]);
+      // svg passes the image/* prefix but runs script when the browser opens the
+      // stored cover, so it is rejected even under an allowed extension.
+      expect(verdict('logo.png', 'image/svg+xml')).toEqual([expect.any(Error), false]);
+      // A binary renamed to an image mime must still fail on the extension.
+      expect(verdict('payload.exe', 'image/png')).toEqual([expect.any(Error), false]);
+      expect(verdict('a.png', 'application/octet-stream')).toEqual([expect.any(Error), false]);
+      expect(limits.fileSize).toBe(20 * 1024 * 1024);
+    });
   });
 
   describe('GET /:id/export.ics', () => {
@@ -403,18 +417,18 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
     it('404 without access, else sends the calendar with headers', () => {
       expect(thrown(() => tc(svc({ canAccessTrip: vi.fn().mockReturnValue(undefined) })).exportIcs(user, '9', makeRes()))).toEqual({ status: 404, body: { error: 'Trip not found' } });
       const res = { setHeader: vi.fn(), send: vi.fn() };
-      const s = svc({ exportICS: vi.fn().mockReturnValue({ ics: 'BEGIN:VCALENDAR', filename: 'trip.ics' }) } as Partial<TripsService>);
-      tc(s).exportIcs(user, '9', res as never);
+      const cal = { exportICS: vi.fn().mockReturnValue({ ics: 'BEGIN:VCALENDAR', filename: 'trip.ics' }) };
+      tc(svc(), cal).exportIcs(user, '9', res as never);
       expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/calendar; charset=utf-8');
       expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="trip.ics"');
       expect(res.send).toHaveBeenCalledWith('BEGIN:VCALENDAR');
     });
 
     it('maps a NotFoundError from the export to 404 and re-throws others', () => {
-      const nf = svc({ exportICS: vi.fn().mockImplementation(() => { throw new NotFoundError('gone'); }) } as Partial<TripsService>);
-      expect(thrown(() => tc(nf).exportIcs(user, '9', makeRes()))).toEqual({ status: 404, body: { error: 'gone' } });
-      const other = svc({ exportICS: vi.fn().mockImplementation(() => { throw new Error('boom'); }) } as Partial<TripsService>);
-      expect(() => tc(other).exportIcs(user, '9', makeRes())).toThrow('boom');
+      const nf = { exportICS: vi.fn().mockImplementation(() => { throw new NotFoundError('gone'); }) };
+      expect(thrown(() => tc(svc(), nf).exportIcs(user, '9', makeRes()))).toEqual({ status: 404, body: { error: 'gone' } });
+      const other = { exportICS: vi.fn().mockImplementation(() => { throw new Error('boom'); }) };
+      expect(() => tc(svc(), other).exportIcs(user, '9', makeRes())).toThrow('boom');
     });
   });
 

@@ -89,9 +89,11 @@ import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip } from '../../helpers/factories';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { AtlasService } from '../../../src/nest/atlas/atlas.service';
 import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
 import { AuthService } from '../../../src/nest/auth/auth.service';
+import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
+import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
 import { OidcService } from '../../../src/nest/oidc/oidc.service';
 import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
 
@@ -100,14 +102,18 @@ import { MailerService } from '../../../src/nest/notifications/mailer/mailer.ser
 const mailerStub = { sendPasswordResetEmail: vi.fn() } as unknown as MailerService;
 
 const membership = new TripMembershipService(new DatabaseService(testDb));
+// Positional, and previously shifted by one: an AtlasService sat in the membership
+// slot, which AuthService no longer takes at all, so webauthn/userCleanup/mailer
+// each landed one place too late and the EphemeralTokenService was missing
+// entirely. Nothing failed, because no case below reaches those collaborators.
 const auth = new AuthService(
   new DatabaseService(testDb),
   new PermissionsService(new DatabaseService(testDb)),
-  new AtlasService(new DatabaseService(testDb)),
   membership,
-  undefined as never, // webauthn — not reached from the OIDC paths
-  undefined as never, // userCleanup — not reached from the OIDC paths
+  new WebauthnConfigService(new DatabaseService(testDb)),
+  new UserCleanupService(new DatabaseService(testDb)),
   mailerStub,
+  new EphemeralTokenService(),
 );
 const svc = new OidcService(new DatabaseService(testDb), auth, membership);
 
@@ -825,5 +831,71 @@ describe('wrapper methods', () => {
     const req = {} as Request;
     svc.setAuthCookie(res, 'jwt', req);
     expect(setAuthCookieMock).toHaveBeenCalledWith(res, 'jwt', req);
+  });
+});
+
+// The SSO configuration read/write moved here from AdminService, which held the SQL
+// for a domain that already had a module. Same cases, same service, new owner.
+describe('OIDC settings', () => {
+  it('ADMIN-SVC-047 — getOidcSettings returns default empty values when no OIDC configured', () => {
+    const result = svc.getOidcSettings() as any;
+    expect(result.issuer).toBe('');
+    expect(result.client_id).toBe('');
+    expect(result.oidc_only).toBe(false);
+    expect(result.client_secret_set).toBe(false);
+    expect(result.display_name).toBe('');
+    expect(result.discovery_url).toBe('');
+  });
+
+  it('ADMIN-SVC-048 — updateOidcSettings persists issuer and client_id, then getOidcSettings returns them', () => {
+    svc.updateOidcSettings({ issuer: 'https://auth.example.com', client_id: 'my-client' });
+    const result = svc.getOidcSettings() as any;
+    expect(result.issuer).toBe('https://auth.example.com');
+    expect(result.client_id).toBe('my-client');
+  });
+
+  it('ADMIN-SVC-049 — updateOidcSettings does not write oidc_only (replaced by granular toggles)', () => {
+    svc.updateOidcSettings({ issuer: 'https://auth.example.com', client_id: 'my-client' });
+    const result = svc.getOidcSettings() as any;
+    // oidc_only is no longer managed by updateOidcSettings; use password_login/oidc_login toggles
+    expect(result.oidc_only).toBe(false);
+  });
+
+  it('ADMIN-SVC-075 — updateOidcSettings applies all five writes atomically', () => {
+    const result = svc.updateOidcSettings({ issuer: 'https://idp', client_id: 'cid', display_name: 'IdP' }) as any;
+    expect(result.success).toBe(true);
+    const settings = svc.getOidcSettings();
+    expect(settings).toMatchObject({ issuer: 'https://idp', client_id: 'cid', display_name: 'IdP' });
+  });
+});
+
+describe('OIDC settings — the lockout guard', () => {
+  it('OIDC-SETTINGS-050 refuses to clear the config while password login is off', () => {
+    // Clearing the issuer with password login disabled locks every user out of the
+    // instance: no SSO to log in through, and no password form either.
+    const toggles = vi.spyOn(auth, 'resolveAuthToggles').mockReturnValue({ password_login: false } as never);
+    expect(svc.updateOidcSettings({ issuer: '', client_id: 'x' })).toMatchObject({ status: 400 });
+    expect(svc.updateOidcSettings({ issuer: 'x', client_id: '' })).toMatchObject({ status: 400 });
+    expect((svc.updateOidcSettings({ issuer: '', client_id: '' }) as { error?: string }).error).toMatch(/password login/i);
+    toggles.mockRestore();
+  });
+
+  it('OIDC-SETTINGS-051 allows the same clear once password login is back on', () => {
+    const toggles = vi.spyOn(auth, 'resolveAuthToggles').mockReturnValue({ password_login: true } as never);
+    expect(svc.updateOidcSettings({ issuer: '', client_id: '' })).toEqual({ success: true });
+    toggles.mockRestore();
+  });
+
+  it('OIDC-SETTINGS-052 an omitted client_secret keeps the stored one, an empty string clears it', () => {
+    const toggles = vi.spyOn(auth, 'resolveAuthToggles').mockReturnValue({ password_login: true } as never);
+    svc.updateOidcSettings({ issuer: 'https://idp', client_id: 'c', client_secret: 'shh' });
+    expect(svc.getOidcSettings().client_secret_set).toBe(true);
+    // Omitted: the write skips the column entirely rather than blanking it, which is
+    // what lets the admin panel save the form without re-typing the secret.
+    svc.updateOidcSettings({ issuer: 'https://idp', client_id: 'c' });
+    expect(svc.getOidcSettings().client_secret_set).toBe(true);
+    svc.updateOidcSettings({ issuer: 'https://idp', client_id: 'c', client_secret: '' });
+    expect(svc.getOidcSettings().client_secret_set).toBe(false);
+    toggles.mockRestore();
   });
 });

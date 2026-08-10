@@ -45,9 +45,9 @@ import { DatabaseService } from '../../../src/nest/database/database.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { AddonsService } from '../../../src/nest/addons/addons.service';
 import { SettingsService } from '../../../src/nest/settings/settings.service';
-import { AtlasService } from '../../../src/nest/atlas/atlas.service';
 import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
 import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
 import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
 import { AuthService } from '../../../src/nest/auth/auth.service';
 import { PasskeyService } from '../../../src/nest/auth/passkey.service';
@@ -56,24 +56,27 @@ import { PermissionsService } from '../../../src/nest/permissions/permissions.se
 import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import { AdminService } from '../../../src/nest/admin/admin.service';
 import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
 
 const dbs = new DatabaseService(testDb);
 const realtime = new RealtimeService();
 const permissions = new PermissionsService(dbs);
 const webauthn = new WebauthnConfigService(dbs);
 const userCleanup = new UserCleanupService(dbs);
-const auth = new AuthService(dbs, permissions, new AtlasService(dbs), new TripMembershipService(dbs), webauthn, userCleanup);
+// Positional and previously wrong: an AtlasService sat in the membership slot
+// and the mailer was missing entirely, so `auth` was built with its last four
+// collaborators shifted by one. Nothing failed, because the version-check path
+// below never reaches them.
+const auth = new AuthService(dbs, permissions, new TripMembershipService(dbs), webauthn, userCleanup, new MailerService(dbs), new EphemeralTokenService());
 const svc = new AdminService(
   dbs,
-  new SettingsService(dbs),
   new AddonsService(dbs),
   new PasskeyService(dbs, auth, webauthn),
-  new PackingService(dbs, permissions, realtime),
   auth,
   permissions,
   makeNotificationsService(dbs, realtime),
   userCleanup,
-  makeNotificationPreferencesService(dbs),
+  realtime,
 );
 const checkAndNotifyVersion = () => svc.checkAndNotifyVersion();
 

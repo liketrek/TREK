@@ -18,11 +18,19 @@ import { TripsRpc } from '../../../src/nest/trips/trips.rpc';
 import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
 import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
+import type { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
 
 const req = (method: string, params: Record<string, unknown>): RpcRequest => ({ k: 'req', id: 'x', method, params });
 
-/** db.* is the cheapest handler to watch, and it needs no services of its own. */
-const dbRegistry = () => createTestPluginRegistry([new DbRpc()]);
+/**
+ * db.* is the cheapest handler to watch. The only service it needs is the per-user
+ * settings store behind `settings.get`, which none of these cases dispatch, so the stub
+ * carries just that read, typed off the real signature.
+ */
+const dbRegistry = () => {
+  const settings: Pick<PluginUserSettingsService, 'readOne'> = { readOne: () => undefined };
+  return createTestPluginRegistry([new DbRpc(settings as PluginUserSettingsService)]);
+};
 
 /** trips.getById lives on the decorators now, so the audit cases bind it through them. */
 const tripsRegistry = () => {
@@ -32,7 +40,7 @@ const tripsRegistry = () => {
   } as unknown as DatabaseService;
   const guards = new PluginGuards(db, {} as never, {} as never);
   return createTestPluginRegistry([
-    new TripsRpc({} as never, {} as never, {} as never, {} as never, db, {} as never, guards),
+    new TripsRpc({} as never, {} as never, {} as never, {} as never, db, {} as never, guards, {} as never, {} as never),
   ]);
 };
 

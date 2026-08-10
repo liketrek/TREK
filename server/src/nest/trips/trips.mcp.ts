@@ -6,13 +6,16 @@ import {
 } from '@trek/nest-mcp';
 import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
-import { isAddonEnabled, getCollabFeatures } from '../addons/addons.bridge';
+import { CalendarService } from '../calendar/calendar.service';
+import { TripMembersService } from '../trip-members/trip-members.service';
+import { TripReadModelService } from '../trip-read-model/trip-read-model.service';
 import { ADDON_IDS } from '../../addons';
 import { safeBroadcast, MAX_MCP_TRIP_DAYS, noAccess, hasTripPermission, permissionDenied } from '../../mcp/tools/_shared';
 import { canRead, canReadTrips, canDeleteTrips } from '../../mcp/scopes';
 import { TripsService, NotFoundError, ValidationError } from './trips.service';
 import { TodoService } from '../todo/todo.service';
 import { CollabService } from '../collab/collab.service';
+import { AddonsService } from '../addons/addons.service';
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -63,6 +66,12 @@ export class TripsMcp {
     private readonly todos: TodoService,
     private readonly collab: CollabService,
     private readonly auth: AuthService,
+    // Appended, not inserted: the hand-wired MCP test harnesses build this
+    // positionally, so an earlier slot would silently shift every one of them.
+    private readonly calendar: CalendarService,
+    private readonly members: TripMembersService,
+    private readonly readModel: TripReadModelService,
+    private readonly addons: AddonsService,
   ) {}
 
   // --- TRIPS ---
@@ -200,14 +209,14 @@ export class TripsMcp {
   })
   async getTripSummary({ tripId }: { tripId: number }, ctx: McpContext) {
     if (!this.trips.canAccessTrip(tripId, ctx.userId)) return noAccess();
-    const summary = this.trips.getTripSummary(tripId, ctx.userId);
+    const summary = this.readModel.getTripSummary(tripId, ctx.userId);
     if (!summary) return noAccess();
     const R = canReadTrips(ctx.scopes);
     // Addon availability gates
-    const packingEnabled = isAddonEnabled(ADDON_IDS.PACKING);
-    const budgetEnabled  = isAddonEnabled(ADDON_IDS.BUDGET);
-    const collabEnabled  = isAddonEnabled(ADDON_IDS.COLLAB);
-    const collabFeatures = collabEnabled ? getCollabFeatures() : null;
+    const packingEnabled = this.addons.isAddonEnabled(ADDON_IDS.PACKING);
+    const budgetEnabled  = this.addons.isAddonEnabled(ADDON_IDS.BUDGET);
+    const collabEnabled  = this.addons.isAddonEnabled(ADDON_IDS.COLLAB);
+    const collabFeatures = collabEnabled ? this.addons.getCollabFeatures() : null;
     // Scope gates — sections not covered by the client's OAuth scopes are omitted.
     // Core trip data (metadata, days, members, accommodations) is always included
     // because this tool is always registered and needed for navigation.
@@ -271,7 +280,7 @@ export class TripsMcp {
     if (!this.trips.canAccessTrip(tripId, ctx.userId)) return noAccess();
     const ownerRow = this.trips.getOwner(tripId);
     if (!ownerRow) return noAccess();
-    const { owner, members } = this.trips.listMembers(tripId, ownerRow.user_id);
+    const { owner, members } = this.members.listMembers(tripId, ownerRow.user_id);
     return ok({ owner, members });
   }
 
@@ -292,7 +301,7 @@ export class TripsMcp {
     if (!ownerRow || ownerRow.user_id !== ctx.userId)
       return { content: [{ type: 'text' as const, text: 'Only the trip owner can add members.' }], isError: true };
     try {
-      const result = this.trips.addMember(tripId, identifier, ownerRow.user_id, ctx.userId);
+      const result = this.members.addMember(tripId, identifier, ownerRow.user_id, ctx.userId);
       safeBroadcast(tripId, 'member:added', { member: result.member });
       return ok({ member: result.member });
     } catch (err) {
@@ -317,7 +326,7 @@ export class TripsMcp {
     const ownerRow = this.trips.getOwner(tripId);
     if (!ownerRow || ownerRow.user_id !== ctx.userId)
       return { content: [{ type: 'text' as const, text: 'Only the trip owner can remove members.' }], isError: true };
-    this.trips.removeMember(tripId, memberId);
+    this.members.removeMember(tripId, memberId);
     safeBroadcast(tripId, 'member:removed', { userId: memberId });
     return ok({ success: true });
   }
@@ -356,7 +365,7 @@ export class TripsMcp {
   async exportTripIcs({ tripId }: { tripId: number }, ctx: McpContext) {
     if (!this.trips.canAccessTrip(tripId, ctx.userId)) return noAccess();
     try {
-      const { ics, filename } = this.trips.exportICS(tripId);
+      const { ics, filename } = this.calendar.exportICS(tripId);
       return ok({ ics, filename });
     } catch {
       return { content: [{ type: 'text' as const, text: 'Trip not found.' }], isError: true };
@@ -403,7 +412,7 @@ export class TripsMcp {
     if (id === null || !this.trips.canAccessTrip(id, ctx.userId)) return accessDenied(uri.href);
     const ownerRow = this.trips.getOwner(id);
     if (!ownerRow) return accessDenied(uri.href);
-    const { owner, members } = this.trips.listMembers(id, ownerRow.user_id);
+    const { owner, members } = this.members.listMembers(id, ownerRow.user_id);
     return jsonContent(uri.href, { owner, members });
   }
 
@@ -421,7 +430,7 @@ export class TripsMcp {
     if (!this.trips.canAccessTrip(tripId, ctx.userId)) {
       return { messages: [{ role: 'user' as const, content: { type: 'text' as const, text: 'Trip not found or access denied.' } }] };
     }
-    const summary = this.trips.getTripSummary(tripId, ctx.userId);
+    const summary = this.readModel.getTripSummary(tripId, ctx.userId);
     if (!summary) {
       return { messages: [{ role: 'user' as const, content: { type: 'text' as const, text: 'Trip not found.' } }] };
     }

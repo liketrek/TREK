@@ -125,6 +125,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': 'Détails du lieu',
   'admin.placesDetails.subtitle':
     "Récupère les informations détaillées du lieu (horaires, note, site web) depuis l'API Google Places. Désactivez pour économiser le quota API.",
+  'admin.placesEnrich.title': 'Enrichissement des lieux',
+  'admin.placesEnrich.subtitle':
+    "Affiche des images et une description lors de l'ajout d'un lieu. Wikipédia et OpenStreetMap sont toujours utilisés ; Google s'y ajoute si Photos de lieux ou Détails de lieux sont activés.",
   'admin.bagTracking.title': 'Suivi des bagages',
   'admin.bagTracking.subtitle': "Activer le poids et l'attribution de bagages pour les articles",
   'admin.collab.chat.title': 'Chat',
@@ -219,6 +222,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Update → v{version}',
   'admin.plugins.enabledToggle': 'Activer le plugin',
   'plugins.notFound': 'Plugin introuvable',
+  'plugins.frameLoadFailed': "Ce plugin n'a pas pu être chargé.",
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Installez et gérez des plugins tiers sur votre instance.',
   'admin.plugins.disabledTitle': 'Les plugins sont désactivés',

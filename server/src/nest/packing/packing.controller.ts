@@ -17,6 +17,7 @@ import { PackingService } from './packing.service';
 import { isUpdateConflict } from '../common/conflictResult';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import {
   PackingApplyTemplateDto,
   PackingBagMembersDto,
@@ -52,32 +53,23 @@ type PackingItemRow = { is_private?: number; owner_id?: number | null; recipient
  * import arrays, the admin template gate) keep their exact legacy strings.
  */
 @Controller('api/trips/:tripId/packing')
-@UseGuards(JwtAuthGuard)
+// TripAccessGuard resolves :tripId and 404s a trip the user cannot reach; mutations
+// add @RequirePermission('packing_edit'), the same action string the service's canEdit
+// passes, so the HTTP and MCP paths cannot demand different rights.
+@UseGuards(JwtAuthGuard, TripAccessGuard)
 export class PackingController {
   constructor(private readonly packing: PackingService) {}
 
   /** Loads the trip or throws the legacy 404; returns it for the permission check. */
-  private requireTrip(tripId: string, user: User) {
-    const trip = this.packing.verifyTripAccess(tripId, user.id);
-    if (!trip) {
-      throw new HttpException({ error: 'Trip not found' }, 404);
-    }
-    return trip;
-  }
 
-  private requireEdit(trip: ReturnType<PackingService['verifyTripAccess']>, user: User): void {
-    if (!this.packing.canEdit(trip!, user)) {
-      throw new HttpException({ error: 'No permission' }, 403);
-    }
-  }
 
   @Get()
   list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
-    this.requireTrip(tripId, user);
     // Pass the viewer so private items (#858) owned by other members are hidden.
     return { items: this.packing.listItems(tripId, user.id) };
   }
 
+  @RequirePermission('packing_edit')
   @Post('import')
   importItems(
     @CurrentUser() user: User,
@@ -85,8 +77,6 @@ export class PackingController {
     @Body() body: PackingImportDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     // The schema guarantees an array; the empty-array rejection stays a bespoke 400.
     if (body.items.length === 0) {
       throw new HttpException({ error: 'items must be a non-empty array' }, 400);
@@ -98,6 +88,7 @@ export class PackingController {
     return { items: created, count: created.length };
   }
 
+  @RequirePermission('packing_edit')
   @Post()
   create(
     @CurrentUser() user: User,
@@ -105,14 +96,13 @@ export class PackingController {
     @Body() body: PackingCreateItemDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     // checked arrives as boolean or legacy 0/1 — the service coerces by truthiness.
     const item = this.packing.createItem(tripId, { name: body.name, category: body.category, checked: body.checked === undefined ? undefined : !!body.checked, is_private: body.is_private, visibility: body.visibility, recipient_ids: body.recipient_ids }, user.id);
     this.packing.emitToViewers(tripId, 'packing:created', { item }, item, socketId);
     return { item };
   }
 
+  @RequirePermission('packing_edit')
   @Put('reorder')
   reorder(
     @CurrentUser() user: User,
@@ -120,12 +110,11 @@ export class PackingController {
     @Body() body: PackingReorderDto,
     @Headers('x-socket-id') _socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     this.packing.reorderItems(tripId, body.orderedIds);
     return { success: true };
   }
 
+  @RequirePermission('packing_edit')
   @Put(':id')
   update(
     @CurrentUser() user: User,
@@ -135,8 +124,6 @@ export class PackingController {
     @Headers('x-socket-id') socketId?: string,
     @Headers('x-base-updated-at') ifMatch?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     // Privacy state before the change, so a public↔private toggle (#858) can route
     // the broadcast correctly instead of leaking a freshly-privatized item.
     const before = this.packing.getItemPrivacy(tripId, id);
@@ -156,6 +143,7 @@ export class PackingController {
     return { item: updated };
   }
 
+  @RequirePermission('packing_edit')
   @Delete(':id')
   remove(
     @CurrentUser() user: User,
@@ -163,8 +151,6 @@ export class PackingController {
     @Param('id') id: string,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     const deleted = this.packing.deleteItem(tripId, id);
     if (!deleted) {
       throw new HttpException({ error: 'Item not found' }, 404);
@@ -174,6 +160,7 @@ export class PackingController {
     return { success: true };
   }
 
+  @RequirePermission('packing_edit')
   @Put(':id/sharing')
   setSharing(
     @CurrentUser() user: User,
@@ -182,8 +169,6 @@ export class PackingController {
     @Body() body: PackingSetSharingDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     const updated = this.packing.setItemSharing(tripId, id, user.id, body.visibility, Array.isArray(body.recipient_ids) ? body.recipient_ids : []);
     if (!updated) {
       throw new HttpException({ error: 'Item not found' }, 404);
@@ -198,6 +183,7 @@ export class PackingController {
     return { item: updated };
   }
 
+  @RequirePermission('packing_edit')
   @Post(':id/clone')
   @HttpCode(201)
   clone(
@@ -206,8 +192,6 @@ export class PackingController {
     @Param('id') id: string,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     const item = this.packing.cloneItem(tripId, id, user.id);
     if (!item) {
       throw new HttpException({ error: 'Item not found' }, 404);
@@ -217,6 +201,7 @@ export class PackingController {
     return { item };
   }
 
+  @RequirePermission('packing_edit')
   @Post(':id/contributors')
   addContributor(
     @CurrentUser() user: User,
@@ -224,8 +209,6 @@ export class PackingController {
     @Param('id') id: string,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     const item = this.packing.addContributor(tripId, id, user.id);
     if (!item) {
       throw new HttpException({ error: 'Item not found or not a shared list item' }, 404);
@@ -235,6 +218,7 @@ export class PackingController {
     return { item };
   }
 
+  @RequirePermission('packing_edit')
   @Delete(':id/contributors/:userId')
   removeContributor(
     @CurrentUser() user: User,
@@ -243,8 +227,6 @@ export class PackingController {
     @Param('userId') userId: string,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     // You can drop your own pledge; the owner can remove anyone's.
     const target = parseInt(userId);
     const item = this.packing.removeContributor(tripId, id, target);
@@ -257,10 +239,10 @@ export class PackingController {
 
   @Get('bags')
   listBags(@CurrentUser() user: User, @Param('tripId') tripId: string) {
-    this.requireTrip(tripId, user);
     return { bags: this.packing.listBags(tripId) };
   }
 
+  @RequirePermission('packing_edit')
   @Post('bags')
   createBag(
     @CurrentUser() user: User,
@@ -268,8 +250,6 @@ export class PackingController {
     @Body() body: PackingCreateBagDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     // The schema requires a non-empty name; whitespace-only still 400s here.
     if (!body.name.trim()) {
       throw new HttpException({ error: 'Name is required' }, 400);
@@ -279,6 +259,7 @@ export class PackingController {
     return { bag };
   }
 
+  @RequirePermission('packing_edit')
   @Put('bags/:bagId')
   updateBag(
     @CurrentUser() user: User,
@@ -287,8 +268,6 @@ export class PackingController {
     @Body() body: PackingUpdateBagDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     const { name, color, weight_limit_grams, user_id } = body;
     // bodyKeys carries which keys the request actually provided (the presence-
     // sentinel protocol); the parsed body only ever holds known schema keys.
@@ -300,6 +279,7 @@ export class PackingController {
     return { bag: updated };
   }
 
+  @RequirePermission('packing_edit')
   @Delete('bags/:bagId')
   deleteBag(
     @CurrentUser() user: User,
@@ -307,8 +287,6 @@ export class PackingController {
     @Param('bagId') bagId: string,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     if (!this.packing.deleteBag(tripId, bagId)) {
       throw new HttpException({ error: 'Bag not found' }, 404);
     }
@@ -318,10 +296,10 @@ export class PackingController {
 
   @Get('templates')
   listTemplates(@CurrentUser() user: User, @Param('tripId') tripId: string) {
-    this.requireTrip(tripId, user);
     return { templates: this.packing.listTemplates() };
   }
 
+  @RequirePermission('packing_edit')
   @Post('apply-template/:templateId')
   @HttpCode(200)
   applyTemplate(
@@ -331,8 +309,6 @@ export class PackingController {
     @Body() body: PackingApplyTemplateDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     const visibility = body?.visibility === 'personal' ? 'personal' : 'common';
     const added = this.packing.applyTemplate(tripId, templateId, visibility, user.id);
     if (!added) {
@@ -342,6 +318,7 @@ export class PackingController {
     return { items: added, count: added.length };
   }
 
+  @RequirePermission('packing_edit')
   @Put('bags/:bagId/members')
   setBagMembers(
     @CurrentUser() user: User,
@@ -350,8 +327,6 @@ export class PackingController {
     @Body() body: PackingBagMembersDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     const members = this.packing.setBagMembers(tripId, bagId, body.user_ids);
     if (!members) {
       throw new HttpException({ error: 'Bag not found' }, 404);
@@ -360,13 +335,13 @@ export class PackingController {
     return { members };
   }
 
+  @RequirePermission('packing_edit')
   @Post('save-as-template')
   saveAsTemplate(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Body() body: PackingSaveTemplateDto,
   ) {
-    this.requireTrip(tripId, user);
     if (user.role !== 'admin') {
       throw new HttpException({ error: 'Admin access required' }, 403);
     }
@@ -383,10 +358,10 @@ export class PackingController {
 
   @Get('category-assignees')
   categoryAssignees(@CurrentUser() user: User, @Param('tripId') tripId: string) {
-    this.requireTrip(tripId, user);
     return { assignees: this.packing.getCategoryAssignees(tripId) };
   }
 
+  @RequirePermission('packing_edit')
   @Put('category-assignees/:categoryName')
   updateCategoryAssignees(
     @CurrentUser() user: User,
@@ -395,8 +370,6 @@ export class PackingController {
     @Body() body: PackingCategoryAssigneesDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     const category = decodeURIComponent(categoryName);
     const rows = this.packing.updateCategoryAssignees(tripId, category, body.user_ids);
     this.packing.broadcast(tripId, 'packing:assignees', { category, assignees: rows }, socketId);

@@ -43,7 +43,9 @@ export async function createMcpHarness(options: McpHarnessOptions): Promise<McpH
 
   const server = new McpServer({ name: 'trek-test', version: '1.0.0' });
 
-  if (withResources) registerResources(server, userId);
+  // registerResources gates the journey resources on the same scope list the
+  // tools use, so the harness has to hand it over as well.
+  if (withResources) registerResources(server, userId, scopes ?? null);
   if (withTools) {
     // In production bootstrap.ts hands the Nest-discovered registry to
     // registerTools after app.init(); the harness has no Nest app, so it
@@ -68,9 +70,21 @@ export async function createMcpHarness(options: McpHarnessOptions): Promise<McpH
   return { client, server, cleanup };
 }
 
+/**
+ * callTool is declared as a union of the current result shape and the legacy
+ * `toolResult` compatibility shape. Reading `content` off the union yields
+ * unknown, because the compatibility branch only has an index signature.
+ */
+type ToolCallResult = Awaited<ReturnType<Client['callTool']>>;
+type ToolCallContentResult = Extract<ToolCallResult, { content: unknown[] }>;
+type ToolTextContent = Extract<ToolCallContentResult['content'][number], { type: 'text' }>;
+
 /** Parse JSON from a callTool result (first text content item). */
-export function parseToolResult(result: Awaited<ReturnType<Client['callTool']>>): unknown {
-  const text = result.content.find((c: { type: string }) => c.type === 'text') as { type: 'text'; text: string } | undefined;
+export function parseToolResult(result: ToolCallResult): unknown {
+  // Our own McpServer always answers with the content shape, never the
+  // compatibility one, so pick that branch of the union.
+  const { content } = result as ToolCallContentResult;
+  const text = content.find((c): c is ToolTextContent => c.type === 'text');
   if (!text) throw new Error('No text content in tool result');
   return JSON.parse(text.text);
 }

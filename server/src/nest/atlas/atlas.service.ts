@@ -10,6 +10,8 @@ import {
   resolveCountryCodeSync,
   reverseGeocodeRegion,
 } from './atlas-geo';
+import { KNOWN_COUNTRIES } from './known-countries';
+import { haversineKm } from '../common/geo';
 
 export type CreateBucketData = {
   name: string;
@@ -777,5 +779,145 @@ export class AtlasService {
     // Post-fold quirk fix: user-scoped DELETE (defense-in-depth, see updateBucketItem).
     this.db.prepare('DELETE FROM bucket_list WHERE id = ? AND user_id = ?').run(itemId, userId);
     return true;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Travel stats
+  //
+  // Moved here from AuthService, which owned it only for historical reasons. It
+  // reads places/trips/visited_countries/place_regions and subtracts the same
+  // hidden countries the Atlas map hides, so every one of its data sources is
+  // already an Atlas concern. The move is what lets AuthModule drop its
+  // AtlasModule import: that edge was the reason atlas.mcp.ts had to reach
+  // AuthService through auth.bridge instead of injecting it.
+  //
+  // The route keeps its path (GET /api/auth/travel-stats) and is served by
+  // travel-stats.controller.ts in this directory.
+  // ---------------------------------------------------------------------------
+
+  getTravelStats(userId: number) {
+    const places = this.db.all<{ address: string | null; lat: number | null; lng: number | null }>(`
+    SELECT DISTINCT p.address, p.lat, p.lng
+    FROM places p
+    JOIN trips t ON p.trip_id = t.id
+    LEFT JOIN trip_members tm ON t.id = tm.trip_id
+    WHERE t.user_id = ? OR tm.user_id = ?
+  `, userId, userId);
+
+    // Archived trips still count here, matching the places, countries and flight
+    // distance widgets (which never filtered on is_archived) so the dashboard stats
+    // stay consistent — archiving a trip no longer zeroes out trips/days.
+    const tripStats = this.db.get<{ trips: number; days: number }>(`
+    SELECT COUNT(DISTINCT t.id) as trips,
+           COUNT(DISTINCT d.id) as days
+    FROM trips t
+    LEFT JOIN days d ON d.trip_id = t.id
+    LEFT JOIN trip_members tm ON t.id = tm.trip_id
+    WHERE (t.user_id = ? OR tm.user_id = ?)
+  `, userId, userId);
+
+    const cities = new Set<string>();
+    const coords: { lat: number; lng: number }[] = [];
+
+    places.forEach(p => {
+      // Explicit null checks: lat/lng of exactly 0 (equator / prime meridian)
+      // are valid coordinates the former falsy check silently dropped.
+      if (p.lat != null && p.lng != null) coords.push({ lat: p.lat, lng: p.lng });
+      if (p.address) {
+        const parts = p.address.split(',').map(s => s.trim().replace(/\d{3,}/g, '').trim());
+        const cityPart = parts.find(s => !KNOWN_COUNTRIES.has(s) && /^[A-Za-z\u00C0-\u00FF\s-]{2,}$/.test(s));
+        if (cityPart) cities.add(cityPart);
+      }
+    });
+
+    // Visited countries \u2014 same source the Atlas page uses: ISO-2 codes from
+    // auto-resolved place regions plus countries the user marked manually.
+    const countryCodes = new Set<string>();
+    const manualCountries = this.db.all<{ country_code: string }>(
+      'SELECT country_code FROM visited_countries WHERE user_id = ?',
+      userId
+    );
+    manualCountries.forEach(m => { if (m.country_code) countryCodes.add(m.country_code.toUpperCase()); });
+
+    // Only trips that have already started count as visited — a country you have merely
+    // booked a trip to isn't stamped in the passport yet, and one you jotted down without
+    // any dates even less so (#1048). date('now') is UTC, matching tripVisitStatus.
+    const placeRegionCodes = this.db.all<{ country_code: string }>(`
+    SELECT DISTINCT pr.country_code
+    FROM place_regions pr
+    JOIN places p ON p.id = pr.place_id
+    JOIN trips t ON p.trip_id = t.id
+    LEFT JOIN trip_members tm ON t.id = tm.trip_id
+    WHERE (t.user_id = ? OR tm.user_id = ?) AND pr.country_code IS NOT NULL
+      AND COALESCE(t.start_date, t.end_date) IS NOT NULL
+      AND COALESCE(t.start_date, t.end_date) <= date('now')
+  `, userId, userId);
+    placeRegionCodes.forEach(r => { if (r.country_code) countryCodes.add(r.country_code.toUpperCase()); });
+
+    // Transport bookings don't create a place row, so their geocoded endpoints never
+    // reached place_regions — a country reached only by a flight/train (no lodging or
+    // planned place there) was never counted as visited (#1366). Resolve each endpoint
+    // coordinate to a country and fold it in too.
+    // Only 'from'/'to' legs count as actually reached — a 'stop' is an intermediate
+    // connection/layover (e.g. a plane change) the traveler never really visited (#1486).
+    const endpoints = this.db.all<{ lat: number; lng: number }>(`
+    SELECT DISTINCT e.lat, e.lng
+    FROM reservation_endpoints e
+    JOIN reservations r ON e.reservation_id = r.id
+    JOIN trips t ON r.trip_id = t.id
+    LEFT JOIN trip_members tm ON t.id = tm.trip_id
+    WHERE (t.user_id = ? OR tm.user_id = ?) AND e.role IN ('from', 'to')
+      AND COALESCE(t.start_date, t.end_date) IS NOT NULL
+      AND COALESCE(t.start_date, t.end_date) <= date('now')
+  `, userId, userId);
+    for (const e of endpoints) {
+      const code = getCountryFromCoords(e.lat, e.lng);
+      if (code) countryCodes.add(code.toUpperCase());
+    }
+
+    // Countries the user removed in Atlas stay removed on the dashboard too, so the
+    // passport card and the Atlas map agree (#1490).
+    for (const code of this.getHiddenCountries(userId)) countryCodes.delete(code.toUpperCase());
+
+    return {
+      countries: [...countryCodes],
+      cities: [...cities],
+      coords,
+      totalTrips: tripStats?.trips || 0,
+      totalDays: tripStats?.days || 0,
+      totalPlaces: places.length,
+      totalDistanceKm: this.flightDistanceKm(userId),
+    };
+  }
+
+  /**
+   * Total flight distance a user has covered, summed across every non-cancelled
+   * flight reservation in their trips. Each flight stores its waypoints in
+   * reservation_endpoints (from → stops → to, ordered by sequence); the legs
+   * between consecutive points are added up so multi-stop flights count
+   * correctly.
+   */
+  private flightDistanceKm(userId: number): number {
+    const rows = this.db.all<{ reservation_id: number; lat: number; lng: number }>(`
+      SELECT re.reservation_id, re.lat, re.lng
+      FROM reservation_endpoints re
+      JOIN reservations r ON r.id = re.reservation_id
+      JOIN trips t ON t.id = r.trip_id
+      LEFT JOIN trip_members tm ON tm.trip_id = t.id AND tm.user_id = ?
+      WHERE (t.user_id = ? OR tm.user_id IS NOT NULL)
+        AND r.type = 'flight'
+        AND r.status != 'cancelled'
+      ORDER BY re.reservation_id, re.sequence
+    `, userId, userId);
+
+    let total = 0;
+    let prev: { id: number; lat: number; lng: number } | null = null;
+    for (const point of rows) {
+      if (prev && prev.id === point.reservation_id) {
+        total += haversineKm(prev.lat, prev.lng, point.lat, point.lng);
+      }
+      prev = { id: point.reservation_id, lat: point.lat, lng: point.lng };
+    }
+    return Math.round(total);
   }
 }

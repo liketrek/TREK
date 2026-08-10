@@ -6,16 +6,17 @@ import {
 } from '@trek/nest-mcp';
 import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
-import { isAddonEnabled } from '../addons/addons.bridge';
 import { ADDON_IDS } from '../../addons';
 import { safeBroadcast, noAccess, hasTripPermission, permissionDenied } from '../../mcp/tools/_shared';
 import { getTripOwner, listMembers, getTripSummary } from '../trips/trips.bridge';
 import { DatabaseService } from '../database/database.service';
 import { BudgetService } from './budget.service';
 import { ExchangeRatesService } from './exchange-rates.service';
+import { addonGate } from '../addons/addon-gate';
+import { AddonsService } from '../addons/addons.service';
 
 /** Legacy registrar gate: the whole budget surface rides the budget addon. */
-const budgetAddonOn = () => isAddonEnabled(ADDON_IDS.BUDGET);
+const budgetAddonOn = addonGate(ADDON_IDS.BUDGET);
 
 /** Reusable Zod shape for the per-payer amounts on a budget item. */
 const payersSchema = z.array(z.object({
@@ -69,6 +70,7 @@ export class BudgetMcp {
     private readonly exchangeRates: ExchangeRatesService,
     private readonly db: DatabaseService,
     private readonly auth: AuthService,
+    readonly addons: AddonsService,
   ) {}
 
   // --- BUDGET ---

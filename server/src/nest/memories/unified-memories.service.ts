@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { broadcast } from '../../websocket';
 import { encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { DatabaseService } from '../database/database.service';
-import { send } from '../notifications/notifications.bridge';
 import { TrekPhotosRepository } from '../photos/trek-photos.repository';
 import { ImmichService } from './immich.service';
 import { SynologyService } from './synology.service';
@@ -15,6 +14,7 @@ import {
   type ServiceResult,
   type SyncAlbumResult,
 } from './memories.helpers';
+import { NotificationsService } from '../notifications/notifications.service';
 
 /**
  * The provider-agnostic trip photo surface: which photos a trip shows, which
@@ -30,6 +30,7 @@ export class UnifiedMemoriesService {
     private readonly immich: ImmichService,
     private readonly synology: SynologyService,
     private readonly access: MemoriesAccessService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private _providers(): Array<{id: string; enabled: boolean}> {
@@ -327,7 +328,7 @@ export class UnifiedMemoriesService {
       const tripInfo = this.db.prepare('SELECT title FROM trips WHERE id = ?').get(tripId) as { title: string } | undefined;
 
     
-      send({ event: 'photos_shared', actorId: actorUserId, scope: 'trip', targetId: Number(tripId), params: { trip: tripInfo?.title || 'Untitled', actor: actorRow?.email || 'Unknown', count: String(added), tripId: String(tripId) } }).catch(() => {});
+      this.notifications.send({ event: 'photos_shared', actorId: actorUserId, scope: 'trip', targetId: Number(tripId), params: { trip: tripInfo?.title || 'Untitled', actor: actorRow?.email || 'Unknown', count: String(added), tripId: String(tripId) } }).catch(() => {});
       return success(undefined);
     } catch {
       return fail('Failed to send notifications', 500);

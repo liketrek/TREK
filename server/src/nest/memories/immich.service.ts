@@ -6,7 +6,7 @@ import { checkSsrf, safeFetch } from '../../utils/ssrfGuard';
 import { AuditService } from '../audit/audit.service';
 import { DatabaseService } from '../database/database.service';
 import { MemoriesAccessService } from './memories-access.service';
-import { pipeAsset, type Selection } from './memories.helpers';
+import { fail, handleServiceResult, pipeAsset, type Selection } from './memories.helpers';
 import { UPLOADS_ROOT } from './uploads-root';
 
 const ALBUM_PAGE_SIZE = 1000;
@@ -317,6 +317,19 @@ export class ImmichService {
     }
   }
 
+  /**
+   * Proxy one asset to the response.
+   *
+   * The credential guard WRITES the 404 rather than returning it. It used to
+   * answer `{ error, status }` and leave the response untouched, and all four
+   * callers ignored that return — so a user whose Immich connection had been
+   * removed got no status line at all and the request hung until the client
+   * gave up. Its Synology counterpart has always written through
+   * `handleServiceResult`; this is the same shape.
+   *
+   * Every other exit goes through `pipeAsset`, which writes on all paths
+   * including its catch, so the method is `void` all the way down now.
+   */
   async streamImmichAsset(
     response: Response,
     userId: number,
@@ -324,10 +337,13 @@ export class ImmichService {
     kind: 'thumbnail' | 'original',
     ownerUserId?: number,
     opts?: { mediaType?: string | null; range?: string },
-  ): Promise<{ error?: string; status?: number } | void> {
+  ): Promise<void> {
     const effectiveUserId = ownerUserId ?? userId;
     const creds = this.getImmichCredentials(effectiveUserId);
-    if (!creds) return { error: 'Not found', status: 404 };
+    if (!creds) {
+      handleServiceResult(response, fail('Not found', 404));
+      return;
+    }
 
     const isVideo = opts?.mediaType === 'video';
     const headers: Record<string, string> = { 'x-api-key': creds.immich_api_key };

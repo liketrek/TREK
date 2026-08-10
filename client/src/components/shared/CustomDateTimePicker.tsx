@@ -282,7 +282,11 @@ export function CustomDatePicker({
           }}
         />
       ) : (
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+        // `stretch`, not `center`: the keyboard button's own padding made it a
+        // few pixels shorter than the date trigger beside it, and the two sat in
+        // a row with mismatched heights. Stretching means it tracks the trigger
+        // whatever the type scale does to that one.
+        <div style={{ display: 'flex', gap: 4, alignItems: 'stretch' }}>
           {/* Calendar trigger */}
           <button
             type="button"
@@ -331,9 +335,10 @@ export function CustomDatePicker({
               style={{
                 background: 'none',
                 border: '1px solid var(--border-primary)',
-                borderRadius: 8,
+                // Same corner as the trigger it stands next to.
+                borderRadius: 10,
                 cursor: 'pointer',
-                padding: '7px 8px',
+                padding: '0 9px',
                 display: 'flex',
                 alignItems: 'center',
                 color: 'var(--text-faint)',

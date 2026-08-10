@@ -119,6 +119,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': '地点详情',
   'admin.placesDetails.subtitle':
     '从 Google Places API 获取地点详细信息（营业时间、评分、网站）。禁用可节省 API 配额。',
+  'admin.placesEnrich.title': '地点信息补充',
+  'admin.placesEnrich.subtitle':
+    '添加地点时显示图片和描述。始终使用维基百科和 OpenStreetMap；开启「地点照片」或「地点详情」时会额外使用 Google。',
   'admin.bagTracking.title': '行李追踪',
   'admin.bagTracking.subtitle': '为打包物品启用重量和行李分配',
   'admin.collab.chat.title': '聊天',
@@ -208,6 +211,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': '更新 → v{version}',
   'admin.plugins.enabledToggle': '启用插件',
   'plugins.notFound': '未找到插件',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': '插件',
   'admin.plugins.subtitle': '在你的实例上安装和管理第三方插件。',
   'admin.plugins.disabledTitle': '插件功能已禁用',

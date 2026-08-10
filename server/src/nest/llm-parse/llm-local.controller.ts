@@ -3,6 +3,7 @@ import type { Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { LlmLocalService } from './llm-local.service';
+import { LlmLocalPullDto } from './llm-local.dto';
 
 /**
  * Admin-only management of a local LLM server (Ollama): list installed models and
@@ -24,7 +25,7 @@ export class LlmLocalController {
    * response body to render a progress bar. Uses @Res() to stream manually.
    */
   @Post('pull')
-  async pull(@Body() body: { baseUrl?: string; model?: string }, @Res() res: Response): Promise<void> {
+  async pull(@Body() body: LlmLocalPullDto, @Res() res: Response): Promise<void> {
     const stream = await this.local.pull(body?.baseUrl, body?.model ?? '');
     res.status(200);
     res.setHeader('Content-Type', 'application/x-ndjson');

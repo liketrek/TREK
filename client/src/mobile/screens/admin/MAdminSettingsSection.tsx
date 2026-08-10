@@ -25,10 +25,11 @@ interface MAdminSettingsSectionProps {
 export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectionProps) {
   const {
     toast,
-    setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled,
+    setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, setPlacesEnrichEnabled,
     placesPhotosEnabled, setPlacesPhotosEnabledState,
     placesAutocompleteEnabled, setPlacesAutocompleteEnabledState,
     placesDetailsEnabled, setPlacesDetailsEnabledState,
+    placesEnrichEnabled, setPlacesEnrichEnabledState,
     oidcConfig, setOidcConfig, savingOidc, setSavingOidc,
     passwordLogin, setPasswordLogin, passwordRegistration, setPasswordRegistration,
     oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration,
@@ -318,6 +319,26 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
                     } catch {
                       setPlacesDetailsEnabledState(!next)
                       setPlacesDetailsEnabled(!next)
+                    }
+                  }}
+                />
+              }
+            />
+            <MAdminRow
+              title={t('admin.placesEnrich.title')}
+              hint={t('admin.placesEnrich.subtitle')}
+              trailing={
+                <MToggle
+                  checked={placesEnrichEnabled}
+                  ariaLabel={t('admin.placesEnrich.title')}
+                  onChange={async (next) => {
+                    setPlacesEnrichEnabledState(next)
+                    setPlacesEnrichEnabled(next)
+                    try {
+                      await adminApi.updatePlacesEnrich(next)
+                    } catch {
+                      setPlacesEnrichEnabledState(!next)
+                      setPlacesEnrichEnabled(!next)
                     }
                   }}
                 />

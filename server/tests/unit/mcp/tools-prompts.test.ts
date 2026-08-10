@@ -42,10 +42,14 @@ const { isAddonEnabledMock } = vi.hoisted(() => {
   const isAddonEnabledMock = vi.fn().mockReturnValue(true);
   return { isAddonEnabledMock };
 });
-vi.mock('../../../src/nest/addons/addons.bridge', () => ({
+// Was a module mock over addons.bridge. The `when:` gates read the controller's
+// injected AddonsService now, so the toggle goes in through the constructor —
+// which is the point of the change: the dependency is in the signature instead
+// of behind an import path.
+const addonsStub = {
   isAddonEnabled: isAddonEnabledMock,
-  getCollabFeatures: vi.fn().mockReturnValue({ chat: true, notes: true, polls: true, whatsnext: true }),
-}));
+  getCollabFeatures: () => ({ chat: true, notes: true, polls: true, whatsnext: true }),
+} as unknown as AddonsService;
 
 const { mockGetTripSummary } = vi.hoisted(() => ({
   mockGetTripSummary: vi.fn(),
@@ -77,15 +81,30 @@ import type { AuthService } from '../../../src/nest/auth/auth.service';
 import type { TripsService } from '../../../src/nest/trips/trips.service';
 import type { TodoService } from '../../../src/nest/todo/todo.service';
 import type { CollabService } from '../../../src/nest/collab/collab.service';
+import { AddonsService } from '../../../src/nest/addons/addons.service';
+import { notificationsStub } from '../../helpers/notifications';
 
 // The trip-summary prompt moved to the DI-discovered TripsMcp — its cases below
 // exercise it through a hand-built registry over a stub TripsService whose
 // getTripSummary is the same controllable mock the legacy path used.
 const tripsStub = {
   canAccessTrip: (tripId: number, userId: number) => dbMock.canAccessTrip(tripId, userId),
-  getTripSummary: (tripId: number, viewerUserId?: number) => mockGetTripSummary(tripId, viewerUserId),
 } as unknown as TripsService;
-const tripsMcp = new TripsMcp(tripsStub, { listItems: () => [] } as unknown as TodoService, { listPolls: () => [], countMessages: () => 0 } as unknown as CollabService);
+// getTripSummary moved to TripReadModelService with the trip split; the mock is
+// the same controllable one, one constructor slot further along.
+const readModelStub = {
+  getTripSummary: (tripId: number, viewerUserId?: number) => mockGetTripSummary(tripId, viewerUserId),
+} as never;
+const tripsMcp = new TripsMcp(
+  tripsStub,
+  { listItems: () => [] } as unknown as TodoService,
+  { listPolls: () => [], countMessages: () => 0 } as unknown as CollabService,
+  undefined as never,
+  undefined as never,
+  undefined as never,
+  readModelStub,
+  addonsStub,
+);
 
 // The three remaining prompts moved to their domains' @McpController classes:
 // packing-list, budget-overview and the static-token notice. Built over the same
@@ -93,13 +112,16 @@ const tripsMcp = new TripsMcp(tripsStub, { listItems: () => [] } as unknown as T
 const promptDbs = () => new DatabaseService(testDb);
 const authStub = { isDemoUser: () => false } as unknown as AuthService;
 const packingMcp = new PackingMcp(
-  new PackingService(promptDbs(), new PermissionsService(promptDbs()), new RealtimeService()),
+  new PackingService(promptDbs(), new PermissionsService(promptDbs()), new RealtimeService(), notificationsStub()),
   authStub,
+  addonsStub,
 );
 const budgetMcp = new BudgetMcp(
   new BudgetService(promptDbs(), new PermissionsService(promptDbs()), new ExchangeRatesService(), new RealtimeService()),
   new ExchangeRatesService(),
   promptDbs(),
+  undefined as never,
+  addonsStub,
 );
 const authMcp = new AuthMcp();
 

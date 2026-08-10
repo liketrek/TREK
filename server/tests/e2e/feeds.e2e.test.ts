@@ -8,8 +8,9 @@
  *     valid token → 200 text/calendar with the injected REFRESH-INTERVAL / X-PUBLISHED-TTL
  *     hints, unknown token → 404, all-trips feed excludes archived + >90-day-old trips
  *
- * exportICS is mocked so the test owns the ICS payload and can assert which trips
- * the all-trips feed pulled in without seeding the full trip/day/reservation schema.
+ * buildTripCalendar is mocked so the test owns the calendar parts and can assert
+ * which trips the all-trips feed pulled in without seeding the full
+ * trip/day/reservation schema.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
@@ -35,19 +36,22 @@ const { db } = vi.hoisted(() => {
 
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
 
-// Own the ICS payload so we control the events and can assert which trips were pulled.
-const SAMPLE_ICS =
-  'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TREK//Travel Planner//EN\r\nCALSCALE:GREGORIAN\r\n' +
-  'METHOD:PUBLISH\r\nX-WR-CALNAME:Sample\r\n' +
+// Own the calendar parts so we control the events and can assert which trips were pulled.
+const SAMPLE_EVENT =
   'BEGIN:VEVENT\r\nUID:trek-trip-x@trek\r\nDTSTAMP:20260101T000000Z\r\n' +
-  'DTSTART;VALUE=DATE:20260101\r\nDTEND;VALUE=DATE:20260102\r\nSUMMARY:Sample\r\nEND:VEVENT\r\n' +
-  'END:VCALENDAR\r\n';
-// Since the trip fold, FeedsService injects TripsService — the mock is a spy on
-// the container singleton (created in beforeAll, after build()).
-const exportICS = vi.fn();
+  'DTSTART;VALUE=DATE:20260101\r\nDTEND;VALUE=DATE:20260102\r\nSUMMARY:Sample\r\nEND:VEVENT\r\n';
+const sampleCalendar = () => ({
+  calName: 'Sample',
+  filename: 'sample.ics',
+  timezones: new Map<string, string>(),
+  events: [SAMPLE_EVENT],
+});
+// FeedsService injects CalendarService — the mock is a spy on the container
+// singleton (created in beforeAll, after build()).
+const buildTripCalendar = vi.fn();
 
 import { FeedsModule } from '../../src/nest/feeds/feeds.module';
-import { TripsService } from '../../src/nest/trips/trips.service';
+import { CalendarService } from '../../src/nest/calendar/calendar.service';
 import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 
@@ -73,13 +77,13 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     seedUser(db as never, { id: 1, username: 'e2e-user' });
     seedUser(db as never, { id: 2, username: 'other-user', email: 'other@example.test' });
     app = await build();
-    vi.spyOn(app.get(TripsService), 'exportICS').mockImplementation(exportICS as never);
+    vi.spyOn(app.get(CalendarService), 'buildTripCalendar').mockImplementation(buildTripCalendar as never);
     server = app.getHttpServer();
   });
 
   beforeEach(() => {
-    exportICS.mockReset();
-    exportICS.mockReturnValue({ ics: SAMPLE_ICS, filename: 'sample.ics' });
+    buildTripCalendar.mockReset();
+    buildTripCalendar.mockImplementation(() => sampleCalendar());
     // Reset feed tokens + trips between tests for isolation.
     db.exec('DELETE FROM trips; DELETE FROM trip_members; UPDATE users SET feed_token = NULL;');
     db.prepare("INSERT INTO trips (id, user_id, title, is_archived, start_date, end_date) VALUES (5, 1, 'Owned', 0, '2026-01-01', '2099-01-01')").run();
@@ -166,7 +170,7 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     expect(res.text).toContain('REFRESH-INTERVAL;VALUE=DURATION:PT1H');
     expect(res.text).toContain('X-PUBLISHED-TTL:PT1H');
     expect(res.text).toContain('BEGIN:VEVENT');
-    expect(exportICS).toHaveBeenCalledWith(5);
+    expect(buildTripCalendar).toHaveBeenCalledWith(5);
   });
 
   it('public trip feed: 404 for an unknown token', async () => {
@@ -197,7 +201,7 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     expect(res.text).toContain('REFRESH-INTERVAL;VALUE=DURATION:PT1H');
     expect(res.text).toContain('X-WR-CALNAME:e2e-user');
 
-    const calledIds = exportICS.mock.calls.map((c) => c[0]).sort();
+    const calledIds = buildTripCalendar.mock.calls.map((c) => c[0]).sort();
     expect(calledIds).toEqual([5]); // only the active, recent trip — not 6 (archived) or 7 (old)
   });
 
@@ -213,7 +217,7 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     const res = await request(server).get(`/api/feed/user/${token}.ics`);
     expect(res.status).toBe(200);
 
-    const calledIds = exportICS.mock.calls.map((c) => c[0]).sort();
+    const calledIds = buildTripCalendar.mock.calls.map((c) => c[0]).sort();
     expect(calledIds).toEqual([5, 8]); // owned trip 5 AND member trip 8
   });
 
@@ -224,15 +228,18 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
 
   it('all-trips feed carries VTIMEZONE blocks so TZID references resolve (#1453)', async () => {
     // A per-trip calendar whose event references a zone via TZID and defines it.
-    const ZONED_ICS =
-      'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TREK//Travel Planner//EN\r\nCALSCALE:GREGORIAN\r\n' +
-      'METHOD:PUBLISH\r\nX-WR-CALNAME:Zoned\r\n' +
+    const PARIS_VTIMEZONE =
       'BEGIN:VTIMEZONE\r\nTZID:Europe/Paris\r\nBEGIN:STANDARD\r\nDTSTART:19700101T000000\r\n' +
-      'TZOFFSETFROM:+0100\r\nTZOFFSETTO:+0100\r\nTZNAME:Europe/Paris\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\n' +
-      'BEGIN:VEVENT\r\nUID:trek-res-1@trek\r\nDTSTAMP:20260101T000000Z\r\n' +
-      'DTSTART;TZID=Europe/Paris:20260602T090000\r\nSUMMARY:Flight\r\nEND:VEVENT\r\n' +
-      'END:VCALENDAR\r\n';
-    exportICS.mockReturnValue({ ics: ZONED_ICS, filename: 'zoned.ics' });
+      'TZOFFSETFROM:+0100\r\nTZOFFSETTO:+0100\r\nTZNAME:Europe/Paris\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\n';
+    buildTripCalendar.mockImplementation(() => ({
+      calName: 'Zoned',
+      filename: 'zoned.ics',
+      timezones: new Map([['Europe/Paris', PARIS_VTIMEZONE]]),
+      events: [
+        'BEGIN:VEVENT\r\nUID:trek-res-1@trek\r\nDTSTAMP:20260101T000000Z\r\n' +
+          'DTSTART;TZID=Europe/Paris:20260602T090000\r\nSUMMARY:Flight\r\nEND:VEVENT\r\n',
+      ],
+    }));
 
     const gen = await request(server).post('/api/feed/user/token').set('Cookie', sessionCookie(1));
     const token = gen.body.feed_url.match(/user\/([0-9a-f-]+)\.ics$/)![1];

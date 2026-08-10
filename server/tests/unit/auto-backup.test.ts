@@ -9,9 +9,12 @@
  * which snapshots the DB with VACUUM INTO and bundles the key.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { PathLike } from 'node:fs';
 
 const fsMock = vi.hoisted(() => ({
-  existsSync: vi.fn(() => false),
+  // The parameter is declared so the double carries fs's real signature: the
+  // cases below replace this default with a path-dependent implementation.
+  existsSync: vi.fn((_p: PathLike) => false),
   mkdirSync: vi.fn(),
   readFileSync: vi.fn(() => '{}'),
   writeFileSync: vi.fn(),
@@ -85,7 +88,14 @@ function scheduledRun(): () => Promise<void> {
   fsMock.readFileSync.mockReturnValue(JSON.stringify({ enabled: true, interval: 'daily', keep_days: 7 }));
   // The same wiring index.ts does from the container, with the real service
   // function behind it — the run below is still the production code path.
-  setSchedulerDeps({ backups: { createBackup } });
+  // Only the backup tick is started here; the scheduler's other two container
+  // collaborators are stubbed so the deps object is complete, and neither the
+  // place-photo sweep nor the AirTrail tick is scheduled by start().
+  setSchedulerDeps({
+    backups: { createBackup },
+    placePhotos: { sweepOrphans: vi.fn(() => 0) },
+    airtrail: { runAirtrailSync: vi.fn(async () => {}) },
+  });
   start();
   return cronMock.schedule.mock.calls.at(-1)?.[1] as () => Promise<void>;
 }

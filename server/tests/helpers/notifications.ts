@@ -29,3 +29,19 @@ export function makeNotificationsService(dbs: DatabaseService, realtime = new Re
 export function makeNotificationPreferencesService(dbs: DatabaseService): NotificationPreferencesService {
   return new NotificationPreferencesService(dbs, new MailerService(dbs));
 }
+
+/**
+ * A send that records instead of delivering.
+ *
+ * For the six services that took NotificationsService as a constructor
+ * parameter when their fire-and-forget sends stopped being lazy imports. Most
+ * suites do not care that a notification went out, only that the write around
+ * it succeeded — but the parameter is required, and `tests/` is outside
+ * `tsconfig`'s `include`, so leaving it off would not fail to compile. It would
+ * land as `undefined` and throw inside the send.
+ */
+export function notificationsStub(send: NotificationSend = async () => {}): NotificationsService {
+  return { send } as unknown as NotificationsService;
+}
+
+type NotificationSend = (payload: Parameters<NotificationsService['send']>[0]) => Promise<void>;

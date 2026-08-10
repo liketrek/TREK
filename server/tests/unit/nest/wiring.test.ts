@@ -3,7 +3,7 @@ import { HttpException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { db } from '../../../src/db/database';
 import { AppModule } from '../../../src/nest/app.module';
-import { HealthController } from '../../../src/nest/health/health.controller';
+import { FeaturesController } from '../../../src/nest/health/features.controller';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { AdminGuard } from '../../../src/nest/auth/admin.guard';
 
@@ -17,7 +17,9 @@ describe('AppModule wiring', () => {
       .overrideProvider(DatabaseService)
       .useValue({ get: () => ({ n: 0 }) })
       .compile();
-    expect(moduleRef.get(HealthController)).toBeInstanceOf(HealthController);
+    // The one test that builds the whole AppModule: resolving a controller out of
+    // it proves every module in the graph compiled, not just this one.
+    expect(moduleRef.get(FeaturesController)).toBeInstanceOf(FeaturesController);
   });
 });
 

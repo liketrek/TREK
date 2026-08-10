@@ -3,6 +3,7 @@ import type { Response } from 'express';
 import path from 'node:path';
 import fs from 'node:fs';
 import { JourneyService } from './journey.service';
+import { Public } from '../auth/public.decorator';
 
 /**
  * /api/public/journey — unauthenticated, share-token validated read + photo
@@ -13,6 +14,7 @@ import { JourneyService } from './journey.service';
  * the unified proxy streams by trek_photo_id and the legacy proxy serves local
  * files (with the uploads-dir traversal guard) or proxies immich/synology.
  */
+@Public('share-token validated: the whole point is a link that works without an account')
 @Controller('api/public/journey')
 export class JourneyPublicController {
   constructor(private readonly journey: JourneyService) {}
@@ -65,14 +67,22 @@ export class JourneyPublicController {
     }
 
     const effectiveOwnerId = valid.ownerId || Number(ownerId);
-    if (provider === 'immich') {
-      await this.journey.streamImmichAsset(res, effectiveOwnerId, assetId, wantThumb, effectiveOwnerId);
-    } else {
-      try {
-        await this.journey.streamSynologyAsset(res, effectiveOwnerId, effectiveOwnerId, assetId, wantThumb);
-      } catch {
-        res.status(404).json({ error: 'Provider not supported' });
-      }
+    const streaming = this.journey.streamProviderAsset(
+      res,
+      provider,
+      { userId: effectiveOwnerId, ownerId: effectiveOwnerId, assetId },
+      wantThumb,
+    );
+    if (!streaming) {
+      res.status(404).json({ error: 'Provider not supported' });
+      return;
+    }
+    try {
+      await streaming;
+    } catch {
+      // Kept: a provider that throws mid-parse answered 404 here before, and a
+      // share link that half-writes a response is worse than one that 404s.
+      res.status(404).json({ error: 'Provider not supported' });
     }
   }
 }

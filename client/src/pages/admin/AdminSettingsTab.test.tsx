@@ -353,6 +353,27 @@ describe('AdminSettingsTab', () => {
     expect(admin.setPlacesDetailsEnabled).toHaveBeenLastCalledWith(true);
   });
 
+  it('FE-ADMSET-030b: places enrichment toggle updates state and rolls back on failure', async () => {
+    server.use(http.put('/api/admin/places-enrich', () => HttpResponse.json({}, { status: 500 })));
+    const admin = renderTab({ placesEnrichEnabled: true });
+
+    fireEvent.click(toggleFor('Place Enrichment'));
+
+    expect(admin.setPlacesEnrichEnabledState).toHaveBeenNthCalledWith(1, false);
+    await waitFor(() => expect(admin.setPlacesEnrichEnabledState).toHaveBeenLastCalledWith(true));
+    expect(admin.setPlacesEnrichEnabled).toHaveBeenLastCalledWith(true);
+  });
+
+  it('FE-ADMSET-030c: the four places toggles expose their label to screen readers', () => {
+    // They moved from hand-rolled buttons to ToggleSwitch, which is what carries
+    // the aria-label and aria-pressed the bare markup never had.
+    renderTab({ placesPhotosEnabled: true, placesEnrichEnabled: false });
+
+    expect(toggleFor('Place Photos')).toHaveAttribute('aria-pressed', 'true');
+    expect(toggleFor('Place Enrichment')).toHaveAttribute('aria-pressed', 'false');
+    expect(toggleFor('Place Enrichment')).toHaveAttribute('aria-label', 'Place Enrichment');
+  });
+
   it('FE-ADMSET-031: shows the Open-Meteo info block', () => {
     renderTab();
 

@@ -103,7 +103,7 @@ export class McpRegistry {
   attach(server: McpServer, ctx: McpContext): void {
     const registrar = server as unknown as LooseRegistrar;
     for (const { entry, instance } of this.bound) {
-      if (!this.allowed(entry, ctx)) continue;
+      if (!this.allowed(entry, ctx, instance)) continue;
       const handler = (instance as unknown as Record<string, AnyHandler>)[entry.methodName];
       switch (entry.kind) {
         case 'tool':
@@ -180,8 +180,12 @@ export class McpRegistry {
     };
   }
 
-  private allowed(entry: McpEntry, ctx: McpContext): boolean {
-    if (entry.options.when && !entry.options.when(ctx)) return false;
+  private allowed(entry: McpEntry, ctx: McpContext, instance: object): boolean {
+    // The declaring instance goes in so the gate can read an injected
+    // collaborator. It is resolved here, at attach, rather than captured when
+    // the options object was built — the class body runs long before the
+    // container exists.
+    if (entry.options.when && !entry.options.when(ctx, instance)) return false;
     const access = entry.options.access;
     if (access === undefined) return true;
     if (typeof access === 'function') return access(ctx);

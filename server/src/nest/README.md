@@ -58,22 +58,42 @@ remains as the platform underneath `@nestjs/platform-express`.
   alone. Note the invariant the boot-time coverage check now depends on: importing
   `PluginsRuntimeModule` must pull in EVERY domain that owns part of the wire surface,
   which is why `WeatherModule` sits in its import list.
-- **Guards (BE-Phase 2, in progress):** the JWT verify lives in `auth/`, and
-  `middleware/auth.ts`, `validate.ts` and `idempotency.ts` are deleted; the three
-  addon guards are one `AddonGuard` + `@RequireAddon`; the demo-mode block is one
-  condition. Still open: `TripAccessGuard`, default-deny, the MFA policy.
+- **Guards (BE-Phase 2, done):** the JWT verify lives in `auth/`, and
+  `middleware/auth.ts`, `validate.ts`, `idempotency.ts` and `mfaPolicy.ts` are
+  deleted; the three addon guards are one `AddonGuard` + `@RequireAddon`; the
+  demo-mode block is one condition. `TripAccessGuard` and `TripOwnerGuard` cover
+  the trip-scoped and owner-only routes.
 
-`src/services/` is down to the `airtrail/` directory, which waits on the credential
-decision. Backup has moved in: `services/backupService.ts` is now
-`nest/backup/backup.impl.ts`, imported only by its own domain. It stays a module of
-free functions rather than becoming methods, because the restore path closes and
-reinitializes the core DB handle and rewriting that shape in the same step as the move
-would make a regression there impossible to bisect — the db-lifecycle question is the
-LAST step of that fold, not part of it. Note that the trip-access and
-`canEdit` methods on the domain services are **not** dead weight waiting for a
-guard: their callers are overwhelmingly the `*.mcp.ts` tools, which never pass
-through an HTTP guard. In the five domains piloted for `TripAccessGuard`, 40 of
-the 46 callers are MCP; only 6 sit in controllers.
+  **Authentication is default-deny.** `GlobalAuthGuard` is an `APP_GUARD`: a route
+  is authenticated unless it carries `@Public(reason)` or `@OptionalAuth(reason)`,
+  or declares its own `@UseGuards` chain. A controller that declares a chain keeps
+  it — global guards run before route guards, so an addon-gated controller has to
+  stay in charge of answering 404 before anything answers 401, or the response
+  leaks which addons are installed. The global guard still *resolves* the user in
+  that case, without refusing, because `MfaPolicyGuard` runs behind it and reads
+  `req.user`.
+
+  Adding a `@Public()` route is not a local decision: `validateRouteGuards` runs in
+  `buildApp()` and refuses to boot unless the route is also in
+  `PUBLIC_ROUTE_ALLOW_LIST` in `common/validate-route-guards.ts`. That list is the
+  whole anonymous surface of the server, in one reviewable place. Stale entries
+  fail too.
+
+**`src/services/` is gone.** It was the legacy layer this whole migration existed
+to empty, and the last of it — `airtrail/`, 1305 lines of plain functions over the
+better-sqlite3 singleton — folded into `integrations/`. An ESLint
+`no-restricted-imports` rule now refuses any import of a `services/` path, because
+the directory disappearing is not what keeps it gone: it grew one reasonable file
+at a time. Backup made the same trip earlier: `services/backupService.ts` is
+`nest/backup/backup.impl.ts`, imported only by its own domain, and it stays a
+module of free functions rather than becoming methods because the restore path
+closes and reinitializes the core DB handle — rewriting that shape in the same
+step as the move would make a regression there impossible to bisect.
+
+Note that the trip-access and `canEdit` methods on the domain services are **not**
+dead weight waiting for a guard: their callers are overwhelmingly the `*.mcp.ts`
+tools, which never pass through an HTTP guard. In the five domains piloted for
+`TripAccessGuard`, 40 of the 46 callers are MCP; only 6 sit in controllers.
 
 ## Cross-cutting Foundation pieces
 
@@ -81,12 +101,17 @@ the 46 callers are MCP; only 6 sit in controllers.
   client's `X-Idempotency-Key` on mutations. It replaced the `applyIdempotency`
   middleware, which is deleted; this is the only implementation.
 - `common/` — the stateless helpers (`avatarUrl`, `conflictResult`, `demo`,
-  `passwordPolicy`, `timezoneService`, `cookie`, `rowShape`, `crypto/`). Free
-  functions, not providers: `db/migrations.ts` and `middleware/mfaPolicy.ts`
-  import them from outside the container and could not inject one.
+  `passwordPolicy`, `timezoneService`, `cookie`, `rowShape`, `geo`, `crypto/`).
+  Free functions, not providers: `db/migrations.ts` imports them from outside the
+  container and could not inject one. `geo.ts` holds the two haversines; there
+  were three implementations of the metre variant, differing by one clamp, and
+  the clamped form is the one kept — `asin` of a value a hair over 1 is NaN, and
+  a NaN distance silently fails every comparison it feeds instead of throwing.
+  `maps.helpers.ts` re-exports `haversineMetres` rather than defining it, because
+  callers and a test import it from there.
 - `auth/jwt-verify.ts` — `extractToken` + `verifyJwtAndLoadUser`, the canonical
-  session check behind the three guards, the MCP bearer path, the file-download
-  query token and the global MFA policy. Free functions for the same reason.
+  session check behind the four guards, the MCP bearer path and the file-download
+  query token. Free functions for the same reason.
   `JWT_SECRET` stays a live binding from `src/config` and must NOT move to
   `app-config`: the admin panel rotates it at runtime, and a `registerAs` token
   would freeze the boot value.
@@ -99,6 +124,94 @@ the 46 callers are MCP; only 6 sit in controllers.
   answer 404 to anonymous callers, so the addon check must beat the 401.
 - `common/demo-write.ts` — `isDemoWriteBlocked`, the demo-mode upload block. A
   function and not a guard on purpose; see the gotcha below.
+- `memories/photo-provider.ts` + `providers/` — the PhotoProvider seam (#584).
+  Dispatch to a photo backend was a `switch (photo.provider)` in three places
+  (`photo-resolver.service.ts` twice, `journey-public.controller.ts` once, where
+  anything that was not Immich got handed to Synology). It is
+  `PhotoProviderRegistry.get(id)` now, over adapters registered under the
+  `PHOTO_PROVIDERS` multi-provider token in `memories.module.ts` — adding a
+  backend is one registration.
+  - Adapters, not `implements` on the services: ImmichService and
+    SynologyService are also the album/browse surfaces, with their own argument
+    orders and return shapes. The mapping lives in the adapter.
+  - `PhotoAssetRef` exists because the two services took the same three values
+    in different orders — `(userId, assetId, ownerId)` against
+    `(userId, targetUserId, photoId)`. A transposition compiled cleanly and
+    served another user's photo.
+  - `local` is deliberately NOT a provider. It is storage on this disk, it has
+    no row in `photo_providers`, and its "asset info" comes from the DB row
+    rather than from a backend. Both dispatch sites branch on it explicitly.
+  - The rename `memories/` → `media/` was considered and dropped: it is 275
+    files of import churn, and `scripts/coverage-thresholds.mjs` buckets on one
+    path segment, so merging `photos/` into it would collapse two ratchet
+    entries into one and drop the stricter of the two.
+- `realtime/` — the /ws transport, as a Nest gateway.
+  - `realtime.gateway.ts` owns the connection lifecycle and the handshake, with
+    `DatabaseService` and `EphemeralTokenService` injected instead of imported.
+    It replaced `setupWebSocket(server)`, which index.ts kicked off with a
+    dynamic import after listen().
+  - `ws-state.ts` holds the socket registry, and that is **module state on
+    purpose**. Seventeen `*.bridge.ts` files and `notifications.instance.ts`
+    build `new RealtimeService()` outside the container; rooms on a provider
+    instance would leave their broadcasts going to an empty map, with no error
+    and no log. Same reasoning as the geo throttle cursor.
+  - `trek-ws.adapter.ts` exists because the stock `WsAdapter` dispatches on
+    `{ event, data }` and every deployed client sends `{ type, tripId }`. It
+    also builds the ws server itself rather than delegating: the base's port-0
+    branch uses `noServer: true` and performs the upgrade from its own registry,
+    which never consults `verifyClient`, so delegating would silently drop the
+    origin check. The per-socket `error` listener is attached FIRST, because an
+    unhandled one kills the process (#1576), and the flood guard counts every
+    inbound frame before parsing, because malformed frames are the ones worth
+    limiting.
+  - The socket id stays a **monotonic integer**. The client echoes it as
+    `X-Socket-Id` and `broadcast` excludes the originator with
+    `Number(excludeSid)`; a uuid is `NaN`, `NaN === NaN` is false, and every
+    client would receive its own writes back. It shows up as drag-and-drop that
+    jumps, not as an error.
+  - `RealtimeGatewayModule` is imported by AppModule alone. RealtimeModule is
+    @Global, so a gateway there follows into every hand-assembled TestingModule,
+    and Nest's SocketModule then loads an adapter none of them set: it reaches
+    for `@nestjs/platform-socket.io` and calls `process.exit(1)` when it is
+    absent.
+  - `buildApp()` creates the http server and binds the adapter to it BEFORE
+    `app.init()`, and callers take it from `getHttpServer()`. Nest binds gateways
+    during init, so an adapter registered later binds nothing, and one given the
+    app instead of the server binds to Nest's internal server, which this process
+    never listens on. Either way the boot is green and no browser can connect.
+  - `src/websocket.ts` survives as a re-export. 115 test files `vi.mock` that
+    path to assert on broadcasts; repointing them all would be a large diff that
+    proves nothing.
+
+- `geo/` — the ONE Nominatim client (#576). There used to be two: atlas
+  throttled to the published 1.1s and cached its answers, maps did neither, so
+  five interactive routes fired straight at the service while the atlas loops
+  politely waited and OSM saw a single instance ignoring its rate limit. Both
+  domains now go through `nominatimFetch`.
+  - The throttle cursor and the cache are **module state, not provider state**,
+    for the permissions-cache reason: the bridges build their collaborators with
+    `new`, outside the container, and a second copy of the cursor is the very bug
+    the fold removes. `GeoModule` is registered straight in AppModule and neither
+    `MapsModule` nor `AtlasModule` imports it — an import would claim an
+    injection edge that does not exist.
+  - `GeocodingService` owns exactly one thing: the cache-cleanup timer's
+    lifecycle, via `OnModuleInit`/`OnModuleDestroy`. Atlas used to start that
+    interval as an import-time side effect, documented as a parity exception. It
+    is not one any more.
+  - Two lanes over one cursor. Interactive calls (`/api/maps/search`,
+    `/autocomplete`, `/details`, `/reverse`, `/resolve-url`) take the next slot;
+    background calls (the atlas enrichment loops, which walk every uncached
+    place) yield to anything queued on a request path.
+  - The cache key carries the **query shape**, not coordinates alone. Atlas asks
+    at zoom 3 and zoom 8, maps at zoom 18; a coordinate-only key answered a
+    street lookup with a country.
+  - `AbortSignal.timeout` is built **after** the throttle wait. Built up front,
+    the 1.1s spent queueing would eat nearly half of the identity lookup's 2.5s
+    budget before the socket opens.
+  - `setGeoThrottleInterval(ms)` is a test seam, and `tests/setup.ts` zeroes it.
+    Nineteen maps cases drive these paths back to back with real timers; at the
+    real interval they slept nineteen seconds and covered nothing extra. A
+    function rather than a `NODE_ENV` check, for the reason app-config exists.
 
 ### Reaching the container from outside it
 
@@ -118,6 +231,49 @@ bridge rebuilds its services with `new`, so adding one constructor parameter to
 a service means hand-editing every bridge that constructs it — five of them in
 one PR, most recently. `app.get()` costs nothing there and returns the container
 singleton rather than a second instance.
+
+**A bridge imported from INSIDE the container hides an edge from the module
+graph**, which is a different problem from serving a genuine outside consumer.
+Nine `*.mcp.ts` files did that with `addons.bridge` for one boolean each, and
+not by preference: a decorator's options object is built while the class is
+being defined, so the `when:` closure had no `this` to reach an injected service
+through. `@trek/nest-mcp` hands the gate its declaring instance now, and
+`addons/addon-gate.ts` turns that into `addonGate(ADDON_IDS.X)` over an injected
+`AddonsService`. `reservations.mcp.ts` (assignments) and `atlas.mcp.ts` /
+`journey.mcp.ts` (auth) went the same way.
+
+Four in-container uses are left, each for a reason that injection does not fix:
+
+- `places.mcp.ts` → `assignments.bridge`: a real cycle, `DaysModule →
+  PlacesModule → AssignmentsModule → DaysModule`.
+- `budget.mcp.ts` / `packing.mcp.ts` / `costs.rpc.ts` → `trips.bridge`:
+  `TripsModule` imports both, so importing it back closes the loop.
+- `auth/user-cleanup.service.ts` → `budget.bridge`: `BudgetModule` imports
+  `AuthModule`, same shape.
+- `files.controller.ts` / `journey.controller.ts` → `files.bridge`: multer's
+  interceptor options are module-scope literals evaluated before any container
+  exists. The fix is `MulterModule.registerAsync`, not a different import.
+
+The nine fire-and-forget notification senders inject too. They were lazy
+`import('../notifications/notifications.bridge').then(({ send }) => …)` calls
+working around a cycle that no longer exists, and the laziness hid the edge
+while handing each send a NotificationsService built outside the container.
+
+That sweep needed a method, because `tests/` sits outside `tsconfig`'s `include`:
+a missed constructor argument does not fail to compile, it arrives as
+`undefined`. Adding `tests` to a throwaway `tsconfig` and diffing the errors
+before and after named all **46** hand-wired `new` sites exactly; a grep would
+have been a guess. Worth repeating for any change that widens a service
+constructor — and worth knowing that such a config reports **288 pre-existing
+errors** in the suites, almost all deliberate partial constructions in the
+harnesses (`new AuthService(db, permissions, atlas)` where the class takes six).
+That is why `tests/` is not in the build's `include`, and cleaning it up is its
+own piece of work.
+
+`notifications.instance.ts` holds the out-of-container instance, deliberately
+apart from `notifications.bridge.ts`: several suites replace the bridge wholesale
+with `vi.mock(…, () => ({ send }))`, and a sibling bridge importing the instance
+from there would break under those mocks.
 - `app-config/` — the `@nestjs/config` binding (`AppConfigModule`, global). Never
   read `process.env` in a module (ESLint enforces this): inject a boot-stable
   namespace via its `registerAs` token (`@Inject(mcpConfig.KEY) … ConfigType<…>`)
@@ -177,6 +333,44 @@ query/body, HTTP status, `Set-Cookie`, and JSON body — including bespoke error
 strings. Where the legacy route returns a hand-written error (e.g. weather's
 `{ error: 'Latitude and longitude are required' }`), reproduce that exact body in
 the controller rather than relying on the generic `ZodValidationPipe` envelope.
+
+## TripAccessGuard and TripOwnerGuard, and where they do not fit
+
+`permissions/trip-access.guard.ts` resolves `:tripId` once per request, answers 404
+"Trip not found" for anything the user cannot reach (never 403 — that would confirm the
+id exists), and hands the row to the handler through `@Trip()`. `@RequirePermission`
+carries the same action string the domain services pass to `checkPermission`.
+
+Two limits are worth knowing before rolling it onto another controller, because both
+were found the expensive way:
+
+- **A guard runs before the body pipe.** Any route whose DTO validation is expected to
+  answer 400 *ahead of* the trip 404 cannot use it. `places` is exactly that case — its
+  e2e suite documents the pipe-first ordering as a deliberate parity shift — so its
+  create/update/import routes keep their in-handler `requireTrip`, and that is not an
+  oversight. Its five body-free routes (list, get, unrate, image, delete) do carry
+  the guard; the split runs along "does this handler take a DTO-typed body", not
+  along the domain.
+- **A guard also runs before interceptors.** On a multipart upload route, a 404 sent
+  while the client is still streaming destroys the socket, so the caller sees
+  ECONNRESET instead of the 404. The three upload routes (files, collab note files,
+  places) keep their own check for that reason; their controllers apply the guard per
+  handler instead of on the class.
+
+`permissions/trip-owner.guard.ts` is the stricter sibling: `@RequireTripOwner(message)`
+demands that the caller *owns* the trip, not merely that they may edit it. Handing a
+trip over and creating or deleting guests are the two things a collaborator must never
+do however generous the trip's permission settings are.
+
+It deliberately does **not** inject `PermissionsService`. `checkPermission` returns true
+for every admin, and the trip actions are admin-lowerable, so routing ownership through
+it would quietly hand any admin the ability to transfer other people's trips. The check
+is the literal one the routes did by hand: `trip.user_id === user.id`. The message
+travels in the metadata because the two call sites answer with different strings and
+both are asserted.
+
+The services keep `verifyTripAccess`/`canEdit` regardless: most of their callers are
+`*.mcp.ts` tools, which never pass through an HTTP guard.
 
 ## Coverage is gated per domain, as a ratchet
 

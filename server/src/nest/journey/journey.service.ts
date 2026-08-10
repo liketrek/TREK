@@ -3,7 +3,7 @@ import { DatabaseService } from '../database/database.service';
 import { JourneyDomainService } from './journey-domain.service';
 import { JourneyShareService } from './journey-share.service';
 import { ImmichService } from '../memories/immich.service';
-import { SynologyService } from '../memories/synology.service';
+import { PhotoProviderRegistry } from '../memories/photo-provider.registry';
 import { PhotoResolverService } from '../memories/photo-resolver.service';
 import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
@@ -21,7 +21,7 @@ export class JourneyService {
     private readonly dbs: DatabaseService,
     private readonly addons: AddonsService,
     private readonly immich: ImmichService,
-    private readonly synology: SynologyService,
+    private readonly providers: PhotoProviderRegistry,
     private readonly photoResolver: PhotoResolverService,
     private readonly journey: JourneyDomainService,
     private readonly share: JourneyShareService,
@@ -98,10 +98,23 @@ export class JourneyService {
   validateShareTokenForPhoto(token: string, photoId: number) { return this.share.validateShareTokenForPhoto(token, photoId); }
   validateShareTokenForAsset(token: string, assetId: string) { return this.share.validateShareTokenForAsset(token, assetId); }
   streamPhoto(res: Response, ownerId: number, photoId: number, kind: 'thumbnail' | 'original') { return this.photoResolver.streamPhoto(res, ownerId, photoId, kind); }
-  streamImmichAsset(res: Response, userId: number, assetId: string, kind: 'thumbnail' | 'original', ownerId: number) { return this.immich.streamImmichAsset(res, userId, assetId, kind, ownerId); }
-  // Was a dynamic import(): the memories cluster had a real import cycle and
-  // this was the workaround. The cycle is gone, so it is a plain injection now.
-  streamSynologyAsset(res: Response, userId: number, ownerId: number, assetId: string, kind: 'thumbnail' | 'original') {
-    return this.synology.streamSynologyAsset(res, userId, ownerId, assetId, kind);
+  /**
+   * Stream a shared journey asset from whichever backend holds it.
+   *
+   * Replaced a pair of per-provider passthroughs (and, before those, a dynamic
+   * import() around a since-removed cycle). The public controller used to pick
+   * between them with `provider === 'immich' ? … : trySynology()`, so a third
+   * provider would have been handed to Synology and 404'd from inside its
+   * parser. An unregistered provider is now told apart from a failing one.
+   */
+  streamProviderAsset(
+    res: Response,
+    provider: string,
+    ref: { userId: number; ownerId: number; assetId: string },
+    kind: 'thumbnail' | 'original',
+  ): Promise<void> | null {
+    const backend = this.providers.get(provider);
+    if (!backend) return null;
+    return backend.streamAsset(res, ref, kind);
   }
 }

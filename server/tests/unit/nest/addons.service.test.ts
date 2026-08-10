@@ -19,6 +19,30 @@ function svc() {
   return new AddonsService(new DatabaseService(dbConn));
 }
 
+type ListAddon = ReturnType<AddonsService['list']>['addons'][number];
+
+type PhotoProviderField = {
+  key: string;
+  label: string;
+  input_type: string;
+  placeholder: string;
+  hint: string | null;
+  required: boolean;
+  secret: boolean;
+  settings_key: string | null;
+  payload_key: string | null;
+  sort_order: number;
+};
+
+// list() spreads plain addons and photo providers into one array, and a provider
+// object structurally extends a plain one. TypeScript reduces the element union
+// to the plain shape, so `config` and `fields` are invisible on res.addons even
+// though the provider entries carry them at runtime. Provider assertions read
+// the fields through here instead of casting at every call site.
+function providerFields(addon: ListAddon): PhotoProviderField[] {
+  return (addon as ListAddon & { fields: PhotoProviderField[] }).fields;
+}
+
 // Feed list()'s reads in call order: addons, providers, fields (.all), then the
 // collab-features rows (.all) and the bag-tracking row (.get) from app_settings.
 function feedReads(
@@ -140,8 +164,7 @@ describe('AddonsService.list', () => {
     );
 
     const res = svc().list();
-    const provider = res.addons[0] as { fields: Array<Record<string, unknown>> };
-    expect(provider.fields).toEqual([
+    expect(providerFields(res.addons[0])).toEqual([
       {
         key: 'url',
         label: 'URL',
@@ -188,7 +211,7 @@ describe('AddonsService.list', () => {
     );
 
     const res = svc().list();
-    const field = (res.addons[0] as { fields: Array<Record<string, unknown>> }).fields[0];
+    const field = providerFields(res.addons[0])[0];
     expect(field).toMatchObject({
       placeholder: '',
       hint: null,
@@ -217,7 +240,7 @@ describe('AddonsService.list', () => {
     );
 
     const res = svc().list();
-    expect((res.addons[0] as { fields: unknown[] }).fields).toEqual([]);
+    expect(providerFields(res.addons[0])).toEqual([]);
   });
 
   it('concatenates regular addons before the photo providers', () => {
@@ -294,5 +317,90 @@ describe('AddonsService addon/feature flags', () => {
     const third = svc().updateCollabFeatures({});
     expect(third.changed).toBe(false);
     expect(dbMock._stmt.run).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The three places flags moved here from AdminService, where they were raw
+ * app_settings SQL sitting next to flags that already delegated to this service.
+ * They are fail-CLOSED (`=== 'true'`), matching getBagTracking: unset used to read as
+ * ON (`!== 'false'`), and a migration backfills 'true' for existing installs so
+ * nobody loses a feature on upgrade.
+ */
+describe('AddonsService places flags', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const cases = [
+    ['getPlacesPhotos', 'updatePlacesPhotos', 'places_photos_enabled'],
+    ['getPlacesAutocomplete', 'updatePlacesAutocomplete', 'places_autocomplete_enabled'],
+    ['getPlacesDetails', 'updatePlacesDetails', 'places_details_enabled'],
+  ] as const;
+
+  it('ADDONS-SVC-080 an unset flag reads as OFF, and anything but the literal true does too', () => {
+    for (const [getter, , key] of cases) {
+      dbMock._stmt.get.mockReturnValueOnce(undefined);
+      expect(svc()[getter]()).toEqual({ enabled: false });
+      expect(dbMock.prepare).toHaveBeenLastCalledWith('SELECT value FROM app_settings WHERE key = ?');
+      expect(dbMock._stmt.get).toHaveBeenLastCalledWith(key);
+
+      dbMock._stmt.get.mockReturnValueOnce({ value: 'garbage' });
+      expect(svc()[getter]()).toEqual({ enabled: false });
+    }
+  });
+
+  it('ADDONS-SVC-081 a stored "true" reads as ON', () => {
+    for (const [getter] of cases) {
+      dbMock._stmt.get.mockReturnValueOnce({ value: 'true' });
+      expect(svc()[getter]()).toEqual({ enabled: true });
+    }
+  });
+
+  it('ADDONS-SVC-082 the setters persist the literal string and echo the boolean back', () => {
+    for (const [, setter, key] of cases) {
+      expect(svc()[setter](true)).toEqual({ enabled: true });
+      expect(dbMock._stmt.run).toHaveBeenLastCalledWith(key, 'true');
+      expect(svc()[setter](false)).toEqual({ enabled: false });
+      expect(dbMock._stmt.run).toHaveBeenLastCalledWith(key, 'false');
+    }
+  });
+});
+
+/**
+ * Enrichment sits beside the three above and reads the opposite way round.
+ *
+ * They are fail-closed because a migration backfilled a row for every install
+ * that predates the change. This one is new: there is nothing to backfill, so
+ * fail-open reaches the same place without a migration for one boolean. What
+ * matters is that it agrees with PlaceEnrichmentService.enrichDisabled(), which
+ * reads the same key — if the two ever diverge the panel shows "off" while the
+ * feature runs.
+ */
+describe('AddonsService places enrichment flag', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('ADDONS-SVC-083 an unset flag reads as ON', () => {
+    dbMock._stmt.get.mockReturnValueOnce(undefined);
+    expect(svc().getPlacesEnrich()).toEqual({ enabled: true });
+  });
+
+  it('ADDONS-SVC-084 only the literal "false" switches it off', () => {
+    dbMock._stmt.get.mockReturnValueOnce({ value: 'false' });
+    expect(svc().getPlacesEnrich()).toEqual({ enabled: false });
+
+    for (const value of ['true', 'garbage', '']) {
+      dbMock._stmt.get.mockReturnValueOnce({ value });
+      expect(svc().getPlacesEnrich()).toEqual({ enabled: true });
+    }
+  });
+
+  it('ADDONS-SVC-085 the setter persists the literal string and echoes the boolean back', () => {
+    expect(svc().updatePlacesEnrich(false)).toEqual({ enabled: false });
+    expect(dbMock._stmt.run).toHaveBeenLastCalledWith('places_enrich_enabled', 'false');
+    expect(svc().updatePlacesEnrich(true)).toEqual({ enabled: true });
+    expect(dbMock._stmt.run).toHaveBeenLastCalledWith('places_enrich_enabled', 'true');
   });
 });

@@ -3,7 +3,7 @@
  *
  * Usage:
  *   import http from 'http';
- *   import { setupWebSocket } from '../../src/websocket';
+ *   import { getHttpServer } from '../../src/bootstrap';
  *   import { WsTestClient, getWsToken } from '../helpers/ws-client';
  *
  *   let server: http.Server;
@@ -12,7 +12,7 @@
  *   beforeAll(async () => {
  *     const app = createApp();
  *     server = http.createServer(app);
- *     setupWebSocket(server);
+ *     const server = getHttpServer();
  *     await new Promise<void>(res => server.listen(0, res));
  *   });
  *

@@ -3,6 +3,7 @@ import { Place } from '../../types';
 import fs from 'fs';
 import path from 'path';
 import zlib from 'zlib';
+import { cacheKeyFor, getCached, nominatimFetch, setCached } from '../geo/nominatim.client';
 
 // ── Pure geo machinery for the atlas domain ─────────────────────────────────
 //
@@ -214,42 +215,6 @@ function buildAdmin1Store(): Promise<Map<string, string>> {
       .on('error', reject);
   });
 }
-
-// ── Geocode cache ───────────────────────────────────────────────────────────
-
-const geocodeCache = new Map<string, string | null>();
-
-function roundKey(lat: number, lng: number): string {
-  return `${lat.toFixed(3)},${lng.toFixed(3)}`;
-}
-
-function cacheKey(lat: number, lng: number): string {
-  return roundKey(lat, lng);
-}
-
-export function getCached(lat: number, lng: number): string | null | undefined {
-  const key = cacheKey(lat, lng);
-  if (geocodeCache.has(key)) return geocodeCache.get(key)!;
-  return undefined;
-}
-
-export function setCache(lat: number, lng: number, code: string | null): void {
-  geocodeCache.set(cacheKey(lat, lng), code);
-}
-
-// Periodically trim the cache so it doesn't grow unbounded.
-// Import-time side effect preserved verbatim from the legacy module (parity
-// exception, same class as audit-log.logger.ts): unref'd so it never holds the
-// process open.
-const CACHE_MAX = 50_000;
-const CACHE_CLEANUP_MS = 10 * 60 * 1000;
-setInterval(() => {
-  if (geocodeCache.size > CACHE_MAX) {
-    const keys = [...geocodeCache.keys()];
-    const toDelete = keys.slice(0, keys.length - CACHE_MAX);
-    for (const k of toDelete) geocodeCache.delete(k);
-  }
-}, CACHE_CLEANUP_MS).unref();
 
 // ── Bounding-box lookup tables ──────────────────────────────────────────────
 
@@ -519,31 +484,20 @@ export const NAME_TO_CODE: Record<string, string> = {
 
 // ── Geocoding helpers ───────────────────────────────────────────────────────
 
-let lastNominatimCall = 0;
-
-// Shared throttle: enforces ≥1.1s between any Nominatim request, across all callers.
-async function throttleNominatim() {
-  const elapsed = Date.now() - lastNominatimCall;
-  if (elapsed < 1100) await new Promise((r) => setTimeout(r, 1100 - elapsed));
-  lastNominatimCall = Date.now();
-}
-
 export async function reverseGeocodeCountry(lat: number, lng: number): Promise<string | null> {
-  const key = roundKey(lat, lng);
-  if (geocodeCache.has(key)) return geocodeCache.get(key)!;
-  await throttleNominatim();
+  const key = cacheKeyFor(lat, lng, 'country');
+  const hit = getCached<string | null>(key);
+  if (hit !== undefined) return hit;
   try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=3&accept-language=en`,
-      {
-        headers: { 'User-Agent': 'TREK Travel Planner (https://github.com/liketrek/TREK)' },
-        signal: AbortSignal.timeout(10_000),
-      },
+    const res = await nominatimFetch(
+      'reverse',
+      new URLSearchParams({ lat: String(lat), lon: String(lng), format: 'json', zoom: '3', 'accept-language': 'en' }),
+      { lane: 'background', timeoutMs: 10_000 },
     );
     if (!res.ok) return null;
     const data = (await res.json()) as { address?: { country_code?: string } };
     const code = data.address?.country_code?.toUpperCase() || null;
-    geocodeCache.set(key, code);
+    setCached(key, code);
     return code;
   } catch {
     return null;
@@ -924,14 +878,11 @@ export async function getRegionFromCoords(countryCode: string, lat: number, lng:
 // Returns the OSM address object, {} for an "ok but empty" response (so it is cached as
 // a definitive miss), or null for a transient failure (so it is retried next time).
 async function fetchNominatimAddress(lat: number, lng: number, zoom: number): Promise<Record<string, string> | null> {
-  await throttleNominatim();
   try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=${zoom}&accept-language=en`,
-      {
-        headers: { 'User-Agent': 'TREK Travel Planner (https://github.com/liketrek/TREK)' },
-        signal: AbortSignal.timeout(10_000),
-      },
+    const res = await nominatimFetch(
+      'reverse',
+      new URLSearchParams({ lat: String(lat), lon: String(lng), format: 'json', zoom: String(zoom), 'accept-language': 'en' }),
+      { lane: 'background', timeoutMs: 10_000 },
     );
     if (!res.ok) return null;
     const data = (await res.json()) as { address?: Record<string, string> };
@@ -975,7 +926,7 @@ function buildRegionInfo(address: Record<string, string>, preferFinest: boolean)
 }
 
 export async function reverseGeocodeRegion(lat: number, lng: number, placeAddress?: string | null): Promise<RegionInfo | null> {
-  const key = roundKey(lat, lng);
+  const key = cacheKeyFor(lat, lng, 'region');
   if (regionCache.has(key)) return regionCache.get(key)!;
 
   // Prefer resolving directly against the bundled polygons: offline, deterministic, and —

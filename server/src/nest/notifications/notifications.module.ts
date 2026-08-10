@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { NotificationsController } from './notifications.controller';
+import { AdminNotificationPreferencesController, NotificationsController } from './notifications.controller';
 import { NotificationsMcp } from './notifications.mcp';
 import { NotificationsService } from './notifications.service';
 import { NotificationPreferencesService } from './notification-preferences.service';
@@ -17,7 +17,7 @@ import { AuthModule } from '../auth/auth.module';
  *  the plugin RPC surface, HostSurfaceRpc). */
 @Module({
   imports: [AuthModule, MailerModule],
-  controllers: [NotificationsController],
+  controllers: [NotificationsController, AdminNotificationPreferencesController],
   providers: [NotificationsService, NotificationPreferencesService, WebhookService, NtfyService, NotificationsMcp],
   exports: [NotificationsService, NotificationPreferencesService],
 })

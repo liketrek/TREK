@@ -110,6 +110,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': 'Сначала создайте список, чтобы сохранять места.',
   'collections.removedFromAll': 'Удалено из коллекции',
   'collections.picker.title': 'Сохранённые места',
+  'collections.picker.showMore': 'Показать ещё {count}',
   'collections.picker.search': 'Поиск по сохранённым местам',
   'collections.picker.empty': 'Нет сохранённых мест для добавления',
   'collections.picker.hint': 'Выберите место из своих коллекций',

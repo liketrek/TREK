@@ -22,6 +22,7 @@ import type {
   CollectionStatus,
   CollectionLabel,
 } from '@trek/shared';
+import { NotificationsService } from '../notifications/notifications.service';
 
 /** Links are stored as a JSON TEXT column; parse on read, stringify on write. */
 function parseLinks(raw: unknown): CollectionLink[] | undefined {
@@ -103,8 +104,8 @@ const MAX_LABELS_PER_COLLECTION = 50;
  * defaults, the post-write re-selects, the exact error strings and the
  * per-user broadcast fan-outs). The `place_edit` trip permission (copyToTrip)
  * goes through PermissionsService; per-user WebSocket delivery goes through
- * RealtimeService; the notification send in sendInvite keeps its call-time
- * lazy import of the notifications bridge (collab precedent).
+ * RealtimeService; the notification send in sendInvite goes through an injected
+ * NotificationsService (collab precedent).
  */
 @Injectable()
 export class CollectionsService {
@@ -112,6 +113,7 @@ export class CollectionsService {
     private readonly db: DatabaseService,
     private readonly permissions: PermissionsService,
     private readonly realtime: RealtimeService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -1012,9 +1014,11 @@ export class CollectionsService {
 
     this.realtime.broadcastToUser(targetUserId, { type: 'collections:invite', from: { id: inviterId, username: inviterUsername }, collectionId });
 
-    import('../notifications/notifications.bridge').then(({ send }) => {
-      send({ event: 'collection_invite', actorId: inviterId, scope: 'user', targetId: targetUserId, params: { actor: inviterEmail, collectionId: String(collectionId) } }).catch(() => {});
-    }).catch(() => {});
+    // Injected, not a lazy import of notifications.bridge. The laziness bought
+    // nothing the module graph does not already give — NotificationsModule
+    // reaches nothing in this direction — and it hid the edge while handing the
+    // send a second NotificationsService built outside the container.
+    this.notifications.send({ event: 'collection_invite', actorId: inviterId, scope: 'user', targetId: targetUserId, params: { actor: inviterEmail, collectionId: String(collectionId) } }).catch(() => {});
 
     return {};
   }

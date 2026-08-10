@@ -475,5 +475,37 @@ describe('tripStore', () => {
 
       expect(useTripStore.getState().places[0].name).toBe('After');
     });
+
+    it('FE-TSTORE-019b: asks the planner to reload accommodations when a place image changes', () => {
+      // Accommodation cards keep their own copy of the place, so a new hero
+      // image would otherwise only show up after a reload.
+      const place = buildPlace({ id: 500, trip_id: 1, image_url: null });
+      seedStore(useTripStore, { places: [place] });
+      const listener = vi.fn();
+      window.addEventListener('accommodations:refresh', listener);
+
+      useTripStore.getState().handleRemoteEvent({
+        type: 'place:updated',
+        place: { ...place, image_url: '/api/maps/place-photo/way%3A1~p0/bytes' },
+      });
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      window.removeEventListener('accommodations:refresh', listener);
+    });
+
+    it('FE-TSTORE-019c: does not reload accommodations for an edit that leaves the image alone', () => {
+      const place = buildPlace({ id: 500, trip_id: 1, name: 'Before', image_url: '/uploads/places/a.jpg' });
+      seedStore(useTripStore, { places: [place] });
+      const listener = vi.fn();
+      window.addEventListener('accommodations:refresh', listener);
+
+      useTripStore.getState().handleRemoteEvent({
+        type: 'place:updated',
+        place: { ...place, name: 'After' },
+      });
+
+      expect(listener).not.toHaveBeenCalled();
+      window.removeEventListener('accommodations:refresh', listener);
+    });
   });
 });

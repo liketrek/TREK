@@ -1,17 +1,20 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ZodValidationPipe } from './common/zod-validation.pipe';
 import { AppConfigModule } from './app-config/app-config.module';
 import { DatabaseModule } from './database/database.module';
 import { RealtimeModule } from './realtime/realtime.module';
-import { HealthController } from './health/health.controller';
-import { HealthService } from './health/health.service';
+import { HealthModule } from './health/health.module';
+import { GlobalAuthGuard } from './auth/global-auth.guard';
+import { MfaPolicyGuard } from './auth/mfa-policy.guard';
 import { WeatherModule } from './weather/weather.module';
 import { HelpModule } from './help/help.module';
 import { AirportsModule } from './airports/airports.module';
 import { ConfigModule } from './config/config.module';
 import { SystemNoticesModule } from './system-notices/system-notices.module';
 import { MapsModule } from './maps/maps.module';
+import { GeoModule } from './geo/geo.module';
+import { PlaceEnrichmentModule } from './place-enrichment/place-enrichment.module';
 import { CategoriesModule } from './categories/categories.module';
 import { TagsModule } from './tags/tags.module';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -21,6 +24,8 @@ import { PackingModule } from './packing/packing.module';
 import { BudgetModule } from './budget/budget.module';
 import { ReservationsModule } from './reservations/reservations.module';
 import { DaysModule } from './days/days.module';
+import { DayNotesModule } from './day-notes/day-notes.module';
+import { AccommodationsModule } from './accommodations/accommodations.module';
 import { AssignmentsModule } from './assignments/assignments.module';
 import { PlacesModule } from './places/places.module';
 import { TripsModule } from './trips/trips.module';
@@ -39,6 +44,7 @@ import { FeedsModule } from './feeds/feeds.module';
 import { SettingsModule } from './settings/settings.module';
 import { BackupModule } from './backup/backup.module';
 import { BookingImportModule } from './booking-import/booking-import.module';
+import { ReservationImportModule } from './reservation-import/reservation-import.module';
 import { LlmParseModule } from './llm-parse/llm-parse.module';
 import { AuthModule } from './auth/auth.module';
 import { OidcModule } from './oidc/oidc.module';
@@ -53,6 +59,7 @@ import { trekMcpAccessPolicy, trekMcpValidateAccess } from '../mcp/nest-mcp-poli
 import { TrekExceptionFilter } from './common/trek-exception.filter';
 import { SpaFallbackFilter } from './platform/spa-fallback.filter';
 import { IdempotencyInterceptor } from './common/idempotency.interceptor';
+import { RealtimeGatewayModule } from './realtime/realtime-gateway.module';
 
 /**
  * Root NestJS module for the incremental migration. Domain modules
@@ -60,10 +67,16 @@ import { IdempotencyInterceptor } from './common/idempotency.interceptor';
  * migrated.
  */
 @Module({
-  imports: [AppConfigModule, DatabaseModule, RealtimeModule, McpModule.forRoot({ accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess }), WeatherModule, HelpModule, AirportsModule, ConfigModule, SystemNoticesModule, MapsModule, CategoriesModule, TagsModule, NotificationsModule, AtlasModule, VacayModule, PackingModule, TodoModule, BudgetModule, ReservationsModule, DaysModule, AssignmentsModule, PlacesModule, TripsModule, CollabModule, FilesModule, PhotosModule, MemoriesModule, AirtrailModule, JourneyModule, CollectionsModule, ShareModule, TripInviteModule, TransitModule, FeedsModule, SettingsModule, BackupModule, AuthModule, OidcModule, OauthModule, AdminModule, AddonsModule, AuditModule, PermissionsModule, PluginsModule, BookingImportModule, LlmParseModule],
-  controllers: [HealthController],
+  imports: [AppConfigModule, DatabaseModule, RealtimeModule, RealtimeGatewayModule, McpModule.forRoot({ accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess }), HealthModule, WeatherModule, HelpModule, AirportsModule, ConfigModule, SystemNoticesModule, GeoModule, MapsModule, PlaceEnrichmentModule, CategoriesModule, TagsModule, NotificationsModule, AtlasModule, VacayModule, PackingModule, TodoModule, BudgetModule, ReservationsModule, DaysModule, DayNotesModule, AccommodationsModule, AssignmentsModule, PlacesModule, TripsModule, CollabModule, FilesModule, PhotosModule, MemoriesModule, AirtrailModule, JourneyModule, CollectionsModule, ShareModule, TripInviteModule, TransitModule, FeedsModule, SettingsModule, BackupModule, AuthModule, OidcModule, OauthModule, AdminModule, AddonsModule, AuditModule, PermissionsModule, PluginsModule, BookingImportModule, ReservationImportModule, LlmParseModule],
   providers: [
-    HealthService,
+    // Default-deny: a route is authenticated unless it carries @Public() or
+    // @OptionalAuth(), or declares its own @UseGuards chain. Protection used to
+    // be opt-in, which made a forgotten guard a silent bypass instead of an error.
+    { provide: APP_GUARD, useClass: GlobalAuthGuard },
+    // Second, and only second: it reads the user the guard above resolved
+    // instead of verifying the token a second time, which is what the Express
+    // middleware it replaces did on every /api request.
+    { provide: APP_GUARD, useClass: MfaPolicyGuard },
     // Global error-envelope normaliser (DI-registered so it also catches
     // framework-level exceptions like the not-found handler).
     { provide: APP_FILTER, useClass: TrekExceptionFilter },

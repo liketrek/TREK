@@ -132,6 +132,19 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
     expect(res.body).toEqual({ id: 9 });
   });
 
+  it('the image fileFilter is wired: a disallowed extension is rejected, not stored', async () => {
+    // The multer options are built by MulterModule.registerAsync now, and Nest
+    // injects MULTER_MODULE_OPTIONS with @Optional(): a token that fails to
+    // resolve is not a boot error, it silently falls back to defaults, which
+    // means no fileFilter and no size cap. This case is what turns that into a
+    // visible failure, since an unfiltered upload would answer 201.
+    const res = await request(server)
+      .post('/api/journeys/9/cover')
+      .set('Cookie', sessionCookie(1))
+      .attach('cover', Buffer.from('MZ'), { filename: 'payload.exe', contentType: 'application/octet-stream' });
+    expect(res.status).toBe(400);
+  });
+
   it('public journey 404 for an unknown token', async () => {
     sharesvc.getPublicJourney.mockReturnValueOnce(null);
     const res = await request(server).get('/api/public/journey/bad');

@@ -43,6 +43,12 @@ const budget = { createBudgetItem: vi.fn(), updateBudgetItem: vi.fn(), deleteBud
 
 const { notif } = vi.hoisted(() => ({ notif: { send: vi.fn().mockResolvedValue(undefined) } }));
 vi.mock('../../../src/nest/notifications/notifications.bridge', () => notif);
+// The bridge builds its own collaborators, so its NotificationsService comes
+// from notifications.instance rather than from the module above — RESV-BRIDGE-009
+// asserts on what the bridge sends, so that is the module to intercept.
+vi.mock('../../../src/nest/notifications/notifications.instance', () => ({
+  notificationsInstance: () => notif,
+}));
 
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
@@ -54,8 +60,9 @@ import { ReservationsService } from '../../../src/nest/reservations/reservations
 import type { BudgetService } from '../../../src/nest/budget/budget.service';
 import * as bridge from '../../../src/nest/reservations/reservations.bridge';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { notificationsStub } from '../../helpers/notifications';
 
-const svc = new ReservationsService(new DatabaseService(testDb), permissionsStub, budget as unknown as BudgetService, new RealtimeService());
+const svc = new ReservationsService(new DatabaseService(testDb), permissionsStub, budget as unknown as BudgetService, new RealtimeService(), notificationsStub(notif.send));
 
 beforeAll(() => { createTables(testDb); runMigrations(testDb); });
 beforeEach(() => {

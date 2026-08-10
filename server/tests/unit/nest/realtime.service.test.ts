@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { TrekWsPayload, TrekWsUserEventName } from '@trek/shared';
 
 const { broadcast, broadcastToUser } = vi.hoisted(() => ({
   broadcast: vi.fn(),
@@ -9,6 +10,19 @@ vi.mock('../../../src/websocket', () => ({ broadcast, broadcastToUser }));
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 
 const svc = new RealtimeService();
+
+/**
+ * These cases exercise argument pass-through, not payload shape, so they hand
+ * the facade only the fields their assertions read. The registry contract asks
+ * for more (`vacay:invite` for a `from`, `notification:new` for a
+ * `notification`); filling that in would put data into the recorded call that
+ * nothing here checks, so the shortcut is named instead of padded out.
+ */
+function partialUserPayload<E extends TrekWsUserEventName>(
+  payload: { type: E } & Partial<TrekWsPayload<E>>,
+): { type: E } & TrekWsPayload<E> {
+  return payload as { type: E } & TrekWsPayload<E>;
+}
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -31,7 +45,7 @@ describe('RealtimeService', () => {
   });
 
   it('broadcastToUser delegates every argument untouched', () => {
-    const payload = { type: 'vacay:invite', planId: 3 };
+    const payload = partialUserPayload({ type: 'vacay:invite', planId: 3 });
     svc.broadcastToUser(5, payload, '11');
     expect(broadcastToUser).toHaveBeenCalledTimes(1);
     expect(broadcastToUser).toHaveBeenCalledWith(5, payload, '11');
@@ -45,7 +59,7 @@ describe('RealtimeService', () => {
     // routes through the mocked module functions rather than captured bindings.
     const late = new RealtimeService();
     late.broadcast('1', 'todo:created', { item: {} }, undefined);
-    late.broadcastToUser(2, { type: 'notification:new' });
+    late.broadcastToUser(2, partialUserPayload({ type: 'notification:new' }));
     expect(broadcast).toHaveBeenCalledWith('1', 'todo:created', { item: {} }, undefined);
     expect(broadcastToUser).toHaveBeenCalledWith(2, { type: 'notification:new' });
   });

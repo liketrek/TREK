@@ -51,6 +51,7 @@ import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repos
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import type { ImmichService } from '../../../src/nest/memories/immich.service';
 import type { SynologyService } from '../../../src/nest/memories/synology.service';
+import { notificationsStub } from '../../helpers/notifications';
 
 // The album-sync paths are the providers' half and have their own suites; these
 // cases never reach them, so stubs keep the graph small.
@@ -61,6 +62,7 @@ const svc = new UnifiedMemoriesService(
   {} as ImmichService,
   {} as SynologyService,
   new MemoriesAccessService(dbs),
+  notificationsStub(),
 );
 
 // Legacy free-function names bound to the service, so the moved cases read as before.

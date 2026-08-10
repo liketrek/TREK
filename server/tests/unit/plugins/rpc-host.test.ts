@@ -16,6 +16,14 @@ import type { RpcRequest, RpcResponse, RpcError } from '../../../src/nest/plugin
 import { makeDeps } from '../../helpers/rpc-host-deps';
 
 const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({ k: 'req', id: 'x', method, params });
+/**
+ * A request as it arrives when the child never set `params`: the IPC hop is JSON, which
+ * drops an undefined field, so the key is genuinely absent by the time the router sees
+ * it. `RpcRequest` declares `params` as required, so leaving it out only type-checks
+ * through this cast — writing `params: undefined` instead would put the key back and
+ * stop covering the case the host's `req.params ?? {}` exists for.
+ */
+const reqWithoutParams = (method: string): RpcRequest => ({ k: 'req', id: 'x', method }) as RpcRequest;
 const ok = (r: RpcResponse | RpcError): r is RpcResponse => r.ok === true;
 const code = (r: RpcResponse | RpcError): string => (r as RpcError).error.code;
 
@@ -158,7 +166,7 @@ describe('PluginRpcHost — capability enforcement', () => {
       seen = params;
       return null;
     });
-    expect(ok(await host.dispatch({ k: 'req', id: 'x', method: 'tags.list' }, 42))).toBe(true);
+    expect(ok(await host.dispatch(reqWithoutParams('tags.list'), 42))).toBe(true);
     expect(seen).toEqual({});
   });
 

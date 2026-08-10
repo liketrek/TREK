@@ -7,12 +7,13 @@ import {
 } from '@trek/nest-mcp';
 import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
-import { isAddonEnabled } from '../addons/addons.bridge';
 import { ADDON_IDS } from '../../addons';
 import { VacayService } from './vacay.service';
+import { addonGate } from '../addons/addon-gate';
+import { AddonsService } from '../addons/addons.service';
 
 /** Legacy registrar gate: the whole vacay surface rides the vacay addon. */
-const vacayAddonOn = () => isAddonEnabled(ADDON_IDS.VACAY);
+const vacayAddonOn = addonGate(ADDON_IDS.VACAY);
 
 /**
  * Vacay MCP surface — ported 1:1 from the legacy registrars: the 26 tools from
@@ -30,7 +31,11 @@ const vacayAddonOn = () => isAddonEnabled(ADDON_IDS.VACAY);
  */
 @McpController()
 export class VacayMcp {
-  constructor(private readonly vacay: VacayService, private readonly auth: AuthService) {}
+  constructor(
+    private readonly vacay: VacayService,
+    private readonly auth: AuthService,
+    readonly addons: AddonsService,
+  ) {}
 
   @Tool({
     name: 'get_vacay_plan',

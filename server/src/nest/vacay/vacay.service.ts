@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { RealtimeService } from '../realtime/realtime.service';
 import { DatabaseService } from '../database/database.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -161,7 +162,11 @@ function windowEndYear(end: string): number {
  */
 @Injectable()
 export class VacayService {
-  constructor(private readonly db: DatabaseService, private readonly realtime: RealtimeService) {}
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly realtime: RealtimeService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   private readonly holidayCache = new Map<string, { data: unknown; time: number }>();
 
@@ -634,9 +639,11 @@ export class VacayService {
     } catch { /* websocket not available */ }
 
     // Notify invited user
-    import('../notifications/notifications.bridge').then(({ send }) => {
-      send({ event: 'vacay_invite', actorId: inviterId, scope: 'user', targetId: targetUserId, params: { actor: inviterEmail, planId: String(planId) } }).catch(() => {});
-    }).catch(() => {});
+    // Injected, not a lazy import of notifications.bridge. The laziness bought
+    // nothing the module graph does not already give — NotificationsModule
+    // reaches nothing in this direction — and it hid the edge while handing the
+    // send a second NotificationsService built outside the container.
+    this.notifications.send({ event: 'vacay_invite', actorId: inviterId, scope: 'user', targetId: targetUserId, params: { actor: inviterEmail, planId: String(planId) } }).catch(() => {});
 
     return {};
   }
@@ -865,9 +872,7 @@ export class VacayService {
       this.realtime.broadcastToUser(ownerId, { type: 'vacay:share', from: { id: ownerId } }, socketId);
     } catch { /* websocket not available */ }
 
-    import('../notifications/notifications.bridge').then(({ send }) => {
-      send({ event: 'vacay_share', actorId: ownerId, scope: 'user', targetId: targetUserId, params: { actor: ownerEmail } }).catch(() => {});
-    }).catch(() => {});
+    this.notifications.send({ event: 'vacay_share', actorId: ownerId, scope: 'user', targetId: targetUserId, params: { actor: ownerEmail } }).catch(() => {});
 
     return {};
   }

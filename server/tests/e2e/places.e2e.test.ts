@@ -264,4 +264,40 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Trip not found' });
   });
+
+  // The first attempt at guarding places lost the delete permission check and
+  // answered 200 where 403 belonged. This asserts the argument list, not just
+  // the status, so a check that happens to return the right code for the wrong
+  // reason still fails.
+  it('DELETE :id demands place_edit, by name', async () => {
+    db.prepare("INSERT INTO places (id, trip_id, name) VALUES (11, 5, 'Guarded')").run();
+    checkPermission.mockReturnValue(false);
+
+    const res = await request(server).delete('/api/trips/5/places/11').set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: 'No permission' });
+    expect(checkPermission).toHaveBeenCalledWith('place_edit', 'user', 1, 1, false);
+    expect(db.prepare('SELECT id FROM places WHERE id = 11').get()).toBeDefined();
+  });
+
+  it('the guarded read routes 404 an inaccessible trip without touching the place', async () => {
+    canAccessTrip.mockReturnValue(undefined);
+    for (const path of ['/api/trips/5/places/9', '/api/trips/5/places/9/image']) {
+      const res = await request(server).get(path).set('Cookie', sessionCookie(1));
+      expect(res.status).toBe(404);
+      expect(res.body).toEqual({ error: 'Trip not found' });
+    }
+    const del = await request(server).delete('/api/trips/5/places/9').set('Cookie', sessionCookie(1));
+    expect(del.status).toBe(404);
+    expect(del.body).toEqual({ error: 'Trip not found' });
+  });
+
+  // The reason places keeps its inline checks on the write routes: a guard runs
+  // before the pipe, so guarding create would answer 404 where the suite above
+  // pins a 400. This is the non-regression pin for that decision.
+  it('a bad create body still 400s ahead of the trip 404', async () => {
+    canAccessTrip.mockReturnValue(undefined);
+    const res = await request(server).post('/api/trips/5/places').set('Cookie', sessionCookie(1)).send({});
+    expect(res.status).toBe(400);
+  });
 });

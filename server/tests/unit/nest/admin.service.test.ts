@@ -63,6 +63,7 @@ import { SettingsService } from '../../../src/nest/settings/settings.service';
 import { AtlasService } from '../../../src/nest/atlas/atlas.service';
 import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
 import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
 import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
 import { AuthService } from '../../../src/nest/auth/auth.service';
 import { PasskeyService } from '../../../src/nest/auth/passkey.service';
@@ -73,24 +74,27 @@ import { AdminService } from '../../../src/nest/admin/admin.service';
 import { checkAndNotifyVersion as bridgeCheckAndNotifyVersion } from '../../../src/nest/admin/admin.bridge';
 import { __clearVersionCacheForTests } from '../../../src/nest/admin/admin.helpers';
 import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
 
 const dbs = new DatabaseService(testDb);
 const realtime = new RealtimeService();
 const permissions = new PermissionsService(dbs);
 const webauthn = new WebauthnConfigService(dbs);
 const userCleanup = new UserCleanupService(dbs);
-const auth = new AuthService(dbs, permissions, new AtlasService(dbs), new TripMembershipService(dbs), webauthn, userCleanup);
+// Positional and previously wrong: an AtlasService sat in the membership slot
+// and the mailer was missing entirely, so `auth` was built with its last four
+// collaborators shifted by one. Nothing failed, because none of the cases below
+// reach a path that uses them.
+const auth = new AuthService(dbs, permissions, new TripMembershipService(dbs), webauthn, userCleanup, new MailerService(dbs), new EphemeralTokenService());
 const svc = new AdminService(
   dbs,
-  new SettingsService(dbs),
   new AddonsService(dbs),
   new PasskeyService(dbs, auth, webauthn),
-  new PackingService(dbs, permissions, realtime),
   auth,
   permissions,
   makeNotificationsService(dbs, realtime),
   userCleanup,
-  makeNotificationPreferencesService(dbs),
+  realtime,
 );
 
 // Legacy free-function names bound to the service, so the moved cases below read
@@ -103,18 +107,11 @@ const getStats = () => svc.getStats();
 const getPermissions = () => svc.getPermissions();
 const savePermissions = (p: Record<string, string>) => svc.savePermissions(p);
 const getAuditLog = (q: { limit?: string; offset?: string }) => svc.getAuditLog(q);
-const listInvites = () => svc.listInvites();
-const createInvite = (by: number, d: Parameters<AdminService['createInvite']>[1]) => svc.createInvite(by, d);
-const deleteInvite = (id: string) => svc.deleteInvite(id);
-const getOidcSettings = () => svc.getOidcSettings();
-const updateOidcSettings = (d: Parameters<AdminService['updateOidcSettings']>[0]) => svc.updateOidcSettings(d);
 const saveDemoBaseline = () => svc.saveDemoBaseline();
 const getGithubReleases = (perPage?: string, page?: string) => svc.getGithubReleases(perPage, page);
 const checkVersion = () => svc.checkVersion();
 const listAddons = () => svc.listAddons();
 const updateAddon = (id: string, d: Parameters<AdminService['updateAddon']>[1]) => svc.updateAddon(id, d);
-const listMcpTokens = () => svc.listMcpTokens();
-const deleteMcpToken = (id: string) => svc.deleteMcpToken(id);
 
 beforeAll(() => {
   createTables(testDb);
@@ -304,44 +301,6 @@ describe('getAuditLog', () => {
   });
 });
 
-// ── Invites ───────────────────────────────────────────────────────────────────
-
-describe('Invites', () => {
-  it('ADMIN-SVC-024 — createInvite returns invite with token', () => {
-    const { user: admin } = createAdmin(testDb);
-    const result = createInvite(admin.id, { max_uses: 5 }) as any;
-    expect(result.invite.token).toBeDefined();
-    expect(result.invite.max_uses).toBe(5);
-  });
-
-  it('ADMIN-SVC-025 — createInvite defaults to 1 use', () => {
-    const { user: admin } = createAdmin(testDb);
-    const result = createInvite(admin.id, {}) as any;
-    expect(result.uses).toBe(1);
-  });
-
-  it('ADMIN-SVC-026 — listInvites returns array', () => {
-    const { user: admin } = createAdmin(testDb);
-    createInvite(admin.id, {});
-    const invites = listInvites() as any[];
-    expect(invites.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('ADMIN-SVC-027 — deleteInvite removes invite', () => {
-    const { user: admin } = createAdmin(testDb);
-    const invite = createInviteToken(testDb, { created_by: admin.id }) as any;
-    const result = deleteInvite(String(invite.id)) as any;
-    expect(result.error).toBeUndefined();
-    const check = testDb.prepare('SELECT id FROM invite_tokens WHERE id = ?').get(invite.id);
-    expect(check).toBeUndefined();
-  });
-
-  it('ADMIN-SVC-028 — deleteInvite returns 404 for non-existent invite', () => {
-    const result = deleteInvite('99999') as any;
-    expect(result.status).toBe(404);
-  });
-});
-
 // ── getAuditLog — JSON details parsing ───────────────────────────────────────
 
 describe('getAuditLog — JSON details', () => {
@@ -372,32 +331,6 @@ describe('getAuditLog — JSON details', () => {
 });
 
 // ── OIDC Settings ─────────────────────────────────────────────────────────────
-
-describe('OIDC Settings', () => {
-  it('ADMIN-SVC-047 — getOidcSettings returns default empty values when no OIDC configured', () => {
-    const result = getOidcSettings() as any;
-    expect(result.issuer).toBe('');
-    expect(result.client_id).toBe('');
-    expect(result.oidc_only).toBe(false);
-    expect(result.client_secret_set).toBe(false);
-    expect(result.display_name).toBe('');
-    expect(result.discovery_url).toBe('');
-  });
-
-  it('ADMIN-SVC-048 — updateOidcSettings persists issuer and client_id, then getOidcSettings returns them', () => {
-    updateOidcSettings({ issuer: 'https://auth.example.com', client_id: 'my-client' });
-    const result = getOidcSettings() as any;
-    expect(result.issuer).toBe('https://auth.example.com');
-    expect(result.client_id).toBe('my-client');
-  });
-
-  it('ADMIN-SVC-049 — updateOidcSettings does not write oidc_only (replaced by granular toggles)', () => {
-    updateOidcSettings({ issuer: 'https://auth.example.com', client_id: 'my-client' });
-    const result = getOidcSettings() as any;
-    // oidc_only is no longer managed by updateOidcSettings; use password_login/oidc_login toggles
-    expect(result.oidc_only).toBe(false);
-  });
-});
 
 // ── saveDemoBaseline ──────────────────────────────────────────────────────────
 
@@ -544,22 +477,6 @@ describe('updateAddon', () => {
   });
 });
 
-// ── MCP Tokens ────────────────────────────────────────────────────────────────
-
-describe('MCP Tokens', () => {
-  it('ADMIN-SVC-068 — listMcpTokens returns empty array initially', () => {
-    const result = listMcpTokens() as any[];
-    expect(Array.isArray(result)).toBe(true);
-    expect(result).toHaveLength(0);
-  });
-
-  it('ADMIN-SVC-069 — deleteMcpToken returns 404 for non-existent token', () => {
-    const result = deleteMcpToken('99999') as any;
-    expect(result.status).toBe(404);
-    expect(result.error).toBeDefined();
-  });
-});
-
 // ── admin.bridge ──────────────────────────────────────────────────────────────
 
 describe('admin.bridge', () => {
@@ -592,19 +509,6 @@ describe('admin.bridge', () => {
 // ── Quirk fixes landed after the 2026-08 fold ─────────────────────────────────
 
 describe('admin quirk fixes (post-fold)', () => {
-  it('ADMIN-SVC-071 — the three places toggles are fail-closed (=== true), matching bag-tracking', () => {
-    // Unset used to read as ON (`!== 'false'`); a migration backfills 'true' for
-    // existing installs so nobody loses a feature on upgrade.
-    expect(svc.getPlacesPhotos()).toEqual({ enabled: false });
-    expect(svc.getPlacesAutocomplete()).toEqual({ enabled: false });
-    expect(svc.getPlacesDetails()).toEqual({ enabled: false });
-
-    svc.updatePlacesPhotos(true);
-    expect(svc.getPlacesPhotos()).toEqual({ enabled: true });
-
-    testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('places_details_enabled', 'garbage')").run();
-    expect(svc.getPlacesDetails()).toEqual({ enabled: false });
-  });
 
   it('ADMIN-SVC-072 — updateUser rejects an empty username/email instead of silently no-opping', () => {
     const { user } = createUser(testDb);
@@ -615,33 +519,5 @@ describe('admin quirk fixes (post-fold)', () => {
     expect(row.username).toBe(user.username);
   });
 
-  it('ADMIN-SVC-073 — createInvite 404s on a trip_id that does not resolve', () => {
-    const { user: admin } = createAdmin(testDb);
-    expect(createInvite(admin.id, { trip_id: 99999 }) as any).toMatchObject({ status: 404, error: 'Trip not found' });
-    expect(createInvite(admin.id, { trip_id: 'not-a-number' }) as any).toMatchObject({ status: 404 });
-    expect(testDb.prepare('SELECT COUNT(*) as c FROM invite_tokens').get()).toEqual({ c: 0 });
-    // An absent/blank binding is still a plain registration invite.
-    expect((createInvite(admin.id, {}) as any).tripId).toBeNull();
-  });
 
-  it('ADMIN-SVC-074 — listOAuthSessions survives a row with malformed scopes JSON', () => {
-    const { user } = createUser(testDb);
-    testDb.prepare("INSERT INTO oauth_clients (client_id, client_secret_hash, name) VALUES ('c1', 'hash', 'Client')").run();
-    testDb.prepare(`
-      INSERT INTO oauth_tokens (client_id, user_id, access_token_hash, refresh_token_hash, scopes,
-                                access_token_expires_at, refresh_token_expires_at)
-      VALUES ('c1', ?, 'ahash', 'rhash', 'not-json{', datetime('now', '+1 hour'), datetime('now', '+1 day'))
-    `).run(user.id);
-
-    const sessions = svc.listOAuthSessions() as any[];
-    expect(sessions).toHaveLength(1);
-    expect(sessions[0].scopes).toBeNull();
-  });
-
-  it('ADMIN-SVC-075 — updateOidcSettings applies all five writes atomically', () => {
-    const result = svc.updateOidcSettings({ issuer: 'https://idp', client_id: 'cid', display_name: 'IdP' }) as any;
-    expect(result.success).toBe(true);
-    const settings = svc.getOidcSettings();
-    expect(settings).toMatchObject({ issuer: 'https://idp', client_id: 'cid', display_name: 'IdP' });
-  });
 });

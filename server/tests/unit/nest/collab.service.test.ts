@@ -43,9 +43,13 @@ vi.mock('../../../src/config', () => ({
 }));
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 
-// Stub checkSsrf so linkPreview tests can control SSRF behaviour
+// Stub checkSsrf so linkPreview tests can control SSRF behaviour. Typed from the real
+// checkSsrf rather than from the default implementation below, so the stubbed results
+// stay full SsrfResult objects instead of whatever shape the first fixture happened to have.
 const { mockCheckSsrf, mockCreatePinnedDispatcher } = vi.hoisted(() => ({
-  mockCheckSsrf: vi.fn(async () => ({ allowed: true, resolvedIp: '93.184.216.34' })),
+  mockCheckSsrf: vi.fn<typeof import('../../../src/utils/ssrfGuard').checkSsrf>(
+    async () => ({ allowed: true, isPrivate: false, resolvedIp: '93.184.216.34' }),
+  ),
   mockCreatePinnedDispatcher: vi.fn(() => ({})),
 }));
 vi.mock('../../../src/utils/ssrfGuard', () => ({
@@ -62,8 +66,9 @@ import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { CollabService } from '../../../src/nest/collab/collab.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { notificationsStub } from '../../helpers/notifications';
 
-const svc = new CollabService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService());
+const svc = new CollabService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), notificationsStub());
 
 beforeAll(() => {
   createTables(testDb);
@@ -72,7 +77,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   resetTestDb(testDb);
-  mockCheckSsrf.mockResolvedValue({ allowed: true, resolvedIp: '93.184.216.34' });
+  mockCheckSsrf.mockResolvedValue({ allowed: true, isPrivate: false, resolvedIp: '93.184.216.34' });
 });
 
 afterAll(() => {
@@ -82,7 +87,7 @@ afterAll(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   mockCheckSsrf.mockReset();
-  mockCheckSsrf.mockResolvedValue({ allowed: true, resolvedIp: '93.184.216.34' });
+  mockCheckSsrf.mockResolvedValue({ allowed: true, isPrivate: false, resolvedIp: '93.184.216.34' });
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -376,7 +381,8 @@ describe('linkPreview', () => {
   });
 
   it('COLLAB-SVC-028: returns fallback when SSRF check blocks the URL', async () => {
-    mockCheckSsrf.mockResolvedValue({ allowed: false, error: 'SSRF blocked' });
+    // 169.254.x is link-local, which the real guard reports as private and blocked.
+    mockCheckSsrf.mockResolvedValue({ allowed: false, isPrivate: true, error: 'SSRF blocked' });
 
     const result = await svc.linkPreview('https://169.254.169.254/');
     expect(result.title).toBeNull();
@@ -415,7 +421,7 @@ describe('hardening', () => {
   it('COLLAB-SVC-034: votePoll switch is atomic — prior vote survives a failed INSERT', () => {
     const { user1, trip } = setup();
     const dbs = new DatabaseService(testDb);
-    const failing = new CollabService(dbs, new PermissionsService(dbs), new RealtimeService());
+    const failing = new CollabService(dbs, new PermissionsService(dbs), new RealtimeService(), notificationsStub());
     const poll = failing.createPoll(trip.id, user1.id, { question: 'Q?', options: ['A', 'B'] });
     failing.votePoll(trip.id, poll!.id, user1.id, 0);
 
@@ -436,7 +442,7 @@ describe('hardening', () => {
   it('COLLAB-SVC-035: deleteNote is atomic — trip_files rows survive a failed note DELETE', () => {
     const { user1, trip } = setup();
     const dbs = new DatabaseService(testDb);
-    const failing = new CollabService(dbs, new PermissionsService(dbs), new RealtimeService());
+    const failing = new CollabService(dbs, new PermissionsService(dbs), new RealtimeService(), notificationsStub());
     const note = failing.createNote(trip.id, user1.id, { title: 'With file' });
     testDb.prepare('INSERT INTO trip_files (trip_id, note_id, filename, original_name) VALUES (?, ?, ?, ?)')
       .run(trip.id, note.id, 'files/a.pdf', 'a.pdf');

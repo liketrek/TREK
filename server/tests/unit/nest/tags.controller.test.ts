@@ -4,6 +4,7 @@ import { TagsController } from '../../../src/nest/tags/tags.controller';
 import type { TagsService } from '../../../src/nest/tags/tags.service';
 import type { User } from '../../../src/types';
 import type { Tag } from '@trek/shared';
+import { anyBody } from '../../helpers/dto';
 
 const user = { id: 5 } as User;
 
@@ -34,7 +35,7 @@ describe('TagsController (parity with the legacy /api/tags route)', () => {
   describe('POST /', () => {
     it('400 when name is missing', () => {
       const create = vi.fn();
-      expect(thrown(() => makeController({ create }).create(user, undefined))).toEqual({
+      expect(thrown(() => makeController({ create }).create(user, anyBody()))).toEqual({
         status: 400, body: { error: 'Tag name is required' },
       });
       expect(create).not.toHaveBeenCalled();
@@ -42,7 +43,7 @@ describe('TagsController (parity with the legacy /api/tags route)', () => {
 
     it('creates a tag for the caller', () => {
       const create = vi.fn().mockReturnValue(tag);
-      expect(makeController({ create }).create(user, 'Beach', '#10b981')).toEqual({ tag });
+      expect(makeController({ create }).create(user, anyBody({ name: 'Beach', color: '#10b981' }))).toEqual({ tag });
       expect(create).toHaveBeenCalledWith(5, 'Beach', '#10b981');
     });
   });
@@ -51,7 +52,7 @@ describe('TagsController (parity with the legacy /api/tags route)', () => {
     it('404 when the tag is not owned by the caller', () => {
       const getByIdAndUser = vi.fn().mockReturnValue(undefined);
       const update = vi.fn();
-      expect(thrown(() => makeController({ getByIdAndUser, update }).update(user, '9', 'X'))).toEqual({
+      expect(thrown(() => makeController({ getByIdAndUser, update }).update(user, '9', anyBody({ name: 'X' })))).toEqual({
         status: 404, body: { error: 'Tag not found' },
       });
       expect(getByIdAndUser).toHaveBeenCalledWith('9', 5);
@@ -61,7 +62,7 @@ describe('TagsController (parity with the legacy /api/tags route)', () => {
     it('updates an owned tag', () => {
       const getByIdAndUser = vi.fn().mockReturnValue(tag);
       const update = vi.fn().mockReturnValue({ ...tag, name: 'Hike' });
-      expect(makeController({ getByIdAndUser, update }).update(user, '1', 'Hike')).toEqual({ tag: { ...tag, name: 'Hike' } });
+      expect(makeController({ getByIdAndUser, update }).update(user, '1', anyBody({ name: 'Hike' }))).toEqual({ tag: { ...tag, name: 'Hike' } });
       expect(update).toHaveBeenCalledWith('1', 'Hike', undefined);
     });
   });

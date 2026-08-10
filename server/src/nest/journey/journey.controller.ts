@@ -27,32 +27,48 @@ import { RequireAddon } from '../addons/require-addon.decorator';
 import { ADDON_IDS } from '../../addons';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import {
+  JourneyAddTripDto, JourneyContributorAddDto, JourneyContributorUpdateDto, JourneyCreateDto,
+  JourneyEntryCreateDto, JourneyEntryPhotoUploadDto, JourneyEntryUpdateDto, JourneyGalleryVideoDto,
+  JourneyLinkPhotoDto, JourneyPhotoUpdateDto, JourneyPreferencesDto, JourneyProviderPhotosDto,
+  JourneyReorderEntriesDto, JourneyShareLinkDto, JourneyUpdateDto,
+} from './journey.dto';
 import { isVideoMime, isVideoExtension, MAX_VIDEO_SIZE } from '../files/files.constants';
-import { getAllowedExtensions } from '../files/files.bridge';
+import { AllowedFileTypesService } from '../files/allowed-file-types.service';
 
 const uploadsBase = path.join(__dirname, '../../../uploads/journey');
-const IMAGE_UPLOAD = {
-  storage: diskStorage({
-    destination: (_req, _file, cb) => { if (!fs.existsSync(uploadsBase)) fs.mkdirSync(uploadsBase, { recursive: true }); cb(null, uploadsBase); },
-    filename: (_req, file, cb) => cb(null, `${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase() || '.jpg'}`),
-  }),
-  limits: { fileSize: 20 * 1024 * 1024 },
-  fileFilter: (_req: unknown, file: Express.Multer.File, cb: (err: Error | null, accept: boolean) => void) => {
-    if (!file.mimetype.startsWith('image/') || file.mimetype.includes('svg')) {
-      const err: Error & { statusCode?: number } = new Error('Only image files are allowed');
-      err.statusCode = 400;
-      return cb(err, false);
-    }
-    const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
-    const allowed = getAllowedExtensions().split(',').map((e) => e.trim().toLowerCase());
-    if (!allowed.includes('*') && !allowed.includes(ext)) {
-      const err: Error & { statusCode?: number } = new Error(`File type .${ext} is not allowed`);
-      err.statusCode = 400;
-      return cb(err, false);
-    }
-    cb(null, true);
-  },
-};
+/**
+ * Journey image upload options, built from the container.
+ *
+ * Same reason as the trip-file factory: the fileFilter reads the operator's
+ * allowed-extension list at request time. Note this config carries NO
+ * defParamCharset, unlike the trip-file one; that difference is deliberate and
+ * predates the move, so the two are not folded into one shared object.
+ */
+export function buildJourneyImageUploadOptions(allowedTypes: AllowedFileTypesService) {
+  return {
+    storage: diskStorage({
+      destination: (_req, _file, cb) => { if (!fs.existsSync(uploadsBase)) fs.mkdirSync(uploadsBase, { recursive: true }); cb(null, uploadsBase); },
+      filename: (_req, file, cb) => cb(null, `${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase() || '.jpg'}`),
+    }),
+    limits: { fileSize: 20 * 1024 * 1024 },
+    fileFilter: (_req: unknown, file: Express.Multer.File, cb: (err: Error | null, accept: boolean) => void) => {
+      if (!file.mimetype.startsWith('image/') || file.mimetype.includes('svg')) {
+        const err: Error & { statusCode?: number } = new Error('Only image files are allowed');
+        err.statusCode = 400;
+        return cb(err, false);
+      }
+      const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+      const allowed = allowedTypes.get().split(',').map((e) => e.trim().toLowerCase());
+      if (!allowed.includes('*') && !allowed.includes(ext)) {
+        const err: Error & { statusCode?: number } = new Error(`File type .${ext} is not allowed`);
+        err.statusCode = 400;
+        return cb(err, false);
+      }
+      cb(null, true);
+    },
+  };
+}
 
 // Gallery video upload (#823): one video plus an optional client-captured poster
 // image, written to the same uploads/journey store. Larger cap than images since
@@ -113,13 +129,15 @@ export class JourneyController {
   }
 
   @Post()
-  create(@CurrentUser() user: User, @Body() body: { title?: string; subtitle?: string; trip_ids?: unknown[] }) {
+  create(@CurrentUser() user: User, @Body() body: JourneyCreateDto) {
     if (!body.title || typeof body.title !== 'string' || !body.title.trim()) {
       throw new HttpException({ error: 'Title is required' }, 400);
     }
     return this.journey.createJourney(user.id, {
-      title: body.title.trim(),
-      subtitle: body.subtitle,
+      // The guard three lines up proved both of these; the schema stays
+      // permissive so that guard keeps answering, not the pipe.
+      title: (body.title as string).trim(),
+      subtitle: body.subtitle as string | undefined,
       trip_ids: Array.isArray(body.trip_ids) ? body.trip_ids.map(Number) : [],
     });
   }
@@ -136,7 +154,7 @@ export class JourneyController {
 
   // ── Entries (prefix /entries — before /:id) ─────────────────────────────
   @Patch('entries/:entryId')
-  updateEntry(@CurrentUser() user: User, @Param('entryId') entryId: string, @Body() body: Record<string, unknown>, @Headers('x-socket-id') socketId?: string) {
+  updateEntry(@CurrentUser() user: User, @Param('entryId') entryId: string, @Body() body: JourneyEntryUpdateDto, @Headers('x-socket-id') socketId?: string) {
     const result = this.journey.updateEntry(Number(entryId), user.id, body, socketId);
     if (!result) {
       throw new HttpException({ error: 'Entry not found' }, 404);
@@ -153,15 +171,15 @@ export class JourneyController {
   }
 
   @Post('entries/:entryId/photos')
-  @UseInterceptors(FilesInterceptor('photos', undefined, IMAGE_UPLOAD))
-  async uploadEntryPhotos(@CurrentUser() user: User, @Param('entryId') entryId: string, @UploadedFiles() files: Express.Multer.File[] | undefined, @Body() body: { caption?: string }) {
+  @UseInterceptors(FilesInterceptor('photos'))
+  async uploadEntryPhotos(@CurrentUser() user: User, @Param('entryId') entryId: string, @UploadedFiles() files: Express.Multer.File[] | undefined, @Body() body: JourneyEntryPhotoUploadDto) {
     if (!files?.length) {
       throw new HttpException({ error: 'No files uploaded' }, 400);
     }
     const results: unknown[] = [];
     for (const file of files) {
       const relativePath = `journey/${file.filename}`;
-      const photo = this.journey.addPhoto(Number(entryId), user.id, relativePath, undefined, body?.caption);
+      const photo = this.journey.addPhoto(Number(entryId), user.id, relativePath, undefined, body?.caption as string | undefined);
       if (!photo) continue;
       // Mirror to Immich only when the user explicitly opted in (#730).
       if (this.journey.immichAutoUploadEnabled(user.id)) {
@@ -184,13 +202,13 @@ export class JourneyController {
   }
 
   @Post('entries/:entryId/provider-photos')
-  providerPhotos(@CurrentUser() user: User, @Param('entryId') entryId: string, @Body() body: { provider?: string; asset_id?: string; asset_ids?: unknown[]; caption?: string; passphrase?: string; media_type?: string; media_types?: unknown[] }) {
+  providerPhotos(@CurrentUser() user: User, @Param('entryId') entryId: string, @Body() body: JourneyProviderPhotosDto) {
     const pp = body.passphrase && typeof body.passphrase === 'string' ? body.passphrase : undefined;
     if (Array.isArray(body.asset_ids) && body.provider) {
       const added: unknown[] = [];
       body.asset_ids.forEach((id, i) => {
         const mt = Array.isArray(body.media_types) && body.media_types[i] === 'video' ? 'video' : 'image';
-        const photo = this.journey.addProviderPhoto(Number(entryId), user.id, body.provider!, String(id), body.caption, pp, mt);
+        const photo = this.journey.addProviderPhoto(Number(entryId), user.id, String(body.provider), String(id), body.caption as string | undefined, pp, mt);
         if (photo) added.push(photo);
       });
       return { photos: added, added: added.length };
@@ -198,7 +216,7 @@ export class JourneyController {
     if (!body.provider || !body.asset_id) {
       throw new HttpException({ error: 'provider and asset_id required' }, 400);
     }
-    const photo = this.journey.addProviderPhoto(Number(entryId), user.id, body.provider, body.asset_id, body.caption, pp, body.media_type === 'video' ? 'video' : 'image');
+    const photo = this.journey.addProviderPhoto(Number(entryId), user.id, String(body.provider), String(body.asset_id), body.caption as string | undefined, pp, body.media_type === 'video' ? 'video' : 'image');
     if (!photo) {
       throw new HttpException({ error: 'Not allowed or duplicate' }, 403);
     }
@@ -206,7 +224,7 @@ export class JourneyController {
   }
 
   @Post('entries/:entryId/link-photo')
-  linkPhoto(@CurrentUser() user: User, @Param('entryId') entryId: string, @Body() body: { journey_photo_id?: unknown; photo_id?: unknown }) {
+  linkPhoto(@CurrentUser() user: User, @Param('entryId') entryId: string, @Body() body: JourneyLinkPhotoDto) {
     const journeyPhotoId = body.journey_photo_id ?? body.photo_id;
     if (!journeyPhotoId) {
       throw new HttpException({ error: 'journey_photo_id required' }, 400);
@@ -227,7 +245,7 @@ export class JourneyController {
   }
 
   @Patch('photos/:photoId')
-  updatePhoto(@CurrentUser() user: User, @Param('photoId') photoId: string, @Body() body: Record<string, unknown>) {
+  updatePhoto(@CurrentUser() user: User, @Param('photoId') photoId: string, @Body() body: JourneyPhotoUpdateDto) {
     const result = this.journey.updatePhoto(Number(photoId), user.id, body);
     if (!result) {
       throw new HttpException({ error: 'Photo not found' }, 404);
@@ -249,7 +267,7 @@ export class JourneyController {
 
   // ── Gallery (prefix /:id/gallery — before /:id) ─────────────────────────
   @Post(':id/gallery/photos')
-  @UseInterceptors(FilesInterceptor('photos', undefined, IMAGE_UPLOAD))
+  @UseInterceptors(FilesInterceptor('photos'))
   uploadGalleryPhotos(@CurrentUser() user: User, @Param('id') id: string, @UploadedFiles() files: Express.Multer.File[] | undefined) {
     if (!files?.length) {
       throw new HttpException({ error: 'No files uploaded' }, 400);
@@ -268,7 +286,7 @@ export class JourneyController {
     @CurrentUser() user: User,
     @Param('id') id: string,
     @UploadedFiles() files: { video?: Express.Multer.File[]; poster?: Express.Multer.File[] } | undefined,
-    @Body() body: { duration_ms?: string },
+    @Body() body: JourneyGalleryVideoDto,
   ) {
     const video = files?.video?.[0];
     const poster = files?.poster?.[0];
@@ -298,13 +316,13 @@ export class JourneyController {
   }
 
   @Post(':id/gallery/provider-photos')
-  galleryProviderPhotos(@CurrentUser() user: User, @Param('id') id: string, @Body() body: { provider?: string; asset_id?: string; asset_ids?: unknown[]; passphrase?: string; media_type?: string; media_types?: unknown[] }) {
+  galleryProviderPhotos(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyProviderPhotosDto) {
     const pp = body.passphrase && typeof body.passphrase === 'string' ? body.passphrase : undefined;
     if (Array.isArray(body.asset_ids) && body.provider) {
       const added: unknown[] = [];
       body.asset_ids.forEach((aid, i) => {
         const mt = Array.isArray(body.media_types) && body.media_types[i] === 'video' ? 'video' : 'image';
-        const photo = this.journey.addProviderPhotoToGallery(Number(id), user.id, body.provider!, String(aid), undefined, pp, mt);
+        const photo = this.journey.addProviderPhotoToGallery(Number(id), user.id, String(body.provider), String(aid), undefined, pp, mt);
         if (photo) added.push(photo);
       });
       return { photos: added, added: added.length };
@@ -312,7 +330,7 @@ export class JourneyController {
     if (!body.provider || !body.asset_id) {
       throw new HttpException({ error: 'provider and asset_id required' }, 400);
     }
-    const photo = this.journey.addProviderPhotoToGallery(Number(id), user.id, body.provider, body.asset_id, undefined, pp, body.media_type === 'video' ? 'video' : 'image');
+    const photo = this.journey.addProviderPhotoToGallery(Number(id), user.id, String(body.provider), String(body.asset_id), undefined, pp, body.media_type === 'video' ? 'video' : 'image');
     if (!photo) {
       throw new HttpException({ error: 'Not allowed or duplicate' }, 403);
     }
@@ -342,7 +360,7 @@ export class JourneyController {
   }
 
   @Patch(':id')
-  update(@CurrentUser() user: User, @Param('id') id: string, @Body() body: Record<string, unknown>) {
+  update(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyUpdateDto) {
     const result = this.journey.updateJourney(Number(id), user.id, body);
     if (!result) {
       throw new HttpException({ error: 'Journey not found' }, 404);
@@ -352,7 +370,7 @@ export class JourneyController {
 
   @Post(':id/cover')
   @HttpCode(200) // Express answers cover with res.json (200).
-  @UseInterceptors(FileInterceptor('cover', IMAGE_UPLOAD))
+  @UseInterceptors(FileInterceptor('cover'))
   cover(@CurrentUser() user: User, @Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined) {
     if (!file) {
       throw new HttpException({ error: 'No file uploaded' }, 400);
@@ -375,7 +393,7 @@ export class JourneyController {
   // ── Journey trips ───────────────────────────────────────────────────────
   @Post(':id/trips')
   @HttpCode(200) // Express answers with res.json (200).
-  addTrip(@CurrentUser() user: User, @Param('id') id: string, @Body() body: { trip_id?: unknown }) {
+  addTrip(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyAddTripDto) {
     if (!body.trip_id) {
       throw new HttpException({ error: 'trip_id required' }, 400);
     }
@@ -404,7 +422,7 @@ export class JourneyController {
   }
 
   @Post(':id/entries')
-  createEntry(@CurrentUser() user: User, @Param('id') id: string, @Body() body: Record<string, unknown> & { entry_date?: unknown }, @Headers('x-socket-id') socketId?: string) {
+  createEntry(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyEntryCreateDto, @Headers('x-socket-id') socketId?: string) {
     if (!body.entry_date) {
       throw new HttpException({ error: 'entry_date is required' }, 400);
     }
@@ -416,7 +434,7 @@ export class JourneyController {
   }
 
   @Put(':id/entries/reorder')
-  reorderEntries(@CurrentUser() user: User, @Param('id') id: string, @Body() body: { orderedIds?: unknown }, @Headers('x-socket-id') socketId?: string) {
+  reorderEntries(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyReorderEntriesDto, @Headers('x-socket-id') socketId?: string) {
     const orderedIds = body.orderedIds;
     if (!Array.isArray(orderedIds) || !orderedIds.every((v) => Number.isFinite(Number(v)))) {
       throw new HttpException({ error: 'orderedIds must be an array of numbers' }, 400);
@@ -429,18 +447,18 @@ export class JourneyController {
 
   // ── Contributors ────────────────────────────────────────────────────────
   @Post(':id/contributors')
-  addContributor(@CurrentUser() user: User, @Param('id') id: string, @Body() body: { user_id?: unknown; role?: 'editor' | 'viewer' }) {
+  addContributor(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyContributorAddDto) {
     if (!body.user_id) {
       throw new HttpException({ error: 'user_id required' }, 400);
     }
-    if (!this.journey.addContributor(Number(id), user.id, Number(body.user_id), body.role || 'viewer')) {
+    if (!this.journey.addContributor(Number(id), user.id, Number(body.user_id), (body.role as 'editor' | 'viewer') || 'viewer')) {
       throw new HttpException({ error: 'Not allowed' }, 403);
     }
     return { success: true };
   }
 
   @Patch(':id/contributors/:userId')
-  updateContributor(@CurrentUser() user: User, @Param('id') id: string, @Param('userId') userId: string, @Body() body: { role?: 'editor' | 'viewer' }) {
+  updateContributor(@CurrentUser() user: User, @Param('id') id: string, @Param('userId') userId: string, @Body() body: JourneyContributorUpdateDto) {
     if (!this.journey.updateContributorRole(Number(id), user.id, Number(userId), body.role as 'editor' | 'viewer')) {
       throw new HttpException({ error: 'Not allowed' }, 403);
     }
@@ -457,7 +475,7 @@ export class JourneyController {
 
   // ── User Preferences ────────────────────────────────────────────────────
   @Patch(':id/preferences')
-  preferences(@CurrentUser() user: User, @Param('id') id: string, @Body() body: Record<string, unknown>) {
+  preferences(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyPreferencesDto) {
     const result = this.journey.updateJourneyPreferences(Number(id), user.id, body);
     if (!result) {
       throw new HttpException({ error: 'Not allowed' }, 403);
@@ -473,11 +491,11 @@ export class JourneyController {
 
   @Post(':id/share-link')
   @HttpCode(200) // Express answers with res.json (200).
-  setShareLink(@CurrentUser() user: User, @Param('id') id: string, @Body() body: { share_timeline?: boolean; share_gallery?: boolean; share_map?: boolean }) {
+  setShareLink(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyShareLinkDto) {
     const result = this.journey.createOrUpdateJourneyShareLink(Number(id), user.id, {
-      share_timeline: body.share_timeline,
-      share_gallery: body.share_gallery,
-      share_map: body.share_map,
+      share_timeline: body.share_timeline as boolean | undefined,
+      share_gallery: body.share_gallery as boolean | undefined,
+      share_map: body.share_map as boolean | undefined,
     });
     if (!result) {
       throw new HttpException({ error: 'Not allowed' }, 403);

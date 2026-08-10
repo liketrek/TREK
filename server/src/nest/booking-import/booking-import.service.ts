@@ -56,14 +56,6 @@ export class BookingImportService {
     return this.llmParse.isAvailable(userId);
   }
 
-  verifyTripAccess(tripId: string, userId: number) {
-    return this.dbs.canAccessTrip(tripId, userId);
-  }
-
-  canEdit(trip: TripAccess, user: User): boolean {
-    return this.permissions.checkPermission('reservation_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
-  }
-
   /**
    * Parse uploaded files and return a preview list. Does NOT persist anything.
    * Runs kitinerary first; depending on `mode`, falls back to the LLM:

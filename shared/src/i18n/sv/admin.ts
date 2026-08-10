@@ -167,6 +167,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': 'Platsinformation',
   'admin.placesDetails.subtitle':
     'Hämta detaljerad information om platsen (öppettider, betyg, webbplats) från Google Places API. Inaktivera funktionen för att spara på API-kvoten.',
+  'admin.placesEnrich.title': 'Platsberikning',
+  'admin.placesEnrich.subtitle':
+    'Visar bilder och en beskrivning när du lägger till en plats. Wikipedia och OpenStreetMap används alltid; Google tillkommer när Platsfoton eller Platsdetaljer är på.',
   'admin.bagTracking.title': 'Spårning av väskor',
   'admin.bagTracking.subtitle': 'Aktivera vikt- och väskfördelning för packningsartiklar',
   'admin.collab.chat.title': 'Chatt',
@@ -273,6 +276,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Uppdatera → v{version}',
   'admin.plugins.enabledToggle': 'Aktivera plugin',
   'plugins.notFound': 'Pluginet hittades inte',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Installera och hantera tredjepartsplugins på din instans.',
   'admin.plugins.disabledTitle': 'Plugins är inaktiverade',

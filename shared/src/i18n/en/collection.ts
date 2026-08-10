@@ -111,6 +111,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': 'Create a list first to save places.',
   'collections.removedFromAll': 'Removed from collection',
   'collections.picker.title': 'Saved places',
+  'collections.picker.showMore': 'Show {count} more',
   'collections.picker.search': 'Search your saved places',
   'collections.picker.empty': 'No saved places to add',
   'collections.picker.hint': 'Pick a place from your collections',

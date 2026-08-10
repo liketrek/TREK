@@ -42,11 +42,6 @@ vi.mock('../../../src/config', () => ({
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 
-vi.mock('../../../src/nest/addons/addons.bridge', () => ({
-  isAddonEnabled: vi.fn().mockReturnValue(true),
-  getCollabFeatures: vi.fn().mockReturnValue({ chat: true, notes: true, polls: true, whatsnext: true }),
-}));
-
 // share_vacay_calendar fires a user notification after inserting; stub it out
 vi.mock('../../../src/nest/notifications/notifications.bridge', () => ({ send: vi.fn().mockResolvedValue(undefined) }));
 
@@ -54,6 +49,8 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser } from '../../helpers/factories';
+import { setAddonEnabled } from '../../helpers/test-db';
+import { ADDON_IDS } from '../../../src/addons';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
 import { VacayService } from '../../../src/nest/vacay/vacay.service';
 
@@ -73,6 +70,9 @@ beforeAll(() => {
 
 beforeEach(() => {
   resetTestDb(testDb);
+  // The `when:` gate reads the injected AddonsService, so the toggle is the row
+  // the admin panel writes — and this addon ships disabled by default.
+  setAddonEnabled(testDb, ADDON_IDS.VACAY, true);
   broadcastMock.mockClear();
   delete process.env.DEMO_MODE;
 });

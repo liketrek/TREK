@@ -6,12 +6,12 @@ import {
 import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
 import { BudgetService } from '../budget/budget.service';
-import { placeExists, getAssignmentForTrip } from '../assignments/assignments.bridge';
 import { safeBroadcast, noAccess, hasTripPermission, permissionDenied } from '../../mcp/tools/_shared';
 import { ReservationsService } from './reservations.service';
 import { DaysService } from '../days/days.service';
 import { findByIata } from '../airports/airports.data';
 import type { EndpointInput } from './reservations.service';
+import { AssignmentsService } from '../assignments/assignments.service';
 
 const TRANSPORT_TYPES = ['flight', 'train', 'car', 'cruise'] as const;
 
@@ -88,6 +88,9 @@ export class ReservationsMcp {
     private readonly days: DaysService,
     private readonly budget: BudgetService,
     private readonly auth: AuthService,
+    // Appended, not inserted: the hand-wired MCP harnesses build this
+    // positionally.
+    private readonly assignments: AssignmentsService,
   ) {}
 
   @Tool({
@@ -130,13 +133,13 @@ export class ReservationsMcp {
     // Validate that all referenced IDs belong to this trip
     if (day_id && !this.days.getDay(day_id, tripId))
       return errorResult('day_id does not belong to this trip.');
-    if (place_id && !placeExists(place_id, tripId))
+    if (place_id && !this.assignments.placeExists(place_id, tripId))
       return errorResult('place_id does not belong to this trip.');
     if (start_day_id && !this.days.getDay(start_day_id, tripId))
       return errorResult('start_day_id does not belong to this trip.');
     if (end_day_id && !this.days.getDay(end_day_id, tripId))
       return errorResult('end_day_id does not belong to this trip.');
-    if (assignment_id && !getAssignmentForTrip(assignment_id, tripId))
+    if (assignment_id && !this.assignments.getAssignmentForTrip(assignment_id, tripId))
       return errorResult('assignment_id does not belong to this trip.');
 
     const createAccommodation = (type === 'hotel' && place_id && start_day_id && end_day_id)
@@ -203,9 +206,9 @@ export class ReservationsMcp {
     const existing = this.reservations.getReservation(reservationId, tripId);
     if (!existing) return errorResult('Reservation not found.');
 
-    if (place_id != null && !placeExists(place_id, tripId))
+    if (place_id != null && !this.assignments.placeExists(place_id, tripId))
       return errorResult('place_id does not belong to this trip.');
-    if (assignment_id != null && !getAssignmentForTrip(assignment_id, tripId))
+    if (assignment_id != null && !this.assignments.getAssignmentForTrip(assignment_id, tripId))
       return errorResult('assignment_id does not belong to this trip.');
 
     const { reservation } = this.reservations.update(reservationId, tripId, {
@@ -295,7 +298,7 @@ export class ReservationsMcp {
     if (!current) return errorResult('Reservation not found.');
     if (current.type !== 'hotel') return errorResult('Reservation is not of type hotel.');
 
-    if (!placeExists(place_id, tripId))
+    if (!this.assignments.placeExists(place_id, tripId))
       return errorResult('place_id does not belong to this trip.');
     if (!this.days.getDay(start_day_id, tripId))
       return errorResult('start_day_id does not belong to this trip.');

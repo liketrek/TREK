@@ -6,13 +6,14 @@ import {
 } from '@trek/nest-mcp';
 import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
-import { isAddonEnabled } from '../addons/addons.bridge';
 import { ADDON_IDS } from '../../addons';
 import { safeBroadcast, noAccess, hasTripPermission, permissionDenied } from '../../mcp/tools/_shared';
 import { TodoService } from './todo.service';
+import { addonGate } from '../addons/addon-gate';
+import { AddonsService } from '../addons/addons.service';
 
 /** Legacy registrar gate: the whole todo surface rides the packing addon. */
-const packingAddonOn = () => isAddonEnabled(ADDON_IDS.PACKING);
+const packingAddonOn = addonGate(ADDON_IDS.PACKING);
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -30,7 +31,11 @@ function parseId(value: string | string[]): number | null {
  */
 @McpController()
 export class TodoMcp {
-  constructor(private readonly todos: TodoService, private readonly auth: AuthService) {}
+  constructor(
+    private readonly todos: TodoService,
+    private readonly auth: AuthService,
+    readonly addons: AddonsService,
+  ) {}
 
   @Tool({
     name: 'list_todos',

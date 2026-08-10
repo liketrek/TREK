@@ -60,13 +60,9 @@ function thrown(fn: () => unknown): { status: number; body: unknown } {
   throw new Error('expected the handler to throw');
 }
 
+// The 404 "Trip not found" and 403 "No permission" cases moved to
+// trip-access.guard.test.ts with the check itself.
 describe('PackingController (parity with the legacy /api/trips/:tripId/packing route)', () => {
-  it('404 when the trip is not accessible', () => {
-    const svc = makeService({ verifyTripAccess: vi.fn().mockReturnValue(undefined) });
-    expect(thrown(() => new PackingController(svc).list(user, '5'))).toEqual({
-      status: 404, body: { error: 'Trip not found' },
-    });
-  });
 
   it('GET / returns items for an accessible trip', () => {
     const svc = makeService({ listItems: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<PackingService>);
@@ -74,12 +70,6 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
   });
 
   describe('POST / (create)', () => {
-    it('403 without packing_edit permission', () => {
-      const svc = makeService({ canEdit: vi.fn().mockReturnValue(false) });
-      expect(thrown(() => new PackingController(svc).create(user, '5', { name: 'Socks' }))).toEqual({
-        status: 403, body: { error: 'No permission' },
-      });
-    });
 
     // The missing-name 400 moved from a bespoke controller check into the
     // ZodValidationPipe (packingCreateItemRequestSchema) — direct method calls
@@ -126,12 +116,6 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
     // requires an array) — direct method calls bypass parameter pipes, so that
     // path is covered by the e2e suite and the schema spec in @trek/shared.
 
-    it('403 without packing_edit permission', () => {
-      const svc = makeService({ canEdit: vi.fn().mockReturnValue(false) });
-      expect(thrown(() => new PackingController(svc).importItems(user, '5', { items: [{ name: 'a' }] }))).toEqual({
-        status: 403, body: { error: 'No permission' },
-      });
-    });
 
     it('imports (owned by the importer) and broadcasts per item', () => {
       const bulkImport = vi.fn().mockReturnValue([{ id: 1 }, { id: 2 }]);
@@ -220,12 +204,6 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
       expect(reorderItems).toHaveBeenCalledWith('5', [3, 1, 2]);
     });
 
-    it('403 without packing_edit permission', () => {
-      const svc = makeService({ canEdit: vi.fn().mockReturnValue(false) });
-      expect(thrown(() => new PackingController(svc).reorder(user, '5', { orderedIds: [1] }))).toEqual({
-        status: 403, body: { error: 'No permission' },
-      });
-    });
   });
 
   describe('DELETE /:id (remove)', () => {

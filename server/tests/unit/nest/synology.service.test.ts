@@ -50,9 +50,10 @@ import { runMigrations } from '../../../src/db/migrations';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { SynologyService } from '../../../src/nest/memories/synology.service';
 import type { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
+import { notificationsStub } from '../../helpers/notifications';
 
 const access = { getAlbumLinkForSync: vi.fn(), updateSyncTimeForAlbumLink: vi.fn() };
-const svc = new SynologyService(new DatabaseService(testDb), access as unknown as MemoriesAccessService);
+const svc = new SynologyService(new DatabaseService(testDb), access as unknown as MemoriesAccessService, notificationsStub());
 
 const USER = 1;
 

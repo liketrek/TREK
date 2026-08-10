@@ -48,13 +48,12 @@ vi.mock('../../src/config', () => ({
 }));
 
 import type { INestApplication } from '@nestjs/common';
-import { buildApp } from '../../src/bootstrap';
+import { buildApp, getHttpServer } from '../../src/bootstrap';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { createUser, createTrip } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
-import { setupWebSocket } from '../../src/websocket';
 import { createEphemeralToken } from '../../src/nest/auth/ephemeral-tokens';
 import { createWsToken } from '../../src/nest/auth/auth.bridge';
 
@@ -69,8 +68,9 @@ beforeAll(async () => {
   // Real WebSocket against the unified NestJS app (Express is gone). buildApp owns
   // the same composition production uses; we attach the real ws server to it.
   nestApp = await buildApp();
-  server = http.createServer(nestApp.getHttpAdapter().getInstance());
-  setupWebSocket(server);
+  // buildApp owns the server now, because the ws gateway is bound to it before
+  // app.init(). Creating a second one here would leave /ws unreachable.
+  server = getHttpServer();
 
   await new Promise<void>(resolve => server.listen(0, resolve));
   const addr = server.address() as { port: number };

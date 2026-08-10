@@ -125,6 +125,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': 'Detalls del Lloc',
   'admin.placesDetails.subtitle':
     "Obtén informació detallada del lloc (horaris, valoració, web) de la Google Places API. Desactiva per estalviar quota d'API.",
+  'admin.placesEnrich.title': 'Enriquiment de llocs',
+  'admin.placesEnrich.subtitle':
+    "Mostra imatges i una descripció en afegir un lloc. Wikipedia i OpenStreetMap s'usen sempre; Google s'hi afegeix si Fotos de llocs o Detalls de llocs estan actius.",
   'admin.bagTracking.title': "Seguiment d'equipatge",
   'admin.bagTracking.subtitle': "Activar pes i assignació d'equipatge per a articles de la llista",
   'admin.collab.chat.title': 'Xat',
@@ -427,6 +430,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Actualitzar → v{version}',
   'admin.plugins.enabledToggle': 'Activar el connector',
   'plugins.notFound': "No s'ha trobat el connector",
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'Connectors',
   'admin.plugins.subtitle': 'Instal·la i gestiona connectors de tercers a la teva instància.',
   'admin.plugins.disabledTitle': 'Els connectors estan desactivats',

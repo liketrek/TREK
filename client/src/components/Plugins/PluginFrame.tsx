@@ -219,7 +219,7 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
   // ids the plugin already had; never the httpOnly cookie); fully closing it
   // would require not running plugin client JS at all.
   const loadsRef = useRef(0)
-  const { locale } = useTranslation()
+  const { locale, t } = useTranslation()
   const navigate = useNavigate()
   const toast = useToast()
   // useToast returns a fresh object every render; keep it out of the effect deps
@@ -243,6 +243,11 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
   // The ref mirrors the state so the message handler can gate + answer without
   // side effects inside a setState updater (StrictMode runs updaters twice).
   const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null)
+  // The iframe document can fail to load on its own: a plugin uninstalled in
+  // another tab, a frame route the host no longer serves, a network blip on a
+  // lazily loaded frame. Without an onError the element just stays blank at full
+  // height, which reads as a hung app rather than as a plugin that is gone.
+  const [loadFailed, setLoadFailed] = useState(false)
   const confirmReqRef = useRef<ConfirmRequest | null>(null)
   // geolocation:read gate — the feed only flags plugins whose grant is recorded.
   // Read via ref (like toastRef) so the bridge effect doesn't re-run on store churn.
@@ -593,14 +598,24 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
           // Deliver the context as soon as the document is parsed (the plugin sets up its
           // message listener during parse), closing the trek:ready race so the theme is
           // right on first paint. A 2nd load is a self-navigation — don't bridge to it.
-          onLoad={() => { loadsRef.current += 1; if (loadsRef.current === 1) postFrame(buildContext()) }}
+          onLoad={() => { setLoadFailed(false); loadsRef.current += 1; if (loadsRef.current === 1) postFrame(buildContext()) }}
+          onError={() => setLoadFailed(true)}
           sandbox="allow-scripts allow-forms"
           referrerPolicy="no-referrer"
           loading="lazy"
           title={title || pluginId}
           className={className}
-          style={{ width: '100%', height: fill ? '100%' : height ?? '100%', border: 0 }}
+          style={{ width: '100%', height: fill ? '100%' : height ?? '100%', border: 0, display: loadFailed ? 'none' : undefined }}
         />
+        {loadFailed && (
+          <div
+            role="alert"
+            className="flex items-center justify-center rounded-xl border border-edge bg-surface-2 p-6 text-caption text-content-2"
+            style={{ width: '100%', height: fill ? '100%' : height ?? '100%' }}
+          >
+            {t('plugins.frameLoadFailed')}
+          </div>
+        )}
         <ConfirmDialog
           isOpen={confirmReq != null}
           onClose={() => answerConfirm(false)}

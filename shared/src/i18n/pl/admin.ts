@@ -117,6 +117,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': 'Szczegóły miejsca',
   'admin.placesDetails.subtitle':
     'Pobiera szczegółowe informacje o miejscu (godziny, ocena, strona) z Google Places API. Wyłącz, aby zaoszczędzić limit API.',
+  'admin.placesEnrich.title': 'Wzbogacanie miejsc',
+  'admin.placesEnrich.subtitle':
+    'Pokazuje zdjęcia i opis podczas dodawania miejsca. Wikipedia i OpenStreetMap są używane zawsze; Google dochodzi, gdy włączone są Zdjęcia miejsc lub Szczegóły miejsc.',
   'admin.bagTracking.title': 'Kontrola bagażu',
   'admin.bagTracking.subtitle': 'Włącz wagę i przypisywanie do toreb dla przedmiotów do pakowania',
   'admin.collab.chat.title': 'Czat',
@@ -210,6 +213,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Update → v{version}',
   'admin.plugins.enabledToggle': 'Włącz wtyczkę',
   'plugins.notFound': 'Nie znaleziono wtyczki',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'Wtyczki',
   'admin.plugins.subtitle': 'Instaluj wtyczki innych autorów i zarządzaj nimi na swojej instancji.',
   'admin.plugins.disabledTitle': 'Wtyczki są wyłączone',

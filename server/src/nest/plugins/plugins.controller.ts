@@ -11,6 +11,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { getClientIp } from '../audit/client-ip';
 import { pluginsEnabled } from './kill-switch';
 import { devLinkEnabled } from './dev-link';
+import { PluginActivateDto, PluginConfigDto, PluginEgressHostsDto, PluginInstallDto, PluginLinkDto, PluginRetrustDto, PluginUninstallDto } from './plugins.dto';
 
 /**
  * Flatten a registry/install failure into the error envelope — CARRYING THE CODE.
@@ -70,7 +71,7 @@ export class PluginsController {
 
   @Post('install')
   @HttpCode(200)
-  async install(@Body() body: { id?: string; version?: string; constraint?: string; withDependencies?: boolean }) {
+  async install(@Body() body: PluginInstallDto) {
     if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
     if (!body?.id) throw new HttpException({ error: 'id is required' }, 400);
     try {
@@ -104,7 +105,7 @@ export class PluginsController {
    */
   @Post('link')
   @HttpCode(200)
-  async link(@Body() body: { path?: string }) {
+  async link(@Body() body: PluginLinkDto) {
     if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
     if (!devLinkEnabled()) throw new HttpException({ error: 'Dev-link is disabled (set TREK_PLUGINS_DEV_LINK=1)' }, 403);
     const dir = body?.path?.trim();
@@ -122,7 +123,7 @@ export class PluginsController {
   }
 
   @Put(':id/config')
-  updateConfig(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+  updateConfig(@Param('id') id: string, @Body() body: PluginConfigDto) {
     return { config: this.plugins.updateInstanceConfig(id, body || {}) };
   }
 
@@ -138,7 +139,7 @@ export class PluginsController {
   }
 
   @Put(':id/egress-hosts')
-  async setEgressHosts(@Param('id') id: string, @Body() body: { hosts?: unknown } = {}) {
+  async setEgressHosts(@Param('id') id: string, @Body() body: PluginEgressHostsDto) {
     if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
     const hosts = Array.isArray(body.hosts) ? body.hosts.map(String) : [];
     try {
@@ -150,7 +151,7 @@ export class PluginsController {
 
   @Post(':id/activate')
   @HttpCode(200)
-  async activate(@Param('id') id: string, @Body() body: { consent?: boolean } = {}) {
+  async activate(@Param('id') id: string, @Body() body: PluginActivateDto) {
     if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
     try {
       await this.runtime.activate(id, !!body?.consent);
@@ -231,7 +232,7 @@ export class PluginsController {
   @HttpCode(200)
   async retrust(
     @Param('id') id: string,
-    @Body() body: { version?: string; publicKey?: string },
+    @Body() body: PluginRetrustDto,
     @CurrentUser() user: { id: number },
     @Req() req: Request,
   ) {
@@ -247,7 +248,7 @@ export class PluginsController {
 
   @Post(':id/uninstall')
   @HttpCode(200)
-  async uninstall(@Param('id') id: string, @Body() body: { deleteData?: boolean }) {
+  async uninstall(@Param('id') id: string, @Body() body: PluginUninstallDto) {
     await this.runtime.uninstall(id, !!body?.deleteData);
     return { status: 'uninstalled' };
   }

@@ -12,6 +12,7 @@ import { OauthPublicController } from '../../../src/nest/oauth/oauth-public.cont
 import { OauthApiController } from '../../../src/nest/oauth/oauth-api.controller';
 import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 import type { OauthService } from '../../../src/nest/oauth/oauth.service';
+import type { AuditService } from '../../../src/nest/audit/audit.service';
 import type { User } from '../../../src/types';
 
 function osvc(o: Partial<OauthService> = {}): OauthService {
@@ -83,7 +84,9 @@ describe('OauthPublicController /token', () => {
 
   it('authorization_code: maps client_id / redirect_uri / resource mismatches + pkce + client auth', () => {
     const base = { grant_type: 'authorization_code', client_id: 'c', code: 'x', redirect_uri: 'u', code_verifier: 'v' };
-    const mk = (pending: Record<string, unknown>, extra: Partial<OauthService> = {}, body = base) => {
+    // body is the loose form the controller actually reads off req.body, not the
+    // shape of `base`, so a case can add a field such as `resource`.
+    const mk = (pending: Record<string, unknown>, extra: Partial<OauthService> = {}, body: Record<string, string> = base) => {
       const res = makeRes();
       opc(osvc({ consumeAuthCode: vi.fn().mockReturnValue(pending), authenticateClient: vi.fn().mockReturnValue({ id: 'c' }), verifyPKCE: vi.fn().mockReturnValue(true), ...extra }), rl()).token(reqWith(body), res);
       return res;

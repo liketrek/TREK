@@ -142,6 +142,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': 'تفاصيل الأماكن',
   'admin.placesDetails.subtitle':
     'جلب معلومات تفصيلية عن الأماكن (الساعات، التقييم، الموقع) من Google Places API. عطّلها للحفاظ على حصة API.',
+  'admin.placesEnrich.title': 'إثراء الأماكن',
+  'admin.placesEnrich.subtitle':
+    'يعرض صورًا ووصفًا أثناء إضافة مكان. تُستخدم ويكيبيديا وOpenStreetMap دائمًا، وتُضاف Google عند تفعيل صور الأماكن أو تفاصيل الأماكن.',
   'admin.bagTracking.title': 'تتبع الأمتعة',
   'admin.bagTracking.subtitle': 'تفعيل الوزن وتعيين الأمتعة للعناصر',
   'admin.collab.chat.title': 'الدردشة',
@@ -234,6 +237,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Update → v{version}',
   'admin.plugins.enabledToggle': 'تفعيل الإضافة',
   'plugins.notFound': 'الإضافة غير موجودة',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'الإضافات الخارجية',
   'admin.plugins.subtitle': 'ثبّت وأدر إضافات الجهات الخارجية على خادمك.',
   'admin.plugins.disabledTitle': 'الإضافات الخارجية معطّلة',

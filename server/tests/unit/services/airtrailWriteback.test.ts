@@ -8,11 +8,21 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
 
 import { db } from '../../../src/db/database';
 import { createUser } from '../../helpers/factories';
-import {
-  getConnectionSettings,
-  isAirtrailWriteEnabled,
-  saveSettings,
-} from '../../../src/services/airtrail/airtrailService';
+import { AirtrailService } from '../../../src/nest/integrations/airtrail.service';
+import { AirtrailClient } from '../../../src/nest/integrations/airtrail.client';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { AuditService } from '../../../src/nest/database/../audit/audit.service';
+
+// The free functions became methods with the airtrail fold; same SQL, same
+// behaviour, one instance over the same db handle.
+const svc = new AirtrailService(
+  new DatabaseService(db),
+  new AuditService(new DatabaseService(db)),
+  new AirtrailClient(),
+);
+const getConnectionSettings = svc.getConnectionSettings.bind(svc);
+const isAirtrailWriteEnabled = svc.isAirtrailWriteEnabled.bind(svc);
+const saveSettings = svc.saveSettings.bind(svc);
 
 describe('airtrail writeback opt-in persistence (#1240)', () => {
   it('defaults the writeback opt-in to off for a new user', () => {

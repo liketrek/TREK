@@ -212,6 +212,7 @@ describe('POST /oauth/token — authorization_code grant', () => {
             scopes: ['trips:read'],
             codeChallenge: challenge,
             codeChallengeMethod: 'S256',
+            resource: null,
         });
 
         // Try to use it with client2
@@ -241,6 +242,7 @@ describe('POST /oauth/token — authorization_code grant', () => {
             scopes: ['trips:read'],
             codeChallenge: challenge,
             codeChallengeMethod: 'S256',
+            resource: null,
         });
 
         const res = await request(app)
@@ -269,6 +271,7 @@ describe('POST /oauth/token — authorization_code grant', () => {
             scopes: ['trips:read'],
             codeChallenge: challenge,
             codeChallengeMethod: 'S256',
+            resource: null,
         });
 
         const res = await request(app)
@@ -297,6 +300,7 @@ describe('POST /oauth/token — authorization_code grant', () => {
             scopes: ['trips:read'],
             codeChallenge: challenge,
             codeChallengeMethod: 'S256',
+            resource: null,
         });
 
         const res = await request(app)
@@ -325,6 +329,7 @@ describe('POST /oauth/token — authorization_code grant', () => {
             scopes: ['trips:read'],
             codeChallenge: challenge,
             codeChallengeMethod: 'S256',
+            resource: null,
         });
 
         const res = await request(app)
@@ -387,6 +392,7 @@ describe('POST /oauth/token — refresh_token grant', () => {
             scopes: ['trips:read'],
             codeChallenge: challenge,
             codeChallengeMethod: 'S256',
+            resource: null,
         });
 
         // Exchange code for tokens
@@ -478,6 +484,7 @@ describe('POST /oauth/revoke', () => {
             scopes: ['trips:read'],
             codeChallenge: challenge,
             codeChallengeMethod: 'S256',
+            resource: null,
         });
 
         const tokenRes = await request(app)
@@ -898,6 +905,7 @@ describe('Sessions — /api/oauth/sessions', () => {
             scopes: ['trips:read'],
             codeChallenge: challenge,
             codeChallengeMethod: 'S256',
+            resource: null,
         });
 
         // Get a token so there's a session to revoke
@@ -1006,6 +1014,7 @@ describe('H1 — PKCE format validation', () => {
             scopes: ['trips:read'],
             codeChallenge: challenge,
             codeChallengeMethod: 'S256',
+            resource: null,
         });
 
         // Submit a valid-looking but wrong-format verifier (too short)
@@ -1063,6 +1072,7 @@ describe('H5 — All invalid_grant cases return identical response body', () => 
             scopes: ['trips:read'],
             codeChallenge: challenge,
             codeChallengeMethod: 'S256',
+            resource: null,
         });
 
         // Bad code
@@ -1083,6 +1093,7 @@ describe('H5 — All invalid_grant cases return identical response body', () => 
             scopes: ['trips:read'],
             codeChallenge: challenge,
             codeChallengeMethod: 'S256',
+            resource: null,
         });
         const res2 = await request(app).post('/oauth/token').send({
             grant_type: 'authorization_code',
@@ -1208,6 +1219,7 @@ describe('C3 — Refresh token replay detection', () => {
             scopes: ['trips:read'],
             codeChallenge: challenge,
             codeChallengeMethod: 'S256',
+            resource: null,
         });
 
         // Get initial tokens
@@ -1254,6 +1266,7 @@ describe('C3 — Refresh token replay detection', () => {
             scopes: ['trips:read'],
             codeChallenge: challenge,
             codeChallengeMethod: 'S256',
+            resource: null,
         });
 
         const t1 = await request(app).post('/oauth/token').send({

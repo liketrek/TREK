@@ -8,6 +8,7 @@ import {
   channelTestResultSchema,
   mapsSearchResultSchema, mapsAutocompleteResultSchema, mapsPlaceDetailsResultSchema,
   mapsPlacePhotoResultSchema, mapsReverseResultSchema, mapsResolveUrlResultSchema,
+  mapsPlaceEnrichmentResultSchema,
   type NotificationRespondRequest,
   type SettingUpsertRequest, type SettingsBulkRequest,
   type JourneyCreateRequest, type JourneyAddTripRequest,
@@ -599,6 +600,8 @@ export const adminApi = {
   updatePlacesAutocomplete: (enabled: boolean) => apiClient.put('/admin/places-autocomplete', { enabled }).then(r => r.data),
   getPlacesDetails: () => apiClient.get('/admin/places-details').then(r => r.data),
   updatePlacesDetails: (enabled: boolean) => apiClient.put('/admin/places-details', { enabled }).then(r => r.data),
+  getPlacesEnrich: () => apiClient.get('/admin/places-enrich').then(r => r.data),
+  updatePlacesEnrich: (enabled: boolean) => apiClient.put('/admin/places-enrich', { enabled }).then(r => r.data),
   getCollabFeatures: () => apiClient.get('/admin/collab-features').then(r => r.data),
   updateCollabFeatures: (features: Record<string, boolean>) => apiClient.put('/admin/collab-features', features).then(r => r.data),
   packingTemplates: () => apiClient.get('/admin/packing-templates').then(r => r.data),
@@ -926,6 +929,19 @@ export const mapsApi = {
   autocomplete: (input: string, lang?: string, locationBias?: { low: { lat: number; lng: number }; high: { lat: number; lng: number } }, signal?: AbortSignal) =>
       apiClient.post('/maps/autocomplete', { input, lang, locationBias }, { signal }).then(r => checkInDev(mapsAutocompleteResultSchema, r.data, 'maps.autocomplete')),
   details: (placeId: string, lang?: string) => apiClient.get(`/maps/details/${encodeURIComponent(placeId)}`, { params: { lang } }).then(r => checkInDev(mapsPlaceDetailsResultSchema, r.data, 'maps.details')),
+  // Pictures and a description for a place that is being looked at but not yet
+  // saved. Fans out to several providers server-side, so it takes a signal and
+  // the caller is expected to abort it when the selection changes, and a longer
+  // timeout than the global 8s — a cold Wikimedia connection alone can eat that.
+  placeEnrichment: (
+    body: { placeId?: string; lat: number; lng: number; name: string; lang?: string; details?: Record<string, unknown> },
+    signal?: AbortSignal,
+  ) => apiClient.post('/maps/enrichment', body, { signal, timeout: 25000 })
+      .then(r => checkInDev(mapsPlaceEnrichmentResultSchema, r.data, 'maps.placeEnrichment')),
+  // Author + licence for a picture already stored in the photo cache, keyed by
+  // the cache key embedded in its proxy URL. Local read, no provider call.
+  placePhotoCredit: (key: string) =>
+    apiClient.get(`/maps/enrichment/credit/${encodeURIComponent(key)}`).then(r => r.data as { credit: string | null }),
   placePhoto: (placeId: string, lat?: number, lng?: number, name?: string) => apiClient.get(`/maps/place-photo/${encodeURIComponent(placeId)}`, { params: { lat, lng, name } }).then(r => checkInDev(mapsPlacePhotoResultSchema, r.data, 'maps.placePhoto')),
   reverse: (lat: number, lng: number, lang?: string) => apiClient.get('/maps/reverse', { params: { lat, lng, lang } }).then(r => checkInDev(mapsReverseResultSchema, r.data, 'maps.reverse')),
   resolveUrl: (url: string) => apiClient.post('/maps/resolve-url', { url }).then(r => checkInDev(mapsResolveUrlResultSchema, r.data, 'maps.resolveUrl')),

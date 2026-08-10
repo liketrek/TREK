@@ -77,7 +77,10 @@ import { DatabaseService } from '../../../src/nest/database/database.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { NotificationsService, type NotificationPayload } from '../../../src/nest/notifications/notifications.service';
 import { send as bridgeSend } from '../../../src/nest/notifications/notifications.bridge';
-import { setPluginChannelSource, type ExternalChannel } from '../../../src/nest/notifications/channel-registry';
+import { setPluginChannelSource } from '../../../src/nest/notifications/channel-registry';
+// The channel interface lives in notification-events; channel-registry only imports
+// it for its own signatures and never re-exported it.
+import type { ExternalChannel } from '../../../src/nest/notifications/notification-events';
 import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
 
 const notifications = makeNotificationsService(new DatabaseService(testDb));

@@ -1,8 +1,16 @@
-import { Controller, Get, Query, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { readEnv } from '../../app-config';
 import { OidcService, OIDC_STATE_TTL_MS } from './oidc.service';
 import { cookieOptions } from '../common/cookie';
+import { AdminGuard } from '../auth/admin.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import type { User } from '../../types';
+import { AuditService } from '../audit/audit.service';
+import { getClientIp } from '../audit/client-ip';
+import { AdminOidcUpdateDto } from '../admin/admin.dto';
+import { Public } from '../auth/public.decorator';
 
 const OIDC_STATE_COOKIE = 'trek_oidc_state';
 
@@ -15,6 +23,7 @@ const OIDC_STATE_COOKIE = 'trek_oidc_state';
  * codes, and the auth-code → cookie hand-off on /exchange. Uses @Res directly
  * because the flow mixes provider redirects with JSON error bodies.
  */
+@Public('the OIDC handshake happens before a TREK session exists; the provider state is the credential')
 @Controller('api/auth/oidc')
 export class OidcController {
   constructor(private readonly oidc: OidcService) {}
@@ -163,5 +172,46 @@ export class OidcController {
     }
     this.oidc.setAuthCookie(res, result.token, req);
     res.json({ token: result.token });
+  }
+}
+
+/**
+ * /api/admin/oidc — the SSO configuration.
+ *
+ * Two routes that sat on AdminController with their SQL in AdminService, for a domain
+ * that already had a module. They read and write the same five app_settings keys the
+ * login flow next door consumes, so they belong here; the lockout guard that refuses
+ * to remove the config while password login is off lives with them in OidcService.
+ *
+ * The path, the {error,status} envelope and the audit action are unchanged.
+ */
+@Controller('api/admin/oidc')
+@UseGuards(JwtAuthGuard, AdminGuard)
+export class AdminOidcController {
+  constructor(
+    private readonly oidc: OidcService,
+    private readonly audit: AuditService,
+  ) {}
+
+  @Get()
+  get() {
+    return this.oidc.getOidcSettings();
+  }
+
+  @Put()
+  update(@CurrentUser() user: User, @Body() body: AdminOidcUpdateDto, @Req() req: Request) {
+    const result = this.oidc.updateOidcSettings(body);
+    if (result.error) {
+      throw new HttpException({ error: result.error }, result.status || 400);
+    }
+    // Only whether an issuer was set, never the value: the details column is readable
+    // by every admin and the issuer identifies the customer's IdP tenant.
+    this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.oidc_update',
+      ip: getClientIp(req),
+      details: { issuer_set: !!body.issuer },
+    });
+    return { success: true };
   }
 }

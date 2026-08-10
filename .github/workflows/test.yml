@@ -154,6 +154,13 @@ jobs:
       - name: Typecheck
         run: cd server && npm run typecheck
 
+      - name: Typecheck tests
+        # tests/ is outside the build tsconfig, so a service that grows a
+        # constructor parameter does not break its hand-wired call sites at
+        # compile time: the argument arrives as undefined and throws at runtime,
+        # if anything reads it at all. This is the step that catches it.
+        run: cd server && npm run typecheck:tests
+
       - name: Lint
         run: cd server && npm run lint:check
 

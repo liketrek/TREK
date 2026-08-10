@@ -12,10 +12,19 @@ import type { PermissionsService } from '../../../src/nest/permissions/permissio
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import type { PluginRpcContext } from '../../../src/nest/plugins/host/rpc-kit/types';
 
+/**
+ * The guards read `actingUserId` and nothing else off the context, so the two per-host
+ * collaborators are inert here. `plugins` gets real no-op functions rather than a cast,
+ * so a guard that ever reached for a peer would hit a callable, not undefined.
+ */
 const ctx = (actingUserId: number | undefined): PluginRpcContext => ({
   pluginId: 'p',
   actingUserId,
   data: {} as PluginRpcContext['data'],
+  plugins: {
+    call: vi.fn(async () => undefined),
+    emit: vi.fn(),
+  },
 });
 
 /** Trip 1 belongs to user 42 and only user 42 may reach it, mirroring rpc-host.test.ts. */

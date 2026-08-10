@@ -397,6 +397,53 @@ describe('fetchImmichThumbnailBytes', () => {
   });
 });
 
+describe('streamImmichAsset', () => {
+  function makeRes() {
+    return { status: vi.fn().mockReturnThis(), json: vi.fn(), set: vi.fn(), end: vi.fn() };
+  }
+
+  it('IMMICH-041b: answers 404 when the owner has no connection, instead of leaving the request open', async () => {
+    // It used to return { error, status } and touch nothing. All four callers
+    // ignored that return, so the client got no status line at all and waited
+    // out its own timeout. Synology's counterpart always wrote; this matches.
+    seedUser(11, null, null);
+    const res = makeRes();
+
+    await svc.streamImmichAsset(res as never, USER, 'a1', 'thumbnail', 11);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Not found' });
+    expect(safeFetch).not.toHaveBeenCalled();
+  });
+
+  it('IMMICH-041c: reads the connection of the OWNER, not of the viewer', async () => {
+    // A shared album is proxied with the owner's key on the viewer's behalf, so
+    // a viewer who happens to have Immich configured must not paper over an
+    // owner who does not.
+    seedUser(USER, 'https://immich.example', 'viewer-key');
+    seedUser(12, null, null);
+    const res = makeRes();
+
+    await svc.streamImmichAsset(res as never, USER, 'a1', 'original', 12);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(safeFetch).not.toHaveBeenCalled();
+  });
+
+  it('IMMICH-041d: proxies with the owner key once a connection exists', async () => {
+    seedUser(13, 'https://immich.example', 'owner-key');
+    safeFetch.mockResolvedValue(upstream({ contentType: 'image/jpeg', body: 'bytes' }));
+    const res = makeRes();
+
+    await svc.streamImmichAsset(res as never, USER, 'a1', 'thumbnail', 13);
+
+    expect(safeFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = safeFetch.mock.calls[0];
+    expect(url).toContain('/api/assets/a1/thumbnail');
+    expect((init.headers as Record<string, string>)['x-api-key']).toBe('owner-key');
+  });
+});
+
 describe('collectAlbumSelection', () => {
   it('IMMICH-042: 404s when the album link does not resolve', async () => {
     access.getAlbumIdFromLink.mockReturnValue({ success: false });

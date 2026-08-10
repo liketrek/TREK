@@ -13,12 +13,12 @@ import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
 import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
 import { TagsRpc } from '../../../src/nest/tags/tags.rpc';
-import { DayNotesRpc } from '../../../src/nest/days/day-notes.rpc';
+import { DayNotesRpc } from '../../../src/nest/day-notes/day-notes.rpc';
 import { PlacesRpc } from '../../../src/nest/places/places.rpc';
 import { PackingRpc } from '../../../src/nest/packing/packing.rpc';
 import { FilesRpc } from '../../../src/nest/files/files.rpc';
 import { TripsRpc } from '../../../src/nest/trips/trips.rpc';
-import { AccommodationsRpc } from '../../../src/nest/days/accommodations.rpc';
+import { AccommodationsRpc } from '../../../src/nest/accommodations/accommodations.rpc';
 import { ReservationsRpc } from '../../../src/nest/reservations/reservations.rpc';
 import { DaysRpc } from '../../../src/nest/days/days.rpc';
 import { VacayRpc } from '../../../src/nest/vacay/vacay.rpc';
@@ -124,13 +124,13 @@ describe('a service that says no becomes a refusal, not a crash', () => {
 
   it('FALLBACK-008 an accommodation whose refs do not validate is refused with the validator message', async () => {
     const { guards } = guardsFor();
-    const days = {
+    const accommodations = {
       validateAccommodationRefs: vi.fn(() => [{ message: 'day 9 is not on this trip' }]),
       getAccommodation: vi.fn(() => ({ id: 11 })),
       createAccommodation: vi.fn(),
       updateAccommodation: vi.fn(),
     } as never;
-    const host = new PluginRpcHost('p', ALL, makeDeps(), createTestPluginRegistry([new AccommodationsRpc(days, realtime(), guards)]));
+    const host = new PluginRpcHost('p', ALL, makeDeps(), createTestPluginRegistry([new AccommodationsRpc(accommodations, realtime(), guards)]));
     expect(err(await host.dispatch(req('accommodations.update', { tripId: 1, accommodationId: 11, input: { start_day_id: 9 } }), 42)).message)
       .toBe('day 9 is not on this trip');
   });
@@ -145,7 +145,7 @@ describe('service errors are translated into the RPC taxonomy', () => {
       create: vi.fn(() => { if (createThrows) throw createThrows; return { trip: { id: 99 } }; }),
       removeMember: vi.fn(),
     } as never;
-    const rpc = new TripsRpc(trips, {} as never, {} as never, {} as never, db, realtime(), guards);
+    const rpc = new TripsRpc(trips, {} as never, {} as never, {} as never, db, realtime(), guards, {} as never, {} as never);
     return new PluginRpcHost('p', ALL, makeDeps(), createTestPluginRegistry([rpc]));
   }
 
@@ -246,7 +246,7 @@ describe('every schema-validated method rejects a payload its schema refuses', (
       new PlacesRpc(anything, anything, realtime(), guards),
       new DaysRpc(anything, realtime(), guards),
       new PackingRpc(anything, realtime(), guards),
-      new TripsRpc(anything, anything, anything, anything, db, realtime(), guards),
+      new TripsRpc(anything, anything, anything, anything, db, realtime(), guards, anything, anything),
       new AccommodationsRpc(anything, realtime(), guards),
       new ReservationsRpc(anything, realtime(), guards),
     ]);

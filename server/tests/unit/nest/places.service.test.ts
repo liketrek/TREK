@@ -54,6 +54,10 @@ vi.mock('../../../src/config', () => ({
 // Spy on the photo-cache reclaim hook so delete tests assert the wiring without
 // touching disk. The removal logic itself is covered in placePhotoCache.test.ts.
 // Injected stub since the photo-cache fold (was a partial path mock).
+// Only `removeIfUnreferenced` is stubbed: it is the single cache method anything
+// in this file reaches. MapsService takes the same instance (as it does in
+// production) but never gets far enough to call it, since every maps path here
+// stops at the missing API key.
 const removeIfUnreferencedSpy = vi.fn();
 const photoCacheStub = { removeIfUnreferenced: removeIfUnreferencedSpy } as unknown as PlacePhotoCacheService;
 
@@ -69,13 +73,38 @@ import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
 import { PLACE_IMAGES_DIR } from '../../../src/nest/places/place-image';
 
 const GPX_FIXTURE = path.join(__dirname, '../../fixtures/test.gpx');
 const KML_FIXTURE = path.join(__dirname, '../../fixtures/test.kml');
 
 const dbs = new DatabaseService(testDb);
-const svc = new PlacesService(dbs, new PermissionsService(dbs), new RealtimeService(), new MapsService(dbs), new QueryHelpersService(dbs), new UnsplashService(dbs, new RuntimeEnvService()), photoCacheStub);
+
+/**
+ * Same collaborator set the container hands PlacesService (see trips.bridge.ts),
+ * built once here so the two construction sites cannot drift apart again. The
+ * journey domain is a real instance on the same in-memory DB rather than a stub:
+ * its place hooks are fire-and-forget behind a catch, so a missing one would have
+ * looked like a pass while silently swallowing a TypeError. No test in this file
+ * creates a journey, so every hook returns on its first lookup.
+ * `maps` is a parameter because the enrichment cases hand in their own provider.
+ */
+function makePlacesService(maps: MapsService = new MapsService(dbs, photoCacheStub)): PlacesService {
+  return new PlacesService(
+    dbs,
+    new PermissionsService(dbs),
+    new RealtimeService(),
+    maps,
+    new QueryHelpersService(dbs),
+    new UnsplashService(dbs, new RuntimeEnvService()),
+    photoCacheStub,
+    new JourneyDomainService(dbs, new RealtimeService(), new TrekPhotosRepository(dbs)),
+  );
+}
+
+const svc = makePlacesService();
 
 beforeAll(() => {
   createTables(testDb);
@@ -1012,8 +1041,9 @@ describe('PlacesService — automatic track colours (#776)', () => {
 // ── Import enrichment (#886) ──────────────────────────────────────────────────
 
 describe('enrichImportedPlaces', () => {
+  // Deliberately partial: each case stubs only the provider calls its path reaches.
   function enrichSvc(maps: Partial<MapsService>) {
-    return new PlacesService(dbs, new PermissionsService(dbs), new RealtimeService(), maps as MapsService, new QueryHelpersService(dbs), new UnsplashService(dbs, new RuntimeEnvService()), photoCacheStub);
+    return makePlacesService(maps as MapsService);
   }
 
   it('PLACE-SVC-058 — no-ops when no Google Maps key is configured', async () => {

@@ -24,6 +24,7 @@ import { PlacesService } from './places.service';
 import { isUpdateConflict } from '../common/conflictResult';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { PLACE_IMAGE_UPLOAD } from '../common/place-image-upload';
 import { placeImageUrl } from './place-image';
 import {
@@ -106,6 +107,7 @@ export class PlacesController {
   }
 
   @Get()
+  @UseGuards(TripAccessGuard)
   list(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
@@ -113,7 +115,6 @@ export class PlacesController {
     @Query('category') category?: string,
     @Query('tag') tag?: string,
   ) {
-    this.requireTrip(tripId, user);
     return { places: this.places.list(tripId, { search, category, tag }) };
   }
 
@@ -291,8 +292,8 @@ export class PlacesController {
   }
 
   @Get(':id')
+  @UseGuards(TripAccessGuard)
   get(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string) {
-    this.requireTrip(tripId, user);
     const place = this.places.get(tripId, id);
     if (!place) {
       throw new HttpException({ error: 'Place not found' }, 404);
@@ -352,8 +353,8 @@ export class PlacesController {
   }
 
   @Delete(':id/rating')
+  @UseGuards(TripAccessGuard)
   unrate(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
-    this.requireTrip(tripId, user);
     const place = this.places.rate(tripId, id, user.id, null);
     if (!place) {
       throw new HttpException({ error: 'Place not found' }, 404);
@@ -363,8 +364,8 @@ export class PlacesController {
   }
 
   @Get(':id/image')
+  @UseGuards(TripAccessGuard)
   async image(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string) {
-    this.requireTrip(tripId, user);
     try {
       const result = await this.places.searchImage(tripId, id, user.id);
       if ('error' in result) {
@@ -407,9 +408,9 @@ export class PlacesController {
   }
 
   @Delete(':id')
+  @UseGuards(TripAccessGuard)
+  @RequirePermission('place_edit')
   remove(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
-    const trip = this.requireTrip(tripId, user);
-    this.requireEdit(trip, user);
     // Scope the id to the trip before the hook (see bulkDelete), then sync the
     // journey ahead of the actual delete.
     if (!this.places.get(tripId, id)) {

@@ -9,11 +9,12 @@ import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AuthModule } from '../auth/auth.module';
+import { AddonsModule } from '../addons/addons.module';
 
 /** Budget domain (S4 — Phase 2 trip sub-domain). Registered in AppModule.
  *  BudgetMcp carries the decorator-registered MCP tools + resources. */
 @Module({
-  imports: [PermissionsModule, AuthModule, RealtimeModule, PluginGuardsModule],
+  imports: [PermissionsModule, AuthModule, RealtimeModule, PluginGuardsModule, AddonsModule],
   controllers: [BudgetController],
   providers: [BudgetService, ExchangeRatesService, BudgetMcp, ExchangeRatesRpc, CostsRpc],
   // For in-container consumers (CostsRpc, TripsService,

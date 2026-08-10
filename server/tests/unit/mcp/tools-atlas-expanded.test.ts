@@ -35,16 +35,14 @@ vi.mock('../../../src/config', () => ({
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 
-vi.mock('../../../src/nest/addons/addons.bridge', () => ({
-  isAddonEnabled: vi.fn().mockReturnValue(true),
-  getCollabFeatures: vi.fn().mockReturnValue({ chat: true, notes: true, polls: true, whatsnext: true }),
-}));
 
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createBucketListItem, createVisitedCountry } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { setAddonEnabled } from '../../helpers/test-db';
+import { ADDON_IDS } from '../../../src/addons';
 
 beforeAll(() => {
   createTables(testDb);
@@ -52,6 +50,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  setAddonEnabled(testDb, ADDON_IDS.ATLAS, true);
   resetTestDb(testDb);
   broadcastMock.mockClear();
   delete process.env.DEMO_MODE;

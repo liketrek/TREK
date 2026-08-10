@@ -297,10 +297,12 @@ describe('JourneyPublicController', () => {
 
   it('legacy photo proxy: 404 invalid token, immich path streams', async () => {
     expect(await thrownAsync(() => new JourneyPublicController(svc({ validateShareTokenForAsset: vi.fn().mockReturnValue(null) } as Partial<JourneyService>)).legacyPhoto('tok', 'immich', 'a1', '2', 'thumbnail', {} as Response))).toEqual({ status: 404, body: { error: 'Not found' } });
-    const streamImmichAsset = vi.fn().mockResolvedValue(undefined);
-    const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }), streamImmichAsset } as Partial<JourneyService>);
+    // One call for every provider now, with the ids in a ref instead of in a
+    // per-provider argument order.
+    const streamProviderAsset = vi.fn().mockResolvedValue(undefined);
+    const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }), streamProviderAsset } as Partial<JourneyService>);
     await new JourneyPublicController(s).legacyPhoto('tok', 'immich', 'a1', '2', 'original', {} as Response);
-    expect(streamImmichAsset).toHaveBeenCalledWith({}, 5, 'a1', 'original', 5);
+    expect(streamProviderAsset).toHaveBeenCalledWith({}, 'immich', { userId: 5, ownerId: 5, assetId: 'a1' }, 'original');
   });
 
   it('photo proxy streams thumbnails too', async () => {
@@ -311,25 +313,39 @@ describe('JourneyPublicController', () => {
   });
 
   it('legacy photo proxy: synology streams, and a failure becomes a 404 json', async () => {
-    const streamSynologyAsset = vi.fn().mockResolvedValue(undefined);
-    const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }), streamSynologyAsset } as Partial<JourneyService>);
-    await new JourneyPublicController(s).legacyPhoto('tok', 'synology', 'a1', '2', 'thumbnail', {} as Response);
-    expect(streamSynologyAsset).toHaveBeenCalledWith({}, 5, 5, 'a1', 'thumbnail');
+    const streamProviderAsset = vi.fn().mockResolvedValue(undefined);
+    const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }), streamProviderAsset } as Partial<JourneyService>);
+    await new JourneyPublicController(s).legacyPhoto('tok', 'synologyphotos', 'a1', '2', 'thumbnail', {} as Response);
+    expect(streamProviderAsset).toHaveBeenCalledWith({}, 'synologyphotos', { userId: 5, ownerId: 5, assetId: 'a1' }, 'thumbnail');
 
     const status = vi.fn().mockReturnThis();
     const json = vi.fn();
     const res = { status, json } as unknown as Response;
-    const failing = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 0 }), streamSynologyAsset: vi.fn().mockRejectedValue(new Error('no synology')) } as Partial<JourneyService>);
-    await new JourneyPublicController(failing).legacyPhoto('tok', 'synology', 'a1', '6', 'original', res);
+    const failing = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 0 }), streamProviderAsset: vi.fn().mockRejectedValue(new Error('no synology')) } as Partial<JourneyService>);
+    await new JourneyPublicController(failing).legacyPhoto('tok', 'synologyphotos', 'a1', '6', 'original', res);
+    expect(status).toHaveBeenCalledWith(404);
+    expect(json).toHaveBeenCalledWith({ error: 'Provider not supported' });
+  });
+
+  it('legacy photo proxy: an unregistered provider 404s instead of being handed to synology', async () => {
+    // The old if/else sent everything that was not immich to synology, which
+    // 404'd from inside its own id parser. The registry can tell "no such
+    // backend" apart from "that backend failed".
+    const streamProviderAsset = vi.fn().mockReturnValue(null);
+    const status = vi.fn().mockReturnThis();
+    const json = vi.fn();
+    const res = { status, json } as unknown as Response;
+    const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }), streamProviderAsset } as Partial<JourneyService>);
+    await new JourneyPublicController(s).legacyPhoto('tok', 'photoprism', 'a1', '2', 'original', res);
     expect(status).toHaveBeenCalledWith(404);
     expect(json).toHaveBeenCalledWith({ error: 'Provider not supported' });
   });
 
   it('legacy photo proxy: falls back to the path ownerId when the token has none', async () => {
-    const streamImmichAsset = vi.fn().mockResolvedValue(undefined);
-    const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 0 }), streamImmichAsset } as Partial<JourneyService>);
+    const streamProviderAsset = vi.fn().mockResolvedValue(undefined);
+    const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 0 }), streamProviderAsset } as Partial<JourneyService>);
     await new JourneyPublicController(s).legacyPhoto('tok', 'immich', 'a1', '8', 'original', {} as Response);
-    expect(streamImmichAsset).toHaveBeenCalledWith({}, 8, 'a1', 'original', 8);
+    expect(streamProviderAsset).toHaveBeenCalledWith({}, 'immich', { userId: 8, ownerId: 8, assetId: 'a1' }, 'original');
   });
 
   it('legacy photo proxy: local provider 404s when the resolved file does not exist', async () => {

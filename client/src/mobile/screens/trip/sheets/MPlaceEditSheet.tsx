@@ -1,7 +1,12 @@
-import { useEffect, useMemo, useState, type ClipboardEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ClipboardEvent } from 'react'
 import { MapPin } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
-import { DEFAULT_FORM, type PlaceFormData } from '../../../../components/Planner/PlaceFormModal.helpers'
+import {
+  DEFAULT_FORM,
+  mergeResult,
+  type PlaceFormData,
+  type ResultField,
+} from '../../../../components/Planner/PlaceFormModal.helpers'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
 import PlPlaceSearch, { type PlSearchPick } from './PlPlaceSearch'
 import PlCategoryPicker from './PlCategoryPicker'
@@ -57,6 +62,8 @@ export default function MPlaceEditSheet({ planner }: MPlaceEditSheetProps) {
   } = planner
 
   const [form, setForm] = useState<PlaceFormData>(DEFAULT_FORM)
+  // Which fields the last picked search result wrote. See mergeResult.
+  const autoFilledRef = useRef<Set<ResultField>>(new Set())
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [resolvingPick, setResolvingPick] = useState(false)
@@ -111,6 +118,16 @@ export default function MPlaceEditSheet({ planner }: MPlaceEditSheetProps) {
     } else {
       setForm(DEFAULT_FORM)
     }
+    // A fresh sheet owns nothing yet; one opened on a map POI owns whatever
+    // that POI filled in. An existing place being edited owns nothing either —
+    // everything on that form came out of the database.
+    autoFilledRef.current = new Set(
+      !editingPlace && prefillCoords
+        ? (['name', 'address', 'lat', 'lng', 'website', 'phone', 'osm_id'] as ResultField[]).filter(
+            (field) => !!prefillCoords[field as keyof typeof prefillCoords],
+          )
+        : [],
+    )
     setPendingFiles([])
     setDuplicateWarning(null)
     setDeleteArmed(false)
@@ -139,22 +156,16 @@ export default function MPlaceEditSheet({ planner }: MPlaceEditSheetProps) {
   }, [places])
 
   const handleChange = (field: keyof PlaceFormData, value: string) => {
+    // Typed by hand, so the next pick must leave it alone.
+    autoFilledRef.current.delete(field as ResultField)
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
+  // Same fix as the desktop dialog, same helper. `?? prev.X` cannot tell a
+  // value the user typed from one the previous pick wrote, so searching an
+  // airport and then a station left the airport's website in the field.
   const applyPick = (pick: PlSearchPick) => {
-    setForm(prev => ({
-      ...prev,
-      name: pick.name ?? prev.name,
-      address: pick.address ?? prev.address,
-      lat: pick.lat ?? prev.lat,
-      lng: pick.lng ?? prev.lng,
-      google_place_id: pick.google_place_id ?? prev.google_place_id,
-      google_ftid: pick.google_ftid ?? prev.google_ftid,
-      osm_id: pick.osm_id ?? prev.osm_id,
-      website: pick.website ?? prev.website,
-      phone: pick.phone ?? prev.phone,
-    }))
+    setForm(prev => mergeResult(prev, pick as unknown as Record<string, unknown>, autoFilledRef.current))
   }
 
   const handleClose = () => {

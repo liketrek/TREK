@@ -6,6 +6,7 @@ import { ShareService } from './share.service';
 import { ShareLinkDto } from './share.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { Public } from '../auth/public.decorator';
 
 /**
  * /api/trips/:tripId/share-link — manage a trip's public read-only share token.
@@ -70,6 +71,7 @@ export class TripShareController {
  * GET /api/shared/:token — public, unauthenticated read-only trip snapshot.
  * Deliberately NOT behind a guard; an invalid/expired token answers 404.
  */
+@Public('share-token validated: a shared trip link has to work for somebody without an account')
 @Controller('api/shared')
 export class SharedController {
   constructor(private readonly share: ShareService) {}

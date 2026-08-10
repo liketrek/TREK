@@ -30,6 +30,7 @@ import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.s
 import { createPluginRuntime } from '../../helpers/plugin-host';
 import { parseManifest, ManifestError } from '../../../src/nest/plugins/install/manifest';
 import { makeHostAllow } from '../../../src/nest/plugins/runtime/egress-policy';
+import { AddonsService } from '../../../src/nest/addons/addons.service';
 
 function install(id: string, operatorEgress: boolean, perms: string[] = ['http:outbound:gotify.net']) {
   testDb.prepare(
@@ -159,13 +160,20 @@ describe('the admin list surfaces operator egress (so the chip can be shown)', (
     install('gotify', true);
     install('plain', false);
 
-    const before = new PluginsService(new DatabaseService(dbConn)).list().plugins;
+    // list() resolves required-addon dependencies through AddonsService, so it gets a real
+    // one over the same DB. These fixtures declare no dependencies, so it is never consulted.
+    const listPlugins = () => {
+      const dbs = new DatabaseService(dbConn);
+      return new PluginsService(dbs, new AddonsService(dbs)).list().plugins;
+    };
+
+    const before = listPlugins();
     expect(before.find(p => p.id === 'gotify')).toMatchObject({ operatorEgress: true, egressHostCount: 0 });
     // A plugin that never asked for it must never invite the admin to add hosts.
     expect(before.find(p => p.id === 'plain')).toMatchObject({ operatorEgress: false, egressHostCount: 0 });
 
     await rt.setOperatorEgressHosts('gotify', ['a.example.com', 'b.example.com']);
-    const after = new PluginsService(new DatabaseService(dbConn)).list().plugins;
+    const after = listPlugins();
     expect(after.find(p => p.id === 'gotify')!.egressHostCount).toBe(2);
     delete process.env.TREK_PLUGINS_ENABLED;
   });

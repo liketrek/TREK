@@ -20,6 +20,7 @@ import type { PermissionsService } from '../../../src/nest/permissions/permissio
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import type { RpcRequest, RpcError } from '../../../src/nest/plugins/protocol/envelope';
 import { makeDeps } from '../../helpers/rpc-host-deps';
+import { notificationsStub } from '../../helpers/notifications';
 
 const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({ k: 'req', id: 'x', method, params });
 
@@ -31,13 +32,16 @@ type Item = { id: number; name?: string; is_private?: number; owner_id?: number 
  */
 function build(opts: { canEdit?: boolean; before?: Item | undefined; updated?: Item | null } = {}) {
   const realtime = { broadcast: vi.fn() } as unknown as RealtimeService & { broadcast: ReturnType<typeof vi.fn> };
-  const packing = new PackingService({} as never, {} as never, realtime);
+  const packing = new PackingService({} as never, {} as never, realtime, notificationsStub());
   const data = {
     listItems: vi.fn(() => [{ id: 70, name: 'Socks' }]),
-    createItem: vi.fn((_t: string, i: Record<string, unknown>) => ({ id: 70, ...i })),
+    // The bodies here are the boring fixture; the item writes are typed as Item so a
+    // case can hand back the privacy fields the real service selects (#858), which the
+    // fixture itself never bothers to set.
+    createItem: vi.fn((_t: string, i: Record<string, unknown>): Item => ({ id: 70, ...i })),
     getItemPrivacy: vi.fn(() => opts.before),
     updateItem: vi.fn(() => (opts.updated === undefined ? { id: 70, is_private: 0 } : opts.updated)),
-    deleteItem: vi.fn((_t: string, id: string) => (id === '70' ? { id: 70, is_private: 0 } : null)),
+    deleteItem: vi.fn((_t: string, id: string): Item | null => (id === '70' ? { id: 70, is_private: 0 } : null)),
     listBags: vi.fn(() => [{ id: 80, name: 'Backpack' }]),
     createBag: vi.fn((_t: string, b: Record<string, unknown>) => ({ id: 80, ...b })),
     updateBag: vi.fn((_t: string, id: string) => (id === '80' ? { id: 80 } : null)),

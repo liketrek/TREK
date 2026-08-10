@@ -4,6 +4,7 @@ import type { User } from '../../types';
 import { TagsService } from './tags.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { TagCreateDto, TagUpdateDto } from './tags.dto';
 
 /**
  * /api/tags — per-user place-tag CRUD.
@@ -25,11 +26,8 @@ export class TagsController {
   }
 
   @Post()
-  create(
-    @CurrentUser() user: User,
-    @Body('name') name?: string,
-    @Body('color') color?: string,
-  ): { tag: Tag } {
+  create(@CurrentUser() user: User, @Body() body: TagCreateDto): { tag: Tag } {
+    const { name, color } = body;
     if (!name) {
       throw new HttpException({ error: 'Tag name is required' }, 400);
     }
@@ -40,9 +38,9 @@ export class TagsController {
   update(
     @CurrentUser() user: User,
     @Param('id') id: string,
-    @Body('name') name?: string,
-    @Body('color') color?: string,
+    @Body() body: TagUpdateDto,
   ): { tag: Tag } {
+    const { name, color } = body;
     if (!this.tags.getByIdAndUser(id, user.id)) {
       throw new HttpException({ error: 'Tag not found' }, 404);
     }

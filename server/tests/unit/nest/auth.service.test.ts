@@ -66,14 +66,14 @@ vi.mock('../../../src/scheduler', () => ({
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
 
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createAdmin, createInviteToken, createTrip, createPlace, createReservation } from '../../helpers/factories';
 import { AuthService } from '../../../src/nest/auth/auth.service';
+import { TokenService } from '../../../src/nest/tokens/token.service';
 import * as authBridge from '../../../src/nest/auth/auth.bridge';
-import { AtlasService } from '../../../src/nest/atlas/atlas.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { verifyJwtAndLoadUser } from '../../../src/nest/auth/jwt-verify';
@@ -85,6 +85,7 @@ import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service'
 import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
 import { revokeUserSessions } from '../../../src/mcp/sessionManager';
 import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
 
 // MailerService is injected since the notifications fold — a stub instead of a
 // module mock. sendPasswordResetEmail is the only thing auth reaches for.
@@ -94,14 +95,18 @@ const mailerStub = { sendPasswordResetEmail: vi.fn() } as unknown as MailerServi
 // join, not what the join writes (TRIP-JOIN-* cover that).
 const joinTripAsMember = vi.fn();
 const membershipStub = { joinTripAsMember } as unknown as TripMembershipService;
+// Tokens left AuthService for tokens/token.service.ts. The two cases below still
+// need one as a fixture: changePassword prunes MCP tokens, and the bridge parity
+// case verifies a token it just minted.
+const tokens = new TokenService(new DatabaseService(testDb), new EphemeralTokenService());
 const svc = new AuthService(
   new DatabaseService(testDb),
   new PermissionsService(new DatabaseService(testDb)),
-  new AtlasService(new DatabaseService(testDb)),
   membershipStub,
   new WebauthnConfigService(new DatabaseService(testDb)),
   new UserCleanupService(new DatabaseService(testDb)),
   mailerStub,
+  new EphemeralTokenService(),
 );
 
 // ---------------------------------------------------------------------------
@@ -147,127 +152,6 @@ describe('requestPasswordReset — OIDC/SSO accounts', () => {
 });
 
 // ---------------------------------------------------------------------------
-// updateSettings
-// ---------------------------------------------------------------------------
-
-describe('updateSettings', () => {
-  it('AUTH-DB-001: updates username successfully', () => {
-    const { user } = createUser(testDb);
-    const result = svc.updateSettings(user.id, { username: 'newname' });
-    expect(result.success).toBe(true);
-    expect(result.user?.username).toBe('newname');
-  });
-
-  it('AUTH-DB-002: returns 400 when username is too short (< 2 chars)', () => {
-    const { user } = createUser(testDb);
-    const result = svc.updateSettings(user.id, { username: 'x' });
-    expect(result.status).toBe(400);
-    expect(result.error).toMatch(/between 2 and 50/i);
-  });
-
-  it('AUTH-DB-003: returns 400 when username has invalid characters (spaces)', () => {
-    const { user } = createUser(testDb);
-    const result = svc.updateSettings(user.id, { username: 'bad name' });
-    expect(result.status).toBe(400);
-    expect(result.error).toMatch(/only contain/i);
-  });
-
-  it('AUTH-DB-004: returns 409 when username is already taken by another user', () => {
-    const { user: user1 } = createUser(testDb, { username: 'alice' });
-    const { user: user2 } = createUser(testDb, { username: 'bob' });
-    const result = svc.updateSettings(user2.id, { username: user1.username });
-    expect(result.status).toBe(409);
-    expect(result.error).toMatch(/already taken/i);
-  });
-
-  it('AUTH-DB-005: updates email successfully', () => {
-    const { user } = createUser(testDb);
-    const result = svc.updateSettings(user.id, { email: 'new@example.com' });
-    expect(result.success).toBe(true);
-    expect(result.user?.email).toBe('new@example.com');
-  });
-
-  it('AUTH-DB-006: returns 400 for invalid email format', () => {
-    const { user } = createUser(testDb);
-    const result = svc.updateSettings(user.id, { email: 'not-an-email' });
-    expect(result.status).toBe(400);
-    expect(result.error).toMatch(/invalid email/i);
-  });
-
-  it('AUTH-DB-007: returns 409 when email is already taken by another user', () => {
-    const { user: user1 } = createUser(testDb, { email: 'taken@example.com' });
-    const { user: user2 } = createUser(testDb);
-    const result = svc.updateSettings(user2.id, { email: user1.email });
-    expect(result.status).toBe(409);
-    expect(result.error).toMatch(/already taken/i);
-  });
-
-  it('AUTH-DB-008: returns success with no field changes when empty body is passed', () => {
-    const { user } = createUser(testDb);
-    const result = svc.updateSettings(user.id, {});
-    expect(result.success).toBe(true);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// getSettings
-// ---------------------------------------------------------------------------
-
-describe('getSettings', () => {
-  it('AUTH-DB-009: returns 403 for non-admin user', () => {
-    const { user } = createUser(testDb);
-    const result = svc.getSettings(user.id);
-    expect(result.status).toBe(403);
-    expect(result.error).toMatch(/admin/i);
-  });
-
-  it('AUTH-DB-010: returns maps_api_key and openweather_api_key for admin', () => {
-    const { user } = createAdmin(testDb);
-    testDb
-      .prepare('UPDATE users SET maps_api_key = ?, openweather_api_key = ? WHERE id = ?')
-      .run('maps-key-value', 'weather-key-value', user.id);
-    const result = svc.getSettings(user.id);
-    expect(result.status).toBeUndefined();
-    expect(result.settings).toBeDefined();
-    expect(result.settings).toHaveProperty('maps_api_key');
-    expect(result.settings).toHaveProperty('openweather_api_key');
-  });
-
-  it('AUTH-DB-010b: round-trips unsplash_api_key through updateApiKeys — masked to the client, readable via getSettings', () => {
-    const { user } = createAdmin(testDb);
-    const result = svc.updateApiKeys(user.id, { unsplash_api_key: 'unsplash-secret-key' });
-    // Returned to the client masked, never in plaintext.
-    expect(result.user.unsplash_api_key).toBe('-----key');
-    // getSettings returns the stored key to the admin.
-    expect(svc.getSettings(user.id).settings?.unsplash_api_key).toBe('unsplash-secret-key');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// listUsers
-// ---------------------------------------------------------------------------
-
-describe('listUsers', () => {
-  it('AUTH-DB-011: returns all users except self, sorted by username', () => {
-    const { user: self } = createUser(testDb, { username: 'zzself' });
-    createUser(testDb, { username: 'alice' });
-    createUser(testDb, { username: 'charlie' });
-    createUser(testDb, { username: 'bob' });
-    const result = svc.listUsers(self.id);
-    expect(result).toHaveLength(3);
-    const names = result.map((u) => u.username);
-    expect(names).toEqual([...names].sort());
-    expect(names).not.toContain('zzself');
-  });
-
-  it('AUTH-DB-012: returns empty array when only one user exists', () => {
-    const { user } = createUser(testDb);
-    const result = svc.listUsers(user.id);
-    expect(result).toHaveLength(0);
-  });
-});
-
-// ---------------------------------------------------------------------------
 // getAppSettings
 // ---------------------------------------------------------------------------
 
@@ -288,83 +172,6 @@ describe('getAppSettings', () => {
     expect(result.status).toBeUndefined();
     expect(result.data).toBeDefined();
     expect(result.data).toHaveProperty('allow_registration', 'true');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// validateKeys
-// ---------------------------------------------------------------------------
-
-describe('validateKeys', () => {
-  it('AUTH-DB-015: returns 403 for non-admin', async () => {
-    const { user } = createUser(testDb);
-    const result = await svc.validateKeys(user.id);
-    expect(result.status).toBe(403);
-    expect(result.error).toMatch(/admin/i);
-    expect(result.maps).toBe(false);
-    expect(result.weather).toBe(false);
-  });
-
-  it('AUTH-DB-016: returns { maps: false, weather: false } when no API keys are stored', async () => {
-    const { user } = createAdmin(testDb);
-    const result = await svc.validateKeys(user.id);
-    expect(result.maps).toBe(false);
-    expect(result.weather).toBe(false);
-    expect(result.maps_details).toBeNull();
-  });
-
-  it('AUTH-DB-017: returns { maps: true } when fetch returns 200', async () => {
-    const { user } = createAdmin(testDb);
-    testDb.prepare('UPDATE users SET maps_api_key = ? WHERE id = ?').run('test-key', user.id);
-
-    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-      status: 200,
-      statusText: 'OK',
-      text: async () => '',
-    } as Response);
-
-    const result = await svc.validateKeys(user.id);
-    expect(result.maps).toBe(true);
-    expect(result.maps_details?.ok).toBe(true);
-
-    fetchSpy.mockRestore();
-  });
-
-  it('AUTH-DB-018: returns { maps: false } when fetch throws a network error', async () => {
-    const { user } = createAdmin(testDb);
-    testDb.prepare('UPDATE users SET maps_api_key = ? WHERE id = ?').run('test-key', user.id);
-
-    const fetchSpy = vi
-      .spyOn(global, 'fetch')
-      .mockRejectedValueOnce(new Error('Network failure'));
-
-    const result = await svc.validateKeys(user.id);
-    expect(result.maps).toBe(false);
-    expect(result.maps_details?.error_status).toBe('FETCH_ERROR');
-    expect(result.maps_details?.error_message).toBe('Network failure');
-
-    fetchSpy.mockRestore();
-  });
-
-  it('AUTH-DB-094: sends Referer from APP_URL so referrer-restricted keys validate like real requests', async () => {
-    const { user } = createAdmin(testDb);
-    testDb.prepare('UPDATE users SET maps_api_key = ? WHERE id = ?').run('test-key', user.id);
-
-    const prevAppUrl = process.env.APP_URL;
-    process.env.APP_URL = 'https://trek.example.com';
-    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-      status: 200,
-      statusText: 'OK',
-      text: async () => '',
-    } as Response);
-
-    await svc.validateKeys(user.id);
-    const headers = (fetchSpy.mock.calls[0]?.[1]?.headers ?? {}) as Record<string, string>;
-    expect(headers.Referer).toBe('https://trek.example.com');
-
-    fetchSpy.mockRestore();
-    if (prevAppUrl === undefined) delete process.env.APP_URL;
-    else process.env.APP_URL = prevAppUrl;
   });
 });
 
@@ -654,7 +461,7 @@ describe('changePassword — session invalidation', () => {
 
   it('AUTH-DB-036b: bumps password_version, prunes MCP tokens, and re-issues a session', () => {
     const { user, password } = createUser(testDb);
-    svc.createMcpToken(user.id, 'cli');
+    tokens.createMcpToken(user.id, 'cli');
 
     expect(pvOf(user.id)).toBe(0);
     expect(mcpCount(user.id)).toBe(1);
@@ -721,183 +528,6 @@ describe('verifyMfaLogin — validation', () => {
     expect(result.status).toBe(401);
   });
 });
-
-// ---------------------------------------------------------------------------
-// MCP token service
-// ---------------------------------------------------------------------------
-
-describe('MCP token service', () => {
-  it('AUTH-DB-041: createMcpToken returns 400 when name is missing', () => {
-    const { user } = createUser(testDb);
-    const result = svc.createMcpToken(user.id, undefined);
-    expect(result.status).toBe(400);
-  });
-
-  it('AUTH-DB-042: createMcpToken returns 400 when name exceeds 100 chars', () => {
-    const { user } = createUser(testDb);
-    const result = svc.createMcpToken(user.id, 'a'.repeat(101));
-    expect(result.status).toBe(400);
-  });
-
-  it('AUTH-DB-043: createMcpToken creates token and returns raw_token', () => {
-    const { user } = createUser(testDb);
-    const result = svc.createMcpToken(user.id, 'My Token');
-    expect(result.token).toBeDefined();
-    expect((result.token as any).raw_token).toMatch(/^trek_/);
-  });
-
-  it('AUTH-DB-044: createMcpToken returns 400 when user has 10 tokens already', () => {
-    const { user } = createUser(testDb);
-    for (let i = 0; i < 10; i++) {
-      testDb.prepare(
-        'INSERT INTO mcp_tokens (user_id, name, token_hash, token_prefix) VALUES (?, ?, ?, ?)'
-      ).run(user.id, `Token ${i}`, `hash${i}`, `trek_prefix${i}`);
-    }
-    const result = svc.createMcpToken(user.id, 'One More');
-    expect(result.status).toBe(400);
-  });
-
-  it('AUTH-DB-045: deleteMcpToken returns 404 for non-existent token', () => {
-    const { user } = createUser(testDb);
-    const result = svc.deleteMcpToken(user.id, '99999');
-    expect(result.status).toBe(404);
-  });
-
-  it('AUTH-DB-046: deleteMcpToken deletes the token and returns success', () => {
-    const { user } = createUser(testDb);
-    const created = svc.createMcpToken(user.id, 'Deletable Token');
-    const tokenId = String((created.token as any).id);
-
-    const result = svc.deleteMcpToken(user.id, tokenId);
-    expect(result).toEqual({ success: true });
-
-    const row = testDb.prepare('SELECT id FROM mcp_tokens WHERE id = ?').get(tokenId);
-    expect(row).toBeUndefined();
-  });
-});
-
-// ── getTravelStats — dashboard passport card ────────────────────────────────
-
-describe('getTravelStats', () => {
-  function endpoint(reservationId: number, role: 'from' | 'to' | 'stop', sequence: number, lat: number, lng: number) {
-    testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, lat, lng) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(reservationId, role, sequence, `Endpoint ${sequence}`, lat, lng);
-  }
-
-  // Every trip below is dated in the past: since #1048 the passport card only counts
-  // countries from trips that have already started, so a dateless fixture would make
-  // these role-filter/tombstone assertions vacuous.
-  const PAST_START = '2023-05-01';
-  const PAST_END = '2023-05-10';
-
-  it('AUTH-DB-047: #1486 counts the from/to countries of a flight', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Tokyo Trip', start_date: PAST_START, end_date: PAST_END });
-    const res = createReservation(testDb, trip.id, { type: 'flight' });
-    endpoint(res.id, 'from', 0, 50.9014, 4.4844);   // Brussels
-    endpoint(res.id, 'to', 1, 35.6762, 139.6503);   // Tokyo
-
-    const stats = svc.getTravelStats(user.id);
-    expect(stats.countries).toContain('BE');
-    expect(stats.countries).toContain('JP');
-  });
-
-  it('AUTH-DB-048: #1486 a connecting-flight layover does NOT count as visited', () => {
-    // The Atlas query grew a role filter for #1486 but this copy of it did not, so the
-    // dashboard passport card still counted a plane change as a visited country.
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Connection Trip', start_date: PAST_START, end_date: PAST_END });
-    const res = createReservation(testDb, trip.id, { type: 'flight' });
-    endpoint(res.id, 'from', 0, 50.9014, 4.4844);     // Brussels
-    endpoint(res.id, 'stop', 1, 35.6762, 139.6503);   // Tokyo — never leaves the airport
-    endpoint(res.id, 'to', 2, -33.8688, 151.2093);    // Sydney
-
-    const stats = svc.getTravelStats(user.id);
-    expect(stats.countries).toContain('BE');
-    expect(stats.countries).toContain('AU');
-    expect(stats.countries).not.toContain('JP');
-  });
-
-  it('AUTH-DB-049: #1490 a country removed in Atlas is not counted on the dashboard either', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Tokyo Trip', start_date: PAST_START, end_date: PAST_END });
-    const res = createReservation(testDb, trip.id, { type: 'flight' });
-    endpoint(res.id, 'from', 0, 50.9014, 4.4844);
-    endpoint(res.id, 'to', 1, 35.6762, 139.6503);
-
-    expect(svc.getTravelStats(user.id).countries).toContain('JP');
-
-    new AtlasService(new DatabaseService(testDb)).unmarkCountry(user.id, 'JP');
-
-    const after = svc.getTravelStats(user.id);
-    expect(after.countries).not.toContain('JP');
-    expect(after.countries).toContain('BE');
-  });
-
-  // ── #1048: the passport card only stamps trips that have happened ──────────
-  // Relative offsets, not literal dates — a hardcoded "future" date expires.
-  const iso = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
-
-  function placeInRegion(tripId: number, countryCode: string, regionCode: string) {
-    const place = createPlace(testDb, tripId, { name: `Place in ${countryCode}` });
-    testDb
-      .prepare('INSERT OR REPLACE INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)')
-      .run(place.id, countryCode, regionCode, regionCode);
-  }
-
-  it('AUTH-DB-094: #1048 a place in a future trip does not stamp its country; a past trip does', () => {
-    const { user } = createUser(testDb);
-    const past = createTrip(testDb, user.id, { title: 'Paris, last month', start_date: iso(-40), end_date: iso(-30) });
-    const future = createTrip(testDb, user.id, { title: 'Tokyo, next month', start_date: iso(30), end_date: iso(40) });
-    placeInRegion(past.id, 'FR', 'FR-75');
-    placeInRegion(future.id, 'JP', 'JP-13');
-
-    const stats = svc.getTravelStats(user.id);
-
-    expect(stats.countries).toContain('FR');
-    expect(stats.countries).not.toContain('JP');
-  });
-
-  it('AUTH-DB-095: #1048 a trip with no dates at all stamps nothing', () => {
-    const { user } = createUser(testDb);
-    const dateless = createTrip(testDb, user.id, { title: 'Someday: Japan' });
-    placeInRegion(dateless.id, 'JP', 'JP-13');
-    const res = createReservation(testDb, dateless.id, { type: 'flight' });
-    endpoint(res.id, 'from', 0, 50.9014, 4.4844); // Brussels
-
-    const stats = svc.getTravelStats(user.id);
-
-    expect(stats.countries).toEqual([]);
-  });
-
-  it('AUTH-DB-096: #1048 a flight booked for a future trip does not stamp its endpoints', () => {
-    const { user } = createUser(testDb);
-    const future = createTrip(testDb, user.id, { title: 'Tokyo, next month', start_date: iso(30), end_date: iso(40) });
-    const res = createReservation(testDb, future.id, { type: 'flight' });
-    endpoint(res.id, 'from', 0, 50.9014, 4.4844);   // Brussels
-    endpoint(res.id, 'to', 1, 35.6762, 139.6503);   // Tokyo
-
-    const stats = svc.getTravelStats(user.id);
-
-    expect(stats.countries).not.toContain('BE');
-    expect(stats.countries).not.toContain('JP');
-  });
-
-  it('AUTH-DB-097: #1048 a manually marked country stays stamped regardless of trip dates', () => {
-    // The manual list is the user's own word, not derived from a trip — the date
-    // filter must not reach it.
-    const { user } = createUser(testDb);
-    const future = createTrip(testDb, user.id, { title: 'Tokyo, next month', start_date: iso(30), end_date: iso(40) });
-    placeInRegion(future.id, 'JP', 'JP-13');
-    testDb.prepare('INSERT INTO visited_countries (user_id, country_code) VALUES (?, ?)').run(user.id, 'JP');
-
-    const stats = svc.getTravelStats(user.id);
-
-    expect(stats.countries).toContain('JP');
-  });
-});
-
 
 // ---------------------------------------------------------------------------
 // Coverage added with the DI fold (AUTH-DB-050+): the fold moved ~1400 lines
@@ -1078,29 +708,6 @@ describe('deleteAccount', () => {
   });
 });
 
-describe('updateMapsKey / avatar', () => {
-  it('AUTH-DB-068: updateMapsKey stores and answers the masked key', () => {
-    const { user } = createUser(testDb);
-    const result = svc.updateMapsKey(user.id, 'maps-key-123456');
-    expect(result.success).toBe(true);
-    expect(result.maps_api_key).toBe('----3456');
-  });
-
-  it('AUTH-DB-069: saveAvatar updates the row and answers the public url', async () => {
-    const { user } = createUser(testDb);
-    const result = await svc.saveAvatar(user.id, 'new.png');
-    expect(result).toEqual({ success: true, avatar_url: '/uploads/avatars/new.png' });
-  });
-
-  it('AUTH-DB-070: deleteAvatar nulls the column; an OIDC https avatar skips the file rm', async () => {
-    const { user } = createUser(testDb);
-    testDb.prepare('UPDATE users SET avatar = ? WHERE id = ?').run('https://idp/pic.jpg', user.id);
-    expect(await svc.deleteAvatar(user.id)).toEqual({ success: true });
-    const row = testDb.prepare('SELECT avatar FROM users WHERE id = ?').get(user.id) as { avatar: string | null };
-    expect(row.avatar).toBeNull();
-  });
-});
-
 describe('updateAppSettings', () => {
   it('AUTH-DB-071: 403 for non-admin', () => {
     const { user } = createUser(testDb);
@@ -1271,20 +878,6 @@ describe('resetPassword', () => {
 });
 
 describe('ephemeral + demo helpers', () => {
-  it('AUTH-DB-086: createResourceToken rejects a non-download purpose and 503s when the store is down', () => {
-    const { user } = createUser(testDb);
-    expect(svc.createResourceToken(user.id, 'exfiltrate')).toEqual({ error: 'Invalid purpose', status: 400 });
-    expect(svc.createResourceToken(user.id, 'download')).toEqual({ error: 'Service unavailable', status: 503 });
-    vi.mocked(createEphemeralToken).mockReturnValueOnce('tok-1');
-    expect(svc.createResourceToken(user.id, 'download')).toEqual({ token: 'tok-1' });
-  });
-
-  it('AUTH-DB-087: createWsToken returns the ephemeral token when the store answers', () => {
-    const { user } = createUser(testDb);
-    vi.mocked(createEphemeralToken).mockReturnValueOnce('ws-tok');
-    expect(svc.createWsToken(user.id)).toEqual({ token: 'ws-tok' });
-  });
-
   it('AUTH-DB-088: isDemoUser is true only for the demo email in demo mode', () => {
     const { user } = createUser(testDb, { email: 'demo@nomad.app' });
     const { user: other } = createUser(testDb);
@@ -1303,14 +896,6 @@ describe('ephemeral + demo helpers', () => {
 // ---------------------------------------------------------------------------
 
 describe('auth quirk fixes', () => {
-  it('AUTH-DB-089: getTravelStats keeps a place at lat 0 / lng 0 (equator, prime meridian)', () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Null Island' });
-    testDb.prepare('INSERT INTO places (trip_id, name, lat, lng) VALUES (?, ?, ?, ?)').run(trip.id, 'Null Island', 0, 0);
-    const stats = svc.getTravelStats(user.id);
-    expect(stats.coords).toContainEqual({ lat: 0, lng: 0 });
-  });
-
   it('AUTH-DB-090: a throw mid-registration rolls the whole signup back (user + invite bookkeeping)', () => {
     const { user: owner } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
@@ -1342,21 +927,6 @@ describe('auth quirk fixes', () => {
     expect(row.last_login).not.toBeNull();
   });
 
-  it('AUTH-DB-092: deleteMcpToken succeeds even when the session sweep throws (best-effort)', () => {
-    const { user } = createUser(testDb);
-    const created = svc.createMcpToken(user.id, 'sweep-down');
-    const tokenId = String((created.token as { id: number }).id);
-    vi.mocked(revokeUserSessions).mockImplementationOnce(() => { throw new Error('sweep down'); });
-
-    expect(svc.deleteMcpToken(user.id, tokenId)).toEqual({ success: true });
-    expect(testDb.prepare('SELECT id FROM mcp_tokens WHERE id = ?').get(tokenId)).toBeUndefined();
-  });
-
-  it('AUTH-DB-093: updateApiKeys degrades gracefully when the user row is gone (no TypeError/500)', () => {
-    expect(() => svc.updateApiKeys(999999, { maps_api_key: 'k' })).not.toThrow();
-    const result = svc.updateApiKeys(999999, { openweather_api_key: 'w' });
-    expect(result.success).toBe(true);
-  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1371,7 +941,7 @@ describe('auth.bridge delegation', () => {
 
   it('AUTH-BR-002: verifyMcpToken resolves a freshly created token to its user', () => {
     const { user } = createUser(testDb);
-    const created = svc.createMcpToken(user.id, 'bridge-case');
+    const created = tokens.createMcpToken(user.id, 'bridge-case');
     const raw = (created.token as { raw_token: string }).raw_token;
     const resolved = authBridge.verifyMcpToken(raw);
     expect(resolved?.id).toBe(user.id);

@@ -18,7 +18,7 @@ import { TagsService } from '../../src/nest/tags/tags.service';
 import { CategoriesService } from '../../src/nest/categories/categories.service';
 import { TodoService } from '../../src/nest/todo/todo.service';
 import { PackingService } from '../../src/nest/packing/packing.service';
-import { DayNotesService } from '../../src/nest/days/day-notes.service';
+import { DayNotesService } from '../../src/nest/day-notes/day-notes.service';
 import { DaysService } from '../../src/nest/days/days.service';
 import { AssignmentsService } from '../../src/nest/assignments/assignments.service';
 import { LlmConfigResolver } from '../../src/nest/llm-parse/llm-config.resolver';
@@ -44,12 +44,14 @@ import { WeatherRpc } from '../../src/nest/weather/weather.rpc';
 import { WeatherService } from '../../src/nest/weather/weather.service';
 import { ExchangeRatesRpc } from '../../src/nest/budget/exchange-rates.rpc';
 import { TodoRpc } from '../../src/nest/todo/todo.rpc';
-import { DayNotesRpc } from '../../src/nest/days/day-notes.rpc';
+import { DayNotesRpc } from '../../src/nest/day-notes/day-notes.rpc';
 import { PackingRpc } from '../../src/nest/packing/packing.rpc';
 import { FilesRpc } from '../../src/nest/files/files.rpc';
 import { PlacesRpc } from '../../src/nest/places/places.rpc';
 import { DaysRpc } from '../../src/nest/days/days.rpc';
-import { AccommodationsRpc } from '../../src/nest/days/accommodations.rpc';
+import { AccommodationsRpc } from '../../src/nest/accommodations/accommodations.rpc';
+import { AccommodationsService } from '../../src/nest/accommodations/accommodations.service';
+import { TripMembersService } from '../../src/nest/trip-members/trip-members.service';
 import { ItineraryRpc } from '../../src/nest/assignments/itinerary.rpc';
 import { TripsRpc } from '../../src/nest/trips/trips.rpc';
 import { CostsRpc } from '../../src/nest/budget/costs.rpc';
@@ -60,6 +62,13 @@ import { VacayRpc } from '../../src/nest/vacay/vacay.rpc';
 import { JournalRpc } from '../../src/nest/journey/journal.rpc';
 import { CollectionsRpc } from '../../src/nest/collections/collections.rpc';
 import { makeNotificationsService } from './notifications';
+import { notificationsStub } from './notifications';
+import { EphemeralTokenService } from '../../src/nest/auth/ephemeral-token.service';
+import { UserCleanupService } from '../../src/nest/auth/user-cleanup.service';
+import { UnsplashService } from '../../src/nest/unsplash/unsplash.service';
+import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
+import { TrekPhotosRepository } from '../../src/nest/photos/trek-photos.repository';
+import { RuntimeEnvService } from '../../src/nest/app-config/runtime-env.service';
 
 /**
  * Hand-wired counterpart of the PluginsModule DI graph for no-Nest tests
@@ -79,23 +88,27 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
   const addons = new AddonsService(dbs);
   const queryHelpers = new QueryHelpersService(dbs);
   const todos = new TodoService(dbs, permissions, realtime);
-  const packing = new PackingService(dbs, permissions, realtime);
-  const files = new FilesService(dbs, permissions, realtime);
-  const reservations = new ReservationsService(dbs, permissions, budget, realtime);
-  const collab = new CollabService(dbs, permissions, realtime);
-  const vacay = new VacayService(dbs, realtime);
+  const packing = new PackingService(dbs, permissions, realtime, notificationsStub());
+  const files = new FilesService(dbs, permissions, realtime, new EphemeralTokenService());
+  const reservations = new ReservationsService(dbs, permissions, budget, realtime, notificationsStub());
+  const collab = new CollabService(dbs, permissions, realtime, notificationsStub());
+  const vacay = new VacayService(dbs, realtime, notificationsStub());
   const days = new DaysService(dbs, permissions, realtime, queryHelpers);
-  const places = new PlacesService(dbs, permissions, realtime, new MapsService(dbs), queryHelpers);
-  const collections = new CollectionsService(dbs, permissions, realtime);
+  const photoCache = new PlacePhotoCacheService(dbs, new RuntimeEnvService());
+  const unsplash = new UnsplashService(dbs, new RuntimeEnvService());
+  const journey = new JourneyDomainService(dbs, realtime, new TrekPhotosRepository(dbs));
+  const places = new PlacesService(dbs, permissions, realtime, new MapsService(dbs, photoCache), queryHelpers, unsplash, photoCache, journey);
+  const collections = new CollectionsService(dbs, permissions, realtime, notificationsStub());
   const atlas = new AtlasService(dbs);
   const dayNotes = new DayNotesService(dbs, permissions, realtime);
-  const assignments = new AssignmentsService(dbs, permissions, realtime, queryHelpers);
-  const journey = new JourneyDomainService(dbs);
-  const membership = new TripMembershipService(dbs, permissions, realtime);
+  const assignments = new AssignmentsService(dbs, permissions, realtime, queryHelpers, journey);
+  const membership = new TripMembershipService(dbs);
   const notifications = makeNotificationsService(dbs, realtime);
   const llmConfig = new LlmConfigResolver(new SettingsService(dbs), dbs, addons);
   const oauth = new PluginOAuthService(dbs);
-  const trips = new TripsService(dbs, todos, packing, files, reservations, days, permissions, budget, collab, vacay, realtime, places);
+  const accommodations = new AccommodationsService(dbs, permissions, realtime);
+  const trips = new TripsService(dbs, reservations, days, permissions, budget, vacay, realtime, unsplash);
+  const members = new TripMembersService(dbs, budget, new UserCleanupService(dbs), permissions, realtime, notificationsStub());
   const guards = new PluginGuards(dbs, permissions, addons);
 
   const registry = createTestPluginRegistry([
@@ -109,9 +122,9 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
     new FilesRpc(files, realtime, dbs, guards),
     new PlacesRpc(places, journey, realtime, guards),
     new DaysRpc(days, realtime, guards),
-    new AccommodationsRpc(days, realtime, guards),
+    new AccommodationsRpc(accommodations, realtime, guards),
     new ItineraryRpc(assignments, realtime, guards),
-    new TripsRpc(trips, reservations, days, membership, dbs, realtime, guards),
+    new TripsRpc(trips, reservations, days, membership, dbs, realtime, guards, accommodations, members),
     new CostsRpc(budget, dbs, realtime, guards),
     new ReservationsRpc(reservations, realtime, guards),
     new CollabRpc(collab, realtime, guards),

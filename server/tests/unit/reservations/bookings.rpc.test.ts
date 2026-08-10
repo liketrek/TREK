@@ -15,10 +15,10 @@ import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit
 import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
 import { ReservationsRpc } from '../../../src/nest/reservations/reservations.rpc';
 import { ReservationsModule } from '../../../src/nest/reservations/reservations.module';
-import { AccommodationsRpc } from '../../../src/nest/days/accommodations.rpc';
-import { DaysModule } from '../../../src/nest/days/days.module';
+import { AccommodationsRpc } from '../../../src/nest/accommodations/accommodations.rpc';
+import { AccommodationsModule } from '../../../src/nest/accommodations/accommodations.module';
 import type { ReservationsService } from '../../../src/nest/reservations/reservations.service';
-import type { DaysService } from '../../../src/nest/days/days.service';
+import type { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
@@ -45,13 +45,15 @@ function build(opts: { canEdit?: boolean; cascade?: boolean; seenActions?: strin
     syncBudgetOnUpdate: vi.fn(),
     notifyBookingChange: vi.fn(),
   } as unknown as ReservationsService & Record<string, ReturnType<typeof vi.fn>>;
+  // The lodging blocks live in AccommodationsService; AccommodationsRpc still calls its
+  // injected copy `days`, which is why the fixture keeps that name.
   const days = {
     validateAccommodationRefs: vi.fn((_t: number, placeId?: number) => (placeId === 404 ? [{ message: 'place 404 is not on this trip' }] : [])),
     createAccommodation: vi.fn(() => ({ id: 60 })),
     getAccommodation: vi.fn((id: number) => (id === 11 ? { id: 11 } : undefined)),
     updateAccommodation: vi.fn(() => ({ id: 11 })),
     deleteAccommodation: vi.fn(() => ({ linkedReservationId: opts.cascade ? 40 : null, deletedBudgetItemId: opts.cascade ? 7 : null })),
-  } as unknown as DaysService & Record<string, ReturnType<typeof vi.fn>>;
+  } as unknown as AccommodationsService & Record<string, ReturnType<typeof vi.fn>>;
   const guards = new PluginGuards(
     {
       canAccessTrip: vi.fn((tripId: number, userId: number) => (tripId === 1 && userId === 42 ? { id: 1, user_id: 42 } : undefined)),
@@ -243,6 +245,6 @@ describe('AccommodationsRpc', () => {
   });
 
   it('BOOK-RPC-016 the class is listed in its module providers', () => {
-    expectRegisteredProvider(DaysModule, AccommodationsRpc);
+    expectRegisteredProvider(AccommodationsModule, AccommodationsRpc);
   });
 });

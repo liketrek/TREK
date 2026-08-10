@@ -170,6 +170,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': 'Λεπτομέρειες Τόπου',
   'admin.placesDetails.subtitle':
     'Λήψη λεπτομερών πληροφοριών τόπου (ώρες, βαθμολογία, ιστοσελίδα) από το Google Places API. Απενεργοποιήστε για εξοικονόμηση ποσοστώσης API.',
+  'admin.placesEnrich.title': 'Εμπλουτισμός τοποθεσιών',
+  'admin.placesEnrich.subtitle':
+    'Εμφανίζει εικόνες και περιγραφή κατά την προσθήκη τοποθεσίας. Η Wikipedia και το OpenStreetMap χρησιμοποιούνται πάντα· η Google προστίθεται όταν είναι ενεργές οι Φωτογραφίες ή οι Λεπτομέρειες τοποθεσίας.',
   'admin.bagTracking.title': 'Παρακολούθηση Αποσκευών',
   'admin.bagTracking.subtitle': 'Ενεργοποίηση βάρους και ανάθεσης τσάντας για αντικείμενα πακεταρίσματος',
   'admin.collab.chat.title': 'Συνομιλία',
@@ -263,6 +266,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Update → v{version}',
   'admin.plugins.enabledToggle': 'Ενεργοποίηση plugin',
   'plugins.notFound': 'Το plugin δεν βρέθηκε',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Εγκαταστήστε και διαχειριστείτε plugins τρίτων στην εγκατάστασή σας.',
   'admin.plugins.disabledTitle': 'Τα plugins είναι απενεργοποιημένα',

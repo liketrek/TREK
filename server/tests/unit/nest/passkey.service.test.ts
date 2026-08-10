@@ -81,10 +81,12 @@ import { resetTestDb } from '../../helpers/test-db';
 import { createUser } from '../../helpers/factories';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { AtlasService } from '../../../src/nest/atlas/atlas.service';
+import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
 import { AuthService } from '../../../src/nest/auth/auth.service';
 import { PasskeyService } from '../../../src/nest/auth/passkey.service';
-import type { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
+import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
+import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
 import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
 
 // MailerService is injected since the notifications fold — a stub instead of a
@@ -97,14 +99,23 @@ const mailerStub = { sendPasswordResetEmail: vi.fn() } as unknown as MailerServi
 const resolveWebauthnConfigMock = vi.fn();
 const webauthn = { resolve: resolveWebauthnConfigMock } as unknown as WebauthnConfigService;
 
+// Positional, and previously shifted by one: an AtlasService sat in the
+// membership slot, which AuthService no longer takes at all, so
+// webauthn/userCleanup/mailer each landed one place too late and the
+// EphemeralTokenService was missing entirely. Nothing failed, because the only
+// thing PasskeyService asks AuthService for is generateToken, which reads the
+// database and nothing else. The collaborators are real here rather than
+// undefined so a future case that does reach one gets a working object; each
+// takes only the DatabaseService. AuthService's own webauthn is the real
+// resolver, separate from the `webauthn` switch PasskeyService is handed.
 const auth = new AuthService(
   new DatabaseService(testDb),
   new PermissionsService(new DatabaseService(testDb)),
-  new AtlasService(new DatabaseService(testDb)),
-  undefined as never, // membership — not reached from the passkey paths
-  undefined as never, // webauthn — PasskeyService gets its own stub below
-  undefined as never, // userCleanup — not reached from the passkey paths
+  new TripMembershipService(new DatabaseService(testDb)),
+  new WebauthnConfigService(new DatabaseService(testDb)),
+  new UserCleanupService(new DatabaseService(testDb)),
   mailerStub,
+  new EphemeralTokenService(),
 );
 const svc = new PasskeyService(new DatabaseService(testDb), auth, webauthn);
 

@@ -17,8 +17,9 @@ function makeSupervisor() {
   (s as any).spawn = spawn;
   return { s, spawn, dispose };
 }
+// Reaches into the private `running` map so a case can assert on the live entry.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const entry = (s: PluginSupervisor, id: string, status: string) => (s as any).running.get(id);
+const entry = (s: PluginSupervisor, id: string): { status: string } => (s as any).running.get(id);
 
 describe('supervisor re-activation after failure', () => {
   const supers: PluginSupervisor[] = [];

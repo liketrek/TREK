@@ -111,6 +111,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': 'Tạo một danh sách trước để lưu địa điểm.',
   'collections.removedFromAll': 'Đã xóa khỏi bộ sưu tập',
   'collections.picker.title': 'Địa điểm đã lưu',
+  'collections.picker.showMore': 'Hiện thêm {count}',
   'collections.picker.search': 'Tìm trong địa điểm đã lưu của bạn',
   'collections.picker.empty': 'Không có địa điểm đã lưu nào để thêm',
   'collections.picker.hint': 'Chọn một địa điểm từ bộ sưu tập của bạn',

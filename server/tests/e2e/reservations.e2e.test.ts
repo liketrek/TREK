@@ -9,6 +9,9 @@
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 import { ReservationsModule } from '../../src/nest/reservations/reservations.module';
+// Accommodations left reservations/ for a domain of their own; this container has
+// to assemble both or the /accommodations cases below 404 while production serves them.
+import { AccommodationsModule } from '../../src/nest/accommodations/accommodations.module';
 import { sessionCookie } from './harness';
 import { DatabaseModule } from '../../src/nest/database/database.module';
 import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
@@ -39,6 +42,13 @@ vi.mock('../../src/db/database', () => ({
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 const { notificationSend } = vi.hoisted(() => ({ notificationSend: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('../../src/nest/notifications/notifications.bridge', () => ({ send: notificationSend }));
+// ReservationsService injects NotificationsService now instead of reaching the
+// bridge through a lazy import, so the e2e app resolves the real provider out of
+// its own container — the module mock above never sees the send. The override
+// below is what intercepts it.
+vi.mock('../../src/nest/notifications/notifications.instance', () => ({
+  notificationsInstance: () => ({ send: notificationSend }),
+}));
 
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 
@@ -51,6 +61,7 @@ let checkPermission: MockInstance;
 
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
+import { NotificationsService } from '../../src/nest/notifications/notifications.service';
 
 describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real reservation SQL)', () => {
   let server: Server;
@@ -58,7 +69,10 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
   let tripId: number;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, ReservationsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, ReservationsModule, AccommodationsModule] })
+      .overrideProvider(NotificationsService)
+      .useValue({ send: notificationSend })
+      .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());

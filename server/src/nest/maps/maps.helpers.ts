@@ -40,6 +40,83 @@ export function toApiLang(lang: string | undefined, fallback = 'en'): string {
   return API_LANG_OVERRIDES[code] ?? code;
 }
 
+/**
+ * A wiki subdomain out of a TREK language code.
+ *
+ * Not the same normalisation as `toApiLang`, and the difference bites: TREK
+ * calls Brazilian Portuguese `br`, but `br.wikipedia.org` exists and is the
+ * BRETON Wikipedia. Passing the raw code through would not fail — it would
+ * quietly return Breton articles. `pt-br.wikipedia.org` does not resolve at
+ * all, so the region subtag has to go as well.
+ */
+const WIKI_LANG_OVERRIDES: Record<string, string> = {
+  br: 'pt',
+  gr: 'el',
+};
+export function toWikiLang(lang: string | undefined, fallback = 'en'): string {
+  const raw = (lang || '').trim();
+  if (!raw) return fallback;
+  const mapped = WIKI_LANG_OVERRIDES[raw] ?? raw;
+  const base = mapped.split('-')[0].toLowerCase();
+  return /^[a-z]{2,3}$/.test(base) ? base : fallback;
+}
+
+// Re-exported, not redefined: this was one of three copies. Kept as an export
+// here because callers and a test import it from maps.helpers.
+export { haversineMetres } from '../common/geo';
+
+/**
+ * Whether two place names plausibly refer to the same thing.
+ *
+ * The gate that keeps a coordinate-based lookup from confidently describing the
+ * wrong building. "Hamburg Airport" and "Flughafen Hamburg" pass on "hamburg";
+ * "Hamburg Airport" and "Bahnhof Ohlsdorf" do not.
+ *
+ * One shared word is enough only when it carries some weight — four letters or
+ * more. Otherwise two have to match. A single short word is almost always an
+ * article or a generic noun, and TREK speaks 23 languages, so "Der Kiosk" and
+ * "Der Bahnhof" would sail through a plain word-overlap test while a stopword
+ * list for all of them is its own maintenance problem. Anything the pair rule
+ * lets through has already survived the distance check.
+ */
+export function namesOverlap(a: string, b: string): boolean {
+  const words = (value: string): Set<string> =>
+    new Set(
+      value
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .split(/[^a-z0-9]+/)
+        .filter((word) => word.length > 2),
+    );
+  const left = [...words(a)];
+  if (left.length === 0) return false;
+
+  /**
+   * Same word, allowing for an inflected ending.
+   *
+   * Providers localise names, and the two sides of this comparison rarely come
+   * from the same language: searching "Hamburg Airport" returns "Hamburger
+   * Flughafen Helmut Schmidt", and a plain equality test rejects its own
+   * correct answer over the "-er". A short prefix would over-match, so the
+   * shared stem has to carry weight and the endings have to be close.
+   */
+  const sameStem = (x: string, y: string): boolean => {
+    if (x === y) return true;
+    const [short, long] = x.length <= y.length ? [x, y] : [y, x];
+    return short.length >= 4 && long.length - short.length <= 3 && long.startsWith(short);
+  };
+
+  let shared = 0;
+  for (const word of words(b)) {
+    const match = left.find((candidate) => sameStem(candidate, word));
+    if (!match) continue;
+    if (Math.min(match.length, word.length) >= 4) return true;
+    if (++shared >= 2) return true;
+  }
+  return false;
+}
+
 const GOOGLE_FTID_RE = /^0x[0-9a-f]+:0x[0-9a-f]+$/i;
 
 // Extracts a Google Maps feature id (ftid, 0x..:0x..) from a URL's ?ftid= param.
@@ -259,6 +336,21 @@ export function parseOpeningHours(ohString: string): {
   const result: string[] = LONG.map((d) => `${d}: ?`);
   const periods: OpeningPeriod[] = [];
 
+  // "24/7" — and it is not an edge case. Every segment below needs a weekday
+  // prefix to match, so this fell straight through, all seven lines stayed "?",
+  // and `buildOsmDetails` then threw the whole thing away as unparseable. Which
+  // is why airports, main stations and petrol stations — the places most likely
+  // to be tagged this way — showed no opening hours at all.
+  if (/^\s*(24\/7|open)\s*$/i.test(ohString)) {
+    return {
+      weekdayDescriptions: LONG.map((d) => `${d}: 00:00-24:00`),
+      openNow: true,
+      // One period that never closes. `close: null` is how the client's
+      // open/closed logic already spells "does not close".
+      periods: [{ open: { day: 0, hour: 0, minute: 0 }, close: null }],
+    };
+  }
+
   // Parse segments like "Mo-Fr 09:00-18:00; Sa 10:00-14:00"
   for (const segment of ohString.split(';')) {
     const trimmed = segment.trim();
@@ -275,8 +367,16 @@ export function parseOpeningHours(ohString: string): {
         .split('-')
         .map((d) => DAYS.indexOf(d.trim()));
       if (parts.length === 2 && parts[0] >= 0 && parts[1] >= 0) {
-        for (let i = parts[0]; i !== (parts[1] + 1) % 7; i = (i + 1) % 7) dayIndices.add(i);
-        dayIndices.add(parts[1]);
+        // do/while, not while: a range that wraps all the way round — "Mo-Su",
+        // or "Tu-Mo", both of which mean every day — starts already satisfying
+        // the exit condition, so the loop never ran and only the closing day
+        // was added. "Mo-Su 11:30-23:00" is how a place open daily is usually
+        // tagged, and it produced exactly one day of hours.
+        let day = parts[0];
+        do {
+          dayIndices.add(day);
+          day = (day + 1) % 7;
+        } while (day !== (parts[1] + 1) % 7);
       } else if (parts[0] >= 0) {
         dayIndices.add(parts[0]);
       }
@@ -333,8 +433,58 @@ export function buildOsmDetails(tags: Record<string, string>, osmType: string, o
     opening_periods,
     osm_url: `https://www.openstreetmap.org/${osmType}/${osmId}`,
     summary: tags.description || null,
+    // Kept so enrichment can resolve the right Wikipedia article instead of
+    // guessing one from the place name, which picks the wrong article whenever
+    // the name is ambiguous ("Bahnhofstraße", "Rathaus", any chain restaurant).
+    wikipedia: tags.wikipedia || null,
+    wikidata: tags.wikidata || null,
+    // A Commons category is pictures OF this place, where a coordinate search
+    // only finds whatever was photographed near it.
+    wikimedia_commons: tags.wikimedia_commons || null,
+    // The tags that make the difference for a restaurant or a shop: no
+    // encyclopaedia will ever describe one, but its cuisine, its hours and a
+    // link to its menu are usually right here.
+    cuisine: tags.cuisine || null,
+    menu_url: tags['website:menu'] || tags.menu || null,
+    outdoor_seating: tags.outdoor_seating || null,
+    takeaway: tags.takeaway || null,
+    delivery: tags.delivery || null,
+    wheelchair: tags.wheelchair || null,
+    diet_vegetarian: tags['diet:vegetarian'] || null,
+    diet_vegan: tags['diet:vegan'] || null,
+    internet_access: tags.internet_access || null,
     source: 'openstreetmap' as const,
   };
+}
+
+// ── Wiki metadata ────────────────────────────────────────────────────────────
+
+/**
+ * Commons extmetadata values arrive as HTML fragments — an author is typically
+ * an <a> to the uploader's user page, a licence can carry <span> wrappers. We
+ * show these as plain text next to a thumbnail, so the markup has to go.
+ */
+export function stripWikiMarkup(value: string | undefined | null): string | null {
+  if (!value) return null;
+  const text = value
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text || null;
+}
+
+/**
+ * Splits an OSM `wikipedia` tag ("de:Museum Ludwig") into host language and
+ * article title. Returns null for the bare-title spelling, which has no language
+ * and would send us to the wrong wiki.
+ */
+export function parseWikipediaTag(tag: string | undefined | null): { lang: string; title: string } | null {
+  if (!tag) return null;
+  const match = /^([a-z-]{2,12}):(.+)$/i.exec(tag.trim());
+  if (!match) return null;
+  const title = match[2].trim();
+  return title ? { lang: match[1].toLowerCase(), title } : null;
 }
 
 // ── Place-id classification ──────────────────────────────────────────────────
@@ -342,14 +492,134 @@ export function buildOsmDetails(tags: Record<string, string>, osmType: string, o
 // Ids that can never resolve against the Google Places API: coordinate pseudo-ids
 // (right-click places, in both the coords: and the bare "lat,lng" spelling the
 // collection views send), OSM ids the client sends when a place has no
-// google_place_id, and the raw photo URLs legacy rows keep in image_url. Google
-// answers those with a billable 400 INVALID_ARGUMENT, so every lookup sorts them
-// out before the call and uses the OSM/Wikimedia path instead.
-const NON_GOOGLE_PLACE_ID = /^(?:coords|node|way|relation):|^https?:\/\/|^-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?$/i;
+// google_place_id, the raw photo URLs legacy rows keep in image_url, and photo
+// cache keys of the form "<placeId>~p3" that enrichment mints for the picker.
+// Google answers those with a billable 400 INVALID_ARGUMENT, so every lookup
+// sorts them out before the call and uses the OSM/Wikimedia path instead.
+const NON_GOOGLE_PLACE_ID =
+  /^(?:coords|node|way|relation):|^https?:\/\/|^-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?$|~p\d+$/i;
 // The subset that still has a provider behind it — Overpass for details,
 // Wikimedia for photos.
 export const OSM_PLACE_ID = /^(?:node|way|relation):/i;
 
 export function isGooglePlaceId(placeId: string): boolean {
   return !NON_GOOGLE_PLACE_ID.test(placeId);
+}
+
+// ── Ranking Commons candidates ───────────────────────────────────────────────
+
+/**
+ * A candidate as the ranker needs to see it. Structurally the subset of
+ * `CommonsCandidate` it reads, kept local so the pure function does not have to
+ * import from the service that imports this file.
+ */
+export interface RankableCommonsCandidate {
+  pageId: number | null;
+  title: string | null;
+  attribution: string | null;
+  width: number | null;
+  height: number | null;
+  descriptors: string | null;
+  photoUrl: string;
+}
+
+/**
+ * Commons files that are near a place but are not a picture of it.
+ *
+ * Orthophotos are the worst offender by volume: German states upload their
+ * aerial survey tiles to Commons with coordinates, so a geosearch around any
+ * airport returns the runway as seen from a plane at 3000m — four of them for
+ * Hamburg, one per survey year. The rest are documents that happen to live in a
+ * place's category: noise maps, floor plans, terminal layouts, logos, coats of
+ * arms.
+ */
+const NOT_A_PHOTO_OF_THE_PLACE =
+  /orthophoto|orthofoto|sommerbefliegung|luftbildkarte|dop\d+|l[äa]rmkarte|noise map|floor ?plan|grundriss|lageplan|layout|diagram|schematic|blueprint|coat of arms|wappen|\blogo\b|flag of/i;
+
+/**
+ * Strips what makes two frames of the same burst look like different files, so
+ * they collapse onto one stem: trailing counters, camera dumps, dates, and the
+ * `- 17` / `(2)` suffixes press sets use.
+ */
+function seriesStem(title: string): string {
+  return title
+    .replace(/^File:/i, '')
+    .replace(/\.[a-z0-9]+$/i, '')
+    .toLowerCase()
+    // 20260614 100717648 HDR — a camera dump, all from the same minute
+    .replace(/\b\d{8}[ _-]\d{6,9}\b/g, ' ')
+    .replace(/\b(19|20)\d{2}\b/g, ' ')
+    .replace(/[ _-]+\(?\d{1,4}\)?$/g, '')
+    .replace(/[^a-z]+/g, ' ')
+    .trim();
+}
+
+/**
+ * Picks the pictures worth showing out of whatever the providers returned.
+ *
+ * Everything here was written against a real failing case. Deduplication is by
+ * page id because the same file reaches us under different thumbnail URLs. The
+ * series rule exists because Commons categories are full of bursts — the four
+ * `Hauptbahnhof Berlin interior 0807..0810` shots that filled the picker were
+ * one person walking across a concourse. The author cap is the same problem
+ * seen from the other side: one contributor who documented a station thoroughly
+ * should not supply the whole strip.
+ *
+ * `perAuthor` is the one knob: coordinate search gets 1, because there being no
+ * evidence the pictures are even of the right subject makes variety the only
+ * defence. Curated sources get 2 — someone already vouched that these depict
+ * the place.
+ */
+export function rankCommonsCandidates<T extends RankableCommonsCandidate>(
+  candidates: T[],
+  limit: number,
+  opts: { perAuthor?: number } = {},
+): T[] {
+  const perAuthor = opts.perAuthor ?? 2;
+  const seenPages = new Set<number>();
+  const seenUrls = new Set<string>();
+  const seenStems = new Set<string>();
+  const authorCounts = new Map<string, number>();
+  const out: T[] = [];
+
+  for (const candidate of candidates) {
+    if (out.length >= limit) break;
+
+    if (candidate.pageId != null) {
+      if (seenPages.has(candidate.pageId)) continue;
+    } else if (seenUrls.has(candidate.photoUrl)) {
+      // No page id (an older payload, or a provider that does not report one):
+      // the URL is a weaker key but better than letting an exact repeat through.
+      continue;
+    }
+
+    const haystack = `${candidate.title ?? ''} ${candidate.descriptors ?? ''}`;
+    if (NOT_A_PHOTO_OF_THE_PLACE.test(haystack)) continue;
+
+    const { width, height } = candidate;
+    if (width && height) {
+      // Survey tiles are square and enormous; nothing photographed by hand is.
+      if (width === height && width >= 3000) continue;
+      const ratio = Math.max(width / height, height / width);
+      // Panorama strips and tall banners crop to nothing in a square tile.
+      if (ratio > 4) continue;
+    }
+
+    const stem = candidate.title ? seriesStem(candidate.title) : '';
+    if (stem && seenStems.has(stem)) continue;
+
+    const author = (candidate.attribution ?? '').trim().toLowerCase();
+    if (author) {
+      const used = authorCounts.get(author) ?? 0;
+      if (used >= perAuthor) continue;
+      authorCounts.set(author, used + 1);
+    }
+
+    if (candidate.pageId != null) seenPages.add(candidate.pageId);
+    seenUrls.add(candidate.photoUrl);
+    if (stem) seenStems.add(stem);
+    out.push(candidate);
+  }
+
+  return out;
 }

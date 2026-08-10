@@ -8,7 +8,7 @@
  *
  * No real HTTP calls are made.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 import request from 'supertest';
 import type { Application } from 'express';
 import type { INestApplication } from '@nestjs/common';

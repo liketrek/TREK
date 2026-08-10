@@ -20,6 +20,15 @@ const ctxFor = (actingUserId: number | undefined): PluginRpcContext => ({
   pluginId: 'p',
   actingUserId,
   data: {} as PluginRpcContext['data'],
+  // No case below dispatches to a peer plugin, but the peers are a real collaborator
+  // on the context, so they get a stub that fails loudly rather than an empty object
+  // whose methods would be undefined the moment a handler reached for one.
+  plugins: {
+    call: () => Promise.reject(new Error('ctxFor: no peer plugin router in these cases')),
+    emit: () => {
+      throw new Error('ctxFor: no peer plugin router in these cases');
+    },
+  },
 });
 
 /** A well-formed controller: two tags methods with the permissions the table assigns. */

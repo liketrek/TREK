@@ -38,9 +38,13 @@ import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip } from '../../helpers/factories';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
 import { TripInviteService } from '../../../src/nest/trip-invite/trip-invite.service';
 
-const svc = new TripInviteService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)));
+// One DatabaseService over the shared in-memory handle, so every collaborator
+// reads and writes the same rows.
+const dbs = new DatabaseService(testDb);
+const svc = new TripInviteService(dbs, new PermissionsService(dbs), new TripMembershipService(dbs));
 
 beforeAll(() => { createTables(testDb); runMigrations(testDb); });
 beforeEach(() => resetTestDb(testDb));

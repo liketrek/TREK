@@ -35,6 +35,8 @@ import { AuditService } from '../audit/audit.service';
 import { NotFoundError, ValidationError } from './trips.service';
 import { TripCreateDto, TripUpdateDto, TripCopyDto, TripAddMemberDto, TripTransferOwnershipDto, TripCreateGuestDto, TripRenameGuestDto } from './trips.dto';
 import { UnsplashService } from '../unsplash/unsplash.service';
+import { CalendarService } from '../calendar/calendar.service';
+import { TripReadModelService } from '../trip-read-model/trip-read-model.service';
 
 const MAX_COVER_SIZE = 20 * 1024 * 1024;
 const coversDir = path.join(__dirname, '../../../uploads/covers');
@@ -70,7 +72,9 @@ const addDays = (d: Date, n: number) => { const r = new Date(d); r.setDate(r.get
 @Controller('api/trips')
 @UseGuards(JwtAuthGuard)
 export class TripsController {
-  constructor(private readonly trips: TripsService, private readonly audit: AuditService, private readonly env: RuntimeEnvService, private readonly unsplash: UnsplashService) {}
+  // calendar last: the hand-wired construction sites in the tests stay positional,
+  // so a new dependency does not touch the ones that never reach the ICS route.
+  constructor(private readonly trips: TripsService, private readonly audit: AuditService, private readonly env: RuntimeEnvService, private readonly unsplash: UnsplashService, private readonly calendar: CalendarService, private readonly readModel: TripReadModelService) {}
 
   @Get()
   list(@CurrentUser() user: User, @Query('archived') archived?: string) {
@@ -250,142 +254,13 @@ export class TripsController {
     return { success: true };
   }
 
-  @Get(':id/members')
-  members(@CurrentUser() user: User, @Param('id') id: string) {
-    const access = this.trips.canAccessTrip(id, user.id);
-    if (!access) {
-      throw new HttpException({ error: 'Trip not found' }, 404);
-    }
-    const { owner, members } = this.trips.listMembers(id, access.user_id);
-    return { owner, members, current_user_id: user.id };
-  }
-
-  @Post(':id/members')
-  @HttpCode(201)
-  addMember(@CurrentUser() user: User, @Param('id') id: string, @Body() body: TripAddMemberDto) {
-    const { identifier } = body;
-    const access = this.trips.canAccessTrip(id, user.id);
-    if (!access) {
-      throw new HttpException({ error: 'Trip not found' }, 404);
-    }
-    if (!this.trips.can('member_manage', user.role, access.user_id, user.id, access.user_id !== user.id)) {
-      throw new HttpException({ error: 'No permission to manage members' }, 403);
-    }
-    try {
-      const result = this.trips.addMember(id, identifier, access.user_id, user.id);
-      this.trips.notifyInvite(id, user, result.targetUserId, result.tripTitle, result.member.email);
-      return { member: result.member };
-    } catch (e: unknown) {
-      if (e instanceof NotFoundError) throw new HttpException({ error: e.message }, 404);
-      if (e instanceof ValidationError) throw new HttpException({ error: e.message }, 400);
-      throw e;
-    }
-  }
-
-  @Delete(':id/members/:userId')
-  removeMember(@CurrentUser() user: User, @Param('id') id: string, @Param('userId') userId: string) {
-    const access = this.trips.canAccessTrip(id, user.id);
-    if (!access) {
-      throw new HttpException({ error: 'Trip not found' }, 404);
-    }
-    const targetId = parseInt(userId);
-    if (targetId !== user.id && !this.trips.can('member_manage', user.role, access.user_id, user.id, access.user_id !== user.id)) {
-      throw new HttpException({ error: 'No permission to remove members' }, 403);
-    }
-    this.trips.removeMember(id, targetId);
-    return { success: true };
-  }
-
-  @Post(':id/transfer')
-  transferOwnership(
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Body() body: TripTransferOwnershipDto,
-    @Req() req: Request,
-    @Headers('x-socket-id') socketId?: string,
-  ) {
-    const { newOwnerId } = body;
-    const access = this.trips.canAccessTrip(id, user.id);
-    if (!access) {
-      throw new HttpException({ error: 'Trip not found' }, 404);
-    }
-    // Owner-only: handing over a trip is reserved for its actual owner, not just
-    // anyone who can manage members.
-    if (access.user_id !== user.id) {
-      throw new HttpException({ error: 'Only the owner can transfer ownership' }, 403);
-    }
-    try {
-      const result = this.trips.transferOwnership(id, newOwnerId, user.id);
-      this.audit.writeAudit({ userId: user.id, action: 'trip.transfer_ownership', ip: getClientIp(req), details: { tripId: Number(id), trip: result.tripTitle, from: result.fromEmail, to: result.toEmail } });
-      // Nudge everyone viewing the trip to re-read it so the new ownership and the
-      // recomputed permissions take effect live.
-      const updatedTrip = this.trips.get(id, user.id);
-      this.trips.broadcast(id, 'trip:updated', { trip: updatedTrip }, socketId);
-      return { success: true };
-    } catch (e: unknown) {
-      if (e instanceof NotFoundError) throw new HttpException({ error: e.message }, 404);
-      if (e instanceof ValidationError) throw new HttpException({ error: e.message }, 400);
-      throw e;
-    }
-  }
-
-  /** Loads the trip or throws 404, then asserts the caller is its owner (guest CRUD, #1362). */
-  private requireOwner(id: string, user: User): void {
-    const access = this.trips.canAccessTrip(id, user.id);
-    if (!access) {
-      throw new HttpException({ error: 'Trip not found' }, 404);
-    }
-    if (access.user_id !== user.id) {
-      throw new HttpException({ error: 'Only the owner can manage guests' }, 403);
-    }
-  }
-
-  @Post(':id/guests')
-  @HttpCode(201)
-  createGuest(@CurrentUser() user: User, @Param('id') id: string, @Body() body: TripCreateGuestDto) {
-    this.requireOwner(id, user);
-    // Whitespace-only names still 400 with the legacy body — the service throws
-    // ValidationError('Guest name is required') after trimming.
-    try {
-      // No notifyInvite: a guest has no inbox.
-      return this.trips.createGuest(id, body.name, user.id);
-    } catch (e: unknown) {
-      if (e instanceof ValidationError) throw new HttpException({ error: e.message }, 400);
-      throw e;
-    }
-  }
-
-  @Put(':id/guests/:userId')
-  renameGuest(@CurrentUser() user: User, @Param('id') id: string, @Param('userId') userId: string, @Body() body: TripRenameGuestDto) {
-    this.requireOwner(id, user);
-    try {
-      if (!this.trips.renameGuest(id, parseInt(userId), body.name)) {
-        throw new HttpException({ error: 'Guest not found' }, 404);
-      }
-      return { success: true };
-    } catch (e: unknown) {
-      if (e instanceof HttpException) throw e;
-      if (e instanceof ValidationError) throw new HttpException({ error: e.message }, 400);
-      throw e;
-    }
-  }
-
-  @Delete(':id/guests/:userId')
-  deleteGuest(@CurrentUser() user: User, @Param('id') id: string, @Param('userId') userId: string) {
-    this.requireOwner(id, user);
-    if (!this.trips.deleteGuest(id, parseInt(userId))) {
-      throw new HttpException({ error: 'Guest not found' }, 404);
-    }
-    return { success: true };
-  }
-
   @Get(':id/bundle')
   bundle(@CurrentUser() user: User, @Param('id') id: string) {
     const trip = this.trips.get(id, user.id) as { user_id: number } | undefined;
     if (!trip) {
       throw new HttpException({ error: 'Trip not found' }, 404);
     }
-    return this.trips.bundle(id, trip, user.id);
+    return this.readModel.bundle(id, trip, user.id);
   }
 
   @Get(':id/export.ics')
@@ -394,7 +269,7 @@ export class TripsController {
       throw new HttpException({ error: 'Trip not found' }, 404);
     }
     try {
-      const { ics, filename } = this.trips.exportICS(id);
+      const { ics, filename } = this.calendar.exportICS(id);
       res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.send(ics);

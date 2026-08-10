@@ -41,6 +41,7 @@ vi.mock('../../../src/config', () => ({
 }));
 
 import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
+import type { TransitPlace } from '../../../src/nest/transit/transit.helpers';
 import { TransitService } from '../../../src/nest/transit/transit.service';
 
 // The transit tools live on the DI-discovered transit.mcp.ts since the transit
@@ -157,7 +158,10 @@ describe('MCP transit tools', () => {
 
   it('forwards stop and route searches and replaces provider endpoint names', async () => {
     const { user } = createUser(testDb);
-    geocodeMock.mockResolvedValue({ results: [from] });
+    // `from` is a tool-input place (name/lat/lng). A geocode result is a TransitPlace,
+    // which also carries `type` and `area`; the stop search only reads the name back out,
+    // so the fixture stays as it is instead of growing fields nothing here looks at.
+    geocodeMock.mockResolvedValue({ results: [from as TransitPlace] });
     planMock.mockResolvedValue({
       itineraries: [
         itinerary,

@@ -5,7 +5,7 @@ import type {
   TrekWsTripEventName,
   TrekWsUserEventName,
 } from '@trek/shared';
-import { broadcast, broadcastToUser } from '../../websocket';
+import { broadcast, broadcastToUser, getOnlineUserIds } from '../../websocket';
 
 /**
  * Injectable facade over the websocket module singleton (roadmap Phase 0 item 3).
@@ -88,5 +88,19 @@ export class RealtimeService {
     ...args: [userId: number, payload: Record<string, unknown>, excludeSid?: number | string]
   ): void {
     broadcastToUser(...args);
+  }
+
+  /**
+   * Which users currently hold an open socket.
+   *
+   * AdminService read this through a lazy `require('../../websocket')` inside a
+   * try/catch, which is what the facade exists to avoid. Deliberately NOT
+   * guarded here: a guard on the facade would swallow the failure for every
+   * future caller, and the one caller that wants a degraded answer rather than
+   * an error keeps its own catch. Delegates at call time, like its two
+   * siblings, so per-file vi.mock stubs keep flowing through.
+   */
+  getOnlineUserIds(): Set<number> {
+    return getOnlineUserIds();
   }
 }

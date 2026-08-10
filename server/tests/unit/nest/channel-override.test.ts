@@ -42,8 +42,9 @@ import {
   listChannels,
   getChannel,
   registerChannel,
-  type ExternalChannel,
 } from '../../../src/nest/notifications/channel-registry';
+// The registry consumes ExternalChannel but does not re-export it; it is declared here.
+import type { ExternalChannel } from '../../../src/nest/notifications/notification-events';
 
 const prefsDbs = new DatabaseService(testDb);
 const prefsSvc = new NotificationPreferencesService(prefsDbs, new MailerService(prefsDbs));

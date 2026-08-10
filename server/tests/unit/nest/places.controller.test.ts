@@ -39,8 +39,10 @@ async function thrownAsync(fn: () => Promise<unknown>): Promise<{ status: number
 beforeEach(() => vi.spyOn(console, 'error').mockImplementation(() => {}));
 
 describe('PlacesController (parity with the legacy /api/trips/:tripId/places route)', () => {
-  it('GET / lists with filters; 404 when trip not accessible', () => {
-    expect(thrown(() => new PlacesController(svc({ verifyTripAccess: vi.fn().mockReturnValue(undefined) }), new RuntimeEnvService()).list(user, '5'))).toEqual({ status: 404, body: { error: 'Trip not found' } });
+  // The trip 404 for this handler is TripAccessGuard's now (see
+  // trip-access.guard.test.ts and the places e2e), so it is no longer reachable
+  // by calling the method directly.
+  it('GET / lists with filters', () => {
     const list = vi.fn().mockReturnValue([{ id: 1 }]);
     expect(new PlacesController(svc({ list } as Partial<PlacesService>), new RuntimeEnvService()).list(user, '5', 'beach', 'cat', 'tag')).toEqual({ places: [{ id: 1 }] });
     expect(list).toHaveBeenCalledWith('5', { search: 'beach', category: 'cat', tag: 'tag' });

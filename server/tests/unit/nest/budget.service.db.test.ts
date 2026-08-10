@@ -63,7 +63,7 @@ import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.se
 import * as bridge from '../../../src/nest/budget/budget.bridge';
 import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { TripsService } from '../../../src/nest/trips/trips.service';
+import { TripMembersService } from '../../../src/nest/trip-members/trip-members.service';
 import { TodoService } from '../../../src/nest/todo/todo.service';
 import { PackingService } from '../../../src/nest/packing/packing.service';
 import { FilesService } from '../../../src/nest/files/files.service';
@@ -72,6 +72,7 @@ import { DaysService } from '../../../src/nest/days/days.service';
 import { CollabService } from '../../../src/nest/collab/collab.service';
 import { VacayService } from '../../../src/nest/vacay/vacay.service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
+import { notificationsStub } from '../../helpers/notifications';
 
 const budget = new BudgetService(
   new DatabaseService(testDb),
@@ -80,28 +81,21 @@ const budget = new BudgetService(
   new RealtimeService(),
 );
 
-// Guest fixtures come from the DI-native TripsService since the trip fold (was
-// an import of the deleted services/tripService); deleteGuest routes through
-// the SAME BudgetService domain SQL (removeUserFromBudgetItems) under test.
+// Guest fixtures come from TripMembersService since the trip split (they were on
+// TripsService before, and on the deleted services/tripService before that);
+// deleteGuest routes through the SAME BudgetService domain SQL
+// (removeUserFromBudgetItems) under test.
 const dbs = () => new DatabaseService(testDb);
-const tripsSvc = new TripsService(
+const membersSvc = new TripMembersService(
   dbs(),
-  new TodoService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-  new PackingService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-  new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-  new ReservationsService(dbs(), new PermissionsService(dbs()), budget, new RealtimeService()),
-  new DaysService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new QueryHelpersService(dbs())),
-  new PermissionsService(dbs()),
   budget,
-  new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-  new VacayService(dbs(), new RealtimeService()),
-  new RealtimeService(),
-  undefined as never, // places — not exercised here
-  undefined as never, // unsplash — not exercised here
   new UserCleanupService(dbs()),
+  new PermissionsService(dbs()),
+  new RealtimeService(),
+  notificationsStub(),
 );
-const createGuest = tripsSvc.createGuest.bind(tripsSvc);
-const deleteGuest = tripsSvc.deleteGuest.bind(tripsSvc);
+const createGuest = membersSvc.createGuest.bind(membersSvc);
+const deleteGuest = membersSvc.deleteGuest.bind(membersSvc);
 
 beforeAll(() => {
   createTables(testDb);

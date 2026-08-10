@@ -110,6 +110,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': '请先创建一个列表来保存地点。',
   'collections.removedFromAll': '已从收藏中移除',
   'collections.picker.title': '已保存的地点',
+  'collections.picker.showMore': '再显示 {count} 个',
   'collections.picker.search': '搜索你已保存的地点',
   'collections.picker.empty': '没有可添加的已保存地点',
   'collections.picker.hint': '从你的收藏中选择一个地点',

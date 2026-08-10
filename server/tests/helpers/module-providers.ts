@@ -19,3 +19,10 @@ export function expectRegisteredProvider(moduleClass: object, provider: object):
   expect(Array.isArray(providers)).toBe(true);
   expect(providers).toEqual(expect.arrayContaining([provider]));
 }
+
+/** The same check for a module's `controllers: []`, with the same soundness caveat. */
+export function expectRegisteredController(moduleClass: object, controller: object): void {
+  const controllers = Reflect.getMetadata('controllers', moduleClass) as unknown[] | undefined;
+  expect(Array.isArray(controllers)).toBe(true);
+  expect(controllers).toEqual(expect.arrayContaining([controller]));
+}

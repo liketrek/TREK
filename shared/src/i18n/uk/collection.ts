@@ -110,6 +110,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': 'Спершу створіть список, щоб зберігати місця.',
   'collections.removedFromAll': 'Видалено з колекції',
   'collections.picker.title': 'Збережені місця',
+  'collections.picker.showMore': 'Показати ще {count}',
   'collections.picker.search': 'Пошук збережених місць',
   'collections.picker.empty': 'Немає збережених місць для додавання',
   'collections.picker.hint': 'Виберіть місце зі своїх колекцій',

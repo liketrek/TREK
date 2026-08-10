@@ -46,12 +46,22 @@ body { height: 100%; overflow: auto; overscroll-behavior: none; -webkit-overflow
   background: #fff;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.16);
 }
+/* No speech-bubble tail on the hover card. The card stands off its marker by
+   26px and reads as a label, not as a callout pinned to a point — the tail
+   hung off the bottom edge as a stray notch. The popup's offset carries the
+   gap on its own. */
 .trek-map-popup .mapboxgl-popup-tip,
 .trek-map-popup .maplibregl-popup-tip {
-  border-top-color: #fff;
-  border-bottom-color: #fff;
-  border-left-color: #fff;
-  border-right-color: #fff;
+  display: none;
+}
+/* Both engines square off one corner per anchor so the tail meets the card
+   flush (.maplibregl-popup-anchor-bottom-left .maplibregl-popup-content and
+   its three siblings). Same specificity as the rule above, so which one wins
+   comes down to stylesheet order — and with no tail there, a squared corner is
+   just a squared corner. `[class]` buys the extra weight to settle it. */
+.trek-map-popup[class] .mapboxgl-popup-content,
+.trek-map-popup[class] .maplibregl-popup-content {
+  border-radius: 10px;
 }
 
 .atlas-tooltip {

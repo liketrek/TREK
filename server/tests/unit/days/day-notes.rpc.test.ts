@@ -9,9 +9,9 @@ import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
 import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
-import { DayNotesRpc } from '../../../src/nest/days/day-notes.rpc';
-import { DaysModule } from '../../../src/nest/days/days.module';
-import type { DayNotesService } from '../../../src/nest/days/day-notes.service';
+import { DayNotesRpc } from '../../../src/nest/day-notes/day-notes.rpc';
+import { DayNotesModule } from '../../../src/nest/day-notes/day-notes.module';
+import type { DayNotesService } from '../../../src/nest/day-notes/day-notes.service';
 import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
@@ -115,6 +115,6 @@ describe('DayNotesRpc through the router', () => {
   });
 
   it('DAYNOTES-RPC-009 the class is listed in its module providers', () => {
-    expectRegisteredProvider(DaysModule, DayNotesRpc);
+    expectRegisteredProvider(DayNotesModule, DayNotesRpc);
   });
 });

@@ -166,6 +166,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': 'Chi tiết địa điểm',
   'admin.placesDetails.subtitle':
     'Tìm nạp thông tin chi tiết về địa điểm (giờ, xếp hạng, trang web) từ Google Địa điểm API. Tắt để lưu hạn ngạch API.',
+  'admin.placesEnrich.title': 'Làm giàu địa điểm',
+  'admin.placesEnrich.subtitle':
+    'Hiển thị hình ảnh và mô tả khi thêm địa điểm. Wikipedia và OpenStreetMap luôn được dùng; Google được thêm vào khi bật Ảnh địa điểm hoặc Chi tiết địa điểm.',
   'admin.bagTracking.title': 'Theo dõi túi',
   'admin.bagTracking.subtitle': 'Cho phép phân bổ trọng lượng và túi để đóng gói các mặt hàng',
   'admin.collab.chat.title': 'Trò chuyện',
@@ -272,6 +275,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Cập nhật → v{version}',
   'admin.plugins.enabledToggle': 'Bật plugin',
   'plugins.notFound': 'Không tìm thấy plugin',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Cài đặt và quản lý các plugin bên thứ ba trên hệ thống của bạn.',
   'admin.plugins.disabledTitle': 'Plugin đang bị tắt',

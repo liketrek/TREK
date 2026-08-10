@@ -168,6 +168,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': 'Yer Detayları',
   'admin.placesDetails.subtitle':
     "Google Rehber API'sinden ayrıntılı yer bilgilerini (saat, puan, web sitesi) alın. API kotasını kaydetmeyi devre dışı bırakın.",
+  'admin.placesEnrich.title': 'Yer zenginleştirme',
+  'admin.placesEnrich.subtitle':
+    'Bir yer eklerken görseller ve açıklama gösterir. Wikipedia ve OpenStreetMap her zaman kullanılır; Yer Fotoğrafları veya Yer Ayrıntıları açıkken Google da eklenir.',
   'admin.bagTracking.title': 'Çanta Takibi',
   'admin.bagTracking.subtitle': 'Paketleme öğeleri için ağırlık ve torba atamasını etkinleştirin',
   'admin.collab.chat.title': 'Sohbet',
@@ -261,6 +264,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Güncelle → v{version}',
   'admin.plugins.enabledToggle': 'Eklentiyi etkinleştir',
   'plugins.notFound': 'Eklenti bulunamadı',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Örneğinizde üçüncü taraf eklentileri yükleyin ve yönetin.',
   'admin.plugins.disabledTitle': 'Eklentiler devre dışı',

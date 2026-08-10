@@ -40,6 +40,9 @@ import type { ImmichService } from '../../../src/nest/memories/immich.service';
 import type { SynologyService } from '../../../src/nest/memories/synology.service';
 import type { ThumbnailService } from '../../../src/nest/memories/thumbnail.service';
 import type { TrekPhotoCacheService } from '../../../src/nest/memories/trek-photo-cache.service';
+import { PhotoProviderRegistry } from '../../../src/nest/memories/photo-provider.registry';
+import { ImmichPhotoProvider } from '../../../src/nest/memories/providers/immich.provider';
+import { SynologyPhotoProvider } from '../../../src/nest/memories/providers/synology.provider';
 
 const immich = {
   streamImmichAsset: vi.fn(),
@@ -63,12 +66,20 @@ const cache = {
 
 const dbs = new DatabaseService(testDb);
 const repo = new TrekPhotosRepository(dbs);
+// Real adapters over the stubbed services, and a real registry: the cases below
+// keep asserting on immich.streamImmichAsset/synology.streamSynologyAsset, so
+// they now also pin the adapters' argument mapping — which is where the two
+// providers' differing parameter orders used to be a transposition waiting to
+// happen.
+const providers = new PhotoProviderRegistry([
+  new ImmichPhotoProvider(immich as unknown as ImmichService),
+  new SynologyPhotoProvider(synology as unknown as SynologyService),
+]);
 const svc = new PhotoResolverService(
   repo,
-  immich as unknown as ImmichService,
-  synology as unknown as SynologyService,
   thumbnails as unknown as ThumbnailService,
   cache as unknown as TrekPhotoCacheService,
+  providers,
 );
 
 function makeRes() {

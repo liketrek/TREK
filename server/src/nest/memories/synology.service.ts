@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { Response } from 'express';
 import { decrypt_api_key, encrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { safeFetch, SsrfBlockedError, checkSsrf } from '../../utils/ssrfGuard';
-import { send as sendNotification } from '../notifications/notifications.bridge';
 import { DatabaseService } from '../database/database.service';
 import { MemoriesAccessService } from './memories-access.service';
 import {
@@ -17,6 +16,7 @@ import {
   type ServiceResult,
   type StatusResult,
 } from './memories.helpers';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const SYNOLOGY_PROVIDER = 'synologyphotos';
 // Users provide the full base URL including the Photos app path (e.g. https://nas:5001/photo).
@@ -129,6 +129,7 @@ export class SynologyService {
   constructor(
     private readonly db: DatabaseService,
     private readonly access: MemoriesAccessService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private _readSynologyUser(userId: number, columns: string[]): ServiceResult<SynologyUserRecord> {
@@ -388,7 +389,9 @@ export class SynologyService {
           this._clearSynologySession(userId);
           // Fire-and-forget like unifiedService's photos_shared send — without the
           // .catch an in-app insert failure became an unhandled rejection.
-          sendNotification({
+          // Injected, not imported from notifications.bridge — that module builds
+          // its own NotificationsService outside the container.
+          this.notifications.send({
               event: 'synology_session_cleared',
               actorId: null,
               params: {},

@@ -4,6 +4,7 @@ import type { Place } from '../../types';
 import type { PlaceWithTags } from '../database/database.service';
 import type { KmlImportSummary } from './kml-import.helpers';
 import type { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
+import { haversineMetres } from '../common/geo';
 
 /**
  * Pure helpers and module-scope constants of the places domain, moved verbatim
@@ -214,16 +215,6 @@ export const SEARCH_BIAS_RADIUS_METERS = 2000;
 /** Concurrent enrichment lookups — small, to stay friendly to the Maps quota. */
 export const ENRICH_CONCURRENCY = 3;
 
-function haversineMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
-  const R = 6371000;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(b.lat - a.lat);
-  const dLng = toRad(b.lng - a.lng);
-  const lat1 = toRad(a.lat);
-  const lat2 = toRad(b.lat);
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
-}
 
 /**
  * Pick the search result that is the same place as the import: it must be a
@@ -245,7 +236,7 @@ export function pickEnrichmentMatch(
     const lng = c.lng;
     if (typeof gpid !== 'string' || !gpid) continue;
     if (typeof lat !== 'number' || typeof lng !== 'number') continue;
-    const dist = haversineMeters(target, { lat, lng });
+    const dist = haversineMetres(target.lat, target.lng, lat, lng);
     if (dist > maxMeters) continue;
     if (!best || dist < best.dist) best = { c, dist };
   }

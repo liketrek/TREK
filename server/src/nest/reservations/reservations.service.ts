@@ -7,6 +7,7 @@ import { avatarUrl } from '../common/avatarUrl';
 import type { Reservation, User } from '../../types';
 import { BudgetService } from '../budget/budget.service';
 import { typeToCostCategory } from '@trek/shared';
+import { NotificationsService } from '../notifications/notifications.service';
 
 type Trip = TripAccess;
 type BudgetEntry = { total_price?: number; category?: string } | undefined;
@@ -134,6 +135,7 @@ export class ReservationsService {
     private readonly permissions: PermissionsService,
     private readonly budget: BudgetService,
     private readonly realtime: RealtimeService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   verifyTripAccess(tripId: string | number, userId: number) {
@@ -150,30 +152,30 @@ export class ReservationsService {
 
   /** Fire-and-forget booking-change notification, mirroring the legacy dynamic import. */
   notifyBookingChange(tripId: string | number, actorId: number, booking: string, type: string): void {
-    import('../notifications/notifications.bridge')
-      .then(({ send }) => {
-        try {
-          const actor = this.db.get<{ email: string }>('SELECT email FROM users WHERE id = ?', actorId);
-          if (!actor) return;
-          const trip = this.db.get<{ title: string }>('SELECT title FROM trips WHERE id = ?', tripId);
-          send({
-            event: 'booking_change',
-            actorId,
-            scope: 'trip',
-            targetId: Number(tripId),
-            params: {
-              trip: trip?.title || 'Untitled',
-              actor: actor.email,
-              booking,
-              type: type || 'booking',
-              tripId: String(tripId),
-            },
-          }).catch(() => {});
-        } catch {
-          // Notifications must never make the booking write fail.
-        }
-      })
-      .catch(() => {});
+    // Injected, not a lazy import of notifications.bridge. The laziness bought
+    // nothing the module graph does not already give — NotificationsModule
+    // reaches nothing in this direction — and it hid the edge while handing the
+    // send a second NotificationsService built outside the container.
+    try {
+      const actor = this.db.get<{ email: string }>('SELECT email FROM users WHERE id = ?', actorId);
+      if (!actor) return;
+      const trip = this.db.get<{ title: string }>('SELECT title FROM trips WHERE id = ?', tripId);
+      this.notifications.send({
+        event: 'booking_change',
+        actorId,
+        scope: 'trip',
+        targetId: Number(tripId),
+        params: {
+          trip: trip?.title || 'Untitled',
+          actor: actor.email,
+          booking,
+          type: type || 'booking',
+          tripId: String(tripId),
+        },
+      }).catch(() => {});
+    } catch {
+      // Notifications must never make the booking write fail.
+    }
   }
 
   loadEndpointsByTrip(tripId: string | number): Map<number, ReservationEndpoint[]> {

@@ -6,7 +6,6 @@ import {
 } from '@trek/nest-mcp';
 import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
-import { isAddonEnabled } from '../addons/addons.bridge';
 import { ADDON_IDS } from '../../addons';
 import { safeBroadcast, noAccess, hasTripPermission, permissionDenied, isAdminUser, adminRequired } from '../../mcp/tools/_shared';
 import { PackingService } from './packing.service';
@@ -14,9 +13,11 @@ import { PackingService } from './packing.service';
 // so injecting it here would close a module cycle. Same documented in-container
 // exception as atlas.mcp.ts, and the legacy registrar reached for it the same way.
 import { getTripSummary } from '../trips/trips.bridge';
+import { addonGate } from '../addons/addon-gate';
+import { AddonsService } from '../addons/addons.service';
 
 /** Legacy registrar gate: the whole packing surface rides the packing addon. */
-const packingAddonOn = () => isAddonEnabled(ADDON_IDS.PACKING);
+const packingAddonOn = addonGate(ADDON_IDS.PACKING);
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -37,7 +38,11 @@ function parseId(value: string | string[]): number | null {
  */
 @McpController()
 export class PackingMcp {
-  constructor(private readonly packing: PackingService, private readonly auth: AuthService) {}
+  constructor(
+    private readonly packing: PackingService,
+    private readonly auth: AuthService,
+    readonly addons: AddonsService,
+  ) {}
 
   // --- PACKING ---
 

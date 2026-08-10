@@ -46,7 +46,7 @@ describe('CategoriesController (parity with the legacy /api/categories route)', 
     it('404 when the category does not exist', () => {
       const getById = vi.fn().mockReturnValue(undefined);
       const update = vi.fn();
-      expect(thrown(() => makeController({ getById, update }).update('9', 'X'))).toEqual({
+      expect(thrown(() => makeController({ getById, update }).update('9', { name: 'X' }))).toEqual({
         status: 404, body: { error: 'Category not found' },
       });
       expect(update).not.toHaveBeenCalled();

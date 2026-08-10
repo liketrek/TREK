@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import {
   ArrowRight, ArrowRightLeft, Bookmark, Calendar, ChevronDown, ChevronRight,
@@ -103,20 +103,37 @@ function MCurrencyWidget(): React.ReactElement {
   const [amount, setAmount] = useState('100')
   const [rates, setRates] = useState<Record<string, number> | null>(null)
 
+  // The request outlives the widget: this is a third-party endpoint on a mobile
+  // screen a user can leave immediately, and both handlers below set state. Left
+  // unguarded it settles after unmount, React schedules an update against a gone
+  // tree, and under a test runner that surfaces as an unhandled rejection long
+  // after the case that triggered it has passed.
+  const inFlight = useRef<AbortController | null>(null)
+
   const fetchRates = useCallback(() => {
-    fetch(`https://api.frankfurter.dev/v2/rates?base=${from}`)
+    inFlight.current?.abort()
+    const controller = new AbortController()
+    inFlight.current = controller
+    fetch(`https://api.frankfurter.dev/v2/rates?base=${from}`, { signal: controller.signal })
       .then(r => r.json())
       .then((d: Array<{ quote: string; rate: number }>) => {
+        if (controller.signal.aborted) return
         if (!Array.isArray(d)) { setRates(null); return }
         // Frankfurter omits the base's own self-rate; seed it so `from` stays selectable.
         const map: Record<string, number> = { [from]: 1 }
         for (const r of d) map[r.quote] = r.rate
         setRates(map)
       })
-      .catch(() => setRates(null))
+      .catch(() => {
+        // An abort is not a failure: it means nobody is waiting for the answer.
+        if (!controller.signal.aborted) setRates(null)
+      })
   }, [from])
 
-  useEffect(() => { fetchRates() }, [fetchRates])
+  useEffect(() => {
+    fetchRates()
+    return () => inFlight.current?.abort()
+  }, [fetchRates])
 
   // Same one-time localStorage → settings migration the desktop widget runs, so
   // a phone-only user's pre-3.1.3 pair survives an upgrade too (#1311).

@@ -124,6 +124,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': 'Hely részletei',
   'admin.placesDetails.subtitle':
     'Részletes helyinformációk lekérése (nyitvatartás, értékelés, weboldal) a Google Places API-ból. Tiltsa le az API-kvóta megtakarításához.',
+  'admin.placesEnrich.title': 'Helyek gazdagítása',
+  'admin.placesEnrich.subtitle':
+    'Képeket és leírást mutat hely hozzáadásakor. A Wikipédia és az OpenStreetMap mindig használatban van; a Google akkor jön hozzá, ha a Helyfotók vagy a Helyadatok be vannak kapcsolva.',
   'admin.bagTracking.title': 'Poggyászkövetés',
   'admin.bagTracking.subtitle': 'Súly- és táskahozzárendelés engedélyezése csomagolási tételeknél',
   'admin.collab.chat.title': 'Chat',
@@ -217,6 +220,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Frissítés → v{version}',
   'admin.plugins.enabledToggle': 'Plugin engedélyezése',
   'plugins.notFound': 'A plugin nem található',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'Pluginok',
   'admin.plugins.subtitle': 'Harmadik féltől származó pluginok telepítése és kezelése a példányodon.',
   'admin.plugins.disabledTitle': 'A pluginok le vannak tiltva',

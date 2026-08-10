@@ -5,7 +5,6 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { readEnv, type AppEnv } from '../app-config';
 import { logDebug, logWarn, logError } from '../nest/audit/audit-log.logger';
-import { enforceGlobalMfaPolicy } from './mfaPolicy';
 
 /**
  * The global request pipeline shared by the legacy Express app and the NestJS
@@ -16,18 +15,19 @@ import { enforceGlobalMfaPolicy } from './mfaPolicy';
  * behaviourally transparent — and is the prerequisite for retiring Express,
  * since the Nest instance must carry the whole shell on its own.
  *
- * `bodyParser` is opt-out: the Nest instance does its own body parsing, so it
- * passes `false` to avoid parsing the request twice.
+ * Body parsing is NOT here: the Nest instance does it, with the limit pinned in
+ * bootstrap.ts. The flag that used to switch a second parser on had exactly one
+ * caller, which passed false.
  */
 export function applyGlobalMiddleware(
   app: express.Application,
-  opts: { bodyParser?: boolean; http?: AppEnv['http'] } = {},
+  opts: { http?: AppEnv['http'] } = {},
 ): void {
   // The whole pipeline is configured at APPLY time (the per-request closures
   // capture these values), so a snapshot is the correct semantic. bootstrap
   // threads in the DI-loaded httpConfig; direct callers fall back to an
   // apply-time readEnv() — same values, same freeze point.
-  const { bodyParser = true, http = readEnv().http } = opts;
+  const { http = readEnv().http } = opts;
   const { nodeEnv, isProduction } = readEnv().app;
 
   // Trust first proxy (nginx/Docker) for correct req.ip
@@ -170,12 +170,7 @@ export function applyGlobalMiddleware(
     });
   }
 
-  if (bodyParser) {
-    app.use(express.json({ limit: '100kb' }));
-    app.use(express.urlencoded({ extended: true }));
-  }
   app.use(cookieParser());
-  app.use(enforceGlobalMfaPolicy);
 
   // Request logging with sensitive field redaction
   const SENSITIVE_KEYS = new Set(['password', 'new_password', 'current_password', 'token', 'jwt', 'authorization', 'cookie', 'client_secret', 'mfa_token', 'code', 'smtp_pass']);

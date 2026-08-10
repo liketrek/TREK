@@ -5,6 +5,7 @@ import { RateLimitService } from '../common/rate-limit.service';
 import { getClientIp } from '../audit/client-ip';
 import { logWarn } from '../audit/audit-log.logger';
 import { AuditService } from '../audit/audit.service';
+import { Public } from '../auth/public.decorator';
 
 const MIN = 60_000;
 
@@ -16,6 +17,7 @@ const MIN = 60_000;
  * and the RFC 7009 always-200 revoke. Uses @Res directly because every branch
  * sets headers + a specific status the way the spec requires.
  */
+@Public('the OAuth 2.1 endpoints a client reaches before it has a session')
 @Controller('oauth')
 export class OauthPublicController {
   constructor(private readonly oauth: OauthService, private readonly rl: RateLimitService, private readonly audit: AuditService) {}

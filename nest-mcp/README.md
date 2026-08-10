@@ -42,7 +42,7 @@ Every decorator accepts `access` and `when`:
 
 - **Declarative** — `access: { group: 'things', mode: 'read' | 'write' }`, resolved by the `accessPolicy` given once at `McpModule.forRoot(...)`. `group` is typed as `McpAccessGroup` — plain `string` until the host augments `McpAccessGroupRegistry` (see below), after which only the host's registered groups compile.
 - **Predicate** — `access: (ctx) => boolean`, bypasses the policy.
-- **Availability gate** — `when: (ctx) => boolean`, evaluated *before* `access` (both must pass). Use it for feature/addon toggles so scope markers stay declarative: `when: () => isAddonEnabled(...)`, `access: { group: 'packing', mode: 'read' }`.
+- **Availability gate** — `when: (ctx, self) => boolean`, evaluated *before* `access` (both must pass). Use it for feature/addon toggles so scope markers stay declarative: `when: (_ctx, self: PackingMcp) => self.addons.isAddonEnabled(...)`, `access: { group: 'packing', mode: 'read' }`. `self` is the `@McpController()` instance, handed in at attach time — the options object is built when the class is defined, so without it a gate can only reach a module-level singleton, and hosts end up constructing a second copy of a service outside their own container to answer a toggle.
 - **Omitted `access`** — the entry is always registered (subject to `when`).
 
 ### Result helpers & annotation presets
@@ -128,7 +128,7 @@ registry.attach(server, ctx);
 ## Migrating a TREK MCP domain (recipe)
 
 1. Create `server/src/nest/<domain>/<domain>.mcp.ts`: an `@McpController()` class injecting the domain's Nest service. Port each `server.registerTool(...)` from `server/src/mcp/tools/<domain>.ts` to a `@Tool()` method **byte-identically** (names, descriptions, schemas, annotations, error strings, `ok()` payloads).
-2. Replace the registrar's `canRead/canWrite` registration-time gates with `access: { group, mode }` (TREK's policy in `server/src/mcp/nest-mcp-policy.ts` implements the `scopes.ts` semantics). Addon gates become `when: () => isAddonEnabled(ADDON_IDS.X)` alongside the declarative `access`.
+2. Replace the registrar's `canRead/canWrite` registration-time gates with `access: { group, mode }` (TREK's policy in `server/src/mcp/nest-mcp-policy.ts` implements the `scopes.ts` semantics). Addon gates become `when: (_ctx, self: XMcp) => self.addons.isAddonEnabled(ADDON_IDS.X)` alongside the declarative `access`.
 3. Add the class to the domain module's `providers: []`.
 4. Delete the legacy registrar file and its call in `server/src/mcp/tools.ts`.
 5. Add one line constructing the instance in `server/tests/helpers/mcp-test-controllers.ts` and keep the domain's existing unit tests green — behavior must be indistinguishable to a client.

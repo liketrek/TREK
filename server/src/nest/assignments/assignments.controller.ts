@@ -22,23 +22,11 @@ import {
 } from './assignments.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 
 type Trip = NonNullable<ReturnType<AssignmentsService['verifyTripAccess']>>;
 
-/** Shared trip-access guard (no access is a 404 "Trip not found", never a 403). */
-function requireTrip(svc: AssignmentsService, tripId: string, user: User): Trip {
-  const trip = svc.verifyTripAccess(tripId, user.id);
-  if (!trip) {
-    throw new HttpException({ error: 'Trip not found' }, 404);
-  }
-  return trip;
-}
 
-function requireEdit(svc: AssignmentsService, trip: Trip, user: User): void {
-  if (!svc.canEdit(trip, user)) {
-    throw new HttpException({ error: 'No permission' }, 403);
-  }
-}
 
 /**
  * /api/trips/:tripId/days/:dayId/assignments — the day's ordered itinerary items.
@@ -50,19 +38,22 @@ function requireEdit(svc: AssignmentsService, trip: Trip, user: User): void {
  * by the @trek/shared Zod contracts via assignments.dto.ts (global pipe).
  */
 @Controller('api/trips/:tripId/days/:dayId/assignments')
-@UseGuards(JwtAuthGuard)
+// TripAccessGuard resolves :tripId and 404s a trip the user cannot reach; mutations
+// add @RequirePermission('day_edit'), the same action string the service's canEdit
+// passes, so the HTTP and MCP paths cannot demand different rights.
+@UseGuards(JwtAuthGuard, TripAccessGuard)
 export class DayAssignmentsController {
   constructor(private readonly assignments: AssignmentsService) {}
 
   @Get()
   list(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('dayId') dayId: string) {
-    requireTrip(this.assignments, tripId, user);
     if (!this.assignments.dayExists(dayId, tripId)) {
       throw new HttpException({ error: 'Day not found' }, 404);
     }
     return { assignments: this.assignments.listDayAssignments(dayId) };
   }
 
+  @RequirePermission('day_edit')
   @Post()
   create(
     @CurrentUser() user: User,
@@ -71,8 +62,6 @@ export class DayAssignmentsController {
     @Body() body: AssignmentCreateDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = requireTrip(this.assignments, tripId, user);
-    requireEdit(this.assignments, trip, user);
     if (!this.assignments.dayExists(dayId, tripId)) {
       throw new HttpException({ error: 'Day not found' }, 404);
     }
@@ -85,6 +74,7 @@ export class DayAssignmentsController {
     return { assignment };
   }
 
+  @RequirePermission('day_edit')
   @Put('reorder')
   reorder(
     @CurrentUser() user: User,
@@ -93,8 +83,6 @@ export class DayAssignmentsController {
     @Body() body: AssignmentReorderDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = requireTrip(this.assignments, tripId, user);
-    requireEdit(this.assignments, trip, user);
     if (!this.assignments.dayExists(dayId, tripId)) {
       throw new HttpException({ error: 'Day not found' }, 404);
     }
@@ -103,6 +91,7 @@ export class DayAssignmentsController {
     return { success: true };
   }
 
+  @RequirePermission('day_edit')
   @Delete(':id')
   remove(
     @CurrentUser() user: User,
@@ -111,8 +100,6 @@ export class DayAssignmentsController {
     @Param('id') id: string,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = requireTrip(this.assignments, tripId, user);
-    requireEdit(this.assignments, trip, user);
     if (!this.assignments.assignmentExistsInDay(id, dayId, tripId)) {
       throw new HttpException({ error: 'Assignment not found' }, 404);
     }
@@ -132,6 +119,7 @@ export class DayAssignmentsController {
 export class AssignmentOpsController {
   constructor(private readonly assignments: AssignmentsService) {}
 
+  @RequirePermission('day_edit')
   @Put(':id/move')
   move(
     @CurrentUser() user: User,
@@ -140,8 +128,6 @@ export class AssignmentOpsController {
     @Body() body: AssignmentMoveDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = requireTrip(this.assignments, tripId, user);
-    requireEdit(this.assignments, trip, user);
     if (!this.assignments.getAssignmentForTrip(id, tripId)) {
       throw new HttpException({ error: 'Assignment not found' }, 404);
     }
@@ -156,10 +142,10 @@ export class AssignmentOpsController {
 
   @Get(':id/participants')
   participants(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string) {
-    requireTrip(this.assignments, tripId, user);
     return { participants: this.assignments.getParticipants(id) };
   }
 
+  @RequirePermission('day_edit')
   @Put(':id/time')
   time(
     @CurrentUser() user: User,
@@ -168,8 +154,6 @@ export class AssignmentOpsController {
     @Body() body: AssignmentTimeDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = requireTrip(this.assignments, tripId, user);
-    requireEdit(this.assignments, trip, user);
     if (!this.assignments.getAssignmentForTrip(id, tripId)) {
       throw new HttpException({ error: 'Assignment not found' }, 404);
     }
@@ -179,6 +163,7 @@ export class AssignmentOpsController {
     return { assignment };
   }
 
+  @RequirePermission('day_edit')
   @Put(':id/transport')
   transport(
     @CurrentUser() user: User,
@@ -187,8 +172,6 @@ export class AssignmentOpsController {
     @Body() body: AssignmentTransportDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = requireTrip(this.assignments, tripId, user);
-    requireEdit(this.assignments, trip, user);
     if (!this.assignments.getAssignmentForTrip(id, tripId)) {
       throw new HttpException({ error: 'Assignment not found' }, 404);
     }
@@ -197,6 +180,7 @@ export class AssignmentOpsController {
     return { assignment };
   }
 
+  @RequirePermission('day_edit')
   @Put(':id/participants')
   setParticipants(
     @CurrentUser() user: User,
@@ -205,8 +189,6 @@ export class AssignmentOpsController {
     @Body() body: AssignmentParticipantsDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const trip = requireTrip(this.assignments, tripId, user);
-    requireEdit(this.assignments, trip, user);
     const participants = this.assignments.setParticipants(id, body.user_ids);
     this.assignments.broadcast(tripId, 'assignment:participants', { assignmentId: Number(id), participants }, socketId);
     return { participants };

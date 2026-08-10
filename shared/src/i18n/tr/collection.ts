@@ -111,6 +111,7 @@ const collection: TranslationStrings = {
   'collections.noListsYet': 'Yer kaydetmek için önce bir liste oluştur.',
   'collections.removedFromAll': 'Koleksiyondan kaldırıldı',
   'collections.picker.title': 'Kaydedilen yerler',
+  'collections.picker.showMore': '{count} tane daha göster',
   'collections.picker.search': 'Kaydedilen yerlerinde ara',
   'collections.picker.empty': 'Eklenecek kayıtlı yer yok',
   'collections.picker.hint': 'Koleksiyonlarından bir yer seç',

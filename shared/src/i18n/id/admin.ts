@@ -166,6 +166,9 @@ const admin: TranslationStrings = {
   'admin.placesDetails.title': 'Detail Tempat',
   'admin.placesDetails.subtitle':
     'Mengambil informasi detail tempat (jam, penilaian, situs web) dari Google Places API. Nonaktifkan untuk menghemat kuota API.',
+  'admin.placesEnrich.title': 'Pengayaan tempat',
+  'admin.placesEnrich.subtitle':
+    'Menampilkan gambar dan deskripsi saat menambahkan tempat. Wikipedia dan OpenStreetMap selalu digunakan; Google ditambahkan bila Foto Tempat atau Detail Tempat aktif.',
   'admin.bagTracking.title': 'Pelacak Tas',
   'admin.bagTracking.subtitle': 'Aktifkan berat dan penugasan tas untuk item packing',
   'admin.collab.chat.title': 'Chat',
@@ -259,6 +262,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Update → v{version}',
   'admin.plugins.enabledToggle': 'Aktifkan plugin',
   'plugins.notFound': 'Plugin tidak ditemukan',
+  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
   'admin.plugins.title': 'Plugins',
   'admin.plugins.subtitle': 'Pasang dan kelola plugin pihak ketiga di instans kamu.',
   'admin.plugins.disabledTitle': 'Plugin dinonaktifkan',
