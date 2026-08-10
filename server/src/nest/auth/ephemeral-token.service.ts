@@ -12,13 +12,16 @@ import {
  * The injectable face of the ephemeral-token store, and the owner of its
  * cleanup timer.
  *
- * The store itself stays module state next door, and that is load-bearing
- * rather than a leftover: `src/websocket.ts` consumes ws tokens from OUTSIDE
- * the container, on the upgrade handshake, before any injector is in reach.
- * Per-instance state would hand it an empty Map and every connection would
- * close with 4001 "Invalid or expired token" — a failure that no test sees,
- * because the ws suites drive the transport directly. Same reasoning as the
- * geo throttle cursor and the permissions cache.
+ * The store itself stays module state next door, and that is still
+ * load-bearing — though no longer for the reason this comment used to give.
+ * The ws handshake did consume tokens from outside the container until the
+ * transport became a gateway; it injects this service now. What keeps the store
+ * module-scoped today is the four bridges that build
+ * `new EphemeralTokenService()` by hand (auth, admin, trips, and TokenService's
+ * own construction inside auth.bridge). Per-instance state would give each of
+ * them an empty Map, so a download token minted through a bridge would never
+ * validate. Same reasoning as the geo throttle cursor and the permissions
+ * cache.
  *
  * The MAX_STORE_SIZE back-pressure is the other reason: `createEphemeralToken`
  * returns null at 10,000 live tokens and TokenService turns that into a 503.
