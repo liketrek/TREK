@@ -191,7 +191,7 @@ const PERM_KEYS = [
   'notify:send', 'ai:invoke', 'oauth:client',
   'events:subscribe', 'jobs:run',
   'ws:broadcast:trip', 'ws:broadcast:user',
-  'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'hook:table-contributor', 'hook:map-marker-provider',
+  'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'hook:table-contributor', 'hook:map-marker-provider', 'hook:poi-category-provider',
   'hook:map-layer-provider', 'hook:route-provider', 'hook:day-schedule-provider', 'hook:day-tint-provider', 'geolocation:read',
   'hook:pdf-section-provider', 'hook:atlas-layer-provider', 'hook:journal-entry-provider', 'hook:trip-card-provider', 'hook:notification-channel', 'hook:user-data', 'http:outbound',
 ]
@@ -245,6 +245,10 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string }; tripPag
   if (perms.includes('hook:place-detail-provider')) out.push({ icon: MapPin, label: t('admin.plugins.cap.placeDetails') })
   if (perms.includes('hook:trip-warning-provider')) out.push({ icon: AlertTriangle, label: t('admin.plugins.cap.warnings') })
   if (perms.includes('hook:map-layer-provider')) out.push({ icon: Route, label: t('admin.plugins.cap.mapLayers') })
+  if (perms.includes('hook:poi-category-provider')) {
+    const poiLabel = t('admin.plugins.cap.poiCategories' as never)
+    out.push({ icon: MapPin, label: poiLabel === 'admin.plugins.cap.poiCategories' ? 'Provides map POIs' : poiLabel })
+  }
   if (perms.includes('hook:route-provider')) out.push({ icon: Navigation, label: t('admin.plugins.cap.routing') })
   if (perms.includes('hook:day-schedule-provider')) out.push({ icon: Clock, label: t('admin.plugins.cap.daySchedule') })
   if (perms.includes('hook:day-tint-provider')) out.push({ icon: Palette, label: t('admin.plugins.cap.dayTint') })
@@ -1377,8 +1381,11 @@ function formatCompactCount(n: number): string {
 
 // A permission rendered human-readable when known, else as its raw code.
 function PermLabel({ perm, t }: { perm: string; t: T }) {
-  return PERM_KEYS.includes(perm)
-    ? <span>{t(`admin.plugins.perm.${perm}` as never)}</span>
+  if (!PERM_KEYS.includes(perm)) return <code className="rounded bg-[color:var(--m-ic)] px-1.5 py-0.5 font-mono text-[11px]">{perm}</code>
+  const key = `admin.plugins.perm.${perm}`
+  const label = t(key as never)
+  return label !== key
+    ? <span>{label}</span>
     : <code className="rounded bg-[color:var(--m-ic)] px-1.5 py-0.5 font-mono text-[11px]">{perm}</code>
 }
 

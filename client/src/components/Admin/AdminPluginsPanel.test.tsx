@@ -1095,7 +1095,7 @@ describe('AdminPluginsPanel — capability and dependency chips', () => {
         'db:read:trips', 'db:read:users', 'db:write:costs', 'db:read:packing', 'db:read:files',
         'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips', 'db:meta',
         'ws:broadcast:trip', 'hook:photo-provider', 'hook:calendar-source', 'hook:place-detail-provider',
-        'hook:trip-warning-provider', 'hook:map-layer-provider', 'hook:route-provider',
+        'hook:trip-warning-provider', 'hook:map-layer-provider', 'hook:poi-category-provider', 'hook:route-provider',
         'hook:day-schedule-provider', 'geolocation:read', 'events:subscribe', 'http:outbound:api.acme.io',
       ]),
       capabilities: JSON.stringify({ widget: { slot: 'hero' }, tripPage: { replaces: ['places'] } }),
@@ -1107,7 +1107,7 @@ describe('AdminPluginsPanel — capability and dependency chips', () => {
       'Reads your trips', 'Reads basic profiles', 'Adds costs', 'Reads packing lists', 'Reads trip files',
       'Edits places', 'Edits days', 'Edits itinerary', 'Edits trips', 'Adds metadata',
       'Boarding-pass widget', 'Replaces planner tabs', 'Real-time updates', 'Provides photos',
-      'Provides calendar events', 'Enriches places', 'Flags issues', 'Draws on the map', 'Offers routing',
+      'Provides calendar events', 'Enriches places', 'Flags issues', 'Draws on the map', 'Provides map POIs', 'Offers routing',
       'Adds plan times', 'Reads your position', 'Reacts to activity', 'api.acme.io',
     ]) {
       expect(screen.getByText(label)).toBeInTheDocument()

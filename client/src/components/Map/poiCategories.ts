@@ -1,4 +1,5 @@
 import { Utensils, Coffee, Wine, BedDouble, Camera, Landmark, Trees, Ticket, type LucideIcon } from 'lucide-react'
+import { getCategoryIcon } from '../shared/categoryIcons'
 
 // The POI categories shown in the map "explore" pill. The `key` is the contract
 // with the server (CATEGORY_OSM_FILTERS in mapsService.ts) — the OSM tag mapping
@@ -6,8 +7,10 @@ import { Utensils, Coffee, Wine, BedDouble, Camera, Landmark, Trees, Ticket, typ
 // fill AND the marker colour, so the pill and the map agree visually.
 export interface PoiCategory {
   key: string
-  labelKey: string
-  Icon: LucideIcon
+  labelKey?: string
+  label?: string
+  Icon?: LucideIcon
+  iconName?: string | null
   color: string
 }
 
@@ -39,5 +42,32 @@ export interface Poi {
   phone: string | null
   opening_hours: string | null
   cuisine: string | null
-  source: 'openstreetmap'
+  source: 'openstreetmap' | 'plugin'
+  description?: string | null
+  category_label?: string | null
+  category_icon?: string | null
+  category_color?: string | null
+}
+
+export function resolvePoiCategory(poi: Pick<Poi, 'category' | 'category_label' | 'category_icon' | 'category_color'> | string): Required<Pick<PoiCategory, 'key' | 'color'>> & Pick<PoiCategory, 'label' | 'labelKey' | 'iconName' | 'Icon'> {
+  if (typeof poi === 'string') {
+    const cat = POI_CATEGORY_BY_KEY[poi]
+    return {
+      key: poi,
+      label: cat?.label,
+      labelKey: cat?.labelKey,
+      iconName: cat?.iconName ?? null,
+      Icon: cat?.Icon,
+      color: cat?.color ?? '#6b7280',
+    }
+  }
+  const builtIn = POI_CATEGORY_BY_KEY[poi.category]
+  return {
+    key: poi.category,
+    label: poi.category_label ?? builtIn?.label,
+    labelKey: builtIn?.labelKey,
+    iconName: poi.category_icon ?? builtIn?.iconName ?? null,
+    Icon: poi.category_icon ? getCategoryIcon(poi.category_icon) : builtIn?.Icon,
+    color: poi.category_color ?? builtIn?.color ?? '#6b7280',
+  }
 }

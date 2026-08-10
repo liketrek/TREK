@@ -1,9 +1,11 @@
 import { RotateCw, AlertTriangle } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { Tooltip } from '../shared/Tooltip'
-import { POI_CATEGORIES } from './poiCategories'
+import { POI_CATEGORIES, type PoiCategory } from './poiCategories'
+import { getCategoryIcon } from '../shared/categoryIcons'
 
 interface Props {
+  categories?: PoiCategory[]
   active: Set<string>
   onToggle: (key: string) => void
   loadingKeys?: Set<string>
@@ -17,7 +19,7 @@ interface Props {
 // Frosted, icon-only segmented control that floats over the map. Active segments
 // fill with the category colour (matching their markers); the label shows in a
 // custom tooltip on hover so the pill stays compact and never needs to scroll.
-export default function PoiCategoryPill({ active, onToggle, loadingKeys, errorKeys, moved, onSearchArea }: Props) {
+export default function PoiCategoryPill({ categories = POI_CATEGORIES, active, onToggle, loadingKeys, errorKeys, moved, onSearchArea }: Props) {
   const { t } = useTranslation()
   const anyError = !!errorKeys && Array.from(active).some(k => errorKeys.has(k))
 
@@ -31,18 +33,20 @@ export default function PoiCategoryPill({ active, onToggle, loadingKeys, errorKe
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 4, borderRadius: 999, pointerEvents: 'auto', ...frosted }}>
-        {POI_CATEGORIES.map(cat => {
+        {categories.map(cat => {
           const on = active.has(cat.key)
+          const label = cat.label ?? (cat.labelKey ? t(cat.labelKey) : cat.key)
+          const Icon = cat.Icon ?? getCategoryIcon(cat.iconName)
           // Only an active category can be loading — a deselected one whose fetch
           // is still winding down must not keep spinning.
           const loading = on && !!loadingKeys?.has(cat.key)
           return (
-            <Tooltip key={cat.key} label={t(cat.labelKey)} placement="bottom">
+            <Tooltip key={cat.key} label={label} placement="bottom">
               <button
                 type="button"
                 onClick={() => onToggle(cat.key)}
                 aria-pressed={on}
-                aria-label={t(cat.labelKey)}
+                aria-label={label}
                 className={on ? '' : 'text-content-muted'}
                 style={{
                   position: 'relative',
@@ -65,7 +69,7 @@ export default function PoiCategoryPill({ active, onToggle, loadingKeys, errorKe
                     }}
                   />
                 ) : (
-                  <cat.Icon size={16} strokeWidth={2} />
+                  <Icon size={16} strokeWidth={2} />
                 )}
                 {on && !loading && errorKeys?.has(cat.key) && (
                   <span style={{

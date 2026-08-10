@@ -16,7 +16,7 @@ import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import { safeHexColor } from '../../utils/safeColor'
 import { escapeHtml } from '@trek/shared'
 import type { Reservation, RouteVia } from '../../types'
-import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
+import { resolvePoiCategory, type Poi } from './poiCategories'
 import { resolveTrackColor, hasManualTrackColor } from './trackColors'
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, SATELLITE_TILE_URL, SATELLITE_TILE_ATTRIBUTION, SATELLITE_TILE_MAXZOOM } from '../../constants/mapDefaults'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -156,12 +156,13 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
 // Small coloured pin for an OSM "explore" POI — distinct from the photo-circle
 // markers of planned places; the colour matches its pill category.
 const poiIconCache = new Map<string, L.DivIcon>()
-function createPoiIcon(category: string) {
-  const cached = poiIconCache.get(category)
+function createPoiIcon(poi: Poi) {
+  const meta = resolvePoiCategory(poi)
+  const cacheKey = `${meta.key}:${poi.category_icon || ''}:${poi.category_color || ''}`
+  const cached = poiIconCache.get(cacheKey)
   if (cached) return cached
-  const cat = POI_CATEGORY_BY_KEY[category]
-  const color = cat?.color || '#6b7280'
-  const svg = cat ? renderIconMarkup(createElement(cat.Icon, { size: 13, color: 'white', strokeWidth: 2.5 })) : ''
+  const color = meta.color
+  const svg = meta.Icon ? renderIconMarkup(createElement(meta.Icon, { size: 13, color: 'white', strokeWidth: 2.5 })) : ''
   const icon = L.divIcon({
     className: '',
     html: `<div style="width:26px;height:26px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;">${svg}</div>`,
@@ -169,7 +170,7 @@ function createPoiIcon(category: string) {
     iconAnchor: [13, 13],
     tooltipAnchor: [0, -14],
   })
-  poiIconCache.set(category, icon)
+  poiIconCache.set(cacheKey, icon)
   return icon
 }
 
@@ -515,7 +516,7 @@ export const MapView = memo(function MapView({
     <Marker
       key={`poi-${poi.osm_id}`}
       position={[poi.lat, poi.lng]}
-      icon={createPoiIcon(poi.category)}
+      icon={createPoiIcon(poi)}
       zIndexOffset={500}
       eventHandlers={{ click: () => onPoiClick?.(poi) }}
     >

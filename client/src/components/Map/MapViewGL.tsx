@@ -17,7 +17,7 @@ import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlM
 import LocationButton from './LocationButton'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import type { Place, Reservation, RouteVia } from '../../types'
-import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
+import { resolvePoiCategory, type Poi } from './poiCategories'
 import { resolveTrackColor, hasManualTrackColor } from './trackColors'
 import { buildPoiPopupHtml } from './placePopup'
 import { pluginsApi, type PluginMapMarker, type PluginMapLayer } from '../../api/client'
@@ -325,10 +325,10 @@ function buildPluginMarkerPopup(mk: PluginMapMarker): HTMLDivElement {
 }
 
 // Small coloured pin for an OSM "explore" POI (matches the pill category colour).
-function createPoiMarkerElement(category: string): HTMLDivElement {
-  const cat = POI_CATEGORY_BY_KEY[category]
-  const color = cat?.color || '#6b7280'
-  const svg = cat ? renderIconMarkup(createElement(cat.Icon, { size: 13, color: 'white', strokeWidth: 2.5 })) : ''
+function createPoiMarkerElement(poi: Poi): HTMLDivElement {
+  const cat = resolvePoiCategory(poi)
+  const color = cat.color
+  const svg = cat.Icon ? renderIconMarkup(createElement(cat.Icon, { size: 13, color: 'white', strokeWidth: 2.5 })) : ''
   const el = document.createElement('div')
   el.style.cssText = 'width:26px;height:26px;cursor:pointer;'
   el.innerHTML = `<div style="width:26px;height:26px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;box-sizing:border-box;">${svg}</div>`
@@ -1126,7 +1126,7 @@ export function MapViewGL({
     poiMarkersRef.current.forEach(m => m.remove())
     poiMarkersRef.current = []
     for (const poi of (pois as Poi[])) {
-      const el = createPoiMarkerElement(poi.category)
+      const el = createPoiMarkerElement(poi)
       el.addEventListener('mouseenter', () => {
         popupRef.current?.setLngLat([poi.lng, poi.lat]).setHTML(buildPoiPopupHtml(poi)).addTo(map)
       })

@@ -74,6 +74,7 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
         <div className="pointer-events-none absolute left-4 right-4 z-[25] flex flex-col items-center gap-2 top-[calc(var(--m-safe-top,12px)+96px)]">
           {poiPillEnabled && (
             <PoiCategoryPill
+              categories={poi.categories}
               active={poi.active}
               onToggle={poi.toggle}
               loadingKeys={poi.loadingKeys}

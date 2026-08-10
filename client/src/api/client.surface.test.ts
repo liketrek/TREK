@@ -325,6 +325,7 @@ describe('client > endpoint wiring', () => {
       { n: 'viewContributions', r: () => pluginsApi.viewContributions('places', 1), e: 'GET /api/view-contributions/places/1' },
       { n: 'mapMarkers', r: () => pluginsApi.mapMarkers(1), e: 'GET /api/map-markers/1' },
       { n: 'mapLayers', r: () => pluginsApi.mapLayers(1), e: 'GET /api/map-layers/1' },
+      { n: 'poiCategories', r: () => pluginsApi.poiCategories({ bbox: { south: 1, west: 2, north: 3, east: 4 }, limit: 9 }), e: 'GET /api/plugin-poi-categories' },
       { n: 'pluginRoute', r: () => pluginsApi.pluginRoute('koffi', 'ev', { tripId: 1, waypoints: [{ lat: 1, lng: 2 }] }), e: 'POST /api/plugin-routes/koffi/ev' },
       { n: 'daySchedule', r: () => pluginsApi.daySchedule(1), e: 'GET /api/day-schedule/1' },
       { n: 'pdfSections', r: () => pluginsApi.pdfSections(1), e: 'GET /api/pdf-sections/1' },

@@ -747,6 +747,32 @@ export interface PluginAction {
   key: string; label: string; hint?: string; danger: boolean
 }
 
+export interface PluginPoiCategory {
+  id: string
+  name: string
+  icon?: string
+  color?: string
+}
+
+export interface PluginPoiResult {
+  id: string
+  categoryId: string
+  name: string
+  lat: number
+  lng: number
+  address?: string
+  description?: string
+  url?: string
+  icon?: string
+}
+
+export interface PluginPoiProviderResult {
+  pluginId: string
+  categories: PluginPoiCategory[]
+  results: PluginPoiResult[]
+  hasMore: boolean
+}
+
 export const pluginsApi = {
   // Active plugins the client renders (page nav entries, dashboard widgets).
   active: () => apiClient.get('/plugins').then(r => r.data),
@@ -769,6 +795,20 @@ export const pluginsApi = {
   // the mapLayerProvider hook. Host-normalized + vertex-budgeted; fail-safe.
   mapLayers: (tripId: number | string) =>
     apiClient.get(`/map-layers/${tripId}`).then(r => r.data as { layers: PluginMapLayer[] }),
+  // Named POI categories plugins expose to the planner map. The server fans out to
+  // every active provider, normalizes the categories/results, and skips failures.
+  poiCategories: (
+    opts: { query?: string; bbox?: { south: number; west: number; north: number; east: number }; limit?: number } = {},
+    req: { signal?: AbortSignal } = {},
+  ) => apiClient.get('/plugin-poi-categories', {
+    params: {
+      ...(opts.query ? { query: opts.query } : {}),
+      ...(opts.bbox ? opts.bbox : {}),
+      ...(opts.limit ? { limit: opts.limit } : {}),
+    },
+    signal: req.signal,
+    timeout: 20000,
+  }).then(r => r.data as { providers: PluginPoiProviderResult[] }),
   // Route the given waypoints through ONE routeProvider plugin profile (targeted,
   // not a fan-out — the user picked this profile in the route toggle). Slow by
   // design (external solvers): the server allows the plugin 20 s.

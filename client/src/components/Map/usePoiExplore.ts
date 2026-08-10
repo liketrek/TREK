@@ -1,9 +1,18 @@
-import { useState, useRef, useCallback, useMemo } from 'react'
-import { mapsApi } from '../../api/client'
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react'
+import { mapsApi, pluginsApi, type PluginPoiCategory, type PluginPoiProviderResult } from '../../api/client'
 import { useTranslation } from '../../i18n'
-import type { Poi } from './poiCategories'
+import { POI_CATEGORIES, type Poi, type PoiCategory } from './poiCategories'
 
 export interface Bbox { south: number; west: number; north: number; east: number }
+
+interface PluginPoiCategoryMeta {
+  key: string
+  pluginId: string
+  categoryId: string
+  label: string
+  iconName: string | null
+  color: string
+}
 
 // A request we cancelled on purpose (newer search superseded it) — not a failure.
 function isAbortError(err: unknown): boolean {
@@ -19,6 +28,7 @@ function isAbortError(err: unknown): boolean {
  */
 export function usePoiExplore() {
   const { locale } = useTranslation()
+  const [categories, setCategories] = useState<PoiCategory[]>(POI_CATEGORIES)
   const [active, setActive] = useState<Set<string>>(() => new Set())
   const [byCat, setByCat] = useState<Record<string, Poi[]>>({})
   const [loadingKeys, setLoadingKeys] = useState<Set<string>>(() => new Set())
@@ -35,6 +45,44 @@ export function usePoiExplore() {
   // One in-flight AbortController per category, so re-toggling / re-searching
   // cancels the previous (possibly slow) Overpass request instead of racing it.
   const abortRef = useRef<Record<string, AbortController>>({})
+  const pluginCategoriesRef = useRef<Record<string, PluginPoiCategoryMeta>>({})
+
+  const loadPluginCategories = useCallback(async () => {
+    try {
+      const res = await pluginsApi.poiCategories({ limit: 1 })
+      const seen = new Set<string>()
+      const pluginCats: PoiCategory[] = []
+      const meta: Record<string, PluginPoiCategoryMeta> = {}
+      for (const provider of res.providers) {
+        for (const cat of provider.categories) {
+          const key = `${provider.pluginId}:${cat.id}`
+          if (seen.has(key)) continue
+          seen.add(key)
+          meta[key] = {
+            key,
+            pluginId: provider.pluginId,
+            categoryId: cat.id,
+            label: cat.name,
+            iconName: cat.icon ?? 'MapPin',
+            color: cat.color ?? '#6b7280',
+          }
+          pluginCats.push({
+            key,
+            label: cat.name,
+            iconName: cat.icon ?? 'MapPin',
+            color: cat.color ?? '#6b7280',
+          })
+        }
+      }
+      pluginCategoriesRef.current = meta
+      setCategories([...POI_CATEGORIES, ...pluginCats])
+    } catch {
+      pluginCategoriesRef.current = {}
+      setCategories(POI_CATEGORIES)
+    }
+  }, [])
+
+  useEffect(() => { void loadPluginCategories() }, [loadPluginCategories])
 
   const setLoading = useCallback((key: string, on: boolean) => setLoadingKeys(prev => {
     const next = new Set(prev)
@@ -49,6 +97,33 @@ export function usePoiExplore() {
     return next
   }), [])
 
+  const mapPluginPoi = useCallback((provider: PluginPoiProviderResult | undefined, meta: PluginPoiCategoryMeta): Poi[] => {
+    if (!provider) return []
+    return provider.results
+      .filter(r => r.categoryId === meta.categoryId)
+      .map((r) => {
+        const cat: PluginPoiCategory | undefined = provider.categories.find(c => c.id === meta.categoryId)
+        return {
+          osm_id: `plugin:${meta.pluginId}:${r.id}`,
+          name: r.name,
+          lat: r.lat,
+          lng: r.lng,
+          category: meta.key,
+          poi_type: r.icon || meta.categoryId,
+          address: r.address ?? null,
+          website: r.url ?? null,
+          phone: null,
+          opening_hours: null,
+          cuisine: null,
+          source: 'plugin',
+          description: r.description ?? null,
+          category_label: meta.label,
+          category_icon: r.icon ?? cat?.icon ?? meta.iconName,
+          category_color: cat?.color ?? meta.color,
+        } satisfies Poi
+      })
+  }, [])
+
   const fetchCat = useCallback(async (key: string, bbox: Bbox) => {
     abortRef.current[key]?.abort()
     const ctrl = new AbortController()
@@ -56,10 +131,16 @@ export function usePoiExplore() {
     setLoading(key, true)
     setError(key, false)
     try {
-      const res = await mapsApi.pois(key, bbox, locale, ctrl.signal)
+      const pluginMeta = pluginCategoriesRef.current[key]
+      const res = pluginMeta
+        ? await pluginsApi.poiCategories({ bbox, limit: 100 }, { signal: ctrl.signal })
+        : await mapsApi.pois(key, bbox, locale, ctrl.signal)
       // Drop the result if the user toggled this category off while the (slow)
       // Overpass request was in flight — otherwise stale results re-appear.
-      setByCat(prev => (activeRef.current.has(key) ? { ...prev, [key]: res.pois } : prev))
+      const pois = pluginMeta
+        ? mapPluginPoi(res.providers.find(p => p.pluginId === pluginMeta.pluginId), pluginMeta)
+        : res.pois
+      setByCat(prev => (activeRef.current.has(key) ? { ...prev, [key]: pois } : prev))
     } catch (err) {
       // A superseded request was aborted on purpose — leave its state untouched
       // so the newer request owns the spinner and results.
@@ -81,7 +162,7 @@ export function usePoiExplore() {
         setLoading(key, false)
       }
     }
-  }, [setLoading, setError, locale])
+  }, [setLoading, setError, locale, mapPluginPoi])
 
   const onViewportChange = useCallback((bbox: Bbox) => {
     bboxRef.current = bbox
@@ -118,5 +199,5 @@ export function usePoiExplore() {
 
   const pois = useMemo(() => Object.values(byCat).flat(), [byCat])
 
-  return { active, pois, loadingKeys, errorKeys, moved, toggle, searchArea, onViewportChange }
+  return { categories, active, pois, loadingKeys, errorKeys, moved, toggle, searchArea, onViewportChange }
 }

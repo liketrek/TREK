@@ -3,7 +3,7 @@ import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { TranslationProvider } from '../../i18n'
-import { mapsApi } from '../../api/client'
+import { mapsApi, pluginsApi } from '../../api/client'
 import { usePoiExplore, type Bbox } from './usePoiExplore'
 import type { Poi } from './poiCategories'
 
@@ -52,9 +52,11 @@ function setup() {
 
 const spyOnPois = () => vi.spyOn(mapsApi, 'pois')
 let pois: ReturnType<typeof spyOnPois>
+let pluginPois: ReturnType<typeof vi.spyOn<typeof pluginsApi, 'poiCategories'>>
 
 beforeEach(() => {
   pois = spyOnPois().mockResolvedValue(response([poi()]))
+  pluginPois = vi.spyOn(pluginsApi, 'poiCategories').mockResolvedValue({ providers: [] })
 })
 
 afterEach(() => {
@@ -269,5 +271,57 @@ describe('usePoiExplore', () => {
     await act(async () => { d.reject(Object.assign(new Error('canceled'), { name: 'CanceledError' })) })
 
     await waitFor(() => expect(result.current.loadingKeys.size).toBe(0))
+  })
+
+  it('FE-COMP-POIEXPLORE-019: plugin categories are appended to the built-in pill options', async () => {
+    pluginPois.mockResolvedValueOnce({
+      providers: [{
+        pluginId: 'poi-demo',
+        categories: [{ id: 'demo-point', name: 'Demo Points', icon: 'MapPin', color: '#6366f1' }],
+        results: [],
+        hasMore: false,
+      }],
+    })
+    const { result } = setup()
+
+    await waitFor(() => expect(result.current.categories.some(c => c.key === 'poi-demo:demo-point')).toBe(true))
+    const cat = result.current.categories.find(c => c.key === 'poi-demo:demo-point')
+    expect(cat).toMatchObject({ label: 'Demo Points', iconName: 'MapPin', color: '#6366f1' })
+  })
+
+  it('FE-COMP-POIEXPLORE-020: selecting a plugin category fetches plugin POIs for the viewport', async () => {
+    pluginPois
+      .mockResolvedValueOnce({
+        providers: [{
+          pluginId: 'poi-demo',
+          categories: [{ id: 'demo-point', name: 'Demo Points', icon: 'MapPin', color: '#6366f1' }],
+          results: [],
+          hasMore: false,
+        }],
+      })
+      .mockResolvedValueOnce({
+        providers: [{
+          pluginId: 'poi-demo',
+          categories: [{ id: 'demo-point', name: 'Demo Points', icon: 'MapPin', color: '#6366f1' }],
+          results: [{ id: 'centre', categoryId: 'demo-point', name: 'Centre', lat: 48.21, lng: 16.36, description: 'Generated', url: 'https://example.test' }],
+          hasMore: false,
+        }],
+      })
+
+    const { result } = setup()
+    await waitFor(() => expect(result.current.categories.some(c => c.key === 'poi-demo:demo-point')).toBe(true))
+    act(() => { result.current.onViewportChange(BBOX) })
+    act(() => { result.current.toggle('poi-demo:demo-point') })
+
+    await waitFor(() => expect(result.current.pois).toHaveLength(1))
+    expect(result.current.pois[0]).toMatchObject({
+      osm_id: 'plugin:poi-demo:centre',
+      category: 'poi-demo:demo-point',
+      category_label: 'Demo Points',
+      category_icon: 'MapPin',
+      category_color: '#6366f1',
+      source: 'plugin',
+    })
+    expect(pluginPois).toHaveBeenLastCalledWith({ bbox: BBOX, limit: 100 }, { signal: expect.any(AbortSignal) })
   })
 })

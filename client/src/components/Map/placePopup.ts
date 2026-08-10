@@ -1,7 +1,7 @@
 import { createElement } from 'react'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import { CATEGORY_ICON_MAP } from '../shared/categoryIcons'
-import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
+import { resolvePoiCategory, type Poi } from './poiCategories'
 import type { Place } from '../../types'
 
 // HTML builders for the Mapbox GL hover popup. The Leaflet map already shows a
@@ -59,9 +59,9 @@ export function buildPlacePopupHtml(place: PlaceWithCategory, photoUrl: string |
 
 /** Hover-popup card for an OSM "explore" POI: category-coloured icon, name, address. */
 export function buildPoiPopupHtml(poi: Poi): string {
-  const cat = POI_CATEGORY_BY_KEY[poi.category]
-  const color = cat?.color || '#6b7280'
-  const icon = cat ? renderIconMarkup(createElement(cat.Icon, { size: 12, color, strokeWidth: 2 })) : ''
+  const cat = resolvePoiCategory(poi)
+  const color = cat.color
+  const icon = cat.Icon ? renderIconMarkup(createElement(cat.Icon, { size: 12, color, strokeWidth: 2 })) : ''
   const head = `<div style="display:flex;align-items:center;gap:5px;"><span style="flex-shrink:0;display:inline-flex;line-height:0;">${icon}</span><span style="${NAME_STYLE}">${esc(poi.name)}</span></div>`
   const address = poi.address ? `<div style="${ADDR_STYLE}">${esc(poi.address)}</div>` : ''
   return `${CARD_OPEN}${head}${address}</div>`

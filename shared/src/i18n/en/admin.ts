@@ -356,6 +356,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:trip-warning-provider': 'Raise validation warnings on a trip (shown in the planner)',
   'admin.plugins.perm.hook:table-contributor': 'Add columns and actions to trip views (reservations, places, days)',
   'admin.plugins.perm.hook:map-marker-provider': 'Add markers to the trip map (e.g. show bookings or POIs)',
+  'admin.plugins.perm.hook:poi-category-provider': 'Provide named POI categories and search results for the map',
   'admin.plugins.perm.hook:map-layer-provider': 'Draw routes, corridors and zones on the trip map',
   'admin.plugins.perm.hook:route-provider':
     'Offer routing profiles the planner can route days with (e.g. EV routing with charging stops)',
@@ -483,6 +484,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.placeDetails': 'Enriches places',
   'admin.plugins.cap.warnings': 'Flags issues',
   'admin.plugins.cap.mapLayers': 'Draws on the map',
+  'admin.plugins.cap.poiCategories': 'Provides map POIs',
   'admin.plugins.cap.routing': 'Offers routing',
   'admin.plugins.cap.daySchedule': 'Adds plan times',
   'admin.plugins.cap.dayTint': 'Tints days',
