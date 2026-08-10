@@ -18,6 +18,7 @@ const unsplashStub = {
 
 import { TripsController } from '../../../src/nest/trips/trips.controller';
 import type { TripsService } from '../../../src/nest/trips/trips.service';
+import type { CalendarService } from '../../../src/nest/calendar/calendar.service';
 import { NotFoundError, ValidationError } from '../../../src/nest/trips/trips.service';
 import type { User } from '../../../src/types';
 import { activeTripResponseSchema, tripCreateRequestSchema, tripTransferOwnershipRequestSchema } from '@trek/shared';
@@ -29,7 +30,10 @@ const req = { headers: {} } as Request;
 // wrapper keeps the historical construction sites positional.
 const writeAudit = vi.fn();
 const audit = { writeAudit } as unknown as AuditService;
-const tc = (s: TripsService) => new TripsController(s, audit, new RuntimeEnvService(), unsplashStub);
+// calendar is optional so the call sites that never reach the ICS route stay as
+// they were; the two that do pass a stub.
+const tc = (s: TripsService, calendar?: Partial<CalendarService>) =>
+  new TripsController(s, audit, new RuntimeEnvService(), unsplashStub, (calendar ?? {}) as CalendarService);
 
 function svc(o: Partial<TripsService> = {}): TripsService {
   return {
@@ -403,18 +407,18 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
     it('404 without access, else sends the calendar with headers', () => {
       expect(thrown(() => tc(svc({ canAccessTrip: vi.fn().mockReturnValue(undefined) })).exportIcs(user, '9', makeRes()))).toEqual({ status: 404, body: { error: 'Trip not found' } });
       const res = { setHeader: vi.fn(), send: vi.fn() };
-      const s = svc({ exportICS: vi.fn().mockReturnValue({ ics: 'BEGIN:VCALENDAR', filename: 'trip.ics' }) } as Partial<TripsService>);
-      tc(s).exportIcs(user, '9', res as never);
+      const cal = { exportICS: vi.fn().mockReturnValue({ ics: 'BEGIN:VCALENDAR', filename: 'trip.ics' }) };
+      tc(svc(), cal).exportIcs(user, '9', res as never);
       expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/calendar; charset=utf-8');
       expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="trip.ics"');
       expect(res.send).toHaveBeenCalledWith('BEGIN:VCALENDAR');
     });
 
     it('maps a NotFoundError from the export to 404 and re-throws others', () => {
-      const nf = svc({ exportICS: vi.fn().mockImplementation(() => { throw new NotFoundError('gone'); }) } as Partial<TripsService>);
-      expect(thrown(() => tc(nf).exportIcs(user, '9', makeRes()))).toEqual({ status: 404, body: { error: 'gone' } });
-      const other = svc({ exportICS: vi.fn().mockImplementation(() => { throw new Error('boom'); }) } as Partial<TripsService>);
-      expect(() => tc(other).exportIcs(user, '9', makeRes())).toThrow('boom');
+      const nf = { exportICS: vi.fn().mockImplementation(() => { throw new NotFoundError('gone'); }) };
+      expect(thrown(() => tc(svc(), nf).exportIcs(user, '9', makeRes()))).toEqual({ status: 404, body: { error: 'gone' } });
+      const other = { exportICS: vi.fn().mockImplementation(() => { throw new Error('boom'); }) };
+      expect(() => tc(svc(), other).exportIcs(user, '9', makeRes())).toThrow('boom');
     });
   });
 

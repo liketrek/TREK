@@ -56,6 +56,8 @@ import { JourneyDomainService } from '../../src/nest/journey/journey-domain.serv
 import { JourneyShareService } from '../../src/nest/journey/journey-share.service';
 import { TrekPhotosRepository } from '../../src/nest/photos/trek-photos.repository';
 import { UnsplashService } from '../../src/nest/unsplash/unsplash.service';
+import { UserCleanupService } from '../../src/nest/auth/user-cleanup.service';
+import { CalendarService } from '../../src/nest/calendar/calendar.service';
 import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
 import { RuntimeEnvService } from '../../src/nest/app-config/runtime-env.service';
 import { makeNotificationsService, makeNotificationPreferencesService } from './notifications';
@@ -105,7 +107,13 @@ export function createMcpTestRegistry(): McpRegistry {
     new VacayService(dbService, realtimeService),
     realtimeService,
     placesService,
+    // These two were missing: the call passed 12 arguments to a 14-parameter
+    // constructor, so unsplash and userCleanup were undefined here. tsconfig
+    // has include:['src'], so tsc never saw it.
+    new UnsplashService(dbService, new RuntimeEnvService()),
+    new UserCleanupService(dbService),
   );
+  const calendarService = new CalendarService(dbService, reservationsService);
   return createTestRegistry(
     [
       new TagsMcp(new TagsService(dbService), authService),
@@ -123,7 +131,7 @@ export function createMcpTestRegistry(): McpRegistry {
       new AssignmentsMcp(new AssignmentsService(dbService, permissionsService, realtimeService, queryHelpersService, journeyDomain), daysService, authService),
       new CollabMcp(collabService, authService),
       new VacayMcp(new VacayService(dbService, realtimeService), authService),
-      new TripsMcp(tripsService, todoService, collabService, authService),
+      new TripsMcp(tripsService, todoService, collabService, authService, calendarService),
       new ShareMcp(new ShareService(dbService, new SettingsService(dbService), permissionsService, queryHelpersService), authService),
       new MapsMcp(mapsService),
       new PlacesMcp(placesService, mapsService, dbService, authService, journeyDomain),

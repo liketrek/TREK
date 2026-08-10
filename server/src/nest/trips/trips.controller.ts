@@ -35,6 +35,7 @@ import { AuditService } from '../audit/audit.service';
 import { NotFoundError, ValidationError } from './trips.service';
 import { TripCreateDto, TripUpdateDto, TripCopyDto, TripAddMemberDto, TripTransferOwnershipDto, TripCreateGuestDto, TripRenameGuestDto } from './trips.dto';
 import { UnsplashService } from '../unsplash/unsplash.service';
+import { CalendarService } from '../calendar/calendar.service';
 
 const MAX_COVER_SIZE = 20 * 1024 * 1024;
 const coversDir = path.join(__dirname, '../../../uploads/covers');
@@ -70,7 +71,9 @@ const addDays = (d: Date, n: number) => { const r = new Date(d); r.setDate(r.get
 @Controller('api/trips')
 @UseGuards(JwtAuthGuard)
 export class TripsController {
-  constructor(private readonly trips: TripsService, private readonly audit: AuditService, private readonly env: RuntimeEnvService, private readonly unsplash: UnsplashService) {}
+  // calendar last: the hand-wired construction sites in the tests stay positional,
+  // so a new dependency does not touch the ones that never reach the ICS route.
+  constructor(private readonly trips: TripsService, private readonly audit: AuditService, private readonly env: RuntimeEnvService, private readonly unsplash: UnsplashService, private readonly calendar: CalendarService) {}
 
   @Get()
   list(@CurrentUser() user: User, @Query('archived') archived?: string) {
@@ -394,7 +397,7 @@ export class TripsController {
       throw new HttpException({ error: 'Trip not found' }, 404);
     }
     try {
-      const { ics, filename } = this.trips.exportICS(id);
+      const { ics, filename } = this.calendar.exportICS(id);
       res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.send(ics);

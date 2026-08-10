@@ -1,0 +1,389 @@
+/**
+ * Unit tests for CalendarService. The cases moved 1:1 out of
+ * tests/unit/nest/trips.service.test.ts together with the code they cover
+ * (TRIP-SVC-001..002b, 020..027 and 048); the identifiers are unchanged so the
+ * diff shows a move rather than a rewrite, and the assertions still pin the
+ * emitted ICS byte for byte. Uses a real in-memory SQLite DB so the SQL runs.
+ */
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
+// ── DB setup ──────────────────────────────────────────────
+
+const { testDb, dbMock } = vi.hoisted(() => {
+  const Database = require('better-sqlite3');
+  const db = new Database(':memory:');
+  db.exec('PRAGMA journal_mode = WAL');
+  db.exec('PRAGMA foreign_keys = ON');
+  db.exec('PRAGMA busy_timeout = 5000');
+  const mock = {
+    db,
+    closeDb: () => {},
+    reinitialize: () => {},
+    getPlaceWithTags: () => null,
+    canAccessTrip: (tripId: any, userId: number) =>
+      db.prepare(`
+        SELECT t.id, t.user_id FROM trips t
+        LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
+        WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
+      `).get(userId, tripId, userId),
+    isOwner: (tripId: any, userId: number) =>
+      !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
+  };
+  return { testDb: db, dbMock: mock };
+});
+
+vi.mock('../../../src/db/database', () => dbMock);
+vi.mock('../../../src/config', () => ({
+  JWT_SECRET: 'test-secret',
+  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
+  updateJwtSecret: () => {},
+}));
+const { broadcast } = vi.hoisted(() => ({ broadcast: vi.fn() }));
+vi.mock('../../../src/websocket', () => ({ broadcast }));
+
+import { createTables } from '../../../src/db/schema';
+import { runMigrations } from '../../../src/db/migrations';
+import { resetTestDb } from '../../helpers/test-db';
+import { createUser, createTrip, createReservation, createPlace, createDay, createDayAssignment, createDayNote } from '../../helpers/factories';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import { CalendarService } from '../../../src/nest/calendar/calendar.service';
+import { CalendarModule } from '../../../src/nest/calendar/calendar.module';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
+
+const dbs = () => new DatabaseService(testDb);
+const budgetSvc = new BudgetService(dbs(), new PermissionsService(dbs()), new ExchangeRatesService(), new RealtimeService());
+
+// Named `svc` so the moved cases below read exactly as they did on TripsService.
+const svc = new CalendarService(
+  dbs(),
+  new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService()),
+);
+
+beforeAll(() => {
+  createTables(testDb);
+  runMigrations(testDb);
+});
+
+beforeEach(() => {
+  resetTestDb(testDb);
+});
+
+afterAll(() => {
+  testDb.close();
+});
+
+describe('exportICS', () => {
+  it('TRIP-SVC-001: returns VCALENDAR wrapper', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, {
+      title: 'My Vacation',
+      start_date: '2025-06-01',
+      end_date: '2025-06-07',
+    });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('BEGIN:VCALENDAR');
+    expect(ics).toContain('END:VCALENDAR');
+  });
+
+  it('TRIP-SVC-002: trip with start_date + end_date includes all-day VEVENT', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, {
+      title: 'Summer Holiday',
+      start_date: '2025-06-01',
+      end_date: '2025-06-07',
+    });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART;VALUE=DATE:20250601');
+    // DTEND is exclusive — the day *after* the last day, or the trip loses a day.
+    expect(ics).toContain('DTEND;VALUE=DATE:20250608');
+    expect(ics).toContain('SUMMARY:Summer Holiday');
+  });
+
+  describe('#1453 all-day DTEND is timezone-independent', () => {
+    const originalTz = process.env.TZ;
+
+    afterAll(() => {
+      process.env.TZ = originalTz;
+    });
+
+    // The old code did `new Date(date + 'T00:00:00')` — no Z, so parsed as *server-local*
+    // midnight — then setDate(+1) and .toISOString(). East of Greenwich that round-trip
+    // lands a day early, and since DTEND is exclusive the trip's last day was dropped.
+    // Only invisible in CI because containers default to TZ=UTC.
+    for (const tz of ['Europe/Berlin', 'Asia/Tokyo', 'Pacific/Kiritimati', 'America/New_York', 'UTC']) {
+      it(`TRIP-SVC-002b: DTEND is the day after the last day under TZ=${tz}`, () => {
+        process.env.TZ = tz;
+        const { user } = createUser(testDb);
+        const trip = createTrip(testDb, user.id, {
+          title: 'TZ Trip',
+          start_date: '2026-03-28',
+          end_date: '2026-03-30',
+        });
+
+        const { ics } = svc.exportICS(trip.id);
+
+        expect(ics).toContain('DTSTART;VALUE=DATE:20260328');
+        expect(ics).toContain('DTEND;VALUE=DATE:20260331');
+      });
+    }
+
+    it('TRIP-SVC-002c: a per-day all-day summary event has the same exclusive DTEND', () => {
+      process.env.TZ = 'Asia/Tokyo';
+      const { user } = createUser(testDb);
+      const trip = createTrip(testDb, user.id, { title: 'Day Note Trip' });
+      const day = createDay(testDb, trip.id, { date: '2026-03-30', day_number: 1 });
+      createDayNote(testDb, day.id, trip.id, { text: 'Pack the bags' });
+
+      const { ics } = svc.exportICS(trip.id);
+
+      expect(ics).toContain('DTSTART;VALUE=DATE:20260330');
+      expect(ics).toContain('DTEND;VALUE=DATE:20260331');
+    });
+  });
+
+  it('TRIP-SVC-003: reservation with full datetime (includes T) → DTSTART without VALUE=DATE', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris Trip' });
+    const reservation = createReservation(testDb, trip.id, {
+      title: 'Morning Flight',
+      type: 'flight',
+    });
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=? WHERE id=?')
+      .run('2025-06-02T09:00', reservation.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART:20250602T090000');
+    expect(ics).not.toContain('DTSTART;VALUE=DATE');
+  });
+
+  it('TRIP-SVC-004: reservation with date-only → DTSTART;VALUE=DATE', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris Trip' });
+    const reservation = createReservation(testDb, trip.id, {
+      title: 'Hotel Check-in',
+      type: 'hotel',
+    });
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=? WHERE id=?')
+      .run('2025-06-02', reservation.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART;VALUE=DATE:20250602');
+  });
+
+  it('TRIP-SVC-005: reservation metadata with flight info appears in DESCRIPTION', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris Trip' });
+    const reservation = createReservation(testDb, trip.id, {
+      title: 'CDG to JFK',
+      type: 'flight',
+    });
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=?, metadata=? WHERE id=?')
+      .run(
+        '2025-06-02T09:00',
+        JSON.stringify({
+          airline: 'Air Test',
+          flight_number: 'AT100',
+          departure_airport: 'CDG',
+          arrival_airport: 'JFK',
+        }),
+        reservation.id
+      );
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('Airline: Air Test');
+    expect(ics).toContain('Flight: AT100');
+  });
+
+  it('TRIP-SVC-006: special characters in title are escaped', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Trip; First, Best' });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('Trip\\; First\\, Best');
+  });
+
+  it('TRIP-SVC-007: throws NotFoundError for non-existent trip', () => {
+    expect(() => svc.exportICS(99999)).toThrow();
+  });
+
+  it('TRIP-SVC-008: returns a filename derived from trip title', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'My Trip 2025' });
+
+    const { filename } = svc.exportICS(trip.id);
+
+    expect(filename).toMatch(/My.Trip.2025\.ics/);
+  });
+
+  it('TRIP-SVC-009: reservation with end time includes DTEND', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris Trip' });
+    const reservation = createReservation(testDb, trip.id, {
+      title: 'Afternoon Tour',
+      type: 'activity',
+    });
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2025-06-02T14:00', '2025-06-02T16:00', reservation.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTEND:20250602T160000');
+  });
+
+  it('TRIP-SVC-024: flight with endpoint times but no reservation_time is included', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris Trip' });
+    const reservation = createReservation(testDb, trip.id, {
+      title: 'CDG → JFK',
+      type: 'flight',
+    });
+    // Confirmed flights store times per endpoint, never as reservation_time.
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(reservation.id);
+    const insertEp = testDb.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    insertEp.run(reservation.id, 'from', 0, 'Paris CDG', 'CDG', 49.0, 2.5, 'Europe/Paris', '09:00', '2025-06-02');
+    insertEp.run(reservation.id, 'to', 1, 'New York JFK', 'JFK', 40.6, -73.8, 'America/New_York', '12:00', '2025-06-02');
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:CDG → JFK');
+    // Departure endpoint zone drives DTSTART, arrival zone drives DTEND, so the
+    // subscriber sees TREK's zones instead of their own (#1453).
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20250602T090000');
+    expect(ics).toContain('DTEND;TZID=America/New_York:20250602T120000');
+    expect(ics).not.toContain('DTSTART:20250602T090000');
+    // Each referenced zone gets a VTIMEZONE definition.
+    expect(ics).toContain('BEGIN:VTIMEZONE\r\nTZID:Europe/Paris');
+    expect(ics).toContain('BEGIN:VTIMEZONE\r\nTZID:America/New_York');
+    expect(ics).toContain('Route: CDG → JFK');
+  });
+
+  it('TRIP-SVC-024b: an invalid endpoint timezone degrades to floating time instead of crashing the export', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Bad TZ Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'CDG → JFK', type: 'flight' });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(reservation.id);
+    const insertEp = testDb.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    // A stored/plugin-written timezone can be any string; it must never reach Intl.
+    // The bogus zone takes precedence over the coordinates (first.timezone || resolveZone).
+    insertEp.run(reservation.id, 'from', 0, 'Paris CDG', 'CDG', 49.0, 2.5, 'Not/AZone', '09:00', '2025-06-02');
+    insertEp.run(reservation.id, 'to', 1, 'New York JFK', 'JFK', 40.6, -73.8, 'garbage', '12:00', '2025-06-02');
+
+    let ics = '';
+    expect(() => { ics = svc.exportICS(trip.id).ics; }).not.toThrow();
+    // Falls back to a floating local time (no TZID) and never emits a bogus VTIMEZONE.
+    expect(ics).toContain('DTSTART:20250602T090000');
+    expect(ics).not.toContain('TZID=Not/AZone');
+    expect(ics).not.toContain('garbage');
+  });
+
+  it('TRIP-SVC-025: flight endpoint with no local_date is skipped (relative Day-N trips)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Relative Trip' });
+    const reservation = createReservation(testDb, trip.id, {
+      title: 'Timeless Flight',
+      type: 'flight',
+    });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL WHERE id=?').run(reservation.id);
+    testDb.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(reservation.id, 'from', 0, 'Origin', 'AAA', 1.0, 1.0, null, '09:00', null);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).not.toContain('SUMMARY:Timeless Flight');
+  });
+
+  it('TRIP-SVC-026: timed assignment gets a TZID derived from the place coordinates', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Tokyo Trip' });
+    const day = createDay(testDb, trip.id, { date: '2025-06-02' });
+    // Tokyo coordinates → Asia/Tokyo via tz-lookup.
+    const place = createPlace(testDb, trip.id, { name: 'Senso-ji', lat: 35.7148, lng: 139.7967 });
+    const assignment = createDayAssignment(testDb, day.id, place.id);
+    testDb
+      .prepare('UPDATE day_assignments SET assignment_time=? WHERE id=?')
+      .run('09:00', assignment.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART;TZID=Asia/Tokyo:20250602T090000');
+    expect(ics).toContain('BEGIN:VTIMEZONE\r\nTZID:Asia/Tokyo');
+    expect(ics).not.toContain('DTSTART:20250602T090000');
+  });
+});
+
+describe('folded quirk branches', () => {
+  it('TRIP-SVC-048: exportICS renders untimed/notes all-day summaries, multi-leg routes, endpoint routes and train/location fields', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Branchy' });
+    const day = createDay(testDb, trip.id, { date: '2025-06-02' });
+    const place = createPlace(testDb, trip.id, { name: 'Untimed Spot' });
+    testDb.prepare("UPDATE places SET address = '1 Rue Test' WHERE id = ?").run(place.id);
+    const assignment = createDayAssignment(testDb, day.id, place.id);
+    testDb.prepare("UPDATE day_assignments SET notes = 'bring hat' WHERE id = ?").run(assignment.id);
+    createDayNote(testDb, day.id, trip.id, { text: 'timed note', time: '10:00' });
+    createDayNote(testDb, day.id, trip.id, { text: 'plain note' });
+
+    // Multi-leg flight metadata → Route: A → B → C, plus train + notes + location.
+    const flight = createReservation(testDb, trip.id, { title: 'Legs', type: 'flight' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, metadata=?, notes=?, location=?, confirmation_number=? WHERE id=?').run(
+      '2025-06-02T09:00',
+      JSON.stringify({ legs: [{ from: 'FRA', to: 'BER' }, { to: 'HND' }], train_number: 'ICE 100' }),
+      'window seat', 'Gate 4', 'ABC123', flight.id,
+    );
+    // Endpoint-derived route (no route metadata) with a date-only endpoint fallback.
+    const transport = createReservation(testDb, trip.id, { title: 'Ferry', type: 'transport' });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL WHERE id=?').run(transport.id);
+    const insertEp = testDb.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    insertEp.run(transport.id, 'from', 0, 'Pier A', null, 1.0, 1.0, null, null, '2025-06-03');
+    insertEp.run(transport.id, 'to', 1, 'Pier B', 'PB', 1.1, 1.1, null, null, '2025-06-03');
+
+    // Unfold the RFC 5545 75-octet folding so substring assertions see whole lines.
+    const ics = svc.exportICS(trip.id).ics.replace(/\r\n /g, '');
+
+    expect(ics).toContain('SUMMARY:Day 1');
+    expect(ics).toContain('• Untimed Spot (1 Rue Test) — bring hat');
+    expect(ics).toContain('Notes:\\n10:00 — timed note\\n• plain note');
+    expect(ics).toContain('Route: FRA → BER → HND');
+    expect(ics).toContain('Train: ICE 100');
+    expect(ics).toContain('Confirmation: ABC123');
+    expect(ics).toContain('window seat');
+    expect(ics).toContain('LOCATION:Gate 4');
+    // Date-only endpoint → all-day DTSTART for the transport.
+    expect(ics).toContain('SUMMARY:Ferry');
+    expect(ics).toContain('DTSTART;VALUE=DATE:20250603');
+  });
+});
+
+
+describe('CalendarService wiring', () => {
+  it('CAL-001: the module registers the service, so injection cannot silently fail', () => {
+    expectRegisteredProvider(CalendarModule, CalendarService);
+    const exports = Reflect.getMetadata('exports', CalendarModule) as unknown[];
+    expect(Array.isArray(exports)).toBe(true);
+    expect(exports).toEqual(expect.arrayContaining([CalendarService]));
+  });
+});

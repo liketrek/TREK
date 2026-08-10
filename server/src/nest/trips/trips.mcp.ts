@@ -6,6 +6,7 @@ import {
 } from '@trek/nest-mcp';
 import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
+import { CalendarService } from '../calendar/calendar.service';
 import { isAddonEnabled, getCollabFeatures } from '../addons/addons.bridge';
 import { ADDON_IDS } from '../../addons';
 import { safeBroadcast, MAX_MCP_TRIP_DAYS, noAccess, hasTripPermission, permissionDenied } from '../../mcp/tools/_shared';
@@ -63,6 +64,9 @@ export class TripsMcp {
     private readonly todos: TodoService,
     private readonly collab: CollabService,
     private readonly auth: AuthService,
+    // Appended, not inserted: the hand-wired MCP test harnesses build this
+    // positionally, so an earlier slot would silently shift every one of them.
+    private readonly calendar: CalendarService,
   ) {}
 
   // --- TRIPS ---
@@ -356,7 +360,7 @@ export class TripsMcp {
   async exportTripIcs({ tripId }: { tripId: number }, ctx: McpContext) {
     if (!this.trips.canAccessTrip(tripId, ctx.userId)) return noAccess();
     try {
-      const { ics, filename } = this.trips.exportICS(tripId);
+      const { ics, filename } = this.calendar.exportICS(tripId);
       return ok({ ics, filename });
     } catch {
       return { content: [{ type: 'text' as const, text: 'Trip not found.' }], isError: true };

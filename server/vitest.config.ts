@@ -72,6 +72,7 @@ export default defineConfig({
         'src/nest/backup/**/*.ts': { statements: 96, branches: 92, functions: 99, lines: 98 },
         'src/nest/booking-import/**/*.ts': { statements: 48, branches: 28, functions: 56, lines: 52 },
         'src/nest/budget/**/*.ts': { statements: 91, branches: 77, functions: 97, lines: 95 },
+        'src/nest/calendar/**/*.ts': { statements: 92, branches: 82, functions: 91, lines: 94 },
         'src/nest/categories/**/*.ts': { statements: 99, branches: 80, functions: 99, lines: 99 },
         'src/nest/collab/**/*.ts': { statements: 92, branches: 85, functions: 94, lines: 97 },
         'src/nest/collections/**/*.ts': { statements: 83, branches: 70, functions: 91, lines: 92 },
