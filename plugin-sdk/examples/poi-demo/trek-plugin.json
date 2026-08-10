@@ -5,7 +5,7 @@
   "apiVersion": 1,
   "trek": ">=3.5.0 <4.0.0",
   "type": "integration",
-  "description": "Demonstrates the poiCategoryProvider hook: registers a 'Cheese Shops' category and returns hardcoded results for any query.",
+  "description": "Demonstrates the poiCategoryProvider hook: registers a 'Demo Points' category and returns geometry-derived results from the current map bounds.",
   "permissions": [
     "hook:poi-category-provider"
   ],
