@@ -49,6 +49,7 @@ const admin = new AdminService(
   permissions,
   new NotificationsService(dbs, realtime, mailer, new WebhookService(dbs), new NtfyService(dbs), notifPrefs),
   userCleanup,
+  new RealtimeService(),
 );
 
 export function checkAndNotifyVersion(): Promise<void> {

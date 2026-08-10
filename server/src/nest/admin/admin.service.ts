@@ -23,6 +23,7 @@ import { validatePassword } from '../common/passwordPolicy';
 import { UserCleanupService } from '../auth/user-cleanup.service';
 import { DatabaseService } from '../database/database.service';
 import { AddonsService } from '../addons/addons.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { PasskeyService } from '../auth/passkey.service';
 import { AuthService } from '../auth/auth.service';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -73,6 +74,7 @@ export class AdminService {
     private readonly permissions: PermissionsService,
     private readonly notifications: NotificationsService,
     private readonly userCleanup: UserCleanupService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   // ── User CRUD ──────────────────────────────────────────────────────────────
@@ -89,9 +91,10 @@ export class AdminService {
     );
     let onlineUserIds = new Set<number>();
     try {
-      // Lazy require: the ws singleton must not become a load-time dependency.
-      const { getOnlineUserIds } = require('../../websocket');
-      onlineUserIds = getOnlineUserIds();
+      // The catch stays here rather than in the facade: an admin list that shows
+      // everyone as offline is a better answer than a 500, and that judgement
+      // belongs to this caller, not to every future one.
+      onlineUserIds = this.realtime.getOnlineUserIds();
     } catch {
       /* */
     }

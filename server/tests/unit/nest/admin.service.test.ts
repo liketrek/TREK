@@ -63,6 +63,7 @@ import { SettingsService } from '../../../src/nest/settings/settings.service';
 import { AtlasService } from '../../../src/nest/atlas/atlas.service';
 import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
 import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
 import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
 import { AuthService } from '../../../src/nest/auth/auth.service';
 import { PasskeyService } from '../../../src/nest/auth/passkey.service';
@@ -79,7 +80,11 @@ const realtime = new RealtimeService();
 const permissions = new PermissionsService(dbs);
 const webauthn = new WebauthnConfigService(dbs);
 const userCleanup = new UserCleanupService(dbs);
-const auth = new AuthService(dbs, permissions, new AtlasService(dbs), new TripMembershipService(dbs), webauthn, userCleanup);
+// Positional and previously wrong: an AtlasService sat in the membership slot
+// and the mailer was missing entirely, so `auth` was built with its last four
+// collaborators shifted by one. Nothing failed, because none of the cases below
+// reach a path that uses them.
+const auth = new AuthService(dbs, permissions, new TripMembershipService(dbs), webauthn, userCleanup, new MailerService(dbs));
 const svc = new AdminService(
   dbs,
   new AddonsService(dbs),
@@ -88,6 +93,7 @@ const svc = new AdminService(
   permissions,
   makeNotificationsService(dbs, realtime),
   userCleanup,
+  realtime,
 );
 
 // Legacy free-function names bound to the service, so the moved cases below read
@@ -100,8 +106,6 @@ const getStats = () => svc.getStats();
 const getPermissions = () => svc.getPermissions();
 const savePermissions = (p: Record<string, string>) => svc.savePermissions(p);
 const getAuditLog = (q: { limit?: string; offset?: string }) => svc.getAuditLog(q);
-const getOidcSettings = () => svc.getOidcSettings();
-const updateOidcSettings = (d: Parameters<AdminService['updateOidcSettings']>[0]) => svc.updateOidcSettings(d);
 const saveDemoBaseline = () => svc.saveDemoBaseline();
 const getGithubReleases = (perPage?: string, page?: string) => svc.getGithubReleases(perPage, page);
 const checkVersion = () => svc.checkVersion();

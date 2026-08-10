@@ -20,6 +20,7 @@ vi.mock('../../../src/db/database', () => ({ db: testDb }));
 import { db as dbConn } from '../../../src/db/database';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 
+import { AddonsService } from '../../../src/nest/addons/addons.service';
 import { PluginsService } from '../../../src/nest/plugins/plugins.service';
 import { PluginsController } from '../../../src/nest/plugins/plugins.controller';
 import { PluginsFeedController } from '../../../src/nest/plugins/plugins-feed.controller';
@@ -40,7 +41,7 @@ describe('PluginsService.list', () => {
       .run('flight', 'Flight', 'desc', 'widget', 'inactive', '1.0.0');
     process.env.TREK_PLUGINS_ENABLED = 'true';
 
-    const out = new PluginsService(new DatabaseService(dbConn)).list();
+    const out = new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn))).list();
     expect(out.enabled).toBe(true);
     expect(out.plugins).toHaveLength(1);
     expect(out.plugins[0]).toMatchObject({ id: 'flight', name: 'Flight', status: 'inactive' });
@@ -51,14 +52,14 @@ describe('PluginsService.list', () => {
       .prepare('INSERT INTO plugins (id, name, description, type, status, version) VALUES (?,?,?,?,?,?)')
       .run('flight', 'Flight', 'desc', 'widget', 'inactive', '1.0.0');
 
-    const out = new PluginsService(new DatabaseService(dbConn)).list();
+    const out = new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn))).list();
     expect(out.enabled).toBe(true);
     expect(out.plugins).toHaveLength(1);
   });
 
   it('reports disabled when the kill switch is off (TREK_PLUGINS_ENABLED=false)', () => {
     process.env.TREK_PLUGINS_ENABLED = 'false';
-    const out = new PluginsService(new DatabaseService(dbConn)).list();
+    const out = new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn))).list();
     expect(out.enabled).toBe(false);
     expect(out.plugins).toEqual([]);
   });
@@ -78,7 +79,7 @@ describe('PluginsService.list', () => {
       const key = 'RWTvBn0aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcd';
       insert('signed-one', 'acme/signed-one', key);
 
-      const p = new PluginsService(new DatabaseService(dbConn)).list().plugins[0];
+      const p = new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn))).list().plugins[0];
       expect(p.signed).toBe(true);
       // Short head…tail, for eyeballing against what the author reads out over the
       // phone. NOT a confidentiality measure — the key is public, and the re-trust
@@ -88,7 +89,7 @@ describe('PluginsService.list', () => {
 
     it('reports unsigned for a registry plugin with no pinned key', () => {
       insert('plain', 'acme/plain', null);
-      const p = new PluginsService(new DatabaseService(dbConn)).list().plugins[0];
+      const p = new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn))).list().plugins[0];
       expect(p.signed).toBe(false);
       expect(p.keyFingerprint).toBeNull();
     });
@@ -96,7 +97,7 @@ describe('PluginsService.list', () => {
     it('reports unsigned for a sideloaded and a dev-linked plugin (they carry no key)', () => {
       insert('uploaded', 'local:upload', null);
       insert('linked', 'local:link', null);
-      const plugins = new PluginsService(new DatabaseService(dbConn)).list().plugins;
+      const plugins = new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn))).list().plugins;
       expect(plugins.map((p) => [p.id, p.signed, p.source_repo])).toEqual([
         ['linked', false, 'local:link'],
         ['uploaded', false, 'local:upload'],
@@ -110,14 +111,14 @@ describe('PluginsService.list', () => {
         .prepare('UPDATE plugins SET update_block_code = ?, update_block_detail = ?, update_block_version = ? WHERE id = ?')
         .run('SIGNATURE_KEY_CHANGED', 'the key changed', '2.0.0', 'blocked');
 
-      const byId = Object.fromEntries(new PluginsService(new DatabaseService(dbConn)).list().plugins.map((p) => [p.id, p]));
+      const byId = Object.fromEntries(new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn))).list().plugins.map((p) => [p.id, p]));
       expect(byId.blocked.updateBlock).toEqual({ code: 'SIGNATURE_KEY_CHANGED', detail: 'the key changed', version: '2.0.0' });
       expect(byId.fine.updateBlock).toBeNull();
     });
 
     it('never leaks the raw pinned key into the list response (only the fingerprint)', () => {
       insert('signed-one', 'acme/signed-one', 'RWTvBn0aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcd');
-      const p = new PluginsService(new DatabaseService(dbConn)).list().plugins[0] as Record<string, unknown>;
+      const p = new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn))).list().plugins[0] as Record<string, unknown>;
       expect(p.author_pubkey).toBeUndefined();
     });
   });
@@ -238,7 +239,7 @@ describe('PluginsService instance config', () => {
     testDb.prepare("INSERT INTO plugins (id, name, status, config) VALUES ('x','X','inactive','{}')").run();
     testDb.prepare("INSERT INTO plugin_settings_fields (plugin_id, field_key, scope, secret) VALUES ('x','api_key','instance',1)").run();
 
-    const svc = new PluginsService(new DatabaseService(dbConn));
+    const svc = new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn)));
     const masked = svc.updateInstanceConfig('x', { api_key: 'super-secret', server: 'https://h' });
     // client gets the masked view
     expect(masked.api_key).toBe('••••••••');
@@ -259,8 +260,8 @@ describe('PluginsService instance config', () => {
   });
 
   it('throws for an unknown plugin', () => {
-    expect(() => new PluginsService(new DatabaseService(dbConn)).updateInstanceConfig('nope', {})).toThrow(/not found/);
-    expect(() => new PluginsService(new DatabaseService(dbConn)).getInstanceConfig('nope')).toThrow(/not found/);
+    expect(() => new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn))).updateInstanceConfig('nope', {})).toThrow(/not found/);
+    expect(() => new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn))).getInstanceConfig('nope')).toThrow(/not found/);
   });
 });
 
@@ -268,7 +269,7 @@ describe('PluginsService error log', () => {
   beforeEach(() => testDb.exec('DELETE FROM plugin_error_log'));
   it('lists and clears a plugin error log', () => {
     testDb.prepare("INSERT INTO plugin_error_log (plugin_id, level, message) VALUES ('p','error','boom')").run();
-    const svc = new PluginsService(new DatabaseService(dbConn));
+    const svc = new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn)));
     expect(svc.errors('p')).toEqual([{ ts: '2026-01-01', level: 'error', message: 'boom' }]);
     svc.clearErrors('p');
     expect(svc.errors('p')).toEqual([]);
