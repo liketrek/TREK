@@ -10,6 +10,7 @@ import type { User } from '../../types';
 import { AuditService } from '../audit/audit.service';
 import { getClientIp } from '../audit/client-ip';
 import { AdminOidcUpdateDto } from '../admin/admin.dto';
+import { Public } from '../auth/public.decorator';
 
 const OIDC_STATE_COOKIE = 'trek_oidc_state';
 
@@ -22,6 +23,7 @@ const OIDC_STATE_COOKIE = 'trek_oidc_state';
  * codes, and the auth-code → cookie hand-off on /exchange. Uses @Res directly
  * because the flow mixes provider redirects with JSON error bodies.
  */
+@Public('the OIDC handshake happens before a TREK session exists; the provider state is the credential')
 @Controller('api/auth/oidc')
 export class OidcController {
   constructor(private readonly oidc: OidcService) {}

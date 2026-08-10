@@ -8,6 +8,7 @@ import { getClientIp } from '../audit/client-ip';
 import { AuditService } from '../audit/audit.service';
 import { willDropSecureCookie } from '../common/cookie';
 import type { User } from '../../types';
+import { Public } from './public.decorator';
 
 const WINDOW = 15 * 60 * 1000;
 const LOGIN_MIN_LATENCY_MS = 350;
@@ -40,6 +41,7 @@ export class AuthPublicController {
   }
 
   @Post('demo-login')
+  @Public('issues a session for the demo account; there is nothing to authenticate yet')
   @HttpCode(200)
   demoLogin(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const result = this.auth.demoLogin();
@@ -51,6 +53,7 @@ export class AuthPublicController {
   }
 
   @Get('invite/:token')
+  @Public('the invite token IS the credential')
   invite(@Param('token') token: string, @Req() req: Request) {
     this.limit('login', req, 10);
     const result = this.auth.validateInviteToken(token);
@@ -61,6 +64,7 @@ export class AuthPublicController {
   }
 
   @Post('register')
+  @Public('creating the account that would carry the session')
   @HttpCode(201)
   register(@Body() body: RegisterDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     this.limit('login', req, 10);
@@ -74,6 +78,7 @@ export class AuthPublicController {
   }
 
   @Post('login')
+  @Public('the login itself')
   @HttpCode(200)
   async login(@Body() body: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     this.limit('login', req, 10);
@@ -101,6 +106,7 @@ export class AuthPublicController {
   }
 
   @Post('forgot-password')
+  @Public('reached by somebody who cannot log in')
   @HttpCode(200)
   async forgotPassword(@Body() body: ForgotPasswordDto, @Req() req: Request) {
     this.limit('forgot', req, 3);
@@ -128,6 +134,7 @@ export class AuthPublicController {
   }
 
   @Post('reset-password')
+  @Public('the reset token IS the credential')
   @HttpCode(200)
   resetPassword(@Body() body: ResetPasswordDto, @Req() req: Request) {
     // Per-IP brute-force guard, parity with the legacy resetLimiter (5 / 15 min on
@@ -147,6 +154,7 @@ export class AuthPublicController {
   }
 
   @Post('mfa/verify-login')
+  @Public('second factor of a login that has no session yet')
   @HttpCode(200)
   verifyMfaLogin(@Body() body: MfaVerifyLoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     this.limit('mfa', req, 5);
@@ -160,6 +168,7 @@ export class AuthPublicController {
   }
 
   @Post('logout')
+  @Public('clearing a cookie must work even with an expired token, or the client cannot sign out')
   @HttpCode(200)
   logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     this.auth.clearAuthCookie(res, req);

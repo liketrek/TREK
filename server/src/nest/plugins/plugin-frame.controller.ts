@@ -5,6 +5,7 @@ import path from 'node:path';
 import { pluginsEnabled } from './kill-switch';
 import { PluginRuntimeService } from './plugin-runtime.service';
 import { pluginCodeDir } from './paths';
+import { Public } from '../auth/public.decorator';
 
 /**
  * Serves a page/widget plugin's static client from /plugin-frame/:id/* (#plugins,
@@ -32,6 +33,7 @@ const MIME: Record<string, string> = {
   '.ico': 'image/x-icon',
 };
 
+@Public('serves the sandboxed iframe document itself; the RPC inside it is authenticated')
 @Controller('plugin-frame/:pluginId')
 export class PluginFrameController {
   constructor(private readonly runtime: PluginRuntimeService) {}

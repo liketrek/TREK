@@ -11,6 +11,7 @@ import { setupApiDocs } from './nest/platform/api-docs';
 import { McpRegistryService } from '@trek/nest-mcp';
 import { setMcpRegistry } from './mcp/registry-handoff';
 import { validateBodyContracts } from './nest/common/validate-body-contracts';
+import { validateRouteGuards } from './nest/common/validate-route-guards';
 
 /**
  * Builds the unified TREK NestJS application that serves the ENTIRE surface — the
@@ -66,5 +67,9 @@ export async function buildApp(): Promise<INestApplication> {
   // must carry a createZodDto class (validated by the global ZodValidationPipe)
   // or sit on the ratchet-only legacy allow-list — otherwise refuse to boot.
   validateBodyContracts(app);
+  // Fail closed on the anonymous surface too: a route that answers without a
+  // session must carry @Public() with a reason AND be on the reviewed list.
+  // Default-deny protects what exists; this is what keeps the exemptions honest.
+  validateRouteGuards(app);
   return app;
 }

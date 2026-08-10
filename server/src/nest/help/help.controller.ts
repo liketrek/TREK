@@ -1,5 +1,6 @@
 import { Controller, Get, Param, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { Public } from '../auth/public.decorator';
 import {
   getWikiIndex,
   getWikiPage,
@@ -16,6 +17,7 @@ import {
  * so these endpoints are unauthenticated; that also lets <img> tags load the
  * proxied assets without sending credentials.
  */
+@Public('help assets are loaded by <img> and <a>, which cannot send credentials')
 @Controller('api/help')
 export class HelpController {
   @Get('index')

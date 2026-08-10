@@ -3,6 +3,7 @@ import type { Response } from 'express';
 import path from 'node:path';
 import fs from 'node:fs';
 import { JourneyService } from './journey.service';
+import { Public } from '../auth/public.decorator';
 
 /**
  * /api/public/journey — unauthenticated, share-token validated read + photo
@@ -13,6 +14,7 @@ import { JourneyService } from './journey.service';
  * the unified proxy streams by trek_photo_id and the legacy proxy serves local
  * files (with the uploads-dir traversal guard) or proxies immich/synology.
  */
+@Public('share-token validated: the whole point is a link that works without an account')
 @Controller('api/public/journey')
 export class JourneyPublicController {
   constructor(private readonly journey: JourneyService) {}

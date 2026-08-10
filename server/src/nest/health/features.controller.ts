@@ -2,8 +2,10 @@ import { Controller, Get } from '@nestjs/common';
 import { KitineraryExtractorService } from '../booking-import/kitinerary-extractor.service';
 import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
+import { Public } from '../auth/public.decorator';
 
 /** Exposes server feature flags consumed by the frontend to show/hide optional UI. */
+@Public('server capability flags the login screen reads to decide what to offer')
 @Controller('api/health')
 export class FeaturesController {
   constructor(
