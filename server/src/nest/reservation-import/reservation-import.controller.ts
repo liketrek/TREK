@@ -16,8 +16,14 @@ import type { User } from '../../types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
-import { BookingImportService } from './booking-import.service';
-import { ImportJobsService } from './import-jobs.service';
+import { AddonGuard } from '../addons/addon.guard';
+import { RequireAddon } from '../addons/require-addon.decorator';
+import { ADDON_IDS } from '../../addons';
+import { BookingImportService } from '../booking-import/booking-import.service';
+import { ImportJobsService } from '../booking-import/import-jobs.service';
+import { AirtrailImportService } from '../integrations/airtrail-import.service';
+import { AirtrailImportDto } from '../integrations/airtrail.dto';
+import type { AirtrailImportResult } from '@trek/shared';
 import { bookingImportModeSchema } from '@trek/shared';
 import type { BookingImportPreviewItem, BookingImportPreviewResponse, BookingImportConfirmResponse, BookingImportMode } from '@trek/shared';
 
@@ -30,16 +36,59 @@ const UPLOAD = {
   limits: { fileSize: MAX_FILE_BYTES, files: MAX_FILES },
 };
 
+/**
+ * Everything that turns something external into reservations, on one prefix.
+ *
+ * It used to be two controllers declaring the same @Controller string from two
+ * modules — booking-import for the file upload, integrations for AirTrail — each
+ * rebuilding the trip access check its own way. The sub-paths never actually
+ * collided, so this is not a bug fix; it is one access path instead of two
+ * implementations of the same one.
+ *
+ * AddonGuard sits FIRST in the chain and the addon requirement lives on the
+ * AirTrail handler alone. Order matters: a disabled addon has to answer 404 to
+ * an anonymous caller, so the addon check must beat the 401. Handler-level
+ * rather than class-level matters just as much — a class-level @RequireAddon
+ * would 404 the four file-upload routes whenever AirTrail happens to be off.
+ */
 @Controller('api/trips/:tripId/reservations/import')
 // TripAccessGuard resolves :tripId and 404s a trip the user cannot reach; mutations
 // add @RequirePermission('reservation_edit'), the same action string the service's canEdit
 // passes, so the HTTP and MCP paths cannot demand different rights.
-@UseGuards(JwtAuthGuard, TripAccessGuard)
-export class BookingImportController {
+@UseGuards(AddonGuard, JwtAuthGuard, TripAccessGuard)
+export class ReservationImportController {
   constructor(
     private readonly bookingImport: BookingImportService,
     private readonly importJobs: ImportJobsService,
+    private readonly airtrailImport: AirtrailImportService,
   ) {}
+
+  /**
+   * Turn selected AirTrail flights into reservations. The flights are re-fetched
+   * server-side with the caller's own key, so the client cannot inject arbitrary
+   * flight data.
+   *
+   * The hand-written requireEdit this had is gone: the class guard chain runs the
+   * identical check with the identical action string. That does move the trip 404
+   * ahead of the body 400, because a guard runs before the pipe — the same
+   * ordering every other trip-scoped controller already has, and no case pinned
+   * the other way round for this route.
+   */
+  @Post('airtrail')
+  @RequireAddon(ADDON_IDS.AIRTRAIL, 'AirTrail')
+  @RequirePermission('reservation_edit')
+  async importAirtrail(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Body() body: AirtrailImportDto,
+    @Headers('x-socket-id') socketId?: string,
+  ): Promise<AirtrailImportResult> {
+    try {
+      return await this.airtrailImport.importAirtrailFlights(tripId, user.id, body.flightIds, socketId, body.connections ?? []);
+    } catch (err: any) {
+      throw new HttpException({ error: err?.message || 'AirTrail import failed' }, err?.status === 400 ? 400 : 502);
+    }
+  }
 
 
 

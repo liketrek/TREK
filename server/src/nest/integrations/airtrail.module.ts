@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { AirtrailController } from './airtrail.controller';
-import { AirtrailImportController } from './airtrail-import.controller';
 import { AirtrailClient } from './airtrail.client';
 import { AirtrailService } from './airtrail.service';
 import { AirtrailSyncService } from './airtrail-sync.service';
@@ -26,8 +25,8 @@ import { ReservationsModule } from '../reservations/reservations.module';
  */
 @Module({
   imports: [PermissionsModule, AddonsModule, AuditModule, ReservationsModule],
-  controllers: [AirtrailController, AirtrailImportController],
+  controllers: [AirtrailController],
   providers: [AirtrailClient, AirtrailService, AirtrailSyncService, AirtrailImportService],
-  exports: [AirtrailSyncService],
+  exports: [AirtrailSyncService, AirtrailImportService],
 })
 export class AirtrailModule {}

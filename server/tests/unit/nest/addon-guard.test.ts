@@ -22,7 +22,7 @@ import { ADDON_IDS } from '../../../src/addons';
 import { JourneyController } from '../../../src/nest/journey/journey.controller';
 import { CollectionsController } from '../../../src/nest/collections/collections.controller';
 import { AirtrailController } from '../../../src/nest/integrations/airtrail.controller';
-import { AirtrailImportController } from '../../../src/nest/integrations/airtrail-import.controller';
+import { ReservationImportController } from '../../../src/nest/reservation-import/reservation-import.controller';
 
 /** A context whose handler/class carry the decorator under test. */
 function ctxFor(handler: object, cls: object = class {}): ExecutionContext {
@@ -98,11 +98,20 @@ describe('the gated route groups still declare their addon', () => {
     ['JourneyController', JourneyController, ADDON_IDS.JOURNEY, 'Journey'],
     ['CollectionsController', CollectionsController, ADDON_IDS.COLLECTIONS, 'Collections'],
     ['AirtrailController', AirtrailController, ADDON_IDS.AIRTRAIL, 'AirTrail'],
-    ['AirtrailImportController', AirtrailImportController, ADDON_IDS.AIRTRAIL, 'AirTrail'],
   ])('ADDON-GUARD-005: %s gates on the right addon, with AddonGuard first', (_name, cls, addonId, label) => {
     expect(metaOf(cls)).toEqual({ addonId, label });
     // Order is the contract: a disabled addon has to answer 404 to anonymous
     // callers, so the addon check must run before the 401.
     expect(guardsOf(cls)[0]).toBe(AddonGuard);
+  });
+
+  it('ADDON-GUARD-006: the merged import controller gates AirTrail per handler, not per class', () => {
+    // A class-level requirement here would 404 the four file-upload routes
+    // whenever the AirTrail addon happens to be off. AddonGuard still runs first
+    // in the chain, so the 404 keeps beating the 401.
+    expect(metaOf(ReservationImportController)).toBeUndefined();
+    expect(Reflect.getMetadata(REQUIRE_ADDON, ReservationImportController.prototype.importAirtrail))
+      .toEqual({ addonId: ADDON_IDS.AIRTRAIL, label: 'AirTrail' });
+    expect(guardsOf(ReservationImportController)[0]).toBe(AddonGuard);
   });
 });

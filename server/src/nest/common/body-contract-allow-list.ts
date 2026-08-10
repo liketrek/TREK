@@ -8,9 +8,6 @@
  * here — the gate throws on stale entries, so removal is enforced too.
  */
 export const BODY_CONTRACT_ALLOW_LIST: string[] = [
-  'BookingImportController.confirm',
-  'BookingImportController.preview',
-  'BookingImportController.previewAsync',
   'LlmLocalController.pull',
   'OauthApiController.authorize',
   'OauthApiController.createClient',
@@ -23,6 +20,9 @@ export const BODY_CONTRACT_ALLOW_LIST: string[] = [
   'PluginsController.setEgressHosts',
   'PluginsController.uninstall',
   'PluginsController.updateConfig',
+  'ReservationImportController.confirm',
+  'ReservationImportController.preview',
+  'ReservationImportController.previewAsync',
   'TagsController.create',
   'TagsController.update',
 ];

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HttpException } from '@nestjs/common';
-import { BookingImportController } from '../../../../src/nest/booking-import/booking-import.controller';
+import { ReservationImportController } from '../../../../src/nest/reservation-import/reservation-import.controller';
 import type { BookingImportService } from '../../../../src/nest/booking-import/booking-import.service';
 import type { User } from '../../../../src/types';
 
@@ -16,7 +16,8 @@ function make(over: Partial<BookingImportService> = {}) {
     preview: vi.fn(async () => ({ items: [], warnings: [], files: [] })),
     ...over,
   } as unknown as BookingImportService;
-  return { c: new BookingImportController(svc), svc };
+  // airtrailImport is the third slot; these cases never reach it.
+  return { c: new ReservationImportController(svc, undefined as never, undefined as never), svc };
 }
 
 async function status(fn: () => Promise<unknown>): Promise<number> {
@@ -26,7 +27,7 @@ async function status(fn: () => Promise<unknown>): Promise<number> {
 
 beforeEach(() => vi.clearAllMocks());
 
-describe('BookingImportController.preview', () => {
+describe('ReservationImportController.preview', () => {
   it('rejects an invalid mode with 400', async () => {
     const { c } = make();
     expect(await status(() => c.preview(user, 't1', [file()], 'bogus'))).toBe(400);
