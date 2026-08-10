@@ -97,6 +97,10 @@ export default defineConfig({
         'src/nest/packing/**/*.ts': { statements: 92, branches: 83, functions: 98, lines: 97 },
         'src/nest/permissions/**/*.ts': { statements: 97, branches: 92, functions: 99, lines: 97 },
         'src/nest/photos/**/*.ts': { statements: 95, branches: 92, functions: 89, lines: 95 },
+        // Landed on dev without an entry, so it sat on the 80 catch-all while
+        // measuring 99.5/99.0/97.4/100 — the gap the per-domain ratchet exists to
+        // close. Set with a few points of slack against the Linux/Windows drift.
+        'src/nest/place-enrichment/**/*.ts': { statements: 96, branches: 95, functions: 94, lines: 97 },
         'src/nest/place-photos/**/*.ts': { statements: 79, branches: 70, functions: 72, lines: 80 },
         'src/nest/places/**/*.ts': { statements: 90, branches: 80, functions: 96, lines: 94 },
         'src/nest/platform/**/*.ts': { statements: 99, branches: 99, functions: 99, lines: 99 },
