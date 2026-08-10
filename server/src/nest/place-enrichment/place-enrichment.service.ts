@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import type {
   MapsPlaceEnrichmentRequest,
@@ -8,8 +9,8 @@ import type {
 } from '@trek/shared';
 import { safeFetchFollow } from '../../utils/ssrfGuard';
 import { DatabaseService } from '../database/database.service';
-import { MapsService, withPhotoFetchSlot } from '../maps/maps.service';
-import { isGooglePlaceId } from '../maps/maps.helpers';
+import { MapsService, withPhotoFetchSlot, type CommonsCandidate } from '../maps/maps.service';
+import { isGooglePlaceId, rankCommonsCandidates } from '../maps/maps.helpers';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 
 /**
@@ -37,11 +38,40 @@ const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
  * from before the change — which is exactly what happened when the facts and
  * Wikivoyage landed.
  */
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 
-/** Cache key for one candidate picture. Deliberately not a bare place id. */
-function candidateKey(placeId: string, index: number): string {
-  return `${placeId}~p${index}`;
+/**
+ * Cache key for one candidate picture. Deliberately not a bare place id.
+ *
+ * Keyed by which picture it is, not by where it sat in the strip. Position was
+ * the obvious choice and it was wrong: the ladder below returns different
+ * numbers of candidates depending on which providers answered, so a slot that
+ * held a Wikidata photo one minute held a category photo the next — and the
+ * cache hands back whatever bytes it stored for that slot while the response
+ * carries the new candidate's author. Under CC BY that is not a stale
+ * thumbnail, it is the wrong person credited for someone's work.
+ *
+ * Hashed because the identity can be a Google resource path with slashes, and
+ * this ends up in a URL.
+ */
+export function candidateKey(placeId: string, identity: string): string {
+  const digest = createHash('sha1').update(identity).digest('hex').slice(0, 12);
+  return `${placeId}~p${digest}`;
+}
+
+/** A ranked Commons pick, tagged with the rung of the ladder it came from. */
+type CommonsPick = CommonsCandidate & { rung: 'wikidata' | 'wikipedia' | 'category' | 'nearby' };
+
+interface PendingCandidate {
+  /** Stable identity of the underlying file, for the cache key. */
+  identity: string;
+  candidate: PlacePhotoCandidate;
+  fetchBytes: () => Promise<Buffer | null>;
+}
+
+/** Appends candidates to the pool, remembering which rung produced them. */
+function push(pool: CommonsPick[], candidates: CommonsCandidate[], rung: CommonsPick['rung']): void {
+  for (const candidate of candidates) pool.push({ ...candidate, rung });
 }
 
 /**
@@ -207,53 +237,95 @@ export class PlaceEnrichmentService {
     const apiKey = this.maps.getMapsKey(userId);
     const wantsGoogle = !!apiKey && !this.maps.photosDisabled() && isGooglePlaceId(placeId);
 
-    // Ask both providers at once — one listing call each, and they know nothing
-    // about one another.
-    // Accuracy, best first. Wikidata's P18 is one picture somebody chose to
-    // represent this exact object. A Commons category is pictures of it. The
-    // coordinate search is only pictures NEAR it, which around a city centre
-    // means statues and passers-by — it is the last resort, not the plan.
-    const category = typeof details?.wikimedia_commons === 'string' ? details.wikimedia_commons : null;
-    const wikidata = typeof details?.wikidata === 'string' ? details.wikidata : null;
+    const tag = (key: string): string | null => (typeof details?.[key] === 'string' ? (details[key] as string) : null);
+    const wikidata = tag('wikidata');
+    const wikipedia = tag('wikipedia');
 
-    const [googleRefs, wikidataImage, commons] = await Promise.all([
-      wantsGoogle ? this.maps.fetchGooglePhotoRefs(placeId, apiKey!, GOOGLE_CAP) : Promise.resolve([]),
-      wikidata ? this.maps.fetchWikidataImage(wikidata) : Promise.resolve(null),
-      category
-        ? this.maps
-            .fetchCommonsCategoryCandidates(category, COMMONS_CAP)
-            .then((hits) => (hits.length ? hits : this.maps.fetchCommonsCandidates(req.lat, req.lng, COMMONS_CAP)))
-        : this.maps.fetchCommonsCandidates(req.lat, req.lng, COMMONS_CAP),
-    ]);
+    // Google's listing is one call for the whole strip and knows nothing about
+    // the free sources, so it runs alongside them rather than in the ladder.
+    const googlePending = wantsGoogle
+      ? this.maps.fetchGooglePhotoRefs(placeId, apiKey!, GOOGLE_CAP)
+      : Promise.resolve([] as { name: string; attribution: string | null }[]);
 
-    // The Wikidata picture leads, and is dropped from the rest of the list when
-    // a category happens to contain it too.
-    const commonsList = wikidataImage
-      ? [wikidataImage, ...commons.filter((c) => c.photoUrl !== wikidataImage.photoUrl)].slice(0, COMMONS_CAP)
-      : commons;
+    // The free ladder, in order of how much anyone vouched that the picture
+    // shows THIS place:
+    //   Wikidata  — a person attached this file to this exact object.
+    //   Wiki lead — the article about it opens with this picture.
+    //   Category  — the set of pictures of it.
+    //   Nearby    — anything photographed within 300m.
+    // Only the last one has no claim on the subject at all, which is how an
+    // airport ended up represented by aerial survey tiles of its runway and a
+    // gate by the underground station beneath it. It is the fallback, and it
+    // only runs when the ladder above came up short.
+    const commonsPool: CommonsPick[] = [];
+    let categoryName = tag('wikimedia_commons');
 
-    // Google first — its pictures are of the place itself, while Commons
-    // geosearch finds whatever happens to have been photographed nearby.
-    const pending: PlacePhotoCandidate[] = [
+    if (wikidata) {
+      const fromWikidata = await this.maps.fetchWikidataCandidates(wikidata, COMMONS_CAP);
+      push(commonsPool, fromWikidata.candidates, 'wikidata');
+      categoryName ??= fromWikidata.commonsCategory;
+    }
+
+    if (commonsPool.length < COMMONS_CAP && wikipedia) {
+      const leadName = await this.maps.fetchWikiLeadImageName(wikipedia);
+      if (leadName) {
+        const byName = await this.maps.fetchCommonsFilesByName([leadName]);
+        push(commonsPool, [...byName.values()], 'wikipedia');
+      }
+    }
+
+    if (commonsPool.length < COMMONS_CAP && categoryName) {
+      push(commonsPool, await this.maps.fetchCommonsCategoryCandidates(categoryName, COMMONS_CAP), 'category');
+    }
+
+    // Two is the bar: one curated picture plus the nearby noise reads worse
+    // than one curated picture on its own.
+    const curated = commonsPool.length;
+    // Started here, decided below. Waiting for Google's listing first would put
+    // two round trips end to end, and that is precisely the sequencing that
+    // used to push this endpoint past the client's timeout. Geosearch is free
+    // and unmetered, so a speculative call that gets discarded costs nothing
+    // anyone pays for.
+    const nearbyPending =
+      curated < 2 ? this.maps.fetchCommonsCandidates(req.lat, req.lng, COMMONS_CAP) : Promise.resolve([]);
+
+    const googleRefs = await googlePending;
+    if (curated < 2 && googleRefs.length < GOOGLE_CAP) {
+      push(commonsPool, await nearbyPending, 'nearby');
+    }
+
+    // One ranking pass over everything: the same file reaches us from several
+    // rungs and only the page id catches that.
+    const ranked = rankCommonsCandidates(commonsPool, COMMONS_CAP, { perAuthor: curated > 0 ? 2 : 1 });
+    // Google leads the strip — its pictures are of the business itself.
+    const pending: PendingCandidate[] = [
       ...googleRefs.map((ref) => ({
-        key: '',
-        url: '',
-        attribution: ref.attribution,
-        // Google grants no reusable licence for these; the author line it hands
-        // back is all we may show, so the rest stays honestly empty.
-        license: null,
-        licenseUrl: null,
-        sourceUrl: null,
-        source: 'google' as const,
+        identity: `google:${ref.name}`,
+        candidate: {
+          key: '',
+          url: '',
+          attribution: ref.attribution,
+          // Google grants no reusable licence for these; the author line it
+          // hands back is all we may show, so the rest stays honestly empty.
+          license: null,
+          licenseUrl: null,
+          sourceUrl: null,
+          source: 'google' as const,
+        },
+        fetchBytes: () => this.maps.fetchGooglePhotoBytes(ref.name, apiKey!),
       })),
-      ...commonsList.map((candidate) => ({
-        key: '',
-        url: '',
-        attribution: candidate.attribution,
-        license: candidate.license,
-        licenseUrl: candidate.licenseUrl,
-        sourceUrl: candidate.sourceUrl,
-        source: 'wikimedia' as const,
+      ...ranked.map((pick) => ({
+        identity: `commons:${pick.pageId ?? pick.photoUrl}`,
+        candidate: {
+          key: '',
+          url: '',
+          attribution: pick.attribution,
+          license: pick.license,
+          licenseUrl: pick.licenseUrl,
+          sourceUrl: pick.sourceUrl,
+          source: (pick.rung === 'wikipedia' ? 'wikipedia' : 'wikimedia') as 'wikipedia' | 'wikimedia',
+        },
+        fetchBytes: () => this.fetchRemoteBytes(pick.photoUrl),
       })),
     ];
 
@@ -262,16 +334,9 @@ export class PlaceEnrichmentService {
     // which pushed the whole request past the client's request timeout. The
     // shared slot limiter still caps how many run at once.
     const results = await Promise.all(
-      pending.map(async (candidate, index) => {
-        const key = candidateKey(placeId, index);
-        const fetchBytes =
-          candidate.source === 'google'
-            ? () => this.maps.fetchGooglePhotoBytes(googleRefs[index].name, apiKey!)
-            : () => this.fetchRemoteBytes(commonsList[index - googleRefs.length].photoUrl);
+      pending.map(async ({ identity, candidate, fetchBytes }) => {
+        const key = candidateKey(placeId, identity);
         const url = await this.storeCandidate(key, creditLine(candidate.attribution, candidate.license), fetchBytes);
-        // The index is fixed before any download, so a picture that fails to
-        // load leaves a gap rather than renumbering the ones after it — the key
-        // has to keep pointing at the same file across requests.
         return url ? { ...candidate, key, url } : null;
       }),
     );

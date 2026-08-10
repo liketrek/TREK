@@ -22,6 +22,8 @@ import {
   resolveOverpassTimeoutMs,
   stripWikiMarkup,
   parseWikipediaTag,
+  rankCommonsCandidates,
+  type RankableCommonsCandidate,
 } from '../../../src/nest/maps/maps.helpers';
 
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
@@ -104,7 +106,7 @@ const photoCacheStub = {
 
 import { db } from '../../../src/db/database';
 import { DatabaseService } from '../../../src/nest/database/database.service';
-import { MapsService, withPhotoFetchSlot } from '../../../src/nest/maps/maps.service';
+import { MapsService, withPhotoFetchSlot, readWikiIdentity } from '../../../src/nest/maps/maps.service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 
 // The service under test, constructed over the mocked db stub — DatabaseService
@@ -2343,13 +2345,16 @@ describe('fetchCommonsCandidates (fetch stubbed)', () => {
     );
     const out = await svc.fetchCommonsCandidates(48.8, 2.3, 5);
     expect(out).toHaveLength(2);
-    expect(out[0]).toEqual({
+    expect(out[0]).toMatchObject({
       photoUrl: 'https://commons.org/thumb.jpg',
       attribution: 'Alice',
       license: 'CC BY-SA 4.0',
       licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
       sourceUrl: 'https://commons.wikimedia.org/wiki/File:X.jpg',
     });
+    // The page id travels with the candidate: it is what identifies the file
+    // across the four routes that can reach it, and what keys its cached bytes.
+    expect(out[0].pageId).toBe(1);
   });
 
   it('MAPS-118: falls back to UsageTerms when there is no short licence name', async () => {
@@ -2397,18 +2402,22 @@ describe('fetchCommonsCandidates (fetch stubbed)', () => {
     expect(out[0].photoUrl).toBe('https://commons.org/original.jpg');
   });
 
-  it('MAPS-120: honours the limit and clamps it into the range Commons accepts', async () => {
+  it('MAPS-120: asks for more than the strip needs and clamps to what Commons accepts', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ query: { pages: { '1': page(), '2': page(), '3': page() } } }),
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    expect(await svc.fetchCommonsCandidates(48.8, 2.3, 2)).toHaveLength(2);
-    expect(String(fetchMock.mock.calls[0][0])).toContain('ggslimit=2');
+    // Overfetch on purpose: the first hits around anything worth visiting are
+    // survey tiles and the building next door, and the ranker can only reject
+    // from a pool. Geosearch bills the same for one result as for twenty, so
+    // the whole pool comes back and gets cut after ranking, not before.
+    expect(await svc.fetchCommonsCandidates(48.8, 2.3, 2)).toHaveLength(3);
+    expect(String(fetchMock.mock.calls[0][0])).toContain('ggslimit=8');
 
     await svc.fetchCommonsCandidates(48.8, 2.3, 0);
-    expect(String(fetchMock.mock.calls[1][0])).toContain('ggslimit=1');
+    expect(String(fetchMock.mock.calls[1][0])).toContain('ggslimit=8');
 
     await svc.fetchCommonsCandidates(48.8, 2.3, 99);
     expect(String(fetchMock.mock.calls[2][0])).toContain('ggslimit=20');
@@ -2534,15 +2543,40 @@ describe('fetchCommonsCategoryCandidates (fetch stubbed)', () => {
     const out = await svc.fetchCommonsCategoryCandidates('Category:Museum Ludwig', 3);
     expect(out).toHaveLength(1);
     expect(out[0]).toMatchObject({ photoUrl: 'https://commons.org/t.jpg', attribution: 'Alice', license: 'CC BY 4.0' });
-    expect(String(fetchMock.mock.calls[0][0])).toContain('gcmtitle=Category%3AMuseum+Ludwig');
+    // Ranked search, not the category listing: `categorymembers` orders by sort
+    // key, i.e. alphabetically by file name, and that put an .ogg pronunciation
+    // and six near-identical press shots at the head of the Brandenburg Gate
+    // category. The search index at least ranks by how well a file matches.
+    expect(String(fetchMock.mock.calls[0][0])).toContain('gsrsearch=incategory%3A%22Museum+Ludwig%22');
   });
 
-  it('MAPS-125d: adds the Category prefix when the tag omits it', async () => {
+  it('MAPS-125d: takes the bare category name whether or not the tag is prefixed', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ query: { pages: {} } }) });
     vi.stubGlobal('fetch', fetchMock);
 
     await svc.fetchCommonsCategoryCandidates('Museum Ludwig');
-    expect(String(fetchMock.mock.calls[0][0])).toContain('gcmtitle=Category%3AMuseum+Ludwig');
+    expect(String(fetchMock.mock.calls[0][0])).toContain('incategory%3A%22Museum+Ludwig%22');
+    // Empty search falls through to the category listing as a second chance.
+    expect(String(fetchMock.mock.calls[1][0])).toContain('gcmtitle=Category%3AMuseum+Ludwig');
+  });
+
+  it('MAPS-125f: refuses a tag that names a file rather than a category', async () => {
+    // Mappers do put `File:…` in wikimedia_commons. Prefixing it blindly asked
+    // Commons for `Category:File:X.jpg`, which matches nothing and fell through
+    // to the coordinate search without a word.
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await svc.fetchCommonsCategoryCandidates('File:Museum Ludwig.jpg')).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('MAPS-125g: strips a localised category prefix', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ query: { pages: {} } }) });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await svc.fetchCommonsCategoryCandidates('Kategorie:Museum Ludwig');
+    expect(String(fetchMock.mock.calls[0][0])).toContain('incategory%3A%22Museum+Ludwig%22');
   });
 
   it('MAPS-125e: yields nothing on an error response or a throw', async () => {
@@ -2704,5 +2738,141 @@ describe('withPhotoFetchSlot', () => {
     ).rejects.toThrow('boom');
     // The slot came back, so the next caller runs immediately.
     await expect(withPhotoFetchSlot(async () => 'free')).resolves.toBe('free');
+  });
+});
+
+/**
+ * MAPS-135..146 — the Commons ranker and the identity tags.
+ *
+ * Every fixture here is a real payload recorded while working out why the
+ * picker showed runways and train front-ends for Hamburg Airport, Berlin
+ * Hauptbahnhof and the Brandenburg Gate.
+ */
+describe('rankCommonsCandidates', () => {
+  const pic = (over: Partial<RankableCommonsCandidate> & { pageId: number }): RankableCommonsCandidate => ({
+    title: `File:pic ${over.pageId}.jpg`,
+    attribution: 'Someone',
+    width: 1600,
+    height: 1200,
+    descriptors: null,
+    photoUrl: `https://commons/thumb/${over.pageId}.jpg`,
+    ...over,
+  });
+
+  it('MAPS-135: drops a file that reached us twice under different thumbnail urls', () => {
+    const first = pic({ pageId: 47529341, photoUrl: 'https://commons/x.jpg?utm_source=commons.wikimedia.org' });
+    const again = { ...first, photoUrl: 'https://commons/x.jpg?utm_source=de.wikipedia.org' };
+    expect(rankCommonsCandidates([first, again], 5)).toHaveLength(1);
+  });
+
+  it('MAPS-136: rejects the aerial survey tiles that fill an airport geosearch', () => {
+    const tiles = [2013, 2015, 2016, 2019].map((year, i) =>
+      pic({
+        pageId: 100 + i,
+        title: `File:Dop20rgb 32565 5943 ${year}.jpg`,
+        attribution: 'Landesbetrieb Geoinformation Hamburg',
+        width: 5000,
+        height: 5000,
+        descriptors: `Orthophoto Sommerbefliegung ${year}`,
+      }),
+    );
+    expect(rankCommonsCandidates(tiles, 5)).toEqual([]);
+  });
+
+  it('MAPS-137: rejects noise maps and terminal layouts from a category', () => {
+    const docs = [
+      pic({ pageId: 200, title: 'File:Lärmkarte Flughafen Hamburg.png' }),
+      pic({ pageId: 201, title: 'File:EDDH HAM Layout.png' }),
+      pic({ pageId: 202, title: 'File:Grundriss Terminal 1.jpg' }),
+    ];
+    expect(rankCommonsCandidates(docs, 5)).toEqual([]);
+  });
+
+  it('MAPS-138: keeps one frame of a camera burst, not four', () => {
+    // The four shots that filled the Brandenburg Gate picker were one person
+    // walking through a station concourse.
+    const burst = [807, 808, 809, 810].map((n) =>
+      pic({ pageId: 300 + n, title: `File:Hauptbahnhof Berlin interior 0${n}.jpg`, attribution: 'Dosseman' }),
+    );
+    const kept = rankCommonsCandidates(burst, 5);
+    expect(kept).toHaveLength(1);
+    expect(kept[0].title).toBe('File:Hauptbahnhof Berlin interior 0807.jpg');
+  });
+
+  it('MAPS-139: collapses a press set numbered with trailing counters', () => {
+    const set = [16, 17, 18, 19, 20, 21].map((n) =>
+      pic({ pageId: 400 + n, title: `File:Alexander Schallenberg in Berlin on 7 June 2024 - ${n}.jpg` }),
+    );
+    expect(rankCommonsCandidates(set, 5)).toHaveLength(1);
+  });
+
+  it('MAPS-140: caps how much of the strip one author may supply', () => {
+    // Unrelated titles, same photographer — the series rule cannot see these,
+    // only the author cap can. On the coordinate rung nothing vouches that the
+    // pictures are even of the right subject, so variety is the only defence
+    // and one contributor gets one slot; a curated rung gets two.
+    const same = ['Rear entrance', 'Platform at dusk', 'Ticket hall'].map((subject, i) =>
+      pic({ pageId: 500 + i, title: `File:${subject}.jpg`, attribution: 'Bahnthaler' }),
+    );
+    expect(rankCommonsCandidates(same, 5, { perAuthor: 1 })).toHaveLength(1);
+    expect(rankCommonsCandidates(same, 5, { perAuthor: 2 })).toHaveLength(2);
+  });
+
+  it('MAPS-140b: the series rule catches a numbered pair before the author cap does', () => {
+    // "Berlin-Hamburg-Express 1/2.JPG", both by Bahnthaler — two files, one
+    // subject. This is the pair that filled the Berlin Hauptbahnhof picker.
+    const pair = [1, 2].map((n) =>
+      pic({ pageId: 510 + n, title: `File:Berlin-Hamburg-Express ${n}.JPG`, attribution: 'Bahnthaler' }),
+    );
+    expect(rankCommonsCandidates(pair, 5, { perAuthor: 2 })).toHaveLength(1);
+  });
+
+  it('MAPS-141: rejects panorama strips that would crop to nothing in a square tile', () => {
+    expect(rankCommonsCandidates([pic({ pageId: 600, width: 9000, height: 1200 })], 5)).toEqual([]);
+  });
+
+  it('MAPS-142: keeps a large square photo that is not a survey tile', () => {
+    const square = pic({ pageId: 601, width: 1200, height: 1200 });
+    expect(rankCommonsCandidates([square], 5)).toHaveLength(1);
+  });
+
+  it('MAPS-143: falls back to the url when a candidate carries no page id', () => {
+    const noId = { ...pic({ pageId: 0 }), pageId: null };
+    expect(rankCommonsCandidates([noId, { ...noId }], 5)).toHaveLength(1);
+  });
+
+  it('MAPS-144: stops at the limit', () => {
+    const many = Array.from({ length: 9 }, (_, i) =>
+      pic({ pageId: 700 + i, title: `File:Distinct subject ${String.fromCharCode(97 + i)}.jpg`, attribution: `Author ${i}` }),
+    );
+    expect(rankCommonsCandidates(many, 3)).toHaveLength(3);
+  });
+});
+
+describe('readWikiIdentity', () => {
+  it('MAPS-145: reads the three identity tags and nothing else', () => {
+    expect(
+      readWikiIdentity({
+        wikidata: 'Q82425',
+        wikipedia: 'de:Brandenburger Tor',
+        wikimedia_commons: 'Category:Brandenburg Gate',
+        cuisine: 'italian',
+      }),
+    ).toEqual({
+      wikidata: 'Q82425',
+      wikipedia: 'de:Brandenburger Tor',
+      wikimedia_commons: 'Category:Brandenburg Gate',
+    });
+  });
+
+  it('MAPS-146: ignores brand tags, which describe the chain and not the branch', () => {
+    // Real payload for "L'Osteria Rostock": following brand:wikidata would
+    // describe (and illustrate) L'Osteria the company.
+    const identity = readWikiIdentity({
+      'brand:wikidata': 'Q17323478',
+      'brand:wikipedia': 'de:L’Osteria',
+      cuisine: 'pizza',
+    });
+    expect(identity).toEqual({ wikidata: null, wikipedia: null, wikimedia_commons: null });
   });
 });

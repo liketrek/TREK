@@ -30,6 +30,7 @@ const { db } = vi.hoisted(() => {
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
 
 import { PlaceEnrichmentModule } from '../../src/nest/place-enrichment/place-enrichment.module';
+import { candidateKey } from '../../src/nest/place-enrichment/place-enrichment.service';
 import { MapsService } from '../../src/nest/maps/maps.service';
 import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
 import { DatabaseModule } from '../../src/nest/database/database.module';
@@ -123,6 +124,11 @@ describe('Place enrichment e2e (real auth guard + real validation pipe)', () => 
         license: 'CC BY-SA 4.0',
         licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
         sourceUrl: 'https://commons.wikimedia.org/wiki/File:X.jpg',
+        pageId: 4711,
+        title: 'File:X.jpg',
+        width: 1600,
+        height: 1200,
+        descriptors: null,
       },
     ]);
     // The bytes download goes through the SSRF-guarded fetch — stub the network.
@@ -133,7 +139,8 @@ describe('Place enrichment e2e (real auth guard + real validation pipe)', () => 
     expect(res.status).toBe(200);
     expect(res.body.photos).toHaveLength(1);
     expect(res.body.photos[0]).toMatchObject({
-      key: 'way:12345~p0',
+      // Keyed by the file's Commons page id, not by its slot in the strip.
+      key: candidateKey('way:12345', 'commons:4711'),
       attribution: 'Alice',
       license: 'CC BY-SA 4.0',
       source: 'wikimedia',

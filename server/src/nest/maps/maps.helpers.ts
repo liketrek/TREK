@@ -405,3 +405,121 @@ export const OSM_PLACE_ID = /^(?:node|way|relation):/i;
 export function isGooglePlaceId(placeId: string): boolean {
   return !NON_GOOGLE_PLACE_ID.test(placeId);
 }
+
+// ── Ranking Commons candidates ───────────────────────────────────────────────
+
+/**
+ * A candidate as the ranker needs to see it. Structurally the subset of
+ * `CommonsCandidate` it reads, kept local so the pure function does not have to
+ * import from the service that imports this file.
+ */
+export interface RankableCommonsCandidate {
+  pageId: number | null;
+  title: string | null;
+  attribution: string | null;
+  width: number | null;
+  height: number | null;
+  descriptors: string | null;
+  photoUrl: string;
+}
+
+/**
+ * Commons files that are near a place but are not a picture of it.
+ *
+ * Orthophotos are the worst offender by volume: German states upload their
+ * aerial survey tiles to Commons with coordinates, so a geosearch around any
+ * airport returns the runway as seen from a plane at 3000m — four of them for
+ * Hamburg, one per survey year. The rest are documents that happen to live in a
+ * place's category: noise maps, floor plans, terminal layouts, logos, coats of
+ * arms.
+ */
+const NOT_A_PHOTO_OF_THE_PLACE =
+  /orthophoto|orthofoto|sommerbefliegung|luftbildkarte|dop\d+|l[äa]rmkarte|noise map|floor ?plan|grundriss|lageplan|layout|diagram|schematic|blueprint|coat of arms|wappen|\blogo\b|flag of/i;
+
+/**
+ * Strips what makes two frames of the same burst look like different files, so
+ * they collapse onto one stem: trailing counters, camera dumps, dates, and the
+ * `- 17` / `(2)` suffixes press sets use.
+ */
+function seriesStem(title: string): string {
+  return title
+    .replace(/^File:/i, '')
+    .replace(/\.[a-z0-9]+$/i, '')
+    .toLowerCase()
+    // 20260614 100717648 HDR — a camera dump, all from the same minute
+    .replace(/\b\d{8}[ _-]\d{6,9}\b/g, ' ')
+    .replace(/\b(19|20)\d{2}\b/g, ' ')
+    .replace(/[ _-]+\(?\d{1,4}\)?$/g, '')
+    .replace(/[^a-z]+/g, ' ')
+    .trim();
+}
+
+/**
+ * Picks the pictures worth showing out of whatever the providers returned.
+ *
+ * Everything here was written against a real failing case. Deduplication is by
+ * page id because the same file reaches us under different thumbnail URLs. The
+ * series rule exists because Commons categories are full of bursts — the four
+ * `Hauptbahnhof Berlin interior 0807..0810` shots that filled the picker were
+ * one person walking across a concourse. The author cap is the same problem
+ * seen from the other side: one contributor who documented a station thoroughly
+ * should not supply the whole strip.
+ *
+ * `perAuthor` is the one knob: coordinate search gets 1, because there being no
+ * evidence the pictures are even of the right subject makes variety the only
+ * defence. Curated sources get 2 — someone already vouched that these depict
+ * the place.
+ */
+export function rankCommonsCandidates<T extends RankableCommonsCandidate>(
+  candidates: T[],
+  limit: number,
+  opts: { perAuthor?: number } = {},
+): T[] {
+  const perAuthor = opts.perAuthor ?? 2;
+  const seenPages = new Set<number>();
+  const seenUrls = new Set<string>();
+  const seenStems = new Set<string>();
+  const authorCounts = new Map<string, number>();
+  const out: T[] = [];
+
+  for (const candidate of candidates) {
+    if (out.length >= limit) break;
+
+    if (candidate.pageId != null) {
+      if (seenPages.has(candidate.pageId)) continue;
+    } else if (seenUrls.has(candidate.photoUrl)) {
+      // No page id (an older payload, or a provider that does not report one):
+      // the URL is a weaker key but better than letting an exact repeat through.
+      continue;
+    }
+
+    const haystack = `${candidate.title ?? ''} ${candidate.descriptors ?? ''}`;
+    if (NOT_A_PHOTO_OF_THE_PLACE.test(haystack)) continue;
+
+    const { width, height } = candidate;
+    if (width && height) {
+      // Survey tiles are square and enormous; nothing photographed by hand is.
+      if (width === height && width >= 3000) continue;
+      const ratio = Math.max(width / height, height / width);
+      // Panorama strips and tall banners crop to nothing in a square tile.
+      if (ratio > 4) continue;
+    }
+
+    const stem = candidate.title ? seriesStem(candidate.title) : '';
+    if (stem && seenStems.has(stem)) continue;
+
+    const author = (candidate.attribution ?? '').trim().toLowerCase();
+    if (author) {
+      const used = authorCounts.get(author) ?? 0;
+      if (used >= perAuthor) continue;
+      authorCounts.set(author, used + 1);
+    }
+
+    if (candidate.pageId != null) seenPages.add(candidate.pageId);
+    seenUrls.add(candidate.photoUrl);
+    if (stem) seenStems.add(stem);
+    out.push(candidate);
+  }
+
+  return out;
+}

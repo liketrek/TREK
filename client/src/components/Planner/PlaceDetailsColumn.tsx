@@ -72,9 +72,16 @@ function writeSession(key: string, value: MapsPlaceEnrichmentResult): void {
   }
 }
 
+/**
+ * Bumped with the server's CACHE_VERSION. sessionStorage outlives a deploy, so
+ * without it the tab that was open while the fix shipped keeps replaying the
+ * answer the fix was about — and reports it as still broken.
+ */
+const ENRICH_CACHE_V = 3
+
 function cacheKeyFor(selection: PlaceDetailsSelection, language: string): string {
   const id = selection.placeId || `coords:${selection.lat}:${selection.lng}`
-  return `enrich_${id}_${language}`
+  return `enrich_v${ENRICH_CACHE_V}_${id}_${language}`
 }
 
 type LoadState = 'idle' | 'loading' | 'ready' | 'error'

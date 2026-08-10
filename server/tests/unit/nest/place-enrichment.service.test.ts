@@ -36,7 +36,7 @@ vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KE
 
 import { db } from '../../../src/db/database';
 import { DatabaseService } from '../../../src/nest/database/database.service';
-import { PlaceEnrichmentService, creditLine, collectFacts } from '../../../src/nest/place-enrichment/place-enrichment.service';
+import { candidateKey, PlaceEnrichmentService, creditLine, collectFacts } from '../../../src/nest/place-enrichment/place-enrichment.service';
 import type { MapsService } from '../../../src/nest/maps/maps.service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 
@@ -55,6 +55,9 @@ function mapsStub(over: Partial<Record<keyof MapsService, unknown>> = {}) {
     fetchEditorialSummary: vi.fn(async () => null as string | null),
     fetchWikiExtract: vi.fn(async () => null as { text: string; sourceUrl: string; source: 'wikivoyage' | 'wikipedia' } | null),
     fetchCommonsCategoryCandidates: vi.fn(async () => [] as any[]),
+    fetchWikidataCandidates: vi.fn(async () => ({ candidates: [] as any[], commonsCategory: null as string | null })),
+    fetchCommonsFilesByName: vi.fn(async () => new Map<string, any>()),
+    fetchWikiLeadImageName: vi.fn(async () => null as string | null),
     details: vi.fn(async () => ({ place: null })),
     ...over,
   } as unknown as MapsService;
@@ -76,16 +79,31 @@ function make(maps: MapsService, cache: PlacePhotoCacheService) {
   return new PlaceEnrichmentService(new DatabaseService(db as never), maps, cache);
 }
 
-const commonsCandidate = (over: Record<string, unknown> = {}) => ({
-  photoUrl: 'https://commons.org/thumb.jpg',
-  attribution: 'Alice',
-  license: 'CC BY-SA 4.0',
-  licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
-  sourceUrl: 'https://commons.wikimedia.org/wiki/File:X.jpg',
-  ...over,
-});
+let candidateSeq = 0;
+const commonsCandidate = (over: Record<string, unknown> = {}) => {
+  // Distinct by default: the ranker deduplicates by page id and collapses
+  // same-stem titles, so fixtures that share either would silently collapse
+  // into one and make a test about ordering pass for the wrong reason.
+  const n = ++candidateSeq;
+  return {
+    photoUrl: 'https://commons.org/thumb.jpg',
+    attribution: 'Alice',
+    license: 'CC BY-SA 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+    sourceUrl: 'https://commons.wikimedia.org/wiki/File:X.jpg',
+    pageId: 1000 + n,
+    title: `File:Subject ${String.fromCharCode(96 + n)}.jpg`,
+    width: 1600,
+    height: 1200,
+    descriptors: null,
+    ...over,
+  };
+};
 
 beforeEach(() => {
+  // Per test, so a fixture's page id is a property of the case rather than of
+  // where the case sits in the file.
+  candidateSeq = 0;
   mockDbGet.mockReset();
   mockDbGet.mockReturnValue(undefined);
   mockDbRun.mockReset();
@@ -129,10 +147,12 @@ describe('collectPhotos', () => {
 
     const out = await make(maps, cacheStub()).enrich(1, REQ);
 
+    // Keyed by which file it is, not by where it landed in the strip.
+    const key = candidateKey('ChIJmuseum', 'commons:1001');
     expect(out.photos).toEqual([
       {
-        key: 'ChIJmuseum~p0',
-        url: '/api/maps/place-photo/ChIJmuseum~p0/bytes',
+        key,
+        url: `/api/maps/place-photo/${encodeURIComponent(key)}/bytes`,
         attribution: 'Alice',
         license: 'CC BY-SA 4.0',
         licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
@@ -166,14 +186,14 @@ describe('collectPhotos', () => {
 
     expect(out.photos.map((p) => p.source)).toEqual(['google', 'wikimedia']);
     expect(out.photos[0]).toMatchObject({
-      key: 'ChIJmuseum~p0',
+      key: candidateKey('ChIJmuseum', 'google:places/p/photos/a'),
       attribution: 'Bob',
       // Google grants no reusable licence — the fields stay empty rather than invented.
       license: null,
       licenseUrl: null,
       sourceUrl: null,
     });
-    expect(out.photos[1].key).toBe('ChIJmuseum~p1');
+    expect(out.photos[1].key).toBe(candidateKey('ChIJmuseum', 'commons:1001'));
   });
 
   it('ENRICH-006: respects the existing photos kill switch for the Google half', async () => {
@@ -212,7 +232,10 @@ describe('collectPhotos', () => {
 
   it('ENRICH-009: skips a candidate whose bytes will not download', async () => {
     const maps = mapsStub({
-      fetchCommonsCandidates: vi.fn(async () => [commonsCandidate({ photoUrl: 'https://commons.org/gone.jpg' }), commonsCandidate()]),
+      fetchCommonsCandidates: vi.fn(async () => [
+        commonsCandidate({ photoUrl: 'https://commons.org/gone.jpg', attribution: 'Alice' }),
+        commonsCandidate({ attribution: 'Bob' }),
+      ]),
     });
     mockSafeFetchFollow
       .mockResolvedValueOnce({ ok: false, arrayBuffer: async () => new ArrayBuffer(0) })
@@ -220,11 +243,11 @@ describe('collectPhotos', () => {
 
     const out = await make(maps, cacheStub()).enrich(1, REQ);
 
-    // The survivor keeps index 1 — keys number the provider's list, so a picture
-    // that fails leaves a gap instead of renumbering the ones behind it. Keys
-    // have to point at the same file on the next request.
+    // The survivor keeps its own key. That used to depend on the failed
+    // picture leaving a numbered gap behind it; now the key is derived from
+    // which file it is, so nothing in front of it can shift it.
     expect(out.photos).toHaveLength(1);
-    expect(out.photos[0].key).toBe('ChIJmuseum~p1');
+    expect(out.photos[0].key).toBe(candidateKey('ChIJmuseum', 'commons:1002'));
   });
 
   it('ENRICH-010: treats an empty body and a throwing download as a miss', async () => {
@@ -277,7 +300,10 @@ describe('collectPhotos', () => {
     const out = await make(maps, cacheStub()).enrich(1, REQ);
 
     expect(out.photos).toHaveLength(1);
-    expect(out.photos[0]).toMatchObject({ key: 'ChIJmuseum~p1', attribution: 'Cara' });
+    expect(out.photos[0]).toMatchObject({
+      key: candidateKey('ChIJmuseum', 'google:places/p/photos/ok'),
+      attribution: 'Cara',
+    });
   });
 
   it('ENRICH-012c: downloads the pictures concurrently, not one after another', async () => {
@@ -286,7 +312,9 @@ describe('collectPhotos', () => {
     let active = 0;
     let peak = 0;
     const maps = mapsStub({
-      fetchCommonsCandidates: vi.fn(async () => [commonsCandidate(), commonsCandidate(), commonsCandidate()]),
+      fetchCommonsCandidates: vi.fn(async () =>
+        ['Alice', 'Bob', 'Cara'].map((attribution) => commonsCandidate({ attribution })),
+      ),
     });
     mockSafeFetchFollow.mockImplementation(async () => {
       active++;
@@ -329,7 +357,7 @@ describe('collectPhotos', () => {
 
     const out = await make(maps, cacheStub()).enrich(1, { lat: 50.9, lng: 6.96, name: 'Bench' });
 
-    expect(out.photos[0].key).toBe('coords:50.9:6.96~p0');
+    expect(out.photos[0].key).toBe(candidateKey('coords:50.9:6.96', 'commons:1001'));
     expect(maps.fetchGooglePhotoRefs).not.toHaveBeenCalled();
   });
 });
@@ -473,7 +501,7 @@ describe('collectDescription', () => {
 describe('result cache', () => {
   // v is the cache format version; an entry written before a release that
   // changes the shape or the sources is discarded rather than served.
-  const cachedRow = (photos: unknown[], fetchedAt = Date.now(), v: number | undefined = 2) => ({
+  const cachedRow = (photos: unknown[], fetchedAt = Date.now(), v: number | undefined = 3) => ({
     payload_json: JSON.stringify({ photos, description: null, facts: [], v }),
     fetched_at: fetchedAt,
   });
@@ -610,7 +638,11 @@ describe('creditLine', () => {
 
     await make(maps, cache).enrich(1, REQ);
 
-    expect(cache.put).toHaveBeenCalledWith('ChIJmuseum~p0', expect.any(Buffer), 'Alice · CC BY-SA 4.0');
+    expect(cache.put).toHaveBeenCalledWith(
+      candidateKey('ChIJmuseum', 'commons:1001'),
+      expect.any(Buffer),
+      'Alice · CC BY-SA 4.0',
+    );
   });
 
   it('ENRICH-029: reads a stored credit back by cache key', () => {
@@ -702,14 +734,17 @@ describe('picture source selection', () => {
     // category of a place returns the place.
     const maps = mapsStub({
       details: vi.fn(async () => ({ place: { source: 'openstreetmap', wikimedia_commons: 'Category:Museum Ludwig' } })),
-      fetchCommonsCategoryCandidates: vi.fn(async () => [commonsCandidate()]),
+      fetchCommonsCategoryCandidates: vi.fn(async () =>
+        ['Alice', 'Bob'].map((attribution) => commonsCandidate({ attribution })),
+      ),
     });
 
     const out = await make(maps, cacheStub()).enrich(1, OSM_REQ);
 
     expect(maps.fetchCommonsCategoryCandidates).toHaveBeenCalledWith('Category:Museum Ludwig', 5);
+    // Two pictures of the place is a strip; the coordinate search is not asked.
     expect(maps.fetchCommonsCandidates).not.toHaveBeenCalled();
-    expect(out.photos).toHaveLength(1);
+    expect(out.photos).toHaveLength(2);
   });
 
   it('ENRICH-056: falls back to the coordinate search when the category is empty', async () => {
@@ -738,5 +773,177 @@ describe('picture source selection', () => {
     const out = await make(maps, cacheStub()).enrich(1, OSM_REQ);
 
     expect(out.description).toMatchObject({ source: 'wikivoyage', license: 'CC BY-SA 4.0' });
+  });
+});
+
+/**
+ * ENRICH-060..069 — the source ladder.
+ *
+ * The picker used to show aerial survey tiles for Hamburg Airport and the
+ * underground station for the Brandenburg Gate, because the only rung that ever
+ * ran was "photographed within 300m". These cases pin the order it climbs and
+ * when it is allowed to fall back that far.
+ */
+describe('picture source ladder', () => {
+  const withTags = (tags: Record<string, unknown>) =>
+    vi.fn(async () => ({ place: { source: 'openstreetmap', ...tags } }));
+
+  it('ENRICH-060: asks Wikidata first when the place carries a wikidata tag', async () => {
+    const maps = mapsStub({
+      details: withTags({ wikidata: 'Q1097' }),
+      fetchWikidataCandidates: vi.fn(async () => ({
+        candidates: ['Alice', 'Bob', 'Cara', 'Dana', 'Erin'].map((attribution) => commonsCandidate({ attribution })),
+        commonsCategory: 'Berlin Hauptbahnhof',
+      })),
+    });
+
+    const out = await make(maps, cacheStub()).enrich(1, OSM_REQ);
+
+    expect(maps.fetchWikidataCandidates).toHaveBeenCalledWith('Q1097', 5);
+    // A full strip of pictures somebody attached to this exact object — no rung
+    // below it is asked, least of all the coordinate search.
+    expect(maps.fetchCommonsCategoryCandidates).not.toHaveBeenCalled();
+    expect(maps.fetchCommonsCandidates).not.toHaveBeenCalled();
+    expect(out.photos).toHaveLength(5);
+  });
+
+  it('ENRICH-061: takes the Commons category Wikidata names when the tag omits it', async () => {
+    // Berlin Hauptbahnhof carries wikidata but no wikimedia_commons in OSM; the
+    // item's P373 knows the category anyway.
+    const maps = mapsStub({
+      details: withTags({ wikidata: 'Q1097' }),
+      fetchWikidataCandidates: vi.fn(async () => ({
+        candidates: [commonsCandidate()],
+        commonsCategory: 'Berlin Hauptbahnhof',
+      })),
+      fetchCommonsCategoryCandidates: vi.fn(async () => [commonsCandidate({ attribution: 'Bob' })]),
+    });
+
+    await make(maps, cacheStub()).enrich(1, OSM_REQ);
+
+    expect(maps.fetchCommonsCategoryCandidates).toHaveBeenCalledWith('Berlin Hauptbahnhof', 5);
+  });
+
+  it('ENRICH-062: reaches for the article lead image when there is no wikidata tag', async () => {
+    const maps = mapsStub({
+      details: withTags({ wikipedia: 'de:Flughafen Hamburg' }),
+      fetchWikiLeadImageName: vi.fn(async () => 'Hamburg airport terminals.jpg'),
+      fetchCommonsFilesByName: vi.fn(async () =>
+        new Map([['hamburg airport terminals.jpg', commonsCandidate({ attribution: 'Alice' })]]),
+      ),
+    });
+
+    const out = await make(maps, cacheStub()).enrich(1, OSM_REQ);
+
+    expect(maps.fetchWikiLeadImageName).toHaveBeenCalledWith('de:Flughafen Hamburg');
+    expect(maps.fetchCommonsFilesByName).toHaveBeenCalledWith(['Hamburg airport terminals.jpg']);
+    // Reported as a Wikipedia picture, because that is where it was chosen.
+    expect(out.photos[0].source).toBe('wikipedia');
+  });
+
+  it('ENRICH-063: only falls back to what was photographed nearby when the rest came up thin', async () => {
+    const maps = mapsStub({
+      details: withTags({ wikidata: 'Q1097' }),
+      fetchWikidataCandidates: vi.fn(async () => ({ candidates: [commonsCandidate()], commonsCategory: null })),
+      fetchCommonsCandidates: vi.fn(async () => [commonsCandidate({ attribution: 'Bob' })]),
+    });
+
+    await make(maps, cacheStub()).enrich(1, OSM_REQ);
+
+    // One curated picture is not a strip, so the coordinate search tops it up.
+    expect(maps.fetchCommonsCandidates).toHaveBeenCalled();
+  });
+
+  it('ENRICH-064: does not run the coordinate search behind a full Google strip', async () => {
+    const maps = mapsStub({
+      getMapsKey: vi.fn(() => 'key'),
+      fetchGooglePhotoRefs: vi.fn(async () => [
+        { name: 'places/p/photos/a', attribution: 'Bob' },
+        { name: 'places/p/photos/b', attribution: 'Cara' },
+        { name: 'places/p/photos/c', attribution: 'Dana' },
+      ]),
+      fetchGooglePhotoBytes: vi.fn(async () => Buffer.from([1, 2, 3])),
+    });
+
+    const out = await make(maps, cacheStub()).enrich(1, REQ);
+
+    expect(out.photos).toHaveLength(3);
+    expect(out.photos.every((p) => p.source === 'google')).toBe(true);
+  });
+
+  it('ENRICH-065: keeps the coordinate search off the critical path of Google\'s listing', async () => {
+    // Waiting for the listing before deciding put two round trips end to end,
+    // which is what pushed this endpoint past the client timeout once before.
+    const order: string[] = [];
+    const maps = mapsStub({
+      getMapsKey: vi.fn(() => 'key'),
+      fetchGooglePhotoRefs: vi.fn(async () => {
+        order.push('google:start');
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        order.push('google:end');
+        return [];
+      }),
+      fetchCommonsCandidates: vi.fn(async () => {
+        order.push('commons:start');
+        return [];
+      }),
+    });
+
+    await make(maps, cacheStub()).enrich(1, REQ);
+
+    expect(order.indexOf('commons:start')).toBeLessThan(order.indexOf('google:end'));
+  });
+
+  it('ENRICH-066: drops a picture that two rungs both produced', async () => {
+    const shared = commonsCandidate({ pageId: 4242, attribution: 'Alice' });
+    const maps = mapsStub({
+      details: withTags({ wikidata: 'Q1097', wikimedia_commons: 'Category:X' }),
+      fetchWikidataCandidates: vi.fn(async () => ({ candidates: [shared], commonsCategory: null })),
+      fetchCommonsCategoryCandidates: vi.fn(async () => [{ ...shared, photoUrl: 'https://commons.org/other-url.jpg' }]),
+    });
+
+    const out = await make(maps, cacheStub()).enrich(1, OSM_REQ);
+
+    // Same page id, different thumbnail url — the url alone would let it through.
+    expect(out.photos).toHaveLength(1);
+  });
+
+  it('ENRICH-067: throws away the survey tiles a geosearch around an airport returns', async () => {
+    const maps = mapsStub({
+      fetchCommonsCandidates: vi.fn(async () =>
+        [2013, 2015, 2016, 2019].map((year) =>
+          commonsCandidate({
+            title: `File:Dop20rgb 32565 5943 ${year}.jpg`,
+            attribution: 'Landesbetrieb Geoinformation Hamburg',
+            width: 5000,
+            height: 5000,
+            descriptors: 'Orthophoto Sommerbefliegung',
+          }),
+        ),
+      ),
+    });
+
+    const out = await make(maps, cacheStub()).enrich(1, REQ);
+
+    expect(out.photos).toEqual([]);
+  });
+
+  it('ENRICH-068: keys a picture by which file it is, not by where it sat', async () => {
+    // The strip length changes with which providers answered. Keyed by position,
+    // a slot that held a Wikidata photo one minute held a category photo the
+    // next while the cache kept serving the first one's bytes — under CC BY
+    // that credits the wrong person, not just the wrong thumbnail.
+    const one = mapsStub({ fetchCommonsCandidates: vi.fn(async () => [commonsCandidate({ pageId: 777 })]) });
+    const first = (await make(one, cacheStub()).enrich(1, REQ)).photos[0].key;
+
+    const two = mapsStub({
+      fetchCommonsCandidates: vi.fn(async () => [
+        commonsCandidate({ pageId: 111, attribution: 'Zoe' }),
+        commonsCandidate({ pageId: 777 }),
+      ]),
+    });
+    const shifted = (await make(two, cacheStub()).enrich(1, REQ)).photos.find((p) => p.attribution === 'Alice');
+
+    expect(shifted?.key).toBe(first);
   });
 });
