@@ -854,14 +854,13 @@ describe('TripFormModal', () => {
     render(<TripFormModal {...defaultProps} trip={null} />);
     const zone = screen.getByRole('button', { name: /Add cover image/i });
 
+    // Dragging over highlights the zone in the user's accent. This used to be
+    // four handlers writing element.style, which is how a hard-coded indigo
+    // outlived the switch to a configurable accent.
     fireEvent.dragOver(zone);
-    expect(zone.style.borderColor).toBe('rgb(99, 102, 241)');
+    expect(zone.className).toContain('border-accent');
     fireEvent.dragLeave(zone);
-    expect(zone.style.borderColor).toBe('rgb(229, 231, 235)');
-    fireEvent.mouseEnter(zone);
-    expect(zone.style.color).toBe('rgb(107, 114, 128)');
-    fireEvent.mouseLeave(zone);
-    expect(zone.style.color).toBe('rgb(156, 163, 175)');
+    expect(zone.className).not.toContain('border-accent');
 
     fireEvent.drop(zone, { dataTransfer: { files: [new File(['x'], 'notes.txt', { type: 'text/plain' })] } });
     expect(createObjectURL).not.toHaveBeenCalled();
