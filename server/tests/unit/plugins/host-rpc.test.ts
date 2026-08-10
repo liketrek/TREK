@@ -102,7 +102,21 @@ const registry = createTestPluginRegistry([
 const factory = new PluginRpcHostFactory(dbs, registry as unknown as PluginRpcRegistryService);
 const stubRouter: PluginCallRouter = { callPlugin: async () => undefined, emitPluginEvent: () => {} };
 const makeHost = (id: string, ...perms: string[]) => factory.create(id, new Set(perms), stubRouter);
-type Res = RpcResponse & Partial<RpcError>;
+/**
+ * A response read loosely, on purpose.
+ *
+ * `RpcResponse & Partial<RpcError>` collapsed to `never`: both carry `ok`, one
+ * as the literal `true` and the other as `false`, so the intersection has no
+ * inhabitant and every `.ok` / `.result` / `.error` below was an error the
+ * build never saw, because tests/ sits outside tsconfig's include. The union
+ * would be the honest runtime type, but `dispatch` here is asserted on from
+ * both sides in the same expression, so this widens instead of narrowing.
+ */
+type Res = Pick<RpcResponse, 'k' | 'id'> & {
+  ok: boolean;
+  result?: unknown;
+  error?: RpcError['error'];
+};
 // The acting user is a REST arg, not a defaulted one: an explicit `undefined` has to
 // stay undefined (that is the userless-context case), and a default parameter would
 // quietly turn it back into user 5.

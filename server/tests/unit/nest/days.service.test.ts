@@ -59,8 +59,10 @@ import { DaysService, DayReorderError, addDays } from '../../../src/nest/days/da
 import { getDay as bridgeGetDay, listDays as bridgeListDays } from '../../../src/nest/days/days.bridge';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
+import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 
 const svc = new DaysService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), new QueryHelpersService(new DatabaseService(testDb)));
+const accommodations = new AccommodationsService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService());
 
 beforeAll(() => {
   createTables(testDb);
@@ -332,6 +334,11 @@ describe('quirk fixes', () => {
     expect(day.title).toBe('Arrival');
   });
 
+  // Asserted against AccommodationsService, which owns createAccommodation since
+  // the days/accommodations split. It read `svc.createAccommodation` until then:
+  // that is `undefined`, calling it throws, and `.toThrow()` was satisfied by the
+  // TypeError rather than by the rollback. The invariant went unchecked for the
+  // whole time the case reported green.
   it('DAY-SVC-034 — createAccommodation is atomic: a failed reservation insert leaves no orphan stay', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
@@ -339,7 +346,7 @@ describe('quirk fixes', () => {
     const place = createPlace(testDb, trip.id, { name: 'Hotel' });
     testDb.exec("CREATE TRIGGER boom BEFORE INSERT ON reservations BEGIN SELECT RAISE(ABORT, 'boom'); END");
     try {
-      expect(() => svc.createAccommodation(trip.id, {
+      expect(() => accommodations.createAccommodation(trip.id, {
         place_id: place.id, start_day_id: day.id, end_day_id: day.id,
       })).toThrow();
       expect(testDb.prepare('SELECT COUNT(*) as n FROM day_accommodations WHERE trip_id = ?').get(trip.id)).toMatchObject({ n: 0 });
