@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
   Accessibility,
+  ArrowRight,
   Bike,
   Building2,
   Check,
@@ -195,13 +196,17 @@ export default function PlaceDetailsColumn({
     !data?.rating
 
   return (
-    <aside className="w-full sm:w-72 shrink-0 flex flex-col rounded-xl border border-edge bg-surface-secondary overflow-hidden self-stretch">
+    // 320px, not 288: the picture grid was doing (288 - 24 - 12) / 3 = 84px
+    // tiles, which is too small to tell a facade from a foyer. The column is
+    // stretched to the form's height by the row it sits in, so the extra room
+    // costs nothing that was being used.
+    <aside className="w-full sm:w-80 shrink-0 flex flex-col rounded-xl border border-edge bg-surface-secondary overflow-hidden self-stretch">
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-edge shrink-0">
         <Landmark size={15} className="text-accent" />
-        <span className="text-[13px] font-semibold text-content">{t('places.details.title')}</span>
+        <span className="text-body font-semibold text-content">{t('places.details.title')}</span>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3.5">
         {!selection && <p className="text-caption text-content-muted">{t('places.details.empty')}</p>}
 
         {selection && state === 'loading' && (
@@ -242,31 +247,53 @@ export default function PlaceDetailsColumn({
               t={t}
             />
             <FactList facts={data?.facts ?? []} t={t} />
-            <DescriptionBlock
-              description={data?.description ?? null}
-              hasDescription={hasDescription}
-              onAdoptDescription={onAdoptDescription}
-              t={t}
-            />
+            <DescriptionBlock description={data?.description ?? null} t={t} />
           </>
         )}
       </div>
+
+      {/* Pinned, not scrolled. Adopting the text is the only thing this column
+          asks the reader to do, and it used to sit below a description long
+          enough to push it out of view — the button was there, just never
+          where anyone looked. */}
+      {selection && state === 'ready' && !data?.disabled && data?.description && (
+        <div className="shrink-0 border-t border-edge p-2.5">
+          <button
+            type="button"
+            onClick={() => onAdoptDescription(data.description!.text)}
+            disabled={hasDescription}
+            title={hasDescription ? t('places.details.adoptBlocked') : undefined}
+            className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-body font-medium bg-accent-subtle text-accent-on hover:bg-accent hover:text-accent-text disabled:opacity-50 disabled:hover:bg-accent-subtle disabled:hover:text-accent-on transition-colors"
+          >
+            <ArrowRight className="w-3.5 h-3.5" />
+            {t('places.details.adopt')}
+          </button>
+          {hasDescription && (
+            <p className="mt-1 text-center text-caption text-content-faint">{t('places.details.adoptBlocked')}</p>
+          )}
+        </div>
+      )}
     </aside>
   )
 }
 
+/** The name to put under a picture. Google gives no author, so it gets its own name. */
+function creditOf(photo: PlacePhotoCandidate): string {
+  return photo.attribution || sourceLabelFor(photo.source)
+}
+
 /**
- * The picture strip.
+ * The pictures: one large, the rest as a thumbnail rail.
  *
- * A tight three-column grid rather than a lead image: this sits beside a form
- * in a dialog, and pictures that take half the column push the facts and the
- * description out of sight.
+ * This was a three-column square grid, which in a 288px column worked out to
+ * 84px tiles — too small to tell a facade from a foyer, and the whole reason
+ * for choosing one over another. A lead image at 4:3 shows what the picture
+ * actually is; the rail below it says how many others there are.
  *
- * Only the picture in play is credited in full. Crediting all of them at once
- * cost two lines each and drowned the column, and the licence obligation
- * attaches to the picture that gets used — which is the selected one, whose
- * credit also stays visible in the inspector after saving. Every tile still
- * carries the full credit as its tooltip and links to its source page.
+ * The click count is unchanged: a thumbnail picks that picture, exactly as the
+ * tiles did. Hovering one only previews it in the lead slot, and clicking the
+ * lead toggles the picture currently shown — so nothing that worked before
+ * takes an extra step now.
  */
 function PhotoStrip({
   photos,
@@ -282,24 +309,53 @@ function PhotoStrip({
   const [hovered, setHovered] = useState<string | null>(null)
   if (photos.length === 0) return null
 
-  const shown = photos.find((p) => p.url === (hovered ?? selectedImageUrl)) ?? photos[0]
+  const lead = photos.find((p) => p.url === (hovered ?? selectedImageUrl)) ?? photos[0]
+  const leadPicked = !!selectedImageUrl && lead.url === selectedImageUrl
 
   return (
     <div className="space-y-2">
       <Overline>{t('places.details.pickImage')}</Overline>
-      <div className="grid grid-cols-3 gap-1.5">
-        {photos.map((photo) => (
-          <PhotoTile
-            key={photo.key}
-            photo={photo}
-            selected={selectedImageUrl === photo.url}
-            onPick={onPickImage}
-            onHover={setHovered}
-            t={t}
-          />
-        ))}
-      </div>
-      <PhotoCredit photo={shown} />
+      <button
+        type="button"
+        onClick={() => onPickImage(leadPicked ? null : lead.url)}
+        aria-pressed={leadPicked}
+        aria-label={`${t('places.details.pickImage')} — ${creditOf(lead)}`}
+        className={`group relative block w-full aspect-[4/3] overflow-hidden rounded-lg bg-surface transition-shadow ${
+          leadPicked
+            ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface-secondary'
+            : 'ring-1 ring-edge hover:ring-content-muted'
+        }`}
+      >
+        <img src={lead.url} alt="" className="w-full h-full object-cover" />
+        {/* The credit rides on the picture it belongs to. As its own line below
+            the grid it changed text on every hover, which read as flicker and
+            left the licence attached to nothing in particular. */}
+        <span className="absolute inset-x-0 bottom-0 bg-[var(--tooltip-bg)] px-2 py-1 backdrop-blur-[2px]">
+          <span className="block truncate text-caption leading-tight text-content-secondary">
+            <PhotoCredit photo={lead} />
+          </span>
+        </span>
+        {leadPicked && (
+          <span className="absolute top-1.5 right-1.5 rounded-full bg-accent p-1 shadow-card">
+            <Check className="w-3 h-3 text-accent-text" />
+          </span>
+        )}
+      </button>
+      {photos.length > 1 && (
+        <div className="grid grid-cols-4 gap-1.5">
+          {photos.map((photo) => (
+            <PhotoTile
+              key={photo.key}
+              photo={photo}
+              selected={selectedImageUrl === photo.url}
+              showing={lead.url === photo.url}
+              onPick={onPickImage}
+              onHover={setHovered}
+              t={t}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -307,17 +363,20 @@ function PhotoStrip({
 function PhotoTile({
   photo,
   selected,
+  showing,
   onPick,
   onHover,
   t,
 }: {
   photo: PlacePhotoCandidate
   selected: boolean
+  /** Currently in the lead slot, whether by hover or by being the picked one. */
+  showing: boolean
   onPick: (url: string | null) => void
   onHover: (url: string | null) => void
   t: TranslationFn
 }): React.ReactElement {
-  const credit = photo.attribution || sourceLabelFor(photo.source)
+  const credit = creditOf(photo)
 
   return (
     <button
@@ -330,19 +389,23 @@ function PhotoTile({
       aria-pressed={selected}
       aria-label={`${t('places.details.pickImage')} — ${credit}`}
       title={`${credit}${photo.license ? ` · ${photo.license}` : ''}`}
-      className={`group relative block w-full aspect-square overflow-hidden rounded-lg transition-shadow ${
-        selected ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface-secondary' : 'ring-1 ring-edge hover:ring-content-muted'
+      className={`group relative block w-full aspect-square overflow-hidden rounded-md transition-shadow ${
+        selected
+          ? 'ring-2 ring-accent'
+          : showing
+            ? 'ring-1 ring-content-muted'
+            : 'ring-1 ring-edge hover:ring-content-muted'
       }`}
     >
       <img
         src={photo.url}
         alt=""
         loading="lazy"
-        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+        className={`w-full h-full object-cover transition-opacity ${showing || selected ? '' : 'opacity-70 group-hover:opacity-100'}`}
       />
       {selected && (
-        <span className="absolute top-1 right-1 rounded-full bg-accent p-0.5 shadow-card">
-          <Check className="w-2.5 h-2.5 text-accent-on" />
+        <span className="absolute bottom-0.5 right-0.5 rounded-full bg-accent p-0.5 shadow-card">
+          <Check className="w-2 h-2 text-accent-text" />
         </span>
       )}
     </button>
@@ -356,18 +419,18 @@ function sourceLabelFor(source: PlacePhotoCandidate['source']): string {
 }
 
 /**
- * Author and licence for the picture currently in play.
+ * Author and licence for the picture in the lead slot.
  *
  * Not decoration: Commons images are largely CC BY / CC BY-SA, and reusing one
  * without naming its author does not satisfy those terms. When a source hands
  * us no author (Google), we say where it came from rather than inventing one.
+ * Rendered inline — the container supplies the colour and the truncation.
  */
 function PhotoCredit({ photo }: { photo: PlacePhotoCandidate }): React.ReactElement {
-  const credit = photo.attribution || sourceLabelFor(photo.source)
-  const full = `${credit}${photo.license ? ` · ${photo.license}` : ''}`
+  const credit = creditOf(photo)
 
   return (
-    <p className="text-caption leading-tight text-content-faint truncate" title={full}>
+    <>
       {photo.sourceUrl ? (
         <a href={photo.sourceUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
           {credit}
@@ -387,7 +450,7 @@ function PhotoCredit({ photo }: { photo: PlacePhotoCandidate }): React.ReactElem
           )}
         </>
       )}
-    </p>
+    </>
   )
 }
 
@@ -610,15 +673,18 @@ function FactList({ facts, t }: { facts: PlaceFact[]; t: TranslationFn }): React
   )
 }
 
+/**
+ * The description and where it came from.
+ *
+ * The adopt button used to live at the bottom of this block, which put it below
+ * however much prose the source returned — reliably out of view. It is the
+ * column's only action, so it moved to a pinned footer instead.
+ */
 function DescriptionBlock({
   description,
-  hasDescription,
-  onAdoptDescription,
   t,
 }: {
   description: MapsPlaceEnrichmentResult['description']
-  hasDescription: boolean
-  onAdoptDescription: (text: string) => void
   t: TranslationFn
 }): React.ReactElement | null {
   if (!description) return null
@@ -666,15 +732,6 @@ function DescriptionBlock({
           {description.license && ` · ${description.license}`}
         </p>
       </div>
-      <button
-        type="button"
-        onClick={() => onAdoptDescription(description.text)}
-        className="w-full text-caption px-2 py-1.5 rounded-lg border border-edge text-content hover:bg-surface-hover disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
-        disabled={hasDescription}
-        title={hasDescription ? t('places.details.adoptBlocked') : undefined}
-      >
-        {t('places.details.adopt')}
-      </button>
     </div>
   )
 }
