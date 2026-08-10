@@ -17,6 +17,7 @@ import type { Reservation, ReservationEndpoint } from '../../types'
 
 export const RESERVATION_SOURCE_ID = 'trek-reservations'
 export const RESERVATION_LINE_LAYER_ID = 'trek-reservations-lines'
+export const RESERVATION_TRANSIT_CASING_LAYER_ID = `${RESERVATION_LINE_LAYER_ID}-transit-casing`
 
 type TransportType = 'flight' | 'train' | 'cruise' | 'car' | 'bus' | 'taxi' | 'bicycle' | 'ferry' | 'transit' | 'transport_other'
 const TRANSPORT_TYPES: TransportType[] = ['flight', 'train', 'cruise', 'car', 'bus', 'taxi', 'bicycle', 'ferry', 'transit', 'transport_other']
@@ -239,6 +240,7 @@ export class ReservationMapboxOverlay {
     this.statsMarkers.forEach(s => s.marker.remove())
     this.statsMarkers = []
     try {
+      if (this.map.getLayer(RESERVATION_TRANSIT_CASING_LAYER_ID)) this.map.removeLayer(RESERVATION_TRANSIT_CASING_LAYER_ID)
       if (this.map.getLayer(RESERVATION_LINE_LAYER_ID)) this.map.removeLayer(RESERVATION_LINE_LAYER_ID)
       if (this.map.getSource(RESERVATION_SOURCE_ID)) this.map.removeSource(RESERVATION_SOURCE_ID)
     } catch { /* map already gone */ }
@@ -250,7 +252,7 @@ export class ReservationMapboxOverlay {
     map.addSource(RESERVATION_SOURCE_ID, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
     // White casing under real transit paths so the colored lines read cleanly.
     map.addLayer({
-      id: RESERVATION_LINE_LAYER_ID + '-transit-casing',
+      id: RESERVATION_TRANSIT_CASING_LAYER_ID,
       type: 'line',
       source: RESERVATION_SOURCE_ID,
       filter: ['all', ['==', ['get', 'transitPath'], true], ['!=', ['get', 'walk'], true]] as any,
