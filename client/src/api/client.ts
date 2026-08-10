@@ -42,9 +42,8 @@ import {
   type FileLinkRequest,
   type FileUpdateRequest,
   type ForgotPasswordRequest,
-  type GuestClaimCandidatesResponse,
-  type GuestClaimPromptResponse,
-  type GuestClaimResponse,
+  type GuestIdentityTransferCandidatesResponse,
+  type GuestIdentityTransferResponse,
   type InAppListResult,
   type JourneyAddTripRequest,
   type JourneyCreateRequest,
@@ -55,6 +54,8 @@ import {
   type McpTokenCreateRequest,
   type MfaEnableRequest,
   type MfaVerifyLoginRequest,
+  type NewMemberIdentityCheckCompletionResponse,
+  type NewMemberIdentityCheckResponse,
   type NotificationRespondRequest,
   type PackingApplyTemplateRequest,
   type PackingBagMembersRequest,
@@ -462,20 +463,22 @@ export const tripsApi = {
     apiClient.put(`/trips/${id}/guests/${userId}`, { name } satisfies TripRenameGuestRequest).then((r) => r.data),
   deleteGuest: (id: number | string, userId: number) =>
     apiClient.delete(`/trips/${id}/guests/${userId}`).then((r) => r.data),
-  promptGuestClaim: (
+  runNewMemberIdentityCheck: (
     id: number | string,
     options: { idempotencyKey: string; signal?: AbortSignal }
-  ): Promise<GuestClaimPromptResponse> =>
+  ): Promise<NewMemberIdentityCheckResponse> =>
     apiClient
-      .post(`/trips/${id}/guest-claims/prompt`, undefined, {
+      .post(`/trips/${id}/new-member-identity-check`, undefined, {
         headers: { 'X-Idempotency-Key': options.idempotencyKey },
         signal: options.signal,
       })
       .then((r) => r.data),
-  getGuestClaimCandidates: (id: number | string): Promise<GuestClaimCandidatesResponse> =>
-    apiClient.get(`/trips/${id}/guest-claims/candidates`).then((r) => r.data),
-  claimGuest: (id: number | string, guestUserId: number): Promise<GuestClaimResponse> =>
-    apiClient.post(`/trips/${id}/guests/${guestUserId}/claim`).then((r) => r.data),
+  declineNewMemberIdentityCheck: (id: number | string): Promise<NewMemberIdentityCheckCompletionResponse> =>
+    apiClient.post(`/trips/${id}/new-member-identity-check/decline`).then((r) => r.data),
+  getGuestIdentityTransferCandidates: (id: number | string): Promise<GuestIdentityTransferCandidatesResponse> =>
+    apiClient.get(`/trips/${id}/guest-identity-transfers/candidates`).then((r) => r.data),
+  transferGuestIdentity: (id: number | string, guestUserId: number): Promise<GuestIdentityTransferResponse> =>
+    apiClient.post(`/trips/${id}/guests/${guestUserId}/identity-transfer`).then((r) => r.data),
   copy: (id: number | string, data?: TripCopyRequest) =>
     apiClient.post(`/trips/${id}/copy`, data || {}).then((r) => r.data),
   bundle: (id: number | string) => apiClient.get(`/trips/${id}/bundle`).then((r) => r.data),

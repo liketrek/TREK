@@ -13,7 +13,7 @@ import { ReservationModal } from '../components/Planner/ReservationModal';
 import TransitJourneyModal from '../components/Planner/TransitJourneyModal';
 import { TransportModal } from '../components/Planner/TransportModal';
 import SlidingTabs from '../components/shared/SlidingTabs';
-import GuestClaimModal from '../components/Trips/GuestClaimModal';
+import GuestIdentityTransferModal from '../components/Trips/GuestIdentityTransferModal';
 import TripFormModal from '../components/Trips/TripFormModal';
 import TripMembersModal from '../components/Trips/TripMembersModal';
 import { useSettingsStore } from '../store/settingsStore';
@@ -325,11 +325,11 @@ export default function TripPlannerPage(): React.ReactElement | null {
     setShowTripForm,
     showMembersModal,
     setShowMembersModal,
-    guestClaimCandidates,
-    setGuestClaimCandidates,
-    showGuestClaimModal,
-    setShowGuestClaimModal,
-    guestClaimTripId,
+    guestIdentityTransferCandidates,
+    setGuestIdentityTransferCandidates,
+    showGuestIdentityTransferModal,
+    setShowGuestIdentityTransferModal,
+    guestIdentityTransferTripId,
     showReservationModal,
     setShowReservationModal,
     editingReservation,
@@ -1619,12 +1619,12 @@ export default function TripPlannerPage(): React.ReactElement | null {
         tripTitle={trip?.title}
         onMembersChanged={refreshMembers}
       />
-      <GuestClaimModal
-        isOpen={showGuestClaimModal && guestClaimTripId === tripId}
+      <GuestIdentityTransferModal
+        isOpen={showGuestIdentityTransferModal && guestIdentityTransferTripId === tripId}
         tripId={tripId}
-        candidates={guestClaimCandidates}
-        onCandidatesChanged={setGuestClaimCandidates}
-        onClose={() => setShowGuestClaimModal(false)}
+        candidates={guestIdentityTransferCandidates}
+        onCandidatesChanged={setGuestIdentityTransferCandidates}
+        onDismiss={() => setShowGuestIdentityTransferModal(false)}
       />
       <ReservationModal
         isOpen={showReservationModal}

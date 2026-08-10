@@ -212,10 +212,10 @@ vi.mock('../hooks/usePlaceSelection', () => ({
 }));
 
 // Helper to seed a complete trip store state with mocked actions
-function seedTripStore(overrides: { id?: number; tripName?: string; withMocks?: boolean } = {}) {
-  const { id = 42, tripName = 'Test Trip', withMocks = true } = overrides;
+function seedTripStore(overrides: { id?: number; tripName?: string; withMocks?: boolean; isOwner?: boolean } = {}) {
+  const { id = 42, tripName = 'Test Trip', withMocks = true, isOwner = false } = overrides;
   // Use `title` because TripPlannerPage reads trip.title
-  const trip = { ...buildTrip({ id }), title: tripName };
+  const trip = { ...buildTrip({ id }), title: tripName, is_owner: isOwner ? 1 : 0 };
   const day = buildDay({ trip_id: id });
 
   const mockLoadTrip = withMocks ? vi.fn().mockResolvedValue(undefined) : undefined;
@@ -257,9 +257,14 @@ function renderPlannerPage(tripId: number | string) {
 function renderPlannerPageWithTripSwitch(tripId: number, nextTripId: number) {
   function Harness() {
     const navigate = useNavigate();
+    const [showingFirstTrip, setShowingFirstTrip] = React.useState(true);
+    const switchTrip = () => {
+      navigate(`/trips/${showingFirstTrip ? nextTripId : tripId}`);
+      setShowingFirstTrip((current) => !current);
+    };
     return (
       <>
-        <button onClick={() => navigate(`/trips/${nextTripId}`)}>Switch trip</button>
+        <button onClick={switchTrip}>Switch trip</button>
         <Routes>
           <Route path="/trips/:id" element={<TripPlannerPage />} />
         </Routes>
@@ -290,11 +295,13 @@ beforeEach(() => {
   capturedTripMembersModalProps.current = {};
   capturedFileManagerProps.current = {};
   capturedPlaceInspectorProps.current = {};
-  seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
+  seedStore(useAuthStore, { isAuthenticated: true, user: buildUser({ id: 999 }) });
   setForcedOffline(false);
   connectivityMock.reset();
   server.use(
-    http.post('/api/trips/:tripId/guest-claims/prompt', () => HttpResponse.json({ prompted: false, candidates: [] }))
+    http.post('/api/trips/:tripId/new-member-identity-check', () =>
+      HttpResponse.json({ required: false, candidates: [] })
+    )
   );
 });
 
@@ -304,14 +311,14 @@ afterEach(() => {
 });
 
 describe('TripPlannerPage', () => {
-  describe('guest claim first-entry prompt', () => {
-    it('consumes the prompt once after initial loading and opens it when candidates exist', async () => {
-      let promptCalls = 0;
+  describe('new-member identity check', () => {
+    it('checks once after initial loading and opens when candidates exist', async () => {
+      let checkCalls = 0;
       server.use(
-        http.post('/api/trips/42/guest-claims/prompt', () => {
-          promptCalls += 1;
+        http.post('/api/trips/42/new-member-identity-check', () => {
+          checkCalls += 1;
           return HttpResponse.json({
-            prompted: true,
+            required: true,
             candidates: [
               {
                 guest_user_id: 7,
@@ -331,80 +338,135 @@ describe('TripPlannerPage', () => {
       });
       vi.useRealTimers();
       expect(await screen.findByText('Is one of these guests you?')).toBeInTheDocument();
-      expect(promptCalls).toBe(1);
+      expect(checkCalls).toBe(1);
+    });
+
+    it('does not call the identity-check API for the trip owner', async () => {
+      let checkCalls = 0;
+      server.use(
+        http.post('/api/trips/42/new-member-identity-check', () => {
+          checkCalls += 1;
+          return HttpResponse.json({ required: false, candidates: [] });
+        })
+      );
+      vi.useFakeTimers();
+      seedTripStore({ id: 42, isOwner: true });
+      renderPlannerPage(42);
+      await act(async () => vi.runAllTimers());
+      vi.useRealTimers();
+      expect(checkCalls).toBe(0);
+    });
+
+    it('defers an ordinary dismissal and checks again only after re-entering the trip', async () => {
+      let tripAChecks = 0;
+      server.use(
+        http.post('/api/trips/42/new-member-identity-check', () => {
+          tripAChecks += 1;
+          return HttpResponse.json({
+            required: true,
+            candidates: [
+              {
+                guest_user_id: 7,
+                name: 'Anna',
+                impact: { expenses: 0, payments: 0, itinerary: 0, todos: 0, packing: 0 },
+                conflicts: [],
+              },
+            ],
+          });
+        }),
+        http.post('/api/trips/43/new-member-identity-check', () =>
+          HttpResponse.json({ required: false, candidates: [] })
+        )
+      );
+      vi.useFakeTimers();
+      seedTripStore({ id: 42 });
+      renderPlannerPageWithTripSwitch(42, 43);
+      await act(async () => vi.runAllTimers());
+      vi.useRealTimers();
+
+      expect(await screen.findByText('Anna')).toBeInTheDocument();
+      await userEvent.keyboard('{Escape}');
+      expect(screen.queryByText('Anna')).not.toBeInTheDocument();
+      expect(tripAChecks).toBe(1);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Switch trip' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Switch trip' }));
+
+      expect(await screen.findByText('Anna')).toBeInTheDocument();
+      expect(tripAChecks).toBe(2);
     });
 
     it('waits for effective connectivity and retries once when availability returns', async () => {
       let online = false;
       vi.spyOn(window.navigator, 'onLine', 'get').mockImplementation(() => online);
-      let promptCalls = 0;
+      let checkCalls = 0;
       server.use(
-        http.post('/api/trips/42/guest-claims/prompt', () => {
-          promptCalls += 1;
-          return HttpResponse.json({ prompted: false, candidates: [] });
+        http.post('/api/trips/42/new-member-identity-check', () => {
+          checkCalls += 1;
+          return HttpResponse.json({ required: false, candidates: [] });
         })
       );
       vi.useFakeTimers();
       seedTripStore({ id: 42 });
       renderPlannerPage(42);
       await act(async () => vi.runAllTimers());
-      expect(promptCalls).toBe(0);
+      expect(checkCalls).toBe(0);
 
       online = true;
       await act(async () => window.dispatchEvent(new Event('online')));
       vi.useRealTimers();
-      await waitFor(() => expect(promptCalls).toBe(1));
+      await waitFor(() => expect(checkCalls).toBe(1));
     });
 
     it('starts once after forced offline is lifted', async () => {
-      let promptCalls = 0;
+      let checkCalls = 0;
       setForcedOffline(true);
       server.use(
-        http.post('/api/trips/42/guest-claims/prompt', () => {
-          promptCalls += 1;
-          return HttpResponse.json({ prompted: false, candidates: [] });
+        http.post('/api/trips/42/new-member-identity-check', () => {
+          checkCalls += 1;
+          return HttpResponse.json({ required: false, candidates: [] });
         })
       );
       vi.useFakeTimers();
       seedTripStore({ id: 42 });
       renderPlannerPage(42);
       await act(async () => vi.runAllTimers());
-      expect(promptCalls).toBe(0);
+      expect(checkCalls).toBe(0);
 
       await act(async () => setForcedOffline(false));
       vi.useRealTimers();
-      await waitFor(() => expect(promptCalls).toBe(1));
+      await waitFor(() => expect(checkCalls).toBe(1));
     });
 
     it('starts once when the server becomes reachable', async () => {
-      let promptCalls = 0;
+      let checkCalls = 0;
       connectivityMock.setReachable(false);
       server.use(
-        http.post('/api/trips/42/guest-claims/prompt', () => {
-          promptCalls += 1;
-          return HttpResponse.json({ prompted: false, candidates: [] });
+        http.post('/api/trips/42/new-member-identity-check', () => {
+          checkCalls += 1;
+          return HttpResponse.json({ required: false, candidates: [] });
         })
       );
       vi.useFakeTimers();
       seedTripStore({ id: 42 });
       renderPlannerPage(42);
       await act(async () => vi.runAllTimers());
-      expect(promptCalls).toBe(0);
+      expect(checkCalls).toBe(0);
 
       await act(async () => connectivityMock.setReachable(true));
       vi.useRealTimers();
-      await waitFor(() => expect(promptCalls).toBe(1));
+      await waitFor(() => expect(checkCalls).toBe(1));
     });
 
     it('replays a lost response with the same idempotency key only after a real reconnect', async () => {
       const keys: Array<string | null> = [];
       let calls = 0;
       server.use(
-        http.post('/api/trips/42/guest-claims/prompt', ({ request }) => {
+        http.post('/api/trips/42/new-member-identity-check', ({ request }) => {
           keys.push(request.headers.get('X-Idempotency-Key'));
           calls += 1;
           if (calls === 1) return HttpResponse.error();
-          return HttpResponse.json({ prompted: false, candidates: [] });
+          return HttpResponse.json({ required: false, candidates: [] });
         })
       );
       vi.useFakeTimers();
@@ -428,11 +490,11 @@ describe('TripPlannerPage', () => {
     it.each([400, 503])('classifies %s responses for reconnect-only retry', async (status) => {
       let calls = 0;
       server.use(
-        http.post('/api/trips/42/guest-claims/prompt', () => {
+        http.post('/api/trips/42/new-member-identity-check', () => {
           calls += 1;
           return calls === 1
             ? HttpResponse.json({ error: 'failed' }, { status })
-            : HttpResponse.json({ prompted: false, candidates: [] });
+            : HttpResponse.json({ required: false, candidates: [] });
         })
       );
       vi.useFakeTimers();
@@ -455,12 +517,12 @@ describe('TripPlannerPage', () => {
     it('aborts and ignores an older trip response after switching trips', async () => {
       let resolveTripA: (() => void) | undefined;
       server.use(
-        http.post('/api/trips/42/guest-claims/prompt', async () => {
+        http.post('/api/trips/42/new-member-identity-check', async () => {
           await new Promise<void>((resolve) => {
             resolveTripA = resolve;
           });
           return HttpResponse.json({
-            prompted: true,
+            required: true,
             candidates: [
               {
                 guest_user_id: 7,
@@ -471,7 +533,9 @@ describe('TripPlannerPage', () => {
             ],
           });
         }),
-        http.post('/api/trips/43/guest-claims/prompt', () => HttpResponse.json({ prompted: false, candidates: [] }))
+        http.post('/api/trips/43/new-member-identity-check', () =>
+          HttpResponse.json({ required: false, candidates: [] })
+        )
       );
       vi.useFakeTimers();
       seedTripStore({ id: 42 });
@@ -488,9 +552,9 @@ describe('TripPlannerPage', () => {
 
     it('hides an open prompt immediately when the active trip changes', async () => {
       server.use(
-        http.post('/api/trips/42/guest-claims/prompt', () =>
+        http.post('/api/trips/42/new-member-identity-check', () =>
           HttpResponse.json({
-            prompted: true,
+            required: true,
             candidates: [
               {
                 guest_user_id: 7,
@@ -501,7 +565,9 @@ describe('TripPlannerPage', () => {
             ],
           })
         ),
-        http.post('/api/trips/43/guest-claims/prompt', () => HttpResponse.json({ prompted: false, candidates: [] }))
+        http.post('/api/trips/43/new-member-identity-check', () =>
+          HttpResponse.json({ required: false, candidates: [] })
+        )
       );
       vi.useFakeTimers();
       seedTripStore({ id: 42 });

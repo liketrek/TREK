@@ -16,10 +16,11 @@ import {
   deleteGuest,
   listMembers,
   addMember,
-  listGuestClaimCandidates,
-  consumeGuestClaimPrompt,
-  claimGuest,
-  GuestClaimError,
+  listGuestIdentityTransferCandidates,
+  runNewMemberIdentityCheck,
+  completeNewMemberIdentityCheck,
+  transferGuestIdentity,
+  GuestIdentityTransferError,
 } from '../../../src/services/tripService';
 import {
   createUser,
@@ -898,8 +899,8 @@ describe('guest members (#1362)', () => {
   });
 });
 
-describe('guest claims', () => {
-  function claimFixture() {
+describe('guest identity transfers', () => {
+  function identityTransferFixture() {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
@@ -916,20 +917,20 @@ describe('guest claims', () => {
     expect(
       (
         testDb
-          .prepare('SELECT guest_claim_prompted_at FROM trip_members WHERE trip_id = ? AND user_id = ?')
+          .prepare('SELECT new_member_identity_check_completed_at FROM trip_members WHERE trip_id = ? AND user_id = ?')
           .get(trip.id, legacyMember.id) as any
-      ).guest_claim_prompted_at,
+      ).new_member_identity_check_completed_at,
     ).toBeNull();
 
     const version = (testDb.prepare('SELECT version FROM schema_version').get() as { version: number }).version;
-    testDb.prepare('UPDATE schema_version SET version = ?').run(version - 1);
+    testDb.prepare('UPDATE schema_version SET version = ?').run(version - 2);
     runMigrations(testDb);
     expect(
       (
         testDb
-          .prepare('SELECT guest_claim_prompted_at FROM trip_members WHERE trip_id = ? AND user_id = ?')
+          .prepare('SELECT new_member_identity_check_completed_at FROM trip_members WHERE trip_id = ? AND user_id = ?')
           .get(trip.id, legacyMember.id) as any
-      ).guest_claim_prompted_at,
+      ).new_member_identity_check_completed_at,
     ).not.toBeNull();
 
     const { user: newMember } = createUser(testDb);
@@ -937,32 +938,53 @@ describe('guest claims', () => {
     expect(
       (
         testDb
-          .prepare('SELECT guest_claim_prompted_at FROM trip_members WHERE trip_id = ? AND user_id = ?')
+          .prepare('SELECT new_member_identity_check_completed_at FROM trip_members WHERE trip_id = ? AND user_id = ?')
           .get(trip.id, newMember.id) as any
-      ).guest_claim_prompted_at,
+      ).new_member_identity_check_completed_at,
     ).toBeNull();
     const guest = createGuest(trip.id, 'No prompt', owner.id).member;
     expect(
       (
         testDb
-          .prepare('SELECT guest_claim_prompted_at FROM trip_members WHERE trip_id = ? AND user_id = ?')
+          .prepare('SELECT new_member_identity_check_completed_at FROM trip_members WHERE trip_id = ? AND user_id = ?')
           .get(trip.id, guest.id) as any
-      ).guest_claim_prompted_at,
+      ).new_member_identity_check_completed_at,
     ).not.toBeNull();
   });
 
-  it('TRIP-SVC-035: consumes the first-entry prompt once, including when candidates are present', () => {
-    const { member, trip, guest } = claimFixture();
+  it('TRIP-SVC-035: keeps a candidate-bearing identity check pending until explicitly completed', () => {
+    const { member, trip, guest } = identityTransferFixture();
 
-    expect(consumeGuestClaimPrompt(trip.id, member.id)).toMatchObject({
-      prompted: true,
+    expect(runNewMemberIdentityCheck(trip.id, member.id)).toMatchObject({
+      required: true,
       candidates: [{ guest_user_id: guest.id, name: 'Anna' }],
     });
-    expect(consumeGuestClaimPrompt(trip.id, member.id)).toEqual({ prompted: false, candidates: [] });
+    expect(runNewMemberIdentityCheck(trip.id, member.id)).toMatchObject({ required: true });
+
+    completeNewMemberIdentityCheck(trip.id, member.id);
+    expect(runNewMemberIdentityCheck(trip.id, member.id)).toEqual({ required: false, candidates: [] });
+  });
+
+  it('TRIP-SVC-042: completes the identity check when no candidates exist', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+
+    expect(runNewMemberIdentityCheck(trip.id, member.id)).toEqual({ required: false, candidates: [] });
+    expect(
+      (
+        testDb
+          .prepare(
+            'SELECT new_member_identity_check_completed_at AS completedAt FROM trip_members WHERE trip_id = ? AND user_id = ?',
+          )
+          .get(trip.id, member.id) as { completedAt: string | null }
+      ).completedAt,
+    ).not.toBeNull();
   });
 
   it('TRIP-SVC-036: previews and atomically moves every core trip participation reference', () => {
-    const { owner, member, trip, guest } = claimFixture();
+    const { owner, member, trip, guest } = identityTransferFixture();
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id);
     const assignment = createDayAssignment(testDb, day.id, place.id);
@@ -1019,13 +1041,22 @@ describe('guest claims', () => {
       .prepare("INSERT INTO plugin_user_config (plugin_id, user_id, config) VALUES ('claim-test', ?, '{}')")
       .run(guest.id);
 
-    const preview = listGuestClaimCandidates(trip.id, member.id)[0];
+    const preview = listGuestIdentityTransferCandidates(trip.id, member.id)[0];
     expect(preview.impact).toEqual({ expenses: 1, payments: 1, itinerary: 1, todos: 2, packing: 3 });
     expect(preview.conflicts).toEqual([]);
 
-    const result = claimGuest(trip.id, guest.id, member.id);
-    expect(result).toMatchObject({ success: true, claimed_guest_user_id: guest.id, impact: preview.impact });
+    const result = transferGuestIdentity(trip.id, guest.id, member.id);
+    expect(result).toMatchObject({ success: true, transferred_guest_user_id: guest.id, impact: preview.impact });
     expect(testDb.prepare('SELECT id FROM users WHERE id = ?').get(guest.id)).toBeUndefined();
+    expect(
+      (
+        testDb
+          .prepare(
+            'SELECT new_member_identity_check_completed_at AS completedAt FROM trip_members WHERE trip_id = ? AND user_id = ?',
+          )
+          .get(trip.id, member.id) as { completedAt: string | null }
+      ).completedAt,
+    ).not.toBeNull();
     for (const [table, column] of [
       ['budget_item_members', 'user_id'],
       ['budget_item_payers', 'user_id'],
@@ -1085,14 +1116,15 @@ describe('guest claims', () => {
         .get(guest.id),
     ).toEqual({ plugin_id: 'claim-test', user_id: guest.id });
     expect(
-      (testDb.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'trip.guest_claim'").get() as any).n,
+      (testDb.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'trip.guest_identity_transfer'").get() as any)
+        .n,
     ).toBe(1);
     testDb.prepare("DELETE FROM plugin_user_erasure_queue WHERE plugin_id = 'claim-test'").run();
     testDb.prepare("DELETE FROM plugins WHERE id = 'claim-test'").run();
   });
 
   it('TRIP-SVC-037: deduplicates non-financial joins while preserving the account member row', () => {
-    const { member, trip, guest } = claimFixture();
+    const { member, trip, guest } = identityTransferFixture();
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id);
     const assignment = createDayAssignment(testDb, day.id, place.id);
@@ -1103,7 +1135,7 @@ describe('guest claims', () => {
       .prepare('INSERT INTO assignment_participants (assignment_id, user_id) VALUES (?, ?)')
       .run(assignment.id, guest.id);
 
-    claimGuest(trip.id, guest.id, member.id);
+    transferGuestIdentity(trip.id, guest.id, member.id);
     expect(
       (
         testDb
@@ -1148,16 +1180,16 @@ describe('guest claims', () => {
       'ticket_participant_overlap',
     ],
   ])('TRIP-SVC-038: rolls back a %s ambiguity', (_label, arrange, conflictType) => {
-    const { member, trip, guest } = claimFixture();
+    const { member, trip, guest } = identityTransferFixture();
     const expense = createBudgetItem(testDb, trip.id);
     arrange(expense, guest.id, member.id);
 
-    expect(() => claimGuest(trip.id, guest.id, member.id)).toThrow(GuestClaimError);
+    expect(() => transferGuestIdentity(trip.id, guest.id, member.id)).toThrow(GuestIdentityTransferError);
     try {
-      claimGuest(trip.id, guest.id, member.id);
+      transferGuestIdentity(trip.id, guest.id, member.id);
     } catch (error) {
       expect(error).toMatchObject({
-        code: 'GUEST_CLAIM_CONFLICT',
+        code: 'GUEST_IDENTITY_TRANSFER_CONFLICT',
         conflicts: [{ type: conflictType, record_id: expense.id }],
       });
     }
@@ -1165,7 +1197,7 @@ describe('guest claims', () => {
   });
 
   it('TRIP-SVC-039: blocks malformed ticket data and a settlement that would become self-payment', () => {
-    const { member, trip, guest } = claimFixture();
+    const { member, trip, guest } = identityTransferFixture();
     const expense = createBudgetItem(testDb, trip.id);
     testDb.prepare('INSERT INTO budget_item_members (budget_item_id, user_id) VALUES (?, ?)').run(expense.id, guest.id);
     testDb.prepare("UPDATE budget_items SET note = 'TICKETJSON:{broken' WHERE id = ?").run(expense.id);
@@ -1173,14 +1205,14 @@ describe('guest claims', () => {
       .prepare('INSERT INTO budget_settlements (trip_id, from_user_id, to_user_id, amount) VALUES (?, ?, ?, 5)')
       .run(trip.id, guest.id, member.id);
 
-    const conflicts = listGuestClaimCandidates(trip.id, member.id)[0].conflicts;
+    const conflicts = listGuestIdentityTransferCandidates(trip.id, member.id)[0].conflicts;
     expect(conflicts).toEqual(
       expect.arrayContaining([
         { type: 'invalid_ticket_json', record_id: expense.id },
         expect.objectContaining({ type: 'settlement_self_payment' }),
       ]),
     );
-    expect(() => claimGuest(trip.id, guest.id, member.id)).toThrow(GuestClaimError);
+    expect(() => transferGuestIdentity(trip.id, guest.id, member.id)).toThrow(GuestIdentityTransferError);
   });
 
   it.each([
@@ -1188,11 +1220,11 @@ describe('guest claims', () => {
     ['price', (guestId: number) => `TICKETJSON:{"items":[{"price":"${guestId}"`],
     ['different IDs', (guestId: number) => `TICKETJSON:{"items":[{"parts":[1${guestId},${guestId}0]`],
   ])('TRIP-SVC-042: damaged ticket %s text is not identity evidence', (_label, noteFor) => {
-    const { member, trip, guest } = claimFixture();
+    const { member, trip, guest } = identityTransferFixture();
     const expense = createBudgetItem(testDb, trip.id);
     testDb.prepare('UPDATE budget_items SET note = ? WHERE id = ?').run(noteFor(guest.id), expense.id);
 
-    expect(listGuestClaimCandidates(trip.id, member.id)[0].conflicts).not.toContainEqual({
+    expect(listGuestIdentityTransferCandidates(trip.id, member.id)[0].conflicts).not.toContainEqual({
       type: 'invalid_ticket_json',
       record_id: expense.id,
     });
@@ -1201,7 +1233,7 @@ describe('guest claims', () => {
   it.each(['share', 'payer', 'legacy payer'])(
     'TRIP-SVC-043: damaged ticket with a Guest %s blocks and rolls back',
     (kind) => {
-      const { member, trip, guest } = claimFixture();
+      const { member, trip, guest } = identityTransferFixture();
       const expense = createBudgetItem(testDb, trip.id);
       testDb.prepare("UPDATE budget_items SET note = 'TICKETJSON:{broken' WHERE id = ?").run(expense.id);
       if (kind === 'share') {
@@ -1216,7 +1248,7 @@ describe('guest claims', () => {
         testDb.prepare('UPDATE budget_items SET paid_by_user_id = ? WHERE id = ?').run(guest.id, expense.id);
       }
 
-      expect(() => claimGuest(trip.id, guest.id, member.id)).toThrow(
+      expect(() => transferGuestIdentity(trip.id, guest.id, member.id)).toThrow(
         expect.objectContaining({
           conflicts: expect.arrayContaining([{ type: 'invalid_ticket_json', record_id: expense.id }]),
         }),
@@ -1225,14 +1257,14 @@ describe('guest claims', () => {
     },
   );
 
-  it('TRIP-SVC-040: forbids owners and rejects a guest after another member claimed it', () => {
-    const { owner, member, trip, guest } = claimFixture();
-    expect(() => listGuestClaimCandidates(trip.id, owner.id)).toThrow(
-      expect.objectContaining({ code: 'GUEST_CLAIM_FORBIDDEN' }),
+  it('TRIP-SVC-040: forbids owners and rejects a guest after another member transferred it', () => {
+    const { owner, member, trip, guest } = identityTransferFixture();
+    expect(() => listGuestIdentityTransferCandidates(trip.id, owner.id)).toThrow(
+      expect.objectContaining({ code: 'GUEST_IDENTITY_TRANSFER_FORBIDDEN' }),
     );
-    claimGuest(trip.id, guest.id, member.id);
-    expect(() => claimGuest(trip.id, guest.id, member.id)).toThrow(
-      expect.objectContaining({ code: 'GUEST_ALREADY_CLAIMED' }),
+    transferGuestIdentity(trip.id, guest.id, member.id);
+    expect(() => transferGuestIdentity(trip.id, guest.id, member.id)).toThrow(
+      expect.objectContaining({ code: 'GUEST_ALREADY_TRANSFERRED' }),
     );
   });
 });
