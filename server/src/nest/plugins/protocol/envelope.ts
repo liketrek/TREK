@@ -418,6 +418,7 @@ export const HOOK_PERMISSION = {
   journalEntryProvider: 'hook:journal-entry-provider',
   tripCardProvider: 'hook:trip-card-provider',
   notificationChannel: 'hook:notification-channel',
+  poiCategoryProvider: 'hook:poi-category-provider',
 } as const satisfies Record<string, KnownPermission>;
 
 export type HookKey = keyof typeof HOOK_PERMISSION;

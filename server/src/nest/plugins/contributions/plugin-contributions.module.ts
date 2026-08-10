@@ -16,6 +16,7 @@ import { DayTintsController } from './day-tints.controller';
 import { PdfSectionsController } from './pdf-sections.controller';
 import { AtlasLayersController } from './atlas-layers.controller';
 import { JournalEntryRowsController } from './journal-entry-rows.controller';
+import { PoiCategoriesController } from './poi-categories.controller';
 
 /**
  * The read-only surface plugins contribute to the app: photos, calendar events,
@@ -45,6 +46,7 @@ import { JournalEntryRowsController } from './journal-entry-rows.controller';
     PdfSectionsController,
     AtlasLayersController,
     JournalEntryRowsController,
+    PoiCategoriesController,
   ],
 })
 export class PluginContributionsModule {}

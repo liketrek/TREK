@@ -130,6 +130,16 @@ export class PluginHooks {
     return this.runtime.invokeHook(pluginId, 'tripCardProvider', 'getCards', [tripIds], userId, 5000);
   }
 
+  @PluginHook('poiCategoryProvider', { permission: 'hook:poi-category-provider', fn: 'getCategories', timeoutMs: 5000 })
+  poiCategories(pluginId: string, userId: number): Promise<unknown> {
+    return this.runtime.invokeHook(pluginId, 'poiCategoryProvider', 'getCategories', [], userId, 5000);
+  }
+
+  @PluginHook('poiCategoryProvider', { permission: 'hook:poi-category-provider', fn: 'search', timeoutMs: 8000 })
+  poiSearch(pluginId: string, opts: Record<string, unknown>, userId: number): Promise<unknown> {
+    return this.runtime.invokeHook(pluginId, 'poiCategoryProvider', 'search', [opts], userId, 8000);
+  }
+
   /**
    * Both notification-channel calls run with NO acting user: a notification is
    * host-initiated for an arbitrary recipient, so the hook gets that recipient's own

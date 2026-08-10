@@ -18,6 +18,7 @@ export const HOOK_PERMISSION: Readonly<Record<string, string>> = {
   journalEntryProvider: 'hook:journal-entry-provider',
   tripCardProvider: 'hook:trip-card-provider',
   notificationChannel: 'hook:notification-channel',
+  poiCategoryProvider: 'hook:poi-category-provider',
 };
 
 export const KNOWN_PERMISSIONS: string[] = [
@@ -76,6 +77,7 @@ export const KNOWN_PERMISSIONS: string[] = [
   'hook:journal-entry-provider',
   'hook:trip-card-provider',
   'hook:notification-channel',
+  'hook:poi-category-provider',
   'hook:user-data',
   'events:subscribe',
   'jobs:run',

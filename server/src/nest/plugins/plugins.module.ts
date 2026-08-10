@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { PoiCategoriesController } from './poi-categories.controller';
 import { PluginsController } from './plugins.controller';
 import { PluginsFeedController } from './plugins-feed.controller';
 import { PluginsProxyController } from './plugins-proxy.controller';

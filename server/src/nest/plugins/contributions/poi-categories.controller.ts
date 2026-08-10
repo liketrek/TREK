@@ -1,9 +1,9 @@
 import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { pluginsEnabled } from './kill-switch';
-import { PluginRuntimeService } from './plugin-runtime.service';
-import { stripEmoji } from './text-sanitize';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { pluginsEnabled } from '../kill-switch';
+import { PluginHooks } from '../plugin-hooks.service';
+import { stripEmoji } from '../text-sanitize';
 
 /**
  * GET /api/plugin-poi-categories — search POIs contributed by plugins that
@@ -116,7 +116,7 @@ export interface PoiSearchQuery {
 @Controller('api/plugin-poi-categories')
 @UseGuards(JwtAuthGuard)
 export class PoiCategoriesController {
-  constructor(private readonly runtime: PluginRuntimeService) {}
+  constructor(private readonly hooks: PluginHooks) {}
 
   @Get()
   async search(
@@ -138,13 +138,13 @@ export class PoiCategoriesController {
       }
     }
 
-    const ids = this.runtime.providersOf('poiCategoryProvider');
+    const ids = this.hooks.providersOf('poiCategoryProvider');
     const results = await Promise.all(
       ids.map(async (id): Promise<ProviderResult | null> => {
         try {
           const [rawCategories, rawSearch] = await Promise.all([
-            this.runtime.invokeHook(id, 'poiCategoryProvider', 'getCategories', [], userId, 5000),
-            this.runtime.invokeHook(id, 'poiCategoryProvider', 'search', [opts], userId, 8000),
+            this.hooks.poiCategories(id, userId),
+            this.hooks.poiSearch(id, opts, userId),
           ]);
           const categories = normalizeCategories(rawCategories);
           const search = rawSearch && typeof rawSearch === 'object' ? rawSearch as Record<string, unknown> : {};
