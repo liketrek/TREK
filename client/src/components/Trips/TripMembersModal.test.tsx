@@ -31,7 +31,8 @@ beforeEach(() => {
       })
     ),
     http.get('/api/trips/1/share-link', () => HttpResponse.json({ token: null })),
-    http.get('/api/auth/users', () => HttpResponse.json({ users: [memberUser] }))
+    http.get('/api/auth/users', () => HttpResponse.json({ users: [memberUser] })),
+    http.post('/api/trips/:tripId/new-member-identity-check/decline', () => HttpResponse.json({ success: true }))
   );
   seedStore(useAuthStore, { user: ownerUser, isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1, title: 'Test Trip' }) });
@@ -459,7 +460,7 @@ describe('TripMembersModal', () => {
     expect(screen.getByText(/Access \(2/)).toBeInTheDocument();
   });
 
-  it('FE-COMP-MEMBERS-028: owner does not see the manual guest-claim entry', async () => {
+  it('FE-COMP-MEMBERS-028: owner does not see the manual guest-identity-transfer entry', async () => {
     server.use(
       http.get('/api/trips/1/members', () =>
         HttpResponse.json({
@@ -471,10 +472,10 @@ describe('TripMembersModal', () => {
     );
     render(<TripMembersModal {...defaultProps} />);
     await screen.findByText('Grandma');
-    expect(screen.queryByRole('button', { name: 'Claim a guest' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Transfer a Guest identity' })).not.toBeInTheDocument();
   });
 
-  it('FE-COMP-MEMBERS-029: non-owner account member can reopen guest claiming manually', async () => {
+  it('FE-COMP-MEMBERS-029: non-owner account member can reopen Guest identity transfer manually', async () => {
     seedStore(useAuthStore, { user: memberUser, isAuthenticated: true });
     server.use(
       http.get('/api/trips/1/members', () =>
@@ -487,7 +488,7 @@ describe('TripMembersModal', () => {
           current_user_id: memberUser.id,
         })
       ),
-      http.get('/api/trips/1/guest-claims/candidates', () =>
+      http.get('/api/trips/1/guest-identity-transfers/candidates', () =>
         HttpResponse.json({
           candidates: [
             {
@@ -498,14 +499,15 @@ describe('TripMembersModal', () => {
             },
           ],
         })
-      )
+      ),
+      http.post('/api/trips/1/new-member-identity-check/decline', () => HttpResponse.json({ success: true }))
     );
     render(<TripMembersModal {...defaultProps} />);
-    await userEvent.click(await screen.findByRole('button', { name: 'Claim a guest' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Transfer a Guest identity' }));
     expect(await screen.findByText('Is one of these guests you?')).toBeInTheDocument();
   });
 
-  it('FE-COMP-MEMBERS-030: manual claiming is a single-modal two-step flow', async () => {
+  it('FE-COMP-MEMBERS-030: manual identity transfer is a single-modal two-step flow', async () => {
     const onClose = vi.fn();
     seedStore(useAuthStore, { user: memberUser, isAuthenticated: true });
     server.use(
@@ -519,7 +521,7 @@ describe('TripMembersModal', () => {
           current_user_id: memberUser.id,
         })
       ),
-      http.get('/api/trips/1/guest-claims/candidates', () =>
+      http.get('/api/trips/1/guest-identity-transfers/candidates', () =>
         HttpResponse.json({
           candidates: [
             {
@@ -534,7 +536,7 @@ describe('TripMembersModal', () => {
     );
 
     render(<TripMembersModal {...defaultProps} onClose={onClose} />);
-    await userEvent.click(await screen.findByRole('button', { name: 'Claim a guest' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Transfer a Guest identity' }));
 
     expect(document.querySelectorAll('.trek-modal-backdrop')).toHaveLength(1);
     expect(screen.queryByText('Share Trip')).not.toBeInTheDocument();
@@ -563,7 +565,7 @@ describe('TripMembersModal', () => {
           current_user_id: memberUser.id,
         })
       ),
-      http.get('/api/trips/1/guest-claims/candidates', () =>
+      http.get('/api/trips/1/guest-identity-transfers/candidates', () =>
         HttpResponse.json({
           candidates: [
             {
@@ -578,17 +580,17 @@ describe('TripMembersModal', () => {
     );
 
     const { rerender } = render(<TripMembersModal {...defaultProps} />);
-    await userEvent.click(await screen.findByRole('button', { name: 'Claim a guest' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Transfer a Guest identity' }));
     await userEvent.click(await screen.findByRole('button', { name: 'None of these are me' }));
     expect(await screen.findByText('Share Trip')).toBeInTheDocument();
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Claim a guest' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Transfer a Guest identity' }));
     const childClose = screen.getAllByRole('button').find((button) => button.querySelector('svg.lucide-x'));
     expect(childClose).toBeDefined();
     await userEvent.click(childClose!);
     expect(await screen.findByText('Share Trip')).toBeInTheDocument();
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Claim a guest' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Transfer a Guest identity' }));
     rerender(<TripMembersModal {...defaultProps} tripId={2} />);
     expect(await screen.findByText('Share Trip')).toBeInTheDocument();
     expect(screen.queryByText('Is one of these guests you?')).not.toBeInTheDocument();
