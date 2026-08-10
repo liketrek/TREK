@@ -1372,4 +1372,99 @@ describe('PlaceFormModal remaining branches', () => {
     expect(warning).toHaveTextContent('Spanning Event');
     expect(warning).not.toHaveTextContent('Earlier Event');
   });
+
+  /**
+   * FE-PLANNER-PLACEFORM-063..068 — what a second pick may overwrite.
+   *
+   * Search Hamburg Airport, then Berlin Hauptbahnhof, and the airport's website
+   * was still in the field: `result.website || prev.website` cannot tell "the
+   * user typed this" from "the last result wrote this". Saving then gave the
+   * station the airport's website.
+   */
+  describe('picking a second place', () => {
+    const searchFor = async (user: ReturnType<typeof userEvent.setup>, place: Record<string, unknown>) => {
+      server.use(http.post('/api/maps/search', () => HttpResponse.json({ places: [place] })));
+      const searchInput = screen.getByPlaceholderText('Search places...');
+      await user.clear(searchInput);
+      await user.type(searchInput, String(place.name));
+      const searchRow = searchInput.closest('.flex') as HTMLElement;
+      await user.click(within(searchRow).getByRole('button'));
+      await user.click(await screen.findByText(String(place.name)));
+    };
+
+    const AIRPORT = {
+      name: 'Hamburg Airport',
+      address: 'Hamburg',
+      lat: '53.6323',
+      lng: '10.0067',
+      website: 'https://www.hamburg-airport.de/',
+    };
+    const STATION = { name: 'Berlin Hauptbahnhof', address: 'Berlin', lat: '52.525', lng: '13.3694' };
+
+    const websiteInput = () => screen.getByPlaceholderText('https://...') as HTMLInputElement;
+
+    it('FE-PLANNER-PLACEFORM-063: a place with no website clears the previous one', async () => {
+      const user = userEvent.setup();
+      render(<PlaceFormModal {...defaultProps} />);
+
+      await searchFor(user, AIRPORT);
+      expect(websiteInput().value).toBe('https://www.hamburg-airport.de/');
+
+      await searchFor(user, STATION);
+      expect(websiteInput().value).toBe('');
+    });
+
+    it('FE-PLANNER-PLACEFORM-064: a website the user typed survives the next pick', async () => {
+      const user = userEvent.setup();
+      render(<PlaceFormModal {...defaultProps} />);
+
+      await user.type(websiteInput(), 'https://mine.example');
+      await searchFor(user, STATION);
+
+      expect(websiteInput().value).toBe('https://mine.example');
+    });
+
+    it('FE-PLANNER-PLACEFORM-065: a picked value the user then edited also survives', async () => {
+      const user = userEvent.setup();
+      render(<PlaceFormModal {...defaultProps} />);
+
+      await searchFor(user, AIRPORT);
+      await user.clear(websiteInput());
+      await user.type(websiteInput(), 'https://corrected.example');
+      await searchFor(user, STATION);
+
+      expect(websiteInput().value).toBe('https://corrected.example');
+    });
+
+    it('FE-PLANNER-PLACEFORM-066: the ids of the previous place do not travel with the new one', async () => {
+      const user = userEvent.setup();
+      const onSave = vi.fn();
+      render(<PlaceFormModal {...defaultProps} onSave={onSave} />);
+
+      await searchFor(user, { ...AIRPORT, google_place_id: 'ChIJham' });
+      await searchFor(user, { ...STATION, osm_id: 'relation:3600565' });
+      await user.click(screen.getByRole('button', { name: /^Add$/i }));
+
+      await waitFor(() => expect(onSave).toHaveBeenCalled());
+      const payload = onSave.mock.calls[0][0];
+      expect(payload.osm_id).toBe('relation:3600565');
+      expect(payload.google_place_id).toBeFalsy();
+    });
+
+    it('FE-PLANNER-PLACEFORM-067: editing a saved place keeps its stored website', async () => {
+      // The dangerous direction: the form was filled from the database, so a
+      // search result that says nothing about a field must not empty it.
+      const user = userEvent.setup();
+      render(
+        <PlaceFormModal
+          {...defaultProps}
+          place={{ id: 7, name: 'Old', website: 'https://stored.example', lat: 1, lng: 2 } as never}
+        />,
+      );
+      expect(websiteInput().value).toBe('https://stored.example');
+
+      await searchFor(user, STATION);
+      expect(websiteInput().value).toBe('https://stored.example');
+    });
+  });
 });

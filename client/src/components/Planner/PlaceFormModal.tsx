@@ -13,7 +13,7 @@ import { useToast } from '../shared/Toast'
 import { Search, Paperclip, X, AlertTriangle, Loader2, Plus } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import CustomTimePicker from '../shared/CustomTimePicker'
-import { DEFAULT_FORM, isGoogleMapsUrl, type PlaceFormData } from './PlaceFormModal.helpers'
+import { DEFAULT_FORM, isGoogleMapsUrl, mergeResult, type PlaceFormData, type ResultField } from './PlaceFormModal.helpers'
 import { getApiErrorMessage } from '../../utils/apiError'
 import type { Place, Category, Assignment } from '../../types'
 import { NumericInput } from '../shared/NumericInput'
@@ -88,6 +88,10 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
   // What the detail column is describing. Null until the user picks a result.
   const [detailsSelection, setDetailsSelection] = useState<PlaceDetailsSelection | null>(null)
+  // Which fields the last picked search result wrote. Anything in here belongs
+  // to that place and goes when another is picked; anything outside it is the
+  // user's and survives. See mergeResult.
+  const autoFilledRef = useRef<Set<ResultField>>(new Set())
   const [pendingFiles, setPendingFiles] = useState([])
   const fileRef = useRef(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -138,6 +142,18 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     } else {
       setForm(DEFAULT_FORM)
     }
+    // A fresh dialog owns nothing yet. The exception is a POI tapped on the map
+    // or a right-click place: those arrive prefilled from a place, so the same
+    // fields belong to it and a later search pick may clear them. An existing
+    // place being edited is the opposite — everything on that form came out of
+    // the database and none of it is a search result's to drop.
+    autoFilledRef.current = new Set(
+      !place && prefillCoords
+        ? (['name', 'address', 'lat', 'lng', 'website', 'phone', 'osm_id'] as ResultField[]).filter(
+            (field) => !!prefillCoords[field as keyof typeof prefillCoords],
+          )
+        : [],
+    )
     setPendingFiles([])
     setDuplicateWarning(null)
     // The column follows whatever the dialog was opened with, not only a search
@@ -246,6 +262,8 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   }, [mapsSearch, fetchSuggestions])
 
   const handleChange = (field: string, value: string) => {
+    // Typed by hand, so the next pick must not clear it.
+    autoFilledRef.current.delete(field as ResultField)
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
@@ -282,18 +300,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   }
 
   const handleSelectMapsResult = (result) => {
-    setForm(prev => ({
-      ...prev,
-      name: result.name || prev.name,
-      address: result.address || prev.address,
-      lat: result.lat || prev.lat,
-      lng: result.lng || prev.lng,
-      google_place_id: result.google_place_id || prev.google_place_id,
-      google_ftid: result.google_ftid || prev.google_ftid,
-      osm_id: result.osm_id || prev.osm_id,
-      website: result.website || prev.website,
-      phone: result.phone || prev.phone,
-    }))
+    setForm(prev => mergeResult(prev, result, autoFilledRef.current))
     // The one point every pick flows through, so the detail column hangs here.
     // A new pick drops whatever hero image belonged to the previous place.
     const lat = Number(result.lat)
