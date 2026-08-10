@@ -58,10 +58,26 @@ remains as the platform underneath `@nestjs/platform-express`.
   alone. Note the invariant the boot-time coverage check now depends on: importing
   `PluginsRuntimeModule` must pull in EVERY domain that owns part of the wire surface,
   which is why `WeatherModule` sits in its import list.
-- **Guards (BE-Phase 2, in progress):** the JWT verify lives in `auth/`, and
-  `middleware/auth.ts`, `validate.ts` and `idempotency.ts` are deleted; the three
-  addon guards are one `AddonGuard` + `@RequireAddon`; the demo-mode block is one
-  condition. Still open: `TripAccessGuard`, default-deny, the MFA policy.
+- **Guards (BE-Phase 2, done):** the JWT verify lives in `auth/`, and
+  `middleware/auth.ts`, `validate.ts`, `idempotency.ts` and `mfaPolicy.ts` are
+  deleted; the three addon guards are one `AddonGuard` + `@RequireAddon`; the
+  demo-mode block is one condition. `TripAccessGuard` and `TripOwnerGuard` cover
+  the trip-scoped and owner-only routes.
+
+  **Authentication is default-deny.** `GlobalAuthGuard` is an `APP_GUARD`: a route
+  is authenticated unless it carries `@Public(reason)` or `@OptionalAuth(reason)`,
+  or declares its own `@UseGuards` chain. A controller that declares a chain keeps
+  it — global guards run before route guards, so an addon-gated controller has to
+  stay in charge of answering 404 before anything answers 401, or the response
+  leaks which addons are installed. The global guard still *resolves* the user in
+  that case, without refusing, because `MfaPolicyGuard` runs behind it and reads
+  `req.user`.
+
+  Adding a `@Public()` route is not a local decision: `validateRouteGuards` runs in
+  `buildApp()` and refuses to boot unless the route is also in
+  `PUBLIC_ROUTE_ALLOW_LIST` in `common/validate-route-guards.ts`. That list is the
+  whole anonymous surface of the server, in one reviewable place. Stale entries
+  fail too.
 
 `src/services/` is down to the `airtrail/` directory, which waits on the credential
 decision. Backup has moved in: `services/backupService.ts` is now
@@ -82,11 +98,11 @@ the 46 callers are MCP; only 6 sit in controllers.
   middleware, which is deleted; this is the only implementation.
 - `common/` — the stateless helpers (`avatarUrl`, `conflictResult`, `demo`,
   `passwordPolicy`, `timezoneService`, `cookie`, `rowShape`, `crypto/`). Free
-  functions, not providers: `db/migrations.ts` and `middleware/mfaPolicy.ts`
-  import them from outside the container and could not inject one.
+  functions, not providers: `db/migrations.ts` imports them from outside the
+  container and could not inject one.
 - `auth/jwt-verify.ts` — `extractToken` + `verifyJwtAndLoadUser`, the canonical
-  session check behind the three guards, the MCP bearer path, the file-download
-  query token and the global MFA policy. Free functions for the same reason.
+  session check behind the four guards, the MCP bearer path and the file-download
+  query token. Free functions for the same reason.
   `JWT_SECRET` stays a live binding from `src/config` and must NOT move to
   `app-config`: the admin panel rotates it at runtime, and a `registerAs` token
   would freeze the boot value.
@@ -178,7 +194,7 @@ strings. Where the legacy route returns a hand-written error (e.g. weather's
 `{ error: 'Latitude and longitude are required' }`), reproduce that exact body in
 the controller rather than relying on the generic `ZodValidationPipe` envelope.
 
-## TripAccessGuard, and the one domain it does not fit
+## TripAccessGuard and TripOwnerGuard, and where they do not fit
 
 `permissions/trip-access.guard.ts` resolves `:tripId` once per request, answers 404
 "Trip not found" for anything the user cannot reach (never 403 — that would confirm the
@@ -190,13 +206,28 @@ were found the expensive way:
 
 - **A guard runs before the body pipe.** Any route whose DTO validation is expected to
   answer 400 *ahead of* the trip 404 cannot use it. `places` is exactly that case — its
-  e2e suite documents the pipe-first ordering as a deliberate parity shift — so places
-  keeps its in-handler `requireTrip`, and that is not an oversight.
+  e2e suite documents the pipe-first ordering as a deliberate parity shift — so its
+  create/update/import routes keep their in-handler `requireTrip`, and that is not an
+  oversight. Its five body-free routes (list, get, unrate, image, delete) do carry
+  the guard; the split runs along "does this handler take a DTO-typed body", not
+  along the domain.
 - **A guard also runs before interceptors.** On a multipart upload route, a 404 sent
   while the client is still streaming destroys the socket, so the caller sees
   ECONNRESET instead of the 404. The three upload routes (files, collab note files,
   places) keep their own check for that reason; their controllers apply the guard per
   handler instead of on the class.
+
+`permissions/trip-owner.guard.ts` is the stricter sibling: `@RequireTripOwner(message)`
+demands that the caller *owns* the trip, not merely that they may edit it. Handing a
+trip over and creating or deleting guests are the two things a collaborator must never
+do however generous the trip's permission settings are.
+
+It deliberately does **not** inject `PermissionsService`. `checkPermission` returns true
+for every admin, and the trip actions are admin-lowerable, so routing ownership through
+it would quietly hand any admin the ability to transfer other people's trips. The check
+is the literal one the routes did by hand: `trip.user_id === user.id`. The message
+travels in the metadata because the two call sites answer with different strings and
+both are asserted.
 
 The services keep `verifyTripAccess`/`canEdit` regardless: most of their callers are
 `*.mcp.ts` tools, which never pass through an HTTP guard.
