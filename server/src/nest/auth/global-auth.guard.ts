@@ -44,12 +44,22 @@ export class GlobalAuthGuard implements CanActivate {
       return true;
     }
 
-    // A declared chain decides for itself, in the order it declared.
+    // A declared chain decides for itself, in the order it declared — but the
+    // user still gets resolved here, without refusing. Global guards run before
+    // route guards, so standing down silently would leave req.user unset for the
+    // MFA guard behind us, and it would wave every request through. Resolving
+    // without throwing keeps the declared chain in charge of the 401 while the
+    // rest of the chain can still see who is calling. Absent or invalid token
+    // leaves req.user null, which is what it was before.
     const declared = [
       ...(this.reflector.get<unknown[]>(GUARDS_METADATA, handler) ?? []),
       ...(this.reflector.get<unknown[]>(GUARDS_METADATA, controller) ?? []),
     ];
-    if (declared.length > 0) return true;
+    if (declared.length > 0) {
+      const declaredToken = extractToken(req);
+      (req as { user: unknown }).user = (declaredToken ? verifyJwtAndLoadUser(declaredToken) : null) || null;
+      return true;
+    }
 
     const token = extractToken(req);
     if (!token) {

@@ -6,6 +6,7 @@ import { DatabaseModule } from './database/database.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { HealthModule } from './health/health.module';
 import { GlobalAuthGuard } from './auth/global-auth.guard';
+import { MfaPolicyGuard } from './auth/mfa-policy.guard';
 import { WeatherModule } from './weather/weather.module';
 import { HelpModule } from './help/help.module';
 import { AirportsModule } from './airports/airports.module';
@@ -69,6 +70,10 @@ import { IdempotencyInterceptor } from './common/idempotency.interceptor';
     // @OptionalAuth(), or declares its own @UseGuards chain. Protection used to
     // be opt-in, which made a forgotten guard a silent bypass instead of an error.
     { provide: APP_GUARD, useClass: GlobalAuthGuard },
+    // Second, and only second: it reads the user the guard above resolved
+    // instead of verifying the token a second time, which is what the Express
+    // middleware it replaces did on every /api request.
+    { provide: APP_GUARD, useClass: MfaPolicyGuard },
     // Global error-envelope normaliser (DI-registered so it also catches
     // framework-level exceptions like the not-found handler).
     { provide: APP_FILTER, useClass: TrekExceptionFilter },

@@ -9,6 +9,7 @@ import { AuditService } from '../audit/audit.service';
 import { willDropSecureCookie } from '../common/cookie';
 import type { User } from '../../types';
 import { Public } from './public.decorator';
+import { MfaExempt } from './mfa-policy.guard';
 
 const WINDOW = 15 * 60 * 1000;
 const LOGIN_MIN_LATENCY_MS = 350;
@@ -35,6 +36,7 @@ export class AuthPublicController {
   }
 
   @Get('app-config')
+  @MfaExempt('bootstrap config, read before the client knows whether it must set up MFA')
   @UseGuards(OptionalJwtGuard)
   appConfig(@Req() req: Request) {
     return this.auth.getAppConfig((req.user as User | undefined) ?? undefined);

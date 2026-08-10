@@ -43,6 +43,7 @@ import { CurrentUser } from './current-user.decorator';
 import { getClientIp } from '../audit/client-ip';
 import { AuditService } from '../audit/audit.service';
 import type { User } from '../../types';
+import { MfaExempt } from './mfa-policy.guard';
 
 const WINDOW = 15 * 60 * 1000;
 const ALLOWED_AVATAR_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
@@ -83,6 +84,7 @@ export class AuthController {
   }
 
   @Get('me')
+  @MfaExempt('the client needs to know who it is to render the setup screen')
   me(@CurrentUser() user: User) {
     const loaded = this.auth.getCurrentUser(user.id);
     if (!loaded) {
@@ -176,6 +178,7 @@ export class AuthController {
   }
 
   @Get('app-settings')
+  @MfaExempt('the setup screen reads the policy it is asking the user to satisfy')
   getAppSettings(@CurrentUser() user: User) {
     const result = this.auth.getAppSettings(user.id);
     if (result.error) {
@@ -185,6 +188,7 @@ export class AuthController {
   }
 
   @Put('app-settings')
+  @MfaExempt('an admin locked out by their own policy must still be able to lift it')
   updateAppSettings(@CurrentUser() user: User, @Body() body: AppSettingsUpdateDto, @Req() req: Request) {
     const result = this.auth.updateAppSettings(user.id, body);
     if (result.error) {
@@ -199,6 +203,7 @@ export class AuthController {
   // AtlasModule import.
 
   @Post('mfa/setup')
+  @MfaExempt('completing setup is the way out of the policy')
   @HttpCode(200)
   async mfaSetup(@CurrentUser() user: User) {
     const result = this.auth.setupMfa(user.id, user.email);
@@ -215,6 +220,7 @@ export class AuthController {
   }
 
   @Post('mfa/enable')
+  @MfaExempt('completing setup is the way out of the policy')
   @HttpCode(200)
   mfaEnable(@CurrentUser() user: User, @Body() body: MfaEnableDto, @Req() req: Request) {
     this.limit('mfa', req, 5);

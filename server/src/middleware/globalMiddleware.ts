@@ -5,7 +5,6 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { readEnv, type AppEnv } from '../app-config';
 import { logDebug, logWarn, logError } from '../nest/audit/audit-log.logger';
-import { enforceGlobalMfaPolicy } from './mfaPolicy';
 
 /**
  * The global request pipeline shared by the legacy Express app and the NestJS
@@ -175,7 +174,6 @@ export function applyGlobalMiddleware(
     app.use(express.urlencoded({ extended: true }));
   }
   app.use(cookieParser());
-  app.use(enforceGlobalMfaPolicy);
 
   // Request logging with sensitive field redaction
   const SENSITIVE_KEYS = new Set(['password', 'new_password', 'current_password', 'token', 'jwt', 'authorization', 'cookie', 'client_secret', 'mfa_token', 'code', 'smtp_pass']);
