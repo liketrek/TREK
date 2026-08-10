@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { randomBytes, createHash } from 'crypto';
 import { DatabaseService } from '../database/database.service';
-import { createEphemeralToken } from '../auth/ephemeral-tokens';
+import { EphemeralTokenService } from '../auth/ephemeral-token.service';
 // Import from sessionManager directly, NOT the ../../mcp barrel: the barrel pulls
 // the whole tools fan-out (and via the domain bridges, the Nest services) into
 // every consumer of this module — a nest→mcp→nest module cycle.
@@ -27,7 +27,10 @@ import { User } from '../../types';
  */
 @Injectable()
 export class TokenService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly ephemeral: EphemeralTokenService,
+  ) {}
 
   listMcpTokens(userId: number) {
     return this.db.all(
@@ -79,7 +82,7 @@ export class TokenService {
     // Bind the ws-token to the user's current password_version so a token minted
     // before a password reset is rejected on connect (defence-in-depth session gate).
     const pv = this.db.get<{ password_version?: number }>('SELECT password_version FROM users WHERE id = ?', userId)?.password_version ?? 0;
-    const token = createEphemeralToken(userId, 'ws', { pv });
+    const token = this.ephemeral.create(userId, 'ws', { pv });
     if (!token) return { error: 'Service unavailable', status: 503 };
     return { token };
   }
@@ -89,7 +92,7 @@ export class TokenService {
     if (purpose !== 'download') {
       return { error: 'Invalid purpose', status: 400 };
     }
-    const token = createEphemeralToken(userId, purpose);
+    const token = this.ephemeral.create(userId, purpose);
     if (!token) return { error: 'Service unavailable', status: 503 };
     return { token };
   }

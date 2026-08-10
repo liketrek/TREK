@@ -48,14 +48,35 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, addTripMember, createDay, createPlace, createDayAssignment, createTag } from '../../helpers/factories';
-import { DatabaseService } from '../../../src/nest/database/database.service';
+import { DatabaseService, type TripAccess } from '../../../src/nest/database/database.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { AssignmentsService } from '../../../src/nest/assignments/assignments.service';
 import { createAssignment, dayExists, placeExists, getAssignmentForTrip } from '../../../src/nest/assignments/assignments.bridge';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
 
-const svc = new AssignmentsService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), new QueryHelpersService(new DatabaseService(testDb)));
+const dbs = new DatabaseService(testDb);
+const realtime = new RealtimeService();
+const svc = new AssignmentsService(
+  dbs,
+  new PermissionsService(dbs),
+  realtime,
+  new QueryHelpersService(dbs),
+  // Real collaborator rather than a stub: reconcile() runs after every mutation
+  // and needs the same connection to see the rows these cases write.
+  new JourneyDomainService(dbs, realtime, new TrekPhotosRepository(dbs)),
+);
+
+/**
+ * canEdit only reads trip.user_id, so the case below hands it just that field.
+ * The cast names the omission instead of padding the fixture with an id and a
+ * currency no assertion looks at.
+ */
+function tripOwnedBy(userId: number): TripAccess {
+  return { user_id: userId } as TripAccess;
+}
 
 beforeAll(() => {
   createTables(testDb);
@@ -101,8 +122,8 @@ describe('canEdit', () => {
     const { user, trip } = fixture();
     const { user: member } = createUser(testDb);
     addTripMember(testDb, trip.id, member.id);
-    expect(svc.canEdit({ user_id: trip.user_id }, user as never)).toBe(true);
-    expect(svc.canEdit({ user_id: trip.user_id }, member as never)).toBe(true);
+    expect(svc.canEdit(tripOwnedBy(trip.user_id), user)).toBe(true);
+    expect(svc.canEdit(tripOwnedBy(trip.user_id), member)).toBe(true);
   });
 });
 

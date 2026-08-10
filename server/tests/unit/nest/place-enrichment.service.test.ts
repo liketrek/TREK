@@ -7,9 +7,15 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+/** Whatever the statement under test selects: a settings row, a cache row, or nothing. */
+type DbRow = Record<string, unknown> | undefined;
+
 const { mockDbGet, mockDbRun, mockSafeFetchFollow } = vi.hoisted(() => ({
-  mockDbGet: vi.fn(() => undefined as any),
-  mockDbRun: vi.fn(),
+  // Signature taken from the seam below rather than from this default: the
+  // statement text is folded in ahead of the params, so a no-argument spy
+  // would reject both the call site and every mockImplementation here.
+  mockDbGet: vi.fn((_sql: string, ..._params: unknown[]): DbRow => undefined),
+  mockDbRun: vi.fn((_sql: string, ..._params: unknown[]) => {}),
   mockSafeFetchFollow: vi.fn(async () => ({ ok: true, arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer })),
 }));
 

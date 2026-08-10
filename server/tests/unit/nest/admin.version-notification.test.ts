@@ -56,13 +56,14 @@ import { PermissionsService } from '../../../src/nest/permissions/permissions.se
 import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import { AdminService } from '../../../src/nest/admin/admin.service';
 import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
 
 const dbs = new DatabaseService(testDb);
 const realtime = new RealtimeService();
 const permissions = new PermissionsService(dbs);
 const webauthn = new WebauthnConfigService(dbs);
 const userCleanup = new UserCleanupService(dbs);
-const auth = new AuthService(dbs, permissions, new AtlasService(dbs), new TripMembershipService(dbs), webauthn, userCleanup);
+const auth = new AuthService(dbs, permissions, new AtlasService(dbs), new TripMembershipService(dbs), webauthn, userCleanup, new EphemeralTokenService());
 const svc = new AdminService(
   dbs,
   new AddonsService(dbs),

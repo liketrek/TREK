@@ -16,6 +16,7 @@ import { NtfyService } from '../notifications/transports/ntfy.service';
 import { WebhookService } from '../notifications/transports/webhook.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AdminService } from './admin.service';
+import { EphemeralTokenService } from '../auth/ephemeral-token.service';
 
 /**
  * Non-Nest entry point for the admin domain — for code running OUTSIDE the Nest
@@ -40,7 +41,7 @@ const webauthn = new WebauthnConfigService(dbs);
 const userCleanup = new UserCleanupService(dbs);
 const mailer = new MailerService(dbs);
 const notifPrefs = new NotificationPreferencesService(dbs, mailer);
-const auth = new AuthService(dbs, permissions, new TripMembershipService(dbs), webauthn, userCleanup, mailer);
+const auth = new AuthService(dbs, permissions, new TripMembershipService(dbs), webauthn, userCleanup, mailer, new EphemeralTokenService());
 const admin = new AdminService(
   dbs,
   new AddonsService(dbs),

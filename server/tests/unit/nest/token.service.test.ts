@@ -46,8 +46,9 @@ import { DatabaseService } from '../../../src/nest/database/database.service';
 import { createEphemeralToken } from '../../../src/nest/auth/ephemeral-tokens';
 import { revokeUserSessions } from '../../../src/mcp/sessionManager';
 import { expectRegisteredProvider } from '../../helpers/module-providers';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
 
-const svc = new TokenService(new DatabaseService(testDb));
+const svc = new TokenService(new DatabaseService(testDb), new EphemeralTokenService());
 
 beforeAll(() => {
   createTables(testDb);

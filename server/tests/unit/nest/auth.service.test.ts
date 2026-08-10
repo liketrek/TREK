@@ -85,6 +85,7 @@ import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service'
 import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
 import { revokeUserSessions } from '../../../src/mcp/sessionManager';
 import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
 
 // MailerService is injected since the notifications fold — a stub instead of a
 // module mock. sendPasswordResetEmail is the only thing auth reaches for.
@@ -97,7 +98,7 @@ const membershipStub = { joinTripAsMember } as unknown as TripMembershipService;
 // Tokens left AuthService for tokens/token.service.ts. The two cases below still
 // need one as a fixture: changePassword prunes MCP tokens, and the bridge parity
 // case verifies a token it just minted.
-const tokens = new TokenService(new DatabaseService(testDb));
+const tokens = new TokenService(new DatabaseService(testDb), new EphemeralTokenService());
 const svc = new AuthService(
   new DatabaseService(testDb),
   new PermissionsService(new DatabaseService(testDb)),
@@ -105,6 +106,7 @@ const svc = new AuthService(
   new WebauthnConfigService(new DatabaseService(testDb)),
   new UserCleanupService(new DatabaseService(testDb)),
   mailerStub,
+  new EphemeralTokenService(),
 );
 
 // ---------------------------------------------------------------------------

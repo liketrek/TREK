@@ -8,6 +8,7 @@ import { MailerService } from '../notifications/mailer/mailer.service';
 import { UserCleanupService } from './user-cleanup.service';
 import { WebauthnConfigService } from './webauthn-config.service';
 import { User } from '../../types';
+import { EphemeralTokenService } from './ephemeral-token.service';
 
 /**
  * Non-Nest entry point for the auth domain — for code running OUTSIDE the
@@ -45,9 +46,10 @@ const auth = new AuthService(
   new WebauthnConfigService(dbs),
   new UserCleanupService(dbs),
   new MailerService(dbs),
+  new EphemeralTokenService(),
 );
 
-const tokens = new TokenService(dbs);
+const tokens = new TokenService(dbs, new EphemeralTokenService());
 
 export { stripUserForClient } from './auth.helpers';
 export { avatarUrl } from '../common/avatarUrl';

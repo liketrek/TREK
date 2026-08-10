@@ -24,20 +24,26 @@ import { makeDeps } from '../../helpers/rpc-host-deps';
 
 const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({ k: 'req', id: 'x', method, params });
 
-/** Trip 1 belongs to user 42; place 7 sits on it. */
+/**
+ * Trip 1 belongs to user 42; place 7 sits on it.
+ *
+ * The doubles keep their vi.fn types here and only wear the service type at the
+ * constructor. Stamping the service type onto the object itself puts the real method
+ * signature in front of the mock, and the cases below read .mock off these methods.
+ */
 function build(opts: { canEdit?: boolean; journeyThrows?: boolean } = {}) {
   const places = {
     create: vi.fn((_t: string, i: Record<string, unknown>) => ({ id: 10, ...i })),
     update: vi.fn((_t: string, id: string) => (id === '7' ? { id: 7, name: 'updated' } : null)),
     get: vi.fn((_t: string, id: string) => (id === '7' ? { id: 7 } : undefined)),
     remove: vi.fn((_t: string, id: string) => id === '7'),
-  } as unknown as PlacesService & Record<string, ReturnType<typeof vi.fn>>;
+  };
   const journey = {
     onPlaceCreated: vi.fn(() => { if (opts.journeyThrows) throw new Error('journey down'); }),
     onPlaceUpdated: vi.fn(() => { if (opts.journeyThrows) throw new Error('journey down'); }),
     onPlaceDeleted: vi.fn(() => { if (opts.journeyThrows) throw new Error('journey down'); }),
-  } as unknown as JourneyDomainService & Record<string, ReturnType<typeof vi.fn>>;
-  const realtime = { broadcast: vi.fn() } as unknown as RealtimeService & { broadcast: ReturnType<typeof vi.fn> };
+  };
+  const realtime = { broadcast: vi.fn() };
   const guards = new PluginGuards(
     {
       canAccessTrip: vi.fn((tripId: number, userId: number) => (tripId === 1 && userId === 42 ? { id: 1, user_id: 42 } : undefined)),
@@ -46,7 +52,13 @@ function build(opts: { canEdit?: boolean; journeyThrows?: boolean } = {}) {
     { checkPermission: vi.fn(() => opts.canEdit ?? true) } as unknown as PermissionsService,
     { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService,
   );
-  const rpc = new PlacesRpc(places, journey, realtime, guards);
+  // Each double covers only the methods PlacesRpc reaches for, hence the cast.
+  const rpc = new PlacesRpc(
+    places as unknown as PlacesService,
+    journey as unknown as JourneyDomainService,
+    realtime as unknown as RealtimeService,
+    guards,
+  );
   const host = (...grants: string[]) => new PluginRpcHost('p', new Set(grants), makeDeps(), createTestPluginRegistry([rpc]));
   return { places, journey, realtime, host };
 }

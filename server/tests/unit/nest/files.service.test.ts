@@ -59,7 +59,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, addTripMember, createPlace, createReservation, createDay, createDayAssignment, setAppSetting } from '../../helpers/factories';
-import { DatabaseService } from '../../../src/nest/database/database.service';
+import { DatabaseService, type TripAccess } from '../../../src/nest/database/database.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { FilesService } from '../../../src/nest/files/files.service';
 import { getAllowedExtensions as bridgeGetAllowedExtensions } from '../../../src/nest/files/files.bridge';
@@ -74,8 +74,9 @@ import {
 } from '../../../src/nest/files/files.constants';
 import type { TripFile, User } from '../../../src/types';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
 
-const svc = new FilesService(new DatabaseService(testDb), permissionsStub, new RealtimeService());
+const svc = new FilesService(new DatabaseService(testDb), permissionsStub, new RealtimeService(), new EphemeralTokenService());
 
 beforeAll(() => {
   createTables(testDb);
@@ -183,7 +184,7 @@ describe('getAllowedExtensions', () => {
   });
 
   it('FILE-SVC-009: returns the default when the query throws (no app_settings table)', () => {
-    const bareSvc = new FilesService(new DatabaseService(bareDb), permissionsStub, new RealtimeService());
+    const bareSvc = new FilesService(new DatabaseService(bareDb), permissionsStub, new RealtimeService(), new EphemeralTokenService());
     expect(bareSvc.getAllowedExtensions()).toBe(DEFAULT_ALLOWED_EXTENSIONS);
   });
 });
@@ -317,9 +318,9 @@ describe('toggleStarred / softDeleteFile / restoreFile', () => {
   it('FILE-SVC-019: toggleStarred flips 0→1 and 1→0', () => {
     const { user, trip } = seedTrip();
     const file = makeFile(trip.id, user.id);
-    const on = svc.toggleStarred(file.id, 0) as Record<string, unknown>;
+    const on = svc.toggleStarred(file.id, 0);
     expect(on.starred).toBe(1);
-    const off = svc.toggleStarred(file.id, on.starred) as Record<string, unknown>;
+    const off = svc.toggleStarred(file.id, on.starred);
     expect(off.starred).toBe(0);
   });
 
@@ -444,21 +445,33 @@ describe('findForeignLinkTarget', () => {
 
 // ── file links ────────────────────────────────────────────────────────────────
 
+// The link queries go through the untyped DatabaseService.all, so the service
+// hands back unknown[]. Name the columns these cases read instead of widening
+// every row to Record<string, unknown> and losing the id's type on the way into
+// deleteFileLink.
+type FileLinkRow = {
+  id: number;
+  file_id: number;
+  reservation_id: number | null;
+  place_id: number | null;
+  reservation_title?: string | null;
+};
+
 describe('createFileLink / deleteFileLink / getFileLinks', () => {
   it('FILE-SVC-029: inserts with || null coercion, dedupes via INSERT OR IGNORE and returns the re-select', () => {
     const { user, trip } = seedTrip();
     const reservation = createReservation(testDb, trip.id, { title: 'Ferry' });
     const file = makeFile(trip.id, user.id);
 
-    const links = svc.createFileLink(file.id, { reservation_id: reservation.id, place_id: '' }) as Record<string, unknown>[];
+    const links = svc.createFileLink(file.id, { reservation_id: reservation.id, place_id: '' }) as FileLinkRow[];
     expect(links).toHaveLength(1);
     expect(links[0].reservation_id).toBe(reservation.id);
     expect(links[0].place_id).toBeNull();
 
-    const again = svc.createFileLink(file.id, { reservation_id: reservation.id }) as Record<string, unknown>[];
+    const again = svc.createFileLink(file.id, { reservation_id: reservation.id }) as FileLinkRow[];
     expect(again).toHaveLength(1); // UNIQUE(file_id, reservation_id) + OR IGNORE
 
-    const hydrated = svc.getFileLinks(file.id) as Record<string, unknown>[];
+    const hydrated = svc.getFileLinks(file.id) as FileLinkRow[];
     expect(hydrated[0].reservation_title).toBe('Ferry');
   });
 
@@ -473,7 +486,7 @@ describe('createFileLink / deleteFileLink / getFileLinks', () => {
     const reservation = createReservation(testDb, trip.id);
     const file = makeFile(trip.id, user.id);
     const other = makeFile(trip.id, user.id);
-    const [link] = svc.createFileLink(file.id, { reservation_id: reservation.id }) as Record<string, unknown>[];
+    const [link] = svc.createFileLink(file.id, { reservation_id: reservation.id }) as FileLinkRow[];
 
     svc.deleteFileLink(link.id, other.id); // wrong file — no-op
     expect(svc.getFileLinks(file.id)).toHaveLength(1);
@@ -534,7 +547,9 @@ describe('verifyTripAccess / can / files.bridge', () => {
     const { user, trip } = seedTrip();
     const guest = { id: user.id + 1, role: 'user' } as unknown as User;
     checkPermission.mockReturnValue(true);
-    const tripRow = { id: trip.id, user_id: user.id } as Record<string, unknown>;
+    // can() reads only trip.user_id, so the row stays deliberately partial:
+    // TripAccess also carries currency, which no assertion here looks at.
+    const tripRow = { id: trip.id, user_id: user.id } as TripAccess;
 
     expect(svc.can('file_edit', tripRow, guest)).toBe(true);
     expect(checkPermission).toHaveBeenCalledWith('file_edit', 'user', user.id, guest.id, true);

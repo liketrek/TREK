@@ -19,6 +19,30 @@ function svc() {
   return new AddonsService(new DatabaseService(dbConn));
 }
 
+type ListAddon = ReturnType<AddonsService['list']>['addons'][number];
+
+type PhotoProviderField = {
+  key: string;
+  label: string;
+  input_type: string;
+  placeholder: string;
+  hint: string | null;
+  required: boolean;
+  secret: boolean;
+  settings_key: string | null;
+  payload_key: string | null;
+  sort_order: number;
+};
+
+// list() spreads plain addons and photo providers into one array, and a provider
+// object structurally extends a plain one. TypeScript reduces the element union
+// to the plain shape, so `config` and `fields` are invisible on res.addons even
+// though the provider entries carry them at runtime. Provider assertions read
+// the fields through here instead of casting at every call site.
+function providerFields(addon: ListAddon): PhotoProviderField[] {
+  return (addon as ListAddon & { fields: PhotoProviderField[] }).fields;
+}
+
 // Feed list()'s reads in call order: addons, providers, fields (.all), then the
 // collab-features rows (.all) and the bag-tracking row (.get) from app_settings.
 function feedReads(
@@ -140,8 +164,7 @@ describe('AddonsService.list', () => {
     );
 
     const res = svc().list();
-    const provider = res.addons[0] as { fields: Array<Record<string, unknown>> };
-    expect(provider.fields).toEqual([
+    expect(providerFields(res.addons[0])).toEqual([
       {
         key: 'url',
         label: 'URL',
@@ -188,7 +211,7 @@ describe('AddonsService.list', () => {
     );
 
     const res = svc().list();
-    const field = (res.addons[0] as { fields: Array<Record<string, unknown>> }).fields[0];
+    const field = providerFields(res.addons[0])[0];
     expect(field).toMatchObject({
       placeholder: '',
       hint: null,
@@ -217,7 +240,7 @@ describe('AddonsService.list', () => {
     );
 
     const res = svc().list();
-    expect((res.addons[0] as { fields: unknown[] }).fields).toEqual([]);
+    expect(providerFields(res.addons[0])).toEqual([]);
   });
 
   it('concatenates regular addons before the photo providers', () => {

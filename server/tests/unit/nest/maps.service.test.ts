@@ -28,6 +28,13 @@ import {
 
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 
+// The seams below stand in for real collaborators, so they are typed from those
+// collaborators' signatures rather than from their own default implementations.
+// checkSsrf answers with a full SsrfResult; the guard path exercised here reads
+// only these two fields, so the stub returns that slice instead of inventing a
+// resolved IP and a privacy verdict no assertion looks at.
+type SsrfCheckStub = Pick<SsrfResult, 'allowed' | 'error'>;
+
 const {
   mockDbGet,
   mockDbRun,
@@ -42,16 +49,20 @@ const {
 } = vi.hoisted(() => ({
   mockDbGet: vi.fn(() => undefined as any),
   mockDbRun: vi.fn(),
-  mockCheckSsrf: vi.fn(async () => ({ allowed: true })),
-  mockCacheGet: vi.fn(() => null as any),
-  mockCacheGetErrored: vi.fn(() => false),
+  mockCheckSsrf: vi.fn(async (_url: string, _bypassInternalIpAllowed?: boolean): Promise<SsrfCheckStub> => ({
+    allowed: true,
+  })),
+  mockCacheGet: vi.fn((_placeId: string) => null as ReturnType<PlacePhotoCacheService['get']>),
+  mockCacheGetErrored: vi.fn((_placeId: string) => false),
   mockCacheMarkError: vi.fn(),
   mockCachePut: vi.fn(async (placeId: string, _bytes: Buffer, attribution: string | null) => ({
     photoUrl: `/api/maps/place-photo/${encodeURIComponent(placeId)}/bytes`,
     filePath: `/tmp/${placeId}.jpg`,
     attribution,
   })),
-  mockCacheGetInFlight: vi.fn(() => undefined),
+  mockCacheGetInFlight: vi.fn(
+    (_placeId: string) => undefined as ReturnType<PlacePhotoCacheService['getInFlight']>,
+  ),
   mockCacheSetInFlight: vi.fn(),
   mockServeFilePath: vi.fn((_placeId: string) => null as string | null),
 }));
@@ -108,6 +119,8 @@ import { db } from '../../../src/db/database';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { MapsService, withPhotoFetchSlot, readWikiIdentity } from '../../../src/nest/maps/maps.service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+// Type-only, so the module stays mocked: this import is erased at runtime.
+import type { SsrfResult } from '../../../src/utils/ssrfGuard';
 
 // The service under test, constructed over the mocked db stub — DatabaseService
 // routes get/run through the stubbed prepare(), so mockDbGet/mockDbRun keep
@@ -1832,7 +1845,7 @@ describe('getPlacePhoto (fetch stubbed)', () => {
   });
 
   it('MAPS-043f: an in-flight lookup that found nothing resolves the waiter with photoUrl null', async () => {
-    mockCacheGetInFlight.mockReturnValue(Promise.resolve(null) as any);
+    mockCacheGetInFlight.mockReturnValue(Promise.resolve(null));
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     await expect(svc.getPlacePhoto(999, 'ChIJInFlight', 48.8, 2.3)).resolves.toEqual({

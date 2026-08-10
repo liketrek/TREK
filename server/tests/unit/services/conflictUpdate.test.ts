@@ -46,10 +46,31 @@ import { MapsService } from '../../../src/nest/maps/maps.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
+import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
+import { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
+import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { notificationsStub } from '../../helpers/notifications';
 
-const packing = new PackingService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), notificationsStub());
-const places = new PlacesService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), new MapsService(new DatabaseService(testDb)), new QueryHelpersService(new DatabaseService(testDb)));
+const dbs = new DatabaseService(testDb);
+const realtime = new RealtimeService();
+const runtimeEnv = new RuntimeEnvService();
+// One cache instance shared by maps and places, the way the container wires it:
+// the service's stampede guard only works if there is exactly one of them.
+const photoCache = new PlacePhotoCacheService(dbs, runtimeEnv);
+
+const packing = new PackingService(dbs, new PermissionsService(dbs), realtime, notificationsStub());
+const places = new PlacesService(
+  dbs,
+  new PermissionsService(dbs),
+  realtime,
+  new MapsService(dbs, photoCache),
+  new QueryHelpersService(dbs),
+  new UnsplashService(dbs, runtimeEnv),
+  photoCache,
+  new JourneyDomainService(dbs, realtime, new TrekPhotosRepository(dbs)),
+);
 
 beforeAll(() => {
   createTables(testDb);

@@ -14,7 +14,7 @@ import { PermissionsService } from '../permissions/permissions.service';
 import { validatePassword } from '../common/passwordPolicy';
 import { encryptMfaSecret, decryptMfaSecret } from '../common/crypto/mfaCrypto';
 import { decrypt_api_key, maybe_encrypt_api_key, encrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { createEphemeralToken, startTokenCleanup, stopTokenCleanup } from './ephemeral-tokens';
+import { EphemeralTokenService } from './ephemeral-token.service';
 // Import from sessionManager directly, NOT the ../../mcp barrel: the barrel pulls
 // the whole tools fan-out (and via the domain bridges, the Nest services) into
 // every consumer of this module — a nest→mcp→nest module cycle.
@@ -118,20 +118,7 @@ export interface ResetPasswordOutcome {
  * AtlasModule import AuthModule instead of going the other way around.
  */
 @Injectable()
-export class AuthService implements OnModuleInit, OnModuleDestroy {
-  /**
-   * The ephemeral-token store sweeps itself every minute. index.ts used to kick
-   * that off with a bare require() after listen(); it belongs to the domain that
-   * issues the tokens.
-   */
-  onModuleInit(): void {
-    startTokenCleanup();
-  }
-
-  onModuleDestroy(): void {
-    stopTokenCleanup();
-  }
-
+export class AuthService {
   constructor(
     private readonly db: DatabaseService,
     private readonly permissions: PermissionsService,
@@ -139,6 +126,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     private readonly webauthn: WebauthnConfigService,
     private readonly userCleanup: UserCleanupService,
     private readonly mailer: MailerService,
+    private readonly tokens: EphemeralTokenService,
   ) {}
 
   // Cookie

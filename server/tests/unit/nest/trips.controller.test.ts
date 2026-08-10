@@ -20,6 +20,7 @@ const unsplashStub = {
 } as unknown as UnsplashService;
 
 import { TripsController } from '../../../src/nest/trips/trips.controller';
+import type { AuditService } from '../../../src/nest/audit/audit.service';
 import type { TripsService } from '../../../src/nest/trips/trips.service';
 import type { CalendarService } from '../../../src/nest/calendar/calendar.service';
 import type { TripReadModelService } from '../../../src/nest/trip-read-model/trip-read-model.service';
@@ -50,6 +51,14 @@ function svc(o: Partial<TripsService> = {}): TripsService {
     ...o,
   } as unknown as TripsService;
 }
+
+// The DTO ratchet types create()'s body from the shared contract, where
+// day_count is a number. Two cases below deliberately hand the handler a string,
+// because that is what an unvalidated client sends and what the handler still
+// guards against with Number(day_count) || 7. Naming the pre-pipe shape keeps
+// those payloads exactly as they were instead of retyping them into the contract.
+type CreateBody = Parameters<TripsController['create']>[1];
+const prePipeCreateBody = (body: unknown) => body as CreateBody;
 
 function thrown(fn: () => unknown): { status: number; body: unknown } {
   try { fn(); } catch (err) {
@@ -163,13 +172,13 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
 
     it('infers start_date from end_date (-6 days) and parses day_count', () => {
       const create = vi.fn().mockReturnValue({ trip: { id: 9 }, tripId: 9, reminderDays: 0 });
-      tc(svc({ create } as Partial<TripsService>)).create(user, { title: 'T', end_date: '2026-07-07', day_count: '40' }, req);
+      tc(svc({ create } as Partial<TripsService>)).create(user, prePipeCreateBody({ title: 'T', end_date: '2026-07-07', day_count: '40' }), req);
       expect(create).toHaveBeenCalledWith(1, expect.objectContaining({ start_date: '2026-07-01', end_date: '2026-07-07', day_count: 40 }));
     });
 
     it('clamps a non-numeric day_count to the default of 7', () => {
       const create = vi.fn().mockReturnValue({ trip: { id: 9 }, tripId: 9, reminderDays: 0 });
-      tc(svc({ create } as Partial<TripsService>)).create(user, { title: 'T', day_count: 'abc' }, req);
+      tc(svc({ create } as Partial<TripsService>)).create(user, prePipeCreateBody({ title: 'T', day_count: 'abc' }), req);
       expect(create).toHaveBeenCalledWith(1, expect.objectContaining({ day_count: 7 }));
     });
 

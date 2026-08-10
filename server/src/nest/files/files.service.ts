@@ -6,7 +6,7 @@ import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { avatarUrl } from '../common/avatarUrl';
-import { consumeEphemeralToken } from '../auth/ephemeral-tokens';
+import { EphemeralTokenService } from '../auth/ephemeral-token.service';
 import { verifyJwtAndLoadUser } from '../auth/jwt-verify';
 import type { User, TripFile } from '../../types';
 import { DatabaseService, type TripAccess } from '../database/database.service';
@@ -59,6 +59,7 @@ export class FilesService {
     private readonly db: DatabaseService,
     private readonly permissions: PermissionsService,
     private readonly realtime: RealtimeService,
+    private readonly tokens: EphemeralTokenService,
   ) {}
 
   verifyTripAccess(tripId: string | number, userId: number) {
@@ -103,7 +104,7 @@ export class FilesService {
     }
 
     if (queryToken) {
-      const uid = consumeEphemeralToken(queryToken, 'download');
+      const uid = this.tokens.consume(queryToken, 'download');
       if (!uid) return { error: 'Invalid or expired token', status: 401 };
       return { userId: uid };
     }

@@ -63,6 +63,7 @@ import { JournalRpc } from '../../src/nest/journey/journal.rpc';
 import { CollectionsRpc } from '../../src/nest/collections/collections.rpc';
 import { makeNotificationsService } from './notifications';
 import { notificationsStub } from './notifications';
+import { EphemeralTokenService } from '../../src/nest/auth/ephemeral-token.service';
 
 /**
  * Hand-wired counterpart of the PluginsModule DI graph for no-Nest tests
@@ -83,7 +84,7 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
   const queryHelpers = new QueryHelpersService(dbs);
   const todos = new TodoService(dbs, permissions, realtime);
   const packing = new PackingService(dbs, permissions, realtime, notificationsStub());
-  const files = new FilesService(dbs, permissions, realtime);
+  const files = new FilesService(dbs, permissions, realtime, new EphemeralTokenService());
   const reservations = new ReservationsService(dbs, permissions, budget, realtime, notificationsStub());
   const collab = new CollabService(dbs, permissions, realtime, notificationsStub());
   const vacay = new VacayService(dbs, realtime, notificationsStub());

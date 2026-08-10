@@ -7,9 +7,10 @@ import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AppConfigModule } from '../app-config/app-config.module';
+import { EphemeralTokenModule } from '../auth/ephemeral-token.module';
 
 @Module({
-  imports: [PermissionsModule, AppConfigModule, RealtimeModule, PluginGuardsModule],
+  imports: [EphemeralTokenModule, PermissionsModule, AppConfigModule, RealtimeModule, PluginGuardsModule],
   controllers: [FilesController, FilesDownloadController],
   providers: [FilesService, FilesRpc],
   exports: [FilesService],

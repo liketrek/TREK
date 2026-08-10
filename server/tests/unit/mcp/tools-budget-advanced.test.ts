@@ -38,7 +38,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createBudgetItem, addTripMember } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
 
 beforeAll(() => {
   createTables(testDb);
@@ -364,7 +364,7 @@ describe('Resource: trek://trips/{tripId}/budget/per-person', () => {
     const trip = createTrip(testDb, user.id);
     await withResourceHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/budget/per-person` });
-      const data = JSON.parse(result.contents[0].text as string);
+      const data = parseResourceResult(result);
       expect(Array.isArray(data)).toBe(true);
     });
   });
@@ -375,7 +375,7 @@ describe('Resource: trek://trips/{tripId}/budget/per-person', () => {
     const trip = createTrip(testDb, other.id);
     await withResourceHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/budget/per-person` });
-      const data = JSON.parse(result.contents[0].text as string);
+      const data = parseResourceResult(result) as { error?: string };
       expect(data.error).toBeDefined();
     });
   });
@@ -391,7 +391,9 @@ describe('Resource: trek://trips/{tripId}/budget/settlement', () => {
     const trip = createTrip(testDb, user.id);
     await withResourceHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/budget/settlement` });
-      const data = JSON.parse(result.contents[0].text as string);
+      // The resource may answer with a summary object or a bare array, and the
+      // assertion below accepts either, so keep the balances field optional.
+      const data = parseResourceResult(result) as { balances?: unknown };
       expect(data).toBeDefined();
       expect(Array.isArray(data.balances) || Array.isArray(data)).toBe(true);
     });

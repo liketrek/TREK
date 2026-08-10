@@ -78,6 +78,7 @@ import { getTripOwner, listMembers as bridgeListMembers } from '../../../src/nes
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import fs from 'fs';
 import { notificationsStub } from '../../helpers/notifications';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
 
 // Real sibling services over the same in-memory DB — updateTrip's date-shift
 // resyncs and the summary/bundle aggregation run their actual SQL.
@@ -106,7 +107,7 @@ const readModelSvc = new TripReadModelService(
   new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService(), notificationsStub()),
   placesSvc,
   new TodoService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-  new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+  new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new EphemeralTokenService()),
 );
 
 

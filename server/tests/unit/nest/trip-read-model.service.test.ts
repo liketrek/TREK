@@ -67,6 +67,7 @@ import { AccommodationsService } from '../../../src/nest/accommodations/accommod
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import { notificationsStub } from '../../helpers/notifications';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
 
 // Real sibling services over the same in-memory DB — the aggregation runs the
 // actual SQL of every domain it fans out to, so a shape change downstream shows
@@ -86,7 +87,7 @@ const buildReadModel = (database: DatabaseService, roster: TripMembersService = 
     new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService(), notificationsStub()),
     placesSvc,
     new TodoService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-    new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+    new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new EphemeralTokenService()),
   );
 
 const svc = buildReadModel(dbs());

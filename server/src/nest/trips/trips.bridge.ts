@@ -25,6 +25,7 @@ import { AccommodationsService } from '../accommodations/accommodations.service'
 import { TripMembersService } from '../trip-members/trip-members.service';
 import { TripReadModelService } from '../trip-read-model/trip-read-model.service';
 import { notificationsInstance } from '../notifications/notifications.instance';
+import { EphemeralTokenService } from '../auth/ephemeral-token.service';
 
 /**
  * Non-Nest entry point for the trip domain — for the two consumers that cannot
@@ -75,7 +76,7 @@ const readModel = new TripReadModelService(
   new CollabService(dbs(), permissions, realtime, notificationsInstance()),
   places,
   new TodoService(dbs(), permissions, realtime),
-  new FilesService(dbs(), permissions, realtime),
+  new FilesService(dbs(), permissions, realtime, new EphemeralTokenService()),
 );
 
 export function getTripOwner(tripId: string | number) {

@@ -67,6 +67,7 @@ import { RuntimeEnvService } from '../../src/nest/app-config/runtime-env.service
 import { makeNotificationsService, makeNotificationPreferencesService } from './notifications';
 import { AddonsService } from '../../src/nest/addons/addons.service';
 import { notificationsStub } from './notifications';
+import { EphemeralTokenService } from '../../src/nest/auth/ephemeral-token.service';
 
 /**
  * Hand-wired counterpart of the boot-time discovery in McpRegistryService,
@@ -78,7 +79,7 @@ import { notificationsStub } from './notifications';
 export function createMcpTestRegistry(): McpRegistry {
   const dbService = new DatabaseService(db);
   const permissionsService = new PermissionsService(dbService);
-  const authService = new AuthService(dbService, permissionsService, new AtlasService(dbService));
+  const authService = new AuthService(dbService, permissionsService, new AtlasService(dbService), new EphemeralTokenService());
   const realtimeService = new RealtimeService();
   const queryHelpersService = new QueryHelpersService(dbService);
   const daysService = new DaysService(dbService, permissionsService, realtimeService, queryHelpersService);
@@ -115,7 +116,7 @@ export function createMcpTestRegistry(): McpRegistry {
   const readModelService = new TripReadModelService(
     dbService, membersService, daysService, accommodationsService, budgetService,
     packingService, reservationsService, collabService, placesService, todoService,
-    new FilesService(dbService, permissionsService, realtimeService),
+    new FilesService(dbService, permissionsService, realtimeService, new EphemeralTokenService()),
   );
   const calendarService = new CalendarService(dbService, reservationsService);
   // The nine addon-gated surfaces read their toggle off an injected service now

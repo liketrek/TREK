@@ -16,6 +16,7 @@ import { AuditModule } from '../audit/audit.module';
 import { MailerModule } from '../notifications/mailer/mailer.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
+import { EphemeralTokenModule } from './ephemeral-token.module';
 
 /**
  * Auth module — public flows (login/register/reset/mfa-verify/logout) and the
@@ -38,7 +39,7 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
  * through auth.bridge.ts.
  */
 @Module({
-  imports: [RateLimitModule, AuditModule, PermissionsModule, TripMembershipModule, MailerModule, AppConfigModule, TokensModule],
+  imports: [EphemeralTokenModule, RateLimitModule, AuditModule, PermissionsModule, TripMembershipModule, MailerModule, AppConfigModule, TokensModule],
   controllers: [AuthPublicController, AuthController, PasskeyController],
   providers: [AuthService, UserProfileService, RegistrationInvitesService, PasskeyService, UserCleanupService, WebauthnConfigService, AuthMcp],
   exports: [AuthService, RegistrationInvitesService, PasskeyService, UserCleanupService],

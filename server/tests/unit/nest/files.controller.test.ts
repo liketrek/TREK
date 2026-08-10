@@ -129,16 +129,16 @@ describe('FilesController (parity with the legacy /api/trips/:tripId/files route
   });
 
   it('DELETE /:id/permanent 404 not in trash, else deletes', async () => {
-    await expect(new FilesController(fsvc({ getDeletedFile: vi.fn().mockReturnValue(undefined) } as Partial<FilesService>), new RuntimeEnvService()).permanent(user, '5', '9')).rejects.toBeInstanceOf(HttpException);
+    await expect(new FilesController(fsvc({ getDeletedFile: vi.fn().mockReturnValue(undefined) } as Partial<FilesService>), new RuntimeEnvService()).permanent(user, trip, '5', '9')).rejects.toBeInstanceOf(HttpException);
     const permanentDeleteFile = vi.fn().mockResolvedValue(undefined);
     const s = fsvc({ getDeletedFile: vi.fn().mockReturnValue({ id: 9 }), permanentDeleteFile, broadcast: vi.fn() } as Partial<FilesService>);
-    expect(await new FilesController(s, new RuntimeEnvService()).permanent(user, '5', '9')).toEqual({ success: true });
+    expect(await new FilesController(s, new RuntimeEnvService()).permanent(user, trip, '5', '9')).toEqual({ success: true });
   });
 
   it('DELETE /trash/empty 403, else returns the count', async () => {
-    await expect(new FilesController(fsvc({ can: vi.fn().mockReturnValue(false) }), new RuntimeEnvService()).emptyTrash(user, '5')).rejects.toBeInstanceOf(HttpException);
+    await expect(new FilesController(fsvc({ can: vi.fn().mockReturnValue(false) }), new RuntimeEnvService()).emptyTrash(user, trip, '5')).rejects.toBeInstanceOf(HttpException);
     const s = fsvc({ emptyTrash: vi.fn().mockResolvedValue(3) } as Partial<FilesService>);
-    expect(await new FilesController(s, new RuntimeEnvService()).emptyTrash(user, '5')).toEqual({ success: true, deleted: 3 });
+    expect(await new FilesController(s, new RuntimeEnvService()).emptyTrash(user, trip, '5')).toEqual({ success: true, deleted: 3 });
   });
 
   it('POST /:id/link 404 unknown file, else links', () => {
@@ -158,7 +158,7 @@ describe('FilesController (parity with the legacy /api/trips/:tripId/files route
 
   it('the trash + link routes all reject without file_delete / file_edit', async () => {
     const denied = () => fsvc({ can: vi.fn().mockReturnValue(false) });
-    await expect(new FilesController(denied(), new RuntimeEnvService()).permanent(user, '5', '9')).rejects.toMatchObject({ status: 403 });
+    await expect(new FilesController(denied(), new RuntimeEnvService()).permanent(user, trip, '5', '9')).rejects.toMatchObject({ status: 403 });
     expect(thrown(() => new FilesController(denied(), new RuntimeEnvService()).restore(user, trip, '5', '9'))).toEqual({ status: 403, body: { error: 'No permission' } });
     expect(thrown(() => new FilesController(denied(), new RuntimeEnvService()).link(user, trip, '5', '9', {}))).toEqual({ status: 403, body: { error: 'No permission' } });
     expect(thrown(() => new FilesController(denied(), new RuntimeEnvService()).unlink(user, trip, '5', '9', '3'))).toEqual({ status: 403, body: { error: 'No permission' } });

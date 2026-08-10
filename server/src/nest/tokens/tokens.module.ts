@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TokenService } from './token.service';
+import { EphemeralTokenModule } from '../auth/ephemeral-token.module';
 
 /**
  * Tokens that are not the login JWT: the long-lived MCP tokens a user manages
@@ -10,6 +11,7 @@ import { TokenService } from './token.service';
  * for it, and any dependency added here lands in all three graphs.
  */
 @Module({
+  imports: [EphemeralTokenModule],
   providers: [TokenService],
   exports: [TokenService],
 })
