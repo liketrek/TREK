@@ -32,20 +32,14 @@ vi.mock('../../../src/config', () => ({
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 
-const { isAddonEnabledMock } = vi.hoisted(() => {
-  const isAddonEnabledMock = vi.fn().mockReturnValue(true);
-  return { isAddonEnabledMock };
-});
-vi.mock('../../../src/nest/addons/addons.bridge', () => ({
-  isAddonEnabled: isAddonEnabledMock,
-  getCollabFeatures: vi.fn().mockReturnValue({ chat: true, notes: true, polls: true, whatsnext: true }),
-}));
 
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { setAddonEnabled } from '../../helpers/test-db';
+import { ADDON_IDS } from '../../../src/addons';
 
 beforeAll(() => {
   createTables(testDb);
@@ -55,7 +49,12 @@ beforeAll(() => {
 beforeEach(() => {
   resetTestDb(testDb);
   broadcastMock.mockClear();
-  isAddonEnabledMock.mockReturnValue(true);
+  // The summary reads these three off the injected AddonsService, so the case
+  // that wants one off writes the row the admin panel writes. resetTestDb
+  // leaves the addons table alone, so each case restates what it needs.
+  for (const id of [ADDON_IDS.BUDGET, ADDON_IDS.PACKING, ADDON_IDS.COLLAB]) {
+    setAddonEnabled(testDb, id, true);
+  }
 });
 
 afterAll(() => {
@@ -95,7 +94,7 @@ describe('get_trip_summary — addon gating', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'No Budget Trip' });
 
-    isAddonEnabledMock.mockImplementation((id: string) => id !== 'budget');
+    setAddonEnabled(testDb, ADDON_IDS.BUDGET, false);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_trip_summary', arguments: { tripId: trip.id } });
@@ -112,7 +111,7 @@ describe('get_trip_summary — addon gating', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'No Packing Trip' });
 
-    isAddonEnabledMock.mockImplementation((id: string) => id !== 'packing');
+    setAddonEnabled(testDb, ADDON_IDS.PACKING, false);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_trip_summary', arguments: { tripId: trip.id } });
@@ -128,7 +127,7 @@ describe('get_trip_summary — addon gating', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'No Collab Trip' });
 
-    isAddonEnabledMock.mockImplementation((id: string) => id !== 'collab');
+    setAddonEnabled(testDb, ADDON_IDS.COLLAB, false);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_trip_summary', arguments: { tripId: trip.id } });
@@ -150,7 +149,7 @@ describe('Budget tools — addon gating', () => {
   it('when budget addon disabled, create_budget_item is not registered', async () => {
     const { user } = createUser(testDb);
 
-    isAddonEnabledMock.mockImplementation((id: string) => id !== 'budget');
+    setAddonEnabled(testDb, ADDON_IDS.BUDGET, false);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'create_budget_item', arguments: { tripId: 1, name: 'Test', total_price: 100 } });
@@ -167,7 +166,7 @@ describe('Packing tools — addon gating', () => {
   it('when packing addon disabled, create_packing_item is not registered', async () => {
     const { user } = createUser(testDb);
 
-    isAddonEnabledMock.mockImplementation((id: string) => id !== 'packing');
+    setAddonEnabled(testDb, ADDON_IDS.PACKING, false);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'create_packing_item', arguments: { tripId: 1, name: 'Sunscreen' } });
@@ -184,7 +183,7 @@ describe('Collab tools — addon gating', () => {
   it('when collab addon disabled, create_collab_note is not registered', async () => {
     const { user } = createUser(testDb);
 
-    isAddonEnabledMock.mockImplementation((id: string) => id !== 'collab');
+    setAddonEnabled(testDb, ADDON_IDS.COLLAB, false);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'create_collab_note', arguments: { tripId: 1, title: 'Test Note' } });
@@ -201,7 +200,7 @@ describe('Atlas tools — addon gating', () => {
   it('when atlas addon disabled, mark_country_visited is not registered', async () => {
     const { user } = createUser(testDb);
 
-    isAddonEnabledMock.mockImplementation((id: string) => id !== 'atlas');
+    setAddonEnabled(testDb, ADDON_IDS.ATLAS, false);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'mark_country_visited', arguments: { country_code: 'FR' } });
@@ -212,7 +211,7 @@ describe('Atlas tools — addon gating', () => {
   it('when atlas addon disabled, create_bucket_list_item is not registered', async () => {
     const { user } = createUser(testDb);
 
-    isAddonEnabledMock.mockImplementation((id: string) => id !== 'atlas');
+    setAddonEnabled(testDb, ADDON_IDS.ATLAS, false);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'create_bucket_list_item', arguments: { name: 'Paris' } });

@@ -98,6 +98,17 @@ class WhenMcp {
   async probe() {
     return { content: [{ type: 'text', text: 'ok' }] };
   }
+
+  // The gate reads the DECLARING INSTANCE rather than a module-level value.
+  // This is the shape a host needs to answer "is this addon on" from an
+  // injected service: the options object is built when the class is defined,
+  // so without `self` the closure has nothing but imports to reach for.
+  @Tool({ name: 'self_gated_tool', when: (_ctx, self: WhenMcp) => self.featureOn })
+  async selfGated() {
+    return { content: [{ type: 'text', text: 'ok' }] };
+  }
+
+  featureOn = false;
 }
 
 const policy: McpAccessPolicy = ({ mode }, ctx) =>
@@ -189,6 +200,22 @@ describe('McpRegistry.attach', () => {
     harness = await createAttachHarness(registry, { userId: 7, canRead: true, allow: true });
     const tools = (await harness.client.listTools()).tools.map((t) => t.name).sort();
     expect(tools).toEqual(['probe_tool', 'when_only_tool', 'when_scoped_tool']);
+  });
+
+  it('hands `when` the instance that declared the entry, resolved at attach', async () => {
+    const controller = new WhenMcp();
+    const registry = createTestRegistry([controller], { accessPolicy: policy });
+
+    harness = await createAttachHarness(registry, { userId: 7 });
+    expect((await harness.client.listTools()).tools.map((t) => t.name)).not.toContain('self_gated_tool');
+    await harness.cleanup();
+
+    // Flipped AFTER registration: a gate that had captured a value when the
+    // class was defined could not see this, which is exactly why hosts reached
+    // for a module-level singleton instead of an injected one.
+    controller.featureOn = true;
+    harness = await createAttachHarness(registry, { userId: 7 });
+    expect((await harness.client.listTools()).tools.map((t) => t.name)).toContain('self_gated_tool');
   });
 
   it('skips entries whose `when` gate fails, even when access would pass', async () => {

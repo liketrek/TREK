@@ -6,19 +6,20 @@ import {
 } from '@trek/nest-mcp';
 import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
-import { isAddonEnabled, getCollabFeatures } from '../addons/addons.bridge';
 import { ADDON_IDS } from '../../addons';
 import { safeBroadcast, noAccess, hasTripPermission, permissionDenied } from '../../mcp/tools/_shared';
 import { CollabService } from './collab.service';
+import { collabFeatureGate } from '../addons/addon-gate';
+import { AddonsService } from '../addons/addons.service';
 
 /**
  * Legacy registrar gates: the whole collab surface rides the collab addon
  * (whole-registrar early return), and each tool/resource additionally rides
  * its sub-feature flag from getCollabFeatures() — notes, polls or chat.
  */
-const collabNotesOn = () => isAddonEnabled(ADDON_IDS.COLLAB) && getCollabFeatures().notes;
-const collabPollsOn = () => isAddonEnabled(ADDON_IDS.COLLAB) && getCollabFeatures().polls;
-const collabChatOn = () => isAddonEnabled(ADDON_IDS.COLLAB) && getCollabFeatures().chat;
+const collabNotesOn = collabFeatureGate('notes');
+const collabPollsOn = collabFeatureGate('polls');
+const collabChatOn = collabFeatureGate('chat');
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -59,7 +60,11 @@ function jsonContent(uri: string, data: unknown) {
  */
 @McpController()
 export class CollabMcp {
-  constructor(private readonly collab: CollabService, private readonly auth: AuthService) {}
+  constructor(
+    private readonly collab: CollabService,
+    private readonly auth: AuthService,
+    readonly addons: AddonsService,
+  ) {}
 
   // --- COLLAB NOTES ---
 

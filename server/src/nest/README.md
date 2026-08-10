@@ -172,6 +172,35 @@ bridge rebuilds its services with `new`, so adding one constructor parameter to
 a service means hand-editing every bridge that constructs it — five of them in
 one PR, most recently. `app.get()` costs nothing there and returns the container
 singleton rather than a second instance.
+
+**A bridge imported from INSIDE the container hides an edge from the module
+graph**, which is a different problem from serving a genuine outside consumer.
+Nine `*.mcp.ts` files did that with `addons.bridge` for one boolean each, and
+not by preference: a decorator's options object is built while the class is
+being defined, so the `when:` closure had no `this` to reach an injected service
+through. `@trek/nest-mcp` hands the gate its declaring instance now, and
+`addons/addon-gate.ts` turns that into `addonGate(ADDON_IDS.X)` over an injected
+`AddonsService`. `reservations.mcp.ts` (assignments) and `atlas.mcp.ts` /
+`journey.mcp.ts` (auth) went the same way.
+
+Four in-container uses are left, each for a reason that injection does not fix:
+
+- `places.mcp.ts` → `assignments.bridge`: a real cycle, `DaysModule →
+  PlacesModule → AssignmentsModule → DaysModule`.
+- `budget.mcp.ts` / `packing.mcp.ts` / `costs.rpc.ts` → `trips.bridge`:
+  `TripsModule` imports both, so importing it back closes the loop.
+- `auth/user-cleanup.service.ts` → `budget.bridge`: `BudgetModule` imports
+  `AuthModule`, same shape.
+- `files.controller.ts` / `journey.controller.ts` → `files.bridge`: multer's
+  interceptor options are module-scope literals evaluated before any container
+  exists. The fix is `MulterModule.registerAsync`, not a different import.
+
+The lazy `import('../notifications/notifications.bridge')` senders in six
+services are resolvable by injection — nothing cycles — but the sweep is its own
+change: those services have ~41 hand-wired `new` sites across the suites, and
+`tests/` is outside `tsconfig`'s `include`, so a missed argument would not fail
+to compile. It would land as `undefined` inside a fire-and-forget send whose
+`.catch(() => {})` swallows the TypeError.
 - `app-config/` — the `@nestjs/config` binding (`AppConfigModule`, global). Never
   read `process.env` in a module (ESLint enforces this): inject a boot-stable
   namespace via its `registerAs` token (`@Inject(mcpConfig.KEY) … ConfigType<…>`)

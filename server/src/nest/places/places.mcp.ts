@@ -30,11 +30,12 @@ function parseId(value: string | string[]): number | null {
  * its legacy gate is `places:read`, not the geo group that maps.mcp.ts carries.
  *
  * The two assignments imports stay on assignments.bridge rather than injecting
- * AssignmentsService: AssignmentsModule imports DaysModule, and DaysModule now
- * imports PlacesModule for days.mcp.ts's place creation, so injecting here
- * would close a DaysModule → PlacesModule → AssignmentsModule → DaysModule
- * cycle. Same reason reservations.mcp.ts uses that bridge from inside the
- * container, and the same trade trips.bridge.ts documents.
+ * AssignmentsService, and this is now the ONLY MCP controller left on that
+ * bridge: AssignmentsModule imports DaysModule, and DaysModule imports
+ * PlacesModule for days.mcp.ts's place creation, so injecting here would close
+ * a DaysModule → PlacesModule → AssignmentsModule → DaysModule cycle. A real
+ * cycle, not the module-load problem the others had — reservations.mcp.ts sits
+ * outside that loop and injects the service now.
  */
 @McpController()
 export class PlacesMcp {

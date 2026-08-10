@@ -81,8 +81,20 @@ interface McpEntryOptionsBase {
    * "is this feature on at all" checks like addon toggles. Keeps `access`
    * purely about permissions, so declarative scope markers still compose
    * with runtime feature gates instead of being replaced by predicates.
+   *
+   * `self` is the `@McpController()` instance the entry was declared on,
+   * handed in at attach time. Without it the gate could only reach a
+   * module-level singleton, because the options object is built when the class
+   * is defined and there is no `this` yet — which is how a host ends up
+   * constructing a second copy of a service outside its own container just to
+   * answer "is this addon on". With it, the predicate reads an injected
+   * collaborator and the dependency is visible in the module graph.
+   *
+   * Declared with method syntax on purpose: that makes the parameter bivariant,
+   * so a predicate written against its own controller class stays assignable
+   * here. The registry always passes the instance that declared the entry.
    */
-  when?: (ctx: McpContext) => boolean;
+  when?(ctx: McpContext, self: object): boolean;
   /** Omitted ⇒ the entry is always registered (subject to `when`). */
   access?: McpAccess;
 }

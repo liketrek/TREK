@@ -42,10 +42,14 @@ const { isAddonEnabledMock } = vi.hoisted(() => {
   const isAddonEnabledMock = vi.fn().mockReturnValue(true);
   return { isAddonEnabledMock };
 });
-vi.mock('../../../src/nest/addons/addons.bridge', () => ({
+// Was a module mock over addons.bridge. The `when:` gates read the controller's
+// injected AddonsService now, so the toggle goes in through the constructor —
+// which is the point of the change: the dependency is in the signature instead
+// of behind an import path.
+const addonsStub = {
   isAddonEnabled: isAddonEnabledMock,
-  getCollabFeatures: vi.fn().mockReturnValue({ chat: true, notes: true, polls: true, whatsnext: true }),
-}));
+  getCollabFeatures: () => ({ chat: true, notes: true, polls: true, whatsnext: true }),
+} as unknown as AddonsService;
 
 const { mockGetTripSummary } = vi.hoisted(() => ({
   mockGetTripSummary: vi.fn(),
@@ -77,6 +81,7 @@ import type { AuthService } from '../../../src/nest/auth/auth.service';
 import type { TripsService } from '../../../src/nest/trips/trips.service';
 import type { TodoService } from '../../../src/nest/todo/todo.service';
 import type { CollabService } from '../../../src/nest/collab/collab.service';
+import { AddonsService } from '../../../src/nest/addons/addons.service';
 
 // The trip-summary prompt moved to the DI-discovered TripsMcp — its cases below
 // exercise it through a hand-built registry over a stub TripsService whose
@@ -97,6 +102,7 @@ const tripsMcp = new TripsMcp(
   undefined as never,
   undefined as never,
   readModelStub,
+  addonsStub,
 );
 
 // The three remaining prompts moved to their domains' @McpController classes:
@@ -107,11 +113,14 @@ const authStub = { isDemoUser: () => false } as unknown as AuthService;
 const packingMcp = new PackingMcp(
   new PackingService(promptDbs(), new PermissionsService(promptDbs()), new RealtimeService()),
   authStub,
+  addonsStub,
 );
 const budgetMcp = new BudgetMcp(
   new BudgetService(promptDbs(), new PermissionsService(promptDbs()), new ExchangeRatesService(), new RealtimeService()),
   new ExchangeRatesService(),
   promptDbs(),
+  undefined as never,
+  addonsStub,
 );
 const authMcp = new AuthMcp();
 

@@ -6,10 +6,11 @@ import { AddonsModule } from '../addons/addons.module';
 import { MemoriesModule } from '../memories/memories.module';
 import { JourneyDomainModule } from './journey-domain.module';
 import { JourneyMcp } from './journey.mcp';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   // MemoriesModule: the journey gallery streams provider assets and uploads to Immich.
-  imports: [AddonsModule, MemoriesModule, JourneyDomainModule],
+  imports: [AuthModule, AddonsModule, MemoriesModule, JourneyDomainModule],
   controllers: [JourneyController, JourneyPublicController],
   providers: [JourneyService, JourneyMcp],
 })

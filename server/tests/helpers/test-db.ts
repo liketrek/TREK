@@ -138,6 +138,38 @@ const DEFAULT_PHOTO_PROVIDERS = [
   { id: 'synologyphotos', name: 'Synology Photos',  enabled: 1 },
 ];
 
+/**
+ * Flip an addon in the test DB.
+ *
+ * The MCP `when:` gates used to be mocked at the module boundary
+ * (`vi.mock('addons.bridge')`), which worked only because the gate closed over
+ * a module-level singleton. They read their controller's injected AddonsService
+ * now, so a test toggles the same row the admin panel writes — which also means
+ * these cases exercise the real read instead of a stub of it.
+ *
+ * `resetTestDb` deliberately leaves the addons table alone, so a toggle
+ * survives into the next case: set what a case needs rather than assuming the
+ * seeded default.
+ */
+export function setAddonEnabled(db: Database.Database, addonId: string, enabled: boolean): void {
+  db.prepare(
+    'INSERT INTO addons (id, name, type, enabled) VALUES (?, ?, ?, ?) ' +
+      'ON CONFLICT(id) DO UPDATE SET enabled = excluded.enabled',
+  ).run(addonId, addonId, 'global', enabled ? 1 : 0);
+}
+
+/** Collab's sub-feature flags are opt-out app_settings, not addon rows. */
+export function setCollabFeature(
+  db: Database.Database,
+  feature: 'chat' | 'notes' | 'polls' | 'whatsnext',
+  enabled: boolean,
+): void {
+  db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)").run(
+    `collab_${feature}_enabled`,
+    enabled ? 'true' : 'false',
+  );
+}
+
 function seedDefaults(db: Database.Database): void {
   const insertCat = db.prepare('INSERT OR IGNORE INTO categories (name, color, icon) VALUES (?, ?, ?)');
   for (const cat of DEFAULT_CATEGORIES) insertCat.run(cat.name, cat.color, cat.icon);

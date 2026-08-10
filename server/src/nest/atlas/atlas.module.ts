@@ -5,6 +5,8 @@ import { AtlasService } from './atlas.service';
 import { AtlasRpc } from './atlas.rpc';
 import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
 import { AtlasMcp } from './atlas.mcp';
+import { AddonsModule } from '../addons/addons.module';
+import { AuthModule } from '../auth/auth.module';
 
 /**
  * Atlas addon domain (L7 leaf module). Registered in AppModule. Exports
@@ -17,7 +19,7 @@ import { AtlasMcp } from './atlas.mcp';
  * data. See the comment in that file.
  */
 @Module({
-  imports: [PluginGuardsModule],
+  imports: [AuthModule, PluginGuardsModule, AddonsModule],
   controllers: [AtlasController, TravelStatsController],
   providers: [AtlasService, AtlasMcp, AtlasRpc],
   exports: [AtlasService],

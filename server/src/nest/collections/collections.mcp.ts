@@ -6,7 +6,6 @@ import {
 } from '@trek/nest-mcp';
 import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
-import { isAddonEnabled } from '../addons/addons.bridge';
 import { ADDON_IDS } from '../../addons';
 import { DatabaseService } from '../database/database.service';
 import { CollectionsService } from './collections.service';
@@ -23,6 +22,8 @@ import type {
   CollectionLabelCreateRequest, CollectionLabelUpdateRequest, CollectionLabelAssignRequest,
   CollectionStatus, CollectionRole,
 } from '@trek/shared';
+import { addonGate } from '../addons/addon-gate';
+import { AddonsService } from '../addons/addons.service';
 
 /** Convert a thrown service error (httpError carries `.message`) into MCP error text. */
 function errText(err: unknown): string {
@@ -37,7 +38,7 @@ function fail(err: unknown) {
 /** Post-fold quirk fix: the legacy registrar registered unconditionally while
  *  REST (CollectionsAddonGuard) and the plugin host (requireAddon) gate on the
  *  collections addon — the decorator port now gates too. */
-const collectionsAddonOn = () => isAddonEnabled(ADDON_IDS.COLLECTIONS);
+const collectionsAddonOn = addonGate(ADDON_IDS.COLLECTIONS);
 
 /**
  * Collections MCP surface (#1435) — ported 1:1 from the legacy registrar
@@ -57,6 +58,7 @@ export class CollectionsMcp {
     private readonly collections: CollectionsService,
     private readonly db: DatabaseService,
     private readonly auth: AuthService,
+    readonly addons: AddonsService,
   ) {}
 
   private denyDemo(userId: number) {

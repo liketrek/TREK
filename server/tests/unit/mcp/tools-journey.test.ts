@@ -34,15 +34,12 @@ vi.mock('../../../src/config', () => ({
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock, broadcastToUser: broadcastMock }));
 
-vi.mock('../../../src/nest/addons/addons.bridge', async (importOriginal) => {
-  const original = await importOriginal() as Record<string, unknown>;
-  return { ...original, isAddonEnabled: vi.fn().mockReturnValue(true) };
-});
-
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip } from '../../helpers/factories';
+import { setAddonEnabled } from '../../helpers/test-db';
+import { ADDON_IDS } from '../../../src/addons';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
 
 beforeAll(() => {
@@ -52,6 +49,9 @@ beforeAll(() => {
 
 beforeEach(() => {
   resetTestDb(testDb);
+  // The `when:` gate reads the injected AddonsService, so the toggle is the row
+  // the admin panel writes — and this addon ships disabled by default.
+  setAddonEnabled(testDb, ADDON_IDS.JOURNEY, true);
   broadcastMock.mockClear();
   delete process.env.DEMO_MODE;
 });

@@ -9,13 +9,13 @@ import { AuthService } from '../auth/auth.service';
 import { CalendarService } from '../calendar/calendar.service';
 import { TripMembersService } from '../trip-members/trip-members.service';
 import { TripReadModelService } from '../trip-read-model/trip-read-model.service';
-import { isAddonEnabled, getCollabFeatures } from '../addons/addons.bridge';
 import { ADDON_IDS } from '../../addons';
 import { safeBroadcast, MAX_MCP_TRIP_DAYS, noAccess, hasTripPermission, permissionDenied } from '../../mcp/tools/_shared';
 import { canRead, canReadTrips, canDeleteTrips } from '../../mcp/scopes';
 import { TripsService, NotFoundError, ValidationError } from './trips.service';
 import { TodoService } from '../todo/todo.service';
 import { CollabService } from '../collab/collab.service';
+import { AddonsService } from '../addons/addons.service';
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -71,6 +71,7 @@ export class TripsMcp {
     private readonly calendar: CalendarService,
     private readonly members: TripMembersService,
     private readonly readModel: TripReadModelService,
+    private readonly addons: AddonsService,
   ) {}
 
   // --- TRIPS ---
@@ -212,10 +213,10 @@ export class TripsMcp {
     if (!summary) return noAccess();
     const R = canReadTrips(ctx.scopes);
     // Addon availability gates
-    const packingEnabled = isAddonEnabled(ADDON_IDS.PACKING);
-    const budgetEnabled  = isAddonEnabled(ADDON_IDS.BUDGET);
-    const collabEnabled  = isAddonEnabled(ADDON_IDS.COLLAB);
-    const collabFeatures = collabEnabled ? getCollabFeatures() : null;
+    const packingEnabled = this.addons.isAddonEnabled(ADDON_IDS.PACKING);
+    const budgetEnabled  = this.addons.isAddonEnabled(ADDON_IDS.BUDGET);
+    const collabEnabled  = this.addons.isAddonEnabled(ADDON_IDS.COLLAB);
+    const collabFeatures = collabEnabled ? this.addons.getCollabFeatures() : null;
     // Scope gates — sections not covered by the client's OAuth scopes are omitted.
     // Core trip data (metadata, days, members, accommodations) is always included
     // because this tool is always registered and needed for navigation.

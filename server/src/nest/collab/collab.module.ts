@@ -7,9 +7,10 @@ import { RealtimeModule } from '../realtime/realtime.module';
 import { CollabMcp } from './collab.mcp';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AuthModule } from '../auth/auth.module';
+import { AddonsModule } from '../addons/addons.module';
 
 @Module({
-  imports: [PermissionsModule, AuthModule, RealtimeModule, PluginGuardsModule],
+  imports: [PermissionsModule, AuthModule, RealtimeModule, PluginGuardsModule, AddonsModule],
   controllers: [CollabController],
   providers: [CollabService, CollabMcp, CollabRpc],
   // For in-container consumers (CollabRpc).

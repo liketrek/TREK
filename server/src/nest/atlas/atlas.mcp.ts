@@ -5,23 +5,16 @@ import {
   demoDenied, ok,
 } from '@trek/nest-mcp';
 import { z } from 'zod';
-// auth.bridge, not an injected AuthService. The module cycle that used to force
-// this is gone (getTravelStats moved to AtlasService, so AuthModule no longer
-// imports AtlasModule), but swapping one call site for a direct AuthModule
-// import would pull the whole auth chain into every graph that touches Atlas,
-// to reach a single isDemoUser. Eight other *.mcp.ts have the same shape with
-// addons.bridge; they get resolved together once the nest-mcp registry can
-// resolve a `when:` predicate lazily, at registry.attach instead of at module
-// load. Same documented trade-off as places.mcp.ts keeping assignments.bridge.
-import { isDemoUser } from '../auth/auth.bridge';
-import { isAddonEnabled } from '../addons/addons.bridge';
 import { ADDON_IDS } from '../../addons';
 import { AtlasService } from './atlas.service';
+import { addonGate } from '../addons/addon-gate';
+import { AddonsService } from '../addons/addons.service';
+import { AuthService } from '../auth/auth.service';
 
 /** Legacy registrar gate: the whole atlas surface (tools AND resources) rides
  *  the atlas addon — unlike the REST controller, which is deliberately ungated
  *  (see atlas.controller.ts). */
-const atlasAddonOn = () => isAddonEnabled(ADDON_IDS.ATLAS);
+const atlasAddonOn = addonGate(ADDON_IDS.ATLAS);
 
 function jsonContent(uri: string, data: unknown) {
   return {
@@ -48,7 +41,11 @@ function jsonContent(uri: string, data: unknown) {
  */
 @McpController()
 export class AtlasMcp {
-  constructor(private readonly atlas: AtlasService) {}
+  constructor(
+    private readonly atlas: AtlasService,
+    readonly addons: AddonsService,
+    private readonly auth: AuthService,
+  ) {}
 
   // ── Bucket list ─────────────────────────────────────────────────────────
 
@@ -70,7 +67,7 @@ export class AtlasMcp {
     { name, lat, lng, country_code, notes }: { name: string; lat?: number; lng?: number; country_code?: string; notes?: string },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     const item = this.atlas.createBucketItem(ctx.userId, { name, lat, lng, country_code, notes });
     return ok({ item });
   }
@@ -86,7 +83,7 @@ export class AtlasMcp {
     access: { group: 'atlas', mode: 'write' },
   })
   async deleteBucketListItem({ itemId }: { itemId: number }, ctx: McpContext) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     const deleted = this.atlas.deleteBucketItem(ctx.userId, itemId);
     if (!deleted) return { content: [{ type: 'text' as const, text: 'Bucket list item not found.' }], isError: true };
     return ok({ success: true });
@@ -105,7 +102,7 @@ export class AtlasMcp {
     access: { group: 'atlas', mode: 'write' },
   })
   async markCountryVisited({ country_code }: { country_code: string }, ctx: McpContext) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     this.atlas.markCountry(ctx.userId, country_code.toUpperCase());
     return ok({ success: true, country_code: country_code.toUpperCase() });
   }
@@ -121,7 +118,7 @@ export class AtlasMcp {
     access: { group: 'atlas', mode: 'write' },
   })
   async unmarkCountryVisited({ country_code }: { country_code: string }, ctx: McpContext) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     this.atlas.unmarkCountry(ctx.userId, country_code.toUpperCase());
     return ok({ success: true, country_code: country_code.toUpperCase() });
   }
@@ -170,7 +167,7 @@ export class AtlasMcp {
     { regionCode, regionName, countryCode }: { regionCode: string; regionName: string; countryCode: string },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     // Post-fold quirk fix: uppercase both codes, matching the REST controller
     // (the legacy registrar passed them through verbatim, so a lowercase mark
     // created a row REST's uppercased unmark could never hit).
@@ -195,7 +192,7 @@ export class AtlasMcp {
     access: { group: 'atlas', mode: 'write' },
   })
   async unmarkRegionVisited({ regionCode }: { regionCode: string }, ctx: McpContext) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     // Post-fold quirk fix: uppercase, matching the REST controller.
     this.atlas.unmarkRegion(ctx.userId, regionCode.toUpperCase());
     return ok({ success: true });
@@ -246,7 +243,7 @@ export class AtlasMcp {
     },
     ctx: McpContext,
   ) {
-    if (isDemoUser(ctx.userId)) return demoDenied();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     const item = this.atlas.updateBucketItem(ctx.userId, itemId, { name, notes, lat, lng, country_code, target_date });
     if (!item) return { content: [{ type: 'text' as const, text: 'Bucket list item not found.' }], isError: true };
     return ok({ item });

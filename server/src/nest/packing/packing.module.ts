@@ -9,12 +9,13 @@ import { RealtimeModule } from '../realtime/realtime.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
+import { AddonsModule } from '../addons/addons.module';
 
 /** Packing domain (S2 — Phase 2 trip sub-domain). Registered in AppModule.
  *  Exports PackingService for in-container consumers (TripsService bundle,
  *  PackingRpc). */
 @Module({
-  imports: [PermissionsModule, AuthModule, RealtimeModule, PluginGuardsModule, AuditModule],
+  imports: [PermissionsModule, AuthModule, RealtimeModule, PluginGuardsModule, AddonsModule, AuditModule],
   controllers: [PackingController, AdminPackingTemplatesController],
   providers: [PackingService, PackingMcp, PackingRpc],
   exports: [PackingService],

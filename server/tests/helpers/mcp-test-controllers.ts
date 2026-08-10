@@ -65,6 +65,7 @@ import { TripReadModelService } from '../../src/nest/trip-read-model/trip-read-m
 import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
 import { RuntimeEnvService } from '../../src/nest/app-config/runtime-env.service';
 import { makeNotificationsService, makeNotificationPreferencesService } from './notifications';
+import { AddonsService } from '../../src/nest/addons/addons.service';
 
 /**
  * Hand-wired counterpart of the boot-time discovery in McpRegistryService,
@@ -116,6 +117,14 @@ export function createMcpTestRegistry(): McpRegistry {
     new FilesService(dbService, permissionsService, realtimeService),
   );
   const calendarService = new CalendarService(dbService, reservationsService);
+  // The nine addon-gated surfaces read their toggle off an injected service now
+  // rather than off addons.bridge's own instance, so the harness has to supply
+  // one — against the same test DB, which is what makes the `when:` gates
+  // answer truthfully here instead of against the process-wide singleton.
+  const addonsService = new AddonsService(dbService);
+  // One instance, two consumers: AssignmentsMcp and, since it stopped reaching
+  // through assignments.bridge, ReservationsMcp.
+  const assignmentsService = new AssignmentsService(dbService, permissionsService, realtimeService, queryHelpersService, journeyDomain);
   return createTestRegistry(
     [
       new TagsMcp(new TagsService(dbService), authService),
@@ -124,24 +133,24 @@ export function createMcpTestRegistry(): McpRegistry {
       new WeatherMcp(new WeatherService()),
       new AirportsMcp(),
       new AuthMcp(),
-      new TodoMcp(todoService, authService),
-      new PackingMcp(packingService, authService),
-      new BudgetMcp(budgetService, exchangeRatesService, dbService, authService),
-      new ReservationsMcp(reservationsService, daysService, budgetService, authService),
+      new TodoMcp(todoService, authService, addonsService),
+      new PackingMcp(packingService, authService, addonsService),
+      new BudgetMcp(budgetService, exchangeRatesService, dbService, authService, addonsService),
+      new ReservationsMcp(reservationsService, daysService, budgetService, authService, assignmentsService),
       new DayNotesMcp(new DayNotesService(dbService, permissionsService, realtimeService), authService),
       new DaysMcp(daysService, authService),
       new AccommodationsMcp(accommodationsService, dbService, placesService, authService),
-      new AssignmentsMcp(new AssignmentsService(dbService, permissionsService, realtimeService, queryHelpersService, journeyDomain), daysService, authService),
-      new CollabMcp(collabService, authService),
-      new VacayMcp(new VacayService(dbService, realtimeService), authService),
-      new TripsMcp(tripsService, todoService, collabService, authService, calendarService, membersService, readModelService),
+      new AssignmentsMcp(assignmentsService, daysService, authService),
+      new CollabMcp(collabService, authService, addonsService),
+      new VacayMcp(new VacayService(dbService, realtimeService), authService, addonsService),
+      new TripsMcp(tripsService, todoService, collabService, authService, calendarService, membersService, readModelService, addonsService),
       new ShareMcp(new ShareService(dbService, new SettingsService(dbService), permissionsService, queryHelpersService), authService),
       new MapsMcp(mapsService),
       new PlacesMcp(placesService, mapsService, dbService, authService, journeyDomain),
-      new CollectionsMcp(new CollectionsService(dbService, permissionsService, realtimeService), dbService, authService),
+      new CollectionsMcp(new CollectionsService(dbService, permissionsService, realtimeService), dbService, authService, addonsService),
       new TransitMcp(new TransitService(), daysService, reservationsService, dbService, authService),
-      new AtlasMcp(new AtlasService(dbService)),
-      new JourneyMcp(journeyDomain, new JourneyShareService(dbService, journeyDomain)),
+      new AtlasMcp(new AtlasService(dbService), addonsService, authService),
+      new JourneyMcp(journeyDomain, new JourneyShareService(dbService, journeyDomain), addonsService, authService),
       new NotificationsMcp(makeNotificationsService(dbService, realtimeService), authService),
     ],
     { accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess },
