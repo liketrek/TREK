@@ -188,6 +188,24 @@ describe('parseOpeningHours', () => {
     expect(result.openNow).toBeNull();
   });
 
+  it('MAPS-005b: a weekday range that wraps the whole week covers all seven days', () => {
+    // "Mo-Su" is how a place open daily is usually tagged, and it produced
+    // exactly ONE day: the loop's exit condition was already true on entry, so
+    // the body never ran and only the closing day was added.
+    const daily = parseOpeningHours('Mo-Su 11:30-23:00');
+    expect(daily.weekdayDescriptions.filter((l) => !l.endsWith('?'))).toHaveLength(7);
+    expect(daily.weekdayDescriptions[0]).toBe('Monday: 11:30-23:00');
+    expect(daily.weekdayDescriptions[6]).toBe('Sunday: 11:30-23:00');
+
+    // Same shape starting anywhere else in the week.
+    expect(parseOpeningHours('Tu-Mo 08:00-20:00').weekdayDescriptions.filter((l) => !l.endsWith('?'))).toHaveLength(7);
+
+    // Ranges that do not wrap are unchanged.
+    expect(parseOpeningHours('Mo-Fr 09:00-18:00').weekdayDescriptions.filter((l) => !l.endsWith('?'))).toHaveLength(5);
+    expect(parseOpeningHours('Sa-Su 10:00-14:00').weekdayDescriptions.filter((l) => !l.endsWith('?'))).toHaveLength(2);
+    expect(parseOpeningHours('Mo 09:00-12:00').weekdayDescriptions.filter((l) => !l.endsWith('?'))).toHaveLength(1);
+  });
+
   it('MAPS-006: handles comma-separated days', () => {
     const result = parseOpeningHours('Mo,We,Fr 08:00-17:00');
     expect(result.weekdayDescriptions[0]).toContain('Monday: 08:00-17:00');

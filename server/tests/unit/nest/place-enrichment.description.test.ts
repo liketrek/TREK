@@ -115,7 +115,7 @@ describe('identity resolution', () => {
     expect(maps.resolveOsmIdentity).not.toHaveBeenCalled();
   });
 
-  it('ENRICH-072: keeps OSM tags out of a Google payload', async () => {
+  it('ENRICH-072: never writes OSM tags into a Google payload, but still shows them', async () => {
     // collectFacts and the OSM branch of collectDescription both gate on
     // details.source. Merging the looked-up tags in would either be dead weight
     // or would make a Google place claim to be an OpenStreetMap one.
@@ -132,9 +132,15 @@ describe('identity resolution', () => {
 
     const out = await make(maps).enrich(1, GOOGLE_REQ);
 
+    // The point is that the provider's own record is never written into. Its
+    // `source` is what collectFacts and the OSM branch of collectDescription
+    // gate on, so a Google payload carrying OSM tags would either ignore them
+    // or start claiming to be an OpenStreetMap place.
     expect(details).toEqual({ source: 'google', name: 'Hamburg Airport', summary: null });
-    // Cuisine is an OSM fact and this is a Google place, so it stays out.
-    expect(out.facts.some((f) => f.kind === 'cuisine')).toBe(false);
+    // The tags still reach the reader — through the second object, not by
+    // mutating the first. Google has no concept of cuisine, so without this a
+    // Google place showed a rating and nothing else.
+    expect(out.facts.some((f) => f.kind === 'cuisine')).toBe(true);
   });
 });
 
@@ -268,3 +274,65 @@ describe('article language choice', () => {
     expect(out.description).toMatchObject({ source: 'wikipedia' });
   });
 });
+
+/**
+ * ENRICH-097..100 — topping a Google place up from OpenStreetMap.
+ *
+ * Google's payload has no cuisine, no wheelchair access, no outdoor seating and
+ * no menu link. It never had. So a Google place showed a rating and nothing
+ * else, while the same building in OSM carried all of it — and the lookup that
+ * finds its wiki tags brings those along at no extra cost.
+ */
+describe('filling Google gaps from the free sources', () => {
+  const OSM_TAGS = {
+    wikidata: 'Q1',
+    cuisine: 'pizza;italian',
+    wheelchair: 'limited',
+    outdoor_seating: 'yes',
+    'opening_hours': 'Mo-Su 11:30-23:00',
+  };
+
+  const googlePlaceAlsoInOsm = (over: Partial<Record<keyof MapsService, unknown>> = {}) =>
+    mapsStub({
+      getMapsKey: vi.fn(() => 'key'),
+      details: vi.fn(async () => ({ place: { source: 'google', rating: 4.6, rating_count: 4495 } })),
+      resolveOsmIdentity: vi.fn(async () => ({ tags: OSM_TAGS, osmUrl: null, matchedName: "L'Osteria" })),
+      ...over,
+    });
+
+  it('ENRICH-097: shows the OSM facts a Google place has no concept of', async () => {
+    const out = await make(googlePlaceAlsoInOsm()).enrich(1, GOOGLE_REQ);
+
+    const kinds = out.facts.map((f) => f.kind);
+    expect(kinds).toContain('cuisine');
+    expect(kinds).toContain('wheelchair');
+    expect(kinds).toContain('outdoorSeating');
+    // Semicolons and underscores are OSM syntax, not something to show a reader.
+    expect(out.facts.find((f) => f.kind === 'cuisine')?.value).toBe('pizza, italian');
+  });
+
+  it('ENRICH-098: keeps the rating Google reported', async () => {
+    const out = await make(googlePlaceAlsoInOsm()).enrich(1, GOOGLE_REQ);
+    expect(out.rating).toEqual({ value: 4.6, count: 4495 });
+  });
+
+  it('ENRICH-099: takes opening hours from OSM when Google reported none', async () => {
+    const out = await make(googlePlaceAlsoInOsm()).enrich(1, GOOGLE_REQ);
+    expect(out.hours?.weekdayDescriptions[0]).toContain('11:30-23:00');
+  });
+
+  it('ENRICH-100: the provider wins where both know the same thing', async () => {
+    // Google's hours are the ones the user searched against and the ones more
+    // likely to be current for a business.
+    const maps = googlePlaceAlsoInOsm({
+      details: vi.fn(async () => ({
+        place: { source: 'google', opening_hours: ['Monday: 09:00-17:00'], rating: 4.6, rating_count: 10 },
+      })),
+    });
+
+    const out = await make(maps).enrich(1, GOOGLE_REQ);
+
+    expect(out.hours?.weekdayDescriptions).toEqual(['Monday: 09:00-17:00']);
+  });
+})
+

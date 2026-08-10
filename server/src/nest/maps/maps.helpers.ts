@@ -373,8 +373,16 @@ export function parseOpeningHours(ohString: string): {
         .split('-')
         .map((d) => DAYS.indexOf(d.trim()));
       if (parts.length === 2 && parts[0] >= 0 && parts[1] >= 0) {
-        for (let i = parts[0]; i !== (parts[1] + 1) % 7; i = (i + 1) % 7) dayIndices.add(i);
-        dayIndices.add(parts[1]);
+        // do/while, not while: a range that wraps all the way round — "Mo-Su",
+        // or "Tu-Mo", both of which mean every day — starts already satisfying
+        // the exit condition, so the loop never ran and only the closing day
+        // was added. "Mo-Su 11:30-23:00" is how a place open daily is usually
+        // tagged, and it produced exactly one day of hours.
+        let day = parts[0];
+        do {
+          dayIndices.add(day);
+          day = (day + 1) % 7;
+        } while (day !== (parts[1] + 1) % 7);
       } else if (parts[0] >= 0) {
         dayIndices.add(parts[0]);
       }

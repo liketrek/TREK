@@ -213,6 +213,19 @@ export function collectHours(details: Record<string, unknown> | null): PlaceHour
   };
 }
 
+/**
+ * Facts from the maps provider, topped up from OpenStreetMap.
+ *
+ * Provider first where both know a thing: it is the source the user searched
+ * and the one more likely to be current for a business. OSM contributes
+ * everything the provider has no concept of, which for Google is most of this
+ * list — cuisine, wheelchair access, outdoor seating, the menu link.
+ */
+export function mergeFacts(primary: PlaceFact[], extra: PlaceFact[]): PlaceFact[] {
+  const seen = new Set(primary.map((fact) => fact.kind));
+  return [...primary, ...extra.filter((fact) => !seen.has(fact.kind))];
+}
+
 /** The provider's star rating, with its count when there is one. */
 export function collectRating(details: Record<string, unknown> | null): PlaceRating | null {
   const value = typeof details?.rating === 'number' ? details.rating : null;
@@ -281,12 +294,18 @@ export class PlaceEnrichmentService {
     // no transport deadline at all.
     const osmDetails = identity.osmTags ? buildOsmDetails(identity.osmTags, '', '') : null;
 
+    // Where Google is silent, the free sources fill in. Google's payload has no
+    // cuisine, no wheelchair access, no outdoor seating and no menu link — it
+    // never had — so a Google place used to show a rating and nothing else,
+    // while the same building in OpenStreetMap carried all of it. Each field is
+    // taken from whichever source actually has it rather than from one source
+    // for everything.
     const result: CachedEnrichment = {
       photos,
       description,
-      facts: collectFacts(details),
+      facts: mergeFacts(collectFacts(details), collectFacts(osmDetails)),
       hours: collectHours(details) ?? collectHours(osmDetails),
-      rating: collectRating(details),
+      rating: collectRating(details) ?? collectRating(osmDetails),
     };
     this.writeCache(placeId, lang, result);
     return result;
