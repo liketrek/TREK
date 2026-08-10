@@ -124,6 +124,27 @@ tools, which never pass through an HTTP guard. In the five domains piloted for
   answer 404 to anonymous callers, so the addon check must beat the 401.
 - `common/demo-write.ts` — `isDemoWriteBlocked`, the demo-mode upload block. A
   function and not a guard on purpose; see the gotcha below.
+- `memories/photo-provider.ts` + `providers/` — the PhotoProvider seam (#584).
+  Dispatch to a photo backend was a `switch (photo.provider)` in three places
+  (`photo-resolver.service.ts` twice, `journey-public.controller.ts` once, where
+  anything that was not Immich got handed to Synology). It is
+  `PhotoProviderRegistry.get(id)` now, over adapters registered under the
+  `PHOTO_PROVIDERS` multi-provider token in `memories.module.ts` — adding a
+  backend is one registration.
+  - Adapters, not `implements` on the services: ImmichService and
+    SynologyService are also the album/browse surfaces, with their own argument
+    orders and return shapes. The mapping lives in the adapter.
+  - `PhotoAssetRef` exists because the two services took the same three values
+    in different orders — `(userId, assetId, ownerId)` against
+    `(userId, targetUserId, photoId)`. A transposition compiled cleanly and
+    served another user's photo.
+  - `local` is deliberately NOT a provider. It is storage on this disk, it has
+    no row in `photo_providers`, and its "asset info" comes from the DB row
+    rather than from a backend. Both dispatch sites branch on it explicitly.
+  - The rename `memories/` → `media/` was considered and dropped: it is 275
+    files of import churn, and `scripts/coverage-thresholds.mjs` buckets on one
+    path segment, so merging `photos/` into it would collapse two ratchet
+    entries into one and drop the stricter of the two.
 - `geo/` — the ONE Nominatim client (#576). There used to be two: atlas
   throttled to the published 1.1s and cached its answers, maps did neither, so
   five interactive routes fired straight at the service while the atlas loops

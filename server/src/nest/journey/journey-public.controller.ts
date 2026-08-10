@@ -67,14 +67,22 @@ export class JourneyPublicController {
     }
 
     const effectiveOwnerId = valid.ownerId || Number(ownerId);
-    if (provider === 'immich') {
-      await this.journey.streamImmichAsset(res, effectiveOwnerId, assetId, wantThumb, effectiveOwnerId);
-    } else {
-      try {
-        await this.journey.streamSynologyAsset(res, effectiveOwnerId, effectiveOwnerId, assetId, wantThumb);
-      } catch {
-        res.status(404).json({ error: 'Provider not supported' });
-      }
+    const streaming = this.journey.streamProviderAsset(
+      res,
+      provider,
+      { userId: effectiveOwnerId, ownerId: effectiveOwnerId, assetId },
+      wantThumb,
+    );
+    if (!streaming) {
+      res.status(404).json({ error: 'Provider not supported' });
+      return;
+    }
+    try {
+      await streaming;
+    } catch {
+      // Kept: a provider that throws mid-parse answered 404 here before, and a
+      // share link that half-writes a response is worse than one that 404s.
+      res.status(404).json({ error: 'Provider not supported' });
     }
   }
 }

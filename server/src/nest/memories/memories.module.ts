@@ -14,6 +14,10 @@ import { AddonsModule } from '../addons/addons.module';
 import { AuditModule } from '../audit/audit.module';
 import { TrekPhotosModule } from '../photos/trek-photos.module';
 import { RealtimeModule } from '../realtime/realtime.module';
+import { PHOTO_PROVIDERS } from './photo-provider';
+import { PhotoProviderRegistry } from './photo-provider.registry';
+import { ImmichPhotoProvider } from './providers/immich.provider';
+import { SynologyPhotoProvider } from './providers/synology.provider';
 
 /**
  * Memories (photo-providers) domain — mounted at /api/integrations/memories.
@@ -29,6 +33,11 @@ import { RealtimeModule } from '../realtime/realtime.module';
  * PhotoResolverService and MemoriesAccessService are exported because the
  * /api/photos surface and the journey domain resolve provider assets through
  * them.
+ *
+ * PHOTO_PROVIDERS is the multi-provider array behind PhotoProviderRegistry
+ * (#584): adding a photo backend means adding an adapter to this one list, not
+ * finding every `switch (photo.provider)`. Registered here rather than in the
+ * adapters themselves so the set is readable in one place.
  */
 @Module({
   imports: [AddonsModule, AuditModule, TrekPhotosModule, RealtimeModule],
@@ -42,7 +51,15 @@ import { RealtimeModule } from '../realtime/realtime.module';
     PhotoResolverService,
     ThumbnailService,
     TrekPhotoCacheService,
+    ImmichPhotoProvider,
+    SynologyPhotoProvider,
+    PhotoProviderRegistry,
+    {
+      provide: PHOTO_PROVIDERS,
+      useFactory: (immich: ImmichPhotoProvider, synology: SynologyPhotoProvider) => [immich, synology],
+      inject: [ImmichPhotoProvider, SynologyPhotoProvider],
+    },
   ],
-  exports: [MemoriesAccessService, PhotoResolverService, ImmichService, SynologyService],
+  exports: [MemoriesAccessService, PhotoResolverService, ImmichService, SynologyService, PhotoProviderRegistry],
 })
 export class MemoriesModule {}
