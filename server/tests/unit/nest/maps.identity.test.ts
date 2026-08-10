@@ -81,6 +81,18 @@ describe('namesOverlap', () => {
     expect(namesOverlap('Café Zürich', 'Cafe Zurich')).toBe(true);
   });
 
+  it('MAPS-162c: matches a name across an inflected ending', () => {
+    // Live case: searching "Hamburg Airport" returns OSM's "Hamburger
+    // Flughafen Helmut Schmidt". Insisting on exact words rejected the correct
+    // answer over an "-er", and the airport came back with nothing at all.
+    expect(namesOverlap('Hamburg Airport', 'Hamburger Flughafen Helmut Schmidt')).toBe(true);
+    expect(namesOverlap('Berlin Hauptbahnhof', 'Berliner Hauptbahnhof')).toBe(true);
+    // Still not a licence to match on a shared opening: the stem has to carry
+    // weight and the endings have to be close.
+    expect(namesOverlap('Bahn Museum', 'Bahnhofsvorplatz Kiosk')).toBe(false);
+    expect(namesOverlap('Alt Museum', 'Altenpflegeheim Nord')).toBe(false);
+  });
+
   it('MAPS-162b: will not match on a single short word', () => {
     // An article, and TREK speaks 23 languages — a stopword list for all of
     // them is its own problem, so weight decides instead.

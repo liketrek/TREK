@@ -35,6 +35,21 @@ const GOOGLE_CAP = 3;
 const CACHE_KIND = 2;
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 /**
+ * A week is right for an answer, and far too long for the absence of one.
+ *
+ * Nothing found is usually the provider having a bad minute — a Wikimedia
+ * timeout, a rate limit, a Nominatim hiccup — not a place that genuinely has no
+ * pictures and no article. Storing that under the same TTL means one unlucky
+ * request leaves the column blank for the rest of the week, which is exactly
+ * how a fix can look like no fix at all when it lands.
+ */
+const EMPTY_CACHE_TTL_MS = 10 * 60 * 1000;
+
+/** Whether an answer is worth keeping for a week. */
+function hasAnything(value: CachedEnrichment): boolean {
+  return !!(value.photos.length || value.description || value.facts.length || value.hours || value.rating);
+}
+/**
  * Bumped whenever the shape or the sources change. Without it a release that
  * adds a field or swaps a provider keeps serving the previous week's answers
  * from before the change — which is exactly what happened when the facts and
@@ -593,7 +608,7 @@ export class PlaceEnrichmentService {
         lang ?? '',
         CACHE_KIND,
       );
-      if (!row || Date.now() - row.fetched_at >= CACHE_TTL_MS) return null;
+      if (!row) return null;
       const parsed = JSON.parse(row.payload_json) as CachePayload;
       if (parsed.v !== CACHE_VERSION) return null;
 
@@ -604,13 +619,18 @@ export class PlaceEnrichmentService {
       // of the week for a place that has pictures perfectly available.
       const photos = parsed.photos.filter((photo) => this.photoCache.get(photo.key));
       if (photos.length !== parsed.photos.length) return null;
-      return {
+
+      const value: CachedEnrichment = {
         photos,
         description: parsed.description ?? null,
         facts: parsed.facts ?? [],
         hours: parsed.hours ?? null,
         rating: parsed.rating ?? null,
       };
+      // An answer keeps for a week; the absence of one gets ten minutes.
+      const ttl = hasAnything(value) ? CACHE_TTL_MS : EMPTY_CACHE_TTL_MS;
+      if (Date.now() - row.fetched_at >= ttl) return null;
+      return value;
     } catch {
       return null;
     }

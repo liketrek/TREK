@@ -95,13 +95,29 @@ export function namesOverlap(a: string, b: string): boolean {
         .split(/[^a-z0-9]+/)
         .filter((word) => word.length > 2),
     );
-  const left = words(a);
-  if (left.size === 0) return false;
+  const left = [...words(a)];
+  if (left.length === 0) return false;
+
+  /**
+   * Same word, allowing for an inflected ending.
+   *
+   * Providers localise names, and the two sides of this comparison rarely come
+   * from the same language: searching "Hamburg Airport" returns "Hamburger
+   * Flughafen Helmut Schmidt", and a plain equality test rejects its own
+   * correct answer over the "-er". A short prefix would over-match, so the
+   * shared stem has to carry weight and the endings have to be close.
+   */
+  const sameStem = (x: string, y: string): boolean => {
+    if (x === y) return true;
+    const [short, long] = x.length <= y.length ? [x, y] : [y, x];
+    return short.length >= 4 && long.length - short.length <= 3 && long.startsWith(short);
+  };
 
   let shared = 0;
   for (const word of words(b)) {
-    if (!left.has(word)) continue;
-    if (word.length >= 4) return true;
+    const match = left.find((candidate) => sameStem(candidate, word));
+    if (!match) continue;
+    if (Math.min(match.length, word.length) >= 4) return true;
     if (++shared >= 2) return true;
   }
   return false;
