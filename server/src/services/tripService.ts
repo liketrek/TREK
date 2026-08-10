@@ -18,10 +18,11 @@ import { shiftOwnerEntriesForTripWindow } from './vacayService';
 import {
   TICKET_NOTE_PREFIX,
   ticketPayloadSchema,
-  type GuestClaimCandidate,
-  type GuestClaimConflict,
-  type GuestClaimImpact,
-  type GuestClaimResponse,
+  type GuestIdentityTransferCandidate,
+  type GuestIdentityTransferConflict,
+  type GuestIdentityTransferImpact,
+  type GuestIdentityTransferResponse,
+  type NewMemberIdentityCheckCompletionResponse,
   type TicketPayload,
 } from '@trek/shared';
 
@@ -642,7 +643,7 @@ export function transferOwnership(
     db.prepare('DELETE FROM trip_members WHERE trip_id = ? AND user_id = ?').run(tripId, newOwnerId);
     // …and the former owner keeps access as a member.
     db.prepare(
-      'INSERT OR IGNORE INTO trip_members (trip_id, user_id, invited_by, guest_claim_prompted_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
+      'INSERT OR IGNORE INTO trip_members (trip_id, user_id, invited_by, new_member_identity_check_completed_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
     ).run(tripId, currentOwnerId, newOwnerId);
   });
   run();
@@ -689,7 +690,7 @@ export function createGuest(tripId: string | number, name: string, invitedByUser
       .run(username, email, display);
     const guestId = Number(res.lastInsertRowid);
     db.prepare(
-      'INSERT INTO trip_members (trip_id, user_id, invited_by, guest_claim_prompted_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
+      'INSERT INTO trip_members (trip_id, user_id, invited_by, new_member_identity_check_completed_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
     ).run(tripId, guestId, invitedByUserId);
     return guestId;
   });
@@ -738,22 +739,25 @@ export function deleteGuest(tripId: string | number, guestUserId: number): boole
   return true;
 }
 
-// ── Guest identity claims ────────────────────────────────────────────────────
+// ── New-member identity checks and Guest identity transfers ────────────────────────────────────────────────────
 
-export type GuestClaimCode = 'GUEST_CLAIM_CONFLICT' | 'GUEST_ALREADY_CLAIMED' | 'GUEST_CLAIM_FORBIDDEN';
+export type GuestIdentityTransferCode =
+  | 'GUEST_IDENTITY_TRANSFER_CONFLICT'
+  | 'GUEST_ALREADY_TRANSFERRED'
+  | 'GUEST_IDENTITY_TRANSFER_FORBIDDEN';
 
-export class GuestClaimError extends Error {
+export class GuestIdentityTransferError extends Error {
   constructor(
-    public readonly code: GuestClaimCode,
+    public readonly code: GuestIdentityTransferCode,
     message: string,
-    public readonly conflicts: GuestClaimConflict[] = [],
+    public readonly conflicts: GuestIdentityTransferConflict[] = [],
   ) {
     super(message);
-    this.name = 'GuestClaimError';
+    this.name = 'GuestIdentityTransferError';
   }
 }
 
-function requireClaimingMember(tripId: string | number, userId: number): void {
+function requireIdentityTransferMember(tripId: string | number, userId: number): void {
   const trip = db.prepare('SELECT user_id FROM trips WHERE id = ?').get(tripId) as { user_id: number } | undefined;
   const member = db
     .prepare(
@@ -762,7 +766,10 @@ function requireClaimingMember(tripId: string | number, userId: number): void {
     )
     .get(tripId, userId);
   if (!trip || trip.user_id === userId || !member) {
-    throw new GuestClaimError('GUEST_CLAIM_FORBIDDEN', 'Only non-owner account members can claim guests');
+    throw new GuestIdentityTransferError(
+      'GUEST_IDENTITY_TRANSFER_FORBIDDEN',
+      'Only non-owner account members can transfer Guest identities',
+    );
   }
 }
 
@@ -779,7 +786,11 @@ function parseTicketNote(note: string): TicketPayload | null {
   }
 }
 
-function guestClaimPreview(tripId: string | number, guestUserId: number, claimantUserId: number): GuestClaimCandidate {
+function guestIdentityTransferPreview(
+  tripId: string | number,
+  guestUserId: number,
+  accountMemberUserId: number,
+): GuestIdentityTransferCandidate {
   const guest = db
     .prepare(
       `SELECT u.id, COALESCE(u.display_name, u.username) AS name
@@ -789,8 +800,9 @@ function guestClaimPreview(tripId: string | number, guestUserId: number, claiman
     .get(guestUserId, tripId) as { id: number; name: string } | undefined;
   if (!guest) {
     const existingGuest = db.prepare('SELECT id FROM users WHERE id = ? AND is_guest = 1').get(guestUserId);
-    if (existingGuest) throw new GuestClaimError('GUEST_CLAIM_FORBIDDEN', 'Guest does not belong to this trip');
-    throw new GuestClaimError('GUEST_ALREADY_CLAIMED', 'Guest has already been claimed');
+    if (existingGuest)
+      throw new GuestIdentityTransferError('GUEST_IDENTITY_TRANSFER_FORBIDDEN', 'Guest does not belong to this trip');
+    throw new GuestIdentityTransferError('GUEST_ALREADY_TRANSFERRED', 'Guest identity has already been transferred');
   }
 
   const expenseIds = new Set<number>();
@@ -811,8 +823,8 @@ function guestClaimPreview(tripId: string | number, guestUserId: number, claiman
     paid_by_user_id: number | null;
   }>;
 
-  const conflicts: GuestClaimConflict[] = [];
-  const addConflict = (type: GuestClaimConflict['type'], recordId: number) => {
+  const conflicts: GuestIdentityTransferConflict[] = [];
+  const addConflict = (type: GuestIdentityTransferConflict['type'], recordId: number) => {
     if (!conflicts.some((c) => c.type === type && c.record_id === recordId)) {
       conflicts.push({ type, record_id: recordId });
     }
@@ -825,7 +837,7 @@ function guestClaimPreview(tripId: string | number, guestUserId: number, claiman
          AND EXISTS (SELECT 1 FROM budget_item_members x WHERE x.budget_item_id = bi.id AND x.user_id = ?)
          AND EXISTS (SELECT 1 FROM budget_item_members x WHERE x.budget_item_id = bi.id AND x.user_id = ?)`,
     )
-    .all(tripId, guestUserId, claimantUserId) as Array<{ id: number }>;
+    .all(tripId, guestUserId, accountMemberUserId) as Array<{ id: number }>;
   shareOverlap.forEach((row) => addConflict('expense_share_overlap', row.id));
 
   for (const row of financialRows) {
@@ -834,13 +846,13 @@ function guestClaimPreview(tripId: string | number, guestUserId: number, claiman
       !!db
         .prepare('SELECT 1 FROM budget_item_payers WHERE budget_item_id = ? AND user_id = ?')
         .get(row.id, guestUserId);
-    const claimantPays =
-      row.paid_by_user_id === claimantUserId ||
+    const accountMemberPays =
+      row.paid_by_user_id === accountMemberUserId ||
       !!db
         .prepare('SELECT 1 FROM budget_item_payers WHERE budget_item_id = ? AND user_id = ?')
-        .get(row.id, claimantUserId);
+        .get(row.id, accountMemberUserId);
     if (guestPays) expenseIds.add(row.id);
-    if (guestPays && claimantPays) addConflict('expense_payer_overlap', row.id);
+    if (guestPays && accountMemberPays) addConflict('expense_payer_overlap', row.id);
 
     if (!row.note?.startsWith('TICKETJSON:')) continue;
     const parsed = parseTicketNote(row.note);
@@ -859,7 +871,7 @@ function guestClaimPreview(tripId: string | number, guestUserId: number, claiman
     for (const item of parsed.items) {
       if (item.parts.includes(guestUserId)) {
         expenseIds.add(row.id);
-        if (item.parts.includes(claimantUserId)) addConflict('ticket_participant_overlap', row.id);
+        if (item.parts.includes(accountMemberUserId)) addConflict('ticket_participant_overlap', row.id);
       }
     }
   }
@@ -882,15 +894,15 @@ function guestClaimPreview(tripId: string | number, guestUserId: number, claiman
     .all(tripId, guestUserId, guestUserId) as Array<{ id: number; from_user_id: number; to_user_id: number }>;
   for (const row of settlementRows) {
     if (
-      (row.from_user_id === guestUserId && row.to_user_id === claimantUserId) ||
-      (row.to_user_id === guestUserId && row.from_user_id === claimantUserId) ||
+      (row.from_user_id === guestUserId && row.to_user_id === accountMemberUserId) ||
+      (row.to_user_id === guestUserId && row.from_user_id === accountMemberUserId) ||
       (row.from_user_id === guestUserId && row.to_user_id === guestUserId)
     ) {
       addConflict('settlement_self_payment', row.id);
     }
   }
 
-  const impact: GuestClaimImpact = {
+  const impact: GuestIdentityTransferImpact = {
     expenses: expenseIds.size,
     payments: settlementRows.length,
     itinerary: scalarCount(
@@ -938,32 +950,52 @@ function guestClaimPreview(tripId: string | number, guestUserId: number, claiman
   return { guest_user_id: guest.id, name: guest.name, impact, conflicts };
 }
 
-export function listGuestClaimCandidates(tripId: string | number, claimantUserId: number): GuestClaimCandidate[] {
-  requireClaimingMember(tripId, claimantUserId);
+export function listGuestIdentityTransferCandidates(
+  tripId: string | number,
+  accountMemberUserId: number,
+): GuestIdentityTransferCandidate[] {
+  requireIdentityTransferMember(tripId, accountMemberUserId);
   const guests = db
     .prepare(
       `SELECT u.id FROM users u JOIN trip_members tm ON tm.user_id = u.id
        WHERE tm.trip_id = ? AND u.is_guest = 1 ORDER BY tm.added_at, u.id`,
     )
     .all(tripId) as Array<{ id: number }>;
-  return guests.map((guest) => guestClaimPreview(tripId, guest.id, claimantUserId));
+  return guests.map((guest) => guestIdentityTransferPreview(tripId, guest.id, accountMemberUserId));
 }
 
-export function consumeGuestClaimPrompt(
+export function runNewMemberIdentityCheck(
   tripId: string | number,
-  claimantUserId: number,
-): { prompted: boolean; candidates: GuestClaimCandidate[] } {
+  accountMemberUserId: number,
+): { required: boolean; candidates: GuestIdentityTransferCandidate[] } {
   return db.transaction(() => {
-    requireClaimingMember(tripId, claimantUserId);
-    const consumed = db
+    requireIdentityTransferMember(tripId, accountMemberUserId);
+    const membership = db
       .prepare(
-        `UPDATE trip_members SET guest_claim_prompted_at = CURRENT_TIMESTAMP
-         WHERE trip_id = ? AND user_id = ? AND guest_claim_prompted_at IS NULL`,
+        `SELECT new_member_identity_check_completed_at AS completedAt
+         FROM trip_members WHERE trip_id = ? AND user_id = ?`,
       )
-      .run(tripId, claimantUserId);
-    if (consumed.changes === 0) return { prompted: false, candidates: [] };
-    return { prompted: true, candidates: listGuestClaimCandidates(tripId, claimantUserId) };
+      .get(tripId, accountMemberUserId) as { completedAt: string | null };
+    if (membership.completedAt) return { required: false, candidates: [] };
+
+    const candidates = listGuestIdentityTransferCandidates(tripId, accountMemberUserId);
+    if (candidates.length > 0) return { required: true, candidates };
+
+    completeNewMemberIdentityCheck(tripId, accountMemberUserId);
+    return { required: false, candidates: [] };
   })();
+}
+
+export function completeNewMemberIdentityCheck(
+  tripId: string | number,
+  accountMemberUserId: number,
+): NewMemberIdentityCheckCompletionResponse {
+  requireIdentityTransferMember(tripId, accountMemberUserId);
+  db.prepare(
+    `UPDATE trip_members SET new_member_identity_check_completed_at = CURRENT_TIMESTAMP
+     WHERE trip_id = ? AND user_id = ? AND new_member_identity_check_completed_at IS NULL`,
+  ).run(tripId, accountMemberUserId);
+  return { success: true };
 }
 
 function mergeScopedJoin(
@@ -972,28 +1004,32 @@ function mergeScopedJoin(
   scopedParentSql: string,
   tripId: string | number,
   guestUserId: number,
-  claimantUserId: number,
+  accountMemberUserId: number,
 ): void {
   db.prepare(
     `DELETE FROM ${table} AS guest_row
      WHERE guest_row.user_id = ? AND guest_row.${parentColumn} IN (${scopedParentSql})
        AND EXISTS (SELECT 1 FROM ${table} target_row
                    WHERE target_row.${parentColumn} = guest_row.${parentColumn} AND target_row.user_id = ?)`,
-  ).run(guestUserId, tripId, claimantUserId);
+  ).run(guestUserId, tripId, accountMemberUserId);
   db.prepare(
     `UPDATE ${table} SET user_id = ?
      WHERE user_id = ? AND ${parentColumn} IN (${scopedParentSql})`,
-  ).run(claimantUserId, guestUserId, tripId);
+  ).run(accountMemberUserId, guestUserId, tripId);
 }
 
-export function claimGuest(tripId: string | number, guestUserId: number, claimantUserId: number): GuestClaimResponse {
+export function transferGuestIdentity(
+  tripId: string | number,
+  guestUserId: number,
+  accountMemberUserId: number,
+): GuestIdentityTransferResponse {
   const result = db.transaction(() => {
-    requireClaimingMember(tripId, claimantUserId);
-    const preview = guestClaimPreview(tripId, guestUserId, claimantUserId);
+    requireIdentityTransferMember(tripId, accountMemberUserId);
+    const preview = guestIdentityTransferPreview(tripId, guestUserId, accountMemberUserId);
     if (preview.conflicts.length > 0) {
-      throw new GuestClaimError(
-        'GUEST_CLAIM_CONFLICT',
-        'Guest claim has conflicting financial records',
+      throw new GuestIdentityTransferError(
+        'GUEST_IDENTITY_TRANSFER_CONFLICT',
+        'Guest identity transfer has conflicting financial records',
         preview.conflicts,
       );
     }
@@ -1001,23 +1037,23 @@ export function claimGuest(tripId: string | number, guestUserId: number, claiman
     db.prepare(
       `UPDATE budget_item_members SET user_id = ? WHERE user_id = ?
        AND budget_item_id IN (SELECT id FROM budget_items WHERE trip_id = ?)`,
-    ).run(claimantUserId, guestUserId, tripId);
+    ).run(accountMemberUserId, guestUserId, tripId);
     db.prepare(
       `UPDATE budget_item_payers SET user_id = ? WHERE user_id = ?
        AND budget_item_id IN (SELECT id FROM budget_items WHERE trip_id = ?)`,
-    ).run(claimantUserId, guestUserId, tripId);
+    ).run(accountMemberUserId, guestUserId, tripId);
     db.prepare('UPDATE budget_items SET paid_by_user_id = ? WHERE trip_id = ? AND paid_by_user_id = ?').run(
-      claimantUserId,
+      accountMemberUserId,
       tripId,
       guestUserId,
     );
     db.prepare('UPDATE budget_settlements SET from_user_id = ? WHERE trip_id = ? AND from_user_id = ?').run(
-      claimantUserId,
+      accountMemberUserId,
       tripId,
       guestUserId,
     );
     db.prepare('UPDATE budget_settlements SET to_user_id = ? WHERE trip_id = ? AND to_user_id = ?').run(
-      claimantUserId,
+      accountMemberUserId,
       tripId,
       guestUserId,
     );
@@ -1033,7 +1069,7 @@ export function claimGuest(tripId: string | number, guestUserId: number, claiman
         item.parts = item.parts.map((id) => {
           if (id !== guestUserId) return id;
           changed = true;
-          return claimantUserId;
+          return accountMemberUserId;
         });
       }
       if (changed) {
@@ -1050,7 +1086,7 @@ export function claimGuest(tripId: string | number, guestUserId: number, claiman
       'SELECT da.id FROM day_assignments da JOIN days d ON d.id = da.day_id WHERE d.trip_id = ?',
       tripId,
       guestUserId,
-      claimantUserId,
+      accountMemberUserId,
     );
     db.prepare(
       `DELETE FROM todo_category_assignees AS guest_row
@@ -1058,14 +1094,14 @@ export function claimGuest(tripId: string | number, guestUserId: number, claiman
          AND EXISTS (SELECT 1 FROM todo_category_assignees target_row
                      WHERE target_row.trip_id = guest_row.trip_id
                        AND target_row.category_name = guest_row.category_name AND target_row.user_id = ?)`,
-    ).run(tripId, guestUserId, claimantUserId);
+    ).run(tripId, guestUserId, accountMemberUserId);
     db.prepare('UPDATE todo_category_assignees SET user_id = ? WHERE trip_id = ? AND user_id = ?').run(
-      claimantUserId,
+      accountMemberUserId,
       tripId,
       guestUserId,
     );
     db.prepare('UPDATE todo_items SET assigned_user_id = ? WHERE trip_id = ? AND assigned_user_id = ?').run(
-      claimantUserId,
+      accountMemberUserId,
       tripId,
       guestUserId,
     );
@@ -1075,9 +1111,9 @@ export function claimGuest(tripId: string | number, guestUserId: number, claiman
          AND EXISTS (SELECT 1 FROM packing_category_assignees target_row
                      WHERE target_row.trip_id = guest_row.trip_id
                        AND target_row.category_name = guest_row.category_name AND target_row.user_id = ?)`,
-    ).run(tripId, guestUserId, claimantUserId);
+    ).run(tripId, guestUserId, accountMemberUserId);
     db.prepare('UPDATE packing_category_assignees SET user_id = ? WHERE trip_id = ? AND user_id = ?').run(
-      claimantUserId,
+      accountMemberUserId,
       tripId,
       guestUserId,
     );
@@ -1087,7 +1123,7 @@ export function claimGuest(tripId: string | number, guestUserId: number, claiman
       'SELECT id FROM packing_bags WHERE trip_id = ?',
       tripId,
       guestUserId,
-      claimantUserId,
+      accountMemberUserId,
     );
     mergeScopedJoin(
       'packing_item_recipients',
@@ -1095,7 +1131,7 @@ export function claimGuest(tripId: string | number, guestUserId: number, claiman
       'SELECT id FROM packing_items WHERE trip_id = ?',
       tripId,
       guestUserId,
-      claimantUserId,
+      accountMemberUserId,
     );
     mergeScopedJoin(
       'packing_item_contributors',
@@ -1103,15 +1139,15 @@ export function claimGuest(tripId: string | number, guestUserId: number, claiman
       'SELECT id FROM packing_items WHERE trip_id = ?',
       tripId,
       guestUserId,
-      claimantUserId,
+      accountMemberUserId,
     );
     db.prepare('UPDATE packing_bags SET user_id = ? WHERE trip_id = ? AND user_id = ?').run(
-      claimantUserId,
+      accountMemberUserId,
       tripId,
       guestUserId,
     );
     db.prepare('UPDATE packing_items SET owner_id = ? WHERE trip_id = ? AND owner_id = ?').run(
-      claimantUserId,
+      accountMemberUserId,
       tripId,
       guestUserId,
     );
@@ -1119,23 +1155,26 @@ export function claimGuest(tripId: string | number, guestUserId: number, claiman
     erasePluginUserData(guestUserId);
     db.prepare(
       `INSERT INTO audit_log (user_id, action, resource, details)
-       VALUES (?, 'trip.guest_claim', ?, ?)`,
+       VALUES (?, 'trip.guest_identity_transfer', ?, ?)`,
     ).run(
-      claimantUserId,
+      accountMemberUserId,
       String(tripId),
       JSON.stringify({
         tripId: Number(tripId),
         guestUserId,
-        claimantUserId,
+        accountMemberUserId,
         guestName: preview.name,
         impact: preview.impact,
       }),
     );
     db.prepare('DELETE FROM trip_members WHERE trip_id = ? AND user_id = ?').run(tripId, guestUserId);
     const deleted = db.prepare('DELETE FROM users WHERE id = ? AND is_guest = 1').run(guestUserId);
-    if (deleted.changes !== 1) throw new GuestClaimError('GUEST_ALREADY_CLAIMED', 'Guest has already been claimed');
+    if (deleted.changes !== 1) {
+      throw new GuestIdentityTransferError('GUEST_ALREADY_TRANSFERRED', 'Guest identity has already been transferred');
+    }
+    completeNewMemberIdentityCheck(tripId, accountMemberUserId);
 
-    return { success: true as const, claimed_guest_user_id: guestUserId, impact: preview.impact };
+    return { success: true as const, transferred_guest_user_id: guestUserId, impact: preview.impact };
   })();
   emitUserDeleted(guestUserId);
   return result;

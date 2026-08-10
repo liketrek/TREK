@@ -3848,7 +3848,7 @@ function runMigrations(db: Database.Database): void {
           ON exchange_rate_batch_previews (created_at);
       `);
     },
-    // Existing account members must not receive the one-time guest-claim prompt.
+    // Existing account members must not receive the one-time Guest claim prompt.
     // Memberships created after this migration keep NULL until the prompt endpoint
     // atomically consumes it. Guest rows and former-owner rows opt out at insertion.
     () => {
@@ -3859,6 +3859,27 @@ function runMigrations(db: Database.Database): void {
       }
       db.exec(`UPDATE trip_members SET guest_claim_prompted_at = CURRENT_TIMESTAMP
                WHERE guest_claim_prompted_at IS NULL`);
+    },
+    // Preserve the legacy completion values while adopting unambiguous
+    // New-member identity check terminology.
+    () => {
+      const columns = db.prepare('PRAGMA table_info(trip_members)').all() as Array<{ name: string }>;
+      const hasLegacy = columns.some((column) => column.name === 'guest_claim_prompted_at');
+      const hasCompleted = columns.some((column) => column.name === 'new_member_identity_check_completed_at');
+      if (hasLegacy && !hasCompleted) {
+        db.exec(
+          'ALTER TABLE trip_members RENAME COLUMN guest_claim_prompted_at TO new_member_identity_check_completed_at',
+        );
+      } else if (hasLegacy && hasCompleted) {
+        db.exec(`UPDATE trip_members
+                 SET new_member_identity_check_completed_at = COALESCE(
+                   new_member_identity_check_completed_at,
+                   guest_claim_prompted_at
+                 )`);
+        db.exec('ALTER TABLE trip_members DROP COLUMN guest_claim_prompted_at');
+      } else if (!hasCompleted) {
+        db.exec('ALTER TABLE trip_members ADD COLUMN new_member_identity_check_completed_at DATETIME');
+      }
     },
   ];
 

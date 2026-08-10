@@ -1,17 +1,17 @@
-import { Injectable } from '@nestjs/common';
 import { db, canAccessTrip } from '../../db/database';
-import { broadcast } from '../../websocket';
-import { checkPermission } from '../../services/permissions';
-import type { User } from '../../types';
-import * as tripSvc from '../../services/tripService';
-import { listDays, listAccommodations } from '../../services/dayService';
-import { listPlaces } from '../../services/placeService';
-import { listItems as listPackingItems } from '../../services/packingService';
-import { listItems as listTodoItems } from '../../services/todoService';
 import { listBudgetItems } from '../../services/budgetService';
-import { listReservations } from '../../services/reservationService';
+import { listDays, listAccommodations } from '../../services/dayService';
 import { listFiles } from '../../services/fileService';
+import { listItems as listPackingItems } from '../../services/packingService';
+import { checkPermission } from '../../services/permissions';
+import { listPlaces } from '../../services/placeService';
+import { listReservations } from '../../services/reservationService';
+import { listItems as listTodoItems } from '../../services/todoService';
+import * as tripSvc from '../../services/tripService';
 import { searchUnsplashPhotos, getUnsplashKey } from '../../services/unsplashService';
+import type { User } from '../../types';
+import { broadcast } from '../../websocket';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Thin Nest wrapper around the existing trip service + the per-domain list
@@ -111,16 +111,20 @@ export class TripsService {
     return tripSvc.deleteGuest(tripId, guestUserId);
   }
 
-  listGuestClaimCandidates(tripId: string, claimantUserId: number) {
-    return tripSvc.listGuestClaimCandidates(tripId, claimantUserId);
+  listGuestIdentityTransferCandidates(tripId: string, accountMemberUserId: number) {
+    return tripSvc.listGuestIdentityTransferCandidates(tripId, accountMemberUserId);
   }
 
-  consumeGuestClaimPrompt(tripId: string, claimantUserId: number) {
-    return tripSvc.consumeGuestClaimPrompt(tripId, claimantUserId);
+  runNewMemberIdentityCheck(tripId: string, accountMemberUserId: number) {
+    return tripSvc.runNewMemberIdentityCheck(tripId, accountMemberUserId);
   }
 
-  claimGuest(tripId: string, guestUserId: number, claimantUserId: number) {
-    return tripSvc.claimGuest(tripId, guestUserId, claimantUserId);
+  completeNewMemberIdentityCheck(tripId: string, accountMemberUserId: number) {
+    return tripSvc.completeNewMemberIdentityCheck(tripId, accountMemberUserId);
+  }
+
+  transferGuestIdentity(tripId: string, guestUserId: number, accountMemberUserId: number) {
+    return tripSvc.transferGuestIdentity(tripId, guestUserId, accountMemberUserId);
   }
 
   exportICS(tripId: string) {

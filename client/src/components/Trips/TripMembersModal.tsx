@@ -1,4 +1,4 @@
-import type { GuestClaimCandidate } from '@trek/shared';
+import type { GuestIdentityTransferCandidate } from '@trek/shared';
 import {
   Check,
   Copy,
@@ -23,7 +23,7 @@ import { getApiErrorMessage } from '../../types';
 import CustomSelect from '../shared/CustomSelect';
 import Modal from '../shared/Modal';
 import { useToast } from '../shared/Toast';
-import GuestClaimModal from './GuestClaimModal';
+import GuestIdentityTransferModal from './GuestIdentityTransferModal';
 
 interface AvatarProps {
   username: string;
@@ -540,8 +540,8 @@ export default function TripMembersModal({
   const [addingGuest, setAddingGuest] = useState(false);
   const [renamingGuestId, setRenamingGuestId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
-  const [claimCandidates, setClaimCandidates] = useState<GuestClaimCandidate[]>([]);
-  const [showGuestClaim, setShowGuestClaim] = useState(false);
+  const [claimCandidates, setClaimCandidates] = useState<GuestIdentityTransferCandidate[]>([]);
+  const [showGuestIdentityTransfer, setShowGuestIdentityTransfer] = useState(false);
   const toast = useToast();
   const { user } = useAuthStore();
   const { t } = useTranslation();
@@ -559,12 +559,12 @@ export default function TripMembersModal({
   }, [isOpen, tripId]);
 
   useEffect(() => {
-    setShowGuestClaim(false);
+    setShowGuestIdentityTransfer(false);
     setClaimCandidates([]);
   }, [isOpen, tripId]);
 
   const closeMembers = () => {
-    setShowGuestClaim(false);
+    setShowGuestIdentityTransfer(false);
     setClaimCandidates([]);
     onClose();
   };
@@ -668,13 +668,13 @@ export default function TripMembersModal({
     }
   };
 
-  const handleOpenGuestClaim = async () => {
+  const handleOpenGuestIdentityTransfer = async () => {
     try {
-      const response = await tripsApi.getGuestClaimCandidates(tripId);
+      const response = await tripsApi.getGuestIdentityTransferCandidates(tripId);
       setClaimCandidates(response.candidates);
-      setShowGuestClaim(true);
+      setShowGuestIdentityTransfer(true);
     } catch {
-      toast.error(t('members.guestClaim.error.generic'));
+      toast.error(t('members.guestIdentityTransfer.error.generic'));
     }
   };
 
@@ -707,14 +707,14 @@ export default function TripMembersModal({
   const realMembers = data ? [{ ...data.owner, role: 'owner' }, ...data.members.filter((m) => !m.is_guest)] : [];
   const guests = data ? data.members.filter((m) => m.is_guest) : [];
 
-  if (showGuestClaim) {
+  if (showGuestIdentityTransfer) {
     return (
-      <GuestClaimModal
+      <GuestIdentityTransferModal
         isOpen={isOpen}
         tripId={tripId}
         candidates={claimCandidates}
         onCandidatesChanged={setClaimCandidates}
-        onClose={() => setShowGuestClaim(false)}
+        onDismiss={() => setShowGuestIdentityTransfer(false)}
       />
     );
   }
@@ -960,7 +960,7 @@ export default function TripMembersModal({
               </div>
               {!isCurrentOwner && guests.length > 0 && (
                 <button
-                  onClick={handleOpenGuestClaim}
+                  onClick={handleOpenGuestIdentityTransfer}
                   className="border border-edge text-content"
                   style={{
                     width: '100%',
@@ -970,7 +970,7 @@ export default function TripMembersModal({
                     background: 'transparent',
                   }}
                 >
-                  {t('members.guestClaim.manual')}
+                  {t('members.guestIdentityTransfer.manual')}
                 </button>
               )}
               <p
