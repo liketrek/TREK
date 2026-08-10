@@ -46,12 +46,13 @@ body { height: 100%; overflow: auto; overscroll-behavior: none; -webkit-overflow
   background: #fff;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.16);
 }
+/* No speech-bubble tail on the hover card. It is a label that follows the
+   cursor onto whatever it is over, not a popup anchored to one spot, and the
+   tail read as a stray notch hanging off the bottom edge. The popup's own
+   offset carries the gap to the marker instead. */
 .trek-map-popup .mapboxgl-popup-tip,
 .trek-map-popup .maplibregl-popup-tip {
-  border-top-color: #fff;
-  border-bottom-color: #fff;
-  border-left-color: #fff;
-  border-right-color: #fff;
+  display: none;
 }
 
 .atlas-tooltip {

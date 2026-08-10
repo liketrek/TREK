@@ -485,7 +485,9 @@ export function MapViewGL({
     popupRef.current = new gl.Popup({
       closeButton: false,
       closeOnClick: false,
-      offset: 18,
+      // The tail is off (index.css), and it used to hold ten of these pixels
+      // itself — without them the card sat almost on top of the marker.
+      offset: 26,
       maxWidth: '240px',
       className: 'trek-map-popup',
     })
