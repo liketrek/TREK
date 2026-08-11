@@ -274,9 +274,19 @@
 .trek-dash .col-lrow-label { display: inline-flex; align-items: center; gap: 5px; max-width: 120px; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; color: var(--label, var(--accent)); background: color-mix(in oklch, var(--label, var(--accent)) 14%, transparent); }
 .trek-dash .col-lrow-label.more { color: var(--ink-3); background: var(--surface-2); }
 .trek-dash .col-labelchip-dot { width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; background: var(--label, var(--accent)); }
-.trek-dash .col-labelfilter { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.trek-dash .col-labelchip { display: inline-flex; align-items: center; gap: 6px; max-width: 180px; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line-2); transition: background .12s, border-color .12s, color .12s; }
-.trek-dash .col-labelchip:hover { background: var(--surface-2); color: var(--ink); }
+/* Labels are their own axis of filtering, so they read as one tray rather than
+   as more loose buttons: a recessed strip, led by a tag glyph, holding chips
+   that share the filter buttons' radius and type. The chips carry no border of
+   their own — a frame inside a frame is what made this look like a pile. */
+.trek-dash .col-labelfilter {
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px;
+  padding: 4px 6px 4px 8px; border-radius: 12px;
+  background: color-mix(in oklch, var(--surface-2) 70%, transparent);
+  border: 1px solid var(--line-2);
+}
+.trek-dash .col-labelfilter-lead { color: var(--ink-3); flex-shrink: 0; margin-right: 2px; }
+.trek-dash .col-labelchip { display: inline-flex; align-items: center; gap: 6px; max-width: 180px; padding: 5px 9px; border-radius: 8px; font-size: 12.5px; font-weight: 600; white-space: nowrap; color: var(--ink-2); background: transparent; border: 1px solid transparent; transition: background .12s, border-color .12s, color .12s; }
+.trek-dash .col-labelchip:hover { background: var(--surface); color: var(--ink); }
 .trek-dash .col-labelchip .col-filter-lbl { overflow: hidden; text-overflow: ellipsis; }
 .trek-dash .col-labelchip.on { color: var(--label, var(--accent)); background: color-mix(in oklch, var(--label, var(--accent)) 16%, transparent); border-color: color-mix(in oklch, var(--label, var(--accent)) 42%, transparent); }
 .trek-dash .col-labelchip.on .col-labelchip-dot { background: var(--label, var(--accent)); }
@@ -288,6 +298,16 @@
 .trek-dash .col-filter { position: relative; }
 /* Icon-only add-place button: square it off so it matches the dropdowns' height. */
 .trek-dash .col-filter-add { padding: 7px; }
+/* Square icon-only buttons: same height as the dropdowns beside them. */
+.trek-dash .col-filter-icon { padding: 7px; }
+/* Manage/add labels sits inside the label tray, so it stays quiet until hovered. */
+.trek-dash .col-filter-addlabel {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 5px; border-radius: 8px; color: var(--ink-3);
+  background: transparent; border: 1px solid transparent;
+  transition: background .12s, color .12s;
+}
+.trek-dash .col-filter-addlabel:hover { background: var(--surface); color: var(--ink); }
 .trek-dash .col-filter-select { margin-left: auto; }
 .trek-dash .col-filter-select.open { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 .trek-dash .col-filter-select.open:hover { background: var(--accent); color: var(--accent-text); }

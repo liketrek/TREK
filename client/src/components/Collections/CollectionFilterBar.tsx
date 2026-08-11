@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { ChevronDown, Check, Layers, Tag, Tags, CheckSquare, Star, Plus, ArrowDownUp } from 'lucide-react'
+import { ChevronDown, Check, Layers, Tag, Tags, CheckSquare, Star, Plus, Settings2, ArrowDownUp } from 'lucide-react'
 import type { StatusFilter, CollectionSortMode } from '../../store/collectionStore'
 import type { TranslationFn } from '../../types'
 import { getCategoryIcon } from '../shared/categoryIcons'
@@ -148,12 +148,20 @@ export default function CollectionFilterBar({
       <Dropdown current={ratingFilter} options={ratingOpts} onSelect={k => onRatingFilter(k as number | 'all')} lead={<Star size={13} />} />
       <Dropdown current={sortMode} options={sortOpts} onSelect={k => onSortMode(k as CollectionSortMode)} lead={<ArrowDownUp size={13} />} />
       {showSelect && (
-        <button type="button" onClick={onToggleSelect} className={`col-filter-btn col-filter-select${selectMode ? ' open' : ''}`} aria-pressed={selectMode}>
-          <CheckSquare size={14} /> <span className="col-filter-lbl">{t('collections.select')}</span>
+        <button
+          type="button"
+          onClick={onToggleSelect}
+          className={`col-filter-btn col-filter-icon col-filter-select${selectMode ? ' open' : ''}`}
+          aria-pressed={selectMode}
+          aria-label={t('collections.select')}
+          title={t('collections.select')}
+        >
+          <CheckSquare size={15} />
         </button>
       )}
       {showLabels && (labelOptions.length > 0 || canManageLabels) && (
-        <div className="col-labelfilter">
+        <div className="col-labelfilter" role="group" aria-label={t('collections.labels.manage')}>
+          <Tags size={13} className="col-labelfilter-lead" aria-hidden="true" />
           {labelOptions.map(l => {
             const on = labelFilter.includes(l.id)
             return (
@@ -172,9 +180,14 @@ export default function CollectionFilterBar({
             )
           })}
           {canManageLabels && (
-            <button type="button" className="col-filter-btn col-filter-addlabel" onClick={onManageLabels} title={t('collections.labels.manage')}>
-              <Tags size={13} />
-              <span className="col-filter-lbl">{labelOptions.length ? t('collections.labels.manage') : t('collections.labels.add')}</span>
+            <button
+              type="button"
+              className="col-filter-addlabel"
+              onClick={onManageLabels}
+              title={labelOptions.length ? t('collections.labels.manage') : t('collections.labels.add')}
+              aria-label={labelOptions.length ? t('collections.labels.manage') : t('collections.labels.add')}
+            >
+              {labelOptions.length ? <Settings2 size={13} /> : <Plus size={13} />}
             </button>
           )}
         </div>
