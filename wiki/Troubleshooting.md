@@ -407,11 +407,16 @@ the client (check that your reverse proxy forwards it).
 
 ## MCP requests blocked by Cloudflare WAF (Bot Fight Mode)
 
-**Cause:** When TREK is proxied through Cloudflare, **Bot Fight Mode** and **Super Bot Fight Mode** classify requests from ChatGPT as bots and block them at the WAF level — before the request ever reaches TREK. This is specific to ChatGPT; Claude.ai is not affected. ChatGPT's exit node IPs have low reputation scores in Cloudflare's threat intelligence and the User-Agent matches Cloudflare's automated-traffic heuristics. TREK itself never receives the request, so there is nothing in TREK's logs; the block is silent from TREK's perspective.
+**Cause:** When TREK is proxied through Cloudflare, **Bot Fight Mode** and **Super Bot Fight Mode** classify server-to-server requests as bots and block them at the WAF level — before the request ever reaches TREK. Their exit-node IPs have low reputation scores in Cloudflare's threat intelligence and the User-Agent matches Cloudflare's automated-traffic heuristics. TREK itself never receives the request, so there is nothing in TREK's logs; the block is silent from TREK's perspective.
+
+This affects **ChatGPT** and **Google account linking (Gemini, Assistant)**. Claude.ai is not affected.
+
+Note that Bot Fight Mode does **not** honour IP allowlists, so adding the provider's published ranges to a Cloudflare IP Access rule does not help; you need one of the two fixes below.
 
 Symptoms:
 - ChatGPT shows a connection error or times out immediately after OAuth completes.
-- Cloudflare's Security → Events log shows blocked requests to `/mcp` with action `block` and source `bfm` (Bot Fight Mode) or `managed_rule`.
+- With Google account linking the symptom looks different, and more confusing: the browser part succeeds (you approve the consent screen and are redirected back), then linking fails. Google exchanges the authorization code from its own servers, and that call is what gets blocked. In TREK's logs you see `POST /api/oauth/authorize` answered `200` and then **no** `POST /oauth/token` at all.
+- Cloudflare's Security → Events log shows blocked requests to `/mcp` or `/oauth/token` with action `block` and source `bfm` (Bot Fight Mode) or `managed_rule`.
 
 **Fix — Option 1: Disable Bot Fight Mode (free plan and paid plan)**
 
