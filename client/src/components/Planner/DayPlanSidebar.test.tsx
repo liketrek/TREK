@@ -1,6 +1,9 @@
 // FE-PLANNER-DAYPLAN-001 to FE-PLANNER-DAYPLAN-042
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
+import { http, HttpResponse } from 'msw'
+import { server } from '../../../tests/helpers/msw/server'
+import { clearExchangeRateCache } from '../../hooks/useExchangeRates'
 import { useAuthStore } from '../../store/authStore'
 import { useTripStore } from '../../store/tripStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -130,6 +133,9 @@ beforeEach(() => {
   vi.clearAllMocks()
   sessionStorage.clear()
   localStorage.clear()
+  // Cost totals fetch FX rates for their base currency; keep the suite hermetic.
+  clearExchangeRateCache()
+  server.use(http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.json([])))
   // Reset mutable day-notes state
   mockDayNotesState.noteUi = {}
   mockDayNotesState.dayNotes = {}
@@ -386,6 +392,53 @@ describe('DayPlanSidebar', () => {
     expect(screen.queryByText('Alexanderplatz')).not.toBeInTheDocument()
   })
 
+  it('FE-PLANNER-DAYPLAN-106: the toolbar button shows "show all" and calls onToggleAllConnections when not all routes are shown', async () => {
+    const user = userEvent.setup()
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const res1 = {
+      ...buildReservation({ id: 401, type: 'flight' }),
+      endpoints: [
+        { role: 'from', sequence: 0, name: 'A', code: null, lat: 1, lng: 2, timezone: null, local_time: null, local_date: null },
+        { role: 'to', sequence: 1, name: 'B', code: null, lat: 3, lng: 4, timezone: null, local_time: null, local_date: null },
+      ],
+    }
+    const onToggleAllConnections = vi.fn()
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [day], reservations: [res1 as any],
+      visibleConnectionIds: [], onToggleConnection: vi.fn(),
+      allConnectionsShown: false, onToggleAllConnections,
+    })} />)
+    await user.click(screen.getByLabelText('Show all booking routes'))
+    expect(onToggleAllConnections).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-PLANNER-DAYPLAN-107: the toolbar button reads "hide" once allConnectionsShown is true, and calls onToggleAllConnections on click', async () => {
+    const user = userEvent.setup()
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const res1 = {
+      ...buildReservation({ id: 401, type: 'flight' }),
+      endpoints: [
+        { role: 'from', sequence: 0, name: 'A', code: null, lat: 1, lng: 2, timezone: null, local_time: null, local_date: null },
+        { role: 'to', sequence: 1, name: 'B', code: null, lat: 3, lng: 4, timezone: null, local_time: null, local_date: null },
+      ],
+    }
+    const onToggleAllConnections = vi.fn()
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [day], reservations: [res1 as any],
+      visibleConnectionIds: [401], onToggleConnection: vi.fn(),
+      allConnectionsShown: true, onToggleAllConnections,
+    })} />)
+    await user.click(screen.getByLabelText('Hide all booking routes'))
+    expect(onToggleAllConnections).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-PLANNER-DAYPLAN-108: the toolbar button is absent when the trip has no routable reservation', () => {
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], reservations: [], onToggleAllConnections: vi.fn() })} />)
+    expect(screen.queryByLabelText('Show all booking routes')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Hide all booking routes')).not.toBeInTheDocument()
+  })
+
   // ── Day info button ─────────────────────────────────────────────────────
 
   it('FE-PLANNER-DAYPLAN-018: clicking day header calls onDayDetail', async () => {
@@ -600,6 +653,50 @@ describe('DayPlanSidebar', () => {
     })} />)
     // Budget footer shows "Total Cost" label when totalCost > 0
     expect(screen.getByText('Total Cost')).toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-DAYPLAN-037b: converts foreign-currency prices into the display currency (#1561)', async () => {
+    server.use(http.get('https://api.frankfurter.dev/v2/rates', ({ request }) => {
+      expect(new URL(request.url).searchParams.get('base')).toBe('USD')
+      return HttpResponse.json([{ quote: 'NOK', rate: 10 }]) // 10 NOK per 1 USD
+    }))
+    seedStore(useSettingsStore, { settings: { time_format: '24h', default_currency: 'USD' } } as any)
+    const placeUsd = buildPlace({ id: 1, name: 'Hotel', price: 25, currency: 'USD' } as any)
+    const placeNok = buildPlace({ id: 2, name: 'Museum', price: 250, currency: null } as any) // implicit trip currency
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [day],
+      places: [placeUsd, placeNok],
+      assignments: { '10': [
+        buildAssignment({ id: 1, day_id: 10, order_index: 0, place: placeUsd }),
+        buildAssignment({ id: 2, day_id: 10, order_index: 1, place: placeNok }),
+      ] },
+      trip: buildTrip({ id: 1, currency: 'NOK' }),
+    })} />)
+    // $25 + 250 NOK / 10 = $50, marked as approximate; footer and day header agree.
+    await waitFor(() => expect(screen.getByText('≈ $50.00')).toBeInTheDocument())
+    expect(screen.getByText('≈ $50')).toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-DAYPLAN-037c: falls back to a per-currency breakdown when rates are unavailable (#1561)', async () => {
+    server.use(http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.error()))
+    const placeUsd = buildPlace({ id: 1, name: 'Hotel', price: 2730.27, currency: 'USD' } as any)
+    const placeNok = buildPlace({ id: 2, name: 'Museum', price: 2500, currency: 'NOK' } as any)
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [day],
+      places: [placeUsd, placeNok],
+      assignments: { '10': [
+        buildAssignment({ id: 1, day_id: 10, order_index: 0, place: placeUsd }),
+        buildAssignment({ id: 2, day_id: 10, order_index: 1, place: placeNok }),
+      ] },
+      trip: buildTrip({ id: 1, currency: 'NOK' }),
+    })} />)
+    // The USD amount must never be folded into a NOK-labeled number (the #1561 bug):
+    // footer keeps each currency separate, base (NOK) first.
+    await waitFor(() => expect(screen.getByText(/kr.*\+.*\$2,730\.27|2\s?500,00\s?kr.*\+/)).toBeInTheDocument())
+    expect(screen.queryByText(/≈/)).toBeNull()
+    expect(screen.queryByText(/5\s?230/)).toBeNull()
   })
 
   // ── Route tools (Optimize / Google Maps) ────────────────────────────────

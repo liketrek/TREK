@@ -3,12 +3,12 @@
  * The Transitous/MOTIS proxy (#1065): input validation, mode whitelist,
  * response mapping (colors, walk time, wall-clock duration) and caching.
  */
+import { deriveTransitStats, geocode, plan, type TransitLeg } from '../../../src/services/transitService';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('../../../src/services/notifications', () => ({ getAppUrl: () => 'https://trek.example.com' }));
 vi.mock('../../../src/services/mapsService', () => ({ buildUserAgent: () => 'TREK-Test-UA' }));
-
-import { geocode, plan } from '../../../src/services/transitService';
 
 const fetchMock = vi.fn();
 
@@ -30,10 +30,12 @@ describe('geocode', () => {
   });
 
   it('TRANSIT-SVC-002: maps matches to compact places and sends the UA', async () => {
-    fetchMock.mockResolvedValueOnce(okJson([
-      { name: 'Alexanderplatz', lat: 52.52, lon: 13.41, type: 'STOP', areas: [{ name: 'Berlin', default: true }] },
-      { name: 'no-coords' },
-    ]));
+    fetchMock.mockResolvedValueOnce(
+      okJson([
+        { name: 'Alexanderplatz', lat: 52.52, lon: 13.41, type: 'STOP', areas: [{ name: 'Berlin', default: true }] },
+        { name: 'no-coords' },
+      ]),
+    );
     const r = await geocode('alexanderplatz-u1');
     expect(r.results).toEqual([{ name: 'Alexanderplatz', lat: 52.52, lng: 13.41, type: 'STOP', area: 'Berlin' }]);
     const [url, init] = fetchMock.mock.calls[0];
@@ -56,13 +58,33 @@ describe('plan validation', () => {
   });
 
   it('TRANSIT-SVC-005: rejects modes outside the whitelist', async () => {
-    await expect(plan({ from: '52.50,13.40', to: '52.51,13.41', modes: 'BUS,CAR' })).rejects.toMatchObject({ status: 400 });
+    await expect(plan({ from: '52.50,13.40', to: '52.51,13.41', modes: 'BUS,CAR' })).rejects.toMatchObject({
+      status: 400,
+    });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('TRANSIT-SVC-006: rejects out-of-range maxTransfers and bad time', async () => {
-    await expect(plan({ from: '52.50,13.40', to: '52.51,13.41', maxTransfers: 99 })).rejects.toMatchObject({ status: 400 });
-    await expect(plan({ from: '52.50,13.40', to: '52.51,13.41', time: 'not-a-date' })).rejects.toMatchObject({ status: 400 });
+    await expect(plan({ from: '52.50,13.40', to: '52.51,13.41', maxTransfers: 99 })).rejects.toMatchObject({
+      status: 400,
+    });
+    await expect(plan({ from: '52.50,13.40', to: '52.51,13.41', time: 'not-a-date' })).rejects.toMatchObject({
+      status: 400,
+    });
+  });
+});
+
+describe('itinerary statistics', () => {
+  it('derives wall-clock duration, walking time, and transfers from canonical legs', () => {
+    const leg = (mode: string, duration: number) => ({ mode, duration }) as TransitLeg;
+    const stats = deriveTransitStats('2026-07-13T08:00:00Z', '2026-07-13T08:30:00Z', [
+      leg('WALK', 300),
+      leg('BUS', 600),
+      leg('RAIL', 600),
+    ]);
+
+    expect(stats).toEqual({ duration: 1800, transfers: 1, walkSeconds: 300 });
+    expect(deriveTransitStats('2026-07-13T08:00:00Z', '2026-07-13T08:30:00Z', [leg('BUS', 1800)], 2).transfers).toBe(2);
   });
 });
 
@@ -75,8 +97,25 @@ describe('plan mapping', () => {
         endTime: '2026-07-13T08:30:00Z',
         transfers: 1,
         legs: [
-          { mode: 'WALK', duration: 300, distance: 250.7, from: { name: 'A', lat: 1, lon: 2, departure: '2026-07-13T08:00:00Z' }, to: { name: 'Stop 1', lat: 1.1, lon: 2.1, arrival: '2026-07-13T08:05:00Z' } },
-          { mode: 'BUS', duration: 1200, routeShortName: '100', routeColor: 'FF0000', routeTextColor: '#ffffff', headsign: 'Zoo', agencyName: 'BVG', intermediateStops: [{}, {}], from: { name: 'Stop 1', lat: 1.1, lon: 2.1, departure: '2026-07-13T08:07:00Z', track: '2' }, to: { name: 'Stop 2', lat: 1.2, lon: 2.2, arrival: '2026-07-13T08:27:00Z' } },
+          {
+            mode: 'WALK',
+            duration: 300,
+            distance: 250.7,
+            from: { name: 'A', lat: 1, lon: 2, departure: '2026-07-13T08:00:00Z' },
+            to: { name: 'Stop 1', lat: 1.1, lon: 2.1, arrival: '2026-07-13T08:05:00Z' },
+          },
+          {
+            mode: 'BUS',
+            duration: 1200,
+            routeShortName: '100',
+            routeColor: 'FF0000',
+            routeTextColor: '#ffffff',
+            headsign: 'Zoo',
+            agencyName: 'BVG',
+            intermediateStops: [{}, {}],
+            from: { name: 'Stop 1', lat: 1.1, lon: 2.1, departure: '2026-07-13T08:07:00Z', track: '2' },
+            to: { name: 'Stop 2', lat: 1.2, lon: 2.2, arrival: '2026-07-13T08:27:00Z' },
+          },
         ],
       },
     ],
@@ -102,7 +141,14 @@ describe('plan mapping', () => {
 
   it('TRANSIT-SVC-008: forwards only whitelisted params and pins directModes=WALK', async () => {
     fetchMock.mockResolvedValueOnce(okJson({ itineraries: [] }));
-    await plan({ from: '48.1000,11.5000', to: '48.2000,11.6000', modes: 'BUS,TRAM', maxTransfers: 2, arriveBy: true, time: '2026-07-13T09:00:00Z' });
+    await plan({
+      from: '48.1000,11.5000',
+      to: '48.2000,11.6000',
+      modes: 'BUS,TRAM',
+      maxTransfers: 2,
+      arriveBy: true,
+      time: '2026-07-13T09:00:00Z',
+    });
     const url = String(fetchMock.mock.calls[0][0]);
     expect(url).toContain('/api/v6/plan?');
     expect(url).toContain('transitModes=BUS%2CTRAM');

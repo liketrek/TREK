@@ -6,9 +6,29 @@
  * getPlaceDetails, and getPlacePhoto (all branches including cache logic).
  * fetch is stubbed; DB and ssrfGuard are mocked.
  */
+import {
+  parseOpeningHours,
+  buildOsmDetails,
+  getMapsKey,
+  googleFtidFromMapsUrl,
+  buildUserAgent,
+  resolveOverpassEndpoints,
+  resolveOverpassTimeoutMs,
+  searchOverpassPois,
+} from '../../../src/services/mapsService';
+
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 
-const { mockDbGet, mockDbRun, mockCheckSsrf, mockCacheGet, mockCacheGetErrored, mockCachePut, mockCacheGetInFlight, mockCacheSetInFlight } = vi.hoisted(() => ({
+const {
+  mockDbGet,
+  mockDbRun,
+  mockCheckSsrf,
+  mockCacheGet,
+  mockCacheGetErrored,
+  mockCachePut,
+  mockCacheGetInFlight,
+  mockCacheSetInFlight,
+} = vi.hoisted(() => ({
   mockDbGet: vi.fn(() => undefined as any),
   mockDbRun: vi.fn(),
   mockCheckSsrf: vi.fn(async () => ({ allowed: true })),
@@ -68,17 +88,6 @@ vi.mock('../../../src/services/placePhotoCache', () => ({
   setInFlight: (placeId: string, p: Promise<any>) => mockCacheSetInFlight(placeId, p),
   serveFilePath: vi.fn(() => null),
 }));
-
-import {
-  parseOpeningHours,
-  buildOsmDetails,
-  getMapsKey,
-  googleFtidFromMapsUrl,
-  buildUserAgent,
-  resolveOverpassEndpoints,
-  resolveOverpassTimeoutMs,
-  searchOverpassPois,
-} from '../../../src/services/mapsService';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -159,7 +168,11 @@ describe('buildOsmDetails', () => {
   });
 
   it('MAPS-009: prefers contact:website over website', () => {
-    const result = buildOsmDetails({ 'contact:website': 'https://contact.example.com', website: 'https://other.com' }, 'node', '1');
+    const result = buildOsmDetails(
+      { 'contact:website': 'https://contact.example.com', website: 'https://other.com' },
+      'node',
+      '1',
+    );
     expect(result.website).toBe('https://contact.example.com');
   });
 
@@ -221,14 +234,17 @@ describe('getMapsKey', () => {
 
 describe('reverseGeocode (fetch stubbed)', () => {
   it('MAPS-018: returns name and address from nominatim response', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        name: 'Eiffel Tower',
-        display_name: 'Eiffel Tower, Paris, France',
-        address: {},
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          name: 'Eiffel Tower',
+          display_name: 'Eiffel Tower, Paris, France',
+          address: {},
+        }),
       }),
-    }));
+    );
     const { reverseGeocode } = await import('../../../src/services/mapsService');
     const result = await reverseGeocode('48.8584', '2.2945');
     expect(result.name).toBe('Eiffel Tower');
@@ -244,52 +260,64 @@ describe('reverseGeocode (fetch stubbed)', () => {
   });
 
   it('MAPS-019b: falls back to address.tourism when name is absent', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        display_name: 'Some Museum, Paris',
-        address: { tourism: 'Some Museum' },
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          display_name: 'Some Museum, Paris',
+          address: { tourism: 'Some Museum' },
+        }),
       }),
-    }));
+    );
     const { reverseGeocode } = await import('../../../src/services/mapsService');
     const result = await reverseGeocode('48.85', '2.35');
     expect(result.name).toBe('Some Museum');
   });
 
   it('MAPS-019c: falls back to address.amenity when name and tourism are absent', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        display_name: 'A Cafe, Paris',
-        address: { amenity: 'A Cafe' },
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          display_name: 'A Cafe, Paris',
+          address: { amenity: 'A Cafe' },
+        }),
       }),
-    }));
+    );
     const { reverseGeocode } = await import('../../../src/services/mapsService');
     const result = await reverseGeocode('48.85', '2.35');
     expect(result.name).toBe('A Cafe');
   });
 
   it('MAPS-019d: falls back to address.road when no higher-priority field exists', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        display_name: 'Rue de Rivoli, Paris',
-        address: { road: 'Rue de Rivoli' },
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          display_name: 'Rue de Rivoli, Paris',
+          address: { road: 'Rue de Rivoli' },
+        }),
       }),
-    }));
+    );
     const { reverseGeocode } = await import('../../../src/services/mapsService');
     const result = await reverseGeocode('48.85', '2.35');
     expect(result.name).toBe('Rue de Rivoli');
   });
 
   it('MAPS-019e: returns null name when address has no recognized fields', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        display_name: 'Somewhere',
-        address: {},
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          display_name: 'Somewhere',
+          address: {},
+        }),
       }),
-    }));
+    );
     const { reverseGeocode } = await import('../../../src/services/mapsService');
     const result = await reverseGeocode('0', '0');
     expect(result.name).toBeNull();
@@ -317,7 +345,9 @@ describe('resolveGoogleMapsUrl coordinate extraction (ReDoS guards)', () => {
   it('MAPS-021: extracts lat/lng from !3d!4d data pattern', async () => {
     vi.stubGlobal('fetch', nominatimStub);
     const { resolveGoogleMapsUrl } = await import('../../../src/services/mapsService');
-    const result = await resolveGoogleMapsUrl('https://www.google.com/maps/place/Eiffel+Tower/data=!3d48.8584!4d2.2945');
+    const result = await resolveGoogleMapsUrl(
+      'https://www.google.com/maps/place/Eiffel+Tower/data=!3d48.8584!4d2.2945',
+    );
     expect(result.lat).toBeCloseTo(48.8584, 3);
     expect(result.lng).toBeCloseTo(2.2945, 3);
   });
@@ -409,13 +439,12 @@ describe('resolveGoogleMapsUrl coordinate extraction (ReDoS guards)', () => {
   it('MAPS-028b: throws 403 when short URL is blocked by SSRF check', async () => {
     mockCheckSsrf.mockResolvedValueOnce({ allowed: false });
     const { resolveGoogleMapsUrl } = await import('../../../src/services/mapsService');
-    await expect(
-      resolveGoogleMapsUrl('https://goo.gl/maps/abc123')
-    ).rejects.toMatchObject({ status: 403 });
+    await expect(resolveGoogleMapsUrl('https://goo.gl/maps/abc123')).rejects.toMatchObject({ status: 403 });
   });
 
   it('MAPS-028c: follows redirect for short goo.gl URL and extracts coordinates', async () => {
-    const redirectFetch = vi.fn()
+    const redirectFetch = vi
+      .fn()
       // First call: the redirect (goo.gl), returns resolved URL in .url
       .mockResolvedValueOnce({
         url: 'https://www.google.com/maps/@48.8566,2.3522,15z',
@@ -453,12 +482,15 @@ describe('resolveGoogleMapsUrl coordinate extraction (ReDoS guards)', () => {
 
 describe('searchNominatim (fetch stubbed)', () => {
   it('MAPS-029: returns mapped nominatim results on success', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => [
-        { osm_type: 'way', osm_id: '1', lat: '48.8', lon: '2.3', name: 'Paris', display_name: 'Paris, France' },
-      ],
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [
+          { osm_type: 'way', osm_id: '1', lat: '48.8', lon: '2.3', name: 'Paris', display_name: 'Paris, France' },
+        ],
+      }),
+    );
     const { searchNominatim } = await import('../../../src/services/mapsService');
     const results = await searchNominatim('Paris');
     expect(results).toHaveLength(1);
@@ -473,23 +505,27 @@ describe('searchNominatim (fetch stubbed)', () => {
   });
 
   it('MAPS-030b: throws when nominatim response is not ok', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 500,
-      statusText: 'Internal Server Error',
-      text: async () => '',
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        text: async () => '',
+      }),
+    );
     const { searchNominatim } = await import('../../../src/services/mapsService');
     await expect(searchNominatim('fail')).rejects.toThrow('Nominatim API error');
   });
 
   it('MAPS-030c: falls back to display_name split when name is absent', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => [
-        { osm_type: 'node', osm_id: '2', lat: '51.5', lon: '-0.1', display_name: 'London, UK' },
-      ],
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [{ osm_type: 'node', osm_id: '2', lat: '51.5', lon: '-0.1', display_name: 'London, UK' }],
+      }),
+    );
     const { searchNominatim } = await import('../../../src/services/mapsService');
     const results = await searchNominatim('London');
     expect((results[0] as any).name).toBe('London');
@@ -500,10 +536,13 @@ describe('searchNominatim (fetch stubbed)', () => {
 
 describe('fetchOverpassDetails (fetch stubbed)', () => {
   it('MAPS-031: returns element tags on success', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ elements: [{ tags: { name: 'Eiffel Tower', website: 'https://eiffel.com' } }] }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ elements: [{ tags: { name: 'Eiffel Tower', website: 'https://eiffel.com' } }] }),
+      }),
+    );
     const { fetchOverpassDetails } = await import('../../../src/services/mapsService');
     const result = await fetchOverpassDetails('way', '12345');
     expect(result).toBeDefined();
@@ -531,10 +570,13 @@ describe('fetchOverpassDetails (fetch stubbed)', () => {
   });
 
   it('MAPS-034b: returns null when elements array is empty', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ elements: [] }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ elements: [] }),
+      }),
+    );
     const { fetchOverpassDetails } = await import('../../../src/services/mapsService');
     const result = await fetchOverpassDetails('node', '1');
     expect(result).toBeNull();
@@ -545,12 +587,15 @@ describe('fetchOverpassDetails (fetch stubbed)', () => {
 
 describe('fetchWikimediaPhoto (fetch stubbed)', () => {
   it('MAPS-035: returns photo from Wikipedia article image (strategy 1)', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        query: { pages: { '1': { thumbnail: { source: 'https://example.com/thumb.jpg' } } } },
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          query: { pages: { '1': { thumbnail: { source: 'https://example.com/thumb.jpg' } } } },
+        }),
       }),
-    }));
+    );
     const { fetchWikimediaPhoto } = await import('../../../src/services/mapsService');
     const result = await fetchWikimediaPhoto(48.8, 2.3, 'Eiffel Tower');
     expect(result).toBeDefined();
@@ -563,14 +608,18 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
     const commonsResponse = {
       ok: true,
       json: async () => ({
-        query: { pages: { '1': {
-          imageinfo: [{ url: 'https://commons.org/img.jpg', mime: 'image/jpeg', extmetadata: { Artist: { value: 'Alice' } } }],
-        } } },
+        query: {
+          pages: {
+            '1': {
+              imageinfo: [
+                { url: 'https://commons.org/img.jpg', mime: 'image/jpeg', extmetadata: { Artist: { value: 'Alice' } } },
+              ],
+            },
+          },
+        },
       }),
     };
-    vi.stubGlobal('fetch', vi.fn()
-      .mockResolvedValueOnce(wikiResponse)
-      .mockResolvedValueOnce(commonsResponse));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(wikiResponse).mockResolvedValueOnce(commonsResponse));
     const { fetchWikimediaPhoto } = await import('../../../src/services/mapsService');
     const result = await fetchWikimediaPhoto(48.8, 2.3, 'Some Place');
     expect(result).toBeDefined();
@@ -583,19 +632,23 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
     const commonsResponse = {
       ok: true,
       json: async () => ({
-        query: { pages: { '1': {
-          imageinfo: [{
-            url: 'https://commons.org/original-16mb.jpg',
-            thumburl: 'https://commons.org/thumb-400.jpg',
-            mime: 'image/jpeg',
-            extmetadata: { Artist: { value: 'Alice' } },
-          }],
-        } } },
+        query: {
+          pages: {
+            '1': {
+              imageinfo: [
+                {
+                  url: 'https://commons.org/original-16mb.jpg',
+                  thumburl: 'https://commons.org/thumb-400.jpg',
+                  mime: 'image/jpeg',
+                  extmetadata: { Artist: { value: 'Alice' } },
+                },
+              ],
+            },
+          },
+        },
       }),
     };
-    vi.stubGlobal('fetch', vi.fn()
-      .mockResolvedValueOnce(wikiResponse)
-      .mockResolvedValueOnce(commonsResponse));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(wikiResponse).mockResolvedValueOnce(commonsResponse));
     const { fetchWikimediaPhoto } = await import('../../../src/services/mapsService');
     const result = await fetchWikimediaPhoto(48.8, 2.3, 'Some Place');
     expect(result).toBeDefined();
@@ -604,10 +657,13 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
   });
 
   it('MAPS-037: returns null when both strategies find nothing', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ query: { pages: {} } }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ query: { pages: {} } }),
+      }),
+    );
     const { fetchWikimediaPhoto } = await import('../../../src/services/mapsService');
     const result = await fetchWikimediaPhoto(48.8, 2.3);
     expect(result).toBeNull();
@@ -629,14 +685,19 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
     const commonsResponse = {
       ok: true,
       json: async () => ({
-        query: { pages: { '1': {
-          imageinfo: [{ url: 'https://commons.org/fallback.jpg', mime: 'image/png', extmetadata: {} }],
-        } } },
+        query: {
+          pages: {
+            '1': {
+              imageinfo: [{ url: 'https://commons.org/fallback.jpg', mime: 'image/png', extmetadata: {} }],
+            },
+          },
+        },
       }),
     };
-    vi.stubGlobal('fetch', vi.fn()
-      .mockRejectedValueOnce(new Error('Wikipedia network error'))
-      .mockResolvedValueOnce(commonsResponse));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValueOnce(new Error('Wikipedia network error')).mockResolvedValueOnce(commonsResponse),
+    );
     const { fetchWikimediaPhoto } = await import('../../../src/services/mapsService');
     const result = await fetchWikimediaPhoto(48.8, 2.3, 'Some Place');
     expect(result).toBeDefined();
@@ -650,14 +711,22 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
     const commonsResponse = {
       ok: true,
       json: async () => ({
-        query: { pages: { '1': {
-          imageinfo: [{ url: 'https://commons.org/photo.jpg', mime: 'image/jpeg', extmetadata: { Artist: { value: '<b>Bob</b>' } } }],
-        } } },
+        query: {
+          pages: {
+            '1': {
+              imageinfo: [
+                {
+                  url: 'https://commons.org/photo.jpg',
+                  mime: 'image/jpeg',
+                  extmetadata: { Artist: { value: '<b>Bob</b>' } },
+                },
+              ],
+            },
+          },
+        },
       }),
     };
-    vi.stubGlobal('fetch', vi.fn()
-      .mockResolvedValueOnce(wikiNotOk)
-      .mockResolvedValueOnce(commonsResponse));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(wikiNotOk).mockResolvedValueOnce(commonsResponse));
     const { fetchWikimediaPhoto } = await import('../../../src/services/mapsService');
     const result = await fetchWikimediaPhoto(48.8, 2.3, 'Some Place');
     expect(result).toBeDefined();
@@ -673,10 +742,13 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
   });
 
   it('MAPS-037f: returns null when Commons geosearch returns no query.pages', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ query: {} }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ query: {} }),
+      }),
+    );
     const { fetchWikimediaPhoto } = await import('../../../src/services/mapsService');
     const result = await fetchWikimediaPhoto(48.8, 2.3);
     expect(result).toBeNull();
@@ -690,28 +762,48 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
   });
 
   it('MAPS-037h: skips Commons page entries with non-photo MIME type (SVG)', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        query: { pages: { '1': {
-          imageinfo: [{ url: 'https://commons.org/diagram.svg', mime: 'image/svg+xml' }],
-        } } },
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          query: {
+            pages: {
+              '1': {
+                imageinfo: [{ url: 'https://commons.org/diagram.svg', mime: 'image/svg+xml' }],
+              },
+            },
+          },
+        }),
       }),
-    }));
+    );
     const { fetchWikimediaPhoto } = await import('../../../src/services/mapsService');
     const result = await fetchWikimediaPhoto(48.8, 2.3);
     expect(result).toBeNull();
   });
 
   it('MAPS-037i: accepts PNG mime type as valid photo', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        query: { pages: { '1': {
-          imageinfo: [{ url: 'https://commons.org/photo.png', mime: 'image/png', extmetadata: { Artist: { value: 'Carol' } } }],
-        } } },
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          query: {
+            pages: {
+              '1': {
+                imageinfo: [
+                  {
+                    url: 'https://commons.org/photo.png',
+                    mime: 'image/png',
+                    extmetadata: { Artist: { value: 'Carol' } },
+                  },
+                ],
+              },
+            },
+          },
+        }),
       }),
-    }));
+    );
     const { fetchWikimediaPhoto } = await import('../../../src/services/mapsService');
     const result = await fetchWikimediaPhoto(48.8, 2.3);
     expect(result!.photoUrl).toBe('https://commons.org/photo.png');
@@ -719,14 +811,21 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
   });
 
   it('MAPS-037j: returns null attribution when Artist extmetadata is absent', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        query: { pages: { '1': {
-          imageinfo: [{ url: 'https://commons.org/noattr.jpg', mime: 'image/jpeg', extmetadata: {} }],
-        } } },
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          query: {
+            pages: {
+              '1': {
+                imageinfo: [{ url: 'https://commons.org/noattr.jpg', mime: 'image/jpeg', extmetadata: {} }],
+              },
+            },
+          },
+        }),
       }),
-    }));
+    );
     const { fetchWikimediaPhoto } = await import('../../../src/services/mapsService');
     const result = await fetchWikimediaPhoto(48.8, 2.3);
     expect(result!.attribution).toBeNull();
@@ -737,12 +836,15 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
 
 describe('searchPlaces (fetch stubbed)', () => {
   it('MAPS-038: uses Nominatim when user has no API key', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => [
-        { osm_type: 'node', osm_id: '1', lat: '48.8', lon: '2.3', display_name: 'Paris, France', name: 'Paris' },
-      ],
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [
+          { osm_type: 'node', osm_id: '1', lat: '48.8', lon: '2.3', display_name: 'Paris, France', name: 'Paris' },
+        ],
+      }),
+    );
     const { searchPlaces } = await import('../../../src/services/mapsService');
     const result = await searchPlaces(999, 'Paris');
     expect(result.source).toBe('openstreetmap');
@@ -750,22 +852,25 @@ describe('searchPlaces (fetch stubbed)', () => {
   });
 
   it('MAPS-039: uses Google when user has an API key', async () => {
-    mockDbGet
-      .mockReturnValueOnce({ maps_api_key: 'ENCRYPTED' })
-      .mockReturnValueOnce(null);
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        places: [{
-          id: 'gid1',
-          displayName: { text: 'Eiffel Tower' },
-          formattedAddress: 'Paris',
-          location: { latitude: 48.8, longitude: 2.3 },
-          // Real search API returns a cid-style URL with no ftid → google_ftid stays null.
-          googleMapsUri: 'https://maps.google.com/?cid=10403719659250533155',
-        }],
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'ENCRYPTED' }).mockReturnValueOnce(null);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          places: [
+            {
+              id: 'gid1',
+              displayName: { text: 'Eiffel Tower' },
+              formattedAddress: 'Paris',
+              location: { latitude: 48.8, longitude: 2.3 },
+              // Real search API returns a cid-style URL with no ftid → google_ftid stays null.
+              googleMapsUri: 'https://maps.google.com/?cid=10403719659250533155',
+            },
+          ],
+        }),
       }),
-    }));
+    );
     const { searchPlaces } = await import('../../../src/services/mapsService');
     const result = await searchPlaces(1, 'Eiffel Tower');
     expect(result.source).toBe('google');
@@ -775,11 +880,14 @@ describe('searchPlaces (fetch stubbed)', () => {
 
   it('MAPS-039b: throws with Google error status when Google API returns non-ok', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'some-key' });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 403,
-      json: async () => ({ error: { message: 'API key invalid' } }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({ error: { message: 'API key invalid' } }),
+      }),
+    );
     const { searchPlaces } = await import('../../../src/services/mapsService');
     await expect(searchPlaces(1, 'anything')).rejects.toMatchObject({
       message: 'API key invalid',
@@ -789,11 +897,14 @@ describe('searchPlaces (fetch stubbed)', () => {
 
   it('MAPS-039c: throws with generic message when Google error has no message', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'some-key' });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 500,
-      json: async () => ({ error: {} }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: {} }),
+      }),
+    );
     const { searchPlaces } = await import('../../../src/services/mapsService');
     await expect(searchPlaces(1, 'anything')).rejects.toMatchObject({
       message: 'Google Places API error',
@@ -803,10 +914,13 @@ describe('searchPlaces (fetch stubbed)', () => {
 
   it('MAPS-039d: returns empty places array when Google returns no results', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'some-key' });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ places: [] }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ places: [] }),
+      }),
+    );
     const { searchPlaces } = await import('../../../src/services/mapsService');
     const result = await searchPlaces(1, 'very obscure place');
     expect(result.source).toBe('google');
@@ -815,13 +929,16 @@ describe('searchPlaces (fetch stubbed)', () => {
 
   it('MAPS-039e: handles Google result with optional fields absent', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'some-key' });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        // id only, no displayName, formattedAddress, location, etc.
-        places: [{ id: 'gid-sparse' }],
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          // id only, no displayName, formattedAddress, location, etc.
+          places: [{ id: 'gid-sparse' }],
+        }),
       }),
-    }));
+    );
     const { searchPlaces } = await import('../../../src/services/mapsService');
     const result = await searchPlaces(1, 'sparse');
     const place = result.places[0] as any;
@@ -841,12 +958,22 @@ describe('searchPlaces (fetch stubbed)', () => {
 
 describe('autocompletePlaces (fetch stubbed)', () => {
   it('MAPS-081: uses Nominatim when user has no API key', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => [
-        { osm_type: 'node', osm_id: '1', lat: '48.8', lon: '2.3', display_name: 'Paris, Île-de-France, France', name: 'Paris' },
-      ],
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [
+          {
+            osm_type: 'node',
+            osm_id: '1',
+            lat: '48.8',
+            lon: '2.3',
+            display_name: 'Paris, Île-de-France, France',
+            name: 'Paris',
+          },
+        ],
+      }),
+    );
     const { autocompletePlaces } = await import('../../../src/services/mapsService');
     const result = await autocompletePlaces(999, 'Paris');
     expect(result.source).toBe('nominatim');
@@ -856,25 +983,26 @@ describe('autocompletePlaces (fetch stubbed)', () => {
   });
 
   it('MAPS-082: uses Google when user has an API key', async () => {
-    mockDbGet
-      .mockReturnValueOnce({ maps_api_key: 'ENCRYPTED' })
-      .mockReturnValueOnce(null);
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        suggestions: [
-          {
-            placePrediction: {
-              placeId: 'ChIJ1234',
-              structuredFormat: {
-                mainText: { text: 'Eiffel Tower' },
-                secondaryText: { text: 'Paris, France' },
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'ENCRYPTED' }).mockReturnValueOnce(null);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          suggestions: [
+            {
+              placePrediction: {
+                placeId: 'ChIJ1234',
+                structuredFormat: {
+                  mainText: { text: 'Eiffel Tower' },
+                  secondaryText: { text: 'Paris, France' },
+                },
               },
             },
-          },
-        ],
+          ],
+        }),
       }),
-    }));
+    );
     const { autocompletePlaces } = await import('../../../src/services/mapsService');
     const result = await autocompletePlaces(1, 'Eiffel');
     expect(result.source).toBe('google');
@@ -886,11 +1014,14 @@ describe('autocompletePlaces (fetch stubbed)', () => {
 
   it('MAPS-083: throws with Google error status when API returns non-ok', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'some-key' });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 403,
-      json: async () => ({ error: { message: 'API key invalid' } }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({ error: { message: 'API key invalid' } }),
+      }),
+    );
     const { autocompletePlaces } = await import('../../../src/services/mapsService');
     await expect(autocompletePlaces(1, 'anything')).rejects.toMatchObject({
       message: 'API key invalid',
@@ -900,11 +1031,14 @@ describe('autocompletePlaces (fetch stubbed)', () => {
 
   it('MAPS-084: throws generic message when Google error has no message', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'some-key' });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 500,
-      json: async () => ({ error: {} }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: {} }),
+      }),
+    );
     const { autocompletePlaces } = await import('../../../src/services/mapsService');
     await expect(autocompletePlaces(1, 'anything')).rejects.toMatchObject({
       message: 'Google Places Autocomplete error',
@@ -914,10 +1048,13 @@ describe('autocompletePlaces (fetch stubbed)', () => {
 
   it('MAPS-085: returns empty suggestions when Google returns no results', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'some-key' });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ suggestions: [] }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ suggestions: [] }),
+      }),
+    );
     const { autocompletePlaces } = await import('../../../src/services/mapsService');
     const result = await autocompletePlaces(1, 'very obscure place');
     expect(result.source).toBe('google');
@@ -926,16 +1063,19 @@ describe('autocompletePlaces (fetch stubbed)', () => {
 
   it('MAPS-086: filters out suggestions without placePrediction', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'some-key' });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        suggestions: [
-          { placePrediction: { placeId: 'A', structuredFormat: { mainText: { text: 'Good' } } } },
-          { queryPrediction: { text: 'some query' } },
-          { placePrediction: { placeId: 'B', structuredFormat: { mainText: { text: 'Also Good' } } } },
-        ],
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          suggestions: [
+            { placePrediction: { placeId: 'A', structuredFormat: { mainText: { text: 'Good' } } } },
+            { queryPrediction: { text: 'some query' } },
+            { placePrediction: { placeId: 'B', structuredFormat: { mainText: { text: 'Also Good' } } } },
+          ],
+        }),
       }),
-    }));
+    );
     const { autocompletePlaces } = await import('../../../src/services/mapsService');
     const result = await autocompletePlaces(1, 'test');
     expect(result.suggestions).toHaveLength(2);
@@ -951,10 +1091,13 @@ describe('autocompletePlaces (fetch stubbed)', () => {
         structuredFormat: { mainText: { text: `Place ${i}` } },
       },
     }));
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ suggestions: manySuggestions }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ suggestions: manySuggestions }),
+      }),
+    );
     const { autocompletePlaces } = await import('../../../src/services/mapsService');
     const result = await autocompletePlaces(1, 'test');
     expect(result.suggestions).toHaveLength(5);
@@ -996,14 +1139,15 @@ describe('autocompletePlaces (fetch stubbed)', () => {
 
   it('MAPS-090: handles missing structuredFormat fields gracefully', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'some-key' });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        suggestions: [
-          { placePrediction: { placeId: 'sparse-id' } },
-        ],
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          suggestions: [{ placePrediction: { placeId: 'sparse-id' } }],
+        }),
       }),
-    }));
+    );
     const { autocompletePlaces } = await import('../../../src/services/mapsService');
     const result = await autocompletePlaces(1, 'sparse');
     expect(result.suggestions[0].placeId).toBe('sparse-id');
@@ -1020,12 +1164,22 @@ describe('autocompletePlaces (fetch stubbed)', () => {
   });
 
   it('MAPS-092: Nominatim fallback splits address into mainText and secondaryText', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => [
-        { osm_type: 'way', osm_id: '42', lat: '51.5', lon: '-0.1', display_name: 'Big Ben, Westminster, London, UK', name: 'Big Ben' },
-      ],
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [
+          {
+            osm_type: 'way',
+            osm_id: '42',
+            lat: '51.5',
+            lon: '-0.1',
+            display_name: 'Big Ben, Westminster, London, UK',
+            name: 'Big Ben',
+          },
+        ],
+      }),
+    );
     const { autocompletePlaces } = await import('../../../src/services/mapsService');
     const result = await autocompletePlaces(999, 'Big Ben');
     expect(result.suggestions[0].mainText).toBe('Big Ben');
@@ -1033,14 +1187,17 @@ describe('autocompletePlaces (fetch stubbed)', () => {
   });
 
   it('MAPS-093: Nominatim fallback filters out results with empty osm_id', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => [
-        { osm_type: 'node', osm_id: '1', lat: '48.8', lon: '2.3', display_name: 'Paris, France', name: 'Paris' },
-        { osm_type: 'node', osm_id: '',  lat: '51.5', lon: '-0.1', display_name: 'London, UK', name: 'London' },
-        { osm_type: 'way',  osm_id: '3', lat: '52.5', lon: '13.4', display_name: 'Berlin, Germany', name: 'Berlin' },
-      ],
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [
+          { osm_type: 'node', osm_id: '1', lat: '48.8', lon: '2.3', display_name: 'Paris, France', name: 'Paris' },
+          { osm_type: 'node', osm_id: '', lat: '51.5', lon: '-0.1', display_name: 'London, UK', name: 'London' },
+          { osm_type: 'way', osm_id: '3', lat: '52.5', lon: '13.4', display_name: 'Berlin, Germany', name: 'Berlin' },
+        ],
+      }),
+    );
     const { autocompletePlaces } = await import('../../../src/services/mapsService');
     const result = await autocompletePlaces(999, 'test');
     expect(result.suggestions).toHaveLength(2);
@@ -1052,10 +1209,13 @@ describe('autocompletePlaces (fetch stubbed)', () => {
 
 describe('getPlaceDetails (fetch stubbed)', () => {
   it('MAPS-040: handles OSM placeId (way:id) via Overpass', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ elements: [{ tags: { website: 'https://eiffel.com' } }] }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ elements: [{ tags: { website: 'https://eiffel.com' } }] }),
+      }),
+    );
     const { getPlaceDetails } = await import('../../../src/services/mapsService');
     const result = await getPlaceDetails(1, 'way:12345');
     expect(result.place).toBeDefined();
@@ -1064,10 +1224,13 @@ describe('getPlaceDetails (fetch stubbed)', () => {
   });
 
   it('MAPS-040b: handles OSM placeId when Overpass returns no tags (element missing)', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ elements: [] }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ elements: [] }),
+      }),
+    );
     const { getPlaceDetails } = await import('../../../src/services/mapsService');
     const result = await getPlaceDetails(1, 'node:99999');
     expect((result.place as any).source).toBe('openstreetmap');
@@ -1081,36 +1244,39 @@ describe('getPlaceDetails (fetch stubbed)', () => {
 
   it('MAPS-041b: returns full Google place details on happy path', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        id: 'ChIJ123',
-        displayName: { text: 'Eiffel Tower' },
-        formattedAddress: 'Champ de Mars, 5 Av. Anatole France, 75007 Paris',
-        location: { latitude: 48.8584, longitude: 2.2945 },
-        rating: 4.7,
-        userRatingCount: 200000,
-        websiteUri: 'https://www.toureiffel.paris',
-        nationalPhoneNumber: '+33 892 70 12 39',
-        regularOpeningHours: {
-          weekdayDescriptions: ['Monday: 9:00 AM – 12:00 AM'],
-          openNow: true,
-        },
-        // The Places API returns a cid-style URL with no ftid, so google_ftid stays null
-        // and the precise query_place_id link is used on the client instead.
-        googleMapsUri: 'https://maps.google.com/?cid=10403719659250533155',
-        editorialSummary: { text: 'Iconic iron tower.' },
-        reviews: [
-          {
-            authorAttribution: { displayName: 'John', photoUri: 'https://photo.url' },
-            rating: 5,
-            text: { text: 'Amazing!' },
-            relativePublishTimeDescription: '2 weeks ago',
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: 'ChIJ123',
+          displayName: { text: 'Eiffel Tower' },
+          formattedAddress: 'Champ de Mars, 5 Av. Anatole France, 75007 Paris',
+          location: { latitude: 48.8584, longitude: 2.2945 },
+          rating: 4.7,
+          userRatingCount: 200000,
+          websiteUri: 'https://www.toureiffel.paris',
+          nationalPhoneNumber: '+33 892 70 12 39',
+          regularOpeningHours: {
+            weekdayDescriptions: ['Monday: 9:00 AM – 12:00 AM'],
+            openNow: true,
           },
-        ],
-        photos: [{ name: 'places/ChIJ123/photos/photo1', authorAttributions: [{ displayName: 'Jane' }] }],
+          // The Places API returns a cid-style URL with no ftid, so google_ftid stays null
+          // and the precise query_place_id link is used on the client instead.
+          googleMapsUri: 'https://maps.google.com/?cid=10403719659250533155',
+          editorialSummary: { text: 'Iconic iron tower.' },
+          reviews: [
+            {
+              authorAttribution: { displayName: 'John', photoUri: 'https://photo.url' },
+              rating: 5,
+              text: { text: 'Amazing!' },
+              relativePublishTimeDescription: '2 weeks ago',
+            },
+          ],
+          photos: [{ name: 'places/ChIJ123/photos/photo1', authorAttributions: [{ displayName: 'Jane' }] }],
+        }),
       }),
-    }));
+    );
     const { getPlaceDetails } = await import('../../../src/services/mapsService');
     const result = await getPlaceDetails(1, 'ChIJ123');
     const place = result.place as any;
@@ -1148,11 +1314,14 @@ describe('getPlaceDetails (fetch stubbed)', () => {
 
   it('MAPS-041c: throws with status when Google API returns non-ok response', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 404,
-      json: async () => ({ error: { message: 'Place not found' } }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        json: async () => ({ error: { message: 'Place not found' } }),
+      }),
+    );
     const { getPlaceDetails } = await import('../../../src/services/mapsService');
     await expect(getPlaceDetails(1, 'ChIJMissing')).rejects.toMatchObject({
       message: 'Place not found',
@@ -1164,16 +1333,19 @@ describe('getPlaceDetails (fetch stubbed)', () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
     // expanded=1 cache miss → return undefined
     mockDbGet.mockReturnValueOnce(undefined);
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        id: 'ChIJ456',
-        reviews: [
-          // All optional fields absent
-          {},
-        ],
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: 'ChIJ456',
+          reviews: [
+            // All optional fields absent
+            {},
+          ],
+        }),
       }),
-    }));
+    );
     const { getPlaceDetailsExpanded } = await import('../../../src/services/mapsService');
     const result = await getPlaceDetailsExpanded(1, 'ChIJ456');
     const review = (result.place as any).reviews[0];
@@ -1185,7 +1357,8 @@ describe('getPlaceDetails (fetch stubbed)', () => {
   });
 
   it('MAPS-040c: OSM path enriches name/address/coords from Nominatim (serial fetch)', async () => {
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       // First call: Overpass (returns element with tags but no coords)
       .mockResolvedValueOnce({
         ok: true,
@@ -1195,7 +1368,14 @@ describe('getPlaceDetails (fetch stubbed)', () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => [
-          { osm_type: 'way', osm_id: '5', lat: '48.85', lon: '2.29', display_name: 'Eiffel Tower, Paris, France', name: 'Eiffel Tower' },
+          {
+            osm_type: 'way',
+            osm_id: '5',
+            lat: '48.85',
+            lon: '2.29',
+            display_name: 'Eiffel Tower, Paris, France',
+            name: 'Eiffel Tower',
+          },
         ],
       });
     vi.stubGlobal('fetch', fetchMock);
@@ -1217,16 +1397,19 @@ describe('getPlaceDetails (fetch stubbed)', () => {
 
   it('MAPS-041e: open_now is null when regularOpeningHours.openNow is undefined', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        id: 'ChIJ789',
-        regularOpeningHours: {
-          weekdayDescriptions: ['Monday: 9:00 AM – 5:00 PM'],
-          // openNow intentionally absent
-        },
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: 'ChIJ789',
+          regularOpeningHours: {
+            weekdayDescriptions: ['Monday: 9:00 AM – 5:00 PM'],
+            // openNow intentionally absent
+          },
+        }),
       }),
-    }));
+    );
     const { getPlaceDetails } = await import('../../../src/services/mapsService');
     const result = await getPlaceDetails(1, 'ChIJ789');
     expect((result.place as any).open_now).toBeNull();
@@ -1234,16 +1417,19 @@ describe('getPlaceDetails (fetch stubbed)', () => {
 
   it('MAPS-041f: open_now is false when regularOpeningHours.openNow is false', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        id: 'ChIJClosed',
-        regularOpeningHours: {
-          weekdayDescriptions: ['Monday: 9:00 AM – 5:00 PM'],
-          openNow: false,
-        },
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: 'ChIJClosed',
+          regularOpeningHours: {
+            weekdayDescriptions: ['Monday: 9:00 AM – 5:00 PM'],
+            openNow: false,
+          },
+        }),
       }),
-    }));
+    );
     const { getPlaceDetails } = await import('../../../src/services/mapsService');
     const result = await getPlaceDetails(1, 'ChIJClosed');
     // false is preserved (not coerced to null) via the ?? null operator
@@ -1260,10 +1446,13 @@ describe('getPlaceDetails (fetch stubbed)', () => {
       text: { text: 'Good' },
       relativePublishTimeDescription: '1 day ago',
     }));
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ id: 'ChIJMany', reviews: manyReviews }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ id: 'ChIJMany', reviews: manyReviews }),
+      }),
+    );
     const { getPlaceDetailsExpanded } = await import('../../../src/services/mapsService');
     const result = await getPlaceDetailsExpanded(1, 'ChIJMany');
     expect((result.place as any).reviews).toHaveLength(5);
@@ -1274,19 +1463,22 @@ describe('getPlaceDetails (fetch stubbed)', () => {
 
 describe('getPlacePhoto (fetch stubbed)', () => {
   it('MAPS-042: returns proxy URL for coordinate-based lookup via Wikimedia (no API key)', async () => {
-    vi.stubGlobal('fetch', vi.fn()
-      // First call: Wikimedia Commons API
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          query: { pages: { '1': { thumbnail: { source: 'https://wiki.org/photo.jpg' } } } },
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        // First call: Wikimedia Commons API
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            query: { pages: { '1': { thumbnail: { source: 'https://wiki.org/photo.jpg' } } } },
+          }),
+        })
+        // Second call: fetch Wikimedia image bytes
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: async () => new ArrayBuffer(100),
         }),
-      })
-      // Second call: fetch Wikimedia image bytes
-      .mockResolvedValueOnce({
-        ok: true,
-        arrayBuffer: async () => new ArrayBuffer(100),
-      })
     );
     const { getPlacePhoto } = await import('../../../src/services/mapsService');
     const placeId = 'coords:48.8,2.3';
@@ -1296,10 +1488,13 @@ describe('getPlacePhoto (fetch stubbed)', () => {
   });
 
   it('MAPS-043: throws 404 when Wikimedia returns nothing and no API key', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ query: { pages: {} } }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ query: { pages: {} } }),
+      }),
+    );
     const { getPlacePhoto } = await import('../../../src/services/mapsService');
     await expect(getPlacePhoto(999, 'coords:0.0,0.0', 0, 0)).rejects.toMatchObject({ status: 404 });
   });
@@ -1345,13 +1540,15 @@ describe('getPlacePhoto (fetch stubbed)', () => {
 
   it('MAPS-044: returns proxy URL via Google path when API key present and photos exist', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       // First call: get place details (with photos)
       .mockResolvedValueOnce({
         ok: true,
-        text: async () => JSON.stringify({
-          photos: [{ name: 'places/ChIJABC/photos/photo1', authorAttributions: [{ displayName: 'Photographer' }] }],
-        }),
+        text: async () =>
+          JSON.stringify({
+            photos: [{ name: 'places/ChIJABC/photos/photo1', authorAttributions: [{ displayName: 'Photographer' }] }],
+          }),
       })
       // Second call: fetch image bytes
       .mockResolvedValueOnce({
@@ -1369,11 +1566,14 @@ describe('getPlacePhoto (fetch stubbed)', () => {
 
   it('MAPS-044b: throws 404 when Google details fetch returns non-ok', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 403,
-      text: async () => JSON.stringify({ error: { message: 'Forbidden' } }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        text: async () => JSON.stringify({ error: { message: 'Forbidden' } }),
+      }),
+    );
     const { getPlacePhoto } = await import('../../../src/services/mapsService');
     const errId = `ChIJErr-${Date.now()}`;
     await expect(getPlacePhoto(1, errId, 48.8, 2.3)).rejects.toMatchObject({ status: 404 });
@@ -1381,10 +1581,13 @@ describe('getPlacePhoto (fetch stubbed)', () => {
 
   it('MAPS-044c: throws 404 when Google place has no photos', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      text: async () => JSON.stringify({ photos: [] }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => JSON.stringify({ photos: [] }),
+      }),
+    );
     const { getPlacePhoto } = await import('../../../src/services/mapsService');
     const noPhotoId = `ChIJNone-${Date.now()}`;
     await expect(getPlacePhoto(1, noPhotoId, 48.8, 2.3)).rejects.toMatchObject({ status: 404 });
@@ -1392,12 +1595,14 @@ describe('getPlacePhoto (fetch stubbed)', () => {
 
   it('MAPS-044d: throws 404 when media endpoint returns non-ok status', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce({
         ok: true,
-        text: async () => JSON.stringify({
-          photos: [{ name: 'places/ChIJXYZ/photos/photo1', authorAttributions: [] }],
-        }),
+        text: async () =>
+          JSON.stringify({
+            photos: [{ name: 'places/ChIJXYZ/photos/photo1', authorAttributions: [] }],
+          }),
       })
       .mockResolvedValueOnce({
         ok: false,
@@ -1412,12 +1617,14 @@ describe('getPlacePhoto (fetch stubbed)', () => {
 
   it('MAPS-044e: returns proxy URL with null attribution when authorAttributions is empty', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce({
         ok: true,
-        text: async () => JSON.stringify({
-          photos: [{ name: 'places/ChIJNoAttr/photos/photo1', authorAttributions: [] }],
-        }),
+        text: async () =>
+          JSON.stringify({
+            photos: [{ name: 'places/ChIJNoAttr/photos/photo1', authorAttributions: [] }],
+          }),
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -1433,17 +1640,20 @@ describe('getPlacePhoto (fetch stubbed)', () => {
 
   it('MAPS-044f: uses Wikimedia and returns proxy URL when API key present but placeId is coords: prefix', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
-    vi.stubGlobal('fetch', vi.fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          query: { pages: { '1': { thumbnail: { source: 'https://wiki.org/coords-photo.jpg' } } } },
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            query: { pages: { '1': { thumbnail: { source: 'https://wiki.org/coords-photo.jpg' } } } },
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: async () => new ArrayBuffer(120),
         }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        arrayBuffer: async () => new ArrayBuffer(120),
-      })
     );
     const { getPlacePhoto } = await import('../../../src/services/mapsService');
     const uniqueId = `coords:44f-test-${Date.now()}`;
@@ -1458,23 +1668,26 @@ describe('getPlacePhoto (fetch stubbed)', () => {
     // coordinate-based Wikipedia fallback instead of giving up with a 404 —
     // matching what right-click (coords:) places already do.
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
-    vi.stubGlobal('fetch', vi.fn()
-      // 1) Google photo details → 403
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 403,
-        text: async () => JSON.stringify({ error: { message: 'PERMISSION_DENIED' } }),
-      })
-      // 2) Wikipedia pageimages → thumbnail
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ query: { pages: { '1': { thumbnail: { source: 'https://wiki.org/guinness.jpg' } } } } }),
-      })
-      // 3) image bytes
-      .mockResolvedValueOnce({
-        ok: true,
-        arrayBuffer: async () => new ArrayBuffer(200),
-      })
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        // 1) Google photo details → 403
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 403,
+          text: async () => JSON.stringify({ error: { message: 'PERMISSION_DENIED' } }),
+        })
+        // 2) Wikipedia pageimages → thumbnail
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ query: { pages: { '1': { thumbnail: { source: 'https://wiki.org/guinness.jpg' } } } } }),
+        })
+        // 3) image bytes
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: async () => new ArrayBuffer(200),
+        }),
     );
     const { getPlacePhoto } = await import('../../../src/services/mapsService');
     const placeId = `ChIJFallback-${Date.now()}`;
@@ -1487,8 +1700,9 @@ describe('getPlacePhoto (fetch stubbed)', () => {
 
 describe('googleFtidFromMapsUrl', () => {
   it('MAPS-FTID-001: extracts a valid ftid from a /place/?ftid= URL (resolved share link)', () => {
-    expect(googleFtidFromMapsUrl('https://www.google.com/maps/place/?q=X&ftid=0x882bf179e806d471:0x8591dde29c821a93'))
-      .toBe('0x882bf179e806d471:0x8591dde29c821a93');
+    expect(
+      googleFtidFromMapsUrl('https://www.google.com/maps/place/?q=X&ftid=0x882bf179e806d471:0x8591dde29c821a93'),
+    ).toBe('0x882bf179e806d471:0x8591dde29c821a93');
   });
   it('MAPS-FTID-002: returns null for a cid-style URL (the usual Places API shape)', () => {
     expect(googleFtidFromMapsUrl('https://maps.google.com/?cid=10403719659250533155')).toBeNull();
@@ -1504,7 +1718,7 @@ describe('googleFtidFromMapsUrl', () => {
 // ── buildUserAgent (instance-specific UA, #1309) ──────────────────────────────
 
 describe('buildUserAgent', () => {
-  const base = 'TREK Travel Planner (https://github.com/mauriceboe/TREK)';
+  const base = 'TREK Travel Planner (https://github.com/liketrek/TREK)';
 
   it('MAPS-094: returns the bare base UA when no instance URL is configured', () => {
     expect(buildUserAgent(undefined)).toBe(base);
@@ -1530,18 +1744,20 @@ describe('resolveOverpassEndpoints', () => {
   });
 
   it('MAPS-098: a single custom endpoint REPLACES the public mirrors (locked-down egress)', () => {
-    expect(resolveOverpassEndpoints('https://overpass.internal/api/interpreter'))
-      .toEqual(['https://overpass.internal/api/interpreter']);
+    expect(resolveOverpassEndpoints('https://overpass.internal/api/interpreter')).toEqual([
+      'https://overpass.internal/api/interpreter',
+    ]);
   });
 
   it('MAPS-099: parses a comma-separated list and trims whitespace', () => {
-    expect(resolveOverpassEndpoints(' https://a.test/api , http://b.test/api '))
-      .toEqual(['https://a.test/api', 'http://b.test/api']);
+    expect(resolveOverpassEndpoints(' https://a.test/api , http://b.test/api ')).toEqual([
+      'https://a.test/api',
+      'http://b.test/api',
+    ]);
   });
 
   it('MAPS-100: drops non-http(s) / malformed entries, keeping the valid ones', () => {
-    expect(resolveOverpassEndpoints('https://ok.test/api, ftp://no.test, not a url'))
-      .toEqual(['https://ok.test/api']);
+    expect(resolveOverpassEndpoints('https://ok.test/api, ftp://no.test, not a url')).toEqual(['https://ok.test/api']);
   });
 
   it('MAPS-101: falls back to the defaults when every custom entry is invalid', () => {

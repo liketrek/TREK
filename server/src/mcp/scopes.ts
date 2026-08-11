@@ -65,7 +65,7 @@ export const SCOPE_INFO: Record<Scope, ScopeInfo> = {
   'notifications:write': { label: 'Manage notifications',       description: 'Mark notifications as read and respond to them',                       group: 'Notifications' },
   'vacay:read':          { label: 'View vacation plans',        description: 'Read vacation planning data, entries, and stats',                      group: 'Vacation' },
   'vacay:write':         { label: 'Manage vacation plans',      description: 'Create and manage vacation entries, holidays, and team plans',          group: 'Vacation' },
-  'geo:read':            { label: 'Maps & geocoding',           description: 'Search locations, resolve map URLs, and reverse geocode coordinates',  group: 'Geo' },
+  'geo:read':            { label: 'Maps, geocoding & transit',  description: 'Search locations and public transit routes, resolve map URLs, and reverse geocode coordinates', group: 'Geo' },
   'weather:read':        { label: 'Weather forecasts',          description: 'Fetch weather forecasts for trip locations and dates',                  group: 'Weather' },
   'journey:read':        { label: 'View journeys',              description: 'Read journeys, entries, and contributor list',                          group: 'Journey' },
   'journey:write':       { label: 'Manage journeys',            description: 'Create, update, and delete journeys and their entries',                 group: 'Journey' },

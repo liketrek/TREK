@@ -49,8 +49,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Tips:',
   'settings.mapTip':
     'högerklicka och dra för att rotera eller luta kartan. Mittklicka för att lägga till en plats (högerklick är reserverat för rotation).',
-  'settings.latitude': 'Latitud',
-  'settings.longitude': 'Longitud',
   'settings.saveMap': 'Spara karta',
   'settings.apiKeys': 'API nycklar',
   'settings.mapsKey': 'Google Maps API nyckel',
@@ -102,7 +100,8 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.configure': 'Konfigurera',
   'settings.notificationPreferences.testSuccess': 'Testavisering skickad.',
   'settings.notificationPreferences.testFailed': 'Testet misslyckades.',
-  'settings.notificationPreferences.pluginConfigured': 'Konfigurerat. Hantera dina uppgifter på pluginets inställningssida.',
+  'settings.notificationPreferences.pluginConfigured':
+    'Konfigurerat. Hantera dina uppgifter på pluginets inställningssida.',
   'settings.notificationPreferences.ntfy': 'Ntfy',
   'settings.notificationPreferences.noChannels':
     'Inga meddelandekanaler har konfigurerats. Be en administratör att ställa in e-post- eller webhook-meddelanden.',
@@ -305,6 +304,7 @@ const settings: TranslationStrings = {
   'settings.mfa.demoBlocked': 'Finns inte i demoläge',
   'settings.currency': 'Valuta',
   'settings.currencyHint': 'Alla belopp under kostnader omräknas till och redovisas i denna valuta.',
+  'settings.currencyTrip': 'Resans valuta',
   'settings.passkey.title': 'Inloggningsnycklar',
   'settings.passkey.description':
     'Logga in snabbare och med bättre skydd mot nätfiske med en inloggningsnyckel – ditt fingeravtryck, ditt ansikte, din PIN-kod eller en hårdvarunyckel. Ditt lösenord finns kvar som reserv.',
@@ -490,6 +490,9 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': 'Resurs',
   'settings.pluginActivity.columns.when': 'När',
   'settings.pluginActivity.columns.status': 'Resultat',
+  'settings.alwaysShowRoutes': 'Visa alltid bokningsrutter',
+  'settings.alwaysShowRoutesHint':
+    'Visar automatiskt rutten för varje flyg, tåg och annan bokning på kartan, utan att du behöver aktivera det för varje bokning för sig.',
 };
 
 export default settings;

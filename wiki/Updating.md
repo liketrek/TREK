@@ -12,7 +12,7 @@ Back up your data first. Go to Admin Panel → Backups and create a manual backu
 |---|---|---|
 | `latest` | `mauriceboe/trek:latest` | Always the newest release across all major versions |
 | Major version | `mauriceboe/trek:3` | Latest release pinned to that major version |
-| Full version | `mauriceboe/trek:3.0.15` | Exact release; never changes |
+| Full version | `mauriceboe/trek:3.4.0` | Exact release; never changes |
 
 Use `latest` or a major-version tag if you want updates on each redeploy. Use a full version tag for explicit control — update by changing the tag, not by re-pulling.
 
@@ -28,7 +28,7 @@ This pulls the newest matching image and recreates the container with your exist
 
 **Pinned full-version tag:**
 
-Edit `docker-compose.yml`, update the tag in the `image:` line (e.g. `3.0.15` → `3.0.16`), then redeploy:
+Edit `docker-compose.yml`, update the tag in the `image:` line (e.g. `3.4.0` → `3.4.1`), then redeploy:
 
 ```bash
 docker compose up -d
@@ -53,6 +53,28 @@ docker run -d --name trek -p 3000:3000 \
 > ```bash
 > docker inspect trek --format '{{json .Mounts}}'
 > ```
+
+## Helm (Kubernetes)
+
+> **⚠️ Chart repository moved:** The Helm chart is no longer served at `https://mauriceboe.github.io/TREK` (the project moved from a personal repo to the `liketrek` organization). The canonical chart URL is now `https://chart.liketrek.com` — a custom domain (CNAME) for the GitHub Pages site at `https://liketrek.github.io/TREK`, so it stays stable even if the repository moves again. If your `trek` repo still points to an old URL, switch it before updating:
+>
+> ```bash
+> helm repo remove trek
+> helm repo add trek https://chart.liketrek.com
+> ```
+>
+> You can check which URL you have configured with `helm repo list`. Existing releases are unaffected — only the repo URL changes.
+
+To update to the newest chart release:
+
+```bash
+helm repo update
+helm upgrade trek trek/trek
+```
+
+Your existing values and PVCs (data, uploads) are preserved. To pin an exact chart version instead, pass `--version <x.y.z>`.
+
+See [Install-Helm](Install-Helm) for the full installation walkthrough and values reference.
 
 ## Database Migrations
 
@@ -91,7 +113,7 @@ Open the **Stacks** list, click the TREK stack, then click **Redeploy**.
 
 ![Re-pull image and redeploy switch ticked, with arrows pointing to the switch and the Update button](assets/portainer-force-pull.png)
 
-**Pinned full-version tag** (e.g. `3.0.15`) — edit the stack, update the tag in the `image:` line, then click **Update the stack**. No re-pull switch needed; the tag change forces a fresh pull.
+**Pinned full-version tag** (e.g. `3.4.0`) — edit the stack, update the tag in the `image:` line, then click **Update the stack**. No re-pull switch needed; the tag change forces a fresh pull.
 
 ![Edit stack page with an arrow pointing to the image tag in the compose editor](assets/portainer-update-version.png)
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Languages, Map, ChevronDown, Check } from 'lucide-react'
 import { SUPPORTED_LANGUAGES, useTranslation } from '../../i18n'
-import { useSettingsStore } from '../../store/settingsStore'
+import { useSettingsStore, DEFAULT_SETTINGS } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import CustomSelect from '../shared/CustomSelect'
 import { SYMBOLS, currenciesWith } from '../Budget/BudgetPanel.constants'
@@ -12,8 +12,8 @@ export default function DisplaySettingsTab(): React.ReactElement {
   const { settings, updateSetting } = useSettingsStore()
   const { t } = useTranslation()
   const toast = useToast()
-  const [tempUnit, setTempUnit] = useState<string>(settings.temperature_unit || 'celsius')
-  const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>(settings.distance_unit || 'metric')
+  const [tempUnit, setTempUnit] = useState<string>(settings.temperature_unit || DEFAULT_SETTINGS.temperature_unit)
+  const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>(settings.distance_unit || DEFAULT_SETTINGS.distance_unit)
   const [langOpen, setLangOpen] = useState(false)
   const langDropdownRef = useRef<HTMLDivElement | null>(null)
 
@@ -27,11 +27,11 @@ export default function DisplaySettingsTab(): React.ReactElement {
   }, [langOpen])
 
   useEffect(() => {
-    setTempUnit(settings.temperature_unit || 'celsius')
+    setTempUnit(settings.temperature_unit || DEFAULT_SETTINGS.temperature_unit)
   }, [settings.temperature_unit])
 
   useEffect(() => {
-    setDistanceUnit(settings.distance_unit || 'metric')
+    setDistanceUnit(settings.distance_unit || DEFAULT_SETTINGS.distance_unit)
   }, [settings.distance_unit])
 
   return (
@@ -40,13 +40,18 @@ export default function DisplaySettingsTab(): React.ReactElement {
       {/* Display currency */}
       <div>
         <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.currency')}</label>
+        {/* Unset ('') means "no personal preference": Costs then shows each trip in its
+            own currency, instead of forcing every trip through one display currency. */}
         <CustomSelect
-          value={settings.default_currency || 'EUR'}
+          value={settings.default_currency || ''}
           onChange={async v => {
             try { await updateSetting('default_currency', String(v)) }
             catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
           }}
-          options={currenciesWith(settings.default_currency).map(c => ({ value: c, label: `${c} — ${SYMBOLS[c] || c}` }))}
+          options={[
+            { value: '', label: t('settings.currencyTrip') },
+            ...currenciesWith(settings.default_currency || '').map(c => ({ value: c, label: `${c} — ${SYMBOLS[c] || c}` })),
+          ]}
           searchable
         />
         <p className="text-xs text-content-faint mt-2">{t('settings.currencyHint')}</p>
@@ -258,6 +263,37 @@ export default function DisplaySettingsTab(): React.ReactElement {
           ))}
         </div>
         <p className="text-xs mt-1 text-content-faint">{t('settings.bookingLabelsHint')}</p>
+      </div>
+
+      {/* Always show booking routes */}
+      <div>
+        <label className="block text-sm font-medium mb-2 text-content-secondary">{t('settings.alwaysShowRoutes')}</label>
+        <div className="flex gap-3">
+          {[
+            { value: true, label: t('settings.on') || 'On' },
+            { value: false, label: t('settings.off') || 'Off' },
+          ].map(opt => (
+            <button
+              key={String(opt.value)}
+              onClick={async () => {
+                try { await updateSetting('map_always_show_routes', opt.value) }
+                catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500,
+                border: (settings.map_always_show_routes === true) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
+                background: (settings.map_always_show_routes === true) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                transition: 'all 0.15s',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs mt-1 text-content-faint">{t('settings.alwaysShowRoutesHint')}</p>
       </div>
 
       {/* Explore places on the map (POI category pill) */}

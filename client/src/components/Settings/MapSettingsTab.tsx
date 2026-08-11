@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Map, Save, Layers, Box, ChevronDown, Check, Globe2 } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -9,7 +9,6 @@ import GlMapPreview from './MapboxPreview'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
 import type { Place } from '../../types'
-import { NumericInput } from '../shared/NumericInput'
 import {
   MAPBOX_DEFAULT_STYLE,
   defaultStyleForProvider,
@@ -143,6 +142,14 @@ function slotStyle(provider: Provider, s: { mapbox_style?: string; maplibre_styl
   return provider === 'maplibre-gl' ? s.maplibre_style : s.mapbox_style
 }
 
+/**
+ * Somewhere recognisable for the style preview to render. A city shows off label density,
+ * 3D buildings and satellite texture in a way open ocean cannot — it is not a user setting,
+ * and no map opens here: each map frames itself on its own places.
+ */
+const PREVIEW_CENTER: [number, number] = [48.8566, 2.3522]
+const PREVIEW_ZOOM = 16
+
 export default function MapSettingsTab(): React.ReactElement {
   const { settings, updateSettings } = useSettingsStore()
   const { t } = useTranslation()
@@ -155,9 +162,6 @@ export default function MapSettingsTab(): React.ReactElement {
   const [mapboxStyle, setMapboxStyle] = useState<string>(styleForProvider(initialProvider, slotStyle(initialProvider, settings)))
   const [mapbox3d, setMapbox3d] = useState<boolean>(settings.mapbox_3d_enabled !== false)
   const [mapboxQuality, setMapboxQuality] = useState<boolean>(settings.mapbox_quality_mode === true)
-  const [defaultLat, setDefaultLat] = useState<number | string>(settings.default_lat || 48.8566)
-  const [defaultLng, setDefaultLng] = useState<number | string>(settings.default_lng || 2.3522)
-  const [defaultZoom, setDefaultZoom] = useState<number | string>(settings.default_zoom || 10)
 
   useEffect(() => {
     const nextProvider = normalizeProvider(settings.map_provider)
@@ -167,23 +171,15 @@ export default function MapSettingsTab(): React.ReactElement {
     setMapboxStyle(styleForProvider(nextProvider, slotStyle(nextProvider, settings)))
     setMapbox3d(settings.mapbox_3d_enabled !== false)
     setMapboxQuality(settings.mapbox_quality_mode === true)
-    setDefaultLat(settings.default_lat || 48.8566)
-    setDefaultLng(settings.default_lng || 2.3522)
-    setDefaultZoom(settings.default_zoom || 10)
   }, [settings])
 
-  const handleMapClick = useCallback((mapInfo) => {
-    setDefaultLat(mapInfo.latlng.lat)
-    setDefaultLng(mapInfo.latlng.lng)
-  }, [])
-
-  const mapPlaces = useMemo((): Place[] => [{
+  const previewPlaces = useMemo((): Place[] => [{
     id: 1,
     trip_id: 1,
-    name: 'Default map center',
+    name: 'Preview',
     description: '',
-    lat: defaultLat as number,
-    lng: defaultLng as number,
+    lat: PREVIEW_CENTER[0],
+    lng: PREVIEW_CENTER[1],
     address: '',
     category_id: 0,
     price: null,
@@ -194,7 +190,7 @@ export default function MapSettingsTab(): React.ReactElement {
     place_time: null,
     end_time: null,
     created_at: Date(),
-  }], [defaultLat, defaultLng])
+  }], [])
 
   const saveMapSettings = async (): Promise<void> => {
     setSaving(true)
@@ -210,9 +206,6 @@ export default function MapSettingsTab(): React.ReactElement {
         ...stylePatch,
         mapbox_3d_enabled: mapbox3d,
         mapbox_quality_mode: mapboxQuality,
-        default_lat: parseFloat(String(defaultLat)),
-        default_lng: parseFloat(String(defaultLng)),
-        default_zoom: parseInt(String(defaultZoom)),
       })
       toast.success(t('settings.toast.mapSaved'))
     } catch (err: unknown) {
@@ -402,28 +395,6 @@ export default function MapSettingsTab(): React.ReactElement {
         </div>
       )}
 
-      {/* Default map position — applies regardless of provider */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.latitude')}</label>
-          <NumericInput
-            mode="signed"
-            value={defaultLat}
-            onValueChange={setDefaultLat}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.longitude')}</label>
-          <NumericInput
-            mode="signed"
-            value={defaultLng}
-            onValueChange={setDefaultLng}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
-          />
-        </div>
-      </div>
-
       <div>
         <div style={{ position: 'relative', inset: 0, height: '200px', width: '100%' }}>
           {provider !== 'leaflet' ? (
@@ -431,28 +402,25 @@ export default function MapSettingsTab(): React.ReactElement {
               provider={provider}
               token={mapboxToken}
               style={mapboxStyle}
-              lat={parseFloat(String(defaultLat)) || 48.8566}
-              lng={parseFloat(String(defaultLng)) || 2.3522}
+              lat={PREVIEW_CENTER[0]}
+              lng={PREVIEW_CENTER[1]}
               // Zoom in close so the style's character (3D buildings,
               // satellite texture, label density) is immediately visible.
-              zoom={Math.max(parseInt(String(defaultZoom)) || 10, 16)}
+              zoom={PREVIEW_ZOOM}
               enable3d={provider === 'mapbox-gl' && mapbox3d && supports3d}
               quality={provider === 'mapbox-gl' && mapboxQuality}
-              onClick={(ll) => { setDefaultLat(ll.lat); setDefaultLng(ll.lng) }}
             />
           ) : (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             React.createElement(MapView as any, {
-              places: mapPlaces,
+              places: previewPlaces,
               dayPlaces: [],
               route: null,
               routeSegments: null,
               selectedPlaceId: null,
               onMarkerClick: null,
-              onMapClick: handleMapClick,
+              onMapClick: null,
               onMapContextMenu: null,
-              center: [settings.default_lat, settings.default_lng],
-              zoom: defaultZoom,
               tileUrl: mapTileUrl,
               fitKey: null,
               dayOrderMap: [],

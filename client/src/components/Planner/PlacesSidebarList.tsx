@@ -7,7 +7,7 @@ export function PlacesList(S: SidebarState) {
   const {
     filtered, scrollContainerRef, onScrollTopChange, filter, t, canEditPlaces, onAddPlace,
     categories, selectedPlaceId, plannedIds, inDaySet, selectedIds, selectMode, selectedDayId,
-    isMobile, onPlaceClick, openContextMenu, onAssignToDay, toggleSelected, setDayPickerPlace, registerPlaceRow, tripId,
+    isMobile, isTouch, onPlaceClick, openContextMenu, onAssignToDay, toggleSelected, setDayPickerPlace, registerPlaceRow, tripId,
   } = S
   // Plugin-contributed columns/actions for the places view, keyed by place id (#plugins).
   const contribFor = usePluginViewContributions('places', tripId)
@@ -43,6 +43,7 @@ export function PlacesList(S: SidebarState) {
                 selectedDayId={selectedDayId}
                 canEditPlaces={canEditPlaces}
                 isMobile={isMobile}
+                isTouch={Boolean(isTouch)}
                 t={t}
                 onPlaceClick={onPlaceClick}
                 onContextMenu={openContextMenu}

@@ -48,6 +48,7 @@ const packing: TranslationStrings = {
   'packing.bags': 'Zavazadla',
   'packing.noBag': 'Nepřiřazeno',
   'packing.totalWeight': 'Celková váha',
+  'packing.quantity': 'Počet',
   'packing.bagName': 'Název zavazadla...',
   'packing.addBag': 'Přidat zavazadlo',
   'packing.changeCategory': 'Přesunout do seznamu',

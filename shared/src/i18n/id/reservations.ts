@@ -160,6 +160,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.otherFlights': 'Penerbangan lain',
   'reservations.airtrail.empty': 'Tidak ada penerbangan ditemukan di akun AirTrail-mu.',
   'reservations.airtrail.importCta': 'Impor {count}',
+  'reservations.airtrail.joinConnection': 'Impor sebagai satu penerbangan dengan transit di {stops}',
   'reservations.costsLabel': 'Costs',
   'reservations.createExpense': 'Create expense',
   'reservations.createExpenseHint': 'Saves the booking, then opens the Costs editor.',

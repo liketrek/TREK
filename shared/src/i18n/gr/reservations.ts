@@ -164,6 +164,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.otherFlights': 'Άλλες πτήσεις',
   'reservations.airtrail.empty': 'Δεν βρέθηκαν πτήσεις στον λογαριασμό σας στο AirTrail.',
   'reservations.airtrail.importCta': 'Εισαγωγή {count}',
+  'reservations.airtrail.joinConnection': 'Εισαγωγή ως μία πτήση με ενδιάμεση στάση σε {stops}',
   'reservations.costsLabel': 'Costs',
   'reservations.createExpense': 'Create expense',
   'reservations.createExpenseHint': 'Saves the booking, then opens the Costs editor.',

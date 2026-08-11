@@ -336,6 +336,39 @@ describe('Category filter dropdown', () => {
     await user.click(parkOpts[parkOpts.length - 1]);
     expect(screen.getByText(/2 categories/i)).toBeInTheDocument();
   });
+
+  it('FE-PLANNER-SIDEBAR-047: category filter survives unmount/remount (#1541)', async () => {
+    const user = userEvent.setup();
+    const cat = buildCategory({ name: 'Hotel', color: '#3b82f6' });
+    const withCat = buildPlace({ name: 'Grand Palace', category_id: cat.id, address: 'Vienna' });
+    const noCat = buildPlace({ name: 'Street Market', category_id: null, address: 'Lisbon' });
+    const { unmount } = render(<PlacesSidebar {...defaultProps} places={[withCat, noCat]} categories={[cat]} />);
+    await user.click(screen.getByText(/All Categories/i));
+    await user.click(screen.getByText('Hotel'));
+    expect(screen.queryByText('Street Market')).not.toBeInTheDocument();
+    // Switching planner tabs unmounts the sidebar; the filter must come back
+    // both applied and visible instead of silently sticking on the map only.
+    unmount();
+    render(<PlacesSidebar {...defaultProps} places={[withCat, noCat]} categories={[cat]} />);
+    expect(screen.queryByText(/All Categories/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Hotel')).toBeInTheDocument();
+    expect(screen.getByText('Grand Palace')).toBeInTheDocument();
+    expect(screen.queryByText('Street Market')).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-SIDEBAR-048: filter tab survives unmount/remount (#1541)', async () => {
+    const user = userEvent.setup();
+    const planned = buildPlace({ name: 'Planned Place' });
+    const unplanned = buildPlace({ name: 'Unplanned Place' });
+    const assignments = { '1': [buildAssignment({ place: planned, day_id: 1 })] };
+    const { unmount } = render(<PlacesSidebar {...defaultProps} places={[planned, unplanned]} assignments={assignments} />);
+    await user.click(screen.getByRole('button', { name: /Unplanned/i }));
+    expect(screen.queryByText('Planned Place')).not.toBeInTheDocument();
+    unmount();
+    render(<PlacesSidebar {...defaultProps} places={[planned, unplanned]} assignments={assignments} />);
+    expect(screen.queryByText('Planned Place')).not.toBeInTheDocument();
+    expect(screen.getByText('Unplanned Place')).toBeInTheDocument();
+  });
 });
 
 // ── Place list interaction ─────────────────────────────────────────────────────
@@ -571,5 +604,37 @@ describe('Google Maps list import', () => {
         undefined,
       );
     });
+  });
+
+});
+
+// #1432: a tablet is a touch device at a desktop width. Before the fix, isTouch didn't
+// exist and drag was gated on width alone, so on an iPad the rows stayed draggable and a
+// scroll swipe started an HTML5 drag, which raised the drop-to-import overlay instead of
+// scrolling. These cases pin the desktop-width + coarse-pointer combination.
+describe('touch device at desktop width (#1432)', () => {
+  const touchProps = { ...defaultProps, isMobile: false, isTouch: true };
+
+  it('FE-PLANNER-SIDEBAR-044: place rows are not draggable', () => {
+    const place = buildPlace({ id: 7, name: 'Tablet Place' });
+    render(<PlacesSidebar {...touchProps} places={[place]} />);
+    const placeRow = screen.getByText('Tablet Place').closest('div[draggable]')!;
+    expect(placeRow.getAttribute('draggable')).toBe('false');
+  });
+
+  it('FE-PLANNER-SIDEBAR-045: dragging over the sidebar does not raise the drop-to-import overlay', () => {
+    const place = buildPlace({ id: 7, name: 'Tablet Place' });
+    const { container } = render(<PlacesSidebar {...touchProps} places={[place]} />);
+    fireEvent.dragEnter(container.firstChild as HTMLElement);
+    expect(screen.queryByText('Drop to import')).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-SIDEBAR-046: a mouse-driven desktop keeps drag and the drop-to-import overlay', () => {
+    const place = buildPlace({ id: 7, name: 'Desktop Place' });
+    const { container } = render(<PlacesSidebar {...defaultProps} isTouch={false} places={[place]} />);
+    const placeRow = screen.getByText('Desktop Place').closest('div[draggable]')!;
+    expect(placeRow.getAttribute('draggable')).toBe('true');
+    fireEvent.dragEnter(container.firstChild as HTMLElement);
+    expect(screen.getByText('Drop to import')).toBeInTheDocument();
   });
 });

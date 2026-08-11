@@ -4,7 +4,7 @@ import { render, screen } from '../../../tests/helpers/render'
 import { fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { resetAllStores } from '../../../tests/helpers/store'
-import { buildPlace } from '../../../tests/helpers/factories'
+import { buildPlace, buildReservation } from '../../../tests/helpers/factories'
 import * as photoService from '../../services/photoService'
 
 const mapMock = vi.hoisted(() => ({
@@ -15,10 +15,14 @@ const mapMock = vi.hoisted(() => ({
   on: vi.fn(),
   off: vi.fn(),
   panBy: vi.fn(),
+  latLngToContainerPoint: vi.fn(() => ({ x: 0, y: 0, distanceTo: () => 1000 })),
 }))
 
 vi.mock('react-leaflet', () => ({
-  MapContainer: ({ children }: any) => <div data-testid="map-container">{children}</div>,
+  // center/zoom are surfaced so tests can assert the camera the map is built with.
+  MapContainer: ({ children, center, zoom }: any) => (
+    <div data-testid="map-container" data-center={JSON.stringify(center)} data-zoom={zoom}>{children}</div>
+  ),
   TileLayer: () => <div data-testid="tile-layer" />,
   Marker: ({ children, eventHandlers, position }: any) => (
     <div
@@ -39,6 +43,7 @@ vi.mock('react-leaflet', () => ({
   Polyline: ({ positions }: any) => <div data-testid="polyline" data-points={JSON.stringify(positions)} />,
   CircleMarker: () => <div data-testid="circle-marker" />,
   Circle: () => <div data-testid="circle" />,
+  Tooltip: ({ children }: any) => <>{children}</>,
   useMap: () => mapMock,
   useMapEvents: () => ({}),
 }))
@@ -291,15 +296,85 @@ describe('MapView', () => {
       buildMapPlace({ id: 1, lat: 48.0, lng: 2.0 }),
       buildMapPlace({ id: 2, lat: 48.1, lng: 2.1 }),
     ]
-    // Day selected, route not computed yet → first fit is the two destinations.
+    // The map opens already framed on its places, so nothing fits on mount.
     const { rerender } = render(<MapView places={dayPlaces} dayPlaces={dayPlaces} route={[]} fitKey={5} />)
     const lastBounds = () => { const c = L.latLngBounds.mock.calls; return c[c.length - 1][0] }
+
+    // Day selected, route not computed yet → first fit is the two destinations.
+    L.latLngBounds.mockClear()
+    rerender(<MapView places={dayPlaces} dayPlaces={dayPlaces} route={[]} fitKey={6} />)
     expect(lastBounds()).toHaveLength(2)
 
     // The day's route arrives → one-shot re-fit including the 3 route points.
     L.latLngBounds.mockClear()
-    rerender(<MapView places={dayPlaces} dayPlaces={dayPlaces} route={[[[47.9, 1.9], [48.05, 2.05], [48.2, 2.2]]]} fitKey={5} />)
+    rerender(<MapView places={dayPlaces} dayPlaces={dayPlaces} route={[[[47.9, 1.9], [48.05, 2.05], [48.2, 2.2]]]} fitKey={6} />)
     expect(L.latLngBounds).toHaveBeenCalled()
     expect(lastBounds()).toHaveLength(5) // 2 destinations + 3 route points
+  })
+
+  describe('opening camera', () => {
+    const camera = () => {
+      const el = screen.getByTestId('map-container')
+      return {
+        center: JSON.parse(el.getAttribute('data-center')!) as [number, number],
+        zoom: Number(el.getAttribute('data-zoom')),
+      }
+    }
+
+    it('FE-COMP-MAPVIEW-021: builds the map framed on the places', () => {
+      render(<MapView places={[
+        buildMapPlace({ id: 1, lat: 35.01, lng: 135.76 }),  // Kyoto
+        buildMapPlace({ id: 2, lat: 34.69, lng: 135.5 }),   // Osaka
+      ]} />)
+
+      const { center, zoom } = camera()
+      expect(center[0]).toBeCloseTo(34.85, 1)
+      expect(center[1]).toBeCloseTo(135.63, 1)
+      expect(zoom).toBeGreaterThan(7)
+      expect(zoom).toBeLessThan(13)
+    })
+
+    it('FE-COMP-MAPVIEW-022: does not fit on mount when it opened already framed', async () => {
+      const L = ((await import('leaflet')).default) as unknown as { latLngBounds: ReturnType<typeof vi.fn> }
+      L.latLngBounds.mockClear()
+
+      render(<MapView places={[buildMapPlace({ id: 1, lat: 35.01, lng: 135.76 })]} fitKey={1} />)
+
+      expect(L.latLngBounds).not.toHaveBeenCalled()
+    })
+
+    it('FE-COMP-MAPVIEW-023: falls back to the world view when no place has coordinates', () => {
+      render(<MapView places={[buildMapPlace({ id: 1, lat: null, lng: null })]} />)
+
+      const { center, zoom } = camera()
+      expect(center).toEqual([0, 0])
+      expect(zoom).toBe(2)
+    })
+  })
+
+  it('FE-COMP-MAPVIEW-023: a routable reservation not in visibleConnectionIds draws no route', () => {
+    const reservation = buildReservation({
+      id: 43,
+      type: 'flight',
+      endpoints: [
+        { role: 'from', sequence: 0, name: 'A', code: 'AAA', lat: 1, lng: 2, timezone: null, local_time: null, local_date: null },
+        { role: 'to', sequence: 1, name: 'B', code: 'BBB', lat: 3, lng: 4, timezone: null, local_time: null, local_date: null },
+      ],
+    } as any)
+    render(<MapView reservations={[reservation]} visibleConnectionIds={[]} />)
+    expect(screen.queryByTestId('polyline')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-MAPVIEW-024: a routable reservation in visibleConnectionIds draws its route', () => {
+    const reservation = buildReservation({
+      id: 42,
+      type: 'flight',
+      endpoints: [
+        { role: 'from', sequence: 0, name: 'A', code: 'AAA', lat: 1, lng: 2, timezone: null, local_time: null, local_date: null },
+        { role: 'to', sequence: 1, name: 'B', code: 'BBB', lat: 3, lng: 4, timezone: null, local_time: null, local_date: null },
+      ],
+    } as any)
+    render(<MapView reservations={[reservation]} visibleConnectionIds={[42]} />)
+    expect(screen.getAllByTestId('polyline').length).toBeGreaterThan(0)
   })
 })

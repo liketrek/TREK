@@ -47,6 +47,7 @@ const packing: TranslationStrings = {
   'packing.bags': 'Багаж',
   'packing.noBag': 'Не назначено',
   'packing.totalWeight': 'Общий вес',
+  'packing.quantity': 'Кол-во',
   'packing.bagName': 'Название...',
   'packing.addBag': 'Добавить багаж',
   'packing.changeCategory': 'Переместить в список',

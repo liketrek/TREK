@@ -12,12 +12,15 @@ import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings,
 import { attachLocationMarker, type LocationMarkerHandle } from './locationMarkerMapbox'
 import { ReservationMapboxOverlay } from './reservationsMapbox'
 import { useTransportRoutes } from '../../hooks/useTransportRoutes'
+import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from './glProviders'
 import LocationButton from './LocationButton'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import type { Place, Reservation } from '../../types'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
 import { buildPoiPopupHtml } from './placePopup'
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
+import { computeMapViewport, TILE_SIZE_GL } from '../../utils/mapViewport'
 
 function categoryIconSvg(iconName: string | null | undefined, size: number): string {
   const IconComponent = (iconName && CATEGORY_ICON_MAP[iconName]) || CATEGORY_ICON_MAP['MapPin']
@@ -41,6 +44,10 @@ type PlaceWithCoords = Place & { lat: number; lng: number }
 
 function hasValidCoords(place: Place): place is PlaceWithCoords {
   return place.lat != null && place.lng != null && Number.isFinite(place.lat) && Number.isFinite(place.lng)
+}
+
+function isValidCoordinate(coord: [number, number] | null | undefined): coord is [number, number] {
+  return !!coord && Number.isFinite(coord[0]) && Number.isFinite(coord[1])
 }
 
 function buildPlaceClusterData(places: Place[]) {
@@ -191,8 +198,8 @@ export function MapViewGL({
   onMarkerClick,
   onMapClick,
   onMapContextMenu = null,
-  center = [48.8566, 2.3522],
-  zoom = 10,
+  center = DEFAULT_MAP_CENTER,
+  zoom = DEFAULT_MAP_ZOOM,
   fitKey = 0,
   dayOrderMap = {},
   leftWidth = 0,
@@ -258,8 +265,8 @@ export function MapViewGL({
   onReservationClickRef.current = onReservationClick
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const poiMarkersRef = useRef<any[]>([])
-  // Single reusable hover popup (name/category/address card) shared by planned
-  // places and POI markers — mirrors the Leaflet map's hover tooltip.
+  // Single reusable hover popup for POI markers. Planned places use the
+  // cursor-following React tooltip below so they match the Leaflet map.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const popupRef = useRef<any | null>(null)
   const onPoiClickRef = useRef(onPoiClick)
@@ -275,22 +282,46 @@ export function MapViewGL({
   onClickRefs.current.context = onMapContextMenu
   const hoverDisabledRef = useRef(hoverDisabled)
   hoverDisabledRef.current = hoverDisabled
+  const routeCoords = useMemo<[number, number][]>(() => (route || []).flat().filter(isValidCoordinate), [route])
+  const routeFitKey = useMemo(
+    () => routeCoords.map(([lat, lng]) => `${lat.toFixed(6)},${lng.toFixed(6)}`).join('|'),
+    [routeCoords],
+  )
+  // Set when the map was built already framed on its places, so the fit below knows there is
+  // nothing left to do on mount.
+  const framedOnMountRef = useRef(false)
 
   // Build/rebuild the map on provider/style/token/3d change
   useEffect(() => {
     if (!containerRef.current || (!isMapLibre && !mapboxToken)) return
     if (!isMapLibre) mapboxgl.accessToken = mapboxToken
 
+    // Open framed on the places rather than on the caller's default: a trip in Japan should
+    // show Japan straight away, not the world view followed by a flight across the planet.
+    // Reading them here is what makes this "on load" — the map is built once, and the trip's
+    // places are already loaded by then (TripPlannerPage holds a splash until they are).
+    const framed = computeMapViewport(dayPlaces.length > 0 ? dayPlaces : places, {
+      tileSize: TILE_SIZE_GL,
+      padding: paddingOpts,
+    })
+    framedOnMountRef.current = framed !== null
+    const initial = framed ?? { center, zoom }
+
     const mapOptions: Record<string, unknown> = {
       container: containerRef.current,
       style: glStyle,
-      center: [center[1], center[0]],
-      zoom,
+      center: [initial.center[1], initial.center[0]],
+      zoom: initial.zoom,
       pitch: enableMapbox3d ? 45 : 0,
       attributionControl: true,
       antialias: mapboxQuality,
     }
     if (!isMapLibre) mapOptions.projection = mapboxQuality ? 'globe' : 'mercator'
+    // MapLibre 5's mouse-rotate inverts its sign at a mid-screen line it gets by
+    // re-projecting the map center — a line that drifts with the bearing, so a
+    // right-button drag near mid-screen ping-pongs instead of rotating (#1545).
+    // aroundCenter: false restores the plain dx-based rotate mapbox-gl uses.
+    if (isMapLibre) mapOptions.aroundCenter = false
 
     const map = new gl.Map(mapOptions as any)
     mapRef.current = map
@@ -898,12 +929,9 @@ export function MapViewGL({
   // `visibleConnectionIds` is driven by the per-reservation toggle in
   // DayPlanSidebar — nothing is rendered until the user enables a
   // booking's route, matching the Leaflet MapView's behaviour.
-  const visibleReservations = useMemo(() => {
-    const set = new Set(visibleConnectionIds || [])
-    // Transit journeys ride the route toggle — they are part of the computed
-    // day route, so hiding the route hides them too (#1065).
-    return reservations.filter(r => (r.type === 'transit' && showTransitRoutes) || set.has(r.id))
-  }, [reservations, visibleConnectionIds, showTransitRoutes])
+  const visibleReservations = useMemo(() => (
+    visibleRouteReservations(reservations, { visibleConnectionIds, showTransitRoutes })
+  ), [reservations, visibleConnectionIds, showTransitRoutes])
   // Real road geometry for car/bus/taxi/bicycle bookings (straight line until it loads/if it fails).
   const transportRoutes = useTransportRoutes(visibleReservations)
 
@@ -935,17 +963,46 @@ export function MapViewGL({
     return { top, right: rightWidth + 40, bottom, left: leftWidth + 40 }
   }, [leftWidth, rightWidth, hasInspector, hasDayDetail])
 
-  const prevFitKey = useRef(-1)
+  const prevFitKey = useRef<number | null>(-1)
+  const pendingRouteFitRef = useRef<{ fitKey: number | null; routeKey: string } | null>(null)
+  const fitRanRef = useRef(false)
   useEffect(() => {
-    if (fitKey === prevFitKey.current) return
-    prevFitKey.current = fitKey
+    const fitKeyChanged = fitKey !== prevFitKey.current
+    const routeArrivedForPendingFit =
+      !fitKeyChanged
+      && pendingRouteFitRef.current?.fitKey === fitKey
+      && !!routeFitKey
+      && routeFitKey !== pendingRouteFitRef.current.routeKey
+    if (!fitKeyChanged && !routeArrivedForPendingFit) return
     const map = mapRef.current
     if (!map) return
+
+    // The map was built framed on these very places, so fitting now would only re-do that —
+    // and its maxZoom would overrule the gentler zoom a single place opens at. Adopt the
+    // current fitKey and stand down; every later fit (picking a day) still runs.
+    if (!fitRanRef.current && framedOnMountRef.current) {
+      fitRanRef.current = true
+      prevFitKey.current = fitKey
+      pendingRouteFitRef.current = null
+      return
+    }
+    fitRanRef.current = true
+    if (fitKeyChanged) {
+      prevFitKey.current = fitKey
+      // Only wait for better geometry when a route is already on screen: the day's
+      // route lands as straight lines in the same batch as the fit, then upgrades to
+      // the real road geometry a moment later. With no route drawn, none is coming for
+      // this fit — arming the slot anyway would let a route toggled on much later
+      // (after the user has panned somewhere else) yank the camera back.
+      pendingRouteFitRef.current = routeFitKey ? { fitKey, routeKey: routeFitKey } : null
+    }
     const target = dayPlaces.length > 0 ? dayPlaces : places
-    const valid = target.filter(p => p.lat && p.lng)
-    if (valid.length === 0) return
+    const markerPoints = target.filter(hasValidCoords).map(p => [p.lat, p.lng] as [number, number])
+    const fitPoints = routeCoords.length > 0 ? [...routeCoords, ...markerPoints] : markerPoints
+    if (fitPoints.length === 0) return
     const bounds = new gl.LngLatBounds()
-    valid.forEach(p => bounds.extend([p.lng, p.lat]))
+    fitPoints.forEach(([lat, lng]) => bounds.extend([lng, lat]))
+    let fitted = false
     const run = () => {
       try {
         map.fitBounds(bounds, {
@@ -954,11 +1011,13 @@ export function MapViewGL({
           pitch: enableMapbox3d ? 45 : 0,
           duration: 400,
         })
+        fitted = true
       } catch { /* noop */ }
     }
-    if (map.loaded()) run()
-    else map.once('load', run)
-  }, [fitKey]) // eslint-disable-line react-hooks/exhaustive-deps
+    run()
+    if (!fitted && typeof map.once === 'function') map.once('load', run)
+    if (routeArrivedForPendingFit) pendingRouteFitRef.current = null
+  }, [fitKey, routeFitKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // flyTo selected place
   useEffect(() => {
@@ -981,9 +1040,16 @@ export function MapViewGL({
   }, [selectedPlaceId, enableMapbox3d]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // External center/zoom prop changes — jump without animation
+  const jumpedToRef = useRef<[number, number] | null>(null)
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
+    // Not on mount: the map was just built with its own camera, framed on the places, and
+    // jumping to the prop centre here would throw that away and land on the world view.
+    // This effect is for *changes* to the prop, which only arrive later.
+    const previous = jumpedToRef.current
+    jumpedToRef.current = [center[0], center[1]]
+    if (!previous || (previous[0] === center[0] && previous[1] === center[1])) return
     try { map.jumpTo({ center: [center[1], center[0]], zoom }) } catch { /* noop */ }
   }, [center[0], center[1]]) // eslint-disable-line react-hooks/exhaustive-deps
 

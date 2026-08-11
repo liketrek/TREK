@@ -2,8 +2,6 @@
 
 Manage a to-do list for trip tasks and pre-departure preparation.
 
-<!-- TODO: screenshot: to-do list with checkboxes and priority badges -->
-
 ![Todos and Tasks](assets/Todos.png)
 
 ## Where to find it

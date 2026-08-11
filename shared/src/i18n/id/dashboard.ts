@@ -84,6 +84,17 @@ const dashboard: TranslationStrings = {
   'dashboard.useUnsplashPhoto': 'Gunakan foto Unsplash oleh {photographer}',
   'dashboard.titleRequired': 'Judul wajib diisi',
   'dashboard.endDateError': 'Tanggal selesai harus setelah tanggal mulai',
+  'dashboard.dateShiftTitle': 'Tanggal mulai baru',
+  'dashboard.dateShiftIntro':
+    'Kamu mengubah tanggal mulai perjalanan ini. Bagaimana rencanamu harus mengikuti tanggal baru?',
+  'dashboard.dateShiftKeepBookings': 'Pertahankan pesanan pada tanggalnya',
+  'dashboard.dateShiftKeepBookingsDesc':
+    'Rencana harian ikut berpindah ke tanggal baru, sementara reservasi dan akomodasi tetap pada tanggal aslinya selama tanggal tersebut masih termasuk dalam perjalanan.',
+  'dashboard.dateShiftAll': 'Geser semuanya',
+  'dashboard.dateShiftAllDesc':
+    'Seluruh rencana perjalanan berpindah ke tanggal baru, termasuk reservasi dan akomodasi.',
+  'dashboard.dateShiftHint':
+    'Tip: untuk menggeser sebagian rencana perjalanan saja, gunakan "Tambah hari" di perencana.',
   'dashboard.greeting.morning': 'Selamat pagi,',
   'dashboard.greeting.afternoon': 'Selamat siang,',
   'dashboard.greeting.evening': 'Selamat malam,',

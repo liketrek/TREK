@@ -18,6 +18,7 @@ import { countMessages, listPolls } from '../../services/collabService';
 import {
   listItems as listTodoItems,
 } from '../../services/todoService';
+import { rebaseTripCurrency } from '../../services/budgetService';
 import {
   safeBroadcast, MAX_MCP_TRIP_DAYS,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
@@ -80,10 +81,12 @@ export function registerTripTools(server: McpServer, userId: number, scopes: str
         currency: z.string().length(3).optional(),
         is_archived: z.boolean().optional().describe('Archive (true) or unarchive (false) the trip'),
         cover_image: z.string().optional().describe('Cover image path, e.g. /uploads/covers/abc.jpg'),
+        date_shift_mode: z.enum(['keep_bookings', 'shift_all']).optional().describe(
+          'When changing dates: keep_bookings (default) keeps dated reservations/accommodations on their dates while day plans move; shift_all moves the whole itinerary, bookings included'),
       },
       annotations: TOOL_ANNOTATIONS_WRITE,
     },
-    async ({ tripId, title, description, start_date, end_date, currency, is_archived, cover_image }) => {
+    async ({ tripId, title, description, start_date, end_date, currency, is_archived, cover_image, date_shift_mode }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('trip_edit', tripId, userId)) return permissionDenied();
@@ -97,7 +100,9 @@ export function registerTripTools(server: McpServer, userId: number, scopes: str
         if (isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== end_date)
           return { content: [{ type: 'text' as const, text: 'end_date is not a valid calendar date.' }], isError: true };
       }
-      const { updatedTrip } = updateTrip(tripId, userId, { title, description, start_date, end_date, currency, is_archived, cover_image }, 'user');
+      // Re-anchor the budget before the trip row moves off the old currency (#1543).
+      await rebaseTripCurrency(tripId, currency);
+      const { updatedTrip } = updateTrip(tripId, userId, { title, description, start_date, end_date, currency, is_archived, cover_image, date_shift_mode }, 'user');
       safeBroadcast(tripId, 'trip:updated', { trip: updatedTrip });
       return ok({ trip: updatedTrip });
     }

@@ -50,8 +50,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Dica:',
   'settings.mapTip':
     'Clique direito e arraste para girar/inclinar o mapa. Clique do meio para adicionar um local (o clique direito é reservado para rotação).',
-  'settings.latitude': 'Latitude',
-  'settings.longitude': 'Longitude',
   'settings.saveMap': 'Salvar mapa',
   'settings.apiKeys': 'Chaves de API',
   'settings.mapsKey': 'Chave da API Google Maps',
@@ -296,12 +294,14 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.configure': 'Configurar',
   'settings.notificationPreferences.testSuccess': 'Notificação de teste enviada.',
   'settings.notificationPreferences.testFailed': 'Falha no teste.',
-  'settings.notificationPreferences.pluginConfigured': 'Configurado. Gerencie suas credenciais na página de configurações do plugin.',
+  'settings.notificationPreferences.pluginConfigured':
+    'Configurado. Gerencie suas credenciais na página de configurações do plugin.',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
   'settings.currency': 'Currency',
   'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currencyTrip': 'Moeda da viagem',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Entre mais rápido e com proteção contra phishing usando uma passkey — sua impressão digital, rosto, PIN ou uma chave de segurança física. Sua senha continua disponível como reserva.',
@@ -493,6 +493,9 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': 'Recurso',
   'settings.pluginActivity.columns.when': 'Quando',
   'settings.pluginActivity.columns.status': 'Resultado',
+  'settings.alwaysShowRoutes': 'Sempre mostrar rotas de reserva',
+  'settings.alwaysShowRoutesHint':
+    'Mostra automaticamente no mapa a rota de cada voo, trem e outra reserva, sem precisar ativar item por item.',
 };
 
 export default settings;

@@ -4,12 +4,15 @@
  * budget services, the permission check, canAccessTrip and the WebSocket
  * broadcast are mocked.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ReservationsModule } from '../../src/nest/reservations/reservations.module';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -24,7 +27,12 @@ const { db } = vi.hoisted(() => {
 
 const { canAccessTrip } = vi.hoisted(() => ({ canAccessTrip: vi.fn() }));
 vi.mock('../../src/db/database', () => ({
-  db, canAccessTrip, isOwner: vi.fn(() => true), getPlaceWithTags: vi.fn(), closeDb: () => {}, reinitialize: () => {},
+  db,
+  canAccessTrip,
+  isOwner: vi.fn(() => true),
+  getPlaceWithTags: vi.fn(),
+  closeDb: () => {},
+  reinitialize: () => {},
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 vi.mock('../../src/services/notificationService', () => ({ send: vi.fn().mockResolvedValue(undefined) }));
@@ -34,21 +42,34 @@ vi.mock('../../src/services/permissions', () => ({ checkPermission }));
 
 const { resv, budget, day } = vi.hoisted(() => ({
   resv: {
-    verifyTripAccess: vi.fn(), listReservations: vi.fn(), createReservation: vi.fn(), updatePositions: vi.fn(),
-    getReservation: vi.fn(), updateReservation: vi.fn(), deleteReservation: vi.fn(), getUpcomingReservations: vi.fn(),
+    verifyTripAccess: vi.fn(),
+    listReservations: vi.fn(),
+    createReservation: vi.fn(),
+    updatePositions: vi.fn(),
+    getReservation: vi.fn(),
+    updateReservation: vi.fn(),
+    deleteReservation: vi.fn(),
+    getUpcomingReservations: vi.fn(),
+    notifyBookingChange: vi.fn(),
   },
-  budget: { createBudgetItem: vi.fn(), updateBudgetItem: vi.fn(), deleteBudgetItem: vi.fn(), linkBudgetItemToReservation: vi.fn() },
+  budget: {
+    createBudgetItem: vi.fn(),
+    updateBudgetItem: vi.fn(),
+    deleteBudgetItem: vi.fn(),
+    linkBudgetItemToReservation: vi.fn(),
+  },
   day: {
-    listAccommodations: vi.fn(), validateAccommodationRefs: vi.fn(), createAccommodation: vi.fn(),
-    getAccommodation: vi.fn(), updateAccommodation: vi.fn(), deleteAccommodation: vi.fn(),
+    listAccommodations: vi.fn(),
+    validateAccommodationRefs: vi.fn(),
+    createAccommodation: vi.fn(),
+    getAccommodation: vi.fn(),
+    updateAccommodation: vi.fn(),
+    deleteAccommodation: vi.fn(),
   },
 }));
 vi.mock('../../src/services/reservationService', () => resv);
 vi.mock('../../src/services/budgetService', () => budget);
 vi.mock('../../src/services/dayService', () => day);
-
-import { ReservationsModule } from '../../src/nest/reservations/reservations.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 
 describe('Reservations + accommodations e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
@@ -113,9 +134,13 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite)', ()
   });
 
   it('201 create reservation, 400 without title', async () => {
-    const ok = await request(server).post('/api/trips/5/reservations').set('Cookie', sessionCookie(1)).send({ title: 'Hotel' });
+    const ok = await request(server)
+      .post('/api/trips/5/reservations')
+      .set('Cookie', sessionCookie(1))
+      .send({ title: 'Hotel' });
     expect(ok.status).toBe(201);
     expect(ok.body).toEqual({ reservation: { id: 9, title: 'Hotel' } });
+    expect(resv.notifyBookingChange).toHaveBeenCalledWith('5', 1, 'Hotel', '');
     const bad = await request(server).post('/api/trips/5/reservations').set('Cookie', sessionCookie(1)).send({});
     expect(bad.status).toBe(400);
     expect(bad.body).toEqual({ error: 'Title is required' });
@@ -125,7 +150,10 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite)', ()
     const list = await request(server).get('/api/trips/5/accommodations').set('Cookie', sessionCookie(1));
     expect(list.status).toBe(200);
     expect(list.body).toEqual({ accommodations: [{ id: 1 }] });
-    const create = await request(server).post('/api/trips/5/accommodations').set('Cookie', sessionCookie(1)).send({ place_id: 2, start_day_id: 10, end_day_id: 11 });
+    const create = await request(server)
+      .post('/api/trips/5/accommodations')
+      .set('Cookie', sessionCookie(1))
+      .send({ place_id: 2, start_day_id: 10, end_day_id: 11 });
     expect(create.status).toBe(201);
     expect(create.body).toEqual({ accommodation: { id: 9 } });
   });
@@ -138,7 +166,10 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite)', ()
   });
 
   it('400 accommodation create without refs', async () => {
-    const res = await request(server).post('/api/trips/5/accommodations').set('Cookie', sessionCookie(1)).send({ place_id: 2 });
+    const res = await request(server)
+      .post('/api/trips/5/accommodations')
+      .set('Cookie', sessionCookie(1))
+      .send({ place_id: 2 });
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'place_id, start_day_id, and end_day_id are required' });
   });

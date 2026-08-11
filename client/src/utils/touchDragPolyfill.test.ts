@@ -5,23 +5,39 @@ import { maybeInstallTouchDragPolyfill } from './touchDragPolyfill'
 // document-level touch listeners the package installs on import.
 vi.mock('drag-drop-touch', () => ({}))
 
-function setWidth(w: number) {
-  Object.defineProperty(window, 'innerWidth', { value: w, configurable: true, writable: true })
+// The gate is pointer-based, not width-based. The polyfill synthesises HTML5 drag events
+// from touchmove, so on a coarse-pointer device it turns a scroll swipe into a drag
+// (#1432) and fabricates a dblclick that zooms the map (#1440). Drag reorder is disabled
+// on those devices anyway, leaving one device class with a job for it: the hybrid laptop
+// — mouse as primary pointer, touchscreen also present.
+function mockPointer(matching: string[]) {
+  vi.spyOn(window, 'matchMedia').mockImplementation(
+    (query: string) => ({ matches: matching.includes(query), media: query }) as MediaQueryList,
+  )
 }
 
 describe('maybeInstallTouchDragPolyfill', () => {
-  const original = window.innerWidth
-  afterEach(() => setWidth(original))
+  afterEach(() => vi.restoreAllMocks())
 
-  it('does not load the polyfill on mobile viewports (<1024px)', () => {
-    setWidth(390)
-    expect(maybeInstallTouchDragPolyfill()).toBeUndefined()
-  })
-
-  it('loads the polyfill on large viewports (>=1024px)', async () => {
-    setWidth(1440)
+  it('loads on a hybrid laptop — mouse primary, touchscreen available', async () => {
+    mockPointer(['(pointer: fine) and (any-pointer: coarse)'])
     const result = maybeInstallTouchDragPolyfill()
     expect(result).toBeInstanceOf(Promise)
     await expect(result).resolves.toBeDefined()
+  })
+
+  it('does not load on a tablet — coarse primary pointer at a desktop width (#1432)', () => {
+    mockPointer(['(pointer: coarse)', '(any-pointer: coarse)'])
+    expect(maybeInstallTouchDragPolyfill()).toBeUndefined()
+  })
+
+  it('does not load on a phone', () => {
+    mockPointer(['(pointer: coarse)', '(any-pointer: coarse)'])
+    expect(maybeInstallTouchDragPolyfill()).toBeUndefined()
+  })
+
+  it('does not load on a plain mouse-driven desktop', () => {
+    mockPointer(['(pointer: fine)'])
+    expect(maybeInstallTouchDragPolyfill()).toBeUndefined()
   })
 })

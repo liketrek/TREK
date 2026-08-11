@@ -164,8 +164,66 @@ export function resolveDayId(days: Day[], value: string | null | undefined): Day
   return best
 }
 
-export function dayTotalCost(dayId: number, assignments: AssignmentsMap, currency: string): string | null {
+export type MoneyEntry = { amount: number; currency: string }
+
+/**
+ * Formats a sum of amounts that may span several currencies. Callers must resolve
+ * each entry's currency beforehand (`place.currency || trip.currency`) — a null
+ * place currency means the TRIP currency, which is not necessarily `base`.
+ *
+ * With usable rates (frankfurter convention: rates[X] = units of X per 1 base),
+ * everything is converted into `base` and prefixed with "≈" when a conversion
+ * actually happened. When any needed rate is missing, falls back to an honest
+ * per-currency breakdown ("2 500 kr + $2,730.27") — never a raw foreign amount
+ * labeled with the base currency.
+ */
+export function formatMoneySum(
+  entries: MoneyEntry[],
+  base: string,
+  locale: string,
+  rates?: Record<string, number> | null,
+  opts?: { decimals?: number },
+): string | null {
+  const baseCur = (base || 'EUR').toUpperCase()
+  const groups = new Map<string, number>()
+  for (const e of entries) {
+    if (!Number.isFinite(e.amount) || e.amount <= 0) continue
+    const cur = (e.currency || baseCur).toUpperCase()
+    groups.set(cur, (groups.get(cur) || 0) + e.amount)
+  }
+  if (groups.size === 0) return null
+
+  const foreign = [...groups.keys()].filter(c => c !== baseCur)
+  if (foreign.length === 0) return formatMoney(groups.get(baseCur)!, baseCur, locale, opts)
+
+  if (foreign.every(c => (rates?.[c] ?? 0) > 0)) {
+    const total = [...groups.entries()].reduce(
+      (s, [cur, amount]) => s + (cur === baseCur ? amount : amount / rates![cur]),
+      0,
+    )
+    return `≈ ${formatMoney(total, baseCur, locale, opts)}`
+  }
+
+  // Breakdown: base first, then the rest in stable code order.
+  const parts = [
+    ...(groups.has(baseCur) ? [baseCur] : []),
+    ...foreign.sort(),
+  ]
+  return parts.map(cur => formatMoney(groups.get(cur)!, cur, locale, opts)).join(' + ')
+}
+
+export function dayTotalCost(
+  dayId: number,
+  assignments: AssignmentsMap,
+  base: string,
+  tripCurrency: string,
+  locale: string,
+  rates?: Record<string, number> | null,
+): string | null {
   const da = assignments[String(dayId)] || []
-  const total = da.reduce((s, a) => s + (parseFloat(String(a.place?.price ?? '')) || 0), 0)
-  return total > 0 ? `${total.toFixed(0)} ${currency}` : null
+  const entries = da.map(a => ({
+    amount: parseFloat(String(a.place?.price ?? '')) || 0,
+    currency: a.place?.currency || tripCurrency,
+  }))
+  return formatMoneySum(entries, base, locale, rates, { decimals: 0 })
 }

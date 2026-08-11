@@ -187,14 +187,17 @@ const admin: TranslationStrings = {
   'admin.plugins.viewErrors': 'Visualizza log errori',
   'admin.plugins.errorLog': 'Log errori',
   'admin.plugins.allowedHosts': 'Host consentiti',
-  'admin.plugins.allowedHosts.hint': 'Questo plugin comunica con un servizio che solo tu puoi indicare (un server self-hosted). Aggiungi gli host che può raggiungere — non ne raggiungerà altri.',
+  'admin.plugins.allowedHosts.hint':
+    'Questo plugin comunica con un servizio che solo tu puoi indicare (un server self-hosted). Aggiungi gli host che può raggiungere — non ne raggiungerà altri.',
   'admin.plugins.allowedHosts.none': 'Nessun host aggiunto.',
-  'admin.plugins.allowedHosts.unsupported': 'Questo plugin non usa host forniti dall’operatore. I suoi host consentiti sono fissati nel manifest.',
+  'admin.plugins.allowedHosts.unsupported':
+    'Questo plugin non usa host forniti dall’operatore. I suoi host consentiti sono fissati nel manifest.',
   'admin.plugins.allowedHosts.restartNote': 'Il salvataggio riavvia il plugin perché prenda la nuova lista.',
   'admin.plugins.allowedHosts.add': 'Aggiungi host consentito',
   'admin.plugins.allowedHosts.count': '{n} host consentiti',
   'admin.plugins.operatorEgressPill': '+ host aggiunti da te',
-  'admin.plugins.operatorEgressHint': 'Questo plugin comunica con un servizio che solo tu puoi indicare (un server self-hosted). Dopo l’installazione, aggiungi gli host che può raggiungere in ⋯ → Host consentiti. Non ne raggiungerà altri.',
+  'admin.plugins.operatorEgressHint':
+    'Questo plugin comunica con un servizio che solo tu puoi indicare (un server self-hosted). Dopo l’installazione, aggiungi gli host che può raggiungere in ⋯ → Host consentiti. Non ne raggiungerà altri.',
   'admin.plugins.noErrors': 'Nessun errore registrato.',
   'admin.plugins.uninstalled': 'Plugin disinstallato',
   'admin.plugins.uninstallTitle': 'Disinstallare il plugin?',
@@ -359,6 +362,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': 'Cosa significa "Verificato"',
   'admin.plugins.security.reviewedBody':
     'Un plugin verificato è stato esaminato manualmente alla ricerca di malware da un manutentore di TREK a ogni versione — controllato per individuare codice ostile, non per valutare se funziona bene. Non è una promessa che il plugin sia innocuo.',
+  'admin.plugins.security.signedTitle': 'Cosa significa "Firmato"',
+  'admin.plugins.security.signedBody':
+    "Il checksum che TREK verifica a ogni installazione dimostra che i file sono esattamente quelli garantiti dal registro. Una firma dimostra un'altra cosa: che provengono dall'autore, firmati con una chiave che solo lui possiede. Un plugin firmato ha entrambe le cose. Uno non firmato non è insicuro — porta semplicemente una garanzia in meno, e oggi la maggior parte dei plugin nel registro non è firmata.",
+  'admin.plugins.signed': 'Firmato',
+  'admin.plugins.signedHint': "Verificato con la chiave di firma dell'autore al momento dell'installazione",
+  'admin.plugins.unsigned': 'Non firmato',
+  'admin.plugins.unsignedHint':
+    "I file corrispondono a quanto garantito dal registro, ma nulla li collega all'autore. Una garanzia in meno — non è insicuro.",
+  'admin.plugins.updateBlocked': 'Aggiornamento bloccato — {reason}',
+  'admin.plugins.reviewBlock': 'Esamina',
+  'admin.plugins.retrusted': 'Nuova chiave di firma considerata attendibile — il plugin è aggiornato',
+  'admin.plugins.sig.title': 'Impossibile verificare la firma di {name}',
+  'admin.plugins.sig.keyChangedBody':
+    "La chiave di firma dell'autore non è quella con cui questo plugin è stato installato. Gli autori a volte cambiano chiave — ma un aggressore che avesse preso il controllo del plugin apparirebbe esattamente così.",
+  'admin.plugins.sig.invalidBody':
+    "I file non corrispondono alla firma dell'autore. Non sono ciò che l'autore ha firmato — o si sono corrotti, o sono stati manomessi. Non è possibile forzare questo blocco.",
+  'admin.plugins.sig.missingBody':
+    "Questo plugin era firmato quando l'hai installato, ma la nuova versione non include alcuna firma. TREK non accetterà in silenzio questo passo indietro. Non è possibile forzare questo blocco.",
+  'admin.plugins.sig.incompleteBody':
+    "La voce del registro è firmata a metà: dichiara una chiave dell'autore ma la versione non porta alcuna firma (o viceversa). È un errore lato plugin. Non è possibile forzare questo blocco.",
+  'admin.plugins.sig.pinnedKey': 'Chiave con cui è stato installato',
+  'admin.plugins.sig.newKey': 'Chiave che propone ora',
+  'admin.plugins.sig.confirmOutOfBand':
+    "TREK non può distinguere una legittima rotazione della chiave da un'appropriazione — da qui appaiono identiche. Prima di accettarla, conferma la nuova chiave con l'autore attraverso un canale di cui ti fidi già. Una volta fatto, il plugin viene aggiornato e la nuova chiave viene memorizzata.",
+  'admin.plugins.sig.retrustConfirm': 'Fidati della nuova chiave e aggiorna',
+  'admin.plugins.sig.cancel': 'Non fidarti',
+  'admin.plugins.sig.consentUnsigned':
+    "Nulla collega questa versione al suo autore — i file corrispondono al registro, ma non portano alcuna firma dell'autore.",
   'admin.plugins.security.trustTitle': 'In conclusione',
   'admin.plugins.security.trustBody':
     'Installare un plugin è come installare una qualsiasi app di terze parti: aggiungi solo codice di autori di cui ti fidi e, in caso di dubbio, ispezionalo personalmente prima. TREK non si assume alcuna responsabilità per i plugin di terze parti.',
@@ -418,6 +449,10 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Scarica',
   'admin.plugins.dep.update': 'Aggiorna',
   'admin.plugins.dep.resolveHint': 'Scarica la versione compatibile più recente, incluse le sue dipendenze.',
+  'admin.plugins.dep.trekIncompatible': 'Richiede TREK {range} — questo server esegue {host}',
+  'admin.plugins.dep.trekUnknown': 'Non indica quali versioni di TREK supporta',
+  'admin.plugins.installCompatible': 'Installa {version}',
+  'admin.plugins.incompatible': 'Non compatibile',
   'admin.plugins.accessTitle': 'A cosa può accedere',
   'admin.plugins.connectsTitle': 'Si connette a',
   'admin.plugins.detailsTitle': 'Dettagli',

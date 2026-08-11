@@ -20,6 +20,41 @@ describe('parseManifest', () => {
     expect(parseManifest({ ...base, trek: '>=3.2.0 <4.0.0' }).minTrekVersion).toBe('3.2.0');
   });
 
+  describe('the trek range', () => {
+    it('normalizes a valid range onto trekRange — what the host actually gates on', () => {
+      const m = parseManifest({ ...base, trek: '>=3.2.0 <4.0.0' });
+      expect(m.trekRange).toBe('>=3.2.0 <4.0.0');
+    });
+
+    it('reads the lower bound off the range, not off its first version-shaped substring', () => {
+      // "<4.0.0" has a first X.Y.Z of 4.0.0 but a lower bound of 0.0.0. The old regex
+      // published 4.0.0 as the MINIMUM — the exact inverse of what the plugin declared.
+      expect(parseManifest({ ...base, trek: '<4.0.0' }).minTrekVersion).toBeUndefined();
+      expect(parseManifest({ ...base, trek: '>=3' }).minTrekVersion).toBe('3.0.0');
+    });
+
+    it('stays lenient by default — discovery must still register a plugin with no range', () => {
+      // Discovery only logs and skips on a throw; it never touches the plugins row, so a
+      // strict parse there would leave a stale enabled=1 row that the next boot spawns
+      // anyway. The activation gate refuses an undeclared range instead.
+      const m = parseManifest({ ...base });
+      expect(m.trekRange).toBeNull();
+      expect(m.minTrekVersion).toBeUndefined();
+    });
+
+    it('drops an unparseable range to null rather than throwing, in lenient mode', () => {
+      expect(parseManifest({ ...base, trek: '3.2+' }).trekRange).toBeNull();
+    });
+
+    it('requires a satisfiable range at the install front doors', () => {
+      expect(() => parseManifest({ ...base }, { requireTrek: true })).toThrow(/missing "trek"/);
+      expect(() => parseManifest({ ...base, trek: '3.2+' }, { requireTrek: true })).toThrow(ManifestError);
+      // Syntactically valid, semantically empty — no TREK could ever run it.
+      expect(() => parseManifest({ ...base, trek: '>=4.0.0 <3.0.0' }, { requireTrek: true })).toThrow(/satisfiable/);
+      expect(parseManifest({ ...base, trek: '^3.2.0' }, { requireTrek: true }).trekRange).toBe('^3.2.0');
+    });
+  });
+
   it('accepts the trip-page type (mounts as a tab inside the trip planner)', () => {
     expect(parseManifest({ ...base, type: 'trip-page' }).type).toBe('trip-page');
   });
@@ -90,6 +125,13 @@ describe('parseManifest capabilities', () => {
 
   it('rejects an unknown widget slot', () => {
     expect(() => parseManifest({ ...base, capabilities: { widget: { slot: 'floating' } } })).toThrow(ManifestError);
+  });
+
+  it('parses settingsUi as a strict boolean, dropping false', () => {
+    expect(parseManifest({ ...base, capabilities: { settingsUi: true } }).capabilities.settingsUi).toBe(true);
+    // false means "none" — it must not linger in the stored capabilities blob
+    expect(parseManifest({ ...base, capabilities: { settingsUi: false } }).capabilities.settingsUi).toBeUndefined();
+    expect(() => parseManifest({ ...base, capabilities: { settingsUi: 'yes' } })).toThrow(ManifestError);
   });
 
   it('parses tripPage replaces + position, deduplicated', () => {

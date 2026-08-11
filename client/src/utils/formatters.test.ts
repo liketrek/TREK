@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { splitReservationDateTime, resolveDayId, formatMoney, currencyDecimals } from './formatters'
+import { splitReservationDateTime, resolveDayId, formatMoney, formatMoneySum, currencyDecimals } from './formatters'
 import { CURRENCIES, SYMBOLS, currenciesWith } from '../components/Budget/BudgetPanel.constants'
 import type { Day } from '../types'
 
@@ -80,6 +80,83 @@ describe('currenciesWith (legacy safeguard)', () => {
     const opts = currenciesWith('HRK')
     expect(opts).toContain('HRK')
     expect(opts.length).toBe(CURRENCIES.length + 1)
+  })
+})
+
+describe('formatMoneySum (#1561)', () => {
+  // Intl money strings use non-breaking / narrow no-break spaces; normalize for assertions.
+  const norm = (s: string | null) => s?.replace(/[\u00A0\u202F]/g, ' ') ?? null
+
+  it('returns null for empty input and for zero/negative/non-finite amounts', () => {
+    expect(formatMoneySum([], 'EUR', 'en')).toBeNull()
+    expect(formatMoneySum([{ amount: 0, currency: 'EUR' }], 'EUR', 'en')).toBeNull()
+    expect(formatMoneySum([{ amount: -5, currency: 'EUR' }], 'EUR', 'en')).toBeNull()
+    expect(formatMoneySum([{ amount: NaN, currency: 'EUR' }], 'EUR', 'en')).toBeNull()
+  })
+
+  it('sums a single-currency set without rates and without an ≈ marker', () => {
+    const out = formatMoneySum(
+      [{ amount: 20, currency: 'USD' }, { amount: 30, currency: 'usd' }],
+      'USD', 'en',
+    )
+    expect(out).toBe('$50.00')
+  })
+
+  it('converts foreign amounts into the base when rates cover them', () => {
+    // rates[X] = units of X per 1 base (frankfurter): 10 NOK = 1 USD here.
+    const out = formatMoneySum(
+      [{ amount: 25, currency: 'USD' }, { amount: 250, currency: 'NOK' }],
+      'USD', 'en', { NOK: 10 },
+    )
+    expect(out).toBe('≈ $50.00')
+  })
+
+  it('falls back to a per-currency breakdown when rates are missing', () => {
+    const entries = [
+      { amount: 2500, currency: 'NOK' },
+      { amount: 2730.27, currency: 'USD' },
+    ]
+    for (const rates of [undefined, null, {}, { USD: 0 }]) {
+      const out = norm(formatMoneySum(entries, 'NOK', 'en', rates))
+      expect(out).toContain(' + ')
+      expect(out).toContain('$2,730.27')
+      expect(out).not.toContain('≈')
+      // the foreign amount must never be folded into a base-labeled number
+      expect(out).not.toMatch(/5 ?230/)
+    }
+  })
+
+  it('orders the breakdown base-first, then foreign currencies by code', () => {
+    const out = norm(formatMoneySum(
+      [
+        { amount: 1, currency: 'USD' },
+        { amount: 2, currency: 'EUR' },
+        { amount: 3, currency: 'NOK' },
+      ],
+      'NOK', 'en',
+    ))!
+    expect(out.indexOf('kr')).toBeLessThan(out.indexOf('€'))
+    expect(out.indexOf('€')).toBeLessThan(out.indexOf('$'))
+  })
+
+  it('renders a lone foreign amount honestly in its own currency', () => {
+    expect(formatMoneySum([{ amount: 2730.27, currency: 'USD' }], 'NOK', 'en')).toBe('$2,730.27')
+  })
+
+  it('applies opts.decimals to every part', () => {
+    expect(formatMoneySum([{ amount: 50.4, currency: 'USD' }], 'USD', 'en', null, { decimals: 0 })).toBe('$50')
+    const breakdown = norm(formatMoneySum(
+      [{ amount: 50.4, currency: 'USD' }, { amount: 10.2, currency: 'NOK' }],
+      'USD', 'en', null, { decimals: 0 },
+    ))
+    expect(breakdown).toContain('$50')
+    expect(breakdown).toMatch(/10\s?kr|kr\s?10/)
+  })
+
+  it('tolerates currency codes unknown to Intl', () => {
+    const out = formatMoneySum([{ amount: 12, currency: 'XYZ' }], 'XYZ', 'en')
+    expect(out).toContain('XYZ')
+    expect(out).toContain('12')
   })
 })
 

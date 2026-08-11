@@ -90,7 +90,7 @@ export class PluginsProxyController {
     }
 
     // Per-route auth: default-on; `auth:false` routes are public (OAuth cb/webhook).
-    let user: { id: number; username: string; is_admin?: boolean } | null = null;
+    let user: { id: number; username: string; role?: 'admin' | 'user' } | null = null;
     if (route.auth) {
       const token = extractToken(req);
       const loaded = token ? verifyJwtAndLoadUser(token) : null;
@@ -121,7 +121,7 @@ export class PluginsProxyController {
             // allowlisted, credential-free subset — an authenticated route never
             // needs them and must not see even the safe ones.
             headers: route.auth === false ? pickInboundHeaders(req.headers as Record<string, unknown>) : {},
-            user: user ? { id: user.id, username: user.username, isAdmin: !!user.is_admin } : null,
+            user: user ? { id: user.id, username: user.username, isAdmin: user.role === 'admin' } : null,
           },
         },
         // Bind the authenticated session user as the acting user for any trip

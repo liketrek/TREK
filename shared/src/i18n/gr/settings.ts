@@ -52,8 +52,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Συμβουλή:',
   'settings.mapTip':
     'κάντε δεξί κλικ και σύρετε για περιστροφή/κλίση του χάρτη. Μεσαίο κλικ για προσθήκη τοποθεσίας (το δεξί κλικ έχει κρατηθεί για περιστροφή).',
-  'settings.latitude': 'Γεωγραφικό Πλάτος',
-  'settings.longitude': 'Γεωγραφικό Μήκος',
   'settings.saveMap': 'Αποθήκευση Χάρτη',
   'settings.apiKeys': 'Κλειδιά API',
   'settings.mapsKey': 'Google Maps API Key',
@@ -104,7 +102,8 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.configure': 'Ρύθμιση',
   'settings.notificationPreferences.testSuccess': 'Στάλθηκε δοκιμαστική ειδοποίηση.',
   'settings.notificationPreferences.testFailed': 'Η δοκιμή απέτυχε.',
-  'settings.notificationPreferences.pluginConfigured': 'Ρυθμίστηκε. Διαχειριστείτε τα διαπιστευτήρια στη σελίδα ρυθμίσεων του πρόσθετου.',
+  'settings.notificationPreferences.pluginConfigured':
+    'Ρυθμίστηκε. Διαχειριστείτε τα διαπιστευτήρια στη σελίδα ρυθμίσεων του πρόσθετου.',
   'settings.notificationPreferences.ntfy': 'Ntfy',
   'settings.notificationPreferences.noChannels':
     'Δεν έχουν διαμορφωθεί κανάλια ειδοποιήσεων. Ζητήστε από έναν διαχειριστή να ρυθμίσει ειδοποιήσεις email ή webhook.',
@@ -311,6 +310,7 @@ const settings: TranslationStrings = {
   'settings.mfa.demoBlocked': 'Δεν είναι διαθέσιμο σε λειτουργία demo',
   'settings.currency': 'Currency',
   'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currencyTrip': 'Νόμισμα ταξιδιού',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Συνδεθείτε πιο γρήγορα και με προστασία από phishing χρησιμοποιώντας ένα passkey — το δαχτυλικό σας αποτύπωμα, το πρόσωπό σας, ένα PIN ή ένα κλειδί υλικού. Ο κωδικός σας παραμένει ως εφεδρεία.',
@@ -504,6 +504,9 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': 'Πόρος',
   'settings.pluginActivity.columns.when': 'Πότε',
   'settings.pluginActivity.columns.status': 'Αποτέλεσμα',
+  'settings.alwaysShowRoutes': 'Πάντα εμφάνιση διαδρομών κράτησης',
+  'settings.alwaysShowRoutesHint':
+    'Εμφανίζει αυτόματα στον χάρτη τη διαδρομή κάθε πτήσης, τρένου και άλλης κράτησης, χωρίς να χρειάζεται να την ενεργοποιείτε μία προς μία.',
 };
 
 export default settings;

@@ -187,14 +187,17 @@ const admin: TranslationStrings = {
   'admin.plugins.viewErrors': 'Ver registro de errores',
   'admin.plugins.errorLog': 'Registro de errores',
   'admin.plugins.allowedHosts': 'Hosts permitidos',
-  'admin.plugins.allowedHosts.hint': 'Este plugin se comunica con un servicio que solo tú puedes nombrar (un servidor autoalojado). Añade los hosts a los que puede acceder — no accederá a ningún otro.',
+  'admin.plugins.allowedHosts.hint':
+    'Este plugin se comunica con un servicio que solo tú puedes nombrar (un servidor autoalojado). Añade los hosts a los que puede acceder — no accederá a ningún otro.',
   'admin.plugins.allowedHosts.none': 'Aún no se han añadido hosts.',
-  'admin.plugins.allowedHosts.unsupported': 'Este plugin no usa hosts proporcionados por el operador. Sus hosts permitidos están fijados en su manifiesto.',
+  'admin.plugins.allowedHosts.unsupported':
+    'Este plugin no usa hosts proporcionados por el operador. Sus hosts permitidos están fijados en su manifiesto.',
   'admin.plugins.allowedHosts.restartNote': 'Al guardar se reinicia el plugin para que tome la nueva lista.',
   'admin.plugins.allowedHosts.add': 'Añadir host permitido',
   'admin.plugins.allowedHosts.count': '{n} host(s) permitido(s)',
   'admin.plugins.operatorEgressPill': '+ hosts que añadas',
-  'admin.plugins.operatorEgressHint': 'Este plugin se comunica con un servicio que solo tú puedes nombrar (un servidor autoalojado). Tras instalarlo, añade los hosts a los que puede acceder en ⋯ → Hosts permitidos. No accederá a ningún otro.',
+  'admin.plugins.operatorEgressHint':
+    'Este plugin se comunica con un servicio que solo tú puedes nombrar (un servidor autoalojado). Tras instalarlo, añade los hosts a los que puede acceder en ⋯ → Hosts permitidos. No accederá a ningún otro.',
   'admin.plugins.noErrors': 'No hay errores registrados.',
   'admin.plugins.uninstalled': 'Plugin desinstalado',
   'admin.plugins.uninstallTitle': '¿Desinstalar el plugin?',
@@ -361,6 +364,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': 'Qué significa "Revisado"',
   'admin.plugins.security.reviewedBody':
     'Un plugin revisado fue analizado manualmente en busca de malware por un responsable de TREK en cada versión — se comprobó que no tuviera código malicioso, no si funciona bien. No es una promesa de que el plugin sea inofensivo.',
+  'admin.plugins.security.signedTitle': 'Qué significa "Firmado"',
+  'admin.plugins.security.signedBody':
+    'La suma de comprobación que TREK verifica en cada instalación demuestra que los archivos son exactamente los que el registro avala. Una firma demuestra otra cosa: que provienen del autor, firmados con una clave que solo él posee. Un plugin firmado tiene ambas cosas. Uno sin firmar no es inseguro — simplemente lleva una garantía menos, y hoy la mayoría de los plugins del registro no están firmados.',
+  'admin.plugins.signed': 'Firmado',
+  'admin.plugins.signedHint': 'Verificado con la clave de firma del autor en el momento de la instalación',
+  'admin.plugins.unsigned': 'Sin firmar',
+  'admin.plugins.unsignedHint':
+    'Los archivos coinciden con lo que el registro avala, pero nada los vincula con el autor. Una garantía menos — no es inseguro.',
+  'admin.plugins.updateBlocked': 'Actualización bloqueada — {reason}',
+  'admin.plugins.reviewBlock': 'Revisar',
+  'admin.plugins.retrusted': 'Nueva clave de firma aceptada — el plugin está actualizado',
+  'admin.plugins.sig.title': 'No se pudo verificar la firma de {name}',
+  'admin.plugins.sig.keyChangedBody':
+    'La clave de firma del autor no es la misma con la que se instaló este plugin. Los autores sí rotan sus claves — pero un atacante que se hubiera apoderado del plugin se vería exactamente así.',
+  'admin.plugins.sig.invalidBody':
+    'Los archivos no coinciden con la firma del autor. No son lo que el autor firmó — o se corrompieron, o fueron manipulados. Esto no se puede omitir.',
+  'admin.plugins.sig.missingBody':
+    'Este plugin estaba firmado cuando lo instalaste, pero la nueva versión no incluye ninguna firma. TREK no aceptará esa degradación en silencio. Esto no se puede omitir.',
+  'admin.plugins.sig.incompleteBody':
+    'La entrada del registro está firmada a medias: declara una clave de autor pero la versión no lleva firma (o al revés). Es un error del lado del plugin. Esto no se puede omitir.',
+  'admin.plugins.sig.pinnedKey': 'Clave con la que se instaló',
+  'admin.plugins.sig.newKey': 'Clave que ofrece ahora',
+  'admin.plugins.sig.confirmOutOfBand':
+    'TREK no puede distinguir una rotación de clave legítima de un secuestro — desde aquí ambas se ven idénticas. Confirma la nueva clave con el autor por un canal en el que ya confíes antes de aceptarla. Cuando lo hagas, el plugin se actualizará y la nueva clave quedará registrada.',
+  'admin.plugins.sig.retrustConfirm': 'Confiar en la nueva clave y actualizar',
+  'admin.plugins.sig.cancel': 'No confiar',
+  'admin.plugins.sig.consentUnsigned':
+    'Nada vincula esta versión con su autor — los archivos coinciden con el registro, pero no llevan ninguna firma del autor.',
   'admin.plugins.security.trustTitle': 'En resumen',
   'admin.plugins.security.trustBody':
     'Instalar un plugin es como instalar cualquier aplicación de terceros: añade únicamente código de autores en los que confíes y, en caso de duda, inspecciónalo tú mismo primero. TREK no asume ninguna responsabilidad por los plugins de terceros.',
@@ -420,6 +451,10 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Descargar',
   'admin.plugins.dep.update': 'Actualizar',
   'admin.plugins.dep.resolveHint': 'Descarga la última versión compatible, incluidas sus propias dependencias.',
+  'admin.plugins.dep.trekIncompatible': 'Necesita TREK {range} — este servidor ejecuta {host}',
+  'admin.plugins.dep.trekUnknown': 'No indica qué versiones de TREK admite',
+  'admin.plugins.installCompatible': 'Instalar {version}',
+  'admin.plugins.incompatible': 'Incompatible',
   'admin.plugins.accessTitle': 'A qué puede acceder',
   'admin.plugins.connectsTitle': 'Se conecta a',
   'admin.plugins.detailsTitle': 'Detalles',

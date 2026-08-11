@@ -31,8 +31,8 @@ export interface PlacesSidebarProps {
   onBulkChangeCategory?: (ids: number[], categoryId: number | null) => void
   days: Day[]
   isMobile: boolean
-  onCategoryFilterChange?: (categoryIds: Set<string>) => void
-  onPlacesFilterChange?: (filter: string) => void
+  /** Primary pointer is coarse — HTML5 drag would swallow the scroll gesture (#1432). */
+  isTouch?: boolean
   pushUndo?: (label: string, undoFn: () => Promise<void> | void) => void
   initialScrollTop?: number
   onScrollTopChange?: (top: number) => void
@@ -46,7 +46,7 @@ export interface PlacesSidebarProps {
 export function usePlacesSidebar(props: PlacesSidebarProps) {
   const {
     tripId, places, assignments, selectedDayId,
-    onCategoryFilterChange, onPlacesFilterChange, pushUndo, initialScrollTop, onScrollTopChange,
+    pushUndo, initialScrollTop, onScrollTopChange,
   } = props
   const { t } = useTranslation()
   const toast = useToast()
@@ -147,8 +147,13 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   }
 
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState('all')
-  const [categoryFilters, setCategoryFiltersLocal] = useState<Set<string>>(new Set())
+  // Filter state lives in the trip store so it survives the Plan tab
+  // unmounting (tab switch, mobile sheet close) and stays in lockstep with the
+  // map markers, which filter on the same values (#1541).
+  const filter = useTripStore((s) => s.placesFilter)
+  const setFilter = useTripStore((s) => s.setPlacesFilter)
+  const categoryFilters = useTripStore((s) => s.placesCategoryFilter)
+  const setCategoryFilters = useTripStore((s) => s.setPlacesCategoryFilter)
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [pendingDeleteIds, setPendingDeleteIds] = useState<number[] | null>(null)
@@ -175,12 +180,9 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   }), [])
 
   const toggleCategoryFilter = (catId: string) => {
-    setCategoryFiltersLocal(prev => {
-      const next = new Set(prev)
-      if (next.has(catId)) next.delete(catId); else next.add(catId)
-      onCategoryFilterChange?.(next)
-      return next
-    })
+    const next = new Set(categoryFilters)
+    if (next.has(catId)) next.delete(catId); else next.add(catId)
+    setCategoryFilters(next)
   }
   const [dayPickerPlace, setDayPickerPlace] = useState(null)
   const [catDropOpen, setCatDropOpen] = useState(false)
@@ -264,7 +266,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     listImportLoading, listImportProvider, setListImportProvider,
     listImportEnrich, setListImportEnrich, canEnrichImport,
     availableListImportProviders, hasMultipleListImportProviders, handleListImport,
-    search, setSearch, filter, setFilter, categoryFilters, setCategoryFiltersLocal,
+    search, setSearch, filter, setFilter, categoryFilters, setCategoryFilters,
     selectMode, setSelectMode, selectedIds, setSelectedIds, pendingDeleteIds, setPendingDeleteIds,
     categoryPickerOpen, setCategoryPickerOpen,
     saveToListOpen, setSaveToListOpen, collectionsEnabled, tripId,

@@ -13,7 +13,9 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { makeZip, type ZipInput } from '../zip.js';
 import { injectTrekUi } from '../ui/kit.js';
-import { validatePluginDir } from './validate.js';
+import { loadContext } from './checks/context.js';
+import { runOffline } from './checks/index.js';
+import { blocking } from './checks/types.js';
 
 const MAX_TOTAL = 50 * 1024 * 1024;
 const MAX_FILE = 25 * 1024 * 1024;
@@ -56,8 +58,18 @@ function walk(base: string, rel: string, out: ZipInput[]): void {
 }
 
 export function packPluginDir(dir: string, outPath: string): PackResult {
-  const report = validatePluginDir(dir);
-  if (!report.ok) throw new Error('plugin is not valid:\n  - ' + report.errors.join('\n  - '));
+  // Only the gates that make a plugin UNBUILDABLE — a broken manifest, no server entry, a native
+  // binary. Not the registry's publish gates: packing is how you install a plugin into a local
+  // TREK to try it, and refusing to build a zip because the README is still a stub would block
+  // the dev loop over something that only matters at publish time. `validate`/`status`/`publish`
+  // apply the full set; see checks/types.ts, CheckBlocks.
+  const report = blocking(runOffline(loadContext(dir)), 'artifact');
+  if (!report.ok) {
+    throw new Error(
+      'plugin is not valid:\n  - ' +
+        report.errors.map((e) => (e.detail ? `${e.title} — ${e.detail}` : e.title)).join('\n  - '),
+    );
+  }
 
   const outAbs = path.resolve(outPath);
   const files: ZipInput[] = [];

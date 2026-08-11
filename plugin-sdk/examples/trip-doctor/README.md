@@ -37,5 +37,5 @@ npx @trek/plugin-sdk dev      # hot-reload against a local TREK
 npx @trek/plugin-sdk pack     # build a signed .trekplugin bundle
 ```
 
-See the [Plugin Cookbook](https://github.com/mauriceboe/TREK/wiki/Plugin-Cookbook)
+See the [Plugin Cookbook](https://github.com/liketrek/TREK/wiki/Plugin-Cookbook)
 for the individual recipes this example is built from.

@@ -51,7 +51,7 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.cta_kofi': "Ko-fi'de Destek Ol",
   'system_notice.pager.prev': 'Önceki bildirim',
   'system_notice.pager.next': 'Sonraki bildirim',
-  'system_notice.pager.counter': '{güncel} / {toplam}',
+  'system_notice.pager.counter': '{current} / {total}',
   'system_notice.pager.goto': '{n}. bildirime git',
   'system_notice.pager.position': '{total} Bildirimden {current}.',
 };

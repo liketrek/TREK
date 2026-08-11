@@ -1,16 +1,19 @@
+import { db } from '../../../db/database';
+import { discoverPlugins } from '../install/discovery';
+import { hostSatisfies, hostVersion, normalizedHost } from '../install/host-compat';
+import type { PluginDependency } from '../install/manifest';
+import { parseJsonText, parseManifest } from '../install/manifest';
+import { scanForNativeBinaries } from '../install/native-scan';
+import { extractArchive } from '../install/safe-extract';
+import { safeDownload, sha256Matches } from '../install/safe-fetch';
+import { verifyAuthorSignature, SignatureError } from '../install/verify-signature';
+import { pluginCodeDir, pluginsCodeRoot, pluginsDataRoot } from '../paths';
+import { clearUpdateBlock, isSignatureCode, setUpdateBlock, RETRUSTABLE_CODE } from '../signature-status';
 import { Injectable } from '@nestjs/common';
-import semver from 'semver';
+
 import fs from 'node:fs';
 import path from 'node:path';
-import { db } from '../../../db/database';
-import type { PluginDependency } from '../install/manifest';
-import { pluginCodeDir, pluginsCodeRoot, pluginsDataRoot } from '../paths';
-import { safeDownload, sha256Matches } from '../install/safe-fetch';
-import { verifyAuthorSignature } from '../install/verify-signature';
-import { extractArchive } from '../install/safe-extract';
-import { scanForNativeBinaries } from '../install/native-scan';
-import { parseJsonText, parseManifest } from '../install/manifest';
-import { discoverPlugins } from '../install/discovery';
+import semver from 'semver';
 
 /**
  * TREK-side of the plugin registry (#plugins, M5). Fetches the single aggregated
@@ -23,7 +26,7 @@ import { discoverPlugins } from '../install/discovery';
 
 const REGISTRY_URL =
   process.env.TREK_PLUGIN_REGISTRY_URL ||
-  'https://raw.githubusercontent.com/mauriceboe/TREK-Plugins/main/dist/index.json';
+  'https://raw.githubusercontent.com/liketrek/TREK-Plugins/main/dist/index.json';
 const CACHE_TTL = 30 * 60 * 1000;
 const MANIFEST_MAX_BYTES = 256 * 1024;
 // Sideload upload ceiling — matches the SDK `pack` limit (50 MB) plus zip overhead.
@@ -35,7 +38,16 @@ interface RegistryVersion {
   commitSha: string;
   downloadUrl: string;
   sha256: string;
-  minTrekVersion: string;
+  /**
+   * The version's declared TREK range, mirroring its manifest's `trek`. Authoritative
+   * when present. `minTrekVersion`/`maxTrekVersion` are the legacy shape — a lower bound
+   * plus an optional INCLUSIVE upper bound, which cannot express the exclusive `<4.0.0`
+   * that a manifest actually declares — and stay only so entries published before this
+   * field existed still gate.
+   */
+  trek?: string;
+  /** Nullable: an entry may carry no lower bound at all (and a legacy one carries only this). */
+  minTrekVersion?: string | null;
   maxTrekVersion?: string | null;
   size?: number;
   apiVersion?: number;
@@ -57,17 +69,37 @@ export interface RegistryEntry {
   homepage?: string;
   tags?: string[];
   type: string;
+  /** A lucide icon name for the store tile; absent means the client's default (Blocks). */
+  icon?: string;
   reviewedAt?: string | null;
   /** base64 minisign author public key — stable across versions, TOFU-pinned. */
   authorPublicKey?: string;
   /** Release-asset downloads across all versions, aggregated by the registry's stats cron. */
   downloadCount?: number | null;
+  /**
+   * Store cover image, resolved at build time by the registry's aggregate step:
+   * docs/screenshot.png at the latest commit, else the first README image that
+   * resolves there. Absent for entries published before this existed — browse
+   * and detail then construct the docs/screenshot.png URL themselves.
+   */
+  screenshotUrl?: string | null;
   versions: RegistryVersion[];
 }
 interface Registry {
   schemaVersion: number;
   generatedAt?: string;
   plugins: RegistryEntry[];
+}
+
+/** A registry entry's standing against the running TREK, resolved server-side. */
+export interface HostCompat {
+  /** The latest version's declared TREK range, or null for a legacy (min/max-only) entry. */
+  trek: string | null;
+  hostVersion: string;
+  /** Whether the LATEST version can be installed on this TREK. */
+  compatible: boolean;
+  /** Newest installable version — the latest one, or an older fallback, or null if none fits. */
+  latestCompatible: string | null;
 }
 
 /** Anzeige-only preview of a plugin's live manifest (fetched at the reviewed commit). */
@@ -97,7 +129,21 @@ export function __clearRegistryCacheForTests(): void {
   _detailCache.clear();
 }
 
-export class RegistryError extends Error {}
+/**
+ * A registry/install failure. `code` is machine-readable and MUST survive out to
+ * the client: the admin UI decides whether to offer a re-trust override from the
+ * code, never by string-matching the message. A client that matches on prose will
+ * eventually offer the override on the wrong condition — which is the single worst
+ * outcome this surface could produce.
+ */
+export class RegistryError extends Error {
+  constructor(
+    message: string,
+    readonly code?: string,
+  ) {
+    super(message);
+  }
+}
 
 @Injectable()
 export class PluginRegistryService {
@@ -113,7 +159,10 @@ export class PluginRegistryService {
     try {
       const url = force ? `${REGISTRY_URL}${REGISTRY_URL.includes('?') ? '&' : '?'}_=${Date.now()}` : REGISTRY_URL;
       const headers: Record<string, string> = { 'User-Agent': 'TREK-Server' };
-      if (force) { headers['Cache-Control'] = 'no-cache'; headers.Pragma = 'no-cache'; }
+      if (force) {
+        headers['Cache-Control'] = 'no-cache';
+        headers.Pragma = 'no-cache';
+      }
       const resp = await fetch(url, { headers });
       if (!resp.ok) throw new Error(`registry ${resp.status}`);
       const data = (await resp.json()) as Registry;
@@ -125,20 +174,73 @@ export class PluginRegistryService {
     }
   }
 
-  /** The browse list the admin UI renders (metadata only, no code). */
-  async browse(force = false): Promise<Array<Omit<RegistryEntry, 'versions'> & { latest: string | null; minTrekVersion: string | null; requiredAddons: string[]; pluginDependencies: PluginDependency[]; screenshotUrl: string | null }>> {
+  /**
+   * The browse list the admin UI renders (metadata only, no code).
+   *
+   * `signed` describes the LATEST version (browse already treats versions[0] as
+   * latest), so on a version-constrained install the badge can describe a version
+   * other than the artifact actually fetched. Accepted for a Discover card.
+   * `authorPublicKey` is exposed in full — it is a public key, and the re-trust
+   * round-trip compares it exactly (a truncated fingerprint would be a weak check).
+   */
+  async browse(force = false): Promise<
+    Array<
+      Omit<RegistryEntry, 'versions'> & {
+        latest: string | null;
+        minTrekVersion: string | null;
+        requiredAddons: string[];
+        pluginDependencies: PluginDependency[];
+        screenshotUrl: string | null;
+        signed: boolean;
+        authorPublicKey: string | null;
+      } & HostCompat
+    >
+  > {
     const reg = await this.fetchRegistry(force);
     return reg.plugins.map((p) => {
       const latest = p.versions[0] ?? null;
       return {
-        id: p.id, name: p.name, author: p.author, description: p.description, repo: p.repo,
-        homepage: p.homepage, tags: p.tags, type: p.type, reviewedAt: p.reviewedAt ?? null,
+        id: p.id,
+        name: p.name,
+        author: p.author,
+        description: p.description,
+        repo: p.repo,
+        homepage: p.homepage,
+        tags: p.tags,
+        type: p.type,
+        icon: p.icon,
+        reviewedAt: p.reviewedAt ?? null,
         downloadCount: p.downloadCount ?? null,
-        latest: latest?.version ?? null, minTrekVersion: latest?.minTrekVersion ?? null,
-        requiredAddons: latest?.requiredAddons ?? [], pluginDependencies: latest?.pluginDependencies ?? [],
-        screenshotUrl: latest ? rawFileUrl(p.repo, latest.commitSha, 'docs/screenshot.png') : null,
+        latest: latest?.version ?? null,
+        minTrekVersion: latest?.minTrekVersion ?? null,
+        requiredAddons: latest?.requiredAddons ?? [],
+        pluginDependencies: latest?.pluginDependencies ?? [],
+        screenshotUrl: p.screenshotUrl ?? (latest ? rawFileUrl(p.repo, latest.commitSha, 'docs/screenshot.png') : null),
+        signed: !!p.authorPublicKey && !!latest?.signature,
+        authorPublicKey: p.authorPublicKey ?? null,
+        ...this.hostCompat(p),
       };
     });
+  }
+
+  /**
+   * How this entry stands against the running TREK, computed SERVER-side. The client has
+   * no semver dependency and must never grow a second implementation of range logic — a
+   * UI that disagreed with the install gate would show an enabled button that 400s.
+   *
+   * `latestCompatible` is the useful half: when the newest version has outrun this TREK,
+   * an older one often still fits, so the UI can offer it instead of a dead grey button.
+   */
+  private hostCompat(entry: RegistryEntry): HostCompat {
+    const latest = entry.versions[0] ?? null;
+    const compatible = latest ? hostCompatible(latest, normalizedHost()) : false;
+    const fallback = compatible ? null : this.latestCompatible(entry);
+    return {
+      trek: latest?.trek ?? null,
+      hostVersion: hostVersion(),
+      compatible,
+      latestCompatible: compatible ? (latest?.version ?? null) : (fallback?.version ?? null),
+    };
   }
 
   /**
@@ -161,7 +263,10 @@ export class PluginRegistryService {
     let manifest: ManifestPreview | null = null;
     if (latest) {
       try {
-        const { bytes } = await safeDownload(rawFileUrl(entry.repo, latest.commitSha, 'trek-plugin.json'), MANIFEST_MAX_BYTES);
+        const { bytes } = await safeDownload(
+          rawFileUrl(entry.repo, latest.commitSha, 'trek-plugin.json'),
+          MANIFEST_MAX_BYTES,
+        );
         manifest = previewManifest(parseJsonText(bytes.toString('utf8')));
       } catch {
         // Soft-fail: the detail view still renders from registry metadata alone.
@@ -169,13 +274,26 @@ export class PluginRegistryService {
     }
 
     const data = {
-      id: entry.id, name: entry.name, author: entry.author, description: entry.description,
-      repo: entry.repo, homepage: entry.homepage ?? null, tags: entry.tags ?? [], type: entry.type,
-      reviewedAt: entry.reviewedAt ?? null, downloadCount: entry.downloadCount ?? null,
-      latest: latest?.version ?? null, minTrekVersion: latest?.minTrekVersion ?? null,
-      size: latest?.size ?? null, publishedAt: latest?.publishedAt ?? null,
-      requiredAddons: latest?.requiredAddons ?? [], pluginDependencies: latest?.pluginDependencies ?? [],
-      screenshotUrl: latest ? rawFileUrl(entry.repo, latest.commitSha, 'docs/screenshot.png') : null,
+      id: entry.id,
+      name: entry.name,
+      author: entry.author,
+      description: entry.description,
+      repo: entry.repo,
+      homepage: entry.homepage ?? null,
+      tags: entry.tags ?? [],
+      type: entry.type,
+      reviewedAt: entry.reviewedAt ?? null,
+      downloadCount: entry.downloadCount ?? null,
+      latest: latest?.version ?? null,
+      minTrekVersion: latest?.minTrekVersion ?? null,
+      size: latest?.size ?? null,
+      publishedAt: latest?.publishedAt ?? null,
+      requiredAddons: latest?.requiredAddons ?? [],
+      pluginDependencies: latest?.pluginDependencies ?? [],
+      screenshotUrl: entry.screenshotUrl ?? (latest ? rawFileUrl(entry.repo, latest.commitSha, 'docs/screenshot.png') : null),
+      signed: !!entry.authorPublicKey && !!latest?.signature,
+      authorPublicKey: entry.authorPublicKey ?? null,
+      ...this.hostCompat(entry),
       manifest,
     };
     // Don't negative-cache a transiently failed manifest fetch — the next
@@ -194,32 +312,84 @@ export class PluginRegistryService {
     const reg = await this.fetchRegistry();
     const entry = reg.plugins.find((p) => p.id === id);
     if (!entry) throw new RegistryError(`plugin ${id} not in registry`);
-    const host = hostVersion();
+    const v = this.latestCompatible(entry, constraint);
+    if (!v) {
+      throw new RegistryError(
+        constraint
+          ? `no version of ${id} satisfies "${constraint}" and TREK ${hostVersion()}`
+          : `no version of ${id} is compatible with TREK ${hostVersion()}`,
+        'TREK_VERSION_INCOMPATIBLE',
+      );
+    }
+    return v;
+  }
+
+  /** The newest version of `entry` that satisfies `constraint` AND admits the running TREK. */
+  private latestCompatible(entry: RegistryEntry, constraint?: string): RegistryVersion | null {
+    const host = normalizedHost();
     const candidates = entry.versions.filter((v) => {
       if (constraint && !semver.satisfies(v.version, constraint, { includePrerelease: true })) return false;
       return hostCompatible(v, host);
     });
-    if (!candidates.length) {
-      throw new RegistryError(
-        constraint
-          ? `no version of ${id} satisfies "${constraint}" and this TREK version`
-          : `no compatible version of ${id} for this TREK version`,
-      );
-    }
+    if (!candidates.length) return null;
     return [...candidates].sort((a, b) => semver.rcompare(a.version, b.version))[0];
   }
 
-  /** Install a version from the registry. Returns the installed plugin id + version. */
-  async install(id: string, opts?: { version?: string; constraint?: string }): Promise<{ id: string; version: string }> {
+  /**
+   * Pick the version `install()` will fetch, and refuse an incompatible one — on EVERY
+   * path, which is the whole point. An explicit `version` and the bare "install latest"
+   * both used to bypass the compat check entirely (only the `constraint` path went
+   * through resolveVersion), so the admin UI's own Install button — which sends neither —
+   * happily installed a plugin that declared it doesn't support this TREK.
+   */
+  private selectVersion(entry: RegistryEntry, opts?: { version?: string; constraint?: string }): RegistryVersion {
+    if (opts?.version) {
+      const ver = entry.versions.find((v) => v.version === opts.version);
+      if (!ver) throw new RegistryError(`version ${opts.version} not found for ${entry.id}`);
+      if (!hostCompatible(ver, normalizedHost())) {
+        throw new RegistryError(
+          `${entry.id} ${ver.version} requires TREK ${trekRequirement(ver)} — this is TREK ${hostVersion()}`,
+          'TREK_VERSION_INCOMPATIBLE',
+        );
+      }
+      return ver;
+    }
+    const ver = this.latestCompatible(entry, opts?.constraint);
+    if (ver) return ver;
+    // Nothing compatible. Say WHY against the newest version the admin was actually
+    // shown, rather than a bare "not found" — the fix is a TREK upgrade, not a retry.
+    const latest = entry.versions[0];
+    if (latest && !opts?.constraint) {
+      throw new RegistryError(
+        `${entry.id} ${latest.version} requires TREK ${trekRequirement(latest)} — this is TREK ${hostVersion()}`,
+        'TREK_VERSION_INCOMPATIBLE',
+      );
+    }
+    throw new RegistryError(
+      opts?.constraint
+        ? `no version of ${entry.id} satisfies "${opts.constraint}" and TREK ${hostVersion()}`
+        : `no version of ${entry.id} is compatible with TREK ${hostVersion()}`,
+      'TREK_VERSION_INCOMPATIBLE',
+    );
+  }
+
+  /**
+   * Install a version from the registry. Returns the installed plugin id + version.
+   *
+   * `retrustKey` is the admin's explicit "I have confirmed this new signing key with
+   * the author out-of-band" override, and it only lifts the TOFU key-change stop —
+   * the artifact must STILL verify under that key (see verifySignatureAndTofu), so a
+   * blessed key that doesn't actually sign the code is refused like any other bad
+   * signature. It is never a way to install something unverified.
+   */
+  async install(
+    id: string,
+    opts?: { version?: string; constraint?: string; retrustKey?: string },
+  ): Promise<{ id: string; version: string }> {
     const reg = await this.fetchRegistry();
     const entry = reg.plugins.find((p) => p.id === id);
     if (!entry) throw new RegistryError(`plugin ${id} not in registry`);
-    const ver = opts?.version
-      ? entry.versions.find((v) => v.version === opts.version)
-      : opts?.constraint
-        ? await this.resolveVersion(id, opts.constraint)
-        : entry.versions[0];
-    if (!ver) throw new RegistryError(`version ${opts?.version ?? opts?.constraint ?? 'latest'} not found for ${id}`);
+    const ver = this.selectVersion(entry, opts); // throws TREK_VERSION_INCOMPATIBLE before we fetch a byte
 
     // 1. SSRF-safe download + 2. sha256 verify
     const { bytes, sha256 } = await safeDownload(ver.downloadUrl, (ver.size ?? 50 * 1024 * 1024) + 4096);
@@ -228,7 +398,14 @@ export class PluginRegistryService {
     // 2b. author signature (opt-in) + TOFU key pin. Unsigned plugins skip this
     // and install on sha256 alone (unchanged behaviour); a signed plugin must
     // verify, and its author key must match the one pinned on first install.
-    this.verifySignatureAndTofu(id, bytes, entry, ver);
+    // A refusal is REMEMBERED (the plugin keeps running on its old code, so the
+    // reason must outlive the toast) and re-thrown untouched.
+    try {
+      this.verifySignatureAndTofu(id, bytes, entry, ver, opts?.retrustKey);
+    } catch (e) {
+      if (e instanceof RegistryError && isSignatureCode(e.code)) setUpdateBlock(id, e.code, e.message, ver.version);
+      throw e;
+    }
 
     // 3. zip/tar-slip-safe extract to staging
     const staging = path.join(pluginsDataRoot(), '.staging', `${id}-${ver.version}-${Date.now()}`);
@@ -238,8 +415,17 @@ export class PluginRegistryService {
       if (!pluginRoot) throw new RegistryError('archive contains no trek-plugin.json');
 
       // 4. re-validate the bundled manifest + 5. native re-scan
-      const manifest = parseManifest(parseJsonText(fs.readFileSync(path.join(pluginRoot, 'trek-plugin.json'), 'utf8')));
+      const manifest = parseManifest(
+        parseJsonText(fs.readFileSync(path.join(pluginRoot, 'trek-plugin.json'), 'utf8')),
+        { requireTrek: true },
+      );
       if (manifest.id !== id) throw new RegistryError(`manifest id "${manifest.id}" != "${id}"`);
+      // The artifact's OWN range is the authoritative compat check. The index metadata
+      // gated above is only what the registry says about this version, and it is weaker:
+      // published entries usually carry a lower bound and no upper one at all, so a
+      // plugin that declares "<4.0.0" passes the pre-download filter on TREK 4 and is
+      // caught only here.
+      assertHostCompatible(manifest.trekRange, id);
       if (scanForNativeBinaries(pluginRoot).length) throw new RegistryError('artifact contains native binaries');
 
       // 6. atomic move into place
@@ -251,12 +437,22 @@ export class PluginRegistryService {
       // 7. register INACTIVE (record provenance)
       discoverPlugins(db);
       db.prepare('UPDATE plugins SET source_repo = ?, source_commit = ?, sha256 = ?, reviewed_at = ? WHERE id = ?').run(
-        entry.repo, ver.commitSha, ver.sha256, entry.reviewedAt ?? null, id,
+        entry.repo,
+        ver.commitSha,
+        ver.sha256,
+        entry.reviewedAt ?? null,
+        id,
       );
-      // Pin the author key on first successful install of a signed plugin (TOFU).
+      // Pin the author key on first successful install of a signed plugin (TOFU) —
+      // and, after a re-trust, re-pin to the new key the admin blessed. Only ever set
+      // to a key the artifact just verified under; NEVER cleared to NULL, because a
+      // NULL pin re-opens the "was never signed" path that accepts an unsigned update.
       if (entry.authorPublicKey) {
         db.prepare('UPDATE plugins SET author_pubkey = ? WHERE id = ?').run(entry.authorPublicKey, id);
       }
+      // The plugin is now on new code that passed every check — whatever refusal was
+      // recorded before no longer describes reality.
+      clearUpdateBlock(id);
       return { id, version: ver.version };
     } finally {
       fs.rmSync(staging, { recursive: true, force: true });
@@ -270,8 +466,13 @@ export class PluginRegistryService {
    * can't be installed; they're collected and returned so the caller can prompt the
    * admin to enable them. Cycle-safe. Already-installed plugins are left untouched.
    */
-  async installWithDependencies(id: string, constraint?: string): Promise<{ installed: string[]; requiredAddons: string[] }> {
-    const installedNow = new Set((db.prepare('SELECT id FROM plugins').all() as Array<{ id: string }>).map((r) => r.id));
+  async installWithDependencies(
+    id: string,
+    constraint?: string,
+  ): Promise<{ installed: string[]; requiredAddons: string[] }> {
+    const installedNow = new Set(
+      (db.prepare('SELECT id FROM plugins').all() as Array<{ id: string }>).map((r) => r.id),
+    );
     const done = new Set<string>();
     const installed: string[] = [];
     const requiredAddons = new Set<string>();
@@ -281,7 +482,10 @@ export class PluginRegistryService {
       if (stack.includes(pid)) throw new RegistryError(`plugin dependency cycle: ${[...stack, pid].join(' -> ')}`);
       const ver = await this.resolveVersion(pid, range); // throws if not in registry / unsatisfiable
       if (!installedNow.has(pid)) {
-        await this.install(pid, range ? { constraint: range } : undefined);
+        // Install the version we just RESOLVED. Passing the range back (or nothing, for
+        // the root) made install() re-pick on its own and land on entry.versions[0] —
+        // so the compatible version resolveVersion had chosen was computed and discarded.
+        await this.install(pid, { version: ver.version });
         installed.push(pid);
         installedNow.add(pid);
       }
@@ -308,7 +512,10 @@ export class PluginRegistryService {
       extractArchive(bytes, stagingDir);
       const root = locateManifestDir(stagingDir);
       if (!root) throw new RegistryError('archive contains no trek-plugin.json');
-      const manifest = parseManifest(parseJsonText(fs.readFileSync(path.join(root, 'trek-plugin.json'), 'utf8')));
+      const manifest = parseManifest(parseJsonText(fs.readFileSync(path.join(root, 'trek-plugin.json'), 'utf8')), {
+        requireTrek: true,
+      });
+      assertHostCompatible(manifest.trekRange, manifest.id);
       if (scanForNativeBinaries(root).length) throw new RegistryError('artifact contains native binaries');
       return { id: manifest.id, version: manifest.version, root, stagingDir };
     } catch (e) {
@@ -334,9 +541,17 @@ export class PluginRegistryService {
       // an existing row's status, so replacing a plugin that was active must not
       // leave the new code marked active — the admin re-activates (and re-consents
       // to permissions) explicitly.
-      db.prepare("UPDATE plugins SET source_repo = ?, source_commit = ?, sha256 = ?, reviewed_at = ?, author_pubkey = NULL, status = 'inactive', enabled = 0 WHERE id = ?").run(
-        'local:upload', null, null, null, staged.id,
-      );
+      //
+      // The update-block goes too. It described a REGISTRY update being refused, and this
+      // plugin has just left the registry trust model entirely — the code is now whatever
+      // the admin uploaded. Leaving the block would have the row insist an update was
+      // blocked over a signing key that no longer applies to the code that is running.
+      db.prepare(
+        `UPDATE plugins SET source_repo = ?, source_commit = ?, sha256 = ?, reviewed_at = ?, author_pubkey = NULL,
+                            update_block_code = NULL, update_block_detail = NULL, update_block_version = NULL,
+                            status = 'inactive', enabled = 0
+         WHERE id = ?`,
+      ).run('local:upload', null, null, null, staged.id);
     } finally {
       fs.rmSync(staged.stagingDir, { recursive: true, force: true });
     }
@@ -349,26 +564,105 @@ export class PluginRegistryService {
    * - Neither key nor signature → unsigned plugin, skip (opt-in).
    * - Key present but no signature (or vice versa) → hard stop; a half-signed
    *   entry is a misconfiguration we refuse rather than silently downgrade.
-   * - Signature invalid → hard stop.
+   * - Signature invalid (or malformed) → hard stop.
    * - Registry key differs from the key pinned on a prior install → hard stop
    *   (author change / rotation / attack; needs an explicit admin re-trust).
+   *
+   * Each stop carries a machine-readable code, because only ONE of them
+   * (SIGNATURE_KEY_CHANGED) may ever be overridden and the UI must be able to tell
+   * them apart without reading prose.
+   *
+   * `retrustKey` lifts the key-change stop for exactly the key the admin confirmed.
+   * Note what it does NOT do: the signature check below still runs, against the NEW
+   * key, over the artifact bytes. A key an admin blesses must still sign the code it
+   * ships — a re-trust moves the pin from one VERIFIED key to another verified key.
    */
-  private verifySignatureAndTofu(id: string, bytes: Buffer, entry: RegistryEntry, ver: RegistryVersion): void {
-    const pinned = (db.prepare('SELECT author_pubkey FROM plugins WHERE id = ?').get(id) as { author_pubkey?: string } | undefined)?.author_pubkey ?? null;
+  private verifySignatureAndTofu(
+    id: string,
+    bytes: Buffer,
+    entry: RegistryEntry,
+    ver: RegistryVersion,
+    retrustKey?: string,
+  ): void {
+    const pinned =
+      (db.prepare('SELECT author_pubkey FROM plugins WHERE id = ?').get(id) as { author_pubkey?: string } | undefined)
+        ?.author_pubkey ?? null;
 
     if (!entry.authorPublicKey && !ver.signature) {
-      if (pinned) throw new RegistryError('this plugin was signed before but the update is unsigned — refusing');
+      if (pinned) {
+        throw new RegistryError(
+          'this plugin was signed before but the update is unsigned — refusing',
+          'SIGNATURE_MISSING',
+        );
+      }
       return; // unsigned throughout: sha256 is the only pin
     }
     if (!entry.authorPublicKey || !ver.signature) {
-      throw new RegistryError('incomplete signature: an author key and a version signature must both be present');
+      throw new RegistryError(
+        'incomplete signature: an author key and a version signature must both be present',
+        'SIGNATURE_INCOMPLETE',
+      );
     }
-    if (pinned && pinned !== entry.authorPublicKey) {
-      throw new RegistryError("the plugin's author signing key changed since it was installed — re-trust it explicitly to continue");
+    if (pinned && pinned !== entry.authorPublicKey && retrustKey !== entry.authorPublicKey) {
+      throw new RegistryError(
+        "the plugin's author signing key changed since it was installed — re-trust it explicitly to continue",
+        RETRUSTABLE_CODE,
+      );
     }
-    if (!verifyAuthorSignature(bytes, ver.signature, entry.authorPublicKey)) {
-      throw new RegistryError('author signature verification failed');
+    // verifyAuthorSignature returns false on a well-formed non-matching signature but
+    // THROWS SignatureError on a malformed key/signature. Both mean the same thing to
+    // an admin — the bytes aren't what the author signed — and both are non-overridable.
+    let ok: boolean;
+    try {
+      ok = verifyAuthorSignature(bytes, ver.signature, entry.authorPublicKey);
+    } catch (e) {
+      if (e instanceof SignatureError) {
+        throw new RegistryError(`author signature verification failed: ${e.message}`, 'SIGNATURE_INVALID');
+      }
+      throw e;
     }
+    if (!ok) throw new RegistryError('author signature verification failed', 'SIGNATURE_INVALID');
+  }
+
+  /**
+   * Re-derive, SERVER-SIDE, that `id` is genuinely in the one overridable condition
+   * (its pinned key no longer matches the registry's) and that `publicKey` is the key
+   * the registry offers RIGHT NOW.
+   *
+   * Both halves matter. The first is the real enforcement of "re-trust is offered only
+   * for a changed key" — the UI hiding the button is a convenience, not the control, so
+   * an admin cannot re-trust their way past an invalid signature by calling the endpoint
+   * directly. The second closes the TOCTOU window: the client sends back the key it
+   * SHOWED the admin, and if the entry has been re-keyed again since the dialog
+   * rendered, the admin would be blessing a key they never saw.
+   */
+  async assertRetrustable(id: string, publicKey: string): Promise<RegistryEntry> {
+    const row = db.prepare('SELECT source_repo, author_pubkey FROM plugins WHERE id = ?').get(id) as
+      | { source_repo?: string | null; author_pubkey?: string | null }
+      | undefined;
+    if (!row) throw new RegistryError(`plugin ${id} not found`, 'NOT_FOUND');
+    if (!row.source_repo || row.source_repo === 'local:upload' || row.source_repo === 'local:link') {
+      throw new RegistryError('only a registry-installed plugin can be re-trusted', 'RETRUST_NOT_APPLICABLE');
+    }
+
+    const reg = await this.fetchRegistry();
+    const entry = reg.plugins.find((p) => p.id === id);
+    if (!entry) throw new RegistryError(`plugin ${id} not in registry`, 'NOT_FOUND');
+
+    const pinned = row.author_pubkey ?? null;
+    if (!pinned || !entry.authorPublicKey || pinned === entry.authorPublicKey) {
+      throw new RegistryError(
+        "this plugin's signing key has not changed — there is nothing to re-trust",
+        'RETRUST_NOT_APPLICABLE',
+      );
+    }
+    if (entry.authorPublicKey !== publicKey) {
+      throw new RegistryError(
+        'the signing key changed again since you were shown it — review the new key before re-trusting',
+        'RETRUST_KEY_MISMATCH',
+      );
+    }
+    return entry;
   }
 }
 
@@ -376,18 +670,46 @@ function rawFileUrl(repo: string, commitSha: string, file: string): string {
   return `https://raw.githubusercontent.com/${repo}/${commitSha}/${file}`;
 }
 
-/** The running TREK version (same source as the rest of the app). */
-function hostVersion(): string {
-  return process.env.APP_VERSION || (require('../../../../package.json') as { version: string }).version;
+/**
+ * Whether a registry version admits the running TREK.
+ *
+ * The version's `trek` range is authoritative when the entry carries one. Entries
+ * published before that field existed only carry min/max bounds, so those remain the
+ * fallback — but they are a strictly weaker check (maxTrekVersion is inclusive and is
+ * usually absent entirely, because the SDK never emitted it), which is why install
+ * re-gates on the artifact's own manifest after extraction. This is only the cheap
+ * pre-download filter.
+ */
+function hostCompatible(v: RegistryVersion, host: string | null): boolean {
+  if (host === null) return true; // unversioned build — don't block on compat
+  if (v.trek) return hostSatisfies(v.trek, host);
+  if (v.minTrekVersion && semver.valid(v.minTrekVersion) && semver.lt(host, v.minTrekVersion)) return false;
+  if (v.maxTrekVersion && semver.valid(v.maxTrekVersion) && semver.gt(host, v.maxTrekVersion)) return false;
+  return true;
 }
 
-/** Whether a registry version's host-version bounds admit the running TREK. */
-function hostCompatible(v: RegistryVersion, host: string): boolean {
-  const h = semver.coerce(host)?.version ?? host;
-  if (!semver.valid(h)) return true; // unparseable host — don't block on compat
-  if (v.minTrekVersion && semver.valid(v.minTrekVersion) && semver.lt(h, v.minTrekVersion)) return false;
-  if (v.maxTrekVersion && semver.valid(v.maxTrekVersion) && semver.gt(h, v.maxTrekVersion)) return false;
-  return true;
+/**
+ * Refuse an artifact whose declared TREK range doesn't admit the running host. Shared by
+ * every install front door (registry, sideload, dev-link) so they all fail the same way,
+ * with a code the admin UI can act on rather than prose it would have to string-match.
+ */
+export function assertHostCompatible(range: string | null, id: string): void {
+  if (hostSatisfies(range)) return;
+  throw new RegistryError(`${id} requires TREK ${range} — this is TREK ${hostVersion()}`, 'TREK_VERSION_INCOMPATIBLE');
+}
+
+/**
+ * How a version's TREK requirement reads in an error/UI string. Each bound is optional —
+ * an entry may declare only a ceiling, or (once `trek` is absent too) nothing at all — so
+ * this composes whatever bounds exist rather than interpolating a missing one as "null".
+ */
+function trekRequirement(v: RegistryVersion): string {
+  if (v.trek) return v.trek;
+  const bounds = [
+    v.minTrekVersion ? `>=${v.minTrekVersion}` : null,
+    v.maxTrekVersion ? `<=${v.maxTrekVersion}` : null,
+  ].filter(Boolean);
+  return bounds.length ? bounds.join(' ') : 'any version';
 }
 
 /**
@@ -415,7 +737,10 @@ function previewManifest(raw: unknown): ManifestPreview {
   const pluginDependencies = Array.isArray(m.pluginDependencies)
     ? m.pluginDependencies
         .filter((d): d is Record<string, unknown> => !!d && typeof d === 'object')
-        .map((d) => ({ id: typeof d.id === 'string' ? d.id : '', version: typeof d.version === 'string' ? d.version : '' }))
+        .map((d) => ({
+          id: typeof d.id === 'string' ? d.id : '',
+          version: typeof d.version === 'string' ? d.version : '',
+        }))
         .filter((d) => d.id && d.version)
     : [];
   return {

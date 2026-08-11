@@ -18,6 +18,8 @@ interface ActivePlugin {
   slot: 'sidebar' | 'hero' | 'place-detail' | 'day-detail' | 'reservation-detail';
   /** How a trip-page plugin sits in the planner tab bar (replaced core tabs + position). */
   tripPage?: { replaces?: string[]; position?: number };
+  /** The plugin ships a settings.html the user-settings page frames. */
+  settingsUi?: true;
 }
 
 @Controller('api/plugins')
@@ -31,7 +33,12 @@ export class PluginsFeedController {
       .all() as Array<Omit<ActivePlugin, 'slot' | 'tripPage'> & { capabilities: string }>;
     const plugins = rows.map(({ capabilities, ...p }) => {
       const tripPage = p.type === 'trip-page' ? tripPageOf(capabilities) : undefined;
-      return { ...p, slot: slotOf(capabilities), ...(tripPage ? { tripPage } : {}) };
+      return {
+        ...p,
+        slot: slotOf(capabilities),
+        ...(tripPage ? { tripPage } : {}),
+        ...(settingsUiOf(capabilities) ? { settingsUi: true as const } : {}),
+      };
     });
     return { plugins };
   }
@@ -51,6 +58,15 @@ function slotOf(capabilities: string): ActivePlugin['slot'] {
 // the capabilities column is a JSON blob, and the tab list the client hides
 // must never be steerable by a hand-edited row ('plan' stays unhideable).
 const REPLACEABLE_TABS: ReadonlySet<string> = new Set(['transports', 'buchungen', 'listen', 'finanzplan', 'dateien', 'collab']);
+
+function settingsUiOf(capabilities: string): boolean {
+  try {
+    const c = JSON.parse(capabilities || '{}') as { settingsUi?: unknown };
+    return c.settingsUi === true;
+  } catch {
+    return false;
+  }
+}
 
 function tripPageOf(capabilities: string): ActivePlugin['tripPage'] {
   try {

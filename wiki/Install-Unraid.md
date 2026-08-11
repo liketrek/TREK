@@ -17,7 +17,7 @@ Docker must be enabled in Unraid (**Settings → Docker → Enable Docker: Yes**
 If the app does not appear, you can install directly from the template URL. In **Docker → Add Container**, paste the template URL:
 
 ```
-https://raw.githubusercontent.com/mauriceboe/TREK/main/unraid-template.xml
+https://raw.githubusercontent.com/liketrek/TREK/main/unraid-template.xml
 ```
 
 ## Template Fields
@@ -45,7 +45,7 @@ The Unraid template exposes the following fields in the container UI:
 
 ### Advanced Variables
 
-Additional variables (`PORT`, `NODE_ENV`, `LOG_LEVEL`, `DEFAULT_LANGUAGE`, `FORCE_HTTPS`, `TRUST_PROXY`, `COOKIE_SECURE`, `ALLOW_INTERNAL_NETWORK`, `SESSION_DURATION`, `SESSION_DURATION_REMEMBER`, all OIDC variables, `MCP_RATE_LIMIT`, `MCP_MAX_SESSION_PER_USER`, `DEMO_MODE`) are available under **Advanced View** in the template editor.
+Additional variables (`PORT`, `NODE_ENV`, `LOG_LEVEL`, `TREK_WIKI_DIR`, `DEFAULT_LANGUAGE`, `FORCE_HTTPS`, `TRUST_PROXY`, `COOKIE_SECURE`, `ALLOW_INTERNAL_NETWORK`, `SESSION_DURATION`, `SESSION_DURATION_REMEMBER`, all OIDC variables, `MCP_RATE_LIMIT`, `MCP_MAX_SESSION_PER_USER`, `DEMO_MODE`) are available under **Advanced View** in the template editor.
 
 ## Setting the Encryption Key
 

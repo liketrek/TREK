@@ -48,6 +48,7 @@ const packing: TranslationStrings = {
   'packing.bags': 'Torby',
   'packing.noBag': 'Nieprzypisane',
   'packing.totalWeight': 'Waga całkowita',
+  'packing.quantity': 'Ilość',
   'packing.bagName': 'Nazwa torby...',
   'packing.addBag': 'Dodaj torbę',
   'packing.changeCategory': 'Przenieś do listy',

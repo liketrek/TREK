@@ -10,7 +10,7 @@ Thanks for your interest in contributing! Please read these guidelines before op
 4. **Target the `dev` branch** — All PRs must be opened against `dev`, not `main`. Exception: PRs that only modify files under `wiki/` may target any branch
 5. **Match the existing style** — No reformatting, no linter config changes, no "while I'm here" cleanups
 6. **Tests** — Your changes must include tests. The project maintains 80%+ coverage; PRs that drop it will be closed
-7. **Branch up to date** — Your branch must be [up to date with `dev`](https://github.com/mauriceboe/TREK/wiki/Development-environment#3-keep-your-fork-up-to-date) before submitting a PR
+7. **Branch up to date** — Your branch must be [up to date with `dev`](https://github.com/liketrek/TREK/wiki/Development-environment#3-keep-your-fork-up-to-date) before submitting a PR
 
 ## Pull Requests
 
@@ -39,8 +39,8 @@ feat(budget): add CSV export for expenses
 
 ## Development Environment
 
-See the [Developer Environment page](https://github.com/mauriceboe/TREK/wiki/Development-environment) for more information on setting up your development environment.
+See the [Developer Environment page](https://github.com/liketrek/TREK/wiki/Development-environment) for more information on setting up your development environment.
 
 ## More Details
 
-See the [Contributing wiki page](https://github.com/mauriceboe/TREK/wiki/Contributing) for the full tech stack, architecture overview, and detailed guidelines.
+See the [Contributing wiki page](https://github.com/liketrek/TREK/wiki/Contributing) for the full tech stack, architecture overview, and detailed guidelines.

@@ -46,8 +46,6 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityWarning': '可能影响低端设备的性能。',
   'settings.mapTipLabel': '提示：',
   'settings.mapTip': '右键点击并拖动以旋转/倾斜地图。中键点击添加地点（右键用于旋转）。',
-  'settings.latitude': '纬度',
-  'settings.longitude': '经度',
   'settings.saveMap': '保存地图',
   'settings.apiKeys': 'API 密钥',
   'settings.mapsKey': 'Google Maps API 密钥',
@@ -283,6 +281,7 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.ntfy': 'Ntfy',
   'settings.currency': '货币',
   'settings.currencyHint': '费用中的所有金额都会换算并以此货币显示。',
+  'settings.currencyTrip': '行程货币',
   'settings.passkey.title': '通行密钥',
   'settings.passkey.description':
     '使用通行密钥更快登录，并能抵御钓鱼攻击——通过指纹、面容、PIN 或硬件密钥验证。你的密码仍可作为备用方式。',
@@ -461,6 +460,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': '资源',
   'settings.pluginActivity.columns.when': '时间',
   'settings.pluginActivity.columns.status': '结果',
+  'settings.alwaysShowRoutes': '始终显示预订路线',
+  'settings.alwaysShowRoutesHint': '自动在地图上显示每个航班、火车和其他预订的路线,无需逐个手动开启。',
 };
 
 export default settings;

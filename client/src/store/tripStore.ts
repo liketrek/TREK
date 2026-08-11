@@ -60,16 +60,23 @@ export interface TripStoreState
   files: TripFile[]
   reservations: Reservation[]
   selectedDayId: number | null
+  // Places filter (list + map markers). Lives here, not in the sidebar, so the
+  // applied filter and the filter UI can never drift apart when the Plan tab
+  // unmounts and remounts (#1541).
+  placesFilter: string
+  placesCategoryFilter: Set<string>
   isLoading: boolean
   error: string | null
 
   setSelectedDay: (dayId: number | null) => void
+  setPlacesFilter: (filter: string) => void
+  setPlacesCategoryFilter: (categoryIds: Set<string>) => void
   handleRemoteEvent: (event: WebSocketEvent) => void
   resetTrip: () => void
   loadTrip: (tripId: number | string) => Promise<void>
   hydrateActiveTrip: (tripId: number | string) => Promise<void>
   refreshDays: (tripId: number | string) => Promise<void>
-  updateTrip: (tripId: number | string, data: Partial<Trip>) => Promise<Trip>
+  updateTrip: (tripId: number | string, data: Partial<Trip> & { date_shift_mode?: 'keep_bookings' | 'shift_all' }) => Promise<Trip>
   addTag: (data: Partial<Tag> & { name: string }) => Promise<Tag>
   addCategory: (data: Partial<Category> & { name: string }) => Promise<Category>
 }
@@ -88,10 +95,14 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
   files: [],
   reservations: [],
   selectedDayId: null,
+  placesFilter: 'all',
+  placesCategoryFilter: new Set<string>(),
   isLoading: false,
   error: null,
 
   setSelectedDay: (dayId: number | null) => set({ selectedDayId: dayId }),
+  setPlacesFilter: (filter: string) => set({ placesFilter: filter }),
+  setPlacesCategoryFilter: (categoryIds: Set<string>) => set({ placesCategoryFilter: categoryIds }),
 
   handleRemoteEvent: (event: WebSocketEvent) => handleRemoteEvent(set, get, event),
 
@@ -110,6 +121,8 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
     files: [],
     reservations: [],
     selectedDayId: null,
+    placesFilter: 'all',
+    placesCategoryFilter: new Set<string>(),
     error: null,
   }),
 
@@ -180,6 +193,9 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
       get().loadReservations(tripId),
       get().loadFiles(tripId),
     ])
+    // Accommodations live in planner-local state, not this store — nudge the
+    // planner to reload them too (e.g. a trip date change made while offline).
+    window.dispatchEvent(new CustomEvent('accommodations:refresh'))
   },
 
   refreshDays: async (tripId: number | string) => {
@@ -197,7 +213,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
     }
   },
 
-  updateTrip: async (tripId: number | string, data: Partial<Trip>) => {
+  updateTrip: async (tripId: number | string, data: Partial<Trip> & { date_shift_mode?: 'keep_bookings' | 'shift_all' }) => {
     try {
       const result = await tripsApi.update(tripId, data)
       set({ trip: result.trip })
@@ -209,6 +225,9 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
         dayNotesMap[String(day.id)] = day.notes_items || []
       }
       set({ days: daysData.days, assignments: assignmentsMap, dayNotes: dayNotesMap })
+      // A date change re-anchors bookings server-side (#1288); the socket echo is
+      // suppressed for this client, so pull the fresh reservations here.
+      await get().loadReservations(tripId)
       return result.trip
     } catch (err: unknown) {
       throw new Error(getApiErrorMessage(err, 'Error updating trip'))

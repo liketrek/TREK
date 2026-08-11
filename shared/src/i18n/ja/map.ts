@@ -13,5 +13,7 @@ const map: TranslationStrings = {
   'poi.cat.museums': '美術館・文化施設',
   'poi.cat.nature': '自然・公園',
   'poi.cat.activities': 'アクティビティ',
+  'map.showAllConnections': 'すべての予約ルートを表示',
+  'map.hideAllConnections': 'すべての予約ルートを非表示',
 };
 export default map;

@@ -33,6 +33,9 @@ export interface PackingListPanelProps {
   clearCheckedSignal?: number
   saveTemplateSignal?: number
   inlineHeader?: boolean
+  // Lifted so an out-of-panel Apply Template button knows the active view (#1565).
+  view?: 'common' | 'personal'
+  onViewChange?: (view: 'common' | 'personal') => void
 }
 
 /**
@@ -42,11 +45,13 @@ export interface PackingListPanelProps {
  * sections below render header, filters, the grouped list, the bag sidebar/
  * modal and the import dialog.
  */
-export function usePackingList({ tripId, items, openImportSignal = 0, clearCheckedSignal = 0, saveTemplateSignal = 0, inlineHeader = true }: PackingListPanelProps) {
+export function usePackingList({ tripId, items, openImportSignal = 0, clearCheckedSignal = 0, saveTemplateSignal = 0, inlineHeader = true, view: viewProp, onViewChange }: PackingListPanelProps) {
   const [filter, setFilter] = useState('alle') // 'alle' | 'offen' | 'erledigt'
   // Three-tier sharing (#858): 'common' = the group pool (where existing items
   // live — non-breaking), 'personal' = my own list (private + shared-to-me).
-  const [view, setView] = useState<'common' | 'personal'>('common')
+  const [ownView, setOwnView] = useState<'common' | 'personal'>('common')
+  const view = viewProp ?? ownView
+  const setView = onViewChange ?? setOwnView
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCatName, setNewCatName] = useState('')
   const { addPackingItem, updatePackingItem, deletePackingItem, togglePackingItem, reorderPackingItems,
@@ -307,7 +312,7 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   const handleApplyTemplate = async (templateId: number) => {
     setApplyingTemplate(true)
     try {
-      const data = await packingApi.applyTemplate(tripId, templateId)
+      const data = await packingApi.applyTemplate(tripId, templateId, view)
       useTripStore.setState(s => ({ packingItems: [...s.packingItems, ...(data.items || [])] }))
       toast.success(t('packing.templateApplied', { count: data.count }))
       setShowTemplateDropdown(false)

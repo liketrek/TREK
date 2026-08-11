@@ -2,10 +2,10 @@ import type { TranslationStrings } from '../types';
 
 const atlas: TranslationStrings = {
   'atlas.subtitle': 'Ваш след путешествий по всему миру',
-  'atlas.countries': 'Страны',
-  'atlas.trips': 'Поездки',
-  'atlas.places': 'Места',
-  'atlas.days': 'Дни',
+  'atlas.countries': 'Стран',
+  'atlas.trips': 'Поездок',
+  'atlas.places': 'Мест',
+  'atlas.days': 'Дней',
   'atlas.visitedCountries': 'Посещённые страны',
   'atlas.cities': 'Города',
   'atlas.noData': 'Данных о поездках пока нет',

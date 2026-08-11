@@ -147,6 +147,11 @@ export const packingSaveTemplateRequestSchema = z.object({
 });
 export type PackingSaveTemplateRequest = z.infer<typeof packingSaveTemplateRequestSchema>;
 
+export const packingApplyTemplateRequestSchema = z.object({
+  visibility: z.enum(['common', 'personal']).optional(),
+});
+export type PackingApplyTemplateRequest = z.infer<typeof packingApplyTemplateRequestSchema>;
+
 export const packingTemplateSummarySchema = z.object({
   id: z.number(),
   name: z.string(),

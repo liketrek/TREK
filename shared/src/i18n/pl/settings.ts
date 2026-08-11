@@ -48,8 +48,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Wskazówka:',
   'settings.mapTip':
     'Kliknij prawym przyciskiem i przeciągnij, aby obrócić/pochylić mapę. Środkowy przycisk dodaje miejsce (prawy jest zarezerwowany dla obrotu).',
-  'settings.latitude': 'Szerokość',
-  'settings.longitude': 'Długość',
   'settings.saveMap': 'Zapisz mapę',
   'settings.apiKeys': 'Klucze API',
   'settings.mapsKey': 'Klucz Google Maps API',
@@ -291,7 +289,8 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.configure': 'Skonfiguruj',
   'settings.notificationPreferences.testSuccess': 'Wysłano powiadomienie testowe.',
   'settings.notificationPreferences.testFailed': 'Test nie powiódł się.',
-  'settings.notificationPreferences.pluginConfigured': 'Skonfigurowano. Dane logowania zmienisz na stronie ustawień wtyczki.',
+  'settings.notificationPreferences.pluginConfigured':
+    'Skonfigurowano. Dane logowania zmienisz na stronie ustawień wtyczki.',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
@@ -300,6 +299,7 @@ const settings: TranslationStrings = {
   'settings.mustChangePassword': 'Musisz zmienić hasło przed kontynuowaniem.',
   'settings.currency': 'Currency',
   'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currencyTrip': 'Waluta wyjazdu',
   'settings.passkey.title': 'Klucze dostępu',
   'settings.passkey.description':
     'Loguj się szybciej i z odpornością na phishing za pomocą klucza dostępu — odcisku palca, twarzy, kodu PIN lub klucza sprzętowego. Twoje hasło pozostaje jako zapasowa opcja.',
@@ -493,6 +493,9 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': 'Zasób',
   'settings.pluginActivity.columns.when': 'Kiedy',
   'settings.pluginActivity.columns.status': 'Wynik',
+  'settings.alwaysShowRoutes': 'Zawsze pokazuj trasy rezerwacji',
+  'settings.alwaysShowRoutesHint':
+    'Automatycznie pokazuje na mapie trasę każdego lotu, pociągu i innej rezerwacji, bez konieczności włączania jej pojedynczo.',
 };
 
 export default settings;

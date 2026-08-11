@@ -160,6 +160,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.otherFlights': 'رحلات أخرى',
   'reservations.airtrail.empty': 'لم يتم العثور على أي رحلات في حساب AirTrail الخاص بك.',
   'reservations.airtrail.importCta': 'استيراد {count}',
+  'reservations.airtrail.joinConnection': 'الاستيراد كرحلة واحدة مع توقف في {stops}',
   'reservations.costsLabel': 'Costs',
   'reservations.createExpense': 'Create expense',
   'reservations.createExpenseHint': 'Saves the booking, then opens the Costs editor.',

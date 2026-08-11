@@ -50,8 +50,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Consejo:',
   'settings.mapTip':
     'Clic derecho y arrastrar para rotar/inclinar el mapa. Clic central para añadir un lugar (el clic derecho está reservado para la rotación).',
-  'settings.latitude': 'Latitud',
-  'settings.longitude': 'Longitud',
   'settings.saveMap': 'Guardar mapa',
   'settings.apiKeys': 'Claves API',
   'settings.mapsKey': 'Clave API de Google Maps',
@@ -298,12 +296,14 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.configure': 'Configurar',
   'settings.notificationPreferences.testSuccess': 'Notificación de prueba enviada.',
   'settings.notificationPreferences.testFailed': 'La prueba falló.',
-  'settings.notificationPreferences.pluginConfigured': 'Configurado. Gestiona tus credenciales en la página de ajustes del plugin.',
+  'settings.notificationPreferences.pluginConfigured':
+    'Configurado. Gestiona tus credenciales en la página de ajustes del plugin.',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
   'settings.currency': 'Currency',
   'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currencyTrip': 'Moneda del viaje',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Inicia sesión más rápido y con protección frente al phishing usando una passkey: tu huella, tu cara, tu PIN o una llave de seguridad física. Tu contraseña sigue disponible como respaldo.',
@@ -494,6 +494,9 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': 'Recurso',
   'settings.pluginActivity.columns.when': 'Cuándo',
   'settings.pluginActivity.columns.status': 'Resultado',
+  'settings.alwaysShowRoutes': 'Mostrar siempre las rutas de reserva',
+  'settings.alwaysShowRoutesHint':
+    'Muestra automáticamente en el mapa la ruta de cada vuelo, tren y otra reserva, sin necesidad de activarla una por una.',
 };
 
 export default settings;

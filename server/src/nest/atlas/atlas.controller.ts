@@ -63,9 +63,21 @@ export class AtlasController {
   }
 
   @Get('countries/geo')
-  @Header('Cache-Control', 'public, max-age=86400')
-  countryGeo(): RegionGeo {
-    return this.atlas.countryGeo();
+  countryGeo(@Res() res: Response): void {
+    // Serve the pre-gzipped admin-0 bundle straight from disk. The browser decompresses
+    // transparently, so the wire shape is identical to before, but the server never parses
+    // or holds the ~145MB FeatureCollection (#1576). Content-Encoding is set explicitly, so
+    // the compression middleware leaves the body untouched.
+    const gz = this.atlas.countryGeoGz();
+    if (!gz) {
+      res.setHeader('Cache-Control', 'no-store');
+      res.json({ type: 'FeatureCollection', features: [] });
+      return;
+    }
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Encoding', 'gzip');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(gz);
   }
 
   @Get('country/:code')

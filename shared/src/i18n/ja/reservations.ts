@@ -160,6 +160,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.otherFlights': 'その他のフライト',
   'reservations.airtrail.empty': 'AirTrail アカウントにフライトが見つかりませんでした。',
   'reservations.airtrail.importCta': '{count} 件をインポート',
+  'reservations.airtrail.joinConnection': '{stops}での乗り継ぎを含む1つのフライトとしてインポート',
   'reservations.costsLabel': 'Costs',
   'reservations.createExpense': 'Create expense',
   'reservations.createExpenseHint': 'Saves the booking, then opens the Costs editor.',

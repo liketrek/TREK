@@ -79,7 +79,7 @@ const places: TranslationStrings = {
   'places.importNaverList': 'Lista Naver',
   'places.importList': 'Import listy',
   'places.googleListHint': 'Wklej link do listy Google Maps.',
-  'places.googleListImported': 'Zaimportowano {count} miejsc',
+  'places.googleListImported': 'Zaimportowano {count} miejsc z „{list}”',
   'places.googleListError': 'Nie udało się zaimportować listy',
   'places.naverListHint': 'Wklej link do udostępnionej listy Naver Maps, aby zaimportować wszystkie miejsca.',
   'places.naverListImported': 'Zaimportowano {count} miejsc z "{list}"',

@@ -27,7 +27,7 @@ beforeEach(() => {
   resetAllStores();
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1 }) });
-  seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: false, temperature_unit: 'celsius', language: 'en', dark_mode: false, default_currency: 'USD', default_lat: 48.8566, default_lng: 2.3522, default_zoom: 10, map_tile_url: '', show_place_description: false } });
+  seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: false, temperature_unit: 'celsius', language: 'en', dark_mode: false, default_currency: 'USD', map_tile_url: '', show_place_description: false } });
 });
 
 describe('ReservationsPanel', () => {
@@ -211,7 +211,7 @@ describe('ReservationsPanel', () => {
   });
 
   it('FE-PLANNER-RESP-022: confirmation number is blurred when blur_booking_codes=true', () => {
-    seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: true, temperature_unit: 'celsius', language: 'en', dark_mode: false, default_currency: 'USD', default_lat: 48.8566, default_lng: 2.3522, default_zoom: 10, map_tile_url: '', show_place_description: false } });
+    seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: true, temperature_unit: 'celsius', language: 'en', dark_mode: false, default_currency: 'USD', map_tile_url: '', show_place_description: false } });
     const res = buildReservation({ confirmation_number: 'ABC123', status: 'confirmed' });
     render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
     const codeEl = screen.getByText('ABC123');
@@ -220,7 +220,7 @@ describe('ReservationsPanel', () => {
 
   it('FE-PLANNER-RESP-023: confirmation code revealed on hover when blurred', async () => {
     const user = userEvent.setup();
-    seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: true, temperature_unit: 'celsius', language: 'en', dark_mode: false, default_currency: 'USD', default_lat: 48.8566, default_lng: 2.3522, default_zoom: 10, map_tile_url: '', show_place_description: false } });
+    seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: true, temperature_unit: 'celsius', language: 'en', dark_mode: false, default_currency: 'USD', map_tile_url: '', show_place_description: false } });
     const res = buildReservation({ confirmation_number: 'ABC123', status: 'confirmed' });
     render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
     const codeEl = screen.getByText('ABC123');

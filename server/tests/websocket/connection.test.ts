@@ -6,6 +6,8 @@
  */
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import http from 'http';
+import net from 'node:net';
+import crypto from 'node:crypto';
 import request from 'supertest';
 import WebSocket from 'ws';
 import { broadcastToUser, getOnlineUserIds } from '../../src/websocket';
@@ -576,6 +578,54 @@ describe('WS message processing edge cases', () => {
     expect(errors).toHaveLength(0);
 
     rawWs.close();
+  });
+
+  it('WS-015d — a close frame with a reserved status code does not crash the server (#1576)', async () => {
+    // The `ws` client cannot send an invalid close code, so craft the frame over a raw
+    // socket. Reserved code 1006 makes ws emit an 'error' event on the socket; with no
+    // listener attached in setupWebSocket, Node rethrows it as an uncaughtException and the
+    // process dies in production. In-process under vitest that surfaces as an uncaught
+    // WS_ERR_INVALID_CLOSE_CODE, so capture uncaughtException for the duration and assert
+    // none fired — then confirm the server is still serving.
+    const uncaught: Error[] = [];
+    const onUncaught = (err: Error): void => { uncaught.push(err); };
+    process.on('uncaughtException', onUncaught);
+
+    try {
+      const port = (server.address() as { port: number }).port;
+      await new Promise<void>((resolve, reject) => {
+        const key = crypto.randomBytes(16).toString('base64');
+        const sock = net.connect(port, '127.0.0.1');
+        sock.on('error', reject);
+        sock.write(
+          `GET /ws HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\nUpgrade: websocket\r\n` +
+          `Connection: Upgrade\r\nSec-WebSocket-Key: ${key}\r\nSec-WebSocket-Version: 13\r\n\r\n`
+        );
+        sock.once('data', (buf) => {
+          if (!buf.toString('latin1').includes('101 Switching Protocols')) return reject(new Error('no upgrade'));
+          const mask = crypto.randomBytes(4);
+          const payload = Buffer.alloc(2);
+          payload.writeUInt16BE(1006, 0); // reserved — MUST NOT appear in a close frame (RFC 6455)
+          const masked = Buffer.from(payload.map((b, i) => b ^ mask[i % 4]));
+          sock.write(Buffer.concat([Buffer.from([0x88, 0x82]), mask, masked])); // FIN|close, MASK|len2
+          setTimeout(() => { sock.destroy(); resolve(); }, 200);
+        });
+      });
+
+      expect(uncaught.map(e => (e as { code?: string }).code)).not.toContain('WS_ERR_INVALID_CLOSE_CODE');
+
+      // And the server is still serving: a fresh connection still gets a welcome.
+      const { user } = createUser(testDb);
+      const token = createEphemeralToken(user.id, 'ws')!;
+      const client = await connectWs(token);
+      try {
+        expect((await client.next()).type).toBe('welcome');
+      } finally {
+        client.close();
+      }
+    } finally {
+      process.off('uncaughtException', onUncaught);
+    }
   });
 
   it('WS-016 — rate-limit window resets: after limit hit, next window accepts messages again', async () => {

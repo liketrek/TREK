@@ -49,8 +49,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Tipp:',
   'settings.mapTip':
     'Rechtsklick und ziehen, um die Karte zu drehen/neigen. Mittelklick, um einen Ort hinzuzufügen (Rechtsklick ist für die Rotation reserviert).',
-  'settings.latitude': 'Breitengrad',
-  'settings.longitude': 'Längengrad',
   'settings.saveMap': 'Karte speichern',
   'settings.apiKeys': 'API-Schlüssel',
   'settings.mapsKey': 'Google Maps API-Schlüssel',
@@ -298,12 +296,14 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.configure': 'Einrichten',
   'settings.notificationPreferences.testSuccess': 'Testbenachrichtigung gesendet.',
   'settings.notificationPreferences.testFailed': 'Test fehlgeschlagen.',
-  'settings.notificationPreferences.pluginConfigured': 'Eingerichtet. Zugangsdaten auf der Einstellungsseite des Plugins verwalten.',
+  'settings.notificationPreferences.pluginConfigured':
+    'Eingerichtet. Zugangsdaten auf der Einstellungsseite des Plugins verwalten.',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
   'settings.currency': 'Währung',
   'settings.currencyHint': 'Alle Beträge in Costs werden in diese Währung umgerechnet und angezeigt.',
+  'settings.currencyTrip': 'Reisewährung',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Melde dich schneller und phishing-resistent mit einem Passkey an — per Fingerabdruck, Gesicht, PIN oder Hardware-Schlüssel. Dein Passwort bleibt als Backup erhalten.',
@@ -496,6 +496,9 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': 'Ressource',
   'settings.pluginActivity.columns.when': 'Zeitpunkt',
   'settings.pluginActivity.columns.status': 'Ergebnis',
+  'settings.alwaysShowRoutes': 'Buchungsrouten immer anzeigen',
+  'settings.alwaysShowRoutesHint':
+    'Zeigt die Route für jeden Flug, jede Zugfahrt und jede andere Buchung automatisch auf der Karte an – ohne sie einzeln aktivieren zu müssen.',
 };
 
 export default settings;

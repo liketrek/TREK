@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { HelpController } from './help.controller';
 
-/** /api/help — embedded GitHub wiki (fetched + cached in wikiService). */
+/** /api/help — the bundled `wiki/` directory, read via wikiService. */
 @Module({
   controllers: [HelpController],
 })

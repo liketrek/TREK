@@ -48,6 +48,7 @@ const packing: TranslationStrings = {
   'packing.bags': 'Τσάντες',
   'packing.noBag': 'Χωρίς ανάθεση',
   'packing.totalWeight': 'Συνολικό βάρος',
+  'packing.quantity': 'Ποσ.',
   'packing.bagName': 'Όνομα τσάντας...',
   'packing.addBag': 'Προσθήκη τσάντας',
   'packing.changeCategory': 'Μετακίνηση σε λίστα',

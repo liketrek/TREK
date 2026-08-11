@@ -326,6 +326,21 @@ describe('tripStore', () => {
       expect(result).toEqual(updatedTrip);
       expect(useTripStore.getState().trip).toEqual(updatedTrip);
     });
+
+    it('FE-TRIP-011: updateTrip reloads reservations (re-anchored server-side on date changes, #1288)', async () => {
+      const updatedTrip = buildTrip({ id: 1, start_date: '2025-05-31', end_date: '2025-06-05' });
+      const reservation = buildReservation({ id: 7, trip_id: 1, day_id: 21 });
+
+      server.use(
+        http.put('/api/trips/1', () => HttpResponse.json({ trip: updatedTrip })),
+        http.get('/api/trips/1/days', () => HttpResponse.json({ days: [] })),
+        http.get('/api/trips/1/reservations', () => HttpResponse.json({ reservations: [reservation] })),
+      );
+
+      await useTripStore.getState().updateTrip(1, { start_date: '2025-05-31' });
+
+      expect(useTripStore.getState().reservations).toEqual([reservation]);
+    });
   });
 
   describe('setSelectedDay', () => {

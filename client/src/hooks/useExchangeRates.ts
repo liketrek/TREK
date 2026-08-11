@@ -24,6 +24,44 @@ function readCache(base: string): { rates: Record<string, number>; ts: number } 
   return null
 }
 
+/**
+ * Plain-function twin of the hook, for non-React callers (PDF export). Never
+ * rejects: a fresh cache short-circuits, otherwise it fetches and caches; on
+ * any failure it returns the stale cache if one exists, else null ("no rates" —
+ * callers fall back to per-currency breakdowns rather than converting).
+ */
+export async function fetchExchangeRates(base: string): Promise<Record<string, number> | null> {
+  const upper = (base || 'EUR').toUpperCase()
+  const cached = readCache(upper)
+  if (cached && Date.now() - cached.ts < TTL_MS) return cached.rates
+  try {
+    const d = await fetch(`https://api.frankfurter.dev/v2/rates?base=${encodeURIComponent(upper)}`)
+      .then(r => r.json()) as Array<{ quote?: string; rate?: number }>
+    if (!Array.isArray(d)) return cached?.rates ?? null
+    // Frankfurter omits the base's own self-rate, so seed it with `base = 1`.
+    const rates: Record<string, number> = { [upper]: 1 }
+    for (const r of d) {
+      if (r && typeof r.quote === 'string' && typeof r.rate === 'number') rates[r.quote] = r.rate
+    }
+    const entry = { rates, ts: Date.now() }
+    mem.set(upper, entry)
+    try { localStorage.setItem('trek_fx_' + upper, JSON.stringify(entry)) } catch { /* ignore */ }
+    return rates
+  } catch {
+    return cached?.rates ?? null // offline → stale beats nothing
+  }
+}
+
+/** Test-only: the module-level cache outlives a vitest file's individual tests. */
+export function clearExchangeRateCache(): void {
+  mem.clear()
+  try {
+    for (const k of Object.keys(localStorage)) {
+      if (k.startsWith('trek_fx_')) localStorage.removeItem(k)
+    }
+  } catch { /* ignore */ }
+}
+
 export function useExchangeRates(base: string) {
   const upper = (base || 'EUR').toUpperCase()
   const [rates, setRates] = useState<Record<string, number> | null>(() => readCache(upper)?.rates ?? null)
@@ -33,21 +71,9 @@ export function useExchangeRates(base: string) {
     if (cached) setRates(cached.rates)
     if (cached && Date.now() - cached.ts < TTL_MS) return
     let cancelled = false
-    fetch(`https://api.frankfurter.dev/v2/rates?base=${encodeURIComponent(upper)}`)
-      .then(r => r.json())
-      .then((d: Array<{ quote?: string; rate?: number }>) => {
-        if (cancelled || !Array.isArray(d)) return
-        // Frankfurter omits the base's own self-rate, so seed it with `base = 1`.
-        const rates: Record<string, number> = { [upper]: 1 }
-        for (const r of d) {
-          if (r && typeof r.quote === 'string' && typeof r.rate === 'number') rates[r.quote] = r.rate
-        }
-        const entry = { rates, ts: Date.now() }
-        mem.set(upper, entry)
-        try { localStorage.setItem('trek_fx_' + upper, JSON.stringify(entry)) } catch { /* ignore */ }
-        setRates(rates)
-      })
-      .catch(() => { /* offline → keep cached/identity */ })
+    fetchExchangeRates(upper).then(r => {
+      if (!cancelled && r) setRates(r)
+    })
     return () => { cancelled = true }
   }, [upper])
 

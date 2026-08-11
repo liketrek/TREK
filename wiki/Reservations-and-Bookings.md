@@ -121,6 +121,16 @@ Items that the extractor could only partially parse are flagged **Needs review**
 
 KDE Itinerary only recognises structured tickets. For confirmations it can't read — plain-text emails, unusual PDF layouts, vendors it doesn't know — TREK can optionally hand the file to an AI model instead. The optional **AI Parsing** addon runs only for the files Itinerary returns nothing for, parses them in the background, and flags every result for review before you save it. It works with a self-hosted local model, so booking data need not leave your server. See **[AI-Booking-Import](AI-Booking-Import)**.
 
+## Import from AirTrail
+
+With the **AirTrail** integration addon enabled and your instance connected under **Settings → Integrations**, the reservations toolbar shows an **AirTrail** button. It lists the flights from your AirTrail account — flights inside the trip dates come pre-selected — and imports each one as a flight reservation that stays in sync with AirTrail both ways.
+
+### Connecting flights (layovers)
+
+When selected flights form a connection — each leg departs from the airport the previous one landed at, onward within 24 hours — the picker groups them and offers to **import them as one flight with a layover**. The offer is on by default; untick it to keep separate bookings. A joined booking keeps each leg's own airline, flight number, times and seat, the connection airport becomes a layover **stop** on the route, and each leg files into its own day in the planner. Since a stop is not a destination, the layover country no longer shows up as visited in Atlas.
+
+AirTrail itself has no multi-leg flights, so a joined booking is imported **without live sync** (it shows the *Not synced* badge). Its source flights stay recognised — the picker will not offer them for import again. The same applies when you add a stop to a synced single flight by hand: the booking detaches from AirTrail instead of syncing a shape AirTrail cannot represent.
+
 ## Editing and deleting
 
 Each card has a pencil icon to open the edit form and a trash icon to delete. Deleting requires confirmation in a dialog before the record is removed.

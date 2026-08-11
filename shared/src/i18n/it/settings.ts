@@ -50,8 +50,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Suggerimento:',
   'settings.mapTip':
     'Click destro e trascina per ruotare/inclinare la mappa. Click centrale per aggiungere un luogo (il click destro è riservato alla rotazione).',
-  'settings.latitude': 'Latitudine',
-  'settings.longitude': 'Longitudine',
   'settings.saveMap': 'Salva Mappa',
   'settings.apiKeys': 'Chiavi API',
   'settings.mapsKey': 'Chiave API Google Maps',
@@ -296,12 +294,14 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.configure': 'Configura',
   'settings.notificationPreferences.testSuccess': 'Notifica di prova inviata.',
   'settings.notificationPreferences.testFailed': 'Test non riuscito.',
-  'settings.notificationPreferences.pluginConfigured': 'Configurato. Gestisci le credenziali nelle impostazioni del plugin.',
+  'settings.notificationPreferences.pluginConfigured':
+    'Configurato. Gestisci le credenziali nelle impostazioni del plugin.',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
   'settings.currency': 'Currency',
   'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currencyTrip': 'Valuta del viaggio',
   'settings.passkey.title': 'Passkey',
   'settings.passkey.description':
     'Accedi più velocemente e in modo resistente al phishing con una passkey — la tua impronta digitale, il volto, il PIN o una chiave hardware. La tua password resta come riserva.',
@@ -493,6 +493,9 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': 'Risorsa',
   'settings.pluginActivity.columns.when': 'Quando',
   'settings.pluginActivity.columns.status': 'Esito',
+  'settings.alwaysShowRoutes': 'Mostra sempre i percorsi delle prenotazioni',
+  'settings.alwaysShowRoutesHint':
+    'Mostra automaticamente sulla mappa il percorso di ogni volo, treno e altra prenotazione, senza doverlo attivare singolarmente.',
 };
 
 export default settings;

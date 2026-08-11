@@ -58,11 +58,12 @@ export const getAccommodationAnchors = (
 }
 
 // Whether to draw the morning hotel → first-stop leg. It is a real drive when you slept in the
-// morning hotel (a normal home-base day). On that hotel's check-in day the hotel is your base
-// once you arrive, so the leg is still the default for a PLACE first stop — suppressed only when
-// that place is timed BEFORE check-in (an airport you reach before dropping your bags, #1465), or
-// when the first stop is a transport arrival (you flew in, weren't at the hotel yet, #1321).
-// Un-timed places keep the loop, avoiding over-suppression on ordinary arrival days.
+// morning hotel (a normal home-base day). On that hotel's check-in day you were traveling TO the
+// hotel, so the leg is drawn only when the first stop is a PLACE provably timed at/after check-in
+// (you dropped your bags first). A place before check-in (an airport you reach first, #1465), a
+// transport arrival (you flew in, weren't at the hotel yet, #1321), an un-timed place ("Home"
+// before driving out, #1597), or a missing check-in time all mean no leg — mirroring the
+// evening rule below.
 export const shouldDrawMorningLeg = (
   bookends: { morning?: Accommodation; morningIsSleptHere?: boolean },
   day: Day,
@@ -73,7 +74,7 @@ export const shouldDrawMorningLeg = (
   if (!m || m.start_day_id !== day.id || !firstStop?.isPlace) return false
   const checkIn = parseTimeToMinutes(m.check_in)
   const stop = parseTimeToMinutes(firstStop.time)
-  return !(checkIn != null && stop != null && stop < checkIn)
+  return checkIn != null && stop != null && stop >= checkIn
 }
 
 // Mirror of shouldDrawMorningLeg for the last-stop → hotel evening leg. It is a real drive when

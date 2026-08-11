@@ -375,6 +375,31 @@ describe('TransportModal', () => {
     expect(payload.endpoints.map((e: { role: string }) => e.role)).toEqual(['from', 'to']);
   });
 
+  it('FE-PLANNER-TRANSMODAL-029: re-saving a joined AirTrail flight keeps metadata.airtrail_ids (#1535)', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const res = buildReservation({ title: 'BRU → HEL → JFK', type: 'flight' }) as any;
+    res.metadata = {
+      airline: 'Finnair',
+      flight_number: 'AY1502',
+      airtrail_ids: ['101', '102'],
+      legs: [
+        { from: 'BRU', to: 'HEL', flight_number: 'AY1502', dep_time: '08:00', arr_time: '12:30' },
+        { from: 'HEL', to: 'JFK', flight_number: 'AY15', dep_time: '14:00', arr_time: '15:00' },
+      ],
+    };
+    res.endpoints = [
+      { role: 'from', sequence: 0, name: 'Brussels', code: 'BRU', lat: 50.9, lng: 4.48, timezone: 'Europe/Brussels', local_date: '2025-06-01', local_time: '08:00' },
+      { role: 'stop', sequence: 1, name: 'Helsinki-Vantaa', code: 'HEL', lat: 60.32, lng: 24.96, timezone: 'Europe/Helsinki', local_date: '2025-06-01', local_time: '14:00' },
+      { role: 'to', sequence: 2, name: 'JFK', code: 'JFK', lat: 40.64, lng: -73.78, timezone: 'America/New_York', local_date: '2025-06-01', local_time: '15:00' },
+    ];
+    render(<TransportModal {...defaultProps} reservation={res} onSave={onSave} />);
+    // A routine edit (retitle + save) must not cost the booking its AirTrail
+    // linkage — the import picker relies on it to not re-offer the legs.
+    await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0].metadata?.airtrail_ids).toEqual(['101', '102']);
+  });
+
   // ── Manual / Automated creation switch (#1065) ─────────────────────────────
 
   it('FE-PLANNER-TRANSMODAL-022: creating shows the Manual/Automated switch; Automated opens the transit search', async () => {

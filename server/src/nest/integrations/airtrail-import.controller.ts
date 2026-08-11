@@ -34,7 +34,7 @@ export class AirtrailImportController {
   ): Promise<AirtrailImportResult> {
     this.requireEdit(tripId, user);
     try {
-      return await importAirtrailFlights(tripId, user.id, body.flightIds, socketId);
+      return await importAirtrailFlights(tripId, user.id, body.flightIds, socketId, body.connections ?? []);
     } catch (err: any) {
       throw new HttpException({ error: err?.message || 'AirTrail import failed' }, err?.status === 400 ? 400 : 502);
     }

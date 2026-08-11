@@ -172,6 +172,22 @@ describe('TransitSearchPanel', () => {
     expect(transitApiMock.plan.mock.calls[0][0]).toMatchObject({ arriveBy: true, time: '2025-06-01T08:00:00.000Z' })
   })
 
+  it('FE-PLANNER-TRANSIT-009: arrive-by lists the latest-arriving itinerary first', async () => {
+    const user = userEvent.setup()
+    // MOTIS returns arrive-by results ascending, deadline-adjacent last (#1479).
+    const later = { ...ITINERARY, startTime: '2025-06-01T07:10:00Z', endTime: '2025-06-01T07:40:00Z' }
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [ITINERARY, later] })
+    render(<TransitSearchPanel {...makeProps()} />)
+    await pickFromAndTo(user)
+    await user.click(screen.getByRole('button', { name: 'Arrive' }))
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await screen.findByText(/09:10 – 09:40/)
+    const cards = screen.getAllByText(/–/).filter(el => el.textContent?.match(/\d{2}:\d{2} – \d{2}:\d{2}/))
+    // The itinerary arriving closest to the requested arrival time leads.
+    expect(cards[0].textContent).toContain('09:40')
+    expect(cards[1].textContent).toContain('09:00')
+  })
+
   it('FE-PLANNER-TRANSIT-006: swap exchanges from and to', async () => {
     const user = userEvent.setup()
     render(<TransitSearchPanel {...makeProps()} />)

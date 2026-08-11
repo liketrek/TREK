@@ -47,6 +47,7 @@ const packing: TranslationStrings = {
   'packing.bags': 'バッグ',
   'packing.noBag': '未割り当て',
   'packing.totalWeight': '総重量',
+  'packing.quantity': '数量',
   'packing.bagName': 'バッグ名...',
   'packing.addBag': 'バッグを追加',
   'packing.changeCategory': 'リストへ移動',

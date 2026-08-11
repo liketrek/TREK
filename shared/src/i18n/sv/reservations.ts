@@ -161,6 +161,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.otherFlights': 'Övriga flygningar',
   'reservations.airtrail.empty': 'Inga flygningar hittades i ditt AirTrail-konto.',
   'reservations.airtrail.importCta': 'Importera {count}',
+  'reservations.airtrail.joinConnection': 'Importera som en flygning med mellanlandning i {stops}',
   'reservations.costsLabel': 'Kostnader',
   'reservations.createExpense': 'Skapa utgift',
   'reservations.createExpenseHint': 'Sparar bokningen och öppnar sedan kostnadsredigeraren.',

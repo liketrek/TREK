@@ -48,6 +48,7 @@ const packing: TranslationStrings = {
   'packing.bags': 'Táskák',
   'packing.noBag': 'Nincs hozzárendelve',
   'packing.totalWeight': 'Összsúly',
+  'packing.quantity': 'Menny.',
   'packing.bagName': 'Táska neve...',
   'packing.addBag': 'Táska hozzáadása',
   'packing.changeCategory': 'Áthelyezés listába',

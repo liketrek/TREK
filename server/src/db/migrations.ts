@@ -3626,6 +3626,81 @@ function runMigrations(db: Database.Database): void {
         );
       `);
     },
+
+    // Why a plugin's update was REFUSED by the signature check (#plugins). A refused
+    // update leaves a working plugin pinned at its old version — previously the reason
+    // lived only in a transient toast, so the plugin quietly stopped updating and the
+    // admin had to re-attempt an update to rediscover why. Record it instead.
+    //
+    // `update_block_version` is the registry version that was refused: once the registry
+    // offers something NEWER, the block describes an artifact nobody is being offered
+    // anymore, so it reads as stale and the admin can just re-attempt (the next install
+    // re-verifies and either succeeds or re-blocks with fresh values). Deliberately no
+    // `status = 'error'` — the plugin still runs fine on its old code.
+    () => {
+      for (const col of ['update_block_code TEXT', 'update_block_detail TEXT', 'update_block_version TEXT']) {
+        try {
+          db.exec(`ALTER TABLE plugins ADD COLUMN ${col};`);
+        } catch (err) {
+          console.warn('[migrations] Non-fatal migration step failed:', err);
+        }
+      }
+    },
+
+    // The semver RANGE of TREK versions a plugin declares it supports (its manifest's
+    // `trek`, e.g. ">=3.2.0 <4.0.0"). The existing `min_trek_version` only carries the
+    // lower bound, so it cannot express "stops working at 4.0" — which is precisely the
+    // case the activation gate has to catch after a TREK upgrade. Kept nullable: a plugin
+    // installed before this column existed has no range recorded, and the gate refuses to
+    // activate it rather than guessing (see TREK_VERSION_UNKNOWN).
+    () => {
+      try {
+        db.exec('ALTER TABLE plugins ADD COLUMN trek_range TEXT;');
+      } catch (err) {
+        console.warn('[migrations] Non-fatal migration step failed:', err);
+      }
+    },
+
+    // `place_regions` is a re-derivable Nominatim cache, only ever populated for a place ID
+    // that isn't already cached — so a wrong row, once written, was permanent. Region
+    // resolution now resolves a place's lat/lng directly against the bundled admin1 polygons
+    // (the same ones the client renders) instead of trusting Nominatim's address level, which
+    // could name a subdivision level the bundle doesn't carry (Barcelona's ES-B province vs
+    // the bundle's ES-CT autonomous community) and never highlight. That fix only helps
+    // places re-resolved after it, so clear the cache once and let every place re-resolve on
+    // the next Atlas load. The country_code stored alongside is cleared too, which also drops
+    // the old wrong-country rows a US-state-abbreviation address used to produce.
+    () => {
+      try {
+        db.exec('DELETE FROM place_regions');
+      } catch (err) {
+        // place_regions is created by an earlier migration; tolerate its absence on an
+        // unusual partial DB rather than aborting startup.
+        if (!(err instanceof Error) || !err.message.includes('no such table')) throw err;
+      }
+    },
+
+    // Tombstones for Atlas regions the user has explicitly removed — the region-level
+    // counterpart to hidden_countries above (#1490). A visited region is normally derived
+    // fresh from place_regions/visited_regions on every request, so "removing" it has
+    // nothing to delete; recording it here lets getVisitedRegions suppress a derived region
+    // the same way getStats already suppresses a derived country. Unlike the country-level
+    // tombstone (originally only reachable for a manually-marked or zero-count country),
+    // this also covers a region derived from real place data — e.g. one that ended up on
+    // the wrong side of a border-simplification gap and the user just wants gone.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS hidden_regions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          region_code TEXT NOT NULL,
+          country_code TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE (user_id, region_code)
+        );
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_hidden_regions_user ON hidden_regions (user_id);');
+    },
   ];
 
   if (currentVersion < migrations.length) {

@@ -2,8 +2,6 @@
 
 The trip planner is the main workspace for building your itinerary. It opens automatically after you create a trip, or any time you click a trip card on the dashboard.
 
-<!-- TODO: screenshot: trip planner tab bar overview -->
-
 ![Trip Planner](assets/TripPlannerWithPlane.png)
 
 ## Layout
@@ -25,6 +23,8 @@ The planner uses a **three-pane resizable layout** on desktop:
 
 Each sidebar has a drag handle on its inner edge for resizing.
 
+![Planner in its three-pane layout: the day plan sidebar with days, places, notes and flight entries on the left, the map in the centre, and the places sidebar with search and category filter on the right](assets/TripPlanner.png)
+
 A **Day Detail overlay** slides in over the center pane when you open a specific day, showing weather, the day's notes, reservation summaries, and the accommodation block. It can be minimized without closing it.
 
 ## Tabs
@@ -37,11 +37,11 @@ The tab bar sits directly below the main navigation bar.
 | **Transports** | Flights, trains, cars, cruises, and buses. |
 | **Reservations** | Hotels, restaurants, events, tours, and other bookings. |
 | **Lists** | Packing list and to-do list. |
-| **Budget** | Budget tracking and expense logging. |
+| **Costs** | Expense tracking, splitting, and settlement. |
 | **Files** | Document manager for receipts, tickets, and other files. |
 | **Collab** | Real-time chat, shared notes, and polls. |
 
-> **Admin:** The **Lists**, **Budget**, **Files**, and **Collab** tabs only appear when the corresponding addon is enabled. See [Admin-Addons](Admin-Addons).
+> **Admin:** The **Lists**, **Costs**, **Files**, and **Collab** tabs only appear when the corresponding addon is enabled. See [Admin-Addons](Admin-Addons).
 
 The active tab is saved in `sessionStorage` per trip, so switching between trips preserves your last position.
 

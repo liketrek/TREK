@@ -13,13 +13,14 @@ interface Template {
 
 interface ApplyTemplateButtonProps {
   tripId: number
+  visibility: 'common' | 'personal'
   style: React.CSSProperties
   className?: string
 }
 
 // Dropdown-Button um ein Packing-Template auf den aktuellen Trip anzuwenden.
 // Rendert nichts wenn keine Templates existieren.
-export default function ApplyTemplateButton({ tripId, style, className }: ApplyTemplateButtonProps): React.ReactElement | null {
+export default function ApplyTemplateButton({ tripId, visibility, style, className }: ApplyTemplateButtonProps): React.ReactElement | null {
   const [templates, setTemplates] = useState<Template[]>([])
   const [open, setOpen] = useState(false)
   const [applying, setApplying] = useState(false)
@@ -43,7 +44,7 @@ export default function ApplyTemplateButton({ tripId, style, className }: ApplyT
   const handleApply = async (templateId: number) => {
     setApplying(true)
     try {
-      const data = await packingApi.applyTemplate(tripId, templateId)
+      const data = await packingApi.applyTemplate(tripId, templateId, visibility)
       useTripStore.setState(s => ({ packingItems: [...s.packingItems, ...(data.items || [])] }))
       toast.success(t('packing.templateApplied', { count: data.count }))
       setOpen(false)

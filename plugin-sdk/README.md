@@ -1,20 +1,28 @@
 # trek-plugin-sdk
 
-The SDK for building [TREK](https://github.com/mauriceboe/TREK) plugins.
+The SDK for building [TREK](https://github.com/liketrek/TREK) plugins.
+
+The path is four commands: **`create` → `dev` → `status` → `publish`**. Everything
+else the CLI can do is a step one of those already does for you.
 
 ## Scaffold a plugin
 
 ```bash
 npx trek-plugin-sdk                        # no command? a guided menu of everything below
-npx trek-plugin-sdk create                 # interactive wizard (id, location, type, permissions)
+npx trek-plugin-sdk create                 # interactive wizard (id, type, icon, permissions, egress)
 npx trek-plugin-sdk create my-plugin --type widget   # or non-interactive
 cd my-plugin
 ```
 
-The wizard also offers to initialize a git repo and install dependencies for you.
-In a non-interactive shell (CI, pipes) every command stays flag-driven with plain
-output — no prompts, and machine output (`entry` JSON, `pack --json`, PR URLs) stays
-on stdout.
+The wizard asks for the id, type, icon (validated against lucide), permissions,
+egress hosts and required addons, and offers to initialize a git repo and install
+dependencies for you. In a non-interactive shell (CI, pipes) every command stays
+flag-driven with plain output — no prompts, and machine output (`entry` JSON,
+`pack --json`, PR URLs) stays on stdout.
+
+What you get **runs and packs immediately** — but it is not publishable yet: the
+README is a template and there is no screenshot. That is deliberate. Writing those
+is your job, and `status` tells you exactly what is left.
 
 ## Develop with a live reload loop
 
@@ -31,6 +39,23 @@ Open **`/preview`** to see a page/widget rendered in a real sandboxed frame with
 theme/accent/appearance toggle (`trek.invoke()` is proxied to your routes). Hit a route
 as an unauthenticated request with `?_anon=1`. Drop a `dev-fixtures.json` (trips, users,
 config) next to your manifest to feed `ctx.trips` / `ctx.users`.
+
+## Know where you are
+
+```bash
+npx trek-plugin-sdk status        # never fails — it's a map, not a gate
+```
+
+`status` runs every check the TREK-Plugins registry enforces that can be answered
+without a network — which is nearly all of them — and prints the whole journey as a
+checklist grouped by stage (Manifest, Code, Docs, Release, Repo): what passes, what
+does not, and the **one** command to run next. Run it whenever you are not sure what
+to do; it deliberately never exits non-zero.
+
+`validate` is the same checks with an exit code. It is the form for scripts and CI;
+`status` is the form for humans. A plugin that passes `validate` will pass every
+registry gate that does not require the tag and the release to exist — those four
+run in `preflight`, which `publish` does for you.
 
 ## Build a native UI (page / widget)
 
@@ -56,7 +81,7 @@ no-transparency) and auto-reports your height. It also upgrades any native
 `<select>` into a host-styled, keyboard-accessible dropdown that matches TREK —
 the OS-drawn popup never could. Write a plain `<select>` and it just works; add
 `data-trek-native` to opt a field out. See the
-[Plugin Development wiki](https://github.com/mauriceboe/TREK/wiki/Plugin-Development)
+[Plugin Development wiki](https://github.com/liketrek/TREK/wiki/Plugin-Development)
 for the full component + token reference.
 
 ## Write a plugin
@@ -93,6 +118,21 @@ const { ctx, broadcasts } = createMockHost({
 // degrades gracefully when a permission is missing.
 ```
 
+## Capture the screenshot
+
+The registry requires a screenshot that resolves to a real image, and the store card
+shows it. `shot` boots the dev server, renders your plugin in the same themed frame
+TREK uses, and writes a 1600×900 `docs/screenshot.png`:
+
+```bash
+npm i -D playwright && npx playwright install chromium   # once
+npx trek-plugin-sdk shot                                 # --dark for the dark theme
+```
+
+Playwright is deliberately **not** a dependency of this SDK — it ships a browser, and
+most authors never need one. An `integration` plugin has no UI to render, so `shot`
+cannot help; screenshot the TREK surface your plugin changes instead.
+
 ## Publish — one command
 
 Commit and push your plugin to its public GitHub repo, then:
@@ -101,10 +141,20 @@ Commit and push your plugin to its public GitHub repo, then:
 npx trek-plugin-sdk publish --repo you/repo --tag v1.0.0
 ```
 
-`publish` does the whole release in one go: **pack** → **tag + GitHub release**
-→ **preflight** (runs the registry CI checks locally) → **open the registry PR**.
-If preflight finds a problem it stops *before* submitting, so a broken entry
-never becomes a doomed PR. It prints the PR URL at the end.
+`publish` is the whole release, in five steps and in this order:
+
+1. **check** — every registry gate that can be checked locally
+2. **pack** — build `plugin.zip`
+3. **release** — git tag, push, and cut the GitHub release with the artifact
+4. **preflight** — the gates that need the tag and the release to exist
+5. **submit** — open the PR against the TREK-Plugins registry
+
+Step 1 comes first for a reason: a GitHub release is effectively immutable, because
+the registry pins its sha256. If a check fails, **nothing is packed, tagged, pushed
+or released** — so you can fix it and re-run against the same version. (`--no-checks`
+skips step 1; it is an escape hatch for a re-run, never right on a first publish.)
+
+Needs `git` and an authenticated `gh`. It prints the PR URL at the end.
 
 **Updating** a listed plugin: bump `version` in the manifest, commit, and run
 `publish` again with the new tag — it detects the existing entry and prepends the
@@ -114,18 +164,29 @@ Prefer to drive the steps yourself? They still exist individually — `pack`,
 `release` (pack → GitHub release → entry), `preflight`, `submit` (opens the PR),
 and `entry` (just prints the JSON).
 
-### Sign your releases (optional, recommended)
+### Signing (recommended — `publish` offers it)
 
-Give your plugin a stable identity. TREK pins your key on first install
-(trust-on-first-use); afterwards an unsigned or wrong-key update is refused.
+In a terminal, `publish` **asks** whether to sign, and creates the key for you if you
+have none — you don't have to know `--sign` or `keygen` exist. Scripts and CI are never
+prompted: pass `--sign`.
+
+A signature proves the artifact came from **you**, not just that its bytes match what
+the registry saw. Signing is dependency-free Ed25519 over the artifact bytes.
+
+It is a one-way door you may walk through **late**:
+
+- Unsigned throughout is fine — the sha256 pin is the only guarantee, and TREK accepts it.
+- **Unsigned → signed later breaks nobody.** Nothing is pinned until a signed version
+  installs, so adding a key at v1.4.0 is a real option, not a lost cause.
+- **Signed → unsigned is refused forever**, on every instance that already has the plugin.
+  `publish` refuses that at step 1, before anything is tagged or released.
+
+So **back the key up** (`~/.trek-plugin/signing.key`). Losing it means you cannot ship an
+update to your own plugin without a registry maintainer override.
 
 ```bash
-npx trek-plugin-sdk keygen                                  # once — writes ~/.trek-plugin/signing.key
-npx trek-plugin-sdk publish --repo you/repo --tag v1.1.0 --sign
+npx trek-plugin-sdk publish --repo you/repo --tag v1.1.0 --sign   # or just answer the prompt
 ```
-
-Signing is dependency-free Ed25519 over the artifact bytes. **Back up the key** —
-losing it means you can't ship signed updates.
 
 ## Exports
 
@@ -138,18 +199,55 @@ losing it means you can't ship signed updates.
 ## Commands
 
 Run any of these with `npx trek-plugin-sdk <command>` (or the short `trek-plugin`
-bin if you install the package):
+bin if you install the package). `trek-plugin help <command>` — or
+`trek-plugin <command> --help` — prints a full page for any of them.
 
-- `create [name] [--type t] [--interactive]` — scaffold a plugin; a wizard if you omit the name.
+**The path:**
+
+- `create [name] [--type t] [--template blank|notification-channel] [--interactive]` — scaffold a plugin; a wizard if you omit the name.
 - `dev [dir] [--port 4317]` — run locally with a real request loop, SQLite `db:own`, and hot reload.
-- `validate [dir]` — manifest + layout checks (a subset of registry CI, offline).
-- `pack [dir] [--out plugin.zip] [--json]` — build the artifact, print `sha256` + `size`.
+- `status [dir]` — where am I? what's left? Every offline registry gate as a checklist, plus the next command. Never fails.
+- `publish [dir] --repo o/n --tag vX [--sign [key]] [--no-checks] [--no-preflight]` — **the lot**: check → pack → release → preflight → open the PR. In a terminal it offers to sign (and makes you a key); scripts pass `--sign`.
+
+**Also:**
+
+- `validate [dir]` — the gate: the same checks as `status`, but it exits non-zero.
+- `pack [dir] [--out plugin.zip] [--json]` — build the artifact, print `sha256` + `size`. Refuses a plugin that could not *load*; does not enforce the publish gates, because packing is how you sideload a plugin to try it.
+- `shot [dir] [--port 4317] [--out docs/screenshot.png] [--dark] [--no-serve]` — capture `docs/screenshot.png`. Needs Playwright.
 - `keygen [--key file]` — create an Ed25519 signing key.
 - `sign [zip] [--key file]` — print a signature + public key for an artifact.
 - `entry --repo o/n --tag vX [--merge f] [--sign [key]] [--out f]` — emit the registry entry JSON.
-- `preflight --repo o/n --tag vX` (or `--entry f`) — run the registry CI checks locally, over the network.
-- `submit --repo o/n --tag vX [--sign [key]] [--draft]` — open the registry PR for you.
-- `release [dir] --repo o/n --tag vX [--sign [key]] [--merge f]` — pack → GitHub release → entry, in one go.
-- `publish [dir] --repo o/n --tag vX [--sign [key]] [--no-preflight]` — **the lot**: pack → tag + release → preflight → open the PR.
+- `preflight [dir] --repo o/n --tag vX [--entry f] [--all]` — the registry checks that need the network: the tag resolves to the pinned commit, the released artifact downloads and hashes, the id is not bound to another owner, and an update does not drop or rotate a published signing key.
+- `submit [dir] --repo o/n --tag vX [--registry o/n] [--draft]` — open the registry PR for you.
+- `release [dir] --repo o/n --tag vX [--sign [key]] [--merge f]` — pack → GitHub release → entry, without opening the PR.
+
+## Update notice
+
+Both CLIs (`trek-plugin` and `create-trek-plugin`) tell you when a newer SDK has been
+published. This matters more than the usual "you're on an old version" nag: the
+registry entry format, the manifest rules and the permission catalog all move with the
+TREK host, so a stale SDK can `pack` and `submit` an entry that today's registry CI
+rejects.
+
+It is powered by [`update-notifier`](https://github.com/sindresorhus/update-notifier),
+the standard for npm CLIs:
+
+- At most **once every 24 hours**, a detached background process asks
+  `registry.npmjs.org` for this package's `latest` version and caches the answer under
+  `$XDG_CONFIG_HOME/configstore/` (or `~/.config/…`).
+- Your command **never waits for it** — the notice is printed from that cache, so a
+  fresh install learns about an update on a later run.
+- The notice goes to **stderr**, so `pack --json` and `entry` keep piping clean JSON.
+
+The request is an unauthenticated GET for a public package — the same one `npm install`
+makes (npm's servers see your IP, as for any download). TREK has no telemetry, and this
+isn't any. To turn it off:
+
+```bash
+export NO_UPDATE_NOTIFIER=1
+```
+
+It is already silent in CI (any `CI` env var), under `NODE_ENV=test`, and whenever
+stdout isn't a terminal (i.e. when piped or redirected).
 
 The SDK tooling in this repo is MIT. Your plugin is your own code under your own license.

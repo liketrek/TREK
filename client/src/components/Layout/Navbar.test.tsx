@@ -6,6 +6,7 @@ import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useAddonStore } from '../../store/addonStore';
+import { usePluginStore } from '../../store/pluginStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildSettings } from '../../../tests/helpers/factories';
 import Navbar from './Navbar';
@@ -303,5 +304,22 @@ describe('Navbar', () => {
     render(<Navbar />);
     await user.click(screen.getByText('adminuser'));
     expect(screen.getByText('Administrator')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-NAVBAR-034: page plugin renders the icon its manifest declares', () => {
+    seedStore(usePluginStore, {
+      plugins: [{ id: 'trip-doctor', name: 'Trip Doctor', type: 'page', icon: 'Stethoscope' }],
+    });
+    const { container } = render(<Navbar />);
+    expect(screen.getByRole('link', { name: /trip doctor/i })).toBeInTheDocument();
+    expect(container.querySelector('.lucide-stethoscope')).not.toBeNull();
+  });
+
+  it('FE-COMP-NAVBAR-035: page plugin with an unknown icon falls back to Blocks', () => {
+    seedStore(usePluginStore, {
+      plugins: [{ id: 'bogus', name: 'Bogus', type: 'page', icon: 'NotAnIcon' }],
+    });
+    const { container } = render(<Navbar />);
+    expect(container.querySelector('.lucide-blocks')).not.toBeNull();
   });
 });

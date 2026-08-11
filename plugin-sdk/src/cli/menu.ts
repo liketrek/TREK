@@ -12,23 +12,30 @@ export interface MenuItem {
   hint: string;
 }
 
-/** The everyday author journey. `advanced`/`exit` are control entries. */
+/**
+ * The path, in the order you walk it — create, then dev, then status, then publish. The menu is
+ * often the first thing a new author ever sees, so its ORDER is the only documentation some of
+ * them will read. `validate` and `pack` moved to Advanced: `status` says everything `validate`
+ * says and tells you what to do about it, and `publish` packs for you.
+ */
 export const PRIMARY_MENU: MenuItem[] = [
   { value: 'create', label: 'Create a plugin', hint: 'Scaffold a new plugin' },
   { value: 'dev', label: 'Run the dev server', hint: 'Live-reload your plugin locally' },
-  { value: 'validate', label: 'Validate', hint: 'Check the manifest + layout' },
-  { value: 'pack', label: 'Pack', hint: 'Build plugin.zip' },
-  { value: 'publish', label: 'Publish', hint: 'Release + open the registry PR' },
-  { value: 'advanced', label: 'Advanced…', hint: 'Signing, registry entry, preflight' },
+  { value: 'status', label: 'Status', hint: "Where am I? What's left before I can publish?" },
+  { value: 'shot', label: 'Screenshot', hint: 'Capture docs/screenshot.png (the registry needs one)' },
+  { value: 'publish', label: 'Publish', hint: 'Check → release → open the registry PR' },
+  { value: 'advanced', label: 'Advanced…', hint: 'Validate, pack, signing, registry entry' },
   { value: 'exit', label: 'Exit', hint: '' },
 ];
 
-/** The less-common signing/registry commands, behind the `advanced` entry. */
+/** Real commands, just not ones you need in order to publish a plugin. */
 export const ADVANCED_MENU: MenuItem[] = [
+  { value: 'validate', label: 'Validate', hint: 'The gate: same checks as status, but it exits non-zero' },
+  { value: 'pack', label: 'Pack', hint: 'Build plugin.zip without releasing it' },
   { value: 'keygen', label: 'Generate a signing key', hint: 'Create an Ed25519 signing key' },
   { value: 'sign', label: 'Sign an artifact', hint: 'Print a signature + public key' },
   { value: 'entry', label: 'Registry entry', hint: 'Print the ready-to-PR registry JSON' },
-  { value: 'preflight', label: 'Preflight', hint: 'Run the registry CI checks locally' },
+  { value: 'preflight', label: 'Preflight', hint: 'The registry checks that need the release to exist' },
   { value: 'submit', label: 'Submit', hint: 'Open the registry PR' },
   { value: 'release', label: 'Release', hint: 'Pack → GitHub release → print entry' },
   { value: 'back', label: '← Back', hint: '' },

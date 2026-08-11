@@ -32,6 +32,5 @@ server/tests/
 server/vitest.config.ts
 **/*.test.ts
 **/*.spec.ts
-wiki/
 scripts/
 charts/

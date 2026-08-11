@@ -564,6 +564,30 @@ describe('DayDetailPanel', () => {
     });
   });
 
+  it('FE-PLANNER-DAYDETAIL-067: hotel picker defaults check-out to the day AFTER check-in', async () => {
+    const day2 = buildDay({ id: 2, trip_id: 1, date: '2025-06-16', title: 'Day 2' });
+    const day3 = buildDay({ id: 3, trip_id: 1, date: '2025-06-17', title: 'Day 3' });
+    render(<DayDetailPanel {...defaultProps} days={[day, day2, day3]} />);
+    await userEvent.click(await screen.findByText(/Add accommodation/i));
+    await waitFor(() => {
+      const portal = document.body.querySelector('[style*="z-index: 99999"]');
+      // Closed selects render only their chosen label: check-in on the opened
+      // day, check-out on the following one — nobody stays a few hours.
+      expect(portal?.textContent).toContain('Day in Paris');
+      expect(portal?.textContent).toContain('Day 2');
+      expect(portal?.textContent).not.toContain('Day 3');
+    });
+  });
+
+  it('FE-PLANNER-DAYDETAIL-068: hotel picker falls back to a same-day range on the last trip day', async () => {
+    render(<DayDetailPanel {...defaultProps} days={[day]} />);
+    await userEvent.click(await screen.findByText(/Add accommodation/i));
+    await waitFor(() => {
+      const portal = document.body.querySelector('[style*="z-index: 99999"]');
+      expect(portal?.textContent?.match(/Day in Paris/g)).toHaveLength(2);
+    });
+  });
+
   it('FE-PLANNER-DAYDETAIL-034: accommodation with all fields shows full details grid', async () => {
     server.use(
       http.get('/api/trips/1/accommodations', () =>

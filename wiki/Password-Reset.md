@@ -4,6 +4,8 @@
 
 TREK supports email-based self-service password reset. On the login page, click the **"Forgot password?"** link to go to `/forgot-password`. Enter your email address and submit — if the address matches a local account, a reset link is sent to that inbox. The page always shows the same confirmation message regardless of whether the email was found, to prevent account enumeration.
 
+![Reset your password card with a Back to sign in link, an email field and a Send reset link button, plus a warning that SMTP is unconfigured so the reset link is written to the server console](assets/PasswordReset.png)
+
 > **No SMTP configured?** When the server has no SMTP credentials set up, the reset link is not emailed. Instead, it is printed to the **server console** inside a clearly-fenced block so a self-hoster can copy and relay it manually. The forgot-password page also shows a visible hint that SMTP is unconfigured.
 
 ### Reset flow

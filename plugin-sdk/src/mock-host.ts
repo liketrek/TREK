@@ -1,5 +1,6 @@
 import type { PluginContext, PluginDefinition, PluginRequest, PluginResponse, Trip, Place, Day, Reservation, PackingItem, TripFile, BudgetItem, User, NotificationMessage, PluginActionResult } from './index.js';
 import { CHANNEL_EVENTS } from './manifest.js';
+import { PermissionDenied, HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, JOBS_PERMISSION } from './permissions.js';
 
 /**
  * A mock PluginContext for unit-testing a plugin without a running TREK
@@ -8,6 +9,12 @@ import { CHANNEL_EVENTS } from './manifest.js';
  * plugin degrades gracefully. Data access returns configured fixtures; the db is
  * a lightweight recorder (configure results, or use an integration test for real
  * SQL).
+ *
+ * That applies to the DRIVER too (`run(def)`), not just ctx: TREK gates hooks, event
+ * subscriptions, jobs and the GDPR handlers on a permission before the plugin is ever
+ * reached, and skips an ungranted plugin SILENTLY. So `run(def).hook('warningProvider')`
+ * without `hook:trip-warning-provider` throws here — otherwise a green unit test would
+ * still mean a plugin that does nothing at all in production.
  */
 
 export interface MockHostOptions {
@@ -66,6 +73,11 @@ export interface MockHostOptions {
    * undeclared key throws — production refuses it before the child is ever woken.
    * Unset = any key the plugin implements can be driven. */
   declaredActions?: string[];
+  /** Hosts an ADMIN supplies at runtime to an `operatorEgress: true` plugin, which by
+   * definition cannot name them in its manifest. Only `trek-plugin dev` reads this (to
+   * widen its egress guard); the mock ctx makes no network calls of its own. It lives
+   * here because dev-fixtures.json IS a MockHostOptions and dev spreads it in whole. */
+  operatorEgressHosts?: string[];
   /** The events this plugin's notification channel accepts, i.e. the manifest's
    * `capabilities.notificationChannel.events`. Defaults to the full CHANNEL_EVENTS set.
    * A manifest can only NARROW that set, never widen it — so can this. */
@@ -160,7 +172,6 @@ export interface MockHost {
   run(def: PluginDefinition): PluginDriver;
 }
 
-class PermissionDenied extends Error {}
 
 // --- Statement guards copied from the host's PluginDataDb (plugin-data.service.ts),
 // so SQL production refuses fails in a unit test too instead of silently passing. ---
@@ -1365,6 +1376,18 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
   // ctx shares every fixture and recorder but binds nobody.
   const userlessCtx = buildCtx(undefined);
 
+  // TREK gates these entry points BEFORE the plugin is reached: an ungranted hook is
+  // never offered to consumers, an ungranted subscriber is never delivered an event, and
+  // an ungranted plugin's jobs are never scheduled. It does all of that silently. Refuse
+  // them here so a unit test can't pass on a plugin production would never call.
+  const needEntry = (perm: string, what: string) => {
+    if (!grants.has(perm)) {
+      throw new PermissionDenied(
+        `PERMISSION_DENIED: ${what} requires ${perm} — TREK never fires an entry point the manifest did not grant`,
+      );
+    }
+  };
+
   const run = (def: PluginDefinition): PluginDriver => ({
     load: async () => { await def.onLoad?.(ctx); },
     unload: async () => { await def.onUnload?.(ctx); },
@@ -1380,15 +1403,18 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
       return r.handler(full, ctx);
     },
     job: async (id) => {
+      needEntry(JOBS_PERMISSION, `job "${id}"`);
       const j = (def.jobs ?? []).find((x) => x.id === id);
       if (!j) throw new Error(`no job "${id}"`);
       await j.handler(userlessCtx);
     },
     scheduled: async (name, payload) => {
+      needEntry(JOBS_PERMISSION, `scheduled "${name}"`);
       if (typeof def.scheduled !== 'function') throw new Error('plugin has no scheduled handler');
       await def.scheduled({ name, payload }, userlessCtx);
     },
     event: async (name, payload) => {
+      needEntry(EVENTS_PERMISSION, `event "${name}"`);
       for (const s of def.events ?? []) {
         if (s.on === name || s.on === '*') {
           await s.handler({ event: name, tripId: payload?.tripId ?? 0, entity: payload?.entity, entityId: payload?.entityId, snapshot: payload?.snapshot }, userlessCtx);
@@ -1401,14 +1427,18 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
       }
     },
     deleteUserData: async (userId) => {
+      needEntry(USER_DATA_PERMISSION, 'deleteUserData');
       if (typeof def.deleteUserData !== 'function') throw new Error('plugin has no deleteUserData handler');
       await def.deleteUserData({ userId }, userlessCtx);
     },
     exportUserData: async (userId) => {
+      needEntry(USER_DATA_PERMISSION, 'exportUserData');
       if (typeof def.exportUserData !== 'function') throw new Error('plugin has no exportUserData handler');
       return def.exportUserData({ userId }, userlessCtx);
     },
     hook: async (name, fn, ...args) => {
+      const perm = HOOK_PERMISSION[name];
+      if (perm) needEntry(perm, `hook ${name}`);
       const hooks = def.hooks as Record<string, Record<string, (...a: unknown[]) => unknown> | undefined> | undefined;
       const impl = hooks?.[name];
       if (!impl || typeof impl[fn] !== 'function') throw new Error(`no hook ${name}.${fn}`);
@@ -1438,6 +1468,7 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
     },
     channel: {
       send: async (msg, config) => {
+        needEntry(HOOK_PERMISSION.notificationChannel, 'notificationChannel.send');
         const impl = def.hooks?.notificationChannel;
         if (!impl) throw new Error('plugin has no notificationChannel hook');
         const allowed = opts.channelEvents ?? CHANNEL_EVENTS;
@@ -1447,6 +1478,7 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         await impl.send(msg, settingsBlob(config ?? opts.userSettings, 'channel config'), userlessCtx);
       },
       test: async (config) => {
+        needEntry(HOOK_PERMISSION.notificationChannel, 'notificationChannel.test');
         const impl = def.hooks?.notificationChannel;
         if (typeof impl?.test !== 'function') throw new Error('plugin has no notificationChannel.test hook');
         await impl.test(settingsBlob(config ?? opts.userSettings, 'channel config'), userlessCtx);
@@ -1456,3 +1488,7 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
 
   return { ctx, userlessCtx, calls, logs, broadcasts, emitted, notifications, scheduled: scheduledTasks, run };
 }
+
+// `trek-plugin-sdk/testing` resolves to this module, so re-export what a test needs to
+// assert on a denial: `await expect(h.run(def).job('x')).rejects.toThrow(PermissionDenied)`.
+export { PermissionDenied, HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, JOBS_PERMISSION } from './permissions.js';

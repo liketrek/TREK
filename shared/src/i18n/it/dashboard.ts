@@ -86,6 +86,16 @@ const dashboard: TranslationStrings = {
   'dashboard.useUnsplashPhoto': 'Usa foto Unsplash di {photographer}',
   'dashboard.titleRequired': 'Il titolo è obbligatorio',
   'dashboard.endDateError': 'La data di fine deve essere successiva alla data di inizio',
+  'dashboard.dateShiftTitle': 'Nuova data di inizio',
+  'dashboard.dateShiftIntro':
+    'Hai modificato la data di inizio di questo viaggio. Come devono adattarsi i tuoi piani alle nuove date?',
+  'dashboard.dateShiftKeepBookings': 'Mantieni le prenotazioni alle loro date',
+  'dashboard.dateShiftKeepBookingsDesc':
+    'I programmi giornalieri si spostano con le nuove date, mentre prenotazioni e alloggi restano alle date originali, purché queste facciano ancora parte del viaggio.',
+  'dashboard.dateShiftAll': 'Sposta tutto',
+  'dashboard.dateShiftAllDesc': "L'intero itinerario si sposta con le nuove date, incluse prenotazioni e alloggi.",
+  'dashboard.dateShiftHint':
+    'Suggerimento: per spostare solo una parte dell\'itinerario, usa "Aggiungi giorno" nel planner.',
   'dashboard.greeting.morning': 'Buongiorno,',
   'dashboard.greeting.afternoon': 'Buon pomeriggio,',
   'dashboard.greeting.evening': 'Buonasera,',

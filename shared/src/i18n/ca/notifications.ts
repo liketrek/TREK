@@ -1,0 +1,36 @@
+import type { TranslationStrings } from '../types';
+
+const notifications: TranslationStrings = {
+  'notifications.title': 'Notificacions',
+  'notifications.markAllRead': 'Marca-ho tot com a llegit',
+  'notifications.deleteAll': 'Elimina-ho tot',
+  'notifications.showAll': 'Mostra totes les notificacions',
+  'notifications.empty': 'Sense notificacions',
+  'notifications.emptyDescription': 'Estàs al dia!',
+  'notifications.all': 'Totes',
+  'notifications.unreadOnly': 'No llegides',
+  'notifications.markRead': 'Marca com a llegida',
+  'notifications.markUnread': 'Marca com a no llegida',
+  'notifications.delete': 'Elimina',
+  'notifications.system': 'Sistema',
+  'notifications.synologySessionCleared.title': 'Synology Photos desconnectat',
+  'notifications.synologySessionCleared.text':
+    'El teu servidor o compte ha canviat — vés a Configuració per tornar a provar la connexió.',
+  'notifications.test.title': 'Notificació de prova de {actor}',
+  'notifications.test.text': 'Aquesta és una notificació de prova simple.',
+  'notifications.test.booleanTitle': '{actor} sol·licita la teva aprovació',
+  'notifications.test.booleanText': 'Notificació de prova booleana.',
+  'notifications.test.accept': 'Aprova',
+  'notifications.test.decline': 'Rebutja',
+  'notifications.test.navigateTitle': 'Mira això',
+  'notifications.test.navigateText': 'Notificació de prova de navegació.',
+  'notifications.test.goThere': 'Vés-hi',
+  'notifications.test.adminTitle': "Difusió d'administrador",
+  'notifications.test.adminText': '{actor} va enviar una notificació de prova a tots els administradors.',
+  'notifications.test.tripTitle': '{actor} va publicar al teu viatge',
+  'notifications.test.tripText': 'Notificació de prova per al viatge "{trip}".',
+  'notifications.versionAvailable.title': 'Actualització disponible',
+  'notifications.versionAvailable.text': 'TREK {version} ja està disponible.',
+  'notifications.versionAvailable.button': 'Mostra els detalls',
+};
+export default notifications;

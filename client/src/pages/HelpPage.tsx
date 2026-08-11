@@ -1,3 +1,4 @@
+import { Children, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -120,6 +121,23 @@ export default function HelpPage() {
   )
 }
 
+/**
+ * GitHub's heading-anchor slug: lowercase, punctuation dropped, spaces to
+ * hyphens. Wiki pages link to their own sections with `](#some-heading)`, and
+ * those hrefs are written against GitHub's scheme — so ours has to match it, or
+ * in-app anchors point at nothing.
+ */
+function headingId(children: ReactNode): string {
+  const text = Children.toArray(children)
+    .map(c => (typeof c === 'string' || typeof c === 'number' ? String(c) : ''))
+    .join('')
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+}
+
 /** Markdown renderer with TREK-styled elements and SPA-internal links. */
 function WikiContent({ markdown }: { markdown: string }) {
   return (
@@ -127,15 +145,15 @@ function WikiContent({ markdown }: { markdown: string }) {
       remarkPlugins={[remarkGfm]}
       components={{
         h1: ({ children }) => (
-          <h1 className="text-[26px] font-bold text-content mt-1 mb-4 leading-tight">{children}</h1>
+          <h1 id={headingId(children)} className="text-[26px] font-bold text-content mt-1 mb-4 leading-tight">{children}</h1>
         ),
         h2: ({ children }) => (
-          <h2 className="text-[19px] font-bold text-content mt-8 mb-3 pb-1.5 border-b border-edge-secondary">
+          <h2 id={headingId(children)} className="text-[19px] font-bold text-content mt-8 mb-3 pb-1.5 border-b border-edge-secondary scroll-mt-24">
             {children}
           </h2>
         ),
-        h3: ({ children }) => <h3 className="text-[15.5px] font-semibold text-content mt-6 mb-2">{children}</h3>,
-        h4: ({ children }) => <h4 className="text-[14px] font-semibold text-content mt-5 mb-2">{children}</h4>,
+        h3: ({ children }) => <h3 id={headingId(children)} className="text-[15.5px] font-semibold text-content mt-6 mb-2 scroll-mt-24">{children}</h3>,
+        h4: ({ children }) => <h4 id={headingId(children)} className="text-[14px] font-semibold text-content mt-5 mb-2 scroll-mt-24">{children}</h4>,
         p: ({ children }) => <p className="text-[14px] text-content-secondary leading-[1.7] my-3">{children}</p>,
         ul: ({ children }) => <ul className="list-disc pl-5 my-3 space-y-1.5 text-[14px] text-content-secondary">{children}</ul>,
         ol: ({ children }) => <ol className="list-decimal pl-5 my-3 space-y-1.5 text-[14px] text-content-secondary">{children}</ol>,

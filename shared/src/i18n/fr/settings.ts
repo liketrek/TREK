@@ -50,8 +50,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Astuce :',
   'settings.mapTip':
     'Clic droit et glisser pour pivoter/incliner la carte. Clic milieu pour ajouter un lieu (le clic droit est réservé à la rotation).',
-  'settings.latitude': 'Latitude',
-  'settings.longitude': 'Longitude',
   'settings.saveMap': 'Enregistrer la carte',
   'settings.apiKeys': 'Clés API',
   'settings.mapsKey': 'Clé API Google Maps',
@@ -301,12 +299,14 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.configure': 'Configurer',
   'settings.notificationPreferences.testSuccess': 'Notification de test envoyée.',
   'settings.notificationPreferences.testFailed': 'Échec du test.',
-  'settings.notificationPreferences.pluginConfigured': 'Configuré. Gérez vos identifiants sur la page de réglages du plugin.',
+  'settings.notificationPreferences.pluginConfigured':
+    'Configuré. Gérez vos identifiants sur la page de réglages du plugin.',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
   'settings.currency': 'Currency',
   'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currencyTrip': 'Devise du voyage',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Connectez-vous plus rapidement et de façon résistante au phishing avec une passkey — votre empreinte digitale, votre visage, votre code PIN ou une clé matérielle. Votre mot de passe reste disponible en secours.',
@@ -501,6 +501,9 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': 'Ressource',
   'settings.pluginActivity.columns.when': 'Quand',
   'settings.pluginActivity.columns.status': 'Résultat',
+  'settings.alwaysShowRoutes': 'Toujours afficher les itinéraires de réservation',
+  'settings.alwaysShowRoutesHint':
+    "Affiche automatiquement sur la carte l'itinéraire de chaque vol, trajet en train et autre réservation, sans avoir à l'activer un par un.",
 };
 
 export default settings;

@@ -1,24 +1,40 @@
-import React, { useState, useEffect } from 'react'
-import { Info, Github, Shield, Key, Users, Database, Upload, Clock, Puzzle, CalendarDays, Globe, ArrowRightLeft, Map, Briefcase, ListChecks, Wallet, FileText, Plane } from 'lucide-react'
-import { useTranslation } from '../../i18n'
+import {
+  ArrowRightLeft,
+  CalendarDays,
+  Clock,
+  Database,
+  FileText,
+  Github,
+  Globe,
+  Key,
+  ListChecks,
+  Map,
+  Puzzle,
+  Shield,
+  Upload,
+  Users,
+  Wallet,
+} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useTranslation } from '../../i18n';
 
 interface DemoTexts {
-  titleBefore: string
-  titleAfter: string
-  title: string
-  description: string
-  resetIn: string
-  minutes: string
-  uploadNote: string
-  fullVersionTitle: string
-  features: string[]
-  addonsTitle: string
-  addons: [string, string][]
-  whatIs: string
-  whatIsDesc: string
-  selfHost: string
-  selfHostLink: string
-  close: string
+  titleBefore: string;
+  titleAfter: string;
+  title: string;
+  description: string;
+  resetIn: string;
+  minutes: string;
+  uploadNote: string;
+  fullVersionTitle: string;
+  features: string[];
+  addonsTitle: string;
+  addons: [string, string][];
+  whatIs: string;
+  whatIsDesc: string;
+  selfHost: string;
+  selfHostLink: string;
+  close: string;
 }
 
 const texts: Record<string, DemoTexts> = {
@@ -26,7 +42,8 @@ const texts: Record<string, DemoTexts> = {
     titleBefore: 'Willkommen bei ',
     titleAfter: '',
     title: 'Willkommen zur TREK Demo',
-    description: 'Du kannst Reisen ansehen, bearbeiten und eigene erstellen. Alle Aenderungen werden jede Stunde automatisch zurueckgesetzt.',
+    description:
+      'Du kannst Reisen ansehen, bearbeiten und eigene erstellen. Alle Aenderungen werden jede Stunde automatisch zurueckgesetzt.',
     resetIn: 'Naechster Reset in',
     minutes: 'Minuten',
     uploadNote: 'Datei-Uploads (Fotos, Dokumente, Cover) sind in der Demo deaktiviert.',
@@ -49,7 +66,8 @@ const texts: Record<string, DemoTexts> = {
       ['Widgets', 'Waehrungsrechner & Zeitzonen'],
     ],
     whatIs: 'Was ist TREK?',
-    whatIsDesc: 'Ein selbst-gehosteter Reiseplaner mit Echtzeit-Kollaboration, interaktiver Karte, OIDC Login und Dark Mode.',
+    whatIsDesc:
+      'Ein selbst-gehosteter Reiseplaner mit Echtzeit-Kollaboration, interaktiver Karte, OIDC Login und Dark Mode.',
     selfHost: 'Open Source — ',
     selfHostLink: 'selbst hosten',
     close: 'Verstanden',
@@ -81,7 +99,8 @@ const texts: Record<string, DemoTexts> = {
       ['Widgets', 'Currency converter & timezones'],
     ],
     whatIs: 'What is TREK?',
-    whatIsDesc: 'A self-hosted travel planner with real-time collaboration, interactive maps, OIDC login and dark mode.',
+    whatIsDesc:
+      'A self-hosted travel planner with real-time collaboration, interactive maps, OIDC login and dark mode.',
     selfHost: 'Open source — ',
     selfHostLink: 'self-host it',
     close: 'Got it',
@@ -113,7 +132,8 @@ const texts: Record<string, DemoTexts> = {
       ['Widgets', 'Conversor de divisas y zonas horarias'],
     ],
     whatIs: '¿Qué es TREK?',
-    whatIsDesc: 'Un planificador de viajes autohospedado con colaboración en tiempo real, mapas interactivos, inicio de sesión OIDC y modo oscuro.',
+    whatIsDesc:
+      'Un planificador de viajes autohospedado con colaboración en tiempo real, mapas interactivos, inicio de sesión OIDC y modo oscuro.',
     selfHost: 'Código abierto — ',
     selfHostLink: 'alójalo tú mismo',
     close: 'Entendido',
@@ -218,7 +238,8 @@ const texts: Record<string, DemoTexts> = {
     titleBefore: 'Selamat datang di ',
     titleAfter: '',
     title: 'Selamat datang di Demo TREK',
-    description: 'Anda dapat melihat, mengedit, dan membuat perjalanan. Semua perubahan akan diatur ulang secara otomatis setiap jam.',
+    description:
+      'Anda dapat melihat, mengedit, dan membuat perjalanan. Semua perubahan akan diatur ulang secara otomatis setiap jam.',
     resetIn: 'Atur ulang berikutnya dalam',
     minutes: 'menit',
     uploadNote: 'Unggah file (foto, dokumen, sampul) dinonaktifkan dalam mode demo.',
@@ -241,159 +262,309 @@ const texts: Record<string, DemoTexts> = {
       ['Widget', 'Konverter mata uang & zona waktu'],
     ],
     whatIs: 'Apa itu TREK?',
-    whatIsDesc: 'Perencana perjalanan yang di-host sendiri dengan kolaborasi real-time, peta interaktif, login OIDC, dan mode gelap.',
+    whatIsDesc:
+      'Perencana perjalanan yang di-host sendiri dengan kolaborasi real-time, peta interaktif, login OIDC, dan mode gelap.',
     selfHost: 'Buka sumber — ',
     selfHostLink: 'host mandiri',
     close: 'Mengerti',
   },
-}
+};
 
-const featureIcons = [Upload, Key, Users, Database, Puzzle, Shield]
-const addonIcons = [CalendarDays, Globe, ListChecks, Wallet, FileText, ArrowRightLeft]
+const featureIcons = [Upload, Key, Users, Database, Puzzle, Shield];
+const addonIcons = [CalendarDays, Globe, ListChecks, Wallet, FileText, ArrowRightLeft];
 
 export default function DemoBanner(): React.ReactElement | null {
-  const [dismissed, setDismissed] = useState<boolean>(false)
-  const [minutesLeft, setMinutesLeft] = useState<number>(59 - new Date().getMinutes())
-  const { language } = useTranslation()
-  const t = texts[language] || texts.en
+  const [dismissed, setDismissed] = useState<boolean>(false);
+  const [minutesLeft, setMinutesLeft] = useState<number>(59 - new Date().getMinutes());
+  const { language } = useTranslation();
+  const t = texts[language] || texts.en;
 
   useEffect(() => {
-    const interval = setInterval(() => setMinutesLeft(59 - new Date().getMinutes()), 10000)
-    return () => clearInterval(interval)
-  }, [])
+    const interval = setInterval(() => setMinutesLeft(59 - new Date().getMinutes()), 10000);
+    return () => clearInterval(interval);
+  }, []);
 
-  if (dismissed) return null
+  if (dismissed) return null;
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 99999,
-      background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      paddingTop: 'max(16px, env(safe-area-inset-top))',
-      paddingBottom: 'max(16px, calc(env(safe-area-inset-bottom) + 80px))',
-      paddingLeft: 16, paddingRight: 16,
-      overflow: 'auto',
-      fontFamily: "var(--font-system)",
-    }} onClick={() => setDismissed(true)}>
-      <div style={{
-        background: 'white', borderRadius: 20, padding: '28px 24px 0',
-        maxWidth: 480, width: '100%',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-        maxHeight: 'min(90vh, calc(100dvh - 96px))',
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 99999,
+        background: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingTop: 'max(16px, env(safe-area-inset-top))',
+        paddingBottom: 'max(16px, calc(env(safe-area-inset-bottom) + 80px))',
+        paddingLeft: 16,
+        paddingRight: 16,
         overflow: 'auto',
-        display: 'flex', flexDirection: 'column',
-      }} onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}>
-
+        fontFamily: 'var(--font-system)',
+      }}
+      onClick={() => setDismissed(true)}
+    >
+      <div
+        style={{
+          background: 'white',
+          borderRadius: 20,
+          padding: '28px 24px 0',
+          maxWidth: 480,
+          width: '100%',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+          maxHeight: 'min(90vh, calc(100dvh - 96px))',
+          overflow: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+        onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
+      >
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
           <img src="/icons/icon-dark.svg" alt="" style={{ width: 36, height: 36, borderRadius: 10 }} />
-          <h2 style={{ margin: 0, fontSize: 'calc(17px * var(--fs-scale-subtitle, 1))', fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: 5 }}>
-            {t.titleBefore}<img src="/text-dark.svg" alt="TREK" style={{ height: 18 }} />{t.titleAfter}
+          <h2
+            style={{
+              margin: 0,
+              fontSize: 'calc(17px * var(--fs-scale-subtitle, 1))',
+              fontWeight: 700,
+              color: '#111827',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+            }}
+          >
+            {t.titleBefore}
+            <img src="/text-dark.svg" alt="TREK" style={{ height: 18 }} />
+            {t.titleAfter}
           </h2>
         </div>
 
-        <p style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: '#6b7280', lineHeight: 1.6, margin: '0 0 12px' }}>
+        <p
+          style={{
+            fontSize: 'calc(13px * var(--fs-scale-body, 1))',
+            color: '#6b7280',
+            lineHeight: 1.6,
+            margin: '0 0 12px',
+          }}
+        >
           {t.description}
         </p>
 
         {/* Timer + Upload note */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          <div style={{
-            flex: 1, display: 'flex', alignItems: 'center', gap: 6,
-            background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 10, padding: '8px 10px',
-          }}>
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              background: '#f0f9ff',
+              border: '1px solid #bae6fd',
+              borderRadius: 10,
+              padding: '8px 10px',
+            }}
+          >
             <Clock size={13} style={{ flexShrink: 0, color: '#0284c7' }} />
             <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: '#0369a1', fontWeight: 600 }}>
               {t.resetIn} {minutesLeft} {t.minutes}
             </span>
           </div>
-          <div style={{
-            flex: 1, display: 'flex', alignItems: 'center', gap: 6,
-            background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '8px 10px',
-          }}>
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              background: '#fffbeb',
+              border: '1px solid #fde68a',
+              borderRadius: 10,
+              padding: '8px 10px',
+            }}
+          >
             <Upload size={13} style={{ flexShrink: 0, color: '#b45309' }} />
-            <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: '#b45309' }}>{t.uploadNote}</span>
+            <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: '#b45309' }}>
+              {t.uploadNote}
+            </span>
           </div>
         </div>
 
         {/* What is TREK */}
-        <div style={{
-          background: '#f8fafc', borderRadius: 12, padding: '12px 14px', marginBottom: 16,
-          border: '1px solid #e2e8f0',
-        }}>
+        <div
+          style={{
+            background: '#f8fafc',
+            borderRadius: 12,
+            padding: '12px 14px',
+            marginBottom: 16,
+            border: '1px solid #e2e8f0',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <Map size={14} style={{ color: '#111827' }} />
-            <span style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span
+              style={{
+                fontSize: 'calc(12px * var(--fs-scale-body, 1))',
+                fontWeight: 700,
+                color: '#111827',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
               {t.whatIs}
             </span>
           </div>
-          <p style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: '#64748b', lineHeight: 1.5, margin: 0 }}>{t.whatIsDesc}</p>
+          <p style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: '#64748b', lineHeight: 1.5, margin: 0 }}>
+            {t.whatIsDesc}
+          </p>
         </div>
 
         {/* Addons */}
-        <p style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: '#374151', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <p
+          style={{
+            fontSize: 'calc(10px * var(--fs-scale-caption, 1))',
+            fontWeight: 700,
+            color: '#374151',
+            margin: '0 0 8px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
           <Puzzle size={12} />
           {t.addonsTitle}
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 16 }}>
           {t.addons.map(([name, desc], i) => {
-            const Icon = addonIcons[i]
+            const Icon = addonIcons[i];
             return (
-              <div key={name} style={{
-                background: '#f8fafc', borderRadius: 10, padding: '8px 10px',
-                border: '1px solid #f1f5f9',
-              }}>
+              <div
+                key={name}
+                style={{
+                  background: '#f8fafc',
+                  borderRadius: 10,
+                  padding: '8px 10px',
+                  border: '1px solid #f1f5f9',
+                }}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                   <Icon size={12} style={{ flexShrink: 0, color: '#111827' }} />
-                  <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, color: '#111827' }}>{name}</span>
+                  <span
+                    style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, color: '#111827' }}
+                  >
+                    {name}
+                  </span>
                 </div>
-                <p style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: '#94a3b8', margin: 0, lineHeight: 1.3, paddingLeft: 18 }}>{desc}</p>
+                <p
+                  style={{
+                    fontSize: 'calc(10px * var(--fs-scale-caption, 1))',
+                    color: '#94a3b8',
+                    margin: 0,
+                    lineHeight: 1.3,
+                    paddingLeft: 18,
+                  }}
+                >
+                  {desc}
+                </p>
               </div>
-            )
+            );
           })}
         </div>
 
         {/* Full version features */}
-        <p style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: '#374151', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <p
+          style={{
+            fontSize: 'calc(10px * var(--fs-scale-caption, 1))',
+            fontWeight: 700,
+            color: '#374151',
+            margin: '0 0 8px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
           <Shield size={12} />
           {t.fullVersionTitle}
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 16 }}>
           {t.features.map((text, i) => {
-            const Icon = featureIcons[i]
+            const Icon = featureIcons[i];
             return (
-              <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: '#4b5563', padding: '4px 0' }}>
+              <div
+                key={text}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  fontSize: 'calc(11px * var(--fs-scale-caption, 1))',
+                  color: '#4b5563',
+                  padding: '4px 0',
+                }}
+              >
                 <Icon size={13} style={{ flexShrink: 0, color: '#9ca3af' }} />
                 <span>{text}</span>
               </div>
-            )
+            );
           })}
         </div>
 
         {/* Footer */}
-        <div style={{
-          padding: '14px 0 20px', borderTop: '1px solid #e5e7eb',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          position: 'sticky', bottom: 0, background: 'white',
-          marginTop: 'auto',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: '#9ca3af' }}>
+        <div
+          style={{
+            padding: '14px 0 20px',
+            borderTop: '1px solid #e5e7eb',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            position: 'sticky',
+            bottom: 0,
+            background: 'white',
+            marginTop: 'auto',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 'calc(11px * var(--fs-scale-caption, 1))',
+              color: '#9ca3af',
+            }}
+          >
             <Github size={13} />
             <span>{t.selfHost}</span>
-            <a href="https://github.com/mauriceboe/TREK" target="_blank" rel="noopener noreferrer"
-              style={{ color: '#111827', fontWeight: 600, textDecoration: 'none' }}>
+            <a
+              href="https://github.com/liketrek/TREK"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: '#111827', fontWeight: 600, textDecoration: 'none' }}
+            >
               {t.selfHostLink}
             </a>
           </div>
-          <button onClick={() => setDismissed(true)} style={{
-            background: '#111827', color: 'white', border: 'none',
-            borderRadius: 10, padding: '8px 20px', fontSize: 'calc(12px * var(--fs-scale-body, 1))',
-            fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-          }}>
+          <button
+            onClick={() => setDismissed(true)}
+            style={{
+              background: '#111827',
+              color: 'white',
+              border: 'none',
+              borderRadius: 10,
+              padding: '8px 20px',
+              fontSize: 'calc(12px * var(--fs-scale-body, 1))',
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
             {t.close}
           </button>
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -47,6 +47,7 @@ const packing: TranslationStrings = {
   'packing.bags': 'Bagage',
   'packing.noBag': 'Niet toegewezen',
   'packing.totalWeight': 'Totaalgewicht',
+  'packing.quantity': 'Aantal',
   'packing.bagName': 'Naam...',
   'packing.addBag': 'Bagage toevoegen',
   'packing.changeCategory': 'Naar lijst verplaatsen',

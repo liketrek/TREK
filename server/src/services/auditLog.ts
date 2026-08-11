@@ -107,6 +107,7 @@ const ACTION_LABELS: Record<string, string> = {
   'trip.delete': 'deleted trip',
   'admin.user_role_change': 'changed user role',
   'admin.user_delete': 'deleted user',
+  'admin.plugin_retrust': "re-trusted a plugin's author signing key",
   'admin.invite_create': 'created invite',
   'immich.private_ip_configured': 'configured Immich with private IP',
 };

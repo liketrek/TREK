@@ -128,15 +128,6 @@ export class ReservationsService {
 
   /** Fire-and-forget booking-change notification, mirroring the legacy dynamic import. */
   notifyBookingChange(tripId: string, actor: User, booking: string, type: string): void {
-    import('../../services/notificationService').then(({ send }) => {
-      const tripInfo = db.prepare('SELECT title FROM trips WHERE id = ?').get(tripId) as { title: string } | undefined;
-      send({
-        event: 'booking_change',
-        actorId: actor.id,
-        scope: 'trip',
-        targetId: Number(tripId),
-        params: { trip: tripInfo?.title || 'Untitled', actor: actor.email, booking, type: type || 'booking', tripId: String(tripId) },
-      }).catch(() => {});
-    });
+    svc.notifyBookingChange(tripId, actor.id, booking, type);
   }
 }

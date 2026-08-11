@@ -68,6 +68,13 @@ export type AirtrailFlight = z.infer<typeof airtrailFlightSchema>;
 
 export const airtrailImportSchema = z.object({
   flightIds: z.array(z.string()).min(1, 'Select at least one flight'),
+  /**
+   * Chains of selected flight ids to import as ONE multi-leg booking each, with
+   * the connection airports as layover stops (#1535). The server re-validates
+   * that each chain actually connects; one that doesn't falls back to
+   * individual imports.
+   */
+  connections: z.array(z.array(z.string()).min(2)).optional(),
 });
 export type AirtrailImport = z.infer<typeof airtrailImportSchema>;
 

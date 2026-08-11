@@ -2,9 +2,7 @@
 
 Chat with your group in real time, without leaving the trip planner.
 
-<!-- TODO: screenshot: chat panel with messages and reactions -->
-
-![Collab Chat](assets/Collab.png)
+![The trip chat, with messages from three trip members](assets/CollabChat.png)
 
 ## Where to find it
 

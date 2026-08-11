@@ -2,8 +2,6 @@
 
 TREK calculates walking and driving times between your places and can reorder them to minimize total travel distance.
 
-<!-- TODO: screenshot: optimized route displayed on map -->
-
 ![Route Optimization](assets/OptimizeRoute.png)
 
 ## Route calculation
@@ -28,14 +26,8 @@ Only unlocked places are reordered — locked places stay in their current posit
 
 The reorder can be undone immediately using the undo action that appears after it is applied.
 
-## Route calculation on/off
-
-Route calculation (segment time pills) can be toggled on or off per user in **Settings → Display**. When disabled, no OSRM requests are made and time pills are not shown.
-
 ## Export day to Google Maps
 
 The **Open in Google Maps** button (icon next to Optimize) generates a `https://www.google.com/maps/dir/lat,lng/lat,lng/…` URL containing all places in order and opens it in a new tab.
-
-> **Admin:** Route calculation can be disabled instance-wide via the admin settings.
 
 **See also:** [Day-Plans-and-Notes](Day-Plans-and-Notes) · [Map-Features](Map-Features) · [Display-Settings](Display-Settings)

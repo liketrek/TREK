@@ -2,8 +2,6 @@
 
 Attach and manage documents, tickets, and other files for your trip.
 
-<!-- TODO: screenshot: file attachment list with filter tabs -->
-
 ![Files](assets/Files.png)
 
 ## Where to find it
@@ -13,6 +11,8 @@ Open the **Files** tab inside the trip planner, or navigate directly to `/trips/
 > **Admin:** Files is an addon. Enable it in [Admin-Addons](Admin-Addons).
 
 ## Uploading
+
+![Files & Documents page with the All / PDFs / Images / Documents filter tabs, a Trash button, and the empty drag-and-drop upload area listing the allowed file types and 50 MB limit](assets/Documents.png)
 
 Drag and drop files onto the upload area, click it to open the file picker, or paste an image directly into the Files panel.
 

@@ -31,7 +31,7 @@ import {
   type PlaceBulkUpdateRequest,
   type DayNoteCreateRequest, type DayNoteUpdateRequest,
   type PackingImportRequest, type PackingBagMembersRequest, type PackingUpdateBagRequest,
-  type PackingCategoryAssigneesRequest,
+  type PackingCategoryAssigneesRequest, type PackingApplyTemplateRequest,
   type BudgetUpdateMembersRequest, type BudgetToggleMemberPaidRequest, type BudgetReorderCategoriesRequest,
   type TodoCategoryAssigneesRequest,
   type CollabNoteCreateRequest, type CollabNoteUpdateRequest, type CollabPollCreateRequest,
@@ -449,7 +449,7 @@ export const packingApi = {
   getCategoryAssignees: (tripId: number | string) => apiClient.get(`/trips/${tripId}/packing/category-assignees`).then(r => r.data),
   setCategoryAssignees: (tripId: number | string, categoryName: string, userIds: number[]) => apiClient.put(`/trips/${tripId}/packing/category-assignees/${encodeURIComponent(categoryName)}`, { user_ids: userIds } satisfies PackingCategoryAssigneesRequest).then(r => r.data),
   listTemplates: (tripId: number | string) => apiClient.get(`/trips/${tripId}/packing/templates`).then(r => r.data),
-  applyTemplate: (tripId: number | string, templateId: number) => apiClient.post(`/trips/${tripId}/packing/apply-template/${templateId}`).then(r => r.data),
+  applyTemplate: (tripId: number | string, templateId: number, visibility: 'common' | 'personal' = 'common') => apiClient.post(`/trips/${tripId}/packing/apply-template/${templateId}`, { visibility } satisfies PackingApplyTemplateRequest).then(r => r.data),
   saveAsTemplate: (tripId: number | string, name: string) => apiClient.post(`/trips/${tripId}/packing/save-as-template`, { name }).then(r => r.data),
   setBagMembers: (tripId: number | string, bagId: number, userIds: number[]) => apiClient.put(`/trips/${tripId}/packing/bags/${bagId}/members`, { user_ids: userIds } satisfies PackingBagMembersRequest).then(r => r.data),
   listBags: (tripId: number | string) => apiClient.get(`/trips/${tripId}/packing/bags`).then(r => r.data),
@@ -502,6 +502,11 @@ export const adminApi = {
   pluginActivate: (id: string, consent?: boolean) => apiClient.post(`/admin/plugins/${id}/activate`, consent ? { consent: true } : {}).then(r => r.data),
   pluginDeactivate: (id: string) => apiClient.post(`/admin/plugins/${id}/deactivate`).then(r => r.data),
   pluginUpdate: (id: string) => apiClient.post(`/admin/plugins/${id}/update`).then(r => r.data),
+  // Re-trust a ROTATED author signing key and update, in ONE call. `publicKey` is the
+  // full key the admin was shown (not a fingerprint): the server compares it exactly, so
+  // it can refuse if the registry entry was re-keyed again since the dialog rendered.
+  pluginRetrust: (id: string, version: string, publicKey: string) =>
+    apiClient.post(`/admin/plugins/${id}/retrust`, { version, publicKey }).then(r => r.data),
   pluginUninstall: (id: string, deleteData: boolean) => apiClient.post(`/admin/plugins/${id}/uninstall`, { deleteData }).then(r => r.data),
   pluginRescan: () => apiClient.post('/admin/plugins/rescan').then(r => r.data),
   pluginUpload: (file: File) => { const fd = new FormData(); fd.append('file', file); return postMultipart('/admin/plugins/upload', fd) },
@@ -739,8 +744,8 @@ export const airtrailApi = {
   sync: (): Promise<{ changed: number }> => apiClient.post('/integrations/airtrail/sync').then(r => r.data),
   // flights + import are added with the trip-planner import (P2)
   flights: () => apiClient.get('/integrations/airtrail/flights').then(r => r.data),
-  import: (tripId: number, flightIds: string[]) =>
-    apiClient.post(`/trips/${tripId}/reservations/import/airtrail`, { flightIds }).then(r => r.data),
+  import: (tripId: number, flightIds: string[], connections?: string[][]) =>
+    apiClient.post(`/trips/${tripId}/reservations/import/airtrail`, connections?.length ? { flightIds, connections } : { flightIds }).then(r => r.data),
 }
 
 export const journeyApi = {

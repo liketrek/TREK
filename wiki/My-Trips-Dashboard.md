@@ -2,8 +2,6 @@
 
 The dashboard at `/dashboard` is your home base — it lists all your trips, lets you create new ones, and surfaces quick-access widgets.
 
-<!-- TODO: screenshot: trips grid with spotlight card -->
-
 ![My Trips Dashboard](assets/DashboardWidgets.png)
 
 ## View Modes

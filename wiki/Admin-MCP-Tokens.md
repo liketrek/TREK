@@ -4,8 +4,6 @@ The **MCP Access** panel shows all active MCP OAuth sessions and API tokens acro
 
 This panel is only visible when the **MCP addon** is enabled in the [Admin-Addons](Admin-Addons) panel.
 
-<!-- TODO: screenshot: OAuth client and token list in MCP Access panel -->
-
 ![MCP Access](assets/MCPAccess.png)
 
 ## OAuth Sessions
