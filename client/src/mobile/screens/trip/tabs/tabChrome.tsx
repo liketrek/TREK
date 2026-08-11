@@ -166,6 +166,9 @@ export function TravelerAvatars({ travelers, label }: {
  * they were, and with a filter on there was no way back other than tapping the
  * same avatar again. It is a labelled bar now, closed off by the same divider
  * the rows below use, with an explicit way to clear the filter.
+ *
+ * Its horizontal padding follows SectionHeader rather than the sheet's usual 18,
+ * so the label starts on the same line as the section titles right below it.
  */
 export function TravelerFilterRow({ members, active, onToggle, onClear, label, allLabel }: {
   members: { id: number; username: string; avatar_url?: string | null }[]
@@ -179,7 +182,7 @@ export function TravelerFilterRow({ members, active, onToggle, onClear, label, a
   const filtering = active.size > 0
   return (
     <div
-      className="mb-[2px] flex items-center gap-[10px] border-b border-[color:var(--m-rowbr)] px-[18px] pb-[9px] pt-[2px]"
+      className="mb-[2px] flex items-center gap-[10px] border-b border-[color:var(--m-rowbr)] px-[2px] pb-[9px] pt-[2px]"
       role="group"
       aria-label={label}
     >
