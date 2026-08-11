@@ -252,6 +252,38 @@ describe('downloadTripPDF', () => {
     expect(iframe!.srcdoc).toContain('Air Italia · AI123 · CDG → FCO')
   })
 
+  it('FE-COMP-TRIPPDF-013c: a flight that lands the same day shows both times (#1310)', async () => {
+    const sameDay = { ...transportReservation, reservation_end_time: '2025-06-01T16:45:00' }
+    await downloadTripPDF({ ...richArgs, reservations: [sameDay] })
+    const iframe = getIframe()
+
+    // Without the landing time the reader cannot tell what is left of the day.
+    expect(iframe!.srcdoc).toContain('14:30 – 16:45')
+  })
+
+  it('FE-COMP-TRIPPDF-013d: a flight without a landing time still shows its departure', async () => {
+    await downloadTripPDF(richArgs)
+    const iframe = getIframe()
+
+    expect(iframe!.srcdoc).toContain('14:30')
+    expect(iframe!.srcdoc).not.toContain('14:30 –')
+  })
+
+  it('FE-COMP-TRIPPDF-013e: an overnight flight keeps its arrival on the arrival day (#1310)', async () => {
+    // Landing tomorrow: the departure day must not carry tomorrow's clock next
+    // to today's departure — the arrival day shows it as its own time.
+    const overnight = { ...transportReservation, day_id: 10, end_day_id: 11, reservation_end_time: '2025-06-02T06:15:00' }
+    await downloadTripPDF({
+      ...richArgs,
+      days: [dayWithPlaces, { id: 11, day_number: 2, title: null, date: '2025-06-02' } as never],
+      reservations: [overnight],
+    })
+    const iframe = getIframe()
+
+    expect(iframe!.srcdoc).not.toContain('14:30 – 06:15')
+    expect(iframe!.srcdoc).toContain('06:15')
+  })
+
   it('FE-COMP-TRIPPDF-013b: renders every flight number for a multi-leg flight', async () => {
     await downloadTripPDF({ ...richArgs, reservations: [multiLegFlight] })
     const iframe = getIframe()

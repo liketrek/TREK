@@ -316,7 +316,17 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
             const phase = pdfGetSpanPhase(r, day.id)
             const spanLabel = pdfGetSpanLabel(r, phase)
             const displayTime = pdfGetDisplayTime(r, day.id)
-            const time = splitReservationDateTime(displayTime).time ?? ''
+            // Start and end, the way the day plan draws it (#1310). Without the
+            // landing time a flight reads as an open-ended block and the reader
+            // cannot tell how much of the day is left for anything else.
+            //
+            // Only on a transport that begins and ends on this day: across a
+            // span the arrival belongs to the arrival day, which already shows
+            // it as its own time, and repeating it here would put tomorrow's
+            // clock next to today's departure.
+            const startTime = splitReservationDateTime(displayTime).time ?? ''
+            const endTime = phase === 'single' ? (splitReservationDateTime(r.reservation_end_time).time ?? '') : ''
+            const time = [startTime, endTime].filter(Boolean).join(' – ')
             const titleHtml = `${spanLabel ? escHtml(spanLabel) + ': ' : ''}${escHtml(r.title)}`
             return `
               <div class="note-card" style="border-left: 3px solid ${color};">
