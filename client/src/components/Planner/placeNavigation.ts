@@ -14,16 +14,25 @@ export interface NavigationTarget {
 }
 
 /**
- * Whether Apple Maps is worth offering. The entry is dead weight on Android and
- * Windows, so it only shows where the app exists.
+ * Whether Apple Maps is worth offering.
+ *
+ * Apple platforms open the installed app. Everywhere else the link still works,
+ * because Apple Maps has had a web version since 2024, so a Windows or Linux
+ * desktop gets a perfectly usable map rather than a dead end.
+ *
+ * Android is the one place it stays hidden: the web version works there too,
+ * but nobody navigating from an Android phone reaches for Apple Maps, and the
+ * row of choices is short for a reason.
  *
  * iPadOS 13 and later report themselves as "Macintosh", which is why the Mac
- * branch is not narrowed by touch: a real Mac has Apple Maps too, so both sides
- * of that ambiguity are correct.
+ * branch is not narrowed by touch: a real Mac has the app, an iPad has the app,
+ * so both sides of that ambiguity are correct.
  */
-export function isApplePlatform(): boolean {
+export function showsAppleMaps(): boolean {
   if (typeof navigator === 'undefined') return false
-  return /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent)
+  const ua = navigator.userAgent
+  if (/iPhone|iPad|iPod|Macintosh/.test(ua)) return true
+  return !/Android/i.test(ua)
 }
 
 /**
@@ -65,7 +74,7 @@ export function getNavigationTargets(
       label: 'Waze',
       url: `https://waze.com/ul?${q}ll=${ll}&navigate=yes`,
     })
-    if (isApplePlatform()) {
+    if (showsAppleMaps()) {
       targets.push({
         id: 'apple',
         label: 'Apple Maps',

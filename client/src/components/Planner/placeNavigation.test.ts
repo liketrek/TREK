@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getNavigationTargets, isApplePlatform } from './placeNavigation'
+import { getNavigationTargets, showsAppleMaps } from './placeNavigation'
 import type { Place } from '../../types'
 
 // FE-PLANNER-NAV-001 to FE-PLANNER-NAV-008
@@ -29,9 +29,9 @@ function withUserAgent(ua: string) {
 afterEach(() => { vi.restoreAllMocks() })
 
 describe('getNavigationTargets', () => {
-  it('FE-PLANNER-NAV-001: offers Google Maps, Waze and OpenStreetMap for a place with coordinates', () => {
+  it('FE-PLANNER-NAV-001: offers every app that can resolve a place with coordinates', () => {
     const targets = getNavigationTargets(place())
-    expect(targets.map(t => t.id)).toEqual(['google', 'waze', 'osm'])
+    expect(targets.map(t => t.id)).toEqual(['google', 'waze', 'apple', 'osm'])
     expect(targets[0].label).toBe('Google Maps')
   })
 
@@ -49,10 +49,17 @@ describe('getNavigationTargets', () => {
     expect(targets[0].url).not.toContain('query=48.2038')
   })
 
-  it('FE-PLANNER-NAV-004: Apple Maps only appears on Apple platforms', () => {
+  it('FE-PLANNER-NAV-004: a Windows desktop gets Apple Maps too, through its web version', () => {
     const restore = withUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64)')
     try {
-      expect(getNavigationTargets(place()).map(t => t.id)).not.toContain('apple')
+      expect(getNavigationTargets(place()).map(t => t.id)).toContain('apple')
+    } finally { restore() }
+  })
+
+  it('FE-PLANNER-NAV-004b: an Android phone does not, because nobody there wants it', () => {
+    const restore = withUserAgent('Mozilla/5.0 (Linux; Android 15; Pixel 9)')
+    try {
+      expect(getNavigationTargets(place()).map(t => t.id)).toEqual(['google', 'waze', 'osm'])
     } finally { restore() }
   })
 
@@ -69,7 +76,7 @@ describe('getNavigationTargets', () => {
   it('FE-PLANNER-NAV-006: iPadOS reports itself as a Mac, and both deserve the entry', () => {
     const restore = withUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)')
     try {
-      expect(isApplePlatform()).toBe(true)
+      expect(showsAppleMaps()).toBe(true)
     } finally { restore() }
   })
 
@@ -88,7 +95,7 @@ describe('getNavigationTargets', () => {
 
   it('FE-PLANNER-NAV-009: a nameless place still reaches every app, just without a label', () => {
     const targets = getNavigationTargets(place({ name: '' }))
-    expect(targets.map(t => t.id)).toEqual(['google', 'waze', 'osm'])
+    expect(targets.map(t => t.id)).toEqual(['google', 'waze', 'apple', 'osm'])
     expect(targets.find(t => t.id === 'waze')!.url).toBe('https://waze.com/ul?ll=48.2038,16.3616&navigate=yes')
   })
 })
