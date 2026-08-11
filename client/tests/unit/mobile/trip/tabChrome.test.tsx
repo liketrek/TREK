@@ -148,4 +148,54 @@ describe('tabChrome', () => {
     expect(screen.getByTitle('Ada').className).toContain('opacity-100')
     expect(screen.getByTitle('Bob').className).toContain('opacity-100')
   })
+
+  it('FE-MOB-TABCHR-015: TravelerFilterRow names itself, so the avatars are not left unexplained', () => {
+    render(
+      <TravelerFilterRow
+        members={[{ id: 1, username: 'Ada' }]}
+        active={new Set()}
+        onToggle={vi.fn()}
+        label="Travelers"
+      />,
+    )
+    expect(screen.getByRole('group', { name: 'Travelers' })).toBeInTheDocument()
+    expect(screen.getByText('Travelers')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-TABCHR-016: the way out of a filter only appears once one is set', () => {
+    const onClear = vi.fn()
+    const { rerender } = render(
+      <TravelerFilterRow
+        members={[{ id: 1, username: 'Ada' }]}
+        active={new Set()}
+        onToggle={vi.fn()}
+        onClear={onClear}
+        label="Travelers"
+        allLabel="All"
+      />,
+    )
+    expect(screen.queryByRole('button', { name: 'All' })).not.toBeInTheDocument()
+
+    rerender(
+      <TravelerFilterRow
+        members={[{ id: 1, username: 'Ada' }]}
+        active={new Set([1])}
+        onToggle={vi.fn()}
+        onClear={onClear}
+        label="Travelers"
+        allLabel="All"
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'All' }))
+    expect(onClear).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-MOB-TABCHR-017: SectionHeader wraps its count exactly once', () => {
+    // The callers used to pass a <CountPill> into a prop that wraps one itself,
+    // which put a pill inside a pill and showed two stacked backgrounds.
+    render(<SectionHeader label="Pending" count={2} open onToggle={vi.fn()} />)
+    const pill = screen.getByText('2')
+    expect(pill.querySelector('span')).toBeNull()
+    expect(pill.parentElement?.tagName).toBe('BUTTON')
+  })
 })

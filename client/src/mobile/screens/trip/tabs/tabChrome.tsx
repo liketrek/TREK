@@ -158,31 +158,62 @@ export function TravelerAvatars({ travelers, label }: {
   )
 }
 
-/** Avatar toggle row to filter the list by assigned traveler (#1517/#1557). */
-export function TravelerFilterRow({ members, active, onToggle, label }: {
+/**
+ * Avatar toggle row to filter the list by assigned traveler (#1517/#1557).
+ *
+ * The avatars used to sit on their own between the toolbar and the first
+ * section, which read as decoration rather than as a control: nothing said what
+ * they were, and with a filter on there was no way back other than tapping the
+ * same avatar again. It is a labelled bar now, closed off by the same divider
+ * the rows below use, with an explicit way to clear the filter.
+ */
+export function TravelerFilterRow({ members, active, onToggle, onClear, label, allLabel }: {
   members: { id: number; username: string; avatar_url?: string | null }[]
   active: Set<number>
   onToggle: (id: number) => void
+  onClear?: () => void
   label: string
+  /** Resets the filter. Only rendered while one is active. */
+  allLabel?: string
 }) {
+  const filtering = active.size > 0
   return (
-    <div className="flex flex-wrap items-center gap-1.5 px-[18px] pb-2 pt-1" aria-label={label}>
-      {members.map(m => {
-        const on = active.has(m.id)
-        return (
-          <button
-            key={m.id}
-            type="button"
-            onClick={() => onToggle(m.id)}
-            title={m.username}
-            className={`flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 bg-[color:var(--m-ic)] text-[0.625rem] font-bold text-m-muted transition-opacity ${on ? 'border-[color:var(--m-act)]' : 'border-[color:var(--m-rowbr)]'} ${on || active.size === 0 ? 'opacity-100' : 'opacity-40'}`}
-          >
-            {m.avatar_url
-              ? <img src={m.avatar_url} className="h-full w-full object-cover" alt="" />
-              : m.username?.[0]?.toUpperCase()}
-          </button>
-        )
-      })}
+    <div
+      className="mb-[2px] flex items-center gap-[10px] border-b border-[color:var(--m-rowbr)] px-[18px] pb-[9px] pt-[2px]"
+      role="group"
+      aria-label={label}
+    >
+      <span className="flex-none font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint">
+        {label}
+      </span>
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+        {members.map(m => {
+          const on = active.has(m.id)
+          return (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => onToggle(m.id)}
+              title={m.username}
+              aria-pressed={on}
+              className={`flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 bg-[color:var(--m-ic)] text-[0.625rem] font-bold text-m-muted transition-opacity ${on ? 'border-[color:var(--m-act)]' : 'border-[color:var(--m-rowbr)]'} ${on || !filtering ? 'opacity-100' : 'opacity-40'}`}
+            >
+              {m.avatar_url
+                ? <img src={m.avatar_url} className="h-full w-full object-cover" alt="" />
+                : m.username?.[0]?.toUpperCase()}
+            </button>
+          )
+        })}
+      </div>
+      {filtering && allLabel && onClear && (
+        <button
+          type="button"
+          onClick={onClear}
+          className="flex-none rounded-full border border-[color:var(--m-rowbr)] px-[9px] py-[3px] font-geist text-[0.625rem] font-bold uppercase tracking-[.06em] text-m-muted"
+        >
+          {allLabel}
+        </button>
+      )}
     </div>
   )
 }
