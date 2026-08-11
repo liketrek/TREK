@@ -193,5 +193,43 @@ describe('incoming_leg_transport_mode read-path parity', () => {
         .send({ transport_mode: 'walking', direction: 'sideways' });
       expect(res.status).toBe(400);
     });
+
+    it('outgoing and incoming leg modes on one stop persist independently', async () => {
+      const { user } = createUser(testDb2);
+      const trip = createTrip(testDb2, user.id);
+      const day = createDay(testDb2, trip.id, { date: '2025-06-01' });
+      const place = createPlace(testDb2, trip.id, { name: 'Test Place' });
+
+      const create = await request(app)
+        .post(`/api/trips/${trip.id}/days/${day.id}/assignments`)
+        .set('Cookie', authCookie(user.id))
+        .send({ place_id: place.id });
+      const assignmentId = create.body.assignment.id;
+
+      await request(app)
+        .put(`/api/trips/${trip.id}/assignments/${assignmentId}/transport`)
+        .set('Cookie', authCookie(user.id))
+        .send({ transport_mode: 'cycling' })
+        .expect(200);
+
+      await request(app)
+        .put(`/api/trips/${trip.id}/assignments/${assignmentId}/transport`)
+        .set('Cookie', authCookie(user.id))
+        .send({ transport_mode: 'transit', direction: 'incoming' })
+        .expect(200);
+
+      const row = testDb2.prepare('SELECT leg_transport_mode, incoming_leg_transport_mode FROM day_assignments WHERE id = ?').get(assignmentId);
+      expect(row.leg_transport_mode).toBe('cycling');
+      expect(row.incoming_leg_transport_mode).toBe('transit');
+
+      const res = await request(app)
+        .get(`/api/trips/${trip.id}/days`)
+        .set('Cookie', authCookie(user.id));
+      expect(res.status).toBe(200);
+      const foundDay = res.body.days.find((d: any) => d.id === day.id);
+      const a = foundDay.assignments.find((x: any) => x.id === assignmentId);
+      expect(a.leg_transport_mode).toBe('cycling');
+      expect(a.incoming_leg_transport_mode).toBe('transit');
+    });
   });
 });
