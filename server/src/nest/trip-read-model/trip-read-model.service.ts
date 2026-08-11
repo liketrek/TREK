@@ -10,6 +10,7 @@ import { PlacesService } from '../places/places.service';
 import { TodoService } from '../todo/todo.service';
 import { FilesService } from '../files/files.service';
 import { TripMembersService } from '../trip-members/trip-members.service';
+import { withoutFeedToken } from '../trips/trips.service';
 
 /**
  * The two read aggregates over a trip: the MCP summary and the offline bundle.
@@ -47,7 +48,9 @@ export class TripReadModelService {
   // ── Trip summary (used by MCP get_trip_summary tool) ──────────────────────
 
   getTripSummary(tripId: number, viewerUserId?: number) {
-    const trip = this.db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as Record<string, unknown> | undefined;
+    const trip = withoutFeedToken(
+      this.db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as Record<string, unknown> | undefined,
+    );
     if (!trip) return null;
 
     const ownerRow = this.getOwner(tripId);

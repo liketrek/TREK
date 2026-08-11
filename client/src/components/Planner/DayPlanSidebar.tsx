@@ -163,6 +163,9 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   const tripActions = useRef(useTripStore.getState()).current
   const can = useCanDo()
   const canEditDays = can('day_edit', trip)
+  // The calendar subscription hands out a link that reads the trip without an
+  // account, so it sits behind the same permission as the public share link.
+  const canManageShare = can('share_manage', trip)
 
   const { noteUi, setNoteUi, noteInputRef, dayNotes, openAddNote: _openAddNote, openEditNote: _openEditNote, cancelNote, saveNote, deleteNote: _deleteNote, moveNote: _moveNote } = useDayNotes(tripId)
 
@@ -956,6 +959,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     tripActions,
     can,
     canEditDays,
+    canManageShare,
     noteUi,
     setNoteUi,
     noteInputRef,
@@ -1128,6 +1132,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     tripActions,
     can,
     canEditDays,
+    canManageShare,
     noteUi,
     setNoteUi,
     noteInputRef,
@@ -1275,6 +1280,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
         setUndoHover={setUndoHover}
         lastActionLabel={lastActionLabel}
         canEditDays={canEditDays}
+        canManageShare={canManageShare}
         onReorderDays={onReorderDays}
         onAddDay={onAddDay}
       />

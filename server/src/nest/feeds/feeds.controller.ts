@@ -2,7 +2,6 @@ import {
   Controller,
   Delete,
   Get,
-  HttpException,
   Param,
   Post,
   Put,
@@ -16,7 +15,7 @@ import { FeedsService } from './feeds.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { User } from '../../types';
-import { DatabaseService } from '../database/database.service';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 
 // Resolve the public origin used to build feed URLs. APP_URL wins — it is the
 // canonical externally-reachable URL behind a reverse proxy. When it is unset
@@ -73,23 +72,21 @@ export class FeedsPublicController {
  *   POST   = enable (mint a token, idempotent)
  *   PUT    = rotate (new token, invalidates the old URL)
  *   DELETE = disable (clear the token, public URL stops resolving)
+ *
+ * All four need `share_manage`, not merely trip access. The token is the only
+ * credential the anonymous /api/feed/trip/:token.ics route asks for, so handing
+ * it out is handing out the trip, and rotating it cancels every subscription the
+ * owner and the other members already set up. Reading is gated for the same
+ * reason as writing: GET returns the credential itself, not its status. Same
+ * call the invite link makes (trip-invite.controller.ts), and the default policy
+ * keeps `share_manage` with the owner while an instance may lower it to
+ * trip_member.
  */
 @Controller('api/trips/:tripId/feed')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, TripAccessGuard)
+@RequirePermission('share_manage')
 export class TripFeedTokenController {
-  constructor(
-    private readonly feeds: FeedsService,
-    private readonly dbs: DatabaseService,
-  ) {}
-
-  private assertAccess(tripId: string, userId: number): void {
-    const row = this.dbs.connection
-      .prepare(
-        'SELECT id FROM trips WHERE id = ? AND (user_id = ? OR id IN (SELECT trip_id FROM trip_members WHERE user_id = ?))',
-      )
-      .get(tripId, userId, userId);
-    if (!row) throw new HttpException({ error: 'Trip not found' }, 404);
-  }
+  constructor(private readonly feeds: FeedsService) {}
 
   @Get('token')
   get(@CurrentUser() user: User, @Param('tripId') tripId: string, @Req() req: Request) {
@@ -98,20 +95,17 @@ export class TripFeedTokenController {
 
   @Post('token')
   generate(@CurrentUser() user: User, @Param('tripId') tripId: string, @Req() req: Request) {
-    this.assertAccess(tripId, user.id);
     return this.feeds.generateTripToken(tripId, user.id, resolveFeedBase(req));
   }
 
   @Put('token')
   rotate(@CurrentUser() user: User, @Param('tripId') tripId: string, @Req() req: Request) {
-    this.assertAccess(tripId, user.id);
-    return this.feeds.rotateTripToken(tripId, resolveFeedBase(req));
+    return this.feeds.rotateTripToken(tripId, user.id, resolveFeedBase(req));
   }
 
   @Delete('token')
   disable(@CurrentUser() user: User, @Param('tripId') tripId: string) {
-    this.assertAccess(tripId, user.id);
-    this.feeds.disableTripToken(tripId);
+    this.feeds.disableTripToken(tripId, user.id);
     return { feed_url: null };
   }
 }

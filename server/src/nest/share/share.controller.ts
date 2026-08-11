@@ -11,9 +11,10 @@ import { Public } from '../auth/public.decorator';
 /**
  * /api/trips/:tripId/share-link — manage a trip's public read-only share token.
  *
- * Byte-identical to the legacy Express route (server/src/routes/share.ts): trip
- * access (404), the 'share_manage' permission (403), and the create-vs-update
- * status split (201 on first creation, 200 on a subsequent update).
+ * Trip access answers 404, the 'share_manage' permission answers 403, and the
+ * create-vs-update status split is preserved (201 on first creation, 200 on a
+ * subsequent update). The permission now covers GET as well: it used to require
+ * trip access alone, which let any member read out the owner's public token.
  */
 @Controller('api/trips/:tripId/share-link')
 @UseGuards(JwtAuthGuard)
@@ -52,9 +53,12 @@ export class TripShareController {
 
   @Get()
   get(@CurrentUser() user: User, @Param('tripId') tripId: string) {
-    if (!this.share.verifyTripAccess(tripId, user.id)) {
-      throw new HttpException({ error: 'Trip not found' }, 404);
-    }
+    // The token is the whole credential for the anonymous /api/shared/:token
+    // page, so reading it needs the same share_manage permission as creating or
+    // deleting it, not just trip access. Trip membership lets someone read the
+    // trip while signed in; it does not let them hand out a copy that works
+    // without an account and outlives their membership.
+    this.requireManage(tripId, user);
     const info = this.share.get(tripId);
     return info ? info : { token: null };
   }

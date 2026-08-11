@@ -151,6 +151,9 @@ describe('trip feed token lifecycle', () => {
     expect(svc.getTripToken(tripId, outsider.id, BASE)).toEqual({ feed_url: null });
   });
 
+  // Membership is what the service checks, and that stays true: whether the
+  // caller may manage the credential at all is decided one layer up, by
+  // TripAccessGuard + @RequirePermission('share_manage') on the controller.
   it('FEED-SVC-005: a trip shared with the user as a member resolves too', () => {
     const { trip, tripId } = seedTrip('tok-trip');
     const { user: member } = createUser(testDb);
@@ -178,7 +181,7 @@ describe('trip feed token lifecycle', () => {
     const before = svc.generateTripToken(tripId, user.id, BASE).feed_url;
     const oldToken = before.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
 
-    const after = svc.rotateTripToken(tripId, BASE).feed_url;
+    const after = svc.rotateTripToken(tripId, user.id, BASE).feed_url;
 
     expect(after).not.toBe(before);
     expect(svc.buildTripIcs(oldToken)).toBeNull();
@@ -189,10 +192,26 @@ describe('trip feed token lifecycle', () => {
     const url = svc.generateTripToken(tripId, user.id, BASE).feed_url;
     const token = url.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
 
-    svc.disableTripToken(tripId);
+    svc.disableTripToken(tripId, user.id);
 
     expect(svc.getTripToken(tripId, user.id, BASE)).toEqual({ feed_url: null });
     expect(svc.buildTripIcs(token)).toBeNull();
+  });
+
+  it('FEED-SVC-008b: the writes refuse a trip the acting user cannot reach', () => {
+    // The route guard is what enforces share_manage; this is the second lock, so
+    // a caller reaching the service another way cannot mint or clear a token on
+    // a trip id it merely guessed.
+    const { user, tripId } = seedTrip();
+    const { user: outsider } = createUser(testDb);
+    const mine = svc.generateTripToken(tripId, user.id, BASE).feed_url;
+    const myToken = mine.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
+
+    svc.rotateTripToken(tripId, outsider.id, BASE);
+    expect(svc.getTripToken(tripId, user.id, BASE).feed_url).toBe(mine);
+
+    svc.disableTripToken(tripId, outsider.id);
+    expect(svc.buildTripIcs(myToken)).not.toBeNull();
   });
 });
 

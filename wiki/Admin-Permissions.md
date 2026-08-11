@@ -60,7 +60,7 @@ Actions are grouped into five categories:
 | `budget_edit` | Create, edit, or delete budget items |
 | `packing_edit` | Manage packing items and bags |
 | `collab_edit` | Create notes, polls, and send messages |
-| `share_manage` | Create or delete public share links |
+| `share_manage` | Read, create or delete public share links and calendar feed links |
 
 ## Changing permissions
 

@@ -53,8 +53,13 @@ describe('TripShareController', () => {
     expect(updatedRes.statusCode).toBe(200);
   });
 
-  it('GET 404 without access, returns info or a null token', () => {
+  it('GET 404 without access, 403 without share_manage, returns info or a null token', () => {
     expect(thrown(() => new TripShareController(svc({ verifyTripAccess: vi.fn().mockReturnValue(undefined) })).get(user, '5'))).toEqual({ status: 404, body: { error: 'Trip not found' } });
+    // Reading returns the token itself, so it needs the same permission as
+    // creating it — a member with plain trip access must not get a copy.
+    const get = vi.fn();
+    expect(thrown(() => new TripShareController(svc({ canManage: vi.fn().mockReturnValue(false), get } as Partial<ShareService>)).get(user, '5'))).toEqual({ status: 403, body: { error: 'No permission' } });
+    expect(get).not.toHaveBeenCalled();
     expect(new TripShareController(svc({ get: vi.fn().mockReturnValue({ token: 't' }) } as Partial<ShareService>)).get(user, '5')).toEqual({ token: 't' });
     expect(new TripShareController(svc({ get: vi.fn().mockReturnValue(null) } as Partial<ShareService>)).get(user, '5')).toEqual({ token: null });
   });

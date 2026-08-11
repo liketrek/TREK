@@ -268,6 +268,58 @@ describe('Shared trip access', () => {
       .send({});
     expect(res.status).toBe(404);
   });
+
+  it('SHARE-026 — a plain member cannot read the share token', async () => {
+    // Reading the link hands out the credential for the anonymous /api/shared
+    // page, which outlives the membership that was used to fetch it. Under the
+    // default policy share_manage stays with the owner.
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+    await request(app).post(`/api/trips/${trip.id}/share-link`).set('Cookie', authCookie(owner.id)).send({});
+
+    const res = await request(app).get(`/api/trips/${trip.id}/share-link`).set('Cookie', authCookie(member.id));
+
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: 'No permission' });
+  });
+
+  it('SHARE-027 — the owner still reads it, and a non-member still gets 404 rather than 403', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    await request(app).post(`/api/trips/${trip.id}/share-link`).set('Cookie', authCookie(owner.id)).send({});
+
+    const mine = await request(app).get(`/api/trips/${trip.id}/share-link`).set('Cookie', authCookie(owner.id));
+    expect(mine.status).toBe(200);
+    expect(mine.body.token).toBeTruthy();
+
+    // 404, not 403: a stranger must not learn that the trip id exists.
+    const theirs = await request(app).get(`/api/trips/${trip.id}/share-link`).set('Cookie', authCookie(stranger.id));
+    expect(theirs.status).toBe(404);
+  });
+
+  it('SHARE-028 — a member may read it once the instance lowers share_manage to trip_member', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+    await request(app).post(`/api/trips/${trip.id}/share-link`).set('Cookie', authCookie(owner.id)).send({});
+
+    const { invalidatePermissionsCache } = await import('../../src/nest/permissions/permissions.bridge');
+    testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('perm_share_manage', 'trip_member')").run();
+    invalidatePermissionsCache();
+    try {
+      const res = await request(app).get(`/api/trips/${trip.id}/share-link`).set('Cookie', authCookie(member.id));
+      expect(res.status).toBe(200);
+      expect(res.body.token).toBeTruthy();
+    } finally {
+      // Module-scoped cache: leaving it set would decide the next file's tests.
+      testDb.prepare("DELETE FROM app_settings WHERE key = 'perm_share_manage'").run();
+      invalidatePermissionsCache();
+    }
+  });
 });
 
 describe('Shared trip — day assignments and notes', () => {

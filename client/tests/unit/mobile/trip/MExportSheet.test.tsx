@@ -71,6 +71,15 @@ describe('MExportSheet', () => {
     expect(screen.getByText('Auto-updates in your calendar app')).toBeInTheDocument()
   })
 
+  it('FE-MOB-EXPSH-002b: drops the subscription row without share_manage, keeps the two exports', () => {
+    // Same gate as the desktop toolbar: the subscription hands out a link that
+    // works without an account, the download does not.
+    renderSheet({ can: vi.fn((action: string) => action !== 'share_manage') })
+    expect(screen.getByText('PDF')).toBeInTheDocument()
+    expect(screen.getByText('Download .ics')).toBeInTheDocument()
+    expect(screen.queryByText('Subscribe to calendar')).not.toBeInTheDocument()
+  })
+
   it('FE-MOB-EXPSH-003: hands the planner slices and the flattened day notes to the PDF export', async () => {
     const { planner } = renderSheet({
       places: [{ id: 9, name: 'Fushimi Inari' }],

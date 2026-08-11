@@ -1032,6 +1032,24 @@ describe('ICS export', () => {
     const res = await request(app).get(`/api/trips/${trip.id}/export.ics`);
     expect(res.status).toBe(401);
   });
+
+  it('TRIP-025b — the trip payload never carries feed_token, not even for the owner', async () => {
+    // feed_token is the sole credential for the anonymous ICS feed. TRIP_SELECT
+    // reads `t.*`, so without the blanking it ships in every trip response and
+    // gating /feed/token on share_manage would achieve nothing: any member
+    // could read the value straight out of GET /api/trips/:id.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+    testDb.prepare('UPDATE trips SET feed_token = ? WHERE id = ?').run('secret-feed-token', trip.id);
+
+    const one = await request(app).get(`/api/trips/${trip.id}`).set('Cookie', authCookie(user.id));
+    expect(one.status).toBe(200);
+    expect(one.body.trip.feed_token ?? null).toBeNull();
+    expect(JSON.stringify(one.body)).not.toContain('secret-feed-token');
+
+    const list = await request(app).get('/api/trips').set('Cookie', authCookie(user.id));
+    expect(JSON.stringify(list.body)).not.toContain('secret-feed-token');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -21,6 +21,10 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
   const [subscribeOpen, setSubscribeOpen] = useState(false)
   const [pdfBusy, setPdfBusy] = useState(false)
   const [icsBusy, setIcsBusy] = useState(false)
+  // The subscription link reads the trip without an account, so it needs the
+  // same permission as the public share link. The ICS download beside it does
+  // not: that is a file this member may already read.
+  const canManageShare = planner.can('share_manage', planner.trip)
 
   const exportPdf = async () => {
     if (!planner.trip || pdfBusy) return
@@ -98,16 +102,18 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
             sub={`${planner.trip?.title || 'trip'}.ics`}
             onClick={() => void downloadIcs()}
           />
-          <ExportRow
-            icon={CalendarPlus}
-            title={t('mobileTrip.icsSubscribe')}
-            sub={t('mobileTrip.icsSubscribeSub')}
-            onClick={() => setSubscribeOpen(true)}
-          />
+          {canManageShare && (
+            <ExportRow
+              icon={CalendarPlus}
+              title={t('mobileTrip.icsSubscribe')}
+              sub={t('mobileTrip.icsSubscribeSub')}
+              onClick={() => setSubscribeOpen(true)}
+            />
+          )}
         </div>
       </div>
 
-      {subscribeOpen && (
+      {subscribeOpen && canManageShare && (
         <IcsSubscribeModal
           endpoint={`/api/trips/${planner.tripId}/feed`}
           title={t('mobileTrip.icsSubscribe')}

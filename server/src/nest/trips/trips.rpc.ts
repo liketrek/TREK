@@ -11,7 +11,7 @@ import { DaysService } from '../days/days.service';
 import { AccommodationsService } from '../accommodations/accommodations.service';
 import { TripMembersService } from '../trip-members/trip-members.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
-import { TripsService, NotFoundError, ValidationError } from './trips.service';
+import { TripsService, NotFoundError, ValidationError, withoutFeedToken } from './trips.service';
 
 const TRIP_EDIT_ACTION = 'trip_edit';
 const MEMBER_MANAGE_ACTION = 'member_manage';
@@ -47,7 +47,9 @@ export class TripsRpc {
   @PluginMethod('trips.getById', { permission: 'db:read:trips' })
   getById(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
     return this.guards.tripRead(params, ctx, () =>
-      this.db.prepare('SELECT * FROM trips WHERE id = ?').get(num(params.tripId, 'tripId')),
+      // db:read:trips is a read grant on the trip, not on the credential that
+      // publishes it anonymously — see withoutFeedToken.
+      withoutFeedToken(this.db.prepare('SELECT * FROM trips WHERE id = ?').get(num(params.tripId, 'tripId'))),
     );
   }
 

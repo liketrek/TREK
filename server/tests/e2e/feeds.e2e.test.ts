@@ -34,7 +34,23 @@ const { db } = vi.hoisted(() => {
   return { db: tmp };
 });
 
-vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
+// canAccessTrip/isOwner back TripAccessGuard, which now gates the trip token
+// routes. They run the same predicates as the real module against the temp db.
+vi.mock('../../src/db/database', () => ({
+  db,
+  closeDb: () => {},
+  reinitialize: () => {},
+  canAccessTrip: (tripId: number, userId: number) =>
+    db
+      .prepare(
+        `SELECT t.id, t.user_id FROM trips t
+         LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
+         WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`,
+      )
+      .get(userId, tripId, userId),
+  isOwner: (tripId: number, userId: number) =>
+    !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
+}));
 
 // Own the calendar parts so we control the events and can assert which trips were pulled.
 const SAMPLE_EVENT =
@@ -156,6 +172,49 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     const res = await request(server).post('/api/trips/5/feed/token').set('Cookie', sessionCookie(2));
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Trip not found' });
+  });
+
+  // ── share_manage on the token routes ───────────────────────────────────────
+  // The token is the only credential /api/feed/trip/:token.ics asks for, so a
+  // plain member must not be able to read, mint, rotate or clear it. Under the
+  // default policy share_manage sits with the trip owner.
+
+  it('403 on all four verbs for a member without share_manage', async () => {
+    db.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (5, 2)').run();
+    const member = sessionCookie(2);
+
+    for (const res of [
+      await request(server).get('/api/trips/5/feed/token').set('Cookie', member),
+      await request(server).post('/api/trips/5/feed/token').set('Cookie', member),
+      await request(server).put('/api/trips/5/feed/token').set('Cookie', member),
+      await request(server).delete('/api/trips/5/feed/token').set('Cookie', member),
+    ]) {
+      expect(res.status).toBe(403);
+      expect(res.body).toEqual({ error: 'No permission' });
+    }
+    // Refused, not silently applied: the column is untouched.
+    expect((db.prepare('SELECT feed_token FROM trips WHERE id = 5').get() as { feed_token: string | null }).feed_token).toBeNull();
+  });
+
+  it('a non-member still gets 404 rather than 403, so the 403 is no existence oracle', async () => {
+    const stranger = sessionCookie(2);
+    for (const res of [
+      await request(server).get('/api/trips/5/feed/token').set('Cookie', stranger),
+      await request(server).put('/api/trips/5/feed/token').set('Cookie', stranger),
+      await request(server).delete('/api/trips/5/feed/token').set('Cookie', stranger),
+    ]) {
+      expect(res.status).toBe(404);
+    }
+  });
+
+  it('a token issued before the tightening keeps working anonymously', async () => {
+    const gen = await request(server).post('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
+    const token = gen.body.feed_url.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
+    db.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (5, 2)').run();
+
+    // The member may no longer manage it, but existing subscriptions must not break.
+    expect((await request(server).delete('/api/trips/5/feed/token').set('Cookie', sessionCookie(2))).status).toBe(403);
+    expect((await request(server).get(`/api/feed/trip/${token}.ics`)).status).toBe(200);
   });
 
   // ── Public trip feed ───────────────────────────────────────────────────────

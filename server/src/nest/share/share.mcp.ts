@@ -32,8 +32,11 @@ export class ShareMcp {
   })
   async getShareLink({ tripId }: { tripId: number }, ctx: McpContext) {
     // Read parity with the REST route GET /api/trips/:tripId/share-link, which
-    // only requires trip membership (share_manage gates create/delete, not read).
+    // requires share_manage on every verb including this one: the payload is the
+    // token itself, and a token is an anonymous copy of the trip. Leaving this
+    // one on membership alone would just move the same hole to MCP.
     if (!this.share.verifyTripAccess(String(tripId), ctx.userId)) return noAccess();
+    if (!hasTripPermission('share_manage', tripId, ctx.userId)) return permissionDenied();
     const link = this.share.get(String(tripId));
     return ok({ link });
   }

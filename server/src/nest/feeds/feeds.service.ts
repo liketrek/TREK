@@ -42,25 +42,41 @@ export class FeedsService {
     return { feed_url: row?.feed_token ? feedUrl(row.feed_token, 'trip', base) : null };
   }
 
+  /**
+   * The three writes carry the acting user and scope the UPDATE to a trip that
+   * user can reach, the same predicate tripTokenRow reads through. The route
+   * guard is what decides whether they may manage the credential at all; this is
+   * the second lock, so a caller that reaches the service another way cannot
+   * mint or clear a token on a trip id it merely guessed.
+   */
+  private static readonly REACHABLE =
+    'id = ? AND (user_id = ? OR id IN (SELECT trip_id FROM trip_members WHERE user_id = ?))';
+
   /** Enable (idempotent): mint a token only if the trip has none yet. */
   generateTripToken(tripId: string, userId: number, base: string): { feed_url: string } {
     const row = this.tripTokenRow(tripId, userId);
     if (row?.feed_token) return { feed_url: feedUrl(row.feed_token, 'trip', base) };
     const token = randomUUID();
-    this.db.prepare('UPDATE trips SET feed_token = ? WHERE id = ?').run(token, tripId);
+    this.db
+      .prepare(`UPDATE trips SET feed_token = ? WHERE ${FeedsService.REACHABLE}`)
+      .run(token, tripId, userId, userId);
     return { feed_url: feedUrl(token, 'trip', base) };
   }
 
   /** Rotate: always issue a fresh token, invalidating the previous URL. */
-  rotateTripToken(tripId: string, base: string): { feed_url: string } {
+  rotateTripToken(tripId: string, userId: number, base: string): { feed_url: string } {
     const token = randomUUID();
-    this.db.prepare('UPDATE trips SET feed_token = ? WHERE id = ?').run(token, tripId);
+    this.db
+      .prepare(`UPDATE trips SET feed_token = ? WHERE ${FeedsService.REACHABLE}`)
+      .run(token, tripId, userId, userId);
     return { feed_url: feedUrl(token, 'trip', base) };
   }
 
   /** Disable: clear the token so the public URL stops resolving. */
-  disableTripToken(tripId: string): void {
-    this.db.prepare('UPDATE trips SET feed_token = NULL WHERE id = ?').run(tripId);
+  disableTripToken(tripId: string, userId: number): void {
+    this.db
+      .prepare(`UPDATE trips SET feed_token = NULL WHERE ${FeedsService.REACHABLE}`)
+      .run(tripId, userId, userId);
   }
 
   // ── User (all-trips) feed token ──────────────────────────────────────────

@@ -31,6 +31,14 @@ interface DayPlanSidebarToolbarProps {
   setUndoHover: (v: boolean) => void
   lastActionLabel: string | null
   canEditDays?: boolean
+  /**
+   * Gates "Subscribe to calendar" only. The one-off "Download ICS" below it
+   * stays open to every member: it is a file they already have the right to
+   * read, while the subscription mints a link that works without an account.
+   * Defaults to true so a caller that has not wired the permission through
+   * keeps today's menu rather than silently losing an entry.
+   */
+  canManageShare?: boolean
   onReorderDays?: (orderedIds: number[]) => void
   onAddDay?: (position?: number) => void
 }
@@ -40,7 +48,7 @@ export function DayPlanSidebarToolbar({
   allConnectionsShown = false, onToggleAllConnections,
   t, locale, toast, setIcsHover,
   expandedDays, setExpandedDays, onUndo, canUndo, undoHover, setUndoHover, lastActionLabel,
-  canEditDays, onReorderDays, onAddDay,
+  canEditDays, canManageShare = true, onReorderDays, onAddDay,
 }: DayPlanSidebarToolbarProps) {
   const [reorderOpen, setReorderOpen] = useState(false)
   const [subscribeOpen, setSubscribeOpen] = useState(false)
@@ -155,23 +163,25 @@ export function DayPlanSidebarToolbar({
                 <FileDown size={12} strokeWidth={2} />
                 Download ICS
               </button>
-              <button
-                onClick={() => {
-                  setIcsMenuVisible(false)
-                  setIcsHover(false)
-                  setSubscribeOpen(true)
-                }}
-                style={menuItemStyle}
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-hover, #f3f4f6)' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
-              >
-                <CalendarPlus size={12} strokeWidth={2} />
-                Subscribe to calendar
-              </button>
+              {canManageShare && (
+                <button
+                  onClick={() => {
+                    setIcsMenuVisible(false)
+                    setIcsHover(false)
+                    setSubscribeOpen(true)
+                  }}
+                  style={menuItemStyle}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-hover, #f3f4f6)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+                >
+                  <CalendarPlus size={12} strokeWidth={2} />
+                  Subscribe to calendar
+                </button>
+              )}
             </div>
           )}
         </div>
-        {subscribeOpen && (
+        {subscribeOpen && canManageShare && (
           <IcsSubscribeModal
             endpoint={`/api/trips/${tripId}/feed`}
             title="Subscribe to calendar"

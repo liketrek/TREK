@@ -133,6 +133,18 @@ describe('DayPlanSidebarToolbar', () => {
     expect(setIcsHover).toHaveBeenCalledWith(true)
   })
 
+  it('FE-PLANNER-DPTOOLBAR-005b: without share_manage the menu offers the download but not the subscription', async () => {
+    // The subscription mints a link that reads the trip without an account, so
+    // it needs share_manage; the one-off download is a file this member may
+    // already read. Leaving the entry visible would only produce a dialog whose
+    // enable button the server refuses.
+    const user = userEvent.setup()
+    render(<DayPlanSidebarToolbar {...makeProps({ canManageShare: false })} />)
+    await user.hover(screen.getByText('ICS'))
+    expect(screen.getByText('Download ICS')).toBeInTheDocument()
+    expect(screen.queryByText('Subscribe to calendar')).not.toBeInTheDocument()
+  })
+
   it('FE-PLANNER-DPTOOLBAR-006: leaving the ICS area closes the menu after the grace period', async () => {
     const user = userEvent.setup()
     const setIcsHover = vi.fn((_v: boolean) => {})
