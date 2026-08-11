@@ -12,6 +12,7 @@ import ConfirmDialog from '../shared/ConfirmDialog'
 import { useContextMenu, ContextMenu } from '../shared/ContextMenu'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 import WeatherWidget from '../Weather/WeatherWidget'
 import { useToast } from '../shared/Toast'
 import { getCategoryIcon } from '../shared/categoryIcons'
@@ -33,6 +34,8 @@ import { formatDate, formatTime, dayTotalCost, formatMoneySum, splitReservationD
 import { useDayNotes } from '../../hooks/useDayNotes'
 import { useExchangeRates } from '../../hooks/useExchangeRates'
 import { RES_ICONS, getNoteIcon } from './DayPlanSidebar.constants'
+import { noteSurface } from './noteSurface'
+import { markdownLinkComponents } from '../shared/markdownLink'
 import { RouteConnector, HotelRouteConnector } from './DayPlanSidebarRouteConnector'
 import { usePluginDaySchedule, usePluginDayTints, dayTintBackground, dayTinted, PluginDayScheduleRow, formatScheduleMinutes } from '../Plugins/PluginDaySchedule'
 import { MobileAddPlaceButton } from './DayPlanSidebarMobileAddPlaceButton'
@@ -2178,6 +2181,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       // Notizkarte
                       const note = item.data
                       const NoteIcon = getNoteIcon(note.icon)
+                      const noteSkin = noteSurface(note.color)
                       const noteIdx = idx
                       return (
                         <React.Fragment key={`note-${note.id}`}>
@@ -2245,9 +2249,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             padding: '7px 8px 7px 2px',
                             margin: '1px 8px',
                             borderRadius: 6,
-                            border: '1px solid var(--border-faint)',
+                            border: `1px solid ${noteSkin.border}`,
                             borderTop: showDropLine ? '2px solid var(--text-primary)' : undefined,
-                            background: 'var(--bg-hover)',
+                            background: noteSkin.background,
                             opacity: draggingId === `note-${note.id}` ? 0.4 : 1,
                             transition: 'background 0.1s', cursor: 'grab', userSelect: 'none',
                           }}
@@ -2255,15 +2259,20 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           {canEditDays && !dragDisabled && <div className="dp-grip" style={{ flexShrink: 0, color: 'var(--text-faint)', display: 'flex', alignItems: 'center', opacity: 0.3, transition: 'opacity 0.15s', cursor: 'grab' }}>
                             <GripVertical size={13} strokeWidth={1.8} />
                           </div>}
-                          <div style={{ width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'var(--bg-hover)', overflow: 'hidden' }}>
-                            <NoteIcon size={13} strokeWidth={1.8} color="var(--text-muted)" />
+                          <div style={{ width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: noteSkin.iconBackground, overflow: 'hidden' }}>
+                            <NoteIcon size={13} strokeWidth={1.8} color={noteSkin.iconColor} />
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <span style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 500, color: 'var(--text-primary)', wordBreak: 'break-word' }}>
                               {note.text}
                             </span>
                             {note.time && (
-                              <div className="collab-note-md" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', fontWeight: 400, color: 'var(--text-faint)', lineHeight: '1.3', marginTop: 2, wordBreak: 'break-word' }}><Markdown remarkPlugins={[remarkGfm]}>{note.time}</Markdown></div>
+                              <div className="collab-note-md" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', fontWeight: 400, color: 'var(--text-faint)', lineHeight: '1.4', marginTop: 2, wordBreak: 'break-word' }}>
+                                {/* A link in a note goes to its own tab, and remarkBreaks
+                                    keeps a single newline a line break — people write notes
+                                    as lines, not as Markdown paragraphs. */}
+                                <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{note.time}</Markdown>
+                              </div>
                             )}
                           </div>
                           {canEditDays && <div className="note-edit-buttons" style={{ display: 'flex', gap: 1, flexShrink: 0, opacity: 0, transition: 'opacity 0.15s' }}>

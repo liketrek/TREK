@@ -16,6 +16,7 @@ import { TransitTitle, TransitLegChips, TransitMetaBadges, fmtTransitDuration } 
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
+import { markdownLinkComponents } from '../shared/markdownLink'
 import type { Reservation, Day, TripFile, AssignmentsMap } from '../../types'
 import type { ViewContribution } from '../../api/client'
 import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginContributions'
@@ -406,7 +407,7 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
           <div>
             <div className={fieldLabelClass}>{t('reservations.notes')}</div>
             <div className={`collab-note-md ${fieldValueClass}`} style={{ fontWeight: 400, lineHeight: 1.5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
-              <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{r.notes}</Markdown>
+              <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{r.notes}</Markdown>
             </div>
           </div>
         )}

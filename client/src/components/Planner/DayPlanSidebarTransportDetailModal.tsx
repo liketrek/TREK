@@ -3,6 +3,7 @@ import { Ticket, FileText, ExternalLink, Footprints, ArrowRight, Pencil } from '
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
+import { markdownLinkComponents } from '../shared/markdownLink'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTripStore } from '../../store/tripStore'
 import { formatTime, splitReservationDateTime } from '../../utils/formatters'
@@ -186,7 +187,7 @@ export function DayPlanSidebarTransportDetailModal({
               {res.notes && (
                 <div className="bg-surface-tertiary" style={{ padding: '8px 10px', borderRadius: 8 }}>
                   <div className="text-content-faint" style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 3 }}>{t('reservations.notes')}</div>
-                  <div className="collab-note-md text-content" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{res.notes}</Markdown></div>
+                  <div className="collab-note-md text-content" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{res.notes}</Markdown></div>
                 </div>
               )}
 

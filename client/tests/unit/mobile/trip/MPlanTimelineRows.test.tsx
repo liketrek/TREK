@@ -474,12 +474,23 @@ describe('NoteRow', () => {
 
   const base = { chrome: chrome(), reorder: REORDER, onEdit: vi.fn() }
 
-  it('FE-MOB-PLROW-034: splits the leading time off and joins the rest into the subtitle', () => {
+  it('FE-MOB-PLROW-034: splits the leading time off and keeps the rest of the note below it', () => {
     render(<NoteRow {...base} note={note()} />)
 
     expect(screen.getByText('09:30')).toBeInTheDocument()
     expect(screen.getByText('Buy museum tickets')).toBeInTheDocument()
-    expect(screen.getByText('Cash only · at the kiosk')).toBeInTheDocument()
+    // Two separate blocks since #1629: the extra title lines are plain text, the
+    // detail is rendered Markdown, so they cannot be joined into one string.
+    expect(screen.getByText('Cash only')).toBeInTheDocument()
+    expect(screen.getByText('at the kiosk')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-PLROW-039: renders the detail as Markdown and tints the row with the note colour (#1629)', () => {
+    render(<NoteRow {...base} note={note({ text: 'Ferry', time: 'book **early**', color: '#dc2626' } as never)} />)
+
+    expect(screen.getByText('early').tagName).toBe('STRONG')
+    const card = screen.getByText('Ferry').closest('div[style]') as HTMLElement
+    expect(card.style.background).toContain('220, 38, 38')
   })
 
   it('FE-MOB-PLROW-035: a free-text time stays in the subtitle and shows no time chip', () => {

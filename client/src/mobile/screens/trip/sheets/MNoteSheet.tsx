@@ -1,6 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import MSheet from '../../../components/MSheet'
-import { NOTE_ICONS } from '../../../../components/Planner/DayPlanSidebar.constants'
+import { ChevronDown } from 'lucide-react'
+import { NOTE_COLORS } from '@trek/shared'
+import { NOTE_ICONS, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants'
+import { noteSurface } from '../../../../components/Planner/noteSurface'
+import NoteFormatToolbar from '../../../../components/shared/NoteFormatToolbar'
 import { useTripStore } from '../../../../store/tripStore'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
 import type { DayNote } from '../../../../types'
@@ -19,7 +23,7 @@ export interface MNoteSheetProps {
   onClose: () => void
 }
 
-const DETAIL_MAX = 250
+const DETAIL_MAX = 2000
 
 /**
  * Day-note sheet: the demo's icon grid over title + detail. Persists through
@@ -31,8 +35,13 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
   const { t, toast, tripId, selectedDayId, tripActions } = planner
 
   const [icon, setIcon] = useState('FileText')
+  const [color, setColor] = useState<string | null>(null)
+  // Thirty-two icons in a six-wide grid is most of a phone screen, so the grid
+  // is folded behind the chosen one, which doubles as the colour preview.
+  const [iconOpen, setIconOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [detail, setDetail] = useState('')
+  const detailRef = useRef<HTMLTextAreaElement | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   // Open-time snapshot — the payload disappears with shell.sheet on close, but
   // the sheet still shows through its exit animation.
@@ -47,6 +56,8 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
     if (!open) return
     setSheetPayload(payload)
     setIcon(payload?.note?.icon || 'FileText')
+    setColor(payload?.note?.color ?? null)
+    setIconOpen(false)
     setTitle(payload?.note?.text || '')
     setDetail(payload?.note?.time || '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -54,13 +65,15 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
 
   const note = sheetPayload?.note ?? null
   const dayId = sheetPayload?.dayId ?? selectedDayId
+  const skin = noteSurface(color)
+  const ChosenIcon = getNoteIcon(icon)
 
   const handleSubmit = async () => {
     if (!title.trim() || !dayId || isSaving) return
     setIsSaving(true)
     try {
       if (note) {
-        await tripActions.updateDayNote(tripId, dayId, note.id, { text: title.trim(), time: detail || null, icon })
+        await tripActions.updateDayNote(tripId, dayId, note.id, { text: title.trim(), time: detail || null, icon, color })
       } else {
         // Append at the end of the day timeline: after the last assignment or note.
         const state = useTripStore.getState()
@@ -73,6 +86,7 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
           text: title.trim(),
           time: detail || null,
           icon,
+          color,
           sort_order: maxKey + 1,
         })
       }
@@ -103,22 +117,71 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
       />
 
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
-        <div className="grid grid-cols-6 gap-[7px]">
-          {NOTE_ICONS.map(({ id, Icon }) => (
+        <Eyebrow className="mb-[7px] uppercase">{t('notes.appearance')}</Eyebrow>
+        <div className="flex items-center gap-[10px]">
+          {/* The chosen icon in the chosen colour: the picker and the preview
+              are the same control, which is the only way both fit above the
+              fold on a phone. */}
+          <button
+            type="button"
+            onClick={() => setIconOpen(v => !v)}
+            aria-expanded={iconOpen}
+            aria-label={t('dayplan.noteIcon')}
+            className="relative flex h-[46px] w-[46px] flex-none items-center justify-center rounded-[14px] border"
+            style={{ borderColor: skin.border, background: skin.iconBackground }}
+          >
+            <ChosenIcon size={19} strokeWidth={1.9} style={{ color: skin.iconColor }} />
+            <ChevronDown
+              size={11}
+              strokeWidth={2.4}
+              className={`absolute bottom-[3px] right-[3px] text-m-faint transition-transform duration-200 ${iconOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-[7px]">
             <button
-              key={id}
               type="button"
-              onClick={() => setIcon(id)}
-              aria-label={id}
-              aria-pressed={icon === id}
-              className={`flex h-[42px] items-center justify-center rounded-[12px] border border-[color:var(--m-rowbr)] ${
-                icon === id ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-muted'
+              onClick={() => setColor(null)}
+              aria-pressed={color === null}
+              aria-label={t('notes.color.none')}
+              className={`h-[26px] w-[26px] rounded-full border-2 border-dashed border-[color:var(--m-rowbr)] ${
+                color === null ? 'ring-2 ring-[color:var(--m-act)] ring-offset-2 ring-offset-[color:var(--m-card)]' : ''
               }`}
-            >
-              <Icon size={17} strokeWidth={1.8} />
-            </button>
-          ))}
+            />
+            {NOTE_COLORS.map(c => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setColor(c)}
+                aria-pressed={color === c}
+                aria-label={c}
+                className={`h-[26px] w-[26px] rounded-full ${
+                  color === c ? 'ring-2 ring-[color:var(--m-act)] ring-offset-2 ring-offset-[color:var(--m-card)]' : ''
+                }`}
+                style={{ background: c }}
+              />
+            ))}
+          </div>
         </div>
+
+        {iconOpen && (
+          <div className="mt-[9px] grid grid-cols-6 gap-[7px]">
+            {NOTE_ICONS.map(({ id, Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => { setIcon(id); setIconOpen(false) }}
+                aria-label={id}
+                aria-pressed={icon === id}
+                className={`flex h-[42px] items-center justify-center rounded-[12px] border border-[color:var(--m-rowbr)] ${
+                  icon === id ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-muted'
+                }`}
+              >
+                <Icon size={17} strokeWidth={1.8} />
+              </button>
+            ))}
+          </div>
+        )}
 
         <Eyebrow className="mb-[5px] mt-[14px] uppercase">{t('dayplan.noteTitle')} *</Eyebrow>
         <input
@@ -130,21 +193,24 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
           className={FIELD_CLS}
         />
 
-        <Eyebrow className="mb-[5px] mt-3 uppercase">{t('dayplan.noteSubtitle')}</Eyebrow>
+        <div className="mb-[6px] mt-3 flex items-center justify-between gap-2">
+          <Eyebrow className="uppercase">{t('dayplan.noteSubtitle')}</Eyebrow>
+          <NoteFormatToolbar textareaRef={detailRef} onChange={setDetail} compact variant="mobile" />
+        </div>
         <textarea
+          ref={detailRef}
           value={detail}
           onChange={e => setDetail(e.target.value)}
-          rows={3}
+          rows={4}
           maxLength={DETAIL_MAX}
-          placeholder={t('dayplan.noteSubtitle')}
+          placeholder={t('notes.bodyPlaceholder')}
           className={FIELD_AREA_CLS}
         />
-        <div
-          className={`mt-1 flex justify-end font-geist text-[0.59375rem] ${
-            detail.length >= DETAIL_MAX - 10 ? 'text-[color:var(--m-st-pending)]' : 'text-m-faint'
-          }`}
-        >
-          {detail.length}/{DETAIL_MAX}
+        <div className="mt-1 flex items-center justify-between gap-2 font-geist text-[0.59375rem]">
+          <span className="text-m-faint">{t('notes.markdownHint')}</span>
+          <span className={detail.length >= DETAIL_MAX - 100 ? 'text-[color:var(--m-st-pending)]' : 'text-m-faint'}>
+            {detail.length}/{DETAIL_MAX}
+          </span>
         </div>
       </div>
 

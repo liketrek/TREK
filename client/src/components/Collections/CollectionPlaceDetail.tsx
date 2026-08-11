@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
+import { markdownLinkComponents } from '../shared/markdownLink'
 import { X, Pencil, Copy, Trash2, MapPin, Link2, Plus, ExternalLink, Check, Tag, Tags, Camera, Loader2 } from 'lucide-react'
 import type { CollectionPlace, CollectionStatus, CollectionLink, CollectionLabel } from '@trek/shared'
 import type { Category, TranslationFn } from '../../types'
@@ -306,7 +307,7 @@ export default function CollectionPlaceDetail({
             )}
             {place.description && (
               <div className="col-detail-md collab-note-md">
-                <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{place.description}</Markdown>
+                <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{place.description}</Markdown>
               </div>
             )}
             {place.links && place.links.length > 0 && (

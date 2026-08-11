@@ -57,7 +57,7 @@ export class DayNotesController {
     if (!body.text?.trim()) {
       throw new HttpException({ error: 'Text required' }, 400);
     }
-    const note = this.notes.create(dayId, tripId, body.text, body.time, body.icon, body.sort_order);
+    const note = this.notes.create(dayId, tripId, body.text, body.time, body.icon, body.sort_order, body.color);
     this.notes.broadcast(tripId, 'dayNote:created', { dayId: Number(dayId), note }, socketId);
     return { note };
   }
@@ -76,7 +76,7 @@ export class DayNotesController {
     if (!current) {
       throw new HttpException({ error: 'Note not found' }, 404);
     }
-    const note = this.notes.update(id, current as never, { text: body.text, time: body.time, icon: body.icon, sort_order: body.sort_order });
+    const note = this.notes.update(id, current as never, { text: body.text, time: body.time, icon: body.icon, sort_order: body.sort_order, color: body.color });
     this.notes.broadcast(tripId, 'dayNote:updated', { dayId: Number(dayId), note }, socketId);
     return { note };
   }

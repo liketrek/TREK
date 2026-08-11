@@ -153,6 +153,56 @@ describe('create', () => {
   });
 });
 
+// ── colour (#1629) ────────────────────────────────────────────────────────────
+
+describe('note colours', () => {
+  it('DAYNOTE-SVC-017: a palette colour is stored as given', () => {
+    const { trip, day } = seedTripAndDay();
+    const note = svc.create(day.id, trip.id, 'Passport check', null, null, 0, '#dc2626') as DayNote;
+    expect(note.color).toBe('#dc2626');
+  });
+
+  it('DAYNOTE-SVC-018: no colour is the default, and stays NULL rather than empty string', () => {
+    const { trip, day } = seedTripAndDay();
+    expect((svc.create(day.id, trip.id, 'a') as DayNote).color).toBeNull();
+    expect((svc.create(day.id, trip.id, 'b', null, null, 0, null) as DayNote).color).toBeNull();
+    expect((svc.create(day.id, trip.id, 'c', null, null, 0, '') as DayNote).color).toBeNull();
+  });
+
+  it('DAYNOTE-SVC-019: a colour outside the palette is dropped, not stored', () => {
+    const { trip, day } = seedTripAndDay();
+    // Anything can reach this: the Zod contract can only say "a short string".
+    expect((svc.create(day.id, trip.id, 'a', null, null, 0, '#123456') as DayNote).color).toBeNull();
+    expect((svc.create(day.id, trip.id, 'b', null, null, 0, 'red') as DayNote).color).toBeNull();
+    expect((svc.create(day.id, trip.id, 'c', null, null, 0, 'javascript:x') as DayNote).color).toBeNull();
+  });
+
+  it('DAYNOTE-SVC-020: the note survives a bad colour instead of being rejected', () => {
+    const { trip, day } = seedTripAndDay();
+    const note = svc.create(day.id, trip.id, 'Ferry at six', '18:00', null, 0, 'nonsense') as DayNote;
+    expect(note.text).toBe('Ferry at six');
+    expect(note.time).toBe('18:00');
+  });
+
+  it('DAYNOTE-SVC-021: update changes the colour and can clear it again', () => {
+    const { trip, day } = seedTripAndDay();
+    const note = svc.create(day.id, trip.id, 'Museum', null, null, 0, '#2563eb') as DayNote;
+
+    expect((svc.update(note.id, note, { color: '#16a34a' }) as DayNote).color).toBe('#16a34a');
+    expect((svc.update(note.id, svc.getNote(note.id, day.id, trip.id)!, { color: null }) as DayNote).color).toBeNull();
+  });
+
+  it('DAYNOTE-SVC-022: an update that says nothing about the colour keeps it', () => {
+    const { trip, day } = seedTripAndDay();
+    const note = svc.create(day.id, trip.id, 'Museum', null, null, 0, '#9333ea') as DayNote;
+
+    const updated = svc.update(note.id, note, { text: 'Museum, book ahead' }) as DayNote;
+
+    expect(updated.text).toBe('Museum, book ahead');
+    expect(updated.color).toBe('#9333ea');
+  });
+});
+
 // ── list ──────────────────────────────────────────────────────────────────────
 
 describe('list', () => {

@@ -1198,6 +1198,48 @@ describe('DayPlanSidebar', () => {
     expect(mockDayNotesState.saveNote).toHaveBeenCalledWith(10)
   })
 
+  // ── Note colours and formatting (#1629) ───────────────────────────────
+
+  it('FE-PLANNER-DAYPLAN-192: the note dialog offers the palette and reports the pick', async () => {
+    const user = userEvent.setup()
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    mockDayNotesState.noteUi = {
+      '10': { mode: 'add', text: 'Passport', time: '', icon: 'StickyNote', color: null },
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day] })} />)
+
+    // Exact, not /red/i: "Ordered list" in the formatting bar matches that too.
+    await user.click(screen.getByRole('button', { name: 'Red' }))
+
+    // The dialog owns no state of its own — it reports upwards, like every other field.
+    expect(mockDayNotesState.setNoteUi).toHaveBeenCalled()
+  })
+
+  it('FE-PLANNER-DAYPLAN-193: a note card is tinted by its colour and renders its body', () => {
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    mockDayNotesState.dayNotes = {
+      '10': [{ id: 1, day_id: 10, text: 'Ferry', time: 'book **early**', icon: 'StickyNote', color: '#dc2626', sort_order: 0 }],
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], expandedDays: { 10: true } })} />)
+
+    // Markdown, not the asterisks someone typed with the formatting bar.
+    expect(screen.getByText('early').tagName).toBe('STRONG')
+    // jsdom normalises the hex inside color-mix() to rgb().
+    const card = screen.getByText('Ferry').closest('.dp-row') as HTMLElement
+    expect(card.style.background).toContain('220, 38, 38')
+  })
+
+  it('FE-PLANNER-DAYPLAN-194: a note without a colour keeps the neutral card', () => {
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    mockDayNotesState.dayNotes = {
+      '10': [{ id: 2, day_id: 10, text: 'Lunch', time: '', icon: 'StickyNote', color: null, sort_order: 0 }],
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], expandedDays: { 10: true } })} />)
+
+    const card = screen.getByText('Lunch').closest('.dp-row') as HTMLElement
+    expect(card.style.background).toContain('--bg-hover')
+  })
+
   // ── Note modal edit mode title ────────────────────────────────────────
 
   it('FE-PLANNER-DAYPLAN-061: note modal shows Edit title in edit mode', () => {

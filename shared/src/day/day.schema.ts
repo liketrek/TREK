@@ -24,6 +24,8 @@ export const dayNoteSchema = z.object({
   text: z.string(),
   time: z.string().nullable().optional(),
   icon: z.string().nullable().optional(),
+  /** One of NOTE_COLORS, or null for the neutral card (#1629). */
+  color: z.string().nullable().optional(),
   sort_order: z.number().optional(),
   created_at: z.string().optional(),
 });
@@ -83,16 +85,19 @@ export type DayTransportRequest = z.infer<typeof dayTransportRequestSchema>;
 // null time on update means "clear" (the legacy raw-body route accepted both).
 export const dayNoteCreateRequestSchema = z.object({
   text: z.string().min(1).max(500),
-  time: z.string().max(250).nullable().optional(),
+  time: z.string().max(2000).nullable().optional(),
   icon: z.string().nullable().optional(),
+  /** One of NOTE_COLORS, or null for the neutral card (#1629). */
+  color: z.string().max(9).nullable().optional(),
   sort_order: z.number().optional(),
 });
 export type DayNoteCreateRequest = z.infer<typeof dayNoteCreateRequestSchema>;
 
 export const dayNoteUpdateRequestSchema = z.object({
   text: z.string().max(500).optional(),
-  time: z.string().max(250).nullable().optional(),
+  time: z.string().max(2000).nullable().optional(),
   icon: z.string().nullable().optional(),
+  color: z.string().max(9).nullable().optional(),
   sort_order: z.number().optional(),
 });
 export type DayNoteUpdateRequest = z.infer<typeof dayNoteUpdateRequestSchema>;

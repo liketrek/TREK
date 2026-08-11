@@ -10,6 +10,9 @@ interface NoteUiState {
   text: string
   time: string
   icon: string
+  /** One of NOTE_COLORS, or null for the neutral card (#1629). Absent on a
+   *  caller that predates colours, which then leaves the stored one alone. */
+  color?: string | null
   sortOrder?: number
 }
 
@@ -28,13 +31,13 @@ export function useDayNotes(tripId: number | string) {
   const openAddNote = (dayId: number, getMergedItems: (dayId: number) => MergedItem[], expandDay?: (dayId: number) => void) => {
     const merged = getMergedItems(dayId)
     const maxKey = merged.length > 0 ? Math.max(...merged.map((i) => i.sortKey)) : -1
-    setNoteUi((prev) => ({ ...prev, [dayId]: { mode: 'add', text: '', time: '', icon: 'FileText', sortOrder: maxKey + 1 } }))
+    setNoteUi((prev) => ({ ...prev, [dayId]: { mode: 'add', text: '', time: '', icon: 'FileText', color: null, sortOrder: maxKey + 1 } }))
     expandDay?.(dayId)
     setTimeout(() => noteInputRef.current?.focus(), 50)
   }
 
   const openEditNote = (dayId: number, note: DayNote) => {
-    setNoteUi((prev) => ({ ...prev, [dayId]: { mode: 'edit', noteId: note.id, text: note.text, time: note.time || '', icon: note.icon || 'FileText' } }))
+    setNoteUi((prev) => ({ ...prev, [dayId]: { mode: 'edit', noteId: note.id, text: note.text, time: note.time || '', icon: note.icon || 'FileText', color: note.color ?? null } }))
     setTimeout(() => noteInputRef.current?.focus(), 50)
   }
 
@@ -47,9 +50,9 @@ export function useDayNotes(tripId: number | string) {
     if (!ui?.text?.trim()) return
     try {
       if (ui.mode === 'add') {
-        await tripStore.addDayNote(tripId, dayId, { text: ui.text.trim(), time: ui.time || null, icon: ui.icon || 'FileText', sort_order: ui.sortOrder })
+        await tripStore.addDayNote(tripId, dayId, { text: ui.text.trim(), time: ui.time || null, icon: ui.icon || 'FileText', color: ui.color ?? null, sort_order: ui.sortOrder })
       } else {
-        await tripStore.updateDayNote(tripId, dayId, ui.noteId!, { text: ui.text.trim(), time: ui.time || null, icon: ui.icon || 'FileText' })
+        await tripStore.updateDayNote(tripId, dayId, ui.noteId!, { text: ui.text.trim(), time: ui.time || null, icon: ui.icon || 'FileText', color: ui.color })
       }
       cancelNote(dayId)
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }

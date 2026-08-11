@@ -4,6 +4,7 @@ import { openFile } from '../../utils/fileDownload'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
+import { markdownLinkComponents } from '../shared/markdownLink'
 import { X, Clock, MapPin, ExternalLink, Phone, Banknote, Edit2, Trash2, Plus, Minus, ChevronDown, ChevronUp, FileText, Upload, File, FileImage, Star, Navigation, Map as MapIcon, Users, Mountain, TrendingUp, Bookmark, BookmarkCheck, Copy, Route } from 'lucide-react'
 import PlaceAvatar from '../shared/PlaceAvatar'
 import PlaceAvatarUpload from '../shared/PlaceAvatarUpload'
@@ -405,14 +406,14 @@ export default function PlaceInspector({
           {/* Description / Summary */}
           {(place.description || googleDetails?.summary) && (
             <div className="collab-note-md bg-surface-hover text-content-muted" style={{ borderRadius: 10, overflow: 'hidden', flexShrink: 0, fontSize: 'calc(12px * var(--fs-scale-body, 1))', lineHeight: '1.5', padding: '8px 12px', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
-              <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{place.description || googleDetails?.summary || ''}</Markdown>
+              <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{place.description || googleDetails?.summary || ''}</Markdown>
             </div>
           )}
 
           {/* Notes */}
           {place.notes && (
             <div className="collab-note-md bg-surface-hover text-content-muted" style={{ borderRadius: 10, overflow: 'hidden', flexShrink: 0, fontSize: 'calc(12px * var(--fs-scale-body, 1))', lineHeight: '1.5', padding: '8px 12px', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
-              <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{place.notes}</Markdown>
+              <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{place.notes}</Markdown>
             </div>
           )}
 
@@ -863,7 +864,7 @@ function PlaceReservationParticipants({ selectedAssignmentId, reservations, assi
                           </div>
                         )}
                       </div>
-                      {res.notes && <div className="collab-note-md text-content-faint" style={{ padding: '0 10px 6px', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', lineHeight: 1.4, wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{res.notes}</Markdown></div>}
+                      {res.notes && <div className="collab-note-md text-content-faint" style={{ padding: '0 10px 6px', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', lineHeight: 1.4, wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{res.notes}</Markdown></div>}
                       {(() => {
                         const meta = typeof res.metadata === 'string' ? JSON.parse(res.metadata || '{}') : (res.metadata || {})
                         if (!meta || Object.keys(meta).length === 0) return null

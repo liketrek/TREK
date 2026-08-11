@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import { NOTE_COLORS, type TrekWsPayload, type TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import type { DayNote, User } from '../../types';
@@ -11,6 +11,20 @@ import { DatabaseService, type TripAccess } from '../database/database.service';
  * coercions). Trip access rides DatabaseService.canAccessTrip; the 'day_edit'
  * permission reuses the legacy check.
  */
+/**
+ * Only a colour the palette actually offers reaches the column (#1629).
+ *
+ * The Zod contract can only say "a short string" — it has no way to express the
+ * palette without pinning the UI's choices into the wire format — so the check
+ * that matters lives here. Anything else is stored as "no colour", which is the
+ * neutral card, rather than being rejected: a bad colour is not a reason to lose
+ * the note someone just wrote.
+ */
+export function normalizeNoteColor(color: string | null | undefined): string | null {
+  if (!color) return null;
+  return (NOTE_COLORS as readonly string[]).includes(color) ? color : null;
+}
+
 @Injectable()
 export class DayNotesService {
   constructor(
@@ -46,21 +60,22 @@ export class DayNotesService {
     return this.dbs.get<DayNote>('SELECT * FROM day_notes WHERE id = ? AND day_id = ? AND trip_id = ?', id, dayId, tripId);
   }
 
-  create(dayId: string | number, tripId: string | number, text: string, time?: string | null, icon?: string | null, sortOrder?: number) {
+  create(dayId: string | number, tripId: string | number, text: string, time?: string | null, icon?: string | null, sortOrder?: number, color?: string | null) {
     const result = this.dbs.run(
-      'INSERT INTO day_notes (day_id, trip_id, text, time, icon, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
-      dayId, tripId, text.trim(), time || null, icon || '📝', sortOrder ?? 9999,
+      'INSERT INTO day_notes (day_id, trip_id, text, time, icon, sort_order, color) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      dayId, tripId, text.trim(), time || null, icon || '📝', sortOrder ?? 9999, normalizeNoteColor(color),
     );
     return this.dbs.get('SELECT * FROM day_notes WHERE id = ?', result.lastInsertRowid);
   }
 
-  update(id: string | number, current: DayNote, fields: { text?: string; time?: string | null; icon?: string | null; sort_order?: number }) {
+  update(id: string | number, current: DayNote, fields: { text?: string; time?: string | null; icon?: string | null; sort_order?: number; color?: string | null }) {
     this.dbs.run(
-      'UPDATE day_notes SET text = ?, time = ?, icon = ?, sort_order = ? WHERE id = ?',
+      'UPDATE day_notes SET text = ?, time = ?, icon = ?, sort_order = ?, color = ? WHERE id = ?',
       fields.text !== undefined ? fields.text.trim() : current.text,
       fields.time !== undefined ? fields.time : current.time,
       fields.icon !== undefined ? fields.icon : current.icon,
       fields.sort_order !== undefined ? fields.sort_order : current.sort_order,
+      fields.color !== undefined ? normalizeNoteColor(fields.color) : (current.color ?? null),
       id,
     );
     return this.dbs.get('SELECT * FROM day_notes WHERE id = ?', id);

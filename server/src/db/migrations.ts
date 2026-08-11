@@ -3856,6 +3856,15 @@ function runMigrations(db: Database.Database): void {
          WHERE note LIKE 'TICKETJSON:%'
       `);
     },
+
+    // Note colours (#1629). A day note is a label as much as a reminder — "watch
+    // out", "must see", "already booked" — and a wall of identical grey cards
+    // makes that impossible to see at a glance. NULL keeps the neutral card
+    // every existing note has today.
+    () => {
+      const hasColor = db.prepare("SELECT 1 FROM pragma_table_info('day_notes') WHERE name = 'color'").get();
+      if (!hasColor) db.exec('ALTER TABLE day_notes ADD COLUMN color TEXT');
+    },
   ];
 
   if (currentVersion < migrations.length) {

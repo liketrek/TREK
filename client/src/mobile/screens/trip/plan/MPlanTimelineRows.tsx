@@ -1,8 +1,13 @@
 import { BedDouble, Car, ChevronDown, ChevronUp, Clock, Footprints, Pencil, Route, Ticket, X, Zap } from 'lucide-react'
-import type { ReactNode, MouseEvent } from 'react'
+import type { ReactNode, MouseEvent, CSSProperties } from 'react'
 import PlaceAvatar from '../../../../components/shared/PlaceAvatar'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
+import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 import { RES_ICONS, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants'
+import { noteSurface } from '../../../../components/Planner/noteSurface'
+import { markdownLinkComponents } from '../../../../components/shared/markdownLink'
 import { getDisplayTimeForDay, getSpanPhase } from '../../../../utils/dayMerge'
 import { formatTime, splitReservationDateTime } from '../../../../utils/formatters'
 import { transportSubtitle, type TransitMeta, type TransportEntry } from './planTimelineModel'
@@ -80,9 +85,12 @@ function ActionCircle({ label, onClick, faint = false, children }: {
 }
 
 /** 30px go-mode avatar ring (photo for places, icon circle for transports/notes). */
-function AvatarRing({ children, className = '' }: { children: ReactNode; className?: string }) {
+function AvatarRing({ children, className = '', style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
   return (
-    <span className={`flex h-[30px] w-[30px] flex-none items-center justify-center overflow-hidden rounded-full border-[1.5px] border-[color:var(--m-avbr)] bg-[color:var(--m-ic)] ${className}`}>
+    <span
+      className={`flex h-[30px] w-[30px] flex-none items-center justify-center overflow-hidden rounded-full border-[1.5px] border-[color:var(--m-avbr)] bg-[color:var(--m-ic)] ${className}`}
+      style={style}
+    >
       {children}
     </span>
   )
@@ -457,11 +465,12 @@ export function NoteRow({ note, chrome, reorder, onEdit }: {
   onEdit: () => void
 }) {
   const Icon = getNoteIcon(note.icon)
+  const skin = noteSurface(note.color)
   // The time column is a free detail line; only a leading HH:MM is a real time.
   const { time: noteTime, detail } = splitNoteTime(note.time)
   const time = noteTime ? fmtTime(noteTime, chrome) : ''
   const [title, ...rest] = note.text.split('\n')
-  const sub = [rest.join(' ').trim(), detail].filter(Boolean).join(' · ')
+  const titleExtra = rest.join(' ').trim()
 
   return (
     <div
@@ -469,17 +478,27 @@ export function NoteRow({ note, chrome, reorder, onEdit }: {
       className={`my-[2px] flex items-center gap-2.5 ${chrome.editing ? 'cursor-pointer' : ''}`}
     >
       {!chrome.editing && (
-        <AvatarRing>
-          <Icon size={14} strokeWidth={2} className="text-m-muted" />
+        <AvatarRing style={note.color ? { background: skin.iconBackground, borderColor: skin.border } : undefined}>
+          <Icon size={14} strokeWidth={2} style={{ color: skin.iconColor }} />
         </AvatarRing>
       )}
-      <div className="min-w-0 flex-1 rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[11px] py-[7px]">
+      <div
+        className="min-w-0 flex-1 rounded-[13px] border px-[11px] py-[7px]"
+        style={{ borderColor: skin.border, background: note.color ? skin.background : 'var(--m-ic)' }}
+      >
         <div className="flex items-center gap-1.5">
           {time && <span className={TIME_CHIP}>{time}</span>}
           <span className="min-w-0 text-[0.875rem] font-semibold">{title}</span>
         </div>
-        {sub && (
-          <div className="mt-px font-geist text-[0.71875rem] leading-[1.4] text-m-muted">{sub}</div>
+        {titleExtra && (
+          <div className="mt-px font-geist text-[0.71875rem] leading-[1.4] text-m-muted">{titleExtra}</div>
+        )}
+        {detail && (
+          // Rendered, not raw: a note written with the formatting bar would
+          // otherwise read as `**asterisks**` on the phone.
+          <div className="collab-note-md mt-px font-geist text-[0.71875rem] leading-[1.45] text-m-muted [overflow-wrap:anywhere]">
+            <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{detail}</Markdown>
+          </div>
         )}
       </div>
       {chrome.editing && <span className="flex flex-none items-center gap-1.5">{reorder}</span>}

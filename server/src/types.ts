@@ -238,6 +238,8 @@ export interface DayNote {
   text: string;
   time?: string | null;
   icon: string;
+  /** One of NOTE_COLORS, or null for the neutral card (#1629). */
+  color?: string | null;
   sort_order: number;
   created_at?: string;
 }

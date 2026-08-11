@@ -333,10 +333,14 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
 
           if (item.type === 'note') {
             const note = item.data
+            // A coloured note carries its colour into print the same way a
+            // reservation does (#1629) — the rule and the spine, not a fill,
+            // because a tint costs ink and reads as grey on a mono printer.
+            const noteColor = note.color || ''
             return `
-              <div class="note-card">
-                <div class="note-line"></div>
-                <span class="note-icon">${noteIconSvg(note.icon)}</span>
+              <div class="note-card"${noteColor ? ` style="border-left: 3px solid ${noteColor};"` : ''}>
+                <div class="note-line"${noteColor ? ` style="background: ${noteColor};"` : ''}></div>
+                <span class="note-icon"${noteColor ? ` style="color: ${noteColor};"` : ''}>${noteIconSvg(note.icon)}</span>
                 <div class="note-body">
                   <div class="note-text">${escHtml(note.text)}</div>
                   ${note.time ? `<div class="note-time">${escHtml(note.time)}</div>` : ''}

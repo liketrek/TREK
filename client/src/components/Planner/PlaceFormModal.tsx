@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
+import NoteFormatToolbar from '../shared/NoteFormatToolbar'
 import { mapsApi } from '../../api/client'
 import { useAuthStore } from '../../store/authStore'
 import { useCanDo } from '../../store/permissionsStore'
@@ -601,6 +602,8 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
   // pick — otherwise the dialog would jump sideways mid-typing.
   const showDetails = !isMobile && placesEnrichEnabled
   const modalSize = isMobile ? 'lg' : showDetails && twoColumn ? '5xl' : showDetails || twoColumn ? '4xl' : 'lg'
+  const descriptionRef = useRef<HTMLTextAreaElement | null>(null)
+  const notesRef = useRef<HTMLTextAreaElement | null>(null)
   return (
     <Modal
       isOpen={isOpen}
@@ -740,27 +743,37 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-content-secondary mb-1">{t('places.formDescription')}</label>
+          <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
+            <label className="block text-sm font-medium text-content-secondary">{t('places.formDescription')}</label>
+            <NoteFormatToolbar textareaRef={descriptionRef} onChange={v => handleChange('description', v)} compact />
+          </div>
           <textarea
+            ref={descriptionRef}
             value={form.description}
             onChange={e => handleChange('description', e.target.value)}
-            rows={2}
+            rows={3}
             placeholder={t('places.formDescriptionPlaceholder')}
             className="form-input" style={{ resize: 'vertical' }}
           />
         </div>
 
-        {/* Notes */}
+        {/* Notes — Markdown, same as the description, and rendered as such in the
+            inspector. The bar is how anyone finds that out. */}
         <div>
-          <label className="block text-sm font-medium text-content-secondary mb-1">{t('places.formNotes')}</label>
+          <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
+            <label className="block text-sm font-medium text-content-secondary">{t('places.formNotes')}</label>
+            <NoteFormatToolbar textareaRef={notesRef} onChange={v => handleChange('notes', v)} compact />
+          </div>
           <textarea
+            ref={notesRef}
             value={form.notes}
             onChange={e => handleChange('notes', e.target.value)}
-            rows={2}
+            rows={3}
             maxLength={2000}
             placeholder={t('places.formNotesPlaceholder')}
             className="form-input" style={{ resize: 'vertical' }}
           />
+          <p className="text-caption text-content-faint mt-1">{t('notes.markdownHint')}</p>
         </div>
 
         {/* Address + Coordinates */}
