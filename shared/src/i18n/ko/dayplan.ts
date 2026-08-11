@@ -18,6 +18,7 @@ const dayplan: TranslationStrings = {
   'dayplan.editNote': '메모 편집',
   'dayplan.noteAdd': '메모 추가',
   'dayplan.noteEdit': '메모 편집',
+  'dayplan.noteDelete': '메모 삭제',
   'dayplan.noteTitle': '메모',
   'dayplan.noteSubtitle': '일별 메모',
   'dayplan.noteIcon': '아이콘',

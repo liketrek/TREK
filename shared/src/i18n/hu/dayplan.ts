@@ -7,6 +7,7 @@ const dayplan: TranslationStrings = {
   'dayplan.editNote': 'Jegyzet szerkesztése',
   'dayplan.noteAdd': 'Jegyzet hozzáadása',
   'dayplan.noteEdit': 'Jegyzet szerkesztése',
+  'dayplan.noteDelete': 'Megjegyzés törlése',
   'dayplan.noteTitle': 'Jegyzet',
   'dayplan.noteSubtitle': 'Napi jegyzet',
   'dayplan.noteIcon': 'Ikon',

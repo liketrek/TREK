@@ -18,6 +18,7 @@ const dayplan: TranslationStrings = {
   'dayplan.editNote': 'Chỉnh sửa ghi chú',
   'dayplan.noteAdd': 'Thêm ghi chú',
   'dayplan.noteEdit': 'Chỉnh sửa ghi chú',
+  'dayplan.noteDelete': 'Xóa ghi chú',
   'dayplan.noteTitle': 'Ghi chú',
   'dayplan.noteSubtitle': 'Ghi chú hàng ngày',
   'dayplan.noteIcon': 'Biểu tượng',

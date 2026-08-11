@@ -2245,6 +2245,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             if (editBtns) editBtns.style.opacity = '0'
                           }}
                           style={{
+                            position: 'relative',
                             display: 'flex', alignItems: 'center', gap: 8,
                             padding: '7px 8px 7px 2px',
                             margin: '1px 8px',
@@ -2275,14 +2276,23 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               </div>
                             )}
                           </div>
-                          {canEditDays && <div className="note-edit-buttons" style={{ display: 'flex', gap: 1, flexShrink: 0, opacity: 0, transition: 'opacity 0.15s' }}>
-                            <button onClick={e => openEditNote(day.id, note, e)} className="text-content-faint" style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', display: 'flex' }}><Pencil size={10} /></button>
-                            <button onClick={e => { e.stopPropagation(); setPendingDeleteNote({ dayId: day.id, noteId: note.id }) }} className="text-content-faint" style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', display: 'flex' }}><Trash2 size={10} /></button>
-                          </div>}
-                          {canEditDays && <div className="reorder-buttons" style={{ flexShrink: 0, display: 'flex', gap: 1, transition: 'opacity 0.15s' }}>
-                            <button onClick={e => { e.stopPropagation(); moveNote(day.id, note.id, 'up') }} disabled={noteIdx === 0} className={noteIdx === 0 ? 'text-[var(--border-primary)]' : 'text-content-faint'} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: noteIdx === 0 ? 'default' : 'pointer', display: 'flex', lineHeight: 1 }}><ChevronUp size={12} strokeWidth={2} /></button>
-                            <button onClick={e => { e.stopPropagation(); moveNote(day.id, note.id, 'down') }} disabled={noteIdx === merged.length - 1} className={noteIdx === merged.length - 1 ? 'text-[var(--border-primary)]' : 'text-content-faint'} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: noteIdx === merged.length - 1 ? 'default' : 'pointer', display: 'flex', lineHeight: 1 }}><ChevronDown size={12} strokeWidth={2} /></button>
-                          </div>}
+                          {/* Stacked in a capsule of their own, set off from the text:
+                              a note card is as tall as its body, so the height is free
+                              while the width next to the text is not, and a 10px icon
+                              in a 14px box was barely a target. */}
+                        {/* Floated over the text rather than sharing the row with
+                            it: a note is mostly text, and reserving a column for
+                            two buttons that are invisible until you hover costs
+                            every note a shorter line for the whole time you are
+                            not hovering. */}
+                        {canEditDays && <div className="note-edit-buttons bg-surface-card" style={{ position: 'absolute', right: 5, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, padding: 4, borderRadius: 999, border: '1px solid var(--border-faint)', boxShadow: '0 4px 14px rgba(0,0,0,0.10)', opacity: 0, transition: 'opacity 0.15s' }}>
+                          <button onClick={e => openEditNote(day.id, note, e)} aria-label={t('dayplan.noteEdit')} title={t('dayplan.noteEdit')} className="text-content-faint note-edit-btn" style={{ background: 'none', border: 'none', width: 30, height: 30, borderRadius: 999, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0 }}><Pencil size={15} /></button>
+                          <button onClick={e => { e.stopPropagation(); setPendingDeleteNote({ dayId: day.id, noteId: note.id }) }} aria-label={t('dayplan.noteDelete')} title={t('dayplan.noteDelete')} className="text-content-faint note-edit-btn note-edit-btn-danger" style={{ background: 'none', border: 'none', width: 30, height: 30, borderRadius: 999, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0 }}><Trash2 size={15} /></button>
+                        </div>}
+                        {canEditDays && <div className="reorder-buttons" style={{ flexShrink: 0, display: 'flex', gap: 1, transition: 'opacity 0.15s' }}>
+                          <button onClick={e => { e.stopPropagation(); moveNote(day.id, note.id, 'up') }} disabled={noteIdx === 0} className={noteIdx === 0 ? 'text-[var(--border-primary)]' : 'text-content-faint'} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: noteIdx === 0 ? 'default' : 'pointer', display: 'flex', lineHeight: 1 }}><ChevronUp size={12} strokeWidth={2} /></button>
+                          <button onClick={e => { e.stopPropagation(); moveNote(day.id, note.id, 'down') }} disabled={noteIdx === merged.length - 1} className={noteIdx === merged.length - 1 ? 'text-[var(--border-primary)]' : 'text-content-faint'} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: noteIdx === merged.length - 1 ? 'default' : 'pointer', display: 'flex', lineHeight: 1 }}><ChevronDown size={12} strokeWidth={2} /></button>
+                        </div>}
                         </div>
                         </React.Fragment>
                       )

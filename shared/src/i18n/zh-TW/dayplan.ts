@@ -7,6 +7,7 @@ const dayplan: TranslationStrings = {
   'dayplan.editNote': '編輯備註',
   'dayplan.noteAdd': '新增備註',
   'dayplan.noteEdit': '編輯備註',
+  'dayplan.noteDelete': '刪除備註',
   'dayplan.noteTitle': '備註',
   'dayplan.noteSubtitle': '每日備註',
   'dayplan.noteIcon': '圖示',

@@ -118,12 +118,15 @@ describe('DayNotesController (parity with the legacy /api/.../days/:dayId/notes 
   // (day-notes.dto.ts over the @trek/shared schemas) — like the old guard it
   // rejects before the trip-access check. The pipe path is exercised end-to-end
   // in tests/e2e/days.e2e.test.ts; here we pin the caps on the DTO schemas.
-  it('DTO schemas carry the legacy length caps and moveDayNote nulls', () => {
+  it('DTO schemas carry the length caps and moveDayNote nulls', () => {
     expect(DayNoteCreateDto.schema.safeParse({ text: 'x'.repeat(501) }).success).toBe(false);
-    expect(DayNoteCreateDto.schema.safeParse({ text: 'ok', time: 'y'.repeat(251) }).success).toBe(false);
+    // The body cap moved to 2000 with #1629 (formatted Markdown); the title did not.
+    expect(DayNoteCreateDto.schema.safeParse({ text: 'ok', time: 'y'.repeat(2001) }).success).toBe(false);
+    expect(DayNoteCreateDto.schema.safeParse({ text: 'ok', time: 'y'.repeat(2000) }).success).toBe(true);
     expect(DayNoteCreateDto.schema.safeParse({ text: 'ok', time: null, icon: null }).success).toBe(true);
-    expect(DayNoteUpdateDto.schema.safeParse({ time: 'y'.repeat(251) }).success).toBe(false);
+    expect(DayNoteUpdateDto.schema.safeParse({ time: 'y'.repeat(2001) }).success).toBe(false);
     expect(DayNoteUpdateDto.schema.safeParse({ time: null }).success).toBe(true);
+    expect(DayNoteUpdateDto.schema.safeParse({ color: '#dc2626' }).success).toBe(true);
   });
 
   // Trip access and day_edit are TripAccessGuard's now (trip-access.guard.test.ts);
@@ -134,7 +137,7 @@ describe('DayNotesController (parity with the legacy /api/.../days/:dayId/notes 
     const create = vi.fn().mockReturnValue({ id: 7 }); const broadcast = vi.fn();
     const svc = notesSvc({ dayExists: vi.fn().mockReturnValue(true), create, broadcast } as Partial<DayNotesService>);
     expect(new DayNotesController(svc).create(user, '5', '3', { text: 'Lunch', time: '12:00' }, 'sock')).toEqual({ note: { id: 7 } });
-    expect(create).toHaveBeenCalledWith('3', '5', 'Lunch', '12:00', undefined, undefined);
+    expect(create).toHaveBeenCalledWith('3', '5', 'Lunch', '12:00', undefined, undefined, undefined);
     expect(broadcast).toHaveBeenCalledWith('5', 'dayNote:created', { dayId: 3, note: { id: 7 } }, 'sock');
   });
 

@@ -18,6 +18,7 @@ const dayplan: TranslationStrings = {
   'dayplan.editNote': 'メモを編集',
   'dayplan.noteAdd': 'メモを追加',
   'dayplan.noteEdit': 'メモを編集',
+  'dayplan.noteDelete': 'メモを削除',
   'dayplan.noteTitle': 'メモ',
   'dayplan.noteSubtitle': '日別メモ',
   'dayplan.noteIcon': 'アイコン',

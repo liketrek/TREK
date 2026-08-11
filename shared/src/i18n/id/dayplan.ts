@@ -16,6 +16,7 @@ const dayplan: TranslationStrings = {
   'dayplan.editNote': 'Edit Catatan',
   'dayplan.noteAdd': 'Tambah Catatan',
   'dayplan.noteEdit': 'Edit Catatan',
+  'dayplan.noteDelete': 'Hapus catatan',
   'dayplan.noteTitle': 'Catatan',
   'dayplan.noteSubtitle': 'Catatan Harian',
   'dayplan.noteIcon': 'Ikon',

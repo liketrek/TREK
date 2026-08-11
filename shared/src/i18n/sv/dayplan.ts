@@ -19,6 +19,7 @@ const dayplan: TranslationStrings = {
   'dayplan.editNote': 'Redigera notering',
   'dayplan.noteAdd': 'Lägg till notering',
   'dayplan.noteEdit': 'Redigera notering',
+  'dayplan.noteDelete': 'Ta bort anteckning',
   'dayplan.noteTitle': 'Notering',
   'dayplan.noteSubtitle': 'Daglig notering',
   'dayplan.noteIcon': 'Ikon',

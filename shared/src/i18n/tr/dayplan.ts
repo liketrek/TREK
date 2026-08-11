@@ -18,6 +18,7 @@ const dayplan: TranslationStrings = {
   'dayplan.editNote': 'Notu Düzenle',
   'dayplan.noteAdd': 'Not Ekle',
   'dayplan.noteEdit': 'Notu Düzenle',
+  'dayplan.noteDelete': 'Notu sil',
   'dayplan.noteTitle': 'Not',
   'dayplan.noteSubtitle': 'Günlük Not',
   'dayplan.noteIcon': 'Simge',

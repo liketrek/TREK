@@ -18,6 +18,7 @@ const dayplan: TranslationStrings = {
   'dayplan.editNote': 'Επεξεργασία Σημείωσης',
   'dayplan.noteAdd': 'Προσθήκη Σημείωσης',
   'dayplan.noteEdit': 'Επεξεργασία Σημείωσης',
+  'dayplan.noteDelete': 'Διαγραφή σημείωσης',
   'dayplan.noteTitle': 'Σημείωση',
   'dayplan.noteSubtitle': 'Ημερήσια Σημείωση',
   'dayplan.noteIcon': 'Εικονίδιο',

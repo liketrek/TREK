@@ -10,16 +10,26 @@ describe('dayCreateRequestSchema', () => {
 });
 
 describe('dayNoteCreateRequestSchema', () => {
-  it('requires non-empty text capped at 500, time capped at 250', () => {
+  it('requires non-empty text capped at 500, body capped at 2000', () => {
     expect(dayNoteCreateRequestSchema.safeParse({ text: 'Lunch' }).success).toBe(true);
     expect(dayNoteCreateRequestSchema.safeParse({ text: '' }).success).toBe(false);
     expect(dayNoteCreateRequestSchema.safeParse({ text: 'x'.repeat(501) }).success).toBe(false);
+    // Raised from 250 with #1629: the field carries formatted Markdown now.
+    expect(dayNoteCreateRequestSchema.safeParse({ text: 'ok', time: 'y'.repeat(2000) }).success).toBe(true);
     expect(
       dayNoteCreateRequestSchema.safeParse({
         text: 'ok',
-        time: 'y'.repeat(251),
+        time: 'y'.repeat(2001),
       }).success,
     ).toBe(false);
+  });
+
+  it('takes a note colour, and only as a short string', () => {
+    expect(dayNoteCreateRequestSchema.safeParse({ text: 'ok', color: '#dc2626' }).success).toBe(true);
+    expect(dayNoteCreateRequestSchema.safeParse({ text: 'ok', color: null }).success).toBe(true);
+    // The palette itself is enforced in the service — the contract only keeps
+    // the column from taking arbitrary length.
+    expect(dayNoteCreateRequestSchema.safeParse({ text: 'ok', color: 'x'.repeat(10) }).success).toBe(false);
   });
 
   it('accepts null time/icon (moveDayNote re-sends the nullable entity fields)', () => {

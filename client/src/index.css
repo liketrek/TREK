@@ -1193,6 +1193,19 @@ img[alt="TREK"] {
 .collab-note-md-full th, .collab-note-md-full td { border: 1px solid var(--border-primary); padding: 4px 8px; font-size: 0.9em; }
 .collab-note-md-full hr { border: none; border-top: 1px solid var(--border-primary); margin: 0.8em 0; }
 
+/* Note card actions: stacked beside the card, and big enough to aim at. */
+.note-edit-btn {
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+.note-edit-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.note-edit-btn-danger:hover {
+  background: rgba(220, 38, 38, 0.13);
+  color: #dc2626;
+}
+
 /* Day-plan header action grid (edit / +transport / note / collapse) */
 .dp-day-actions button {
   color: var(--text-faint);

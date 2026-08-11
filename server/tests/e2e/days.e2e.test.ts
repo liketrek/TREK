@@ -43,7 +43,7 @@ const { db } = vi.hoisted(() => {
     PRIMARY KEY (assignment_id, user_id));`);
   tmp.exec(`CREATE TABLE day_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
     trip_id INTEGER NOT NULL, text TEXT NOT NULL, time TEXT, icon TEXT DEFAULT '📝',
-    sort_order REAL DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+    color TEXT, sort_order REAL DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   // Reorder/insert touch accommodations + reservation restamping.
   tmp.exec(`CREATE TABLE day_accommodations (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
     place_id INTEGER, start_day_id INTEGER, end_day_id INTEGER, check_in TEXT, check_in_end TEXT,

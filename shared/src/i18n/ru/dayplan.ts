@@ -7,6 +7,7 @@ const dayplan: TranslationStrings = {
   'dayplan.editNote': 'Редактировать заметку',
   'dayplan.noteAdd': 'Добавить заметку',
   'dayplan.noteEdit': 'Редактировать заметку',
+  'dayplan.noteDelete': 'Удалить заметку',
   'dayplan.noteTitle': 'Заметка',
   'dayplan.noteSubtitle': 'Заметка на день',
   'dayplan.noteIcon': 'Значок',

@@ -7,6 +7,7 @@ const dayplan: TranslationStrings = {
   'dayplan.editNote': 'Upravit poznámku',
   'dayplan.noteAdd': 'Přidat poznámku',
   'dayplan.noteEdit': 'Upravit poznámku',
+  'dayplan.noteDelete': 'Smazat poznámku',
   'dayplan.noteTitle': 'Poznámka',
   'dayplan.noteSubtitle': 'Poznámka ke dni',
   'dayplan.noteIcon': 'Ikona',

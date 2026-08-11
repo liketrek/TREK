@@ -15,6 +15,7 @@ const dayplan: TranslationStrings = {
   'dayplan.editNote': 'تعديل الملاحظة',
   'dayplan.noteAdd': 'إضافة ملاحظة',
   'dayplan.noteEdit': 'تعديل الملاحظة',
+  'dayplan.noteDelete': 'حذف الملاحظة',
   'dayplan.noteTitle': 'ملاحظة',
   'dayplan.noteSubtitle': 'ملاحظة يومية',
   'dayplan.noteIcon': 'أيقونة',
