@@ -9,7 +9,7 @@ import MSheet from '../../../components/MSheet'
 import { Eyebrow, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import type { TripPlanner } from '../MTripShell'
-import { CountPill, SectionHeader, TabScroller } from './tabChrome'
+import { SectionHeader, TabScroller } from './tabChrome'
 import {
   formatPollCountdown,
   hasUserVoted,
@@ -191,7 +191,7 @@ export default function MCollabPolls({ planner }: MCollabPollsProps) {
               {active.length > 0 && (
                 <SectionHeader
                   label={t('collab.polls.closedSection')}
-                  count={<CountPill>{closed.length}</CountPill>}
+                  count={closed.length}
                   open={!collapsedClosed}
                   onToggle={() => setCollapsedClosed(v => !v)}
                 />

@@ -7,7 +7,7 @@ import { openFile } from '../../../../utils/fileDownload'
 import { useTranslation } from '../../../../i18n'
 import type { Reservation } from '../../../../types'
 import MConfirmSheet from '../../settings/MConfirmSheet'
-import { ConfirmationCode, CountPill, Field, SectionHeader, StatusDot, TabScroller, TravelerAvatars, TravelerFilterRow } from './tabChrome'
+import { ConfirmationCode, Field, SectionHeader, StatusDot, TabScroller, TravelerAvatars, TravelerFilterRow } from './tabChrome'
 import { STATUS_COLOR, type MTabScreenProps } from './tabModel'
 import {
   TRANSPORT_TYPE_COLOR,
@@ -46,7 +46,14 @@ export default function MTransportsTab({ planner, shell }: MTabScreenProps) {
   return (
     <TabScroller>
       {showTravelerFilter && (
-        <TravelerFilterRow members={planner.tripMembers} active={travelerFilter} onToggle={toggleTravelerFilter} label={t('reservations.travelers.label')} />
+        <TravelerFilterRow
+          members={planner.tripMembers}
+          active={travelerFilter}
+          onToggle={toggleTravelerFilter}
+          onClear={() => setTravelerFilter(new Set())}
+          label={t('reservations.travelers.label')}
+          allLabel={t('common.all')}
+        />
       )}
       {sections.length === 0 ? (
         <div className="flex min-h-full flex-col items-center justify-center px-8 py-10 text-center">
@@ -57,7 +64,7 @@ export default function MTransportsTab({ planner, shell }: MTabScreenProps) {
         <div key={section.id}>
           <SectionHeader
             label={section.label}
-            count={<CountPill>{section.rows.length}</CountPill>}
+            count={section.rows.length}
             open={!collapsed[section.id]}
             onToggle={() => toggle(section.id)}
           />
