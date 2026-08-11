@@ -189,7 +189,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   const [routeLegs, setRouteLegs] = useState<Record<number, Record<number, RouteSegment>>>({})
   // Hotel bookend legs keyed by day id. Desktop keys only the selected day; mobile
   // keys every day whose Route toggle is on, so each shows its own bookends (#1374).
-  const [hotelLegs, setHotelLegs] = useState<Record<number, { top?: { seg: RouteSegment; name: string }; bottom?: { seg: RouteSegment; name: string } }>>({})
+  const [hotelLegs, setHotelLegs] = useState<Record<number, { top?: { seg: RouteSegment; name: string; targetId?: number }; bottom?: { seg: RouteSegment; name: string; targetId?: number } }>>({})
   // Mobile only: days the user tapped "Route" on. Their leg distances show inline in
   // the expanded day, so seeing distances doesn't require selecting the day (which
   // closes the mobile sheet) — #1374.
@@ -530,10 +530,10 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       // whether each is a place and its time so the bookend decision can drop a leg that isn't
       // real: a check-in hotel never drove to a departure airport (#1321), and a place timed before
       // check-in / after check-out means you weren't at the hotel then (#1465).
-      const wayPts: { lat: number; lng: number; isPlace: boolean; time: string | null; leg_transport_mode?: string | null; incoming_leg_transport_mode?: string | null }[] = []
+      const wayPts: { lat: number; lng: number; isPlace: boolean; time: string | null; leg_transport_mode?: string | null; incoming_leg_transport_mode?: string | null; id?: number }[] = []
       for (const it of merged) {
         if (it.type === 'place' && it.data.place?.lat && it.data.place?.lng) {
-          wayPts.push({ lat: it.data.place.lat, lng: it.data.place.lng, isPlace: true, time: it.data.place?.place_time ?? null, leg_transport_mode: it.data.leg_transport_mode ?? null, incoming_leg_transport_mode: it.data.incoming_leg_transport_mode ?? null })
+          wayPts.push({ lat: it.data.place.lat, lng: it.data.place.lng, isPlace: true, time: it.data.place?.place_time ?? null, leg_transport_mode: it.data.leg_transport_mode ?? null, incoming_leg_transport_mode: it.data.incoming_leg_transport_mode ?? null, id: it.data.id })
         } else if (it.type === 'transport') {
           const { from, to } = getTransportRouteEndpoints(it.data, dayId)
           if (from) wayPts.push({ lat: from.lat, lng: from.lng, isPlace: false, time: null })
@@ -551,7 +551,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     legsAbortRef.current = controller
     ;(async () => {
       const legsByDay: Record<number, Record<number, RouteSegment>> = {}
-      const hotelByDay: Record<number, { top?: { seg: RouteSegment; name: string }; bottom?: { seg: RouteSegment; name: string } }> = {}
+      const hotelByDay: Record<number, { top?: { seg: RouteSegment; name: string; targetId?: number }; bottom?: { seg: RouteSegment; name: string; targetId?: number } }> = {}
 
       // One cached OSRM/plugin call per waypoint pair; shares RouteCalculator's cache.
       // tripId/dayId ride along for plugin route profiles (the server access-checks them).
@@ -584,14 +584,14 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
           }
         }
         if (Object.keys(dayLegs).length) legsByDay[dayId] = dayLegs
-        const hotel: { top?: { seg: RouteSegment; name: string }; bottom?: { seg: RouteSegment; name: string } } = {}
+        const hotel: { top?: { seg: RouteSegment; name: string; targetId?: number }; bottom?: { seg: RouteSegment; name: string; targetId?: number } } = {}
         if (wantTop) {
           const seg = await legBetween({ lat: startHotel!.place_lat as number, lng: startHotel!.place_lng as number }, { lat: firstWay!.lat, lng: firstWay!.lng }, dayId, resolveLegMode({ isPlace: false }, firstWay!, dfMode))
-          if (seg) hotel.top = { seg, name: hotelName(startHotel!) }
+          if (seg) hotel.top = { seg, name: hotelName(startHotel!), targetId: firstWay!.isPlace ? firstWay!.id : undefined }
         }
         if (wantBottom) {
           const seg = await legBetween({ lat: lastWay!.lat, lng: lastWay!.lng }, { lat: endHotel!.place_lat as number, lng: endHotel!.place_lng as number }, dayId, resolveLegMode(lastWay!, { isPlace: false }, dfMode))
-          if (seg) hotel.bottom = { seg, name: hotelName(endHotel!) }
+          if (seg) hotel.bottom = { seg, name: hotelName(endHotel!), targetId: lastWay!.isPlace ? lastWay!.id : undefined }
         }
         if (controller.signal.aborted) return
         if (hotel.top || hotel.bottom) hotelByDay[dayId] = hotel
@@ -1639,10 +1639,10 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                   }}
                 >
                   {hotelLegs[day.id]?.top && (() => {
-                    const firstPlaceId = merged.find(i => i.type === 'place')?.data.id
+                    const targetId = hotelLegs[day.id]?.top?.targetId
                     const connector = <HotelRouteConnector seg={hotelLegs[day.id]!.top!.seg} name={hotelLegs[day.id]!.top!.name} profile={routeProfile} placement="top" />
-                    return canEditDays && firstPlaceId != null ? (
-                      <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openIncomingLegModeMenu(e, Number(firstPlaceId), day.id)} style={{ cursor: 'pointer' }}>
+                    return canEditDays && targetId != null ? (
+                      <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openIncomingLegModeMenu(e, targetId, day.id)} style={{ cursor: 'pointer' }}>
                         {connector}
                       </div>
                     ) : connector
@@ -2248,7 +2248,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           )}
                           {daySchedule.byReservation[day.id]?.[res.id]?.map(si => <PluginDayScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
                           {routeLegs[day.id]?.[res.id] && (() => {
-                            const nextPlaceId = merged.slice(idx + 1).find(i => i.type === 'place')?.data.id
+                            const nextPlaceId = merged.slice(idx + 1).find(i => i.type === 'place' && i.data.place?.lat && i.data.place?.lng)?.data.id
                             const connector = <RouteConnector seg={routeLegs[day.id]![res.id]} profile={routeProfile} />
                             return canEditDays && nextPlaceId != null ? (
                               <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openIncomingLegModeMenu(e, Number(nextPlaceId), day.id)} style={{ cursor: 'pointer' }}>
@@ -2382,10 +2382,10 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                   )}
                   {daySchedule.byPosition[day.id]?.end.map(si => <PluginDayScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
                   {hotelLegs[day.id]?.bottom && (() => {
-                    const lastPlaceId = [...merged].reverse().find(i => i.type === 'place')?.data.id
+                    const targetId = hotelLegs[day.id]?.bottom?.targetId
                     const connector = <HotelRouteConnector seg={hotelLegs[day.id]!.bottom!.seg} name={hotelLegs[day.id]!.bottom!.name} profile={routeProfile} placement="bottom" />
-                    return canEditDays && lastPlaceId != null ? (
-                      <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openLegModeMenu(e, Number(lastPlaceId), day.id)} style={{ cursor: 'pointer' }}>
+                    return canEditDays && targetId != null ? (
+                      <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openLegModeMenu(e, targetId, day.id)} style={{ cursor: 'pointer' }}>
                         {connector}
                       </div>
                     ) : connector
