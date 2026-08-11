@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from 'vitest'
-import { ReservationMapboxOverlay } from './reservationsMapbox'
+import {
+  RESERVATION_LINE_LAYER_ID,
+  RESERVATION_SOURCE_ID,
+  RESERVATION_TRANSIT_CASING_LAYER_ID,
+  ReservationMapboxOverlay,
+} from './reservationsMapbox'
 import type { Reservation } from '../../types'
 
 // A minimal mapbox-gl stand-in: a persistent source that records the last
@@ -19,6 +24,38 @@ function fakeMap() {
     off: vi.fn(),
     getZoom: () => 12,
     project: ([lng, lat]: [number, number]) => ({ x: lng * 1000, y: lat * 1000 }),
+  }
+}
+
+function dependencyAwareFakeMap() {
+  const source = { setData: vi.fn() }
+  let hasSource = true
+  const layers = new Map([
+    [RESERVATION_TRANSIT_CASING_LAYER_ID, { source: RESERVATION_SOURCE_ID }],
+    [RESERVATION_LINE_LAYER_ID, { source: RESERVATION_SOURCE_ID }],
+  ])
+  const removals: string[] = []
+
+  return {
+    _hasSource: () => hasSource,
+    _layers: layers,
+    _removals: removals,
+    getSource: (id: string) => id === RESERVATION_SOURCE_ID && hasSource ? source : undefined,
+    addSource: vi.fn(),
+    addLayer: vi.fn(),
+    getLayer: (id: string) => layers.get(id),
+    removeLayer: vi.fn((id: string) => {
+      layers.delete(id)
+      removals.push(`layer:${id}`)
+    }),
+    removeSource: vi.fn((id: string) => {
+      const dependentLayer = [...layers.entries()].find(([, layer]) => layer.source === id)
+      if (dependentLayer) throw new Error(`Source "${id}" cannot be removed while layer "${dependentLayer[0]}" is using it.`)
+      hasSource = false
+      removals.push(`source:${id}`)
+    }),
+    on: vi.fn(),
+    off: vi.fn(),
   }
 }
 
@@ -65,6 +102,23 @@ function lastFeatureCoords(map: ReturnType<typeof fakeMap>) {
   const data = calls[calls.length - 1]?.[0] as { features: { geometry: { coordinates: [number, number][] } }[] }
   return data.features[0].geometry.coordinates
 }
+
+describe('ReservationMapboxOverlay cleanup', () => {
+  it('removes every dependent layer before removing the reservation source', () => {
+    const map = dependencyAwareFakeMap()
+    const overlay = new ReservationMapboxOverlay(map as never, opts, FakeMarker as never)
+
+    overlay.destroy()
+
+    expect(map._layers.size).toBe(0)
+    expect(map._hasSource()).toBe(false)
+    expect(map._removals).toEqual([
+      `layer:${RESERVATION_TRANSIT_CASING_LAYER_ID}`,
+      `layer:${RESERVATION_LINE_LAYER_ID}`,
+      `source:${RESERVATION_SOURCE_ID}`,
+    ])
+  })
+})
 
 describe('ReservationMapboxOverlay road routes (#1425)', () => {
   it('draws the real road geometry when a road route is supplied', () => {

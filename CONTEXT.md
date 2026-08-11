@@ -68,6 +68,10 @@ _Avoid_: Expense owner, settlement sender
 A recorded transfer from one trip participant to another that reduces their net trip balance.
 _Avoid_: Expense, reimbursement estimate
 
-**Guest claim**:
+**Guest identity transfer**:
 An irreversible transfer of one Guest's trip participation to the Account member who represents the same person.
-_Avoid_: Guest merge, account upgrade
+_Avoid_: Guest claim, Guest merge, account upgrade
+
+**New-member identity check**:
+A per-trip check asking a newly joined Account member whether an existing Guest represents them.
+_Avoid_: Guest prompt, claim prompt, new joiner check

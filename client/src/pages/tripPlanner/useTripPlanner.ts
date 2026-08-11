@@ -1,4 +1,4 @@
-import type { BookingImportPreviewItem, GuestClaimCandidate } from '@trek/shared';
+import type { BookingImportPreviewItem, GuestIdentityTransferCandidate } from '@trek/shared';
 import { FolderOpen, Map, PackageCheck, Ticket, Train, Users, Wallet } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -74,6 +74,7 @@ export function useTripPlanner() {
   const allPlugins = usePluginStore((s) => s.plugins);
   const pluginsLoaded = usePluginStore((s) => s.loaded);
   const placesPhotosEnabled = useAuthStore((s) => s.placesPhotosEnabled);
+  const currentUser = useAuthStore((s) => s.user);
   const trip = useTripStore((s) => s.trip);
   const days = useTripStore((s) => s.days);
   const places = useTripStore((s) => s.places);
@@ -275,15 +276,17 @@ export function useTripPlanner() {
   }, [searchParams]);
   const [showTripForm, setShowTripForm] = useState<boolean>(false);
   const [showMembersModal, setShowMembersModal] = useState<boolean>(false);
-  const [guestClaimCandidates, setGuestClaimCandidates] = useState<GuestClaimCandidate[]>([]);
-  const [showGuestClaimModal, setShowGuestClaimModal] = useState(false);
-  const [guestClaimTripId, setGuestClaimTripId] = useState<number | null>(null);
+  const [guestIdentityTransferCandidates, setGuestIdentityTransferCandidates] = useState<
+    GuestIdentityTransferCandidate[]
+  >([]);
+  const [showGuestIdentityTransferModal, setShowGuestIdentityTransferModal] = useState(false);
+  const [guestIdentityTransferTripId, setGuestIdentityTransferTripId] = useState<number | null>(null);
   const { offline: effectivelyOffline } = useNetworkMode();
   const serverReachable = useSyncExternalStore(onConnectivityChange, isReachable, () => false);
-  const guestPromptAvailable = !effectivelyOffline && serverReachable;
-  const previousGuestPromptAvailableRef = useRef(guestPromptAvailable);
-  const [guestPromptAvailabilityEpoch, setGuestPromptAvailabilityEpoch] = useState(0);
-  const guestPromptAttemptsRef = useRef(
+  const identityCheckAvailable = !effectivelyOffline && serverReachable;
+  const previousIdentityCheckAvailableRef = useRef(identityCheckAvailable);
+  const [identityCheckAvailabilityEpoch, setIdentityCheckAvailabilityEpoch] = useState(0);
+  const identityCheckAttemptsRef = useRef(
     new globalThis.Map<
       number,
       {
@@ -293,10 +296,10 @@ export function useTripPlanner() {
       }
     >()
   );
-  const guestPromptAbortRef = useRef<AbortController | null>(null);
-  const guestPromptGenerationRef = useRef(0);
-  const activeGuestPromptTripRef = useRef(tripId);
-  const [guestPromptRevision, setGuestPromptRevision] = useState(0);
+  const identityCheckAbortRef = useRef<AbortController | null>(null);
+  const identityCheckGenerationRef = useRef(0);
+  const activeIdentityCheckTripRef = useRef(tripId);
+  const [identityCheckRevision, setIdentityCheckRevision] = useState(0);
   const [showReservationModal, setShowReservationModal] = useState<boolean>(false);
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
   const [showBookingImport, setShowBookingImport] = useState<boolean>(false);
@@ -1225,55 +1228,54 @@ export function useTripPlanner() {
   }, [isLoading, trip]);
 
   useEffect(() => {
-    const wasAvailable = previousGuestPromptAvailableRef.current;
-    if (guestPromptAvailable && !wasAvailable) {
-      setGuestPromptAvailabilityEpoch((epoch) => epoch + 1);
+    const wasAvailable = previousIdentityCheckAvailableRef.current;
+    if (identityCheckAvailable && !wasAvailable) {
+      setIdentityCheckAvailabilityEpoch((epoch) => epoch + 1);
     }
-    previousGuestPromptAvailableRef.current = guestPromptAvailable;
-  }, [guestPromptAvailable]);
+    previousIdentityCheckAvailableRef.current = identityCheckAvailable;
+  }, [identityCheckAvailable]);
 
   useEffect(() => {
-    const guestPromptAttempts = guestPromptAttemptsRef.current;
-    activeGuestPromptTripRef.current = tripId;
-    guestPromptAbortRef.current?.abort();
-    guestPromptAbortRef.current = null;
-    guestPromptGenerationRef.current += 1;
-    const existing = guestPromptAttempts.get(tripId);
-    if (existing?.status === 'in-flight') existing.status = 'ready';
-    if (!existing) {
-      const nonce =
-        typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
-      guestPromptAttempts.set(tripId, {
-        idempotencyKey: `guest-claim-prompt:${tripId}:${nonce}`,
-        status: 'ready',
-        lastAttemptEpoch: -1,
-      });
-    }
-    setGuestClaimCandidates([]);
-    setGuestClaimTripId(null);
-    setShowGuestClaimModal(false);
-    setGuestPromptRevision((revision) => revision + 1);
+    const identityCheckAttempts = identityCheckAttemptsRef.current;
+    activeIdentityCheckTripRef.current = tripId;
+    identityCheckAbortRef.current?.abort();
+    identityCheckAbortRef.current = null;
+    identityCheckGenerationRef.current += 1;
+    const nonce =
+      typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+    identityCheckAttempts.set(tripId, {
+      idempotencyKey: `new-member-identity-check:${tripId}:${nonce}`,
+      status: 'ready',
+      lastAttemptEpoch: -1,
+    });
+    setGuestIdentityTransferCandidates([]);
+    setGuestIdentityTransferTripId(null);
+    setShowGuestIdentityTransferModal(false);
+    setIdentityCheckRevision((revision) => revision + 1);
 
     return () => {
-      guestPromptAbortRef.current?.abort();
-      guestPromptAbortRef.current = null;
-      guestPromptGenerationRef.current += 1;
-      const attempt = guestPromptAttempts.get(tripId);
+      identityCheckAbortRef.current?.abort();
+      identityCheckAbortRef.current = null;
+      identityCheckGenerationRef.current += 1;
+      const attempt = identityCheckAttempts.get(tripId);
       if (attempt?.status === 'in-flight') attempt.status = 'ready';
     };
   }, [tripId]);
 
   useEffect(() => {
-    const attempt = guestPromptAttemptsRef.current.get(tripId);
+    const attempt = identityCheckAttemptsRef.current.get(tripId);
     if (
       !attempt ||
       attempt.status === 'done' ||
       attempt.status === 'in-flight' ||
-      (attempt.status === 'wait-reconnect' && attempt.lastAttemptEpoch >= guestPromptAvailabilityEpoch) ||
+      (attempt.status === 'wait-reconnect' && attempt.lastAttemptEpoch >= identityCheckAvailabilityEpoch) ||
       !trip ||
+      trip.id !== tripId ||
+      trip.is_owner === 1 ||
+      trip.user_id === currentUser?.id ||
       isLoading ||
       !splashDone ||
-      !guestPromptAvailable ||
+      !identityCheckAvailable ||
       showTripForm ||
       showMembersModal ||
       showPlaceForm ||
@@ -1285,14 +1287,14 @@ export function useTripPlanner() {
       return;
 
     const requestTripId = tripId;
-    const generation = ++guestPromptGenerationRef.current;
+    const generation = ++identityCheckGenerationRef.current;
     const controller = new AbortController();
-    guestPromptAbortRef.current = controller;
+    identityCheckAbortRef.current = controller;
     attempt.status = 'in-flight';
-    attempt.lastAttemptEpoch = guestPromptAvailabilityEpoch;
+    attempt.lastAttemptEpoch = identityCheckAvailabilityEpoch;
 
     tripsApi
-      .promptGuestClaim(requestTripId, {
+      .runNewMemberIdentityCheck(requestTripId, {
         idempotencyKey: attempt.idempotencyKey,
         signal: controller.signal,
       })
@@ -1300,33 +1302,34 @@ export function useTripPlanner() {
         attempt.status = 'done';
         if (
           controller.signal.aborted ||
-          generation !== guestPromptGenerationRef.current ||
-          requestTripId !== activeGuestPromptTripRef.current
+          generation !== identityCheckGenerationRef.current ||
+          requestTripId !== activeIdentityCheckTripRef.current
         )
           return;
-        if (response.prompted && response.candidates.length > 0) {
-          setGuestClaimCandidates(response.candidates);
-          setGuestClaimTripId(requestTripId);
-          setShowGuestClaimModal(true);
+        if (response.required && response.candidates.length > 0) {
+          setGuestIdentityTransferCandidates(response.candidates);
+          setGuestIdentityTransferTripId(requestTripId);
+          setShowGuestIdentityTransferModal(true);
         }
       })
       .catch((error: unknown) => {
-        if (controller.signal.aborted || generation !== guestPromptGenerationRef.current) return;
+        if (controller.signal.aborted || generation !== identityCheckGenerationRef.current) return;
         const status = (error as { response?: { status?: number } }).response?.status;
         attempt.status = status != null && status >= 400 && status < 500 ? 'done' : 'wait-reconnect';
-        setGuestPromptRevision((revision) => revision + 1);
+        setIdentityCheckRevision((revision) => revision + 1);
       })
       .finally(() => {
-        if (guestPromptAbortRef.current === controller) guestPromptAbortRef.current = null;
+        if (identityCheckAbortRef.current === controller) identityCheckAbortRef.current = null;
       });
   }, [
     trip,
+    currentUser?.id,
     tripId,
     isLoading,
     splashDone,
-    guestPromptAvailable,
-    guestPromptAvailabilityEpoch,
-    guestPromptRevision,
+    identityCheckAvailable,
+    identityCheckAvailabilityEpoch,
+    identityCheckRevision,
     showTripForm,
     showMembersModal,
     showPlaceForm,
@@ -1338,8 +1341,8 @@ export function useTripPlanner() {
 
   useEffect(() => {
     const refresh = () => refreshMembers();
-    window.addEventListener('guest:claimed', refresh);
-    return () => window.removeEventListener('guest:claimed', refresh);
+    window.addEventListener('guest:identity-transferred', refresh);
+    return () => window.removeEventListener('guest:identity-transferred', refresh);
   }, [refreshMembers]);
 
   return {
@@ -1412,11 +1415,11 @@ export function useTripPlanner() {
     setShowTripForm,
     showMembersModal,
     setShowMembersModal,
-    guestClaimCandidates,
-    setGuestClaimCandidates,
-    showGuestClaimModal,
-    setShowGuestClaimModal,
-    guestClaimTripId,
+    guestIdentityTransferCandidates,
+    setGuestIdentityTransferCandidates,
+    showGuestIdentityTransferModal,
+    setShowGuestIdentityTransferModal,
+    guestIdentityTransferTripId,
     showReservationModal,
     setShowReservationModal,
     editingReservation,

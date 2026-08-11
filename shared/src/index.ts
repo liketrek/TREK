@@ -33,7 +33,7 @@ export * from './reservation/ki-reservation.schema';
 export * from './airtrail/airtrail.schema';
 export * from './day/day.schema';
 export * from './assignment/assignment.schema';
-export * from './trip/guest-claim.schema';
+export * from './trip/guest-identity-transfer.schema';
 export * from './place/place.schema';
 export * from './collection/collection.schema';
 export * from './trip/trip.schema';

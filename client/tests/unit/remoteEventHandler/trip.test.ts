@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useTripStore } from '../../../src/store/tripStore';
+import { buildPlace, buildTrip } from '../../helpers/factories';
 import { resetAllStores } from '../../helpers/store';
-import { buildTrip, buildPlace } from '../../helpers/factories';
 
 beforeEach(() => {
   resetAllStores();
@@ -31,15 +31,17 @@ describe('remoteEventHandler > trip', () => {
     expect(places[0].id).toBe(55);
   });
 
-  it('FE-WSEVT-TRIP-006: guest:claimed rehydrates the active trip and requests a member refresh', () => {
+  it('FE-WSEVT-TRIP-006: guest:identity-transferred rehydrates the active trip and requests a member refresh', () => {
     const hydrateActiveTrip = vi.fn().mockResolvedValue(undefined);
     const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
     useTripStore.setState({ trip: buildTrip({ id: 17 }), hydrateActiveTrip });
 
-    useTripStore.getState().handleRemoteEvent({ type: 'guest:claimed', guestUserId: 7, claimedByUserId: 2 });
+    useTripStore
+      .getState()
+      .handleRemoteEvent({ type: 'guest:identity-transferred', guestUserId: 7, transferredByUserId: 2 });
 
     expect(hydrateActiveTrip).toHaveBeenCalledWith(17);
-    expect(dispatchSpy.mock.calls.some(([event]) => (event as Event).type === 'guest:claimed')).toBe(true);
+    expect(dispatchSpy.mock.calls.some(([event]) => (event as Event).type === 'guest:identity-transferred')).toBe(true);
   });
 
   // A remote date-range change re-anchors bookings/accommodations server-side, so the
@@ -66,7 +68,9 @@ describe('remoteEventHandler > trip', () => {
     });
 
     it('FE-WSEVT-TRIP-004: a title-only trip:updated does not trigger any refetch', () => {
-      useTripStore.setState({ trip: buildTrip({ id: 1, title: 'Old', start_date: '2025-06-01', end_date: '2025-06-05' }) });
+      useTripStore.setState({
+        trip: buildTrip({ id: 1, title: 'Old', start_date: '2025-06-01', end_date: '2025-06-05' }),
+      });
       const { refreshDays, loadReservations, dispatchSpy } = stubRefresh();
       const updatedTrip = buildTrip({ id: 1, title: 'New', start_date: '2025-06-01', end_date: '2025-06-05' });
       useTripStore.getState().handleRemoteEvent({ type: 'trip:updated', trip: updatedTrip });

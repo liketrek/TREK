@@ -4,12 +4,15 @@
  * list-services, auditLog, demo, the permission check, canAccessTrip and the
  * WebSocket broadcast are mocked.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { TripsModule } from '../../src/nest/trips/trips.module';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -24,11 +27,20 @@ const { db } = vi.hoisted(() => {
 
 const { canAccessTrip } = vi.hoisted(() => ({ canAccessTrip: vi.fn() }));
 vi.mock('../../src/db/database', () => ({
-  db, canAccessTrip, isOwner: vi.fn(() => true), getPlaceWithTags: vi.fn(), closeDb: () => {}, reinitialize: () => {},
+  db,
+  canAccessTrip,
+  isOwner: vi.fn(() => true),
+  getPlaceWithTags: vi.fn(),
+  closeDb: () => {},
+  reinitialize: () => {},
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 vi.mock('../../src/services/notificationService', () => ({ send: vi.fn().mockResolvedValue(undefined) }));
-vi.mock('../../src/services/auditLog', () => ({ writeAudit: vi.fn(), getClientIp: vi.fn(() => '1.2.3.4'), logInfo: vi.fn() }));
+vi.mock('../../src/services/auditLog', () => ({
+  writeAudit: vi.fn(),
+  getClientIp: vi.fn(() => '1.2.3.4'),
+  logInfo: vi.fn(),
+}));
 vi.mock('../../src/services/demo', () => ({ isDemoEmail: vi.fn(() => false) }));
 
 const { checkPermission } = vi.hoisted(() => ({ checkPermission: vi.fn() }));
@@ -36,13 +48,32 @@ vi.mock('../../src/services/permissions', () => ({ checkPermission }));
 
 const { tripSvc } = vi.hoisted(() => ({
   tripSvc: {
-    listTrips: vi.fn(), createTrip: vi.fn(), getTrip: vi.fn(), updateTrip: vi.fn(), deleteTrip: vi.fn(),
-    getTripRaw: vi.fn(), getTripOwner: vi.fn(), deleteOldCover: vi.fn(), updateCoverImage: vi.fn(),
-    listMembers: vi.fn(), addMember: vi.fn(), removeMember: vi.fn(), exportICS: vi.fn(), copyTripById: vi.fn(),
-    listGuestClaimCandidates: vi.fn(), consumeGuestClaimPrompt: vi.fn(), claimGuest: vi.fn(),
-    verifyTripAccess: vi.fn(), NotFoundError: class NotFoundError extends Error {}, ValidationError: class ValidationError extends Error {},
-    GuestClaimError: class GuestClaimError extends Error {
-      constructor(public code: string, public conflicts: unknown[] = []) {
+    listTrips: vi.fn(),
+    createTrip: vi.fn(),
+    getTrip: vi.fn(),
+    updateTrip: vi.fn(),
+    deleteTrip: vi.fn(),
+    getTripRaw: vi.fn(),
+    getTripOwner: vi.fn(),
+    deleteOldCover: vi.fn(),
+    updateCoverImage: vi.fn(),
+    listMembers: vi.fn(),
+    addMember: vi.fn(),
+    removeMember: vi.fn(),
+    exportICS: vi.fn(),
+    copyTripById: vi.fn(),
+    listGuestIdentityTransferCandidates: vi.fn(),
+    runNewMemberIdentityCheck: vi.fn(),
+    completeNewMemberIdentityCheck: vi.fn(),
+    transferGuestIdentity: vi.fn(),
+    verifyTripAccess: vi.fn(),
+    NotFoundError: class NotFoundError extends Error {},
+    ValidationError: class ValidationError extends Error {},
+    GuestIdentityTransferError: class GuestIdentityTransferError extends Error {
+      constructor(
+        public code: string,
+        public conflicts: unknown[] = [],
+      ) {
         super(code);
       }
     },
@@ -57,9 +88,6 @@ vi.mock('../../src/services/todoService', () => ({ listItems: () => [] }));
 vi.mock('../../src/services/budgetService', () => ({ listBudgetItems: () => [] }));
 vi.mock('../../src/services/reservationService', () => ({ listReservations: () => [] }));
 vi.mock('../../src/services/fileService', () => ({ listFiles: () => [] }));
-
-import { TripsModule } from '../../src/nest/trips/trips.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 
 describe('Trips e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
@@ -82,9 +110,9 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     tripSvc.createTrip.mockReturnValue({ trip: { id: 9 }, tripId: 9, reminderDays: 0 });
     tripSvc.getTrip.mockImplementation((id: string) => (id === '9' ? { id: 9, user_id: 1 } : undefined));
     tripSvc.listMembers.mockReturnValue({ owner: { id: 1 }, members: [] });
-    tripSvc.consumeGuestClaimPrompt.mockReturnValue({ prompted: true, candidates: [{ guest_user_id: 7 }] });
-    tripSvc.listGuestClaimCandidates.mockReturnValue([{ guest_user_id: 7 }]);
-    tripSvc.claimGuest.mockReturnValue({ claimed_guest_user_id: 7 });
+    tripSvc.runNewMemberIdentityCheck.mockReturnValue({ required: true, candidates: [{ guest_user_id: 7 }] });
+    tripSvc.listGuestIdentityTransferCandidates.mockReturnValue([{ guest_user_id: 7 }]);
+    tripSvc.transferGuestIdentity.mockReturnValue({ transferred_guest_user_id: 7 });
   });
 
   beforeEach(() => {
@@ -127,38 +155,46 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     expect(res.body).toMatchObject({ trip: { id: 9 }, days: [], members: [{ id: 1 }] });
   });
 
-  it('exposes guest claim prompt, candidate, and session-bound claim endpoints', async () => {
-    const prompt = await request(server).post('/api/trips/9/guest-claims/prompt').set('Cookie', sessionCookie(1));
-    expect(prompt.status).toBe(201);
-    expect(prompt.body).toEqual({ prompted: true, candidates: [{ guest_user_id: 7 }] });
-    expect(tripSvc.consumeGuestClaimPrompt).toHaveBeenCalledWith('9', 1);
+  it('exposes identity-check, decline, candidate, and session-bound transfer endpoints', async () => {
+    const check = await request(server).post('/api/trips/9/new-member-identity-check').set('Cookie', sessionCookie(1));
+    expect(check.status).toBe(201);
+    expect(check.body).toEqual({ required: true, candidates: [{ guest_user_id: 7 }] });
+    expect(tripSvc.runNewMemberIdentityCheck).toHaveBeenCalledWith('9', 1);
 
-    const candidates = await request(server).get('/api/trips/9/guest-claims/candidates').set('Cookie', sessionCookie(1));
+    const declined = await request(server)
+      .post('/api/trips/9/new-member-identity-check/decline')
+      .set('Cookie', sessionCookie(1));
+    expect(declined.status).toBe(201);
+    expect(tripSvc.completeNewMemberIdentityCheck).toHaveBeenCalledWith('9', 1);
+
+    const candidates = await request(server)
+      .get('/api/trips/9/guest-identity-transfers/candidates')
+      .set('Cookie', sessionCookie(1));
     expect(candidates.status).toBe(200);
     expect(candidates.body).toEqual({ candidates: [{ guest_user_id: 7 }] });
-    expect(tripSvc.listGuestClaimCandidates).toHaveBeenCalledWith('9', 1);
+    expect(tripSvc.listGuestIdentityTransferCandidates).toHaveBeenCalledWith('9', 1);
 
     const claim = await request(server)
-      .post('/api/trips/9/guests/7/claim')
+      .post('/api/trips/9/guests/7/identity-transfer')
       .set('Cookie', sessionCookie(1))
       .send({ targetUserId: 999 });
     expect(claim.status).toBe(201);
-    expect(claim.body).toEqual({ claimed_guest_user_id: 7 });
-    expect(tripSvc.claimGuest).toHaveBeenCalledWith('9', 7, 1);
+    expect(claim.body).toEqual({ transferred_guest_user_id: 7 });
+    expect(tripSvc.transferGuestIdentity).toHaveBeenCalledWith('9', 7, 1);
   });
 
-  it('returns stable guest-claim conflict details', async () => {
-    tripSvc.claimGuest.mockImplementationOnce(() => {
-      throw new tripSvc.GuestClaimError('GUEST_CLAIM_CONFLICT', [
+  it('returns stable guest-identity-transfer conflict details', async () => {
+    tripSvc.transferGuestIdentity.mockImplementationOnce(() => {
+      throw new tripSvc.GuestIdentityTransferError('GUEST_IDENTITY_TRANSFER_CONFLICT', [
         { type: 'expense_share_overlap', record_id: 44 },
       ]);
     });
     const response = await request(server)
-      .post('/api/trips/9/guests/7/claim')
+      .post('/api/trips/9/guests/7/identity-transfer')
       .set('Cookie', sessionCookie(1));
     expect(response.status).toBe(409);
     expect(response.body).toMatchObject({
-      code: 'GUEST_CLAIM_CONFLICT',
+      code: 'GUEST_IDENTITY_TRANSFER_CONFLICT',
       conflicts: [{ type: 'expense_share_overlap', record_id: 44 }],
     });
   });
