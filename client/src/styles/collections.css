@@ -328,8 +328,12 @@
 }
 .trek-dash .col-filter-addlabel:hover { background: var(--surface); color: var(--ink); }
 .trek-dash .col-filter-select { margin-left: auto; }
-.trek-dash .col-filter-select.open { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
-.trek-dash .col-filter-select.open:hover { background: var(--accent); color: var(--accent-text); }
+/* `.on`, not `.open`: on a dropdown "open" means the panel is down and the text
+   stays dark, and that rule sits later in this file, so sharing the name left
+   the active select button drawing a dark icon on its dark accent fill. The
+   other toggles in this page (col-map-btn, col-iconbtn) already use `.on`. */
+.trek-dash .col-filter-select.on { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.trek-dash .col-filter-select.on:hover { background: var(--accent); color: var(--accent-text); }
 .trek-dash .col-filter-btn { display: inline-flex; align-items: center; gap: 7px; height: var(--col-ctl-h); padding: 0 11px; border-radius: 10px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line-2); transition: background .12s, border-color .12s, color .12s; }
 .trek-dash .col-filter-btn:hover { background: var(--surface-2); color: var(--ink); }
 .trek-dash .col-filter-btn.open { border-color: var(--accent); color: var(--ink); }

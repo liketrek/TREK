@@ -152,7 +152,7 @@ export default function CollectionFilterBar({
         <button
           type="button"
           onClick={onToggleSelect}
-          className={`col-filter-btn col-filter-icon col-filter-select${selectMode ? ' open' : ''}`}
+          className={`col-filter-btn col-filter-icon col-filter-select${selectMode ? ' on' : ''}`}
           aria-pressed={selectMode}
           aria-label={t('collections.select')}
           title={t('collections.select')}

@@ -131,4 +131,16 @@ describe('CollectionFilterBar', () => {
     render(<Harness {...makeProps({ showSelect: false })} />);
     expect(screen.queryByRole('button', { name: 'Select' })).not.toBeInTheDocument();
   });
+
+  it('FE-COMP-COLFILTERBAR-009: the active Select button marks itself with `on`, not `open`', () => {
+    // `.open` belongs to the dropdowns, where it means the panel is down and the
+    // label stays dark. Sharing that class made the active button paint a dark
+    // icon on its dark accent fill, because the dropdown rule sits later in the
+    // stylesheet and both have the same specificity.
+    render(<Harness {...makeProps({ selectMode: true })} />);
+    const selectBtn = screen.getByRole('button', { name: 'Select' });
+    expect(selectBtn).toHaveClass('on');
+    expect(selectBtn).not.toHaveClass('open');
+    expect(selectBtn).toHaveAttribute('aria-pressed', 'true');
+  });
 });
