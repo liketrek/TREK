@@ -2,7 +2,7 @@
 interface DragDataPayload { placeId?: string; assignmentId?: string; noteId?: string; reservationId?: string; fromDayId?: string; phase?: 'single' | 'start' | 'middle' | 'end' }
 declare global { interface Window { __dragData: DragDataPayload | null } }
 
-import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react'
 import { avatarSrc } from '../../utils/avatarSrc'
 import { ChevronDown, ChevronRight, ChevronUp, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Trash2, Car, Lock, Hotel, Footprints, Route as RouteIcon, Bookmark, TramFront, Zap } from 'lucide-react'
 import { assignmentsApi, reservationsApi, daysApi } from '../../api/client'
@@ -35,6 +35,7 @@ import { useDayNotes } from '../../hooks/useDayNotes'
 import { useExchangeRates } from '../../hooks/useExchangeRates'
 import { RES_ICONS, getNoteIcon } from './DayPlanSidebar.constants'
 import { noteSurface } from './noteSurface'
+import { findTodayDayId } from './today'
 import { markdownLinkComponents } from '../shared/markdownLink'
 import { RouteConnector, HotelRouteConnector } from './DayPlanSidebarRouteConnector'
 import { usePluginDaySchedule, usePluginDayTints, dayTintBackground, dayTinted, PluginDayScheduleRow, formatScheduleMinutes } from '../Plugins/PluginDaySchedule'
@@ -226,6 +227,39 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   } | null>(null)
   const dragDataRef = useRef(null)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+  const dayRefs = useRef<Map<number, HTMLElement>>(new Map())
+
+  /** The day that is today, or null when the trip is not running right now. */
+  const todayDayId = useMemo(() => findTodayDayId(days), [days])
+
+  const scrollToDay = useCallback((dayId: number) => {
+    const el = dayRefs.current.get(dayId)
+    const container = scrollContainerRef.current
+    if (!el || !container) return
+    // Positioned against the container, not scrollIntoView: the sidebar sits in
+    // a page that also scrolls, and scrollIntoView would drag the whole layout
+    // around to satisfy a scroll inside one column.
+    container.scrollTo({ top: el.offsetTop - container.offsetTop - 8, behavior: 'smooth' })
+  }, [])
+
+  const jumpToToday = useCallback(() => {
+    if (todayDayId == null) return
+    onSelectDay(todayDayId, true)
+    setExpandedDays(prev => new Set(prev).add(todayDayId))
+    // After the expand has rendered, or the target is measured at its old height.
+    requestAnimationFrame(() => scrollToDay(todayDayId))
+  }, [todayDayId, onSelectDay, scrollToDay])
+
+  // On opening a trip that is running, land on today rather than on day 1 (#1567).
+  // Once per mount, and only while nothing is selected yet: a deep link into a
+  // specific day, or a day the user picked before switching tabs, must win.
+  const autoJumpedRef = useRef(false)
+  useEffect(() => {
+    if (autoJumpedRef.current || todayDayId == null || selectedDayId != null || days.length === 0) return
+    autoJumpedRef.current = true
+    jumpToToday()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todayDayId, days.length])
   useLayoutEffect(() => {
     if (scrollContainerRef.current && initialScrollTop) {
       scrollContainerRef.current.scrollTop = initialScrollTop
@@ -1008,6 +1042,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     setTimeConfirm,
     dragDataRef,
     scrollContainerRef,
+    dayRefs,
     initedTransportIds,
     lastAutoScrolledIdRef,
     currency,
@@ -1181,6 +1216,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     setTimeConfirm,
     dragDataRef,
     scrollContainerRef,
+    dayRefs,
     initedTransportIds,
     lastAutoScrolledIdRef,
     currency,
@@ -1339,7 +1375,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
           return (
             // The card wrapper stays untinted — its three regions (badge, header,
             // activity list) paint themselves, so a plugin controls them separately.
-            <div key={day.id} title={dayTint?.label || undefined} style={{ borderBottom: '1px solid var(--border-faint)' }}>
+            <div key={day.id} ref={el => { if (el) dayRefs.current.set(day.id, el); else dayRefs.current.delete(day.id) }}
+              title={dayTint?.label || undefined} style={{ borderBottom: '1px solid var(--border-faint)' }}>
               {/* Tages-Header — akzeptiert Drops aus der PlacesSidebar */}
               <div
                 className="dp-day-header"

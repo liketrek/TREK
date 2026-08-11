@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react'
+import { findTodayDayId } from '../../../components/Planner/today'
 import {
   ChevronLeft, FileDown, List, Map as MapIcon, MoreHorizontal, PackageCheck,
   Plane, Plus, Rows3, Ticket, TrainFront, Trash2, Upload, Wallet,
@@ -205,10 +206,9 @@ export default function MTripShell({
   useEffect(() => {
     if (seededDayRef.current || planner.selectedDayId != null || days.length === 0) return
     seededDayRef.current = true
-    const now = new Date()
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-    const todayDay = days.find(d => d.date?.slice(0, 10) === todayStr)
-    planner.tripActions.setSelectedDay((todayDay ?? days[0]).id)
+    // Same rule as the desktop day plan (#1567), off the same helper so the two
+    // cannot drift on what "today" means.
+    planner.tripActions.setSelectedDay(findTodayDayId(days) ?? days[0].id)
   }, [planner.selectedDayId, days, planner.tripActions])
 
   const trTab = planner.activeTab

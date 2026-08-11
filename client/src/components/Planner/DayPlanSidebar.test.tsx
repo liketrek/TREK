@@ -1198,6 +1198,54 @@ describe('DayPlanSidebar', () => {
     expect(mockDayNotesState.saveNote).toHaveBeenCalledWith(10)
   })
 
+  // ── Jump to today (#1567) ─────────────────────────────────────────────
+
+  describe('jump to today', () => {
+    const isoDaysAround = (offsets: number[]) => offsets.map((o, i) => {
+      const d = new Date()
+      d.setDate(d.getDate() + o)
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      return buildDay({ id: 10 + i, date: iso, title: `Day ${i + 1}` })
+    })
+
+    it('FE-PLANNER-DAYPLAN-195: opening a running trip selects today rather than day one', async () => {
+      const onSelectDay = vi.fn()
+      const days = isoDaysAround([-1, 0, 1])
+      render(<DayPlanSidebar {...makeDefaultProps({ days, onSelectDay })} />)
+
+      await waitFor(() => expect(onSelectDay).toHaveBeenCalledWith(days[1].id, true))
+    })
+
+    it('FE-PLANNER-DAYPLAN-196: a trip that is not running is left alone', async () => {
+      const onSelectDay = vi.fn()
+      const days = isoDaysAround([5, 6, 7])
+      render(<DayPlanSidebar {...makeDefaultProps({ days, onSelectDay })} />)
+
+      await new Promise(r => setTimeout(r, 30))
+      expect(onSelectDay).not.toHaveBeenCalled()
+    })
+
+    it('FE-PLANNER-DAYPLAN-197: a day the user already picked wins over the jump', async () => {
+      const onSelectDay = vi.fn()
+      const days = isoDaysAround([-1, 0, 1])
+      // Coming back from another tab, or in via a deep link: the selection is
+      // already made and must not be overruled.
+      render(<DayPlanSidebar {...makeDefaultProps({ days, onSelectDay, selectedDayId: days[0].id })} />)
+
+      await new Promise(r => setTimeout(r, 30))
+      expect(onSelectDay).not.toHaveBeenCalled()
+    })
+
+    it('FE-PLANNER-DAYPLAN-198: a trip planned without dates has nothing to jump to', async () => {
+      const onSelectDay = vi.fn()
+      const days = [buildDay({ id: 1, date: null, title: 'Day 1' }), buildDay({ id: 2, date: null, title: 'Day 2' })]
+      render(<DayPlanSidebar {...makeDefaultProps({ days, onSelectDay })} />)
+
+      await new Promise(r => setTimeout(r, 30))
+      expect(onSelectDay).not.toHaveBeenCalled()
+    })
+  })
+
   // ── Note colours and formatting (#1629) ───────────────────────────────
 
   it('FE-PLANNER-DAYPLAN-192: the note dialog offers the palette and reports the pick', async () => {

@@ -61,6 +61,53 @@ describe('dayNotesSlice', () => {
     expect(useTripStore.getState().dayNotes['1'][0].text).toBe('Original');
   });
 
+  it('FE-TSLICE-NOTES-011: moving a note to another day keeps everything it carries (#1629)', async () => {
+    const note = buildDayNote({ id: 10, day_id: 1, text: 'Ferry tickets', time: 'book **early**', icon: 'Ticket' });
+    // buildDayNote predates note colours, so the field is set on the fixture.
+    (note as unknown as { color: string }).color = '#dc2626';
+    seedStore(useTripStore, { dayNotes: { '1': [note], '2': [] } });
+
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.delete('/api/trips/1/days/1/notes/:noteId', () => HttpResponse.json({ success: true })),
+      http.post('/api/trips/1/days/2/notes', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ note: { ...note, id: 11, day_id: 2, ...posted } });
+      }),
+    );
+
+    await useTripStore.getState().moveDayNote(1, 1, 2, 10);
+
+    // A move is a delete plus a create, so every field has to be re-sent — the
+    // colour was the one that went missing.
+    expect(posted).toMatchObject({
+      text: 'Ferry tickets',
+      time: 'book **early**',
+      icon: 'Ticket',
+      color: '#dc2626',
+    });
+    expect(useTripStore.getState().dayNotes['1']).toHaveLength(0);
+    expect(useTripStore.getState().dayNotes['2'][0].color).toBe('#dc2626');
+  });
+
+  it('FE-TSLICE-NOTES-012: a note without a colour moves without inventing one', async () => {
+    const note = buildDayNote({ id: 10, day_id: 1, text: 'Lunch' });
+    seedStore(useTripStore, { dayNotes: { '1': [note], '2': [] } });
+
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.delete('/api/trips/1/days/1/notes/:noteId', () => HttpResponse.json({ success: true })),
+      http.post('/api/trips/1/days/2/notes', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ note: { ...note, id: 11, day_id: 2 } });
+      }),
+    );
+
+    await useTripStore.getState().moveDayNote(1, 1, 2, 10);
+
+    expect(posted!.color).toBeNull();
+  });
+
   it('FE-TSLICE-NOTES-005: moveDayNote is a no-op when the note is not on the source day', async () => {
     const note = buildDayNote({ id: 10, day_id: 1 });
     seedStore(useTripStore, { dayNotes: { '1': [note], '2': [] } });

@@ -113,8 +113,12 @@ export const createDayNotesSlice = (set: SetState, get: GetState): DayNotesSlice
 
     try {
       await dayNotesApi.delete(tripId, fromDayId, noteId)
+      // Every field the note carries, not just the ones it had when this was
+      // written: a move is a delete plus a create, so anything omitted here is
+      // silently dropped — which is how a coloured note lost its colour on the
+      // way to another day (#1629).
       const result = await dayNotesApi.create(tripId, toDayId, {
-        text: note.text, time: note.time, icon: note.icon, sort_order,
+        text: note.text, time: note.time, icon: note.icon, color: note.color ?? null, sort_order,
       })
       set(s => ({
         dayNotes: {
