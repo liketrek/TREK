@@ -1,7 +1,9 @@
 // FE-COMP-JENTRYVIEW-001 to FE-COMP-JENTRYVIEW-017
 
 import { render, screen, fireEvent } from '../../../tests/helpers/render'
-import { resetAllStores } from '../../../tests/helpers/store'
+import { resetAllStores, seedStore } from '../../../tests/helpers/store'
+import { buildSettings } from '../../../tests/helpers/factories'
+import { useSettingsStore } from '../../store/settingsStore'
 import MobileEntryView from './MobileEntryView'
 import type { JourneyEntry, JourneyPhoto } from '../../store/journeyStore'
 
@@ -211,5 +213,25 @@ describe('MobileEntryView', () => {
     renderView(buildEntry({ pros_cons: { pros: [], cons: [] } }))
     expect(screen.queryByText('Pros')).not.toBeInTheDocument()
     expect(screen.queryByText('Cons')).not.toBeInTheDocument()
+  })
+
+  // This view held its own English label tables while the desktop one resolved
+  // the same values through i18n, so a German reader got English chips on a
+  // phone and translated ones on a tablet (#1846). Which of the two appears is
+  // decided by two different breakpoints, which is why it looked random.
+  it('FE-COMP-JENTRYVIEW-018: mood, weather and the edit action follow the chosen language', async () => {
+    seedStore(useSettingsStore, { settings: buildSettings({ language: 'de' }) })
+    renderView(buildEntry({
+      mood: 'amazing',
+      weather: 'sunny',
+      pros_cons: { pros: ['gutes Licht'], cons: ['sehr kalt'] },
+    }))
+
+    // The locale bundle is fetched, so the first paint is still English.
+    expect(await screen.findByText('Großartig')).toBeInTheDocument()
+    expect(screen.getByText('Sonnig')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Bearbeiten/ })).toBeInTheDocument()
+    expect(screen.queryByText('Amazing')).not.toBeInTheDocument()
+    expect(screen.queryByText('Sunny')).not.toBeInTheDocument()
   })
 })
