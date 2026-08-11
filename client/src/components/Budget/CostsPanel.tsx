@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router'
-import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, ArrowLeftRight, Check, RotateCcw, Pencil, Trash2, AlertCircle, Download } from 'lucide-react'
+import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, ArrowLeftRight, Check, RotateCcw, Pencil, Trash2, AlertCircle, Download, StickyNote, ChevronDown } from 'lucide-react'
 import { useTripStore } from '../../store/tripStore'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -16,7 +16,7 @@ import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import { SYMBOLS, currenciesWith, SPLIT_COLORS } from './BudgetPanel.constants'
-import { calculateTicketShares, payersBalanced, rebalancePayers, splitEqualShares, type TicketItem } from './CostsPanel.helpers'
+import { calculateTicketShares, hasTicketSplit, NOTE_MAX, payersBalanced, readTicketItems, readUserNote, rebalancePayers, splitEqualShares, writeTicketItems, type TicketItem } from './CostsPanel.helpers'
 import { COST_CATEGORY_LIST, catMeta } from './costsCategories'
 import type { BudgetItem } from '../../types'
 import type { TripMember } from './BudgetPanelMemberChips'
@@ -80,6 +80,9 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   const [dayFilter, setDayFilter] = useState('')   // '' = all days, else YYYY-MM-DD
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<BudgetItem | null>(null)
+  // One note open at a time: two expanded rows next to each other read as a mess,
+  // and the point of the collapse is that the list stays scannable.
+  const [expandedNoteId, setExpandedNoteId] = useState<number | null>(null)
   const [editingSettlement, setEditingSettlement] = useState<Settlement | null>(null)
   const [addingPayment, setAddingPayment] = useState(false)
 
@@ -246,8 +249,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     const items = budgetItems.slice().sort((a, b) => (a.expense_date || '').localeCompare(b.expense_date || ''))
     for (const e of items) {
       const cur = curOf(e)
-      // Ticket notes carry the itemized-receipt JSON, not a human note.
-      const note = e.note && !e.note.startsWith('TICKETJSON:') ? e.note : ''
+      const note = readUserNote(e)
       rows.push([
         esc(fmtDate(e.expense_date || '')), esc(e.name), esc(t(catMeta(e.category).labelKey)),
         (e.total_price || 0).toFixed(currencyDecimals(cur)), cur,
@@ -502,6 +504,11 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         .costs-root .text-content-muted { color: var(--c-ink2) !important; }
         .costs-root .text-content-faint { color: var(--c-ink3) !important; }
         .costs-root .exp-actions { opacity: 1; }
+        .costs-root .exp-actions button { background: none; }
+        .costs-root .exp-actions button:hover { background: var(--bg-secondary); color: var(--c-ink); }
+        /* Destructive actions keep their own tint: the neutral one would read as
+           "safe" on the button that deletes the expense. */
+        .costs-root .exp-actions .exp-action-danger:hover { background: rgba(220,38,38,0.14); color: #dc2626; }
         @media (max-width: 1100px) {
           .costs-root .costs-summary { grid-template-columns: 1fr 1fr !important; }
           .costs-root .costs-grid { grid-template-columns: 1fr !important; }
@@ -653,6 +660,28 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   }
 
   // ── inline subcomponents (close over helpers) ────────────────────────────
+  /**
+   * Edit and delete, in a capsule beside the row rather than inside it — the
+   * mobile card has always done it this way, and out here the buttons stop
+   * competing with the amount for the right edge of the card.
+   */
+  function RowActions({ onEdit, onDelete, deleteLabel }: { onEdit: () => void; onDelete: () => void; deleteLabel: string }) {
+    // No `background` here on purpose: an inline value would beat the :hover
+    // rule in the stylesheet block below, which is how the first attempt at
+    // this silently did nothing.
+    const btn: React.CSSProperties = {
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      width: 30, height: 30, borderRadius: 999, border: 0,
+      cursor: 'pointer', padding: 0,
+    }
+    return (
+      <div className="exp-actions bg-surface-card border border-edge" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, flexShrink: 0, borderRadius: 999, padding: 5 }}>
+        <button title={t('common.edit')} onClick={onEdit} className="text-content-muted transition-colors" style={btn}><Pencil size={13} /></button>
+        <button title={deleteLabel} onClick={onDelete} className="exp-action-danger transition-colors" style={{ ...btn, color: '#dc2626' }}><Trash2 size={13} /></button>
+      </div>
+    )
+  }
+
   function ExpenseRow({ e }: { e: BudgetItem }) {
     const c = catMeta(e.category)
     const Icon = c.Icon
@@ -660,17 +689,38 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     const payers = (e.payers || []).filter(p => p.amount > 0)
     const net = round2(myPaidOf(e) - myShareOf(e))
     const unfinished = isUnfinished(e)
+    const note = readUserNote(e)
+    const open = expandedNoteId === e.id
+
+    // Fixed columns, identical on every row, so the eye can run down the list
+    // instead of re-finding each field on each line. A row without a note leaves
+    // its column empty rather than letting everything after it drift left, which
+    // is what made the list read as unstructured.
+    const cols = isMobile ? '46px 1fr auto' : '46px minmax(200px, 1fr) minmax(0, 1.5fr) auto'
+
     return (
-      <div className="bg-surface-card border border-edge exp-row" style={{ display: 'grid', gridTemplateColumns: '46px 1fr auto', gap: 16, alignItems: 'center', borderRadius: 18, padding: '16px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'stretch', gap: 8 }}>
+      <div className="bg-surface-card border border-edge exp-row" style={{ position: 'relative', flex: 1, minWidth: 0, display: 'grid', gridTemplateColumns: cols, gap: 18, alignItems: 'center', borderRadius: 18, padding: isMobile ? '16px 20px' : '20px 20px 16px' }}>
+        {/* The category rides the card edge as a tab, the way the mobile card
+            does, so it stops taking up a slot inside the row itself. */}
+        {!isMobile && (
+          <span aria-hidden="true" style={{ position: 'absolute', left: -1, top: -1, display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 11px 4px 10px', borderRadius: '17px 0 12px 0', background: c.color, color: '#fff', fontSize: 'calc(9.5px * var(--fs-scale-caption, 1))', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', lineHeight: 1.2 }}>
+            <Icon size={10} strokeWidth={2.4} />
+            {t(c.labelKey)}
+          </span>
+        )}
+
         <span style={{ position: 'relative', width: 46, height: 46, borderRadius: 13, display: 'grid', placeItems: 'center', background: c.color + '22', color: c.color }}>
           <Icon size={21} />
           {isMobile && unfinished && (
             <span title={t('costs.unfinishedHint')} style={{ position: 'absolute', bottom: -4, right: -4, width: 20, height: 20, borderRadius: '50%', background: '#d97706', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 800, lineHeight: 1, border: '2px solid var(--bg-card)' }}>!</span>
           )}
         </span>
+
+        {/* What it was. */}
         <div style={{ minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
-            <span className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600 }}>{e.name}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+            <span className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</span>
             {unfinished && !isMobile && (
               <span title={t('costs.unfinishedHint')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px 2px 6px', borderRadius: 999, background: 'rgba(217,119,6,0.14)', color: '#d97706', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, flexShrink: 0 }}>
                 <span style={{ width: 14, height: 14, borderRadius: '50%', background: '#d97706', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 800 }}>!</span>
@@ -678,8 +728,15 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
               </span>
             )}
           </div>
+          {cur !== base && (
+            <div className="text-content-faint" style={{ marginTop: 4, fontSize: 'calc(12px * var(--fs-scale-body, 1))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {fmt(e.total_price, cur)} {'→'} {fmt(baseTotal(e))}
+            </div>
+          )}
+          {/* Under the name, because a chip reading "Y 122,00" says nothing on
+              its own — the name above it is what gives it a meaning. */}
           {payers.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 5 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 6 }}>
               {payers.map(p => (
                 <span key={p.user_id} className="bg-surface-secondary border border-edge" title={personName(p.user_id)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px 3px 3px', borderRadius: 999, fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))' }}>
                   <Avatar id={p.user_id} size={18} />
@@ -688,28 +745,37 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
               ))}
             </div>
           )}
-          {!isMobile && (
-            <div className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {t(c.labelKey)}{cur !== base ? ` · ${fmt(e.total_price, cur)} → ${fmt(baseTotal(e))}` : ''}
-            </div>
-          )}
         </div>
+
+        {/* The note, marked by a rule in the category colour instead of a box, so
+            it reads as part of the row rather than something dropped onto it. */}
+        {!isMobile && (
+          note ? (
+            <button type="button" onClick={() => setExpandedNoteId(open ? null : e.id)}
+              aria-expanded={open} title={open ? t('costs.hideNote') : t('costs.showNote')}
+              className="bg-surface-secondary border border-edge text-content-muted hover:text-content hover:border-content-faint transition-colors exp-note-btn"
+              style={{ display: 'flex', alignItems: open ? 'flex-start' : 'center', gap: 9, minWidth: 0, width: '100%', padding: open ? '10px 14px 11px 13px' : '7px 12px 7px 11px', borderRadius: open ? 14 : 999, borderLeft: '3px solid ' + c.color, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', lineHeight: 1.5, textAlign: 'left' }}>
+              <span style={open
+                ? { whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', minWidth: 0, flex: 1 }
+                : { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, flex: 1 }}>{note}</span>
+              <ChevronDown size={13} style={{ flexShrink: 0, marginTop: open ? 3 : 0, transition: 'transform .18s ease', transform: open ? 'rotate(180deg)' : 'none' }} />
+            </button>
+          ) : <span />
+        )}
+
+        {/* The money, and what to do with it. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, alignSelf: 'center' }}>
-          <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-            <div className="text-content" style={{ fontSize: 'calc(18px * var(--fs-scale-subtitle, 1))', fontWeight: 600 }}>{fmt(baseTotal(e))}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, whiteSpace: 'nowrap' }}>
+            <span className="bg-surface-secondary border border-edge text-content" style={{ display: 'inline-flex', alignItems: 'center', padding: isMobile ? '0' : '6px 13px', borderRadius: 999, border: isMobile ? 0 : undefined, background: isMobile ? 'none' : undefined, fontSize: isMobile ? 'calc(18px * var(--fs-scale-subtitle, 1))' : 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmt(baseTotal(e))}</span>
             {!unfinished && (e.members || []).length > 0 && Math.abs(net) > 0.01 && (
-              <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', marginTop: 2, fontWeight: 500, whiteSpace: 'nowrap', color: net > 0 ? '#16a34a' : '#dc2626' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', padding: isMobile ? 0 : '2px 9px', borderRadius: 999, background: isMobile ? 'none' : (net > 0 ? 'rgba(22,163,74,0.13)' : 'rgba(220,38,38,0.13)'), fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, color: net > 0 ? '#16a34a' : '#dc2626' }}>
                 {net > 0 ? t('costs.youLent', { amount: fmt(net) }) : t('costs.youBorrowed', { amount: fmt(-net) })}
-              </div>
+              </span>
             )}
           </div>
-          {canEdit && (
-            <div className="exp-actions" style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
-              <button title={t('common.edit')} onClick={() => { setEditing(e); setModalOpen(true) }} className="bg-surface-secondary border border-edge text-content-muted" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 999, cursor: 'pointer' }}><Pencil size={13} /></button>
-              <button title={t('common.delete')} onClick={() => handleDelete(e.id)} className="bg-surface-secondary border border-edge" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 999, cursor: 'pointer', color: '#dc2626' }}><Trash2 size={13} /></button>
-            </div>
-          )}
         </div>
+      </div>
+      {canEdit && <RowActions onEdit={() => { setEditing(e); setModalOpen(true) }} onDelete={() => handleDelete(e.id)} deleteLabel={t('common.delete')} />}
       </div>
     )
   }
@@ -720,7 +786,8 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     // Legacy transfers carry no currency and were entered in the display base.
     const cur = (s.currency || base).toUpperCase()
     return (
-      <div className="bg-surface-card border border-edge exp-row" style={{ display: 'grid', gridTemplateColumns: '46px 1fr auto', gap: 16, alignItems: 'center', borderRadius: 18, padding: '16px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'stretch', gap: 8 }}>
+      <div className="bg-surface-card border border-edge exp-row" style={{ flex: 1, minWidth: 0, display: 'grid', gridTemplateColumns: isMobile ? '46px 1fr auto' : '46px minmax(200px, 1fr) minmax(0, 1.5fr) auto', gap: isMobile ? 16 : 18, alignItems: 'center', borderRadius: 18, padding: '16px 20px' }}>
         <span style={{ width: 46, height: 46, borderRadius: 13, display: 'grid', placeItems: 'center', background: 'rgba(22,163,74,0.12)', color: '#16a34a' }}><ArrowLeftRight size={21} /></span>
         <div style={{ minWidth: 0 }}>
           <div className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, marginBottom: 6 }}>
@@ -732,15 +799,19 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
             <span className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{personName(s.from_user_id)} → {personName(s.to_user_id)}</span>
           </div>
         </div>
+        {/* A payment carries no note, but it keeps the column so its amount lands
+            on the same axis as every expense above it. */}
+        {!isMobile && <span />}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, alignSelf: 'center' }}>
-          <div className="text-content" style={{ fontSize: 'calc(18px * var(--fs-scale-subtitle, 1))', fontWeight: 600, whiteSpace: 'nowrap' }}>{fmt(convert(s.amount, cur))}</div>
-          {canEdit && (
-            <div className="exp-actions" style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
-              <button title={t('common.edit')} onClick={() => setEditingSettlement(s)} className="bg-surface-secondary border border-edge text-content-muted" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 999, cursor: 'pointer' }}><Pencil size={13} /></button>
-              <button title={t('costs.undo')} onClick={() => undoSettlement(s.id)} className="bg-surface-secondary border border-edge" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 999, cursor: 'pointer', color: '#dc2626' }}><RotateCcw size={13} /></button>
-            </div>
-          )}
+          <span className="bg-surface-secondary border border-edge text-content" style={{ display: 'inline-flex', alignItems: 'center', padding: '6px 13px', borderRadius: 999, fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 700, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{fmt(convert(s.amount, cur))}</span>
         </div>
+      </div>
+      {canEdit && (
+        <div className="exp-actions bg-surface-card border border-edge" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, flexShrink: 0, borderRadius: 999, padding: 5 }}>
+          <button title={t('common.edit')} onClick={() => setEditingSettlement(s)} className="text-content-muted transition-colors" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 999, border: 0, cursor: 'pointer', padding: 0 }}><Pencil size={13} /></button>
+          <button title={t('costs.undo')} onClick={() => undoSettlement(s.id)} className="exp-action-danger transition-colors" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 999, border: 0, cursor: 'pointer', padding: 0, color: '#dc2626' }}><RotateCcw size={13} /></button>
+        </div>
+      )}
       </div>
     )
   }
@@ -936,6 +1007,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
 }) {
   const { t, locale } = useTranslation()
   const toast = useToast()
+  const isMobile = useIsMobile()
   const { addBudgetItem, updateBudgetItem } = useTripStore()
   const { convert } = useExchangeRates(base)
   const sym = (c: string) => SYMBOLS[c] || (c + ' ')
@@ -944,6 +1016,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const [cat, setCat] = useState<string>(editing ? catMeta(editing.category).key : (prefill?.category || 'food'))
   const [currency, setCurrency] = useState((editing?.currency || base).toUpperCase())
   const [day, setDay] = useState(editing?.expense_date || new Date().toISOString().slice(0, 10))
+  const [note, setNote] = useState(() => readUserNote(editing))
   const [total, setTotal] = useState<string>(() => {
     if (editing) return editing.total_price ? String(editing.total_price) : ''
     if (prefill?.amount != null) return String(prefill.amount)
@@ -977,7 +1050,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const [pinnedPayers, setPinnedPayers] = useState<Set<number>>(() => new Set(initialPayers.map(p => p.user_id)))
 
   const [splitMode, setSplitMode] = useState<'equally' | 'custom' | 'ticket'>(() => {
-    if (editing?.note && editing.note.startsWith('TICKETJSON:')) {
+    if (hasTicketSplit(editing)) {
       return 'ticket'
     }
     if (editing && editing.members && editing.members.length > 0) {
@@ -987,22 +1060,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
     return 'equally'
   })
 
-  const [ticketItems, setTicketItems] = useState<TicketItem[]>(() => {
-    if (editing?.note && editing.note.startsWith('TICKETJSON:')) {
-      try {
-        const parsed = JSON.parse(editing.note.slice(11))
-        return (parsed.items || []).map((item: any) => ({
-          id: String(Math.random()),
-          name: item.name,
-          price: String(item.price),
-          participants: new Set(item.parts || [])
-        }))
-      } catch {
-        return []
-      }
-    }
-    return []
-  })
+  const [ticketItems, setTicketItems] = useState<TicketItem[]>(() => readTicketItems(editing))
 
   const [customAmounts, setCustomAmounts] = useState<Record<number, string>>(() => {
     const m: Record<number, string> = {}
@@ -1191,13 +1249,8 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
       member_ids: [...participants],
       expense_date: day || null,
       total_price: totalNum,
-      note: splitMode === 'ticket' ? 'TICKETJSON:' + JSON.stringify({
-        items: ticketItems.map(item => ({
-          name: item.name,
-          price: item.price,
-          parts: [...item.participants]
-        }))
-      }) : null,
+      note: note.trim() || null,
+      ticket_json: splitMode === 'ticket' ? writeTicketItems(ticketItems) : null,
       ...(!editing && prefill?.reservationId ? { reservation_id: prefill.reservationId } : {}),
     }
     try {
@@ -1212,17 +1265,25 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   }
 
   const inputCls = 'w-full bg-surface-input border border-edge text-content'
-  const labelCls = 'block text-[11px] font-semibold uppercase tracking-[0.08em] text-content-faint mb-[6px]'
+  const labelCls = 'block text-caption font-semibold uppercase tracking-[0.14em] text-content-faint mb-2'
+  // Borrowed from the trip dialog (TripFormModal): related fields sit together in
+  // a panel instead of running as one undifferentiated column of inputs.
+  const panelCls = 'rounded-2xl border border-edge bg-surface-secondary p-4'
 
   return (
-    <Modal isOpen onClose={onClose} title={editing ? t('costs.editExpense') : t('costs.addExpense')} size="2xl"
+    <Modal isOpen onClose={onClose} title={editing ? t('costs.editExpense') : t('costs.addExpense')} size={isMobile ? '2xl' : '5xl'}
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <button onClick={onClose} className="text-content-muted border border-edge" style={{ padding: '8px 16px', borderRadius: 10, background: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>{t('common.cancel')}</button>
           <button onClick={save} disabled={!valid || saving} className="bg-[var(--text-primary)] text-[var(--bg-primary)]" style={{ padding: '8px 20px', borderRadius: 10, border: 0, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: !valid || saving ? 0.5 : 1 }}>{editing ? t('common.save') : t('costs.addExpense')}</button>
         </div>
       }>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* Two columns on desktop: what the expense was on the left, how it is
+          shared on the right. The split follows the two questions the dialog
+          actually asks, so neither side is a leftovers pile. */}
+      <div style={{ display: isMobile ? 'flex' : 'grid', flexDirection: 'column', gridTemplateColumns: '1fr 1fr', alignItems: 'start', gap: isMobile ? 14 : 28 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+        <div className={panelCls} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div>
           <label className={labelCls}>{t('costs.whatFor')}</label>
           <input value={name} onChange={e => setName(e.target.value)} placeholder={t('costs.namePlaceholder')} className={inputCls} style={{ borderRadius: 10, padding: '11px 13px', fontSize: 'calc(14px * var(--fs-scale-body, 1))', outline: 'none' }} />
@@ -1260,7 +1321,9 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
           </div>
         )}
 
-        <div>
+        </div>
+
+        <div className={panelCls}>
           <label className={labelCls}>{t('costs.category')}</label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
             {COST_CATEGORY_LIST.map(c => {
@@ -1277,8 +1340,11 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
           </div>
         </div>
 
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+        <div className={panelCls}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <label className={labelCls} style={{ marginBottom: 0 }}>{t('costs.whoPaid')}</label>
             <button type="button" onClick={() => (multiPayer ? disableMultiPayer() : enableMultiPayer())}
               className="text-content-muted"
@@ -1340,23 +1406,23 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
           )}
         </div>
 
-        <div>
+        <div className={panelCls}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <label className={labelCls}>{t('costs.split') || 'Split'}</label>
-            <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 8, padding: 2 }}>
+            <label className={labelCls} style={{ marginBottom: 0 }}>{t('costs.split') || 'Split'}</label>
+            <div className="bg-surface-card border border-edge" style={{ display: 'flex', borderRadius: 999, padding: 2 }}>
               <button type="button" onClick={() => setSplitMode('equally')}
-                className={splitMode === 'equally' ? 'bg-surface-card text-content' : 'text-content-muted'}
-                style={{ padding: '4px 10px', fontSize: 11.5, borderRadius: 6, fontWeight: 600, border: 0, cursor: 'pointer', fontFamily: 'inherit' }}>
+                className={splitMode === 'equally' ? 'bg-surface-secondary text-content' : 'text-content-muted'}
+                style={{ padding: '4px 12px', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', borderRadius: 999, fontWeight: 600, border: 0, background: splitMode === 'equally' ? undefined : 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                 {t('costs.splitEqually') || 'Equally'}
               </button>
               <button type="button" onClick={() => setSplitMode('custom')}
-                className={splitMode === 'custom' ? 'bg-surface-card text-content' : 'text-content-muted'}
-                style={{ padding: '4px 10px', fontSize: 11.5, borderRadius: 6, fontWeight: 600, border: 0, cursor: 'pointer', fontFamily: 'inherit' }}>
+                className={splitMode === 'custom' ? 'bg-surface-secondary text-content' : 'text-content-muted'}
+                style={{ padding: '4px 12px', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', borderRadius: 999, fontWeight: 600, border: 0, background: splitMode === 'custom' ? undefined : 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                 {t('costs.splitCustom') || 'Custom'}
               </button>
               <button type="button" onClick={() => setSplitMode('ticket')}
-                className={splitMode === 'ticket' ? 'bg-surface-card text-content' : 'text-content-muted'}
-                style={{ padding: '4px 10px', fontSize: 11.5, borderRadius: 6, fontWeight: 600, border: 0, cursor: 'pointer', fontFamily: 'inherit' }}>
+                className={splitMode === 'ticket' ? 'bg-surface-secondary text-content' : 'text-content-muted'}
+                style={{ padding: '4px 12px', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', borderRadius: 999, fontWeight: 600, border: 0, background: splitMode === 'ticket' ? undefined : 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                 {t('costs.splitTicket') || 'Ticket'}
               </button>
             </div>
@@ -1490,6 +1556,14 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
               </div>
             </>
           )}
+        </div>
+
+        <div className={panelCls}>
+          <label className={labelCls} htmlFor="expense-note">{t('costs.note')}</label>
+          <textarea id="expense-note" value={note} onChange={e => setNote(e.target.value)} rows={2}
+            placeholder={t('costs.notePlaceholder')} maxLength={NOTE_MAX}
+            className={inputCls} style={{ borderRadius: 10, padding: '10px 13px', fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', outline: 'none', resize: 'vertical', minHeight: 68, width: '100%', boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.5 }} />
+        </div>
         </div>
       </div>
     </Modal>

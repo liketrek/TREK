@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle, ArrowDown, ArrowRight, ArrowUp, Check, ChevronDown, ChevronUp,
-  Layers, Pencil, Plus, Trash2,
+  Layers, Pencil, Plus, StickyNote, Trash2,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { useAuthStore } from '../../../../store/authStore'
@@ -12,6 +12,7 @@ import { formatMoney } from '../../../../utils/formatters'
 import { downloadBlob } from '../../../../utils/fileDownload'
 import { budgetApi } from '../../../../api/client'
 import MCostSheet from '../sheets/MCostSheet'
+import { readUserNote } from '../../../../components/Budget/CostsPanel.helpers'
 import { catMeta, COST_CAT_META } from '../../../../components/Budget/costsCategories'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import MSheet from '../../../components/MSheet'
@@ -536,6 +537,10 @@ function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onT
   const unfinished = isUnfinished(item, ctx)
   const borderColor = tint(meta.color, 0.55)
   const members = item.members || []
+  const note = readUserNote(item)
+  // A phone row has no width to spare for a note, so it stays folded away and
+  // the card itself is the handle — no extra control, no extra height.
+  const [noteOpen, setNoteOpen] = useState(false)
 
   return (
     <div className="mt-2 flex items-center gap-[6px]">
@@ -590,6 +595,25 @@ function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onT
             {formatMoney(total, base, locale)}
           </span>
         </div>
+
+        {note && (
+          <button
+            type="button"
+            aria-expanded={noteOpen}
+            onClick={() => setNoteOpen(v => !v)}
+            className="mt-[7px] flex w-full items-center gap-[7px] rounded-xl bg-[color:var(--m-ic)] px-[9px] py-[6px] text-left"
+          >
+            <StickyNote size={11} strokeWidth={2} className="flex-none text-m-faint" />
+            <span className={`min-w-0 flex-1 text-[0.6875rem] leading-[1.5] text-m-muted ${noteOpen ? 'whitespace-pre-wrap [overflow-wrap:anywhere]' : 'truncate'}`}>
+              {note}
+            </span>
+            <ChevronDown
+              size={12}
+              strokeWidth={2}
+              className={`flex-none text-m-faint transition-transform duration-200 ${noteOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+        )}
       </div>
 
       {canEdit && (

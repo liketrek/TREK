@@ -3841,6 +3841,21 @@ function runMigrations(db: Database.Database): void {
         insert.run(key);
       }
     },
+
+    // Free the `note` column on budget items for its actual purpose (#1658).
+    // The costs UI stores an itemized receipt in it as `TICKETJSON:{...}`, which
+    // means an expense split by receipt can never carry a written note, and
+    // saving an expense any other way wipes whatever was typed in the budget
+    // table. The receipt moves to its own column and note becomes text again.
+    () => {
+      const hasTicket = db.prepare("SELECT 1 FROM pragma_table_info('budget_items') WHERE name = 'ticket_json'").get();
+      if (!hasTicket) db.exec('ALTER TABLE budget_items ADD COLUMN ticket_json TEXT');
+      db.exec(`
+        UPDATE budget_items
+           SET ticket_json = substr(note, 12), note = NULL
+         WHERE note LIKE 'TICKETJSON:%'
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

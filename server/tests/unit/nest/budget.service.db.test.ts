@@ -471,6 +471,84 @@ describe('post-fold quirk fixes', () => {
     expect(budget.listSettlements(trip.id)[0].from_username).toBe('Alice Displayed');
   });
 
+  // ── Notes vs. itemized receipts (#1658) ────────────────────────────────────
+
+  it('BUDGET-SVC-DB-021: a note and a receipt are stored in their own columns', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const item = budget.createBudgetItem(trip.id, {
+      name: 'Groceries',
+      total_price: 40,
+      note: 'Lisa pays half of this back',
+      ticket_json: '{"items":[{"name":"Bread","price":"3","parts":[1]}]}',
+    });
+
+    const row = testDb.prepare('SELECT note, ticket_json FROM budget_items WHERE id = ?').get(item!.id) as {
+      note: string | null; ticket_json: string | null;
+    };
+    expect(row.note).toBe('Lisa pays half of this back');
+    expect(JSON.parse(row.ticket_json!).items).toHaveLength(1);
+  });
+
+  it('BUDGET-SVC-DB-022: an update that omits note leaves the stored one alone', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = budget.createBudgetItem(trip.id, { name: 'Dinner', total_price: 20, note: 'split with Ben' });
+
+    // What the mobile sheet sends: notes are written on desktop, so it never
+    // speaks about the field.
+    budget.updateBudgetItem(item!.id, trip.id, { total_price: 25 });
+
+    const row = testDb.prepare('SELECT note FROM budget_items WHERE id = ?').get(item!.id) as { note: string | null };
+    expect(row.note).toBe('split with Ben');
+  });
+
+  it('BUDGET-SVC-DB-023: an explicit null clears the note', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = budget.createBudgetItem(trip.id, { name: 'Taxi', total_price: 12, note: 'airport run' });
+
+    budget.updateBudgetItem(item!.id, trip.id, { note: null });
+
+    const row = testDb.prepare('SELECT note FROM budget_items WHERE id = ?').get(item!.id) as { note: string | null };
+    expect(row.note).toBeNull();
+  });
+
+  it('BUDGET-SVC-DB-024: a pre-#1658 client sending the receipt as a note cannot erase the note', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = budget.createBudgetItem(trip.id, { name: 'Supermarket', total_price: 30, note: 'reimburse from the kitty' });
+
+    // An old tab, still encoding the receipt into `note`.
+    budget.updateBudgetItem(item!.id, trip.id, {
+      note: 'TICKETJSON:{"items":[{"name":"Milk","price":"2","parts":[1]}]}',
+    });
+
+    const row = testDb.prepare('SELECT note, ticket_json FROM budget_items WHERE id = ?').get(item!.id) as {
+      note: string | null; ticket_json: string | null;
+    };
+    expect(row.note).toBe('reimburse from the kitty');
+    expect(JSON.parse(row.ticket_json!).items[0].name).toBe('Milk');
+  });
+
+  it('BUDGET-SVC-DB-025: the same legacy payload on create lands in the receipt column', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const item = budget.createBudgetItem(trip.id, {
+      name: 'Market',
+      total_price: 9,
+      note: 'TICKETJSON:{"items":[{"name":"Cheese","price":"9","parts":[1]}]}',
+    });
+
+    const row = testDb.prepare('SELECT note, ticket_json FROM budget_items WHERE id = ?').get(item!.id) as {
+      note: string | null; ticket_json: string | null;
+    };
+    expect(row.note).toBeNull();
+    expect(JSON.parse(row.ticket_json!).items[0].name).toBe('Cheese');
+  });
+
   it('BUDGET-SVC-DB-020: a failing item insert rolls back the category-order side write (quirk fix)', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);

@@ -88,6 +88,53 @@ export interface TicketItem {
   participants: Set<number>
 }
 
+/**
+ * Read the itemized receipt off an expense (#1658).
+ *
+ * It lives in `ticket_json` since migration 186. Before that it was smuggled
+ * through `note` behind a `TICKETJSON:` prefix, which is why an expense split by
+ * receipt could never carry a written note. The old shape is still read here so
+ * a response cached before the migration keeps rendering its split.
+ */
+export function readTicketItems(item: { ticket_json?: string | null; note?: string | null } | null | undefined): TicketItem[] {
+  const raw = item?.ticket_json ?? (item?.note?.startsWith('TICKETJSON:') ? item.note.slice(11) : null)
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    return (parsed.items || []).map((line: { name?: string; price?: unknown; parts?: number[] }, i: number) => ({
+      id: `${i}`,
+      name: String(line.name ?? ''),
+      price: String(line.price ?? ''),
+      participants: new Set(line.parts || []),
+    }))
+  } catch {
+    return []
+  }
+}
+
+/** True when this expense is split line by line rather than equally or by amount. */
+export function hasTicketSplit(item: { ticket_json?: string | null; note?: string | null } | null | undefined): boolean {
+  return Boolean(item?.ticket_json || item?.note?.startsWith('TICKETJSON:'))
+}
+
+/** Serialize the receipt lines for storage in `ticket_json`. */
+export function writeTicketItems(items: TicketItem[]): string {
+  return JSON.stringify({ items: items.map(i => ({ name: i.name, price: i.price, parts: [...i.participants] })) })
+}
+
+/** Long enough for a receipt discrepancy or a reimbursement reminder, short
+ *  enough that the row stays a row. */
+export const NOTE_MAX = 500
+
+/**
+ * The note a user actually typed, which is never the receipt blob. Only matters
+ * for data written before migration 186 moved the receipt out of the field.
+ */
+export function readUserNote(item: { note?: string | null } | null | undefined): string {
+  const note = item?.note
+  return note && !note.startsWith('TICKETJSON:') ? note : ''
+}
+
 /** Per-person totals for a receipt split line by line, plus the receipt total. */
 export function calculateTicketShares(items: TicketItem[]): { shares: Record<number, number>; total: number } {
   const shares: Record<number, number> = {}

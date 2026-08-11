@@ -113,6 +113,8 @@ export const budgetItemSchema = z.object({
   persons: z.number().nullable().optional(),
   days: z.number().nullable().optional(),
   note: z.string().nullable().optional(),
+  /** Itemized receipt behind a per-item split, as JSON. Its own column since #1658. */
+  ticket_json: z.string().nullable().optional(),
   reservation_id: z.number().nullable().optional(),
   paid_by_user_id: z.number().nullable().optional(),
   expense_date: z.string().nullable().optional(),
@@ -148,6 +150,7 @@ export const budgetCreateItemRequestSchema = z.object({
   persons: z.number().nullable().optional(),
   days: z.number().nullable().optional(),
   note: z.string().nullable().optional(),
+  ticket_json: z.string().nullable().optional(),
   expense_date: z.string().nullable().optional(),
   // Link this expense to a reservation (e.g. created from a booking's
   // "add expense" flow). The server stores it on budget_items.reservation_id.
@@ -168,6 +171,7 @@ export const budgetUpdateItemRequestSchema = z.object({
   persons: z.number().nullable().optional(),
   days: z.number().nullable().optional(),
   note: z.string().nullable().optional(),
+  ticket_json: z.string().nullable().optional(),
   expense_date: z.string().nullable().optional(),
 });
 export type BudgetUpdateItemRequest = z.infer<typeof budgetUpdateItemRequestSchema>;

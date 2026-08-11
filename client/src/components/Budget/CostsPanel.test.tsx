@@ -171,6 +171,79 @@ describe('CostsPanel — settlements in the ledger', () => {
     expect(screen.getByText('Unfinished')).toBeInTheDocument()
   })
 
+  // ── Notes on an expense (#1658) ────────────────────────────────────────────
+
+  it('shows a note on the row and expands it on click', async () => {
+    const long = 'Bought the whole week of breakfasts here, Ben pays back his half once the card statement lands'
+    const item = {
+      ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Supermarket' }),
+      total_price: 60,
+      note: long,
+      payers: [{ user_id: 1, amount: 60, username: 'alice' }],
+    }
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+    )
+    const user = userEvent.setup()
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    // Re-queried after each click: the row is re-created on every render of the
+    // panel, so a handle taken before the click points at a detached node.
+    const noteToggle = () => screen.getByRole('button', { name: new RegExp(long.slice(0, 20)) })
+    await screen.findByText('Supermarket')
+    expect(noteToggle()).toHaveAttribute('aria-expanded', 'false')
+    await user.click(noteToggle())
+    expect(noteToggle()).toHaveAttribute('aria-expanded', 'true')
+    await user.click(noteToggle())
+    expect(noteToggle()).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('never renders a receipt blob as a note', async () => {
+    const item = {
+      ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Market' }),
+      total_price: 20,
+      // How the receipt was stored before it got its own column.
+      note: 'TICKETJSON:{"items":[{"name":"Cheese","price":"20","parts":[1]}]}',
+      payers: [{ user_id: 1, amount: 20, username: 'alice' }],
+    }
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+    )
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    await screen.findByText('Market')
+    expect(screen.queryByText(/TICKETJSON/)).toBeNull()
+  })
+
+  it('keeps an existing note when the expense is saved again', async () => {
+    const item = {
+      ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Lunch' }),
+      total_price: 30,
+      note: 'split with the neighbours',
+      payers: [{ user_id: 1, amount: 30, username: 'alice' }],
+    }
+    let patched: Record<string, unknown> | null = null
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+      http.put('/api/trips/1/budget/:id', async ({ request }) => {
+        patched = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({ item: { ...item, ...patched } })
+      }),
+    )
+    const user = userEvent.setup()
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    await screen.findByText('Lunch')
+    await user.click(screen.getAllByTitle('Edit')[0])
+    await user.click(await screen.findByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(patched).toBeTruthy())
+    expect(patched!.note).toBe('split with the neighbours')
+  })
+
   it('shows the net hint on a settled expense row and hides it while unfinished', async () => {
     seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
     seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
@@ -534,7 +607,9 @@ describe('CostsPanel — settlements in the ledger', () => {
       expect.objectContaining({ user_id: 1, amount: 75 }),
       expect.objectContaining({ user_id: 2, amount: 25 }),
     ]))
-    expect(posted!.note).toContain('TICKETJSON:')
+    // The receipt has its own column since #1658; `note` is the user's text.
+    expect(JSON.parse(posted!.ticket_json as string).items).toHaveLength(3)
+    expect(posted!.note).toBeNull()
   })
 
   // ── Display currency ───────────────────────────────────────────────────────

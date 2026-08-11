@@ -64,6 +64,8 @@ function fillBasics(name: string, total: string) {
   fireEvent.change(totalField(), { target: { value: total } })
 }
 
+const CAT_LABELS = ['Accommodation', 'Food & drink', 'Groceries', 'Transport', 'Flights', 'Activities', 'Sightseeing', 'Shopping', 'Fees & tickets', 'Health', 'Tips', 'Other']
+
 describe('MCostSheet', () => {
   beforeEach(() => {
     resetAllStores()
@@ -84,11 +86,19 @@ describe('MCostSheet', () => {
     delete (window as unknown as { __addToast?: unknown }).__addToast
   })
 
+  // The category moved from a row of eleven pills to a dropdown: the trigger
+  // shows the current one, and the options only exist while it is open.
+  const catTrigger = () => screen.getByRole('button', { name: new RegExp(`^(${CAT_LABELS.join('|')})$`) })
+  const chooseCategory = (label: string) => {
+    fireEvent.click(catTrigger())
+    fireEvent.click(screen.getByRole('button', { name: label, pressed: false }))
+  }
+
   it('FE-MOB-COSTSH-001: opens in add mode with everyone in an equal split and a blocked submit', () => {
     renderSheet()
     expect(screen.getByRole('dialog', { name: 'Add expense' })).toBeInTheDocument()
     expect(nameField()).toHaveValue('')
-    expect(screen.getByRole('button', { name: 'Food & drink' })).toHaveAttribute('aria-pressed', 'true')
+    expect(catTrigger()).toHaveTextContent('Food & drink')
     expect(screen.getByRole('button', { name: 'Y You' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'B bob' })).toBeInTheDocument()
     expect(submit()).toBeDisabled()
@@ -115,15 +125,48 @@ describe('MCostSheet', () => {
       expense_date: TODAY,
       total_price: 85.5,
       note: null,
+      ticket_json: null,
     })
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1))
+  })
+
+  it('FE-MOB-COSTSH-020: the category dropdown opens, marks the current pick and closes on choose (#1658)', () => {
+    renderSheet()
+    expect(screen.queryByRole('button', { name: 'Groceries' })).toBeNull()
+
+    fireEvent.click(catTrigger())
+    expect(screen.getByRole('button', { name: 'Food & drink', pressed: true })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Groceries', pressed: false }))
+    expect(catTrigger()).toHaveTextContent('Groceries')
+    expect(screen.queryByRole('button', { name: 'Sightseeing' })).toBeNull()
+  })
+
+  it('FE-MOB-COSTSH-021: a note typed on the phone is saved with the expense (#1658)', async () => {
+    renderSheet()
+    fillBasics('Pharmacy', '18')
+    fireEvent.change(screen.getByPlaceholderText(/what it covered/i), { target: { value: 'Ben was ill, he pays this back' } })
+
+    fireEvent.click(submit())
+    await waitFor(() => expect(addBudgetItem).toHaveBeenCalledWith(1, expect.objectContaining({
+      note: 'Ben was ill, he pays this back',
+    })))
+  })
+
+  it('FE-MOB-COSTSH-022: an existing note is loaded for editing, and a receipt blob never is (#1658)', () => {
+    const { unmount } = renderSheet({ editing: buildBudgetItem({ id: 5, name: 'Chemist', note: 'reimburse from the kitty' }) })
+    expect(screen.getByPlaceholderText(/what it covered/i)).toHaveValue('reimburse from the kitty')
+    unmount()
+
+    renderSheet({ editing: buildBudgetItem({ id: 6, name: 'Market', note: 'TICKETJSON:{"items":[]}' }) })
+    expect(screen.getByPlaceholderText(/what it covered/i)).toHaveValue('')
   })
 
   it('FE-MOB-COSTSH-003: adopts the prefill and carries the reservation link into the payload', async () => {
     renderSheet({ prefill: { name: 'Ryokan', category: 'accommodation', amount: 240, reservationId: 77 } })
     expect(nameField()).toHaveValue('Ryokan')
     expect(totalField()).toHaveValue('240')
-    expect(screen.getByRole('button', { name: 'Accommodation' })).toHaveAttribute('aria-pressed', 'true')
+    expect(catTrigger()).toHaveTextContent('Accommodation')
 
     fireEvent.click(submit())
     await waitFor(() => expect(addBudgetItem).toHaveBeenCalledTimes(1))
@@ -167,9 +210,8 @@ describe('MCostSheet', () => {
   it('FE-MOB-COSTSH-006: switching the category updates the pressed pill and the payload', async () => {
     renderSheet()
     fillBasics('Metro pass', '20')
-    fireEvent.click(screen.getByRole('button', { name: 'Transport' }))
-    expect(screen.getByRole('button', { name: 'Transport' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('button', { name: 'Food & drink' })).toHaveAttribute('aria-pressed', 'false')
+    chooseCategory('Transport')
+    expect(catTrigger()).toHaveTextContent('Transport')
 
     fireEvent.click(submit())
     await waitFor(() => expect(addBudgetItem).toHaveBeenCalledWith(1, expect.objectContaining({ category: 'transport' })))
@@ -323,7 +365,7 @@ describe('MCostSheet', () => {
     expect(addBudgetItem).toHaveBeenCalledWith(1, expect.objectContaining({
       total_price: 20,
       members: [{ user_id: 1, amount: 10 }, { user_id: 2, amount: 10 }],
-      note: 'TICKETJSON:{"items":[{"name":"Ramen","price":"20","parts":[1,2]}]}',
+      ticket_json: '{"items":[{"name":"Ramen","price":"20","parts":[1,2]}]}',
     }))
   })
 
@@ -369,7 +411,7 @@ describe('MCostSheet', () => {
 
     expect(screen.getByRole('dialog', { name: 'Edit expense' })).toBeInTheDocument()
     expect(nameField()).toHaveValue('Flight to Osaka')
-    expect(screen.getByRole('button', { name: 'Flights' })).toHaveAttribute('aria-pressed', 'true')
+    expect(catTrigger()).toHaveTextContent('Flights')
     expect(screen.getByRole('button', { name: 'USD $' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'bob' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Custom' })).toHaveClass('bg-m-act')

@@ -135,6 +135,8 @@ export interface BudgetItem {
   persons?: number | null;
   days?: number | null;
   note?: string | null;
+  /** Itemized receipt for a per-item split, as JSON. Its own column since #1658. */
+  ticket_json?: string | null;
   reservation_id?: number | null;
   paid_by_user_id?: number | null;
   expense_date?: string | null;

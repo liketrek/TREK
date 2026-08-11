@@ -17,6 +17,29 @@ type SettlementRow = {
   to_username: string; to_avatar: string | null;
 };
 
+/** How the costs UI used to smuggle an itemized receipt through the note field. */
+const LEGACY_TICKET_PREFIX = 'TICKETJSON:';
+
+/**
+ * Keep a written note and an itemized receipt out of each other's way (#1658).
+ *
+ * The receipt has its own column since migration 186, but a client that predates
+ * it still sends the blob as `note`. Such a payload says nothing about the note
+ * the user typed, so the note is reported as untouched (`undefined`) rather than
+ * overwritten — an old tab left open must not erase a note written elsewhere.
+ *
+ * `undefined` means "caller did not speak about this field"; `null` means "clear it".
+ */
+export function splitLegacyTicketNote(
+  note: string | null | undefined,
+  ticket: string | null | undefined,
+): { note: string | null | undefined; ticket: string | null | undefined } {
+  if (typeof note === 'string' && note.startsWith(LEGACY_TICKET_PREFIX)) {
+    return { note: undefined, ticket: note.slice(LEGACY_TICKET_PREFIX.length) };
+  }
+  return { note, ticket };
+}
+
 /**
  * Budget domain service — owns the budget SQL (moved from the legacy
  * services/budgetService.ts: identical statements, the `||` falsy-coercion
@@ -277,6 +300,7 @@ export class BudgetService {
       payers?: { user_id: number; amount: number }[]; member_ids?: number[];
       members?: { user_id: number; amount?: number | null }[];
       persons?: number | null; days?: number | null; note?: string | null; expense_date?: string | null;
+      ticket_json?: string | null;
       reservation_id?: number | null;
     },
   ) {
@@ -304,8 +328,10 @@ export class BudgetService {
       const knownIds = data.member_ids ? this.knownUserIds(data.member_ids) : null;
       const memberIds = data.member_ids && knownIds ? data.member_ids.filter(uid => knownIds.has(uid)) : undefined;
 
+      const { note, ticket } = splitLegacyTicketNote(data.note, data.ticket_json);
+
       const result = this.db.run(
-        'INSERT INTO budget_items (trip_id, category, name, total_price, currency, exchange_rate, persons, days, note, sort_order, expense_date, reservation_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO budget_items (trip_id, category, name, total_price, currency, exchange_rate, persons, days, note, ticket_json, sort_order, expense_date, reservation_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         tripId,
         cat,
         data.name,
@@ -314,7 +340,8 @@ export class BudgetService {
         data.exchange_rate != null ? data.exchange_rate : 1,
         memberIds ? memberIds.length : (data.persons != null ? data.persons : null),
         data.days !== undefined && data.days !== null ? data.days : null,
-        data.note || null,
+        note || null,
+        ticket || null,
         sortOrder,
         data.expense_date || null,
         data.reservation_id != null ? data.reservation_id : null,
@@ -365,11 +392,18 @@ export class BudgetService {
       payers?: { user_id: number; amount: number }[]; member_ids?: number[];
       members?: { user_id: number; amount?: number | null }[];
       persons?: number | null; days?: number | null; note?: string | null; sort_order?: number; expense_date?: string | null;
+      ticket_json?: string | null;
     },
   ) {
     return this.db.transaction(() => {
       const item = this.db.get('SELECT * FROM budget_items WHERE id = ? AND trip_id = ?', id, tripId);
       if (!item) return null;
+
+      // An old client sending a receipt in `note` still lands in ticket_json, and
+      // its note is left untouched rather than clobbered with the receipt blob.
+      const { note, ticket } = splitLegacyTicketNote(data.note, data.ticket_json);
+      const noteTouched = data.note !== undefined && note !== undefined;
+      const ticketTouched = data.ticket_json !== undefined || ticket !== undefined;
 
       this.db.run(`
     UPDATE budget_items SET
@@ -381,6 +415,7 @@ export class BudgetService {
       persons = CASE WHEN ? IS NOT NULL THEN ? ELSE persons END,
       days = CASE WHEN ? THEN ? ELSE days END,
       note = CASE WHEN ? THEN ? ELSE note END,
+      ticket_json = CASE WHEN ? THEN ? ELSE ticket_json END,
       sort_order = CASE WHEN ? IS NOT NULL THEN ? ELSE sort_order END,
       expense_date = CASE WHEN ? THEN ? ELSE expense_date END
     WHERE id = ?
@@ -392,7 +427,8 @@ export class BudgetService {
         data.exchange_rate !== undefined ? 1 : null, data.exchange_rate !== undefined ? data.exchange_rate : 1,
         data.persons !== undefined ? 1 : null, data.persons !== undefined ? data.persons : null,
         data.days !== undefined ? 1 : 0, data.days !== undefined ? data.days : null,
-        data.note !== undefined ? 1 : 0, data.note !== undefined ? data.note : null,
+        noteTouched ? 1 : 0, noteTouched ? note : null,
+        ticketTouched ? 1 : 0, ticketTouched ? ticket : null,
         data.sort_order !== undefined ? 1 : null, data.sort_order !== undefined ? data.sort_order : 0,
         data.expense_date !== undefined ? 1 : 0, data.expense_date !== undefined ? (data.expense_date || null) : null,
         id,

@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Plus, Trash2, Wallet } from 'lucide-react'
+import { Check, ChevronDown, Plus, Trash2, Wallet } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import CustomSelect from '../../../../components/shared/CustomSelect'
 import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
 import { NumericInput } from '../../../../components/shared/NumericInput'
-import { Eyebrow, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
+import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
 import { useTranslation } from '../../../../i18n'
 import { useToast } from '../../../../components/shared/Toast'
 import { useTripStore } from '../../../../store/tripStore'
@@ -12,7 +12,7 @@ import { useExchangeRates } from '../../../../hooks/useExchangeRates'
 import { formatMoney, localizeAmountInput } from '../../../../utils/formatters'
 import { SYMBOLS, SPLIT_COLORS, currenciesWith } from '../../../../components/Budget/BudgetPanel.constants'
 import { COST_CATEGORY_LIST, catMeta } from '../../../../components/Budget/costsCategories'
-import { calculateTicketShares, splitEqualShares, type TicketItem } from '../../../../components/Budget/CostsPanel.helpers'
+import { calculateTicketShares, hasTicketSplit, NOTE_MAX, readTicketItems, readUserNote, splitEqualShares, writeTicketItems, type TicketItem } from '../../../../components/Budget/CostsPanel.helpers'
 import type { ExpensePrefill } from '../../../../components/Budget/CostsPanel'
 import { payersBalanced, rebalancePayers } from '../../../../components/Budget/CostsPanel.helpers'
 import GuestBadge from '../../../../components/shared/GuestBadge'
@@ -69,6 +69,8 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
 
   const [name, setName] = useState(editing?.name || prefill?.name || '')
   const [cat, setCat] = useState<string>(editing ? catMeta(editing.category).key : (prefill?.category || 'food'))
+  const [catOpen, setCatOpen] = useState(false)
+  const [note, setNote] = useState(() => readUserNote(editing))
   const [currency, setCurrency] = useState((editing?.currency || base).toUpperCase())
   const [day, setDay] = useState(editing?.expense_date || new Date().toISOString().slice(0, 10))
   const [total, setTotal] = useState<string>(() => {
@@ -96,7 +98,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   const [pinnedPayers, setPinnedPayers] = useState<Set<number>>(() => new Set(initialPayers.map(p => p.user_id)))
 
   const [splitMode, setSplitMode] = useState<'equally' | 'custom' | 'ticket'>(() => {
-    if (editing?.note && editing.note.startsWith('TICKETJSON:')) return 'ticket'
+    if (hasTicketSplit(editing)) return 'ticket'
     if (editing && editing.members && editing.members.length > 0) {
       const hasCustom = editing.members.some(m => m.amount !== null && m.amount !== undefined)
       return hasCustom ? 'custom' : 'equally'
@@ -104,22 +106,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
     return 'equally'
   })
 
-  const [ticketItems, setTicketItems] = useState<TicketItem[]>(() => {
-    if (editing?.note && editing.note.startsWith('TICKETJSON:')) {
-      try {
-        const parsed = JSON.parse(editing.note.slice(11))
-        return (parsed.items || []).map((item: { name: string; price: number | string; parts?: number[] }) => ({
-          id: String(Math.random()),
-          name: item.name,
-          price: String(item.price),
-          participants: new Set<number>(item.parts || []),
-        }))
-      } catch {
-        return []
-      }
-    }
-    return []
-  })
+  const [ticketItems, setTicketItems] = useState<TicketItem[]>(() => readTicketItems(editing))
 
   const [customAmounts, setCustomAmounts] = useState<Record<number, string>>(() => {
     const m: Record<number, string> = {}
@@ -268,9 +255,8 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
       member_ids: [...participants],
       expense_date: day || null,
       total_price: totalNum,
-      note: splitMode === 'ticket'
-        ? 'TICKETJSON:' + JSON.stringify({ items: ticketItems.map(item => ({ name: item.name, price: item.price, parts: [...item.participants] })) })
-        : null,
+      note: note.trim() || null,
+      ticket_json: splitMode === 'ticket' ? writeTicketItems(ticketItems) : null,
       ...(!editing && prefill?.reservationId ? { reservation_id: prefill.reservationId } : {}),
     }
     try {
@@ -315,11 +301,6 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
           {initialOf(p)}
         </span>
       )
-
-  const pillCls = (active: boolean) =>
-    `flex items-center gap-[5px] rounded-full px-[11px] py-[6px] text-[0.71875rem] font-semibold ${
-      active ? 'bg-m-act text-m-actfg' : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-muted'
-    }`
 
   const submitLabel = saving ? t('common.saving') : editing ? t('common.save') : t('common.add')
 
@@ -391,19 +372,45 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
           </div>
         )}
 
-        {/* CATEGORY */}
+        {/* CATEGORY — a dropdown rather than eleven pills, which took a third of
+            the sheet and pushed the split below the fold. Same shape as the
+            category filter on the tab behind it. */}
         <Eyebrow className="mb-[6px] mt-3 uppercase">{t('costs.category')}</Eyebrow>
-        <div className="flex flex-wrap gap-[6px]">
-          {COST_CATEGORY_LIST.map(c => {
-            const Icon = c.Icon
-            return (
-              <button key={c.key} type="button" onClick={() => setCat(c.key)} aria-pressed={cat === c.key} className={pillCls(cat === c.key)}>
-                <Icon size={12} strokeWidth={2.2} style={{ color: c.color }} />
-                {t(c.labelKey)}
-              </button>
-            )
-          })}
-        </div>
+        <button
+          type="button"
+          aria-expanded={catOpen}
+          onClick={() => setCatOpen(v => !v)}
+          className="flex w-full items-center gap-[10px] overflow-hidden rounded-xl border border-[color:var(--m-rowbr)] bg-m-card px-[13px] py-[11px] text-left"
+        >
+          {(() => {
+            const meta = catMeta(cat)
+            const Icon = meta.Icon
+            return <Icon size={15} strokeWidth={2} style={{ color: meta.color }} className="flex-none" />
+          })()}
+          <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold text-m-ink">{t(catMeta(cat).labelKey)}</span>
+          <ChevronDown size={14} strokeWidth={2} className={`flex-none text-m-faint transition-transform duration-200 ${catOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {catOpen && (
+          <div className="mt-[6px] max-h-[240px] overflow-y-auto overscroll-contain rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)]">
+            {COST_CATEGORY_LIST.map(c => {
+              const Icon = c.Icon
+              const on = cat === c.key
+              return (
+                <button
+                  key={c.key}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => { setCat(c.key); setCatOpen(false) }}
+                  className="flex w-full items-center gap-[10px] border-b border-[color:var(--m-rowbr)] px-[13px] py-[11px] text-left last:border-b-0"
+                >
+                  <Icon size={14} strokeWidth={2} style={{ color: c.color }} className="flex-none" />
+                  <span className={`flex-1 text-[0.78125rem] ${on ? 'font-bold text-m-ink' : 'font-medium text-m-muted'}`}>{t(c.labelKey)}</span>
+                  {on && <Check size={14} strokeWidth={2.4} className="flex-none text-m-ink" />}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         {/* WHO PAID */}
         <div className="mb-[6px] mt-3 flex items-center justify-between">
@@ -609,6 +616,18 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
             </div>
           </>
         )}
+
+        {/* NOTE — last, because it is the one field that is never required. The
+            room for it came from folding the category pills into a dropdown. */}
+        <Eyebrow className="mb-[6px] mt-3 uppercase">{t('costs.note')}</Eyebrow>
+        <textarea
+          value={note}
+          onChange={e => setNote(e.target.value)}
+          rows={2}
+          maxLength={NOTE_MAX}
+          placeholder={t('costs.notePlaceholder')}
+          className={FIELD_AREA_CLS}
+        />
       </div>
 
       <FormSheetFooter

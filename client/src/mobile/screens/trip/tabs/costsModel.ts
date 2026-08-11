@@ -1,5 +1,5 @@
 import type { CostCategory } from '@trek/shared'
-import { splitEqualShares } from '../../../../components/Budget/CostsPanel.helpers'
+import { readUserNote, splitEqualShares } from '../../../../components/Budget/CostsPanel.helpers'
 import { catMeta, COST_CATEGORY_LIST } from '../../../../components/Budget/costsCategories'
 import { currencyDecimals } from '../../../../utils/formatters'
 import type { BudgetItem } from '../../../../types'
@@ -233,8 +233,7 @@ export function buildCostsCsv(items: BudgetItem[], opts: CsvBuildOptions): { fil
   const sorted = items.slice().sort((a, b) => (a.expense_date || '').localeCompare(b.expense_date || ''))
   for (const e of sorted) {
     const cur = currencyOf(e, opts.ctx)
-    // Ticket notes carry the itemized-receipt JSON, not a human note.
-    const note = e.note && !e.note.startsWith('TICKETJSON:') ? e.note : ''
+    const note = readUserNote(e)
     rows.push(
       [
         esc(fmtDate(e.expense_date || '')),
