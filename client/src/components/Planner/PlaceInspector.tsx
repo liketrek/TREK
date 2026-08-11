@@ -451,7 +451,7 @@ export default function PlaceInspector({
                 const tid = (place as { trip_id?: number | string }).trip_id
                 return (
                   <div key={p.id} className="bg-surface-hover" style={{ borderRadius: 10, overflow: 'hidden' }}>
-                    <PluginFrame pluginId={p.id} tripId={tid != null ? String(tid) : null} placeId={String(place.id)} title={p.name} />
+                    <PluginFrame pluginId={p.id} tripId={tid != null ? String(tid) : null} placeId={String(place.id)} title={p.name} surface="detail-slot" />
                   </div>
                 )
               })}

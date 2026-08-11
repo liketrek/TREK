@@ -342,7 +342,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
               {dayDetailPlugins.map((p) => (
                 <div key={p.id} className="bg-surface-hover" style={{ borderRadius: 10, overflow: 'hidden' }}>
-                  <PluginFrame pluginId={p.id} tripId={String(tripId)} dayId={String(day.id)} title={p.name} />
+                  <PluginFrame pluginId={p.id} tripId={String(tripId)} dayId={String(day.id)} title={p.name} surface="detail-slot" />
                 </div>
               ))}
             </div>

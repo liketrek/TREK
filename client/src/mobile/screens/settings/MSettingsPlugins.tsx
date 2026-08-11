@@ -288,7 +288,7 @@ function PluginSettingsUiCard({ id, name, icon }: { id: string; name: string; ic
           white canvas behind the transparent frame (same trap .hero-overlay-frame
           guards against), which glares in dark mode. */}
       <div className="min-h-[120px]">
-        <PluginFrame pluginId={id} path="settings.html" title={name} className="[color-scheme:light]" />
+        <PluginFrame pluginId={id} path="settings.html" title={name} surface="user-settings" className="[color-scheme:light]" />
       </div>
     </MSetCard>
   )

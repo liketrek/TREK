@@ -115,7 +115,7 @@ export function PluginActions({ items, tripId, className }: { items: ViewContrib
               <button onClick={() => setFrame(null)} className="text-content-muted hover:text-content"><X size={16} /></button>
             </div>
             <div className="flex-1 min-h-0">
-              <PluginFrame pluginId={frame.pluginId} tripId={tripId != null ? String(tripId) : null} title={frame.label} fill />
+              <PluginFrame pluginId={frame.pluginId} tripId={tripId != null ? String(tripId) : null} title={frame.label} fill surface="action-frame" />
             </div>
           </div>
         </div>

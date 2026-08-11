@@ -109,6 +109,58 @@ describe('PluginFrame', () => {
     await waitFor(() => expect(posted.some((m) => (m as { type?: string }).type === 'trek:response')).toBe(true));
   });
 
+  it('FE-PLUGINS-FRAME-005a: the context says which surface the frame sits in and what shape it takes', () => {
+    // Without this a plugin cannot tell a full-height tab from a widget that
+    // reports its own height — and on a filling surface the height report is
+    // dropped, so it never finds out by trying.
+    const { container } = render(<PluginFrame pluginId="demo" surface="trip-tab" fill />);
+    const iframe = container.querySelector('iframe')!;
+    const posted: Array<Record<string, unknown>> = [];
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m as Record<string, unknown>);
+
+    fromFrame(iframe, { type: 'trek:context:request' });
+
+    const ctx = posted.find((m) => m.type === 'trek:context') as Record<string, unknown> | undefined;
+    expect(ctx!.viewport).toMatchObject({ surface: 'trip-tab', fill: true, formFactor: 'desktop' });
+    expect((ctx!.viewport as { insets: unknown }).insets).toEqual({ top: 0, bottom: 0 });
+  });
+
+  it('FE-PLUGINS-FRAME-005b: a widget reports its own height, and says so', () => {
+    const { container } = render(<PluginFrame pluginId="demo" surface="dashboard-widget" />);
+    const iframe = container.querySelector('iframe')!;
+    const posted: Array<Record<string, unknown>> = [];
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m as Record<string, unknown>);
+
+    fromFrame(iframe, { type: 'trek:context:request' });
+
+    const ctx = posted.find((m) => m.type === 'trek:context') as Record<string, unknown> | undefined;
+    expect(ctx!.viewport).toMatchObject({ surface: 'dashboard-widget', fill: false });
+  });
+
+  it('FE-PLUGINS-FRAME-005c: the mobile palette is read off the mobile shell, not the document element', () => {
+    // The --m-* family is scoped to .m-root. Reading it at documentElement — where
+    // every other token lives — yields nothing, which is why it never reached a
+    // plugin before.
+    const shell = document.createElement('div');
+    shell.className = 'm-root';
+    shell.style.setProperty('--m-card', 'rgba(255,255,255,.55)');
+    shell.style.setProperty('--m-ink', '#101013');
+    document.body.appendChild(shell);
+    try {
+      const { container } = render(<PluginFrame pluginId="demo" surface="trip-tab" fill />);
+      const iframe = container.querySelector('iframe')!;
+      const posted: Array<Record<string, unknown>> = [];
+      (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m as Record<string, unknown>);
+
+      fromFrame(iframe, { type: 'trek:context:request' });
+
+      const ctx = posted.find((m) => m.type === 'trek:context') as Record<string, unknown> | undefined;
+      expect(ctx!.tokens).toMatchObject({ '--m-card': 'rgba(255,255,255,.55)', '--m-ink': '#101013' });
+    } finally {
+      shell.remove();
+    }
+  });
+
   it('FE-PLUGINS-FRAME-005: context carries theme tokens, formats and non-secret display identity', () => {
     const { container } = render(<PluginFrame pluginId="demo" />);
     const iframe = container.querySelector('iframe')!;

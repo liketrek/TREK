@@ -419,7 +419,7 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
           {heroPlugins.length > 0 && (
             <div className="hero-pass-overlay" aria-hidden="true">
               {heroPlugins.map(p => (
-                <PluginFrame key={p.id} pluginId={p.id} tripId={String(trip.id)} title={p.name} className="hero-overlay-frame" />
+                <PluginFrame key={p.id} pluginId={p.id} tripId={String(trip.id)} title={p.name} surface="dashboard-widget" className="hero-overlay-frame" />
               ))}
             </div>
           )}

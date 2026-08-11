@@ -443,7 +443,7 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '0 14px 14px' }}>
           {detailPlugins.map(p => (
             <div key={p.id} className="bg-surface-hover" style={{ borderRadius: 10, overflow: 'hidden' }}>
-              <PluginFrame pluginId={p.id} tripId={String(tripId)} reservationId={String(r.id)} title={p.name} />
+              <PluginFrame pluginId={p.id} tripId={String(tripId)} reservationId={String(r.id)} title={p.name} surface="detail-slot" />
             </div>
           ))}
         </div>
@@ -623,7 +623,7 @@ function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit, tripId, contri
         <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {detailPlugins.map(p => (
             <div key={p.id} className="bg-surface-hover" style={{ borderRadius: 10, overflow: 'hidden' }}>
-              <PluginFrame pluginId={p.id} tripId={String(tripId)} reservationId={String(r.id)} title={p.name} />
+              <PluginFrame pluginId={p.id} tripId={String(tripId)} reservationId={String(r.id)} title={p.name} surface="detail-slot" />
             </div>
           ))}
         </div>
