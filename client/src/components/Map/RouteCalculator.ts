@@ -92,14 +92,14 @@ export async function calculateRoute(
  * hotel and the first/last located waypoint exist; passing nulls leaves `runs`
  * untouched. The shared first/last waypoint is repeated so the polylines join.
  */
-export function withHotelBookends(
-  runs: Waypoint[][],
-  firstWay: Waypoint | undefined,
-  lastWay: Waypoint | undefined,
-  startHotel: Waypoint | null,
-  endHotel: Waypoint | null,
-): Waypoint[][] {
-  const out: Waypoint[][] = []
+export function withHotelBookends<T extends { lat: number; lng: number }>(
+  runs: T[][],
+  firstWay: T | undefined,
+  lastWay: T | undefined,
+  startHotel: T | null,
+  endHotel: T | null,
+): T[][] {
+  const out: T[][] = []
   if (startHotel && firstWay) out.push([startHotel, firstWay])
   out.push(...runs)
   if (endHotel && lastWay) out.push([lastWay, endHotel])

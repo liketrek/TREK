@@ -4,6 +4,7 @@ import { useSettingsStore } from '../store/settingsStore'
 import { calculateRouteWithLegs, withHotelBookends, type RouteProfileKey } from '../components/Map/RouteCalculator'
 import { getTransportRouteEndpoints } from '../utils/dayMerge'
 import { getDayBookendHotels, shouldDrawMorningLeg, shouldDrawEveningLeg } from '../utils/dayOrder'
+import { resolveLegMode } from '../components/Planner/legMode'
 import type { TripStoreState } from '../store/tripStore'
 import type { RouteSegment, RouteResult, RouteVia, Accommodation } from '../types'
 
@@ -73,13 +74,15 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
 
     // Build a unified list of places + transports sorted by effective position.
     type Entry =
-      | { kind: 'place'; lat: number; lng: number; pos: number; time: string | null; mode: string | null }
+      | { kind: 'place'; lat: number; lng: number; pos: number; time: string | null; mode: string | null; incoming: string | null }
       | { kind: 'transport'; from: { lat: number; lng: number } | null; to: { lat: number; lng: number } | null; pos: number }
     const entries: Entry[] = [
       ...da.filter(a => a.place?.lat && a.place?.lng).map(a => ({
         kind: 'place' as const, lat: a.place.lat!, lng: a.place.lng!, pos: a.order_index, time: a.place?.place_time ?? null,
         // Per-segment travel mode (#1281): mode of the leg leaving this place.
         mode: (a as { leg_transport_mode?: string | null }).leg_transport_mode ?? null,
+        // Boundary-leg mode (#1281 follow-up): mode of the leg arriving at this place.
+        incoming: (a as { incoming_leg_transport_mode?: string | null }).incoming_leg_transport_mode ?? null,
       })),
       ...dayTransports.map(r => {
         const { from, to } = getTransportRouteEndpoints(r, dayId)
@@ -102,19 +105,20 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
     // back-to-back transports (e.g. two flights on one day) would otherwise pair the
     // first's arrival point with the second's departure point into a phantom
     // [airport → airport] road route — that is the flight itself, not a drive (#1394).
-    const runs: { lat: number; lng: number; mode?: string | null }[][] = []
-    let currentRun: { lat: number; lng: number; mode?: string | null }[] = []
+    type RunPoint = { lat: number; lng: number; isPlace: boolean; leg_transport_mode?: string | null; incoming_leg_transport_mode?: string | null }
+    const runs: RunPoint[][] = []
+    let currentRun: RunPoint[] = []
     let runHasPlace = false
     for (const entry of entries) {
       if (entry.kind === 'place') {
-        currentRun.push({ lat: entry.lat, lng: entry.lng, mode: entry.mode })
+        currentRun.push({ lat: entry.lat, lng: entry.lng, isPlace: true, leg_transport_mode: entry.mode, incoming_leg_transport_mode: entry.incoming })
         runHasPlace = true
       } else if (entry.from || entry.to) {
-        if (entry.from) currentRun.push(entry.from)
+        if (entry.from) currentRun.push({ ...entry.from, isPlace: false })
         if (currentRun.length >= 2 && runHasPlace) runs.push(currentRun)
         currentRun = []
         runHasPlace = false
-        if (entry.to) currentRun.push(entry.to)
+        if (entry.to) currentRun.push({ ...entry.to, isPlace: false })
       }
     }
     if (currentRun.length >= 2 && runHasPlace) runs.push(currentRun)
@@ -127,13 +131,16 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
     const bookends = day && optimizeFromAccommodation !== false
       ? getDayBookendHotels(day, allDays, accommodations)
       : null
-    const flatPts: { lat: number; lng: number }[] = []
+    const flatPts: RunPoint[] = []
     for (const e of entries) {
-      if (e.kind === 'place') flatPts.push({ lat: e.lat, lng: e.lng })
-      else { if (e.from) flatPts.push(e.from); if (e.to) flatPts.push(e.to) }
+      if (e.kind === 'place') flatPts.push({ lat: e.lat, lng: e.lng, isPlace: true, leg_transport_mode: e.mode, incoming_leg_transport_mode: e.incoming })
+      else { if (e.from) flatPts.push({ ...e.from, isPlace: false }); if (e.to) flatPts.push({ ...e.to, isPlace: false }) }
     }
-    const hotelPt = (a?: Accommodation) =>
-      a && a.place_lat != null && a.place_lng != null ? { lat: a.place_lat, lng: a.place_lng } : null
+    // A hotel bookend point is not a place-assignment, so isPlace: false — resolveLegMode
+    // falls through to the day default for hotel-adjacent legs unless the place endpoint
+    // carries its own override.
+    const hotelPt = (a?: Accommodation): RunPoint | null =>
+      a && a.place_lat != null && a.place_lng != null ? { lat: a.place_lat, lng: a.place_lng, isPlace: false } : null
     // Only draw a hotel bookend when the leg is a real drive. You start/end the day at a hotel
     // when you slept there / sleep there tonight; on the hotel's own check-in or check-out day
     // the leg holds only when the edge stop is a PLACE timed after check-in / before check-out
@@ -147,7 +154,7 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
       e ? { isPlace: e.kind === 'place', time: e.kind === 'place' ? e.time : null } : undefined
     const drawMorning = !!bookends && !!day && shouldDrawMorningLeg(bookends, day, edgeInfo(firstStop))
     const drawEvening = !!bookends && !!day && shouldDrawEveningLeg(bookends, day, edgeInfo(lastStop))
-    const runsWithHotel: { lat: number; lng: number; mode?: string | null }[][] = withHotelBookends(
+    const runsWithHotel: RunPoint[][] = withHotelBookends(
       runs,
       flatPts[0],
       flatPts[flatPts.length - 1],
@@ -199,7 +206,7 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
           }
         }
         for (let i = 0; i < run.length - 1; i++) {
-          const mode = run[i].mode || dayDefaultMode
+          const mode = resolveLegMode(run[i], run[i + 1], dayDefaultMode)
           const straight = (): [number, number][] => [[run[i].lat, run[i].lng], [run[i + 1].lat, run[i + 1].lng]]
           try {
             const r = await calculateRouteWithLegs([{ lat: run[i].lat, lng: run[i].lng }, { lat: run[i + 1].lat, lng: run[i + 1].lng }], { signal: controller.signal, profile: mode, tripId, dayId })
