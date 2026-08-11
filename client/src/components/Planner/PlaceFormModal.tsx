@@ -773,7 +773,6 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             placeholder={t('places.formNotesPlaceholder')}
             className="form-input" style={{ resize: 'vertical' }}
           />
-          <p className="text-caption text-content-faint mt-1">{t('notes.markdownHint')}</p>
         </div>
 
         {/* Address + Coordinates */}

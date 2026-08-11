@@ -1,4 +1,6 @@
 import React from 'react'
+import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { Plus, Check, Star } from 'lucide-react'
 import PlaceAvatar from '../shared/PlaceAvatar'
 import { getCategoryIcon } from '../shared/categoryIcons'
@@ -107,9 +109,13 @@ export const MemoPlaceRow = React.memo(function MemoPlaceRow({
         </div>
         {(place.description || place.address || cat?.name) && (
           <div style={{ marginTop: 2 }}>
-            <span className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', lineHeight: 1.2 }}>
-              {place.description || place.address || cat?.name}
-            </span>
+            {/* Rendered, like the same line in the day plan: the description is
+                Markdown everywhere else, and printing it raw here was the one
+                place a formatted place read as `_underscores_`. Still clamped to
+                one line — the row is a list entry, not the inspector. */}
+            <div className="collab-note-md text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2, maxHeight: '1.2em' }}>
+              <Markdown remarkPlugins={[remarkGfm]}>{place.description || place.address || cat?.name || ''}</Markdown>
+            </div>
           </div>
         )}
       </div>
