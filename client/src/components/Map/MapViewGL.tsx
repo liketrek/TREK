@@ -1,4 +1,5 @@
 import { useEffect, useRef, useMemo, useState, createElement } from 'react'
+import { makeMarkerDraggable } from './markerDrag'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import type mapboxgl from 'mapbox-gl'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -439,6 +440,9 @@ export function MapViewGL({
   onClickRefs.current.context = onMapContextMenu
   const hoverDisabledRef = useRef(hoverDisabled)
   hoverDisabledRef.current = hoverDisabled
+  // Same gate as the Leaflet renderer: HTML5 drag is a pointer feature, and the
+  // day plan the marker would be dropped on is not on screen on a phone anyway.
+  const markersDraggableRef = useRef(typeof window !== 'undefined' && navigator.maxTouchPoints === 0)
   const routeCoords = useMemo<[number, number][]>(() => (route || []).flat().filter(isValidCoordinate), [route])
   const routeFitKey = useMemo(
     () => routeCoords.map(([lat, lng]) => `${lat.toFixed(6)},${lng.toFixed(6)}`).join('|'),
@@ -1030,6 +1034,10 @@ export function MapViewGL({
         const photoUrl = isCustomPlaceImage(place.image_url) ? place.image_url! : ((pck && photoUrls[pck]) || place.image_url || null)
         const selected = place.id === selectedPlaceId
         const el = createMarkerElement(place as Place & { category_color?: string; category_icon?: string }, photoUrl, orderNumbers, selected)
+        // Drag onto a day in the plan (#891). Markers are rebuilt from scratch
+        // on every reconcile, so the listeners go with the element and need no
+        // teardown of their own.
+        if (markersDraggableRef.current) makeMarkerDraggable(el, place.id)
         el.addEventListener('click', (ev) => {
           ev.stopPropagation()
           // Clear the card right away — the flyTo that follows moves the marker

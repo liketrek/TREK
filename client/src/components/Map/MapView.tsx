@@ -3,6 +3,7 @@ import DOM from 'react-dom'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, Circle, useMap, Tooltip } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
+import { makeMarkerDraggable } from './markerDrag'
 import L from 'leaflet'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
@@ -460,17 +461,28 @@ interface MemoMarkerProps {
   onClickPlace: (id: number) => void
   onHover: (place: any, x: number, y: number) => void
   onHoverOut: () => void
+  /** Off in read-only trips and on the phone, where HTML5 drag does not exist. */
+  draggable: boolean
 }
 
 const MemoMarker = memo(function MemoMarker({
-  place, isSelected, orderNumbers, photoUrl, onClickPlace, onHover, onHoverOut,
+  place, isSelected, orderNumbers, photoUrl, onClickPlace, onHover, onHoverOut, draggable,
 }: MemoMarkerProps) {
   const icon = createPlaceIcon({ ...place, image_url: photoUrl }, orderNumbers, isSelected)
+  const cleanupRef = useRef<(() => void) | null>(null)
   return (
     <Marker
       position={[place.lat, place.lng]}
       icon={icon}
       eventHandlers={{
+        // The element only exists once Leaflet has put the marker on the map,
+        // and it is rebuilt whenever the icon changes (selection, day number),
+        // so the wiring is redone on every add rather than once on mount.
+        add: (e: any) => {
+          cleanupRef.current?.()
+          cleanupRef.current = draggable ? makeMarkerDraggable(e.target.getElement() as HTMLElement, place.id) : null
+        },
+        remove: () => { cleanupRef.current?.(); cleanupRef.current = null },
         click: () => onClickPlace(place.id),
         mouseover: (e: any) => onHover(place, e.originalEvent.clientX, e.originalEvent.clientY),
         mousemove: (e: any) => onHover(place, e.originalEvent.clientX, e.originalEvent.clientY),
@@ -681,6 +693,9 @@ export const MapView = memo(function MapView({
   }, [])
 
   const isTouchDevice = typeof window !== 'undefined' && navigator.maxTouchPoints > 0
+  // Drag a marker onto a day (#891). Pointer-driven, so it is off wherever
+  // HTML5 drag does not exist — and the day plan is not on screen there anyway.
+  const markersDraggable = !isTouchDevice
 
   const markers = useMemo(() => places.map((place) => {
     const isSelected = place.id === selectedPlaceId
@@ -698,9 +713,10 @@ export const MapView = memo(function MapView({
         onClickPlace={handleMarkerClick}
         onHover={handleMarkerHover}
         onHoverOut={handleMarkerHoverOut}
+        draggable={markersDraggable}
       />
     )
-  }), [places, selectedPlaceId, dayOrderMap, photoUrls, handleMarkerClick, handleMarkerHover, handleMarkerHoverOut])
+  }), [places, selectedPlaceId, dayOrderMap, photoUrls, handleMarkerClick, handleMarkerHover, handleMarkerHoverOut, markersDraggable])
 
   // Parsing track geometry is the expensive part (tracks run to tens of thousands
   // of points), so it hangs off `places` alone — a selection change must not

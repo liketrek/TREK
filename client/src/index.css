@@ -925,6 +925,13 @@ body {
   border: none !important;
 }
 
+/* A marker being dragged onto a day (#891): it stays under the cursor as the
+   browser's drag image, so what is left behind is dimmed to show it is in
+   flight rather than still sitting there. */
+.marker-dragging {
+  opacity: 0.4;
+}
+
 .marker-cluster-custom {
   display: flex;
   align-items: center;
