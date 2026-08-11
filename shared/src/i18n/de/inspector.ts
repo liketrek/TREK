@@ -13,6 +13,8 @@ const inspector: TranslationStrings = {
   'inspector.confirmedRes': 'Bestätigte Reservierung',
   'inspector.pendingRes': 'Ausstehende Reservierung',
   'inspector.google': 'Google Maps',
+  'inspector.navigation': 'Navigation',
+  'inspector.openWith': 'Öffnen mit',
   'inspector.openStreetMap': 'OpenStreetMap',
   'inspector.website': 'Webseite öffnen',
   'inspector.saveToCollection': 'In Sammlung speichern',

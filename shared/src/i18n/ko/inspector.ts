@@ -13,6 +13,8 @@ const inspector: TranslationStrings = {
   'inspector.confirmedRes': '확정된 예약',
   'inspector.pendingRes': '대기 중인 예약',
   'inspector.google': 'Google Maps',
+  'inspector.navigation': '내비게이션',
+  'inspector.openWith': '다음으로 열기',
   'inspector.openStreetMap': 'OpenStreetMap',
   'inspector.website': '웹사이트 열기',
   'inspector.saveToCollection': '컬렉션에 저장',

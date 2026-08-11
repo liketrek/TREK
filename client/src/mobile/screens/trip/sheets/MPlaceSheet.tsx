@@ -18,7 +18,8 @@ import TrackColorPicker from '../../../../components/shared/TrackColorPicker'
 import { resolveTrackColor, inheritedTrackColor } from '../../../../components/Map/trackColors'
 import { avatarSrc } from '../../../../utils/avatarSrc'
 import { openFile } from '../../../../utils/fileDownload'
-import { getGoogleMapsUrlForPlace } from '../../../../components/Planner/placeGoogleMaps'
+import { getNavigationTargets, openNavigationTarget } from '../../../../components/Planner/placeNavigation'
+import { NavigationMenu } from '../../../../components/shared/NavigationMenu'
 import type { Assignment, Day, TripMember } from '../../../../types'
 import { ActionCircle, Eyebrow, INNER_CLS } from './MTripSheetUi'
 
@@ -43,6 +44,8 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   const [dayPickerOpen, setDayPickerOpen] = useState(false)
   const [participantPickerOpen, setParticipantPickerOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [navOpen, setNavOpen] = useState(false)
+  const navBtnRef = useRef<HTMLButtonElement>(null)
   const [imgBusy, setImgBusy] = useState(false)
   const [colorPickerOpen, setColorPickerOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -199,9 +202,13 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
     planner.setFitKey(k => k + 1)
   }
 
+  // One app installed-and-offered means no picker: the tap opens it, which is
+  // what this button has always done. The sheet only appears when there is an
+  // actual choice to make.
+  const navTargets = getNavigationTargets(place)
   const openDirections = () => {
-    const url = getGoogleMapsUrlForPlace(place)
-    if (url) window.open(url, '_blank', 'noopener,noreferrer')
+    if (navTargets.length === 1) openNavigationTarget(navTargets[0])
+    else if (navTargets.length > 1) setNavOpen(true)
   }
 
   return (
@@ -496,10 +503,24 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                   <Bookmark size={15} strokeWidth={2} />
                 </ActionCircle>
               )}
-              {place.lat != null && place.lng != null && (
-                <ActionCircle onClick={openDirections} label={t('inspector.google')}>
-                  <Navigation size={15} strokeWidth={2} />
-                </ActionCircle>
+              {navTargets.length > 0 && (
+                <>
+                  <ActionCircle
+                    ref={navBtnRef}
+                    onClick={openDirections}
+                    label={navTargets.length === 1 ? navTargets[0].label : t('inspector.navigation')}
+                  >
+                    <Navigation size={15} strokeWidth={2} />
+                  </ActionCircle>
+                  {navOpen && (
+                    <NavigationMenu
+                      targets={navTargets}
+                      anchor={navBtnRef.current}
+                      onClose={() => setNavOpen(false)}
+                      title={t('inspector.openWith')}
+                    />
+                  )}
+                </>
               )}
               {place.lat != null && place.lng != null && (
                 <ActionCircle onClick={showOnMap} label={t('mobileTrip.showOnMap')}>

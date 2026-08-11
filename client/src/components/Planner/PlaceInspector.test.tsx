@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent, act } from '../../../tests/helpers/render';
+import { render, screen, waitFor, fireEvent, act, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { buildUser, buildTrip, buildPlace, buildCategory, buildReservation } from '../../../tests/helpers/factories';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
@@ -632,13 +632,18 @@ describe('PlaceInspector', () => {
 
   // ── Google Maps URL action ─────────────────────────────────────────────────
 
-  it('FE-PLANNER-INSPECTOR-043: Google Maps lat/lng button visible when no google_maps_url', () => {
+  it('FE-PLANNER-INSPECTOR-043: the navigation button offers every app the place can be opened in', async () => {
+    const user = userEvent.setup();
     render(<PlaceInspector {...defaultProps} />);
-    // place has lat/lng so Google Maps button should appear with Navigation icon
-    const allButtons = screen.getAllByRole('button');
-    // Find button containing "Google Maps" text
-    const mapsBtn = allButtons.find(btn => btn.textContent?.includes('Google Maps'));
-    expect(mapsBtn).toBeTruthy();
+    // A place with coordinates reaches Google Maps and Waze (Apple Maps only on
+    // Apple platforms), so the button collects them behind one entry.
+    const navBtn = screen.getAllByRole('button').find(btn => btn.textContent?.includes('Navigation'))!;
+    expect(navBtn).toBeTruthy();
+
+    await user.click(navBtn);
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getByRole('menuitem', { name: 'Google Maps' })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: 'Waze' })).toBeInTheDocument();
   });
 
   it('FE-PLANNER-INSPECTOR-043b: Google Maps action uses google_ftid over coordinates', async () => {
@@ -651,9 +656,10 @@ describe('PlaceInspector', () => {
       lng: -80.5542617,
       google_ftid: '0x882bf179e806d471:0x8591dde29c821a93',
     })} />);
-    const mapsBtn = screen.getAllByRole('button').find(btn => btn.textContent?.includes('Google Maps'))!;
-    await user.click(mapsBtn);
-    expect(openSpy).toHaveBeenCalledWith(mapsUrl, '_blank');
+    const navBtn = screen.getAllByRole('button').find(btn => btn.textContent?.includes('Navigation'))!;
+    await user.click(navBtn);
+    await user.click(await screen.findByRole('menuitem', { name: 'Google Maps' }));
+    expect(openSpy).toHaveBeenCalledWith(mapsUrl, '_blank', 'noopener,noreferrer');
     openSpy.mockRestore();
   });
 

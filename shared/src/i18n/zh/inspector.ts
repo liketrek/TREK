@@ -13,6 +13,8 @@ const inspector: TranslationStrings = {
   'inspector.confirmedRes': '已确认预订',
   'inspector.pendingRes': '待确认预订',
   'inspector.google': 'Google 地图',
+  'inspector.navigation': '导航',
+  'inspector.openWith': '打开方式',
   'inspector.openStreetMap': 'OpenStreetMap',
   'inspector.website': '打开网站',
   'inspector.saveToCollection': '保存到收藏',

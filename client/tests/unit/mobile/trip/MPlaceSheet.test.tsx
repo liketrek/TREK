@@ -368,7 +368,10 @@ describe('MPlaceSheet', () => {
     const shell = makeShell({ trTab: 'dateien', view: 'plan' })
     const { planner } = renderSheet(makePlanner(), shell)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Google Maps' }))
+    // A place with coordinates reaches more than one map app, so the circle
+    // opens the picker instead of guessing which one was meant.
+    fireEvent.click(screen.getByRole('button', { name: 'Navigation' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Google Maps' }))
     expect(window.open).toHaveBeenCalledWith(
       'https://www.google.com/maps/search/?api=1&query=48.2038,16.3616', '_blank', 'noopener,noreferrer',
     )
@@ -405,7 +408,7 @@ describe('MPlaceSheet', () => {
     expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Save to Collection' })).not.toBeInTheDocument()
     // Read-only members still get the navigation actions.
-    expect(screen.getByRole('button', { name: 'Google Maps' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Navigation' })).toBeInTheDocument()
   })
 
   it('FE-MOB-PLSH-026: collapses the track colour picker again when the sheet closes', () => {

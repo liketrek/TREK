@@ -27,7 +27,8 @@ import type { CollectionStatus } from '@trek/shared'
 import { splitReservationDateTime, formatTime, formatMoney } from '../../utils/formatters'
 import { useTripStore } from '../../store/tripStore'
 import { formatDistance, formatElevation } from '../../utils/units'
-import { getGoogleMapsUrlForPlace } from './placeGoogleMaps'
+import { getNavigationTargets, openNavigationTarget } from './placeNavigation'
+import { NavigationMenu } from '../shared/NavigationMenu'
 import { getOpenStreetMapUrlForPlace } from './placeOpenStreetMap'
 import { resolveOpenNow, resolvePlaceTimeZone, placeWeekdayIndex } from './placeOpenState'
 import { convertHoursLine } from './placeHoursFormat'
@@ -178,6 +179,8 @@ export default function PlaceInspector({
   // Extra native rows contributed by placeDetailProvider plugins (#1429). Fail-safe:
   // any provider error/timeout is dropped server-side, so this only ever adds rows.
   const [providerDetails, setProviderDetails] = useState<Array<{ pluginId: string; items: Array<{ label: string; value?: string; url?: string }> }>>([])
+  const [navOpen, setNavOpen] = useState(false)
+  const navBtnRef = useRef<HTMLButtonElement>(null)
   const placeIdForDetails = mode === 'trip' ? place?.id : undefined
   useEffect(() => {
     if (placeIdForDetails == null) { setProviderDetails([]); return }
@@ -316,7 +319,7 @@ export default function PlaceInspector({
     googleDetails?.open_now,
   )
   // Prefer the place's stored ftid; if it has none yet, use the one just fetched from Google.
-  const googleMapsUrl = getGoogleMapsUrlForPlace(
+  const navigationTargets = getNavigationTargets(
     place ? { ...place, google_ftid: place.google_ftid || googleDetails?.google_ftid || null } : null,
     googleDetails?.google_maps_url,
   )
@@ -484,9 +487,32 @@ export default function PlaceInspector({
               icon={savedInCollection ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
               label={<span className="hidden sm:inline">{savedInCollection ? t('inspector.savedToCollection') : t('inspector.saveToCollection')}</span>} />
           )}
-          {googleMapsUrl && (
-            <ActionButton onClick={() => window.open(googleMapsUrl, '_blank')} variant="ghost" icon={<Navigation size={13} />}
-              label={<span className="hidden sm:inline">{t('inspector.google')}</span>} />
+          {navigationTargets.length > 0 && (
+            <>
+              {/* One target left (a place without coordinates) opens straight
+                  away, exactly as this button always did. */}
+              <ActionButton
+                ref={navBtnRef}
+                onClick={() => {
+                  if (navigationTargets.length === 1) openNavigationTarget(navigationTargets[0])
+                  else setNavOpen(o => !o)
+                }}
+                variant="ghost"
+                icon={<Navigation size={13} />}
+                label={
+                  <span className="hidden sm:inline">
+                    {navigationTargets.length === 1 ? navigationTargets[0].label : t('inspector.navigation')}
+                  </span>
+                }
+              />
+              {navOpen && (
+                <NavigationMenu
+                  targets={navigationTargets}
+                  anchor={navBtnRef.current}
+                  onClose={() => setNavOpen(false)}
+                />
+              )}
+            </>
           )}
           {openStreetMapUrl && (
             <ActionButton onClick={() => window.open(openStreetMapUrl, '_blank')} variant="ghost" icon={<MapIcon size={13} />}
@@ -535,9 +561,11 @@ interface ActionButtonProps {
   variant: 'primary' | 'ghost' | 'danger'
   icon: React.ReactNode
   label: React.ReactNode
+  /** For callers that anchor a popup to the button. React 19 passes it through. */
+  ref?: React.Ref<HTMLButtonElement>
 }
 
-export function ActionButton({ onClick, variant, icon, label }: ActionButtonProps) {
+export function ActionButton({ onClick, variant, icon, label, ref }: ActionButtonProps) {
   const base = {
     primary: { background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', hoverBg: 'var(--text-secondary)' },
     ghost: { background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: 'none', hoverBg: 'var(--bg-tertiary)' },
@@ -546,6 +574,7 @@ export function ActionButton({ onClick, variant, icon, label }: ActionButtonProp
   const s = base[variant] || base.ghost
   return (
     <button
+      ref={ref}
       onClick={onClick}
       style={{
         display: 'flex', alignItems: 'center', gap: 5,

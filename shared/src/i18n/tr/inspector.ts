@@ -13,6 +13,8 @@ const inspector: TranslationStrings = {
   'inspector.confirmedRes': 'Onaylanmış Rezervasyon',
   'inspector.pendingRes': 'Bekleyen Rezervasyon',
   'inspector.google': "Google Haritalar'da aç",
+  'inspector.navigation': 'Navigasyon',
+  'inspector.openWith': 'Şununla aç',
   'inspector.openStreetMap': 'OpenStreetMap',
   'inspector.saveToCollection': 'Koleksiyona kaydet',
   'inspector.savedToCollection': 'Kaydedildi',

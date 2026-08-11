@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { ReactNode, Ref } from 'react'
 import { X } from 'lucide-react'
 import MIconBtn from '../../../components/MIconBtn'
 import { formatTime } from '../../../../utils/formatters'
@@ -88,12 +88,15 @@ interface ActionCircleProps {
   danger?: boolean
   className?: string
   children: ReactNode
+  /** For callers that anchor a popup to the button. React 19 passes it through. */
+  ref?: Ref<HTMLButtonElement>
 }
 
 /** 38px round action button of the inspector footer rows. */
-export function ActionCircle({ onClick, label, primary = false, danger = false, className = '', children }: ActionCircleProps) {
+export function ActionCircle({ onClick, label, primary = false, danger = false, className = '', children, ref }: ActionCircleProps) {
   return (
     <button
+      ref={ref}
       type="button"
       onClick={onClick}
       aria-label={label}
