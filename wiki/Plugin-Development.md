@@ -551,13 +551,15 @@ declared), no popups.
 
 ### Matching the TREK look by hand (`m.tokens`)
 
-`tokens` is the whole global palette resolved for the **current** theme — surfaces
+`tokens` is the global palette resolved for the **current** theme — surfaces
 (`--bg-card`, `--bg-hover`, …), text (`--text-primary`/`-secondary`/`-muted`/`-faint`),
 borders, the **accent family** (`--accent`, `--accent-text`, `--accent-hover`,
 `--accent-subtle`), semantic + soft fills (`--success`/`--danger`/`--warning`/`--info`
 `-soft`), shadows (`--shadow-*`), radii (`--radius-*`) and fonts (`--font-system`).
-Apply them as CSS variables and your UI matches the host exactly — in both themes and
-under a custom accent or high-contrast — instead of hard-coding a palette that drifts:
+Apply them as CSS variables and your UI follows the host through a theme toggle, a
+custom accent and high-contrast, instead of hard-coding a palette that drifts. (Fonts
+are named, not shipped: the files live in the host bundle, so declare your own or fall
+back to a system stack.)
 
 ```js
 function applyContext(m) {
@@ -578,6 +580,82 @@ bakes those, since they only change with light/dark, not the accent.) Honour
 `prefers-reduced-motion`. Dashboard widgets are wrapped in the native glassy tool card
 and auto-size to the height you report via `trek:resize`, so render flush and
 transparent — the design kit reports your height for you.
+
+## On a phone
+
+TREK 4 gives the phone its own design, and your plugin is mounted inside it. Two things
+follow from that, and both arrive in `trek:context` under `viewport`:
+
+```js
+m.viewport = {
+  surface: 'trip-tab',      // where you are mounted, see the table below
+  formFactor: 'phone',      // 'phone' | 'desktop'
+  fill: true,               // true = fill the host container, false = report your height
+  insets: { top: 82, bottom: 106 },  // px the host ALREADY keeps clear around you
+}
+```
+
+### Know which surface you are on
+
+| `surface` | Shape | Notes |
+|---|---|---|
+| `trip-tab` | fills | Your own tab in a trip. You scroll yourself. |
+| `plugin-page` | fills | `/plugins/:id`. You scroll yourself. |
+| `dashboard-widget` | reports height | A card on the dashboard. |
+| `user-settings` | reports height | Your `settings.html`. |
+| `detail-slot` | reports height | A narrow column inside a place/day/reservation panel. |
+| `action-frame` | fills | The modal a table action opens. |
+
+This matters because the contract differs: on a **filling** surface your `trek:resize`
+height is deliberately ignored, so give your document `height: 100%` and put the
+scrolling on an inner element. On a **reporting** surface let the content decide the
+height and never set `100%`, or the host reserves a screenful for two lines of text.
+The design kit does both for you when it sees `viewport.fill`.
+
+### `insets` is not padding you have to add
+
+It is the space the host is *already* keeping clear. On the mobile trip tab, floating
+controls hover above your frame and a translucent dock hovers below it, and the host
+holds both areas free for you. Use the numbers to line your own sticky header up with
+the host's chrome, not to add margin — that would double the gap.
+
+### The mobile palette
+
+Inside the mobile shell, `tokens` carries a **second** family alongside the global one:
+`--m-ink`, `--m-muted`, `--m-faint`, `--m-bg`, `--m-card`, `--m-cbr`, `--m-glass`,
+`--m-gbr`, `--m-inner`, `--m-act`, `--m-actfg`, `--m-ic`, `--m-rowbr`, the status canon
+(`--m-st-confirmed`, `--m-st-pending`, `--m-st-info`, `--m-st-danger`, `--m-st-neutral`)
+and `--m-safe-top`. These are what the native mobile screens are built from; the global
+palette describes the desktop chrome and looks foreign next to them.
+
+They are **absent on desktop**, so branch on their presence rather than assuming both
+families are there:
+
+```css
+.card {
+  background: var(--m-card, var(--bg-card));
+  border: 1px solid var(--m-cbr, var(--border-primary));
+}
+```
+
+### Four rules that decide whether it feels native
+
+1. **Inputs at 16px or larger.** Below that, iOS Safari zooms the page on focus and does
+   not zoom back. This is the most common mobile bug in embedded UI.
+2. **Touch feedback on `:active`, not `:hover`.** A hover rule never fires on a phone, so
+   a tap gives no response at all.
+3. **Targets at least 44px.** Anything smaller is a coin toss with a thumb.
+4. **No drop shadows on the mobile surface.** The design is translucent and border-led
+   over a gradient; a shadow reads as a sticker glued on top.
+
+The design kit applies all four automatically once `data-form-factor="phone"` is set,
+which it does from `viewport`. If you style everything yourself, they are on you.
+
+### Seeing it
+
+`trek-plugin dev` previews at a desktop size. Until that grows a phone width, resize the
+browser window and use your browser's device emulation — the frame is a real browsing
+context, so media queries inside it measure the frame, and they work.
 
 ## Settings
 
