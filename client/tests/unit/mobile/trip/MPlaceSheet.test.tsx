@@ -372,8 +372,10 @@ describe('MPlaceSheet', () => {
     // opens the picker instead of guessing which one was meant.
     fireEvent.click(screen.getByRole('button', { name: 'Navigation' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Google Maps' }))
+    // Name and address rather than bare coordinates (#1278): the place has both,
+    // so Google opens the entry instead of an unlabelled pin.
     expect(window.open).toHaveBeenCalledWith(
-      'https://www.google.com/maps/search/?api=1&query=48.2038,16.3616', '_blank', 'noopener,noreferrer',
+      'https://www.google.com/maps/search/?api=1&query=Kunsthistorisches%20Museum%2C%20Maria-Theresien-Platz', '_blank', 'noopener,noreferrer',
     )
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Website' }))

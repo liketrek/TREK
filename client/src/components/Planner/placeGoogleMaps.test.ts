@@ -24,7 +24,16 @@ describe('getGoogleMapsUrlForPlace', () => {
     expect(url).toBe('https://maps.google.com/?cid=123')
   })
 
-  it('FE-PLACE-GMAPS-005: falls back to coordinates as a last resort', () => {
+  it('FE-PLACE-GMAPS-005: searches by name and address when Google knows the place by neither id', () => {
+    // #1278: coordinates alone open a nameless pin rather than the place, and
+    // Google documents query=PLACE_NAME,ADDRESS for precisely this case.
+    const url = getGoogleMapsUrlForPlace({ ...base, address: 'Champ de Mars, 75007 Paris' })
+    expect(url).toBe('https://www.google.com/maps/search/?api=1&query=Eiffel%20Tower%2C%20Champ%20de%20Mars%2C%2075007%20Paris')
+  })
+
+  it('FE-PLACE-GMAPS-005b: a name with no address still falls back to coordinates', () => {
+    // "Central Station" on its own would happily match a different city; the
+    // position is the safer answer even though the pin carries no label.
     const url = getGoogleMapsUrlForPlace(base)
     expect(url).toBe('https://www.google.com/maps/search/?api=1&query=48.8584,2.2945')
   })
@@ -32,5 +41,10 @@ describe('getGoogleMapsUrlForPlace', () => {
   it('FE-PLACE-GMAPS-006: returns null for no place or no location', () => {
     expect(getGoogleMapsUrlForPlace(null)).toBeNull()
     expect(getGoogleMapsUrlForPlace({ ...base, lat: null, lng: null })).toBeNull()
+  })
+
+  it('FE-PLACE-GMAPS-007: an address alone carries the link even without coordinates', () => {
+    const url = getGoogleMapsUrlForPlace({ ...base, lat: null, lng: null, address: 'Champ de Mars, 75007 Paris' })
+    expect(url).toBe('https://www.google.com/maps/search/?api=1&query=Eiffel%20Tower%2C%20Champ%20de%20Mars%2C%2075007%20Paris')
   })
 })
