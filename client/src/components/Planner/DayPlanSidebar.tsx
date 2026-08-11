@@ -1293,6 +1293,30 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
       { label: t('dayplan.transportMode.useDefault'), icon: RotateCcw, onClick: () => setLegMode(assignmentId, dayId, null) },
     ])
   }
+
+  // Set the mode of the leg ENTERING this stop (a booking arrival or the morning
+  // hotel bookend). Optimistic, then persisted with direction:'incoming'.
+  const setIncomingLegMode = (assignmentId: number, dayId: number, mode: string | null) => {
+    const key = String(dayId)
+    if (assignments[key]) {
+      tripActions.setAssignments({
+        ...assignments,
+        [key]: assignments[key].map(a => (a.id === assignmentId ? { ...a, incoming_leg_transport_mode: mode } : a)),
+      })
+    }
+    assignmentsApi.updateTransport(tripId, assignmentId, mode, 'incoming').catch((err: unknown) => {
+      toast.error(err instanceof Error ? err.message : t('common.unknownError'))
+      tripActions.refreshDays(tripId)
+    })
+  }
+
+  const openIncomingLegModeMenu = (e: React.MouseEvent, assignmentId: number, dayId: number) => {
+    ctxMenu.open(e, [
+      ...routeProfileOptions.map(o => ({ label: o.label, icon: modeIcon(o.key), onClick: () => setIncomingLegMode(assignmentId, dayId, o.key) })),
+      { divider: true },
+      { label: t('dayplan.transportMode.useDefault'), icon: RotateCcw, onClick: () => setIncomingLegMode(assignmentId, dayId, null) },
+    ])
+  }
   return (
     <div data-touch-drag={dragDisabled ? undefined : ''} style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', fontFamily: "var(--font-system)" }}>
       {/* Toolbar */}
@@ -1614,9 +1638,15 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       handleMergedDrop(day.id, 'note', Number(noteId), lastItem.type, lastItem.data.id, true)
                   }}
                 >
-                  {hotelLegs[day.id]?.top && (
-                    <HotelRouteConnector seg={hotelLegs[day.id]!.top!.seg} name={hotelLegs[day.id]!.top!.name} profile={routeProfile} placement="top" />
-                  )}
+                  {hotelLegs[day.id]?.top && (() => {
+                    const firstPlaceId = merged.find(i => i.type === 'place')?.data.id
+                    const connector = <HotelRouteConnector seg={hotelLegs[day.id]!.top!.seg} name={hotelLegs[day.id]!.top!.name} profile={routeProfile} placement="top" />
+                    return canEditDays && firstPlaceId != null ? (
+                      <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openIncomingLegModeMenu(e, Number(firstPlaceId), day.id)} style={{ cursor: 'pointer' }}>
+                        {connector}
+                      </div>
+                    ) : connector
+                  })()}
                   {daySchedule.byPosition[day.id]?.start.map(si => <PluginDayScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
                   {merged.length === 0 && !dayNoteUi ? (
                     <div
@@ -2217,7 +2247,15 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             </div>
                           )}
                           {daySchedule.byReservation[day.id]?.[res.id]?.map(si => <PluginDayScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
-                          {routeLegs[day.id]?.[res.id] && <RouteConnector seg={routeLegs[day.id]![res.id]} profile={routeProfile} />}
+                          {routeLegs[day.id]?.[res.id] && (() => {
+                            const nextPlaceId = merged.slice(idx + 1).find(i => i.type === 'place')?.data.id
+                            const connector = <RouteConnector seg={routeLegs[day.id]![res.id]} profile={routeProfile} />
+                            return canEditDays && nextPlaceId != null ? (
+                              <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openIncomingLegModeMenu(e, Number(nextPlaceId), day.id)} style={{ cursor: 'pointer' }}>
+                                {connector}
+                              </div>
+                            ) : connector
+                          })()}
                           </React.Fragment>
                         )
                       }
@@ -2343,9 +2381,15 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     })
                   )}
                   {daySchedule.byPosition[day.id]?.end.map(si => <PluginDayScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
-                  {hotelLegs[day.id]?.bottom && (
-                    <HotelRouteConnector seg={hotelLegs[day.id]!.bottom!.seg} name={hotelLegs[day.id]!.bottom!.name} profile={routeProfile} placement="bottom" />
-                  )}
+                  {hotelLegs[day.id]?.bottom && (() => {
+                    const lastPlaceId = [...merged].reverse().find(i => i.type === 'place')?.data.id
+                    const connector = <HotelRouteConnector seg={hotelLegs[day.id]!.bottom!.seg} name={hotelLegs[day.id]!.bottom!.name} profile={routeProfile} placement="bottom" />
+                    return canEditDays && lastPlaceId != null ? (
+                      <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openLegModeMenu(e, Number(lastPlaceId), day.id)} style={{ cursor: 'pointer' }}>
+                        {connector}
+                      </div>
+                    ) : connector
+                  })()}
                   {/* Drop-Zone am Listenende — immer vorhanden als Drop-Target */}
                   <div
                     style={{ minHeight: 12, padding: '2px 8px' }}
