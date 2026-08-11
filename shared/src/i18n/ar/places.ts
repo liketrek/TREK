@@ -45,7 +45,7 @@ const places: TranslationStrings = {
   'places.unplanned': 'غير مخطط',
   'places.planned': 'مخطط لها',
   'places.filterTracks': 'المسارات',
-  'places.sortByRating': 'الترتيب حسب التقييم',
+  'places.filterByRating': 'تصفية حسب التقييم',
   'places.yourRating': 'تقييمك',
   'places.notRated': 'لم يُقيَّم بعد',
   'places.search': 'ابحث عن أماكن...',

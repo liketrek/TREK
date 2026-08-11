@@ -25,7 +25,8 @@ export function PlacesHeader(S: SidebarState) {
     places, categories, categoryFilters, search, setSearch, plannedIds, hasTracks,
     filter, setFilter, setSelectedIds, selectMode, setSelectMode,
     catDropOpen, setCatDropOpen, toggleCategoryFilter, setCategoryFilters,
-    ratingSort, setRatingSort,
+    ratingFilter, setRatingFilter,
+    starDropOpen, setStarDropOpen,
   } = S
   return (
     <div className="border-b border-edge-faint" style={{ padding: '14px 16px 10px', flexShrink: 0 }}>
@@ -150,8 +151,10 @@ export function PlacesHeader(S: SidebarState) {
         )}
       </div>
 
-      {/* Category multi-select dropdown */}
-      {categories.length > 0 && (() => {
+      {/* Category multi-select plus the star filter. Rendered even without any
+          category, because the rating filter does not depend on one and a fresh
+          trip is exactly where someone collects places to rate. */}
+      {(() => {
         const label = categoryFilters.size === 0
           ? t('places.allCategories')
           : categoryFilters.size === 1
@@ -159,7 +162,7 @@ export function PlacesHeader(S: SidebarState) {
             : `${categoryFilters.size} ${t('places.categoriesSelected')}`
         return (
           <div style={{ marginTop: 6, position: 'relative', display: 'flex', gap: 6, alignItems: 'stretch' }}>
-            <button onClick={() => setCatDropOpen(v => !v)} className="bg-surface-card text-content" style={{
+            {categories.length > 0 && <button onClick={() => setCatDropOpen(v => !v)} className="bg-surface-card text-content" style={{
               flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-primary)',
               fontSize: 'calc(12px * var(--fs-scale-body, 1))',
@@ -167,26 +170,64 @@ export function PlacesHeader(S: SidebarState) {
             }}>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
               <ChevronDown size={12} className="text-content-faint" style={{ flexShrink: 0, transform: catDropOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-            </button>
-            {/* Star sort (#1435): order the list by average rating, best first. */}
-            <Tooltip label={t('places.sortByRating')} placement="bottom">
+            </button>}
+            {/* Minimum-stars filter (#1435), same floors as the collections bar. */}
+            <Tooltip label={t('places.filterByRating')} placement="bottom">
               <button
-                onClick={() => setRatingSort(v => !v)}
-                aria-label={t('places.sortByRating')}
-                aria-pressed={ratingSort}
-                className={ratingSort ? 'text-accent' : 'text-content-faint'}
+                onClick={() => { setStarDropOpen(v => !v); setCatDropOpen(false) }}
+                aria-label={t('places.filterByRating')}
+                aria-expanded={starDropOpen}
+                className={ratingFilter !== 'all' ? 'text-accent' : 'text-content-faint'}
                 style={{
-                  width: 30, flexShrink: 0, borderRadius: 8,
-                  border: `1px solid ${ratingSort ? 'var(--accent)' : 'var(--border-primary)'}`,
-                  background: ratingSort ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'var(--bg-card)',
-                  cursor: 'pointer', fontFamily: 'inherit', padding: 0,
+                  height: 30, flexShrink: 0, borderRadius: 8, gap: 3,
+                  padding: ratingFilter === 'all' ? 0 : '0 7px',
+                  width: ratingFilter === 'all' ? 30 : undefined,
+                  border: `1px solid ${ratingFilter !== 'all' ? 'var(--accent)' : 'var(--border-primary)'}`,
+                  background: ratingFilter !== 'all' ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'var(--bg-card)',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'background 0.18s, color 0.18s, border-color 0.18s',
                 }}
               >
-                <Star size={13} strokeWidth={2.2} fill={ratingSort ? 'currentColor' : 'none'} />
+                <Star size={13} strokeWidth={2.2} fill={ratingFilter !== 'all' ? 'currentColor' : 'none'} />
+                {ratingFilter !== 'all' && <span>{ratingFilter}+</span>}
               </button>
             </Tooltip>
+            {starDropOpen && (
+              <div className="bg-surface-card" style={{
+                position: 'absolute', top: '100%', right: 0, zIndex: 50, marginTop: 4, minWidth: 116,
+                border: '1px solid var(--border-primary)', borderRadius: 10,
+                boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4,
+              }}>
+                {(['all', 5, 4, 3, 2, 1] as const).map(opt => {
+                  const active = ratingFilter === opt
+                  return (
+                    <button
+                      key={String(opt)}
+                      onClick={() => { setRatingFilter(opt as number | 'all'); setStarDropOpen(false) }}
+                      className={`text-content ${active ? 'bg-surface-hover' : 'bg-transparent'}`}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 7, width: '100%',
+                        padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                        fontFamily: 'inherit', fontSize: 'calc(12px * var(--fs-scale-body, 1))',
+                        textAlign: 'left',
+                      }}
+                    >
+                      {opt === 'all'
+                        ? <span style={{ flex: 1 }}>{t('common.all')}</span>
+                        : (
+                          <>
+                            <Star size={12} strokeWidth={2.2} color="#facc15" fill="#facc15" />
+                            <span style={{ flex: 1 }}>{opt}+</span>
+                          </>
+                        )}
+                      {active && <Check size={11} strokeWidth={3} className="text-content-faint" />}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
             {canEditPlaces && (
               <Tooltip label={t('common.select')} placement="bottom">
               <button
@@ -222,7 +263,7 @@ export function PlacesHeader(S: SidebarState) {
               </button>
               </Tooltip>
             )}
-            {catDropOpen && (
+            {catDropOpen && categories.length > 0 && (
               <div className="bg-surface-card" style={{
                 position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, marginTop: 4,
                 border: '1px solid var(--border-primary)', borderRadius: 10,

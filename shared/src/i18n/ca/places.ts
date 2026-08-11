@@ -43,7 +43,7 @@ const places: TranslationStrings = {
   'places.unplanned': 'Sense planificar',
   'places.planned': 'Planificats',
   'places.filterTracks': 'Rutes',
-  'places.sortByRating': 'Ordena per valoració',
+  'places.filterByRating': 'Filtra per valoració',
   'places.yourRating': 'La teva valoració',
   'places.notRated': 'Encara sense valoració',
   'places.search': 'Cerca llocs...',

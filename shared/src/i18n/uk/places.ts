@@ -45,7 +45,7 @@ const places: TranslationStrings = {
   'places.unplanned': 'Незаплановані',
   'places.planned': 'Заплановані',
   'places.filterTracks': 'Треки',
-  'places.sortByRating': 'Сортувати за рейтингом',
+  'places.filterByRating': 'Фільтр за оцінкою',
   'places.yourRating': 'Твоя оцінка',
   'places.notRated': 'Ще не оцінено',
   'places.search': 'Пошук місць...',

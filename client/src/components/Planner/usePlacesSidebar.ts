@@ -147,7 +147,11 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const setCategoryFilters = useTripStore((s) => s.setPlacesCategoryFilter)
   const [selectMode, setSelectMode] = useState(false)
   // Star sort (#1435): list-only toggle, so it stays local (the map keeps its order).
-  const [ratingSort, setRatingSort] = useState(false)
+  // Minimum average stars, matching the collections filter (#1435): 'all', or a
+  // floor of 1..5 that unrated places fall through. It replaced a sort toggle,
+  // which put the best first but still left everything else on the list — no
+  // help at all when the point is to see only what the group actually rated.
+  const [ratingFilter, setRatingFilter] = useState<number | 'all'>('all')
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [pendingDeleteIds, setPendingDeleteIds] = useState<number[] | null>(null)
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
@@ -179,6 +183,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   }
   const [dayPickerPlace, setDayPickerPlace] = useState<Place | null>(null)
   const [catDropOpen, setCatDropOpen] = useState(false)
+  const [starDropOpen, setStarDropOpen] = useState(false)
   const [mobileShowDays, setMobileShowDays] = useState(false)
 
   // Alle geplanten Ort-IDs abrufen (einem Tag zugewiesen)
@@ -201,15 +206,11 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
       }
       if (search && !p.name.toLowerCase().includes(search.toLowerCase()) &&
           !(p.address || '').toLowerCase().includes(search.toLowerCase())) return false
+      if (ratingFilter !== 'all' && (p.rating_avg == null || p.rating_avg < ratingFilter)) return false
       return true
     })
-    // Star sort (#1435): highest average first, unrated places at the end;
-    // ties keep the list's original order (stable sort).
-    if (ratingSort) {
-      return [...list].sort((a, b) => (b.rating_avg ?? -1) - (a.rating_avg ?? -1))
-    }
     return list
-  }, [places, filter, categoryFilters, search, plannedIds, ratingSort])
+  }, [places, filter, categoryFilters, search, plannedIds, ratingFilter])
 
   const registerPlaceRow = useCallback((placeId: number, element: HTMLDivElement | null) => {
     if (element) {
@@ -269,7 +270,8 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     listImportEnrich, setListImportEnrich, canEnrichImport,
     availableListImportProviders, hasMultipleListImportProviders, handleListImport,
     search, setSearch, filter, setFilter, categoryFilters, setCategoryFilters,
-    ratingSort, setRatingSort,
+    ratingFilter, setRatingFilter,
+    starDropOpen, setStarDropOpen,
     selectMode, setSelectMode, selectedIds, setSelectedIds, pendingDeleteIds, setPendingDeleteIds,
     categoryPickerOpen, setCategoryPickerOpen,
     saveToListOpen, setSaveToListOpen, collectionsEnabled, tripId,

@@ -187,25 +187,29 @@ describe('usePlacesSidebar filtering', () => {
     expect([...useTripStore.getState().placesCategoryFilter]).toEqual([]);
   });
 
-  it('FE-PLANNER-PSHOOK-012: the star sort puts the best rating first and unrated places last', () => {
+  it('FE-PLANNER-PSHOOK-012: the star filter keeps everything at or above the floor', () => {
     const places = [
       buildPlace({ name: 'Unrated' }),
       buildPlace({ name: 'Good', rating_avg: 4.2 }),
       buildPlace({ name: 'Best', rating_avg: 4.9 }),
+      buildPlace({ name: 'Meh', rating_avg: 2.5 }),
     ];
     render(<Host {...makeProps({ places })} />);
-    act(() => { S.setRatingSort(true); });
-    expect(names()).toEqual(['Best', 'Good', 'Unrated']);
+    act(() => { S.setRatingFilter(4); });
+    // The list keeps its own order; the filter only decides who is on it.
+    expect(names()).toEqual(['Good', 'Best']);
   });
 
-  it('FE-PLANNER-PSHOOK-013: equal ratings keep the incoming order', () => {
+  it('FE-PLANNER-PSHOOK-013: an unrated place drops out as soon as a floor is set, and comes back with "all"', () => {
     const places = [
-      buildPlace({ name: 'First', rating_avg: 4 }),
-      buildPlace({ name: 'Second', rating_avg: 4 }),
+      buildPlace({ name: 'Unrated' }),
+      buildPlace({ name: 'Rated', rating_avg: 1 }),
     ];
     render(<Host {...makeProps({ places })} />);
-    act(() => { S.setRatingSort(true); });
-    expect(names()).toEqual(['First', 'Second']);
+    act(() => { S.setRatingFilter(1); });
+    expect(names()).toEqual(['Rated']);
+    act(() => { S.setRatingFilter('all'); });
+    expect(names()).toEqual(['Unrated', 'Rated']);
   });
 
   it('FE-PLANNER-PSHOOK-014: search and category filter combine', () => {

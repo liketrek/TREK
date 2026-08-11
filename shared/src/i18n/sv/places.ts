@@ -45,7 +45,7 @@ const places: TranslationStrings = {
   'places.unplanned': 'Oplanerat',
   'places.planned': 'Planerat',
   'places.filterTracks': 'Spår',
-  'places.sortByRating': 'Sortera efter betyg',
+  'places.filterByRating': 'Filtrera efter betyg',
   'places.yourRating': 'Ditt betyg',
   'places.notRated': 'Inte betygsatt ännu',
   'places.search': 'Sök efter platser...',

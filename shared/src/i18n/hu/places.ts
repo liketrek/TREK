@@ -45,7 +45,7 @@ const places: TranslationStrings = {
   'places.unplanned': 'Nem tervezett',
   'places.planned': 'Tervezett',
   'places.filterTracks': 'Nyomvonalak',
-  'places.sortByRating': 'Rendezés értékelés szerint',
+  'places.filterByRating': 'Szűrés értékelés szerint',
   'places.yourRating': 'Az értékelésed',
   'places.notRated': 'Még nincs értékelve',
   'places.search': 'Helyek keresése...',

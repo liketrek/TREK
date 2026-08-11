@@ -47,7 +47,7 @@ const places: TranslationStrings = {
   'places.unplanned': 'Planlanmamış',
   'places.planned': 'Planlanmış',
   'places.filterTracks': 'Parçalar',
-  'places.sortByRating': 'Puana göre sırala',
+  'places.filterByRating': 'Puana göre filtrele',
   'places.yourRating': 'Senin puanın',
   'places.notRated': 'Henüz puanlanmadı',
   'places.search': 'Yer ara...',

@@ -44,7 +44,7 @@ const places: TranslationStrings = {
   'places.unplanned': '미계획',
   'places.planned': '계획됨',
   'places.filterTracks': '트랙',
-  'places.sortByRating': '평점순 정렬',
+  'places.filterByRating': '평점으로 필터링',
   'places.yourRating': '내 평점',
   'places.notRated': '아직 평점 없음',
   'places.search': '장소 검색...',

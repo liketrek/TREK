@@ -45,7 +45,7 @@ const places: TranslationStrings = {
   'places.unplanned': 'Non planifiés',
   'places.planned': 'Planifiés',
   'places.filterTracks': 'Traces',
-  'places.sortByRating': 'Trier par note',
+  'places.filterByRating': 'Filtrer par note',
   'places.yourRating': 'Ta note',
   'places.notRated': 'Pas encore noté',
   'places.search': 'Rechercher des lieux…',

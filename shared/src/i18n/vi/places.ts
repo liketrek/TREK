@@ -45,7 +45,7 @@ const places: TranslationStrings = {
   'places.unplanned': 'Không có kế hoạch',
   'places.planned': 'Có kế hoạch',
   'places.filterTracks': 'Bài hát',
-  'places.sortByRating': 'Sắp xếp theo đánh giá',
+  'places.filterByRating': 'Lọc theo đánh giá',
   'places.yourRating': 'Đánh giá của bạn',
   'places.notRated': 'Chưa có đánh giá',
   'places.search': 'Tìm kiếm địa điểm...',

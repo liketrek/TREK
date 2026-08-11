@@ -45,7 +45,7 @@ const places: TranslationStrings = {
   'places.unplanned': 'Μη προγραμματισμένα',
   'places.planned': 'Προγραμματισμένα',
   'places.filterTracks': 'Ίχνη',
-  'places.sortByRating': 'Ταξινόμηση κατά βαθμολογία',
+  'places.filterByRating': 'Φιλτράρισμα κατά βαθμολογία',
   'places.yourRating': 'Η βαθμολογία σου',
   'places.notRated': 'Χωρίς βαθμολογία ακόμη',
   'places.search': 'Αναζήτηση μερών...',

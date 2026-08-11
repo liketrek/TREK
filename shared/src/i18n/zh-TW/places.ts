@@ -44,7 +44,7 @@ const places: TranslationStrings = {
   'places.unplanned': '未規劃',
   'places.planned': '已規劃',
   'places.filterTracks': '路線',
-  'places.sortByRating': '依評分排序',
+  'places.filterByRating': '依評分篩選',
   'places.yourRating': '你的評分',
   'places.notRated': '尚未評分',
   'places.search': '搜尋地點...',

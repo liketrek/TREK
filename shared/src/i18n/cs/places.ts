@@ -45,7 +45,7 @@ const places: TranslationStrings = {
   'places.unplanned': 'Nezařazené',
   'places.planned': 'Naplánované',
   'places.filterTracks': 'Trasy',
-  'places.sortByRating': 'Seřadit podle hodnocení',
+  'places.filterByRating': 'Filtrovat podle hodnocení',
   'places.yourRating': 'Tvé hodnocení',
   'places.notRated': 'Zatím bez hodnocení',
   'places.search': 'Hledat místa...',

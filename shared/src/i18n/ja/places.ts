@@ -45,7 +45,7 @@ const places: TranslationStrings = {
   'places.unplanned': '未計画',
   'places.planned': '計画済み',
   'places.filterTracks': 'トラック',
-  'places.sortByRating': '評価順に並べ替え',
+  'places.filterByRating': '評価で絞り込む',
   'places.yourRating': 'あなたの評価',
   'places.notRated': '未評価',
   'places.search': '場所を検索…',

@@ -672,6 +672,28 @@ describe('track colour legend (#776)', () => {
     const strokes = Array.from(row.querySelectorAll('span')).filter(el => (el as HTMLElement).style.borderRadius === '999px');
     expect(strokes).toHaveLength(0);
   });
+
+  it('FE-PLANNER-SIDEBAR-051: the star button filters the list down to a minimum rating', async () => {
+    // Replaces the old sort toggle: sorting put the best first but still left
+    // every other place on the list, which is no help when the point is to see
+    // only what the group actually wants to do.
+    const user = userEvent.setup();
+    const places = [
+      buildPlace({ id: 20, name: 'Loved Place', rating_avg: 4.6 }),
+      buildPlace({ id: 21, name: 'Meh Place', rating_avg: 2.1 }),
+      buildPlace({ id: 22, name: 'Unrated Place' }),
+    ];
+    render(<PlacesSidebar {...defaultProps} places={places} />);
+    expect(screen.getByText('Meh Place')).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText('Filter by rating'));
+    await user.click(screen.getByText('4+'));
+
+    expect(screen.getByText('Loved Place')).toBeInTheDocument();
+    expect(screen.queryByText('Meh Place')).not.toBeInTheDocument();
+    // An unrated place has no average to clear the floor with.
+    expect(screen.queryByText('Unrated Place')).not.toBeInTheDocument();
+  });
 });
 
 // #1616 — the other half of the reporter's gesture: the pickup. A tablet cannot
