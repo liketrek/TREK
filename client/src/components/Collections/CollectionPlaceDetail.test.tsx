@@ -490,3 +490,60 @@ describe('CollectionPlaceDetail', () => {
     expect(props.onRemove).toHaveBeenCalledTimes(1);
   });
 });
+
+// ── Directions (#1455) ───────────────────────────────────────────────────────
+
+describe('CollectionPlaceDetail — open in maps', () => {
+  const located: CollectionPlace = { ...place, lat: 48.8584, lng: 2.2945, name: 'Eiffel Tower' };
+
+  it('FE-COMP-COLDETAIL-036: a located place offers every map app', async () => {
+    const user = userEvent.setup();
+    renderDetail({ place: located });
+
+    await user.click(screen.getByRole('button', { name: 'Navigation' }));
+
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getByRole('menuitem', { name: 'Google Maps' })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: 'Waze' })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: 'OpenStreetMap' })).toBeInTheDocument();
+  });
+
+  it('FE-COMP-COLDETAIL-037: opening a target hands the coordinates and the name over', async () => {
+    const user = userEvent.setup();
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    renderDetail({ place: located });
+
+    await user.click(screen.getByRole('button', { name: 'Navigation' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Waze' }));
+
+    // Both, so it lands on the place rather than on a bare pin.
+    const url = String(open.mock.calls[0][0]);
+    expect(url).toContain('48.8584,2.2945');
+    expect(url).toContain(encodeURIComponent('Eiffel Tower'));
+    open.mockRestore();
+  });
+
+  it('FE-COMP-COLDETAIL-038: a place with only a name and an address still opens a search', async () => {
+    const user = userEvent.setup();
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    // No coordinates and no provider id — the state a place typed in by hand is
+    // in. The apps that need a pin drop out; the two that can take a search
+    // string are still offered.
+    renderDetail();
+
+    await user.click(screen.getByRole('button', { name: 'Navigation' }));
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).queryByRole('menuitem', { name: 'Waze' })).toBeNull();
+
+    await user.click(within(menu).getByRole('menuitem', { name: 'Google Maps' }));
+
+    expect(String(open.mock.calls[0][0])).toContain(encodeURIComponent('Test Cafe, Somewhere'));
+    open.mockRestore();
+  });
+
+  it('FE-COMP-COLDETAIL-039: a place with nothing to locate it offers no button at all', () => {
+    renderDetail({ place: { ...place, name: '', address: null } });
+
+    expect(screen.queryByRole('button', { name: /navigation|google maps/i })).toBeNull();
+  });
+});

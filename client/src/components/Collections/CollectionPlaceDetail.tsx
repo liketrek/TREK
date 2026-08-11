@@ -3,7 +3,7 @@ import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import { markdownLinkComponents } from '../shared/markdownLink'
-import { X, Pencil, Copy, Trash2, MapPin, Link2, Plus, ExternalLink, Check, Tag, Tags, Camera, Loader2 } from 'lucide-react'
+import { X, Pencil, Copy, Trash2, MapPin, Link2, Plus, ExternalLink, Check, Tag, Tags, Camera, Loader2, Navigation } from 'lucide-react'
 import type { CollectionPlace, CollectionStatus, CollectionLink, CollectionLabel } from '@trek/shared'
 import type { Category, TranslationFn } from '../../types'
 import MarkdownToolbar from '../Journey/MarkdownToolbar'
@@ -11,6 +11,8 @@ import { NumericInput } from '../shared/NumericInput'
 import { mapsApi } from '../../api/client'
 import { entityGradient } from '../../utils/gradients'
 import { getCategoryIcon } from '../shared/categoryIcons'
+import { NavigationMenu } from '../shared/NavigationMenu'
+import { getNavigationTargets, openNavigationTarget } from '../Planner/placeNavigation'
 import { STATUS_META, STATUS_ORDER, normalizeLinkUrl } from '../../pages/collections/collectionsModel'
 import { useToast } from '../shared/Toast'
 import { Tooltip } from '../shared/Tooltip'
@@ -73,6 +75,9 @@ export default function CollectionPlaceDetail({
   const [editing, setEditing] = useState(false)
   const coverInputRef = useRef<HTMLInputElement>(null)
   const [imgBusy, setImgBusy] = useState(false)
+  const [navOpen, setNavOpen] = useState(false)
+  const navBtnRef = useRef<HTMLButtonElement>(null)
+  const navigationTargets = getNavigationTargets(place)
   const [name, setName] = useState(place.name)
   const [categoryId, setCategoryId] = useState<number | null>(place.category_id ?? null)
   const [description, setDescription] = useState(place.description ?? '')
@@ -215,9 +220,35 @@ export default function CollectionPlaceDetail({
 
       <div className="col-detail-body">
         {/* Meta (view only) */}
-        {!editing && place.address && (
+        {!editing && (place.address || navigationTargets.length > 0) && (
           <div className="col-detail-meta">
-            <span className="col-detail-addr"><MapPin size={12} /> {place.address}</span>
+            {place.address && <span className="col-detail-addr"><MapPin size={12} /> {place.address}</span>}
+            {/* Same picker as inside a trip (#1455). A saved place is somewhere
+                you intend to go, and until now the only way to get directions
+                was to add it to a trip first. */}
+            {navigationTargets.length > 0 && (
+              <>
+                <button
+                  ref={navBtnRef}
+                  type="button"
+                  className="col-detail-nav"
+                  onClick={() => {
+                    if (navigationTargets.length === 1) openNavigationTarget(navigationTargets[0])
+                    else setNavOpen(o => !o)
+                  }}
+                >
+                  <Navigation size={12} />
+                  {navigationTargets.length === 1 ? navigationTargets[0].label : t('inspector.navigation')}
+                </button>
+                {navOpen && (
+                  <NavigationMenu
+                    targets={navigationTargets}
+                    anchor={navBtnRef.current}
+                    onClose={() => setNavOpen(false)}
+                  />
+                )}
+              </>
+            )}
           </div>
         )}
 

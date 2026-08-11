@@ -420,6 +420,11 @@
 .trek-dash .col-detail-catchip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px 4px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--cat, var(--accent)); background: color-mix(in oklch, var(--cat, var(--accent)) 15%, transparent); }
 .trek-dash .col-detail-addr { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--ink-3); min-width: 0; }
 .trek-dash .col-detail-addr svg { flex-shrink: 0; }
+/* Directions (#1455): sits on the meta line beside the address, quieter than
+   the link chips below — it is an action on the place, not a piece of it. */
+.trek-dash .col-detail-nav { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); transition: background .12s, color .12s; white-space: nowrap; }
+.trek-dash .col-detail-nav:hover { background: var(--surface-3, var(--surface-2)); color: var(--ink); }
+.trek-dash .col-detail-nav svg { flex-shrink: 0; }
 
 /* status segmented control */
 .trek-dash .col-detail-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 12px; background: var(--surface-2); }
