@@ -1377,7 +1377,10 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                   const hasWeather = !!(day.date && anyGeoPlace && wLat != null && wLng != null)
                   return (
                     <div style={{
-                      flexShrink: 0, alignSelf: 'flex-start',
+                      // With weather the badge is a tall stack and has to start at
+                      // the top of the row; without it, it is a lone 26px circle and
+                      // pinning it to the top leaves it floating above the day title.
+                      flexShrink: 0, alignSelf: hasWeather ? 'flex-start' : 'center',
                       width: hasWeather ? 34 : 26,
                       borderRadius: hasWeather ? 11 : '50%',
                       // Selection still wins. A tinted badge mixes the tone INTO
@@ -1388,7 +1391,10 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       color: isSelected ? 'var(--accent-text)' : (dayTinted(dayTint, 'badge') ? 'var(--text-secondary)' : 'var(--text-muted)'),
                       display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'hidden',
                     }}>
-                      <div style={{ width: '100%', height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700 }}>
+                      {/* lineHeight 1, or the digit rides the line box's leading and
+                          sits above centre on the plain badge — visible as soon as
+                          there is no weather block under it to distract from it. */}
+                      <div style={{ width: '100%', height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, lineHeight: 1 }}>
                         {index + 1}
                       </div>
                       {hasWeather && (
