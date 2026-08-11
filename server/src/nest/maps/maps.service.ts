@@ -260,6 +260,8 @@ export interface CommonsCandidate {
 interface GooglePlaceResult {
   id: string;
   displayName?: { text: string };
+  /** OPERATIONAL | CLOSED_TEMPORARILY | CLOSED_PERMANENTLY. Absent on non-business results. */
+  businessStatus?: string;
   formattedAddress?: string;
   location?: { latitude: number; longitude: number };
   rating?: number;
@@ -806,6 +808,13 @@ export class MapsService {
       const tags = el.tags || {};
       const name = tags[`name:${osmLang}`] || tags['int_name'] || tags.name || tags.brand || null;
       if (!name) continue; // unnamed POIs aren't useful to add to a plan
+      // A shut-down place is not somewhere to plan a visit (#1341). OSM usually
+      // re-tags one with a `disused:`/`abandoned:` prefix, and those never match
+      // the selectors above — but plenty keep their original tag and gain a marker
+      // instead, and those do come back. `opening_hours=closed`/`off` is the same
+      // statement in the hours field.
+      if (tags.disused === 'yes' || tags.abandoned === 'yes') continue;
+      if (tags.opening_hours === 'closed' || tags.opening_hours === 'off') continue;
       const lat = el.lat ?? el.center?.lat;
       const lng = el.lon ?? el.center?.lon;
       if (lat == null || lng == null) continue;
@@ -1404,7 +1413,7 @@ export class MapsService {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': apiKey,
         'X-Goog-FieldMask':
-          'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.websiteUri,places.nationalPhoneNumber,places.types,places.googleMapsUri',
+          'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.websiteUri,places.nationalPhoneNumber,places.types,places.googleMapsUri,places.businessStatus',
       },
       body: JSON.stringify(searchBody),
     });
@@ -1417,7 +1426,13 @@ export class MapsService {
       throw err;
     }
 
-    const places = (data.places || []).map((p: GooglePlaceResult) => ({
+    // A place that has shut down for good is never the answer to "where should we
+    // go" (#1341). Temporarily closed stays: a restaurant on holiday next month is
+    // still worth planning around. Anything without the field is a non-business
+    // result (a park, a viewpoint) and is kept.
+    const places = (data.places || [])
+      .filter((p: GooglePlaceResult) => p.businessStatus !== 'CLOSED_PERMANENTLY')
+      .map((p: GooglePlaceResult) => ({
       google_place_id: p.id,
       google_ftid: googleFtidFromMapsUrl(p.googleMapsUri),
       name: p.displayName?.text || '',

@@ -804,6 +804,25 @@ describe('searchOverpassPois localized names (#1655)', () => {
     expect(pois[0].name).toBe('Elephant Obelisk');
   });
 
+  it('skips POIs tagged as closed for good (#1341)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          elements: [
+            { type: 'node', id: 1, lat: 41.9, lon: 12.48, tags: { name: 'Gone Forever', tourism: 'attraction', disused: 'yes' } },
+            { type: 'node', id: 2, lat: 41.9, lon: 12.49, tags: { name: 'Ruin', tourism: 'attraction', abandoned: 'yes' } },
+            { type: 'node', id: 3, lat: 41.9, lon: 12.5, tags: { name: 'Shut', tourism: 'attraction', opening_hours: 'closed' } },
+            { type: 'node', id: 4, lat: 41.9, lon: 12.51, tags: { name: 'Open For Business', tourism: 'attraction' } },
+          ],
+        }),
+      }),
+    );
+    const { pois } = await svc.searchOverpassPois('sights', bbox(5), 'en-US');
+    expect(pois.map((p: any) => p.name)).toEqual(['Open For Business']);
+  });
+
   it('falls back to the native name when no localized tag exists', async () => {
     stubOverpass({ name: tags.name, tourism: 'attraction' });
     const { pois } = await svc.searchOverpassPois('sights', bbox(4), 'fr-FR');
@@ -1160,6 +1179,27 @@ describe('searchPlaces (fetch stubbed)', () => {
     expect(place.rating).toBeNull();
     expect(place.website).toBeNull();
     expect(place.phone).toBeNull();
+  });
+
+  it('MAPS-183: drops permanently closed Google results and keeps the rest (#1341)', async () => {
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'some-key' });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        places: [
+          { id: 'gone', displayName: { text: 'Shuttered Bistro' }, businessStatus: 'CLOSED_PERMANENTLY' },
+          { id: 'holiday', displayName: { text: 'Winter Break Cafe' }, businessStatus: 'CLOSED_TEMPORARILY' },
+          { id: 'open', displayName: { text: 'Still Trading' }, businessStatus: 'OPERATIONAL' },
+          { id: 'park', displayName: { text: 'City Park' } },
+        ],
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await svc.searchPlaces(1, 'bistro');
+    expect(result.places.map((p: any) => p.google_place_id)).toEqual(['holiday', 'open', 'park']);
+    // The field has to be requested or it never arrives to filter on.
+    const mask = (fetchMock.mock.calls[0][1].headers as Record<string, string>)['X-Goog-FieldMask'];
+    expect(mask).toContain('places.businessStatus');
   });
 
   it('MAPS-107: keeps 0 coordinates (equator / prime meridian) instead of nulling them', async () => {
