@@ -3772,6 +3772,17 @@ function runMigrations(db: Database.Database): void {
         if (!err.message?.includes('duplicate column name')) throw err;
       }
     },
+    // Per-segment travel mode for boundary legs: a leg whose ORIGIN is not a place
+    // (booking arrival, morning hotel) stores its mode on the DESTINATION stop.
+    // NULL = inherit the day default. INERT whenever the previous timeline element
+    // is itself a place (that place's outgoing leg_transport_mode wins).
+    () => {
+      try {
+        db.exec('ALTER TABLE day_assignments ADD COLUMN incoming_leg_transport_mode TEXT');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+    },
     // School holidays are a visual Vacay calendar layer. Keep them separate from
     // public holidays so applyHolidayCalendars never removes vacation entries for
     // school-break dates. Appended LAST: this branch was cut before #1435/#1281
