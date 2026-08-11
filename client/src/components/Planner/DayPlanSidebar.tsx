@@ -38,6 +38,7 @@ import { noteSurface } from './noteSurface'
 import { findTodayDayId } from './today'
 import { markdownLinkComponents } from '../shared/markdownLink'
 import { RouteConnector, HotelRouteConnector } from './DayPlanSidebarRouteConnector'
+import { resolveLegMode } from './legMode'
 import { usePluginDaySchedule, usePluginDayTints, dayTintBackground, dayTinted, PluginDayScheduleRow, formatScheduleMinutes } from '../Plugins/PluginDaySchedule'
 import { MobileAddPlaceButton } from './DayPlanSidebarMobileAddPlaceButton'
 import { DayPlanSidebarToolbar } from './DayPlanSidebarToolbar'
@@ -482,8 +483,8 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       // Each run point carries the ORIGIN assignment's per-segment travel mode
       // (#1281): the leg from this point to the next is routed with `mode` (null =
       // inherit the day default). Transport endpoints carry no mode → day default.
-      const runs: { id: number; lat: number; lng: number; mode?: string | null }[][] = []
-      let cur: { id: number; lat: number; lng: number; mode?: string | null }[] = []
+      const runs: { id: number; lat: number; lng: number; isPlace: boolean; leg_transport_mode?: string | null; incoming_leg_transport_mode?: string | null }[][] = []
+      let cur: { id: number; lat: number; lng: number; isPlace: boolean; leg_transport_mode?: string | null; incoming_leg_transport_mode?: string | null }[] = []
       // A run is only a real drive when it holds an actual place. Two back-to-back
       // transports (e.g. two flights on one day) would otherwise pair the first's
       // arrival with the second's departure into a phantom airport→airport leg — the
@@ -491,7 +492,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       let curHasPlace = false
       for (const it of merged) {
         if (it.type === 'place' && it.data.place?.lat && it.data.place?.lng) {
-          cur.push({ id: it.data.id, lat: it.data.place.lat, lng: it.data.place.lng, mode: it.data.leg_transport_mode ?? null })
+          cur.push({ id: it.data.id, lat: it.data.place.lat, lng: it.data.place.lng, isPlace: true, leg_transport_mode: it.data.leg_transport_mode ?? null, incoming_leg_transport_mode: it.data.incoming_leg_transport_mode ?? null })
           curHasPlace = true
         } else if (it.type === 'transport') {
           const r = it.data
@@ -499,11 +500,11 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
           if (from || to) {
             // Located transport: route to its departure point, break the run (the
             // flight/train itself isn't driven), and let its arrival start the next.
-            if (from) cur.push({ id: r.id, lat: from.lat, lng: from.lng })
+            if (from) cur.push({ id: r.id, lat: from.lat, lng: from.lng, isPlace: false })
             if (cur.length >= 2 && curHasPlace) runs.push(cur)
             cur = []
             curHasPlace = false
-            if (to) cur.push({ id: r.id, lat: to.lat, lng: to.lng })
+            if (to) cur.push({ id: r.id, lat: to.lat, lng: to.lng, isPlace: false })
           } else if (cur.length > 0 && !(r.type === 'car' && getSpanPhase(r, dayId) === 'middle')) {
             // No location: ignore for routing, but attribute the through-leg to the
             // booking so its distance/duration shows under it (purely cosmetic).
@@ -529,10 +530,10 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       // whether each is a place and its time so the bookend decision can drop a leg that isn't
       // real: a check-in hotel never drove to a departure airport (#1321), and a place timed before
       // check-in / after check-out means you weren't at the hotel then (#1465).
-      const wayPts: { lat: number; lng: number; isPlace: boolean; time: string | null }[] = []
+      const wayPts: { lat: number; lng: number; isPlace: boolean; time: string | null; leg_transport_mode?: string | null; incoming_leg_transport_mode?: string | null }[] = []
       for (const it of merged) {
         if (it.type === 'place' && it.data.place?.lat && it.data.place?.lng) {
-          wayPts.push({ lat: it.data.place.lat, lng: it.data.place.lng, isPlace: true, time: it.data.place?.place_time ?? null })
+          wayPts.push({ lat: it.data.place.lat, lng: it.data.place.lng, isPlace: true, time: it.data.place?.place_time ?? null, leg_transport_mode: it.data.leg_transport_mode ?? null, incoming_leg_transport_mode: it.data.incoming_leg_transport_mode ?? null })
         } else if (it.type === 'transport') {
           const { from, to } = getTransportRouteEndpoints(it.data, dayId)
           if (from) wayPts.push({ lat: from.lat, lng: from.lng, isPlace: false, time: null })
@@ -577,7 +578,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
           // profile+coords, so per-leg calls stay cheap (a single-mode day reuses
           // the same entries) and each leg is tagged with the mode it was drawn in.
           for (let i = 0; i < run.length - 1; i++) {
-            const seg = await legBetween({ lat: run[i].lat, lng: run[i].lng }, { lat: run[i + 1].lat, lng: run[i + 1].lng }, dayId, run[i].mode || dfMode)
+            const seg = await legBetween({ lat: run[i].lat, lng: run[i].lng }, { lat: run[i + 1].lat, lng: run[i + 1].lng }, dayId, resolveLegMode(run[i], run[i + 1], dfMode))
             if (seg) dayLegs[run[i].id] = seg
             else if (controller.signal.aborted) return
           }
@@ -585,11 +586,11 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
         if (Object.keys(dayLegs).length) legsByDay[dayId] = dayLegs
         const hotel: { top?: { seg: RouteSegment; name: string }; bottom?: { seg: RouteSegment; name: string } } = {}
         if (wantTop) {
-          const seg = await legBetween({ lat: startHotel!.place_lat as number, lng: startHotel!.place_lng as number }, { lat: firstWay!.lat, lng: firstWay!.lng }, dayId, dfMode)
+          const seg = await legBetween({ lat: startHotel!.place_lat as number, lng: startHotel!.place_lng as number }, { lat: firstWay!.lat, lng: firstWay!.lng }, dayId, resolveLegMode({ isPlace: false }, firstWay!, dfMode))
           if (seg) hotel.top = { seg, name: hotelName(startHotel!) }
         }
         if (wantBottom) {
-          const seg = await legBetween({ lat: lastWay!.lat, lng: lastWay!.lng }, { lat: endHotel!.place_lat as number, lng: endHotel!.place_lng as number }, dayId, dfMode)
+          const seg = await legBetween({ lat: lastWay!.lat, lng: lastWay!.lng }, { lat: endHotel!.place_lat as number, lng: endHotel!.place_lng as number }, dayId, resolveLegMode(lastWay!, { isPlace: false }, dfMode))
           if (seg) hotel.bottom = { seg, name: hotelName(endHotel!) }
         }
         if (controller.signal.aborted) return

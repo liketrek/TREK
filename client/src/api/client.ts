@@ -455,7 +455,7 @@ export const assignmentsApi = {
   setParticipants: (tripId: number | string, id: number, userIds: number[]) => apiClient.put(`/trips/${tripId}/assignments/${id}/participants`, { user_ids: userIds } satisfies AssignmentParticipantsRequest).then(r => r.data),
   updateTime: (tripId: number | string, id: number, times: AssignmentTimeRequest) => apiClient.put(`/trips/${tripId}/assignments/${id}/time`, times).then(r => r.data),
   // Per-segment travel mode (#1281): mode of the leg leaving this stop (null = inherit day default).
-  updateTransport: (tripId: number | string, id: number, mode: string | null) => apiClient.put(`/trips/${tripId}/assignments/${id}/transport`, { transport_mode: mode } satisfies AssignmentTransportRequest).then(r => r.data),
+  updateTransport: (tripId: number | string, id: number, mode: string | null, direction: 'outgoing' | 'incoming' = 'outgoing') => apiClient.put(`/trips/${tripId}/assignments/${id}/transport`, { transport_mode: mode, direction } satisfies AssignmentTransportRequest).then(r => r.data),
 }
 
 export const packingApi = {
