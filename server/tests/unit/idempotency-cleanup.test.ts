@@ -64,7 +64,10 @@ describe('IdempotencyCleanupJob', () => {
   function makeJob(enabled = true) {
     const registrar = {
       isEnabled: vi.fn(() => enabled),
-      register: vi.fn(() => enabled),
+      // Spelled out rather than vi.fn(() => enabled), because the test below
+      // reads the third argument back off mock.calls: a no-parameter stub types
+      // every recorded call as [], and indexing it fails typecheck:tests.
+      register: vi.fn((_name: string, _expression: string, _onTick: () => void | Promise<void>) => enabled),
       unregister: vi.fn(),
     };
     const job = new IdempotencyCleanupJob(new DatabaseService(db), registrar as unknown as CronRegistrarService);
@@ -78,7 +81,7 @@ describe('IdempotencyCleanupJob', () => {
 
     // The registered callback IS the tick — drive it once over an empty table
     // (nothing to purge → no log, no throw).
-    const onTick = on.registrar.register.mock.calls[0][2] as () => void;
+    const onTick = on.registrar.register.mock.calls[0][2];
     expect(() => onTick()).not.toThrow();
 
     const off = makeJob(false);
