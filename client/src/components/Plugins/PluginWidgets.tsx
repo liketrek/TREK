@@ -18,13 +18,19 @@ export default function PluginWidgets({ plugins, tripId = null }: { plugins: Act
       {plugins.map((p) => (
         <div
           key={p.id}
+          // The glass vocabulary (--glass-*, --r-xl, --ink-3) is scoped to
+          // .trek-dash. The phone dashboard is a different route and mounts these
+          // widgets outside that subtree, so every one of those resolved empty and
+          // the card lost its background, border, shadow and blur — a bare title
+          // over the gradient. Each now falls back to a mobile token, which is
+          // what the surrounding cards on that screen are made of.
           style={{
-            background: 'var(--glass-bg)',
-            border: '1px solid var(--glass-border)',
+            background: 'var(--glass-bg, var(--m-card))',
+            border: '1px solid var(--glass-border, var(--m-cbr))',
             borderRadius: 'var(--r-xl, 20px)',
-            boxShadow: 'var(--glass-shadow), var(--glass-highlight)',
-            backdropFilter: 'var(--glass-blur)',
-            WebkitBackdropFilter: 'var(--glass-blur)',
+            boxShadow: 'var(--glass-shadow, 0 16px 44px -20px rgba(0,0,0,.28)), var(--glass-highlight, 0 0 0 0 transparent)',
+            backdropFilter: 'var(--glass-blur, blur(30px) saturate(1.8))',
+            WebkitBackdropFilter: 'var(--glass-blur, blur(30px) saturate(1.8))',
             overflow: 'hidden',
           }}
         >
@@ -32,7 +38,7 @@ export default function PluginWidgets({ plugins, tripId = null }: { plugins: Act
             style={{
               display: 'flex', alignItems: 'center', gap: 8, padding: '16px 20px 8px',
               fontSize: 13, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.14em',
-              color: 'var(--ink-3)',
+              color: 'var(--ink-3, var(--m-faint))',
             }}
           >
             <PluginIcon name={p.icon} size={14} style={{ flexShrink: 0 }} />
@@ -40,7 +46,7 @@ export default function PluginWidgets({ plugins, tripId = null }: { plugins: Act
           </div>
           {/* min-height is just a pre-resize floor; trek:resize drives the real height. */}
           <div style={{ minHeight: 60 }}>
-            <PluginFrame pluginId={p.id} tripId={tripId} title={p.name} />
+            <PluginFrame pluginId={p.id} tripId={tripId} title={p.name} surface="dashboard-widget" />
           </div>
         </div>
       ))}
