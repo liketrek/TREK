@@ -29,7 +29,6 @@ import { useTripStore } from '../../store/tripStore'
 import { formatDistance, formatElevation } from '../../utils/units'
 import { getNavigationTargets, openNavigationTarget } from './placeNavigation'
 import { NavigationMenu } from '../shared/NavigationMenu'
-import { getOpenStreetMapUrlForPlace } from './placeOpenStreetMap'
 import { resolveOpenNow, resolvePlaceTimeZone, placeWeekdayIndex } from './placeOpenState'
 import { convertHoursLine } from './placeHoursFormat'
 
@@ -323,7 +322,6 @@ export default function PlaceInspector({
     place ? { ...place, google_ftid: place.google_ftid || googleDetails?.google_ftid || null } : null,
     googleDetails?.google_maps_url,
   )
-  const openStreetMapUrl = getOpenStreetMapUrlForPlace(place)
   const selectedDay = days?.find(d => d.id === selectedDayId)
   const weekdayIndex = getWeekdayIndex(selectedDay?.date, placeTimeZone)
 
@@ -513,10 +511,6 @@ export default function PlaceInspector({
                 />
               )}
             </>
-          )}
-          {openStreetMapUrl && (
-            <ActionButton onClick={() => window.open(openStreetMapUrl, '_blank')} variant="ghost" icon={<MapIcon size={13} />}
-              label={<span className="hidden sm:inline">{t('inspector.openStreetMap')}</span>} />
           )}
           {(place.website || googleDetails?.website) && (
             <ActionButton onClick={() => window.open(place.website || googleDetails?.website, '_blank')} variant="ghost" icon={<ExternalLink size={13} />}

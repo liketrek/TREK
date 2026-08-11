@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getNavigationTargets, isApplePlatform } from './placeNavigation'
 import type { Place } from '../../types'
@@ -15,27 +16,30 @@ function place(overrides: Partial<Place> = {}): Place {
   } as unknown as Place
 }
 
-/** jsdom reports a Linux-ish agent, so Apple has to be simulated explicitly. */
+/**
+ * jsdom reports its own agent, so Apple has to be simulated. userAgent lives on
+ * the prototype as a getter: shadowing it on the instance and deleting that
+ * again afterwards restores the real one without having to reconstruct it.
+ */
 function withUserAgent(ua: string) {
-  const original = Object.getOwnPropertyDescriptor(window.navigator, 'userAgent')
-  Object.defineProperty(window.navigator, 'userAgent', { value: ua, configurable: true })
-  return () => {
-    if (original) Object.defineProperty(window.navigator, 'userAgent', original)
-  }
+  Object.defineProperty(navigator, 'userAgent', { value: ua, configurable: true })
+  return () => { delete (navigator as unknown as Record<string, unknown>).userAgent }
 }
 
 afterEach(() => { vi.restoreAllMocks() })
 
 describe('getNavigationTargets', () => {
-  it('FE-PLANNER-NAV-001: offers Google Maps and Waze for a place with coordinates', () => {
+  it('FE-PLANNER-NAV-001: offers Google Maps, Waze and OpenStreetMap for a place with coordinates', () => {
     const targets = getNavigationTargets(place())
-    expect(targets.map(t => t.id)).toEqual(['google', 'waze'])
+    expect(targets.map(t => t.id)).toEqual(['google', 'waze', 'osm'])
     expect(targets[0].label).toBe('Google Maps')
   })
 
-  it('FE-PLANNER-NAV-002: Waze opens with navigation armed', () => {
+  it('FE-PLANNER-NAV-002: Waze gets the name as well as the position, and navigates', () => {
+    // Coordinates alone would show a driver a number instead of a destination;
+    // the name alone would be a guess. Waze documents taking both.
     const waze = getNavigationTargets(place()).find(t => t.id === 'waze')!
-    expect(waze.url).toBe('https://waze.com/ul?ll=48.2038,16.3616&navigate=yes')
+    expect(waze.url).toBe('https://waze.com/ul?q=Stephansdom&ll=48.2038,16.3616&navigate=yes')
   })
 
   it('FE-PLANNER-NAV-003: Google keeps its precise link when the place has an ftid', () => {
@@ -56,8 +60,9 @@ describe('getNavigationTargets', () => {
     const restore = withUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)')
     try {
       const targets = getNavigationTargets(place())
-      expect(targets.map(t => t.id)).toEqual(['google', 'waze', 'apple'])
-      expect(targets[2].url).toBe('https://maps.apple.com/?daddr=48.2038,16.3616')
+      expect(targets.map(t => t.id)).toEqual(['google', 'waze', 'apple', 'osm'])
+      // q next to ll labels the pin rather than searching blindly.
+      expect(targets[2].url).toBe('https://maps.apple.com/?q=Stephansdom&ll=48.2038,16.3616')
     } finally { restore() }
   })
 
@@ -71,12 +76,19 @@ describe('getNavigationTargets', () => {
   it('FE-PLANNER-NAV-007: a place without coordinates keeps only what Google can resolve', () => {
     // Waze and Apple Maps take coordinates and nothing else, so they cannot
     // offer anything here — Google still can, through the place id.
+    // OpenStreetMap still manages a name search, the two driving apps do not.
     const targets = getNavigationTargets(place({ lat: null, lng: null, google_place_id: 'ChIJabc' }))
-    expect(targets.map(t => t.id)).toEqual(['google'])
+    expect(targets.map(t => t.id)).toEqual(['google', 'osm'])
   })
 
-  it('FE-PLANNER-NAV-008: no place, and nothing locatable about it, yields nothing', () => {
+  it('FE-PLANNER-NAV-008: no place at all yields nothing', () => {
     expect(getNavigationTargets(null)).toEqual([])
-    expect(getNavigationTargets(place({ lat: null, lng: null }))).toEqual([])
+    expect(getNavigationTargets(place({ lat: null, lng: null, name: '' }))).toEqual([])
+  })
+
+  it('FE-PLANNER-NAV-009: a nameless place still reaches every app, just without a label', () => {
+    const targets = getNavigationTargets(place({ name: '' }))
+    expect(targets.map(t => t.id)).toEqual(['google', 'waze', 'osm'])
+    expect(targets.find(t => t.id === 'waze')!.url).toBe('https://waze.com/ul?ll=48.2038,16.3616&navigate=yes')
   })
 })

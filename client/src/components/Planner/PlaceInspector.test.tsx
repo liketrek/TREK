@@ -940,12 +940,17 @@ describe('PlaceInspector', () => {
 
   // ── Footer actions ───────────────────────────────────────────────────────────
 
-  it('FE-PLANNER-INSPECTOR-069: the OpenStreetMap and website buttons open their targets in a new tab', () => {
+  it('FE-PLANNER-INSPECTOR-069: OpenStreetMap sits in the navigation menu, the website keeps its own button', async () => {
+    const user = userEvent.setup();
     const open = vi.fn();
     vi.stubGlobal('open', open);
     const p = buildPlace({ id: 705, name: 'Linked Place', osm_id: 'node/12345', website: 'https://example.org' });
     render(<PlaceInspector {...defaultProps} place={p} />);
-    fireEvent.click(screen.getByText('OpenStreetMap').closest('button')!);
+
+    // OSM moved in with the other map apps rather than standing beside them.
+    await user.click(screen.getAllByRole('button').find(b => b.textContent?.includes('Navigation'))!);
+    await user.click(await screen.findByRole('menuitem', { name: 'OpenStreetMap' }));
+
     fireEvent.click(screen.getByText('Open Website').closest('button')!);
     expect(open).toHaveBeenCalledTimes(2);
     expect(open.mock.calls[1]).toEqual(['https://example.org', '_blank']);

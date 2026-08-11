@@ -1,9 +1,10 @@
 import type { AssignmentPlace, Place } from '../../types'
 import { getGoogleMapsUrlForPlace } from './placeGoogleMaps'
+import { getOpenStreetMapUrlForPlace } from './placeOpenStreetMap'
 
 type PlaceLike = Pick<Place | AssignmentPlace, 'name' | 'lat' | 'lng' | 'google_place_id' | 'google_ftid'>
 
-export type NavigationAppId = 'google' | 'waze' | 'apple'
+export type NavigationAppId = 'google' | 'waze' | 'apple' | 'osm'
 
 export interface NavigationTarget {
   id: NavigationAppId
@@ -28,15 +29,22 @@ export function isApplePlatform(): boolean {
 /**
  * The map apps a place can be opened in, in the order they are offered.
  *
- * Google keeps the precise link it always had: `getGoogleMapsUrlForPlace` walks
- * ftid, then place id, then the details URL, and only falls back to coordinates,
- * so it lands on the right entry inside a mall rather than on the roof. Waze and
- * Apple Maps have no equivalent — they take coordinates and nothing else — which
- * is why they are absent for a place TREK has no position for.
+ * None of them gets bare coordinates. Waze and Apple Maps both take a query
+ * alongside the position (`q` in each case, documented by both), and the pair
+ * is what makes the destination legible: the coordinates anchor which place is
+ * meant, the name is what the driver sees on the screen instead of a number.
+ * Without the position a name alone would be a gamble — there are a lot of
+ * places called "Bahnhof" — so a place TREK has no coordinates for reaches
+ * neither app.
  *
- * The two coordinate apps open with navigation armed, because that is what they
- * are for. Google stays on the place view it has always opened, so nobody's
- * habit changes.
+ * Google is the exception and keeps the link it always had, because it can do
+ * better than a name: `getGoogleMapsUrlForPlace` walks ftid, then place id,
+ * then the details URL, which lands on the right entry inside a mall rather
+ * than on the roof.
+ *
+ * Waze arms navigation, since driving is the only thing it does. The other
+ * three open the place, which is what Google has always done here, and starting
+ * navigation from there is one tap.
  */
 export function getNavigationTargets(
   place: PlaceLike | null | undefined,
@@ -44,24 +52,30 @@ export function getNavigationTargets(
 ): NavigationTarget[] {
   if (!place) return []
   const targets: NavigationTarget[] = []
+  const name = place.name?.trim()
 
   const googleUrl = getGoogleMapsUrlForPlace(place, detailsUrl)
   if (googleUrl) targets.push({ id: 'google', label: 'Google Maps', url: googleUrl })
 
   if (place.lat != null && place.lng != null) {
+    const ll = `${place.lat},${place.lng}`
+    const q = name ? `q=${encodeURIComponent(name)}&` : ''
     targets.push({
       id: 'waze',
       label: 'Waze',
-      url: `https://waze.com/ul?ll=${place.lat},${place.lng}&navigate=yes`,
+      url: `https://waze.com/ul?${q}ll=${ll}&navigate=yes`,
     })
     if (isApplePlatform()) {
       targets.push({
         id: 'apple',
         label: 'Apple Maps',
-        url: `https://maps.apple.com/?daddr=${place.lat},${place.lng}`,
+        url: `https://maps.apple.com/?${q}ll=${ll}`,
       })
     }
   }
+
+  const osmUrl = getOpenStreetMapUrlForPlace(place)
+  if (osmUrl) targets.push({ id: 'osm', label: 'OpenStreetMap', url: osmUrl })
 
   return targets
 }
