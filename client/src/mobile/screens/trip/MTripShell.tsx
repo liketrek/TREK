@@ -458,6 +458,24 @@ export default function MTripShell({
           </div>
         )}
 
+        {/* A plugin tab is the only one that used to arrive without a name: it is
+            not in the dock, so nothing was lit up there either, and the screen
+            gave no clue which plugin was open. Same treatment as the others, from
+            the tab entry the planner already builds (id, label, icon). */}
+        {trTab.startsWith('plugin:') && (() => {
+          const tab = planner.TRIP_TABS.find(x => x.id === trTab)
+          if (!tab) return null
+          const Icon = tab.icon
+          return (
+            <div className="pointer-events-none absolute left-[52px] right-[52px] top-1/2 flex -translate-y-1/2 items-center justify-center gap-[7px]">
+              <div className="flex min-w-0 items-center gap-[7px] rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-[13px] py-[7px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
+                {Icon && <Icon size={14} strokeWidth={2} className="flex-none text-m-muted" />}
+                <span className="truncate text-[0.8125rem] font-semibold text-m-ink">{tab.label}</span>
+              </div>
+            </div>
+          )
+        })()}
+
         {trTab === 'plan' ? (
           <MIconBtn
             ariaLabel={view === 'plan' ? t('mobileTrip.mapView') : t('mobileTrip.listView')}

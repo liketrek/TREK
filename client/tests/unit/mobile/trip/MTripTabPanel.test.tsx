@@ -20,8 +20,8 @@ vi.mock('../../../../src/mobile/screens/trip/tabs/MFilesTab', () => ({ default: 
 vi.mock('../../../../src/mobile/screens/trip/tabs/MCollabTab', () => ({ default: stub('collab') }))
 vi.mock('../../../../src/mobile/screens/trip/tabs/MListsTab', () => ({ default: stub('lists') }))
 vi.mock('../../../../src/components/Plugins/PluginFrame', () => ({
-  default: ({ pluginId, tripId, fill }: { pluginId: string; tripId: string | null; fill?: boolean }) => (
-    <div data-testid="plugin-frame" data-plugin={pluginId} data-trip={String(tripId)} data-fill={String(!!fill)} />
+  default: ({ pluginId, tripId, fill, surface }: { pluginId: string; tripId: string | null; fill?: boolean; surface?: string }) => (
+    <div data-testid="plugin-frame" data-plugin={pluginId} data-trip={String(tripId)} data-fill={String(!!fill)} data-surface={surface} />
   ),
 }))
 
@@ -71,8 +71,20 @@ describe('MTripTabPanel', () => {
     expect(frame).toHaveAttribute('data-plugin', 'trip-todos')
     expect(frame).toHaveAttribute('data-trip', '1')
     expect(frame).toHaveAttribute('data-fill', 'true')
-    // The frame keeps the dock clearance the scroll body uses.
-    expect((frame.parentElement as HTMLElement).style.paddingBottom).toContain('safe-area-inset-bottom')
+    // Both clearances come from the variables TabScroller uses, so the frame
+    // cannot drift away from the native tabs. The top one was missing entirely,
+    // which put the plugin's first row under the floating back button; the bottom
+    // one was a hard-coded 84 that ignored the safe area.
+    const wrapper = frame.parentElement as HTMLElement
+    expect(wrapper.className).toContain('--m-safe-top')
+    expect(wrapper.className).toContain('--bottom-nav-h')
+  })
+
+  it('FE-MOB-TABPANEL-007b: tells the plugin which surface it is mounted in', () => {
+    // A trip tab fills and scrolls itself; a widget reports its height. The plugin
+    // cannot see the difference from inside the frame.
+    renderTab('plugin:trip-todos')
+    expect(screen.getByTestId('plugin-frame')).toHaveAttribute('data-surface', 'trip-tab')
   })
 
   it('FE-MOB-TABPANEL-008: passes a null tripId to the plugin frame before the trip is known', () => {

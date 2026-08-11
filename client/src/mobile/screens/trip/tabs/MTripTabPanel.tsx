@@ -18,12 +18,27 @@ import PluginFrame from '../../../../components/Plugins/PluginFrame'
  */
 export default function MTripTabPanel({ planner, shell, tab }: MTripTabPanelProps) {
   // Trip-page plugin tab — the same sandboxed frame the desktop planner mounts,
-  // filling the panel between the top chrome and the dock. The bottom padding
-  // mirrors TabScroller's safe-area clearance so the frame never hides under it.
+  // between the floating top controls and the dock. Both clearances come from the
+  // variables TabScroller uses, so the frame cannot drift away from the native
+  // tabs: the top one kept the plugin's first row under the z-42 back button, and
+  // the bottom one was a copy of 84px that ignored the safe area on the devices
+  // that have one. The frame also states its surface, so the plugin knows it is
+  // expected to fill and scroll itself rather than report a height.
+  //
+  // color-scheme is pinned for the same reason both settings mounts pin it:
+  // Chromium paints a white canvas behind a transparent frame otherwise.
   if (tab.startsWith('plugin:')) {
     return (
-      <div className="absolute inset-0" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 84px)' }}>
-        <PluginFrame pluginId={tab.slice('plugin:'.length)} tripId={planner.tripId != null ? String(planner.tripId) : null} fill className="h-full w-full" />
+      <div
+        className="absolute inset-0 pt-[calc(var(--m-safe-top,12px)+58px)] pb-[calc(var(--bottom-nav-h,84px)+22px)]"
+      >
+        <PluginFrame
+          pluginId={tab.slice('plugin:'.length)}
+          tripId={planner.tripId != null ? String(planner.tripId) : null}
+          fill
+          surface="trip-tab"
+          className="h-full w-full [color-scheme:light]"
+        />
       </div>
     )
   }
