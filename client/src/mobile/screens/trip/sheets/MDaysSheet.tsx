@@ -44,6 +44,7 @@ export default function MDaysSheet({ planner, shell }: MTripSheetsProps) {
           icon={<CalendarRange size={19} strokeWidth={1.8} />}
           title={t('dayplan.reorderTitle')}
           sub={t('dayplan.reorderHint')}
+          subWrap
           onClose={shell.closeSheet}
           closeLabel={t('common.close')}
         />

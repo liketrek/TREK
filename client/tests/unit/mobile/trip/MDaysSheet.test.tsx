@@ -46,6 +46,14 @@ describe('MDaysSheet', () => {
     expect(screen.getByText("A day's places, notes and bookings move with it.")).toBeInTheDocument()
   })
 
+  it('FE-MOB-DAYSS-003b: the hint wraps instead of being cut off mid-sentence', () => {
+    // The shared header truncates its subtitle to one line, which is right for a
+    // filename but cut this sentence off in every language (#1814).
+    renderSheet()
+    const hint = screen.getByText("A day's places, notes and bookings move with it.")
+    expect(hint).not.toHaveClass('truncate')
+  })
+
   it('FE-MOB-DAYSS-004: lists the days in day_number order and numbers the rows', () => {
     renderSheet()
     const positions = screen.getAllByText(/^[123]$/).map(el => el.textContent)

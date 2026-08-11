@@ -21,12 +21,22 @@ interface TileHeaderProps {
   icon: ReactNode
   title: ReactNode
   sub?: ReactNode
+  /** Let a sentence-length subtitle wrap instead of truncating it to one line. */
+  subWrap?: boolean
   onClose: () => void
   closeLabel: string
 }
 
-/** Sheet header: 40px icon tile + title/sub + 34px round close. */
-export function TileHeader({ icon, title, sub, onClose, closeLabel }: TileHeaderProps) {
+/**
+ * Sheet header: 40px icon tile + title/sub + 34px round close.
+ *
+ * `sub` is truncated to one line by default, which is right for a filename or a
+ * date but wrong for a sentence: the icon tile and the close button leave so
+ * little width that a hint like "Hold and drag to reorder" was cut off mid-word
+ * (#1814), and it is longer still in most translations. Pass `subWrap` where the
+ * subtitle is prose.
+ */
+export function TileHeader({ icon, title, sub, subWrap = false, onClose, closeLabel }: TileHeaderProps) {
   return (
     <div className="flex items-center gap-3">
       <div className="flex h-10 w-10 flex-none items-center justify-center rounded-[13px] bg-[color:var(--m-ic)]">
@@ -34,7 +44,11 @@ export function TileHeader({ icon, title, sub, onClose, closeLabel }: TileHeader
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-[6px] text-[1.0625rem] font-bold leading-tight">{title}</div>
-        {sub && <div className="truncate font-geist text-[0.71875rem] text-m-muted">{sub}</div>}
+        {sub && (
+          <div className={`font-geist text-[0.71875rem] text-m-muted ${subWrap ? 'leading-snug' : 'truncate'}`}>
+            {sub}
+          </div>
+        )}
       </div>
       <MIconBtn variant="neutral" size={34} onClick={onClose} ariaLabel={closeLabel}>
         <X size={15} strokeWidth={2.2} />
