@@ -90,6 +90,7 @@ export class AssignmentsService {
       assignment_time: a.assignment_time ?? null,
       assignment_end_time: a.assignment_end_time ?? null,
       leg_transport_mode: a.leg_transport_mode ?? null,
+      incoming_leg_transport_mode: a.incoming_leg_transport_mode ?? null,
       participants,
       created_at: a.created_at,
       place: {
