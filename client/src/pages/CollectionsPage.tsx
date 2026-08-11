@@ -79,6 +79,11 @@ function CollectionsPageDesktop(): React.ReactElement {
   )
   const mapPanel = (overlay: boolean) => (
     <CollectionMapPanel
+      labelOptions={isRealList ? c.labelOptions : []}
+      labelFilter={c.labelFilter}
+      onLabelFilter={isRealList ? c.setLabelFilter : undefined}
+      canManageLabels={canManageLabels}
+      onManageLabels={() => c.setShowLabelManager(true)}
       places={mappable}
       selectedPlaceId={c.selectedPlaceId}
       onSelect={onMapSelect}
@@ -109,7 +114,7 @@ function CollectionsPageDesktop(): React.ReactElement {
       onSortMode={c.setSortMode}
       canAddPlace={canAddPlace}
       onAddPlace={() => c.setShowAddPlace(true)}
-      showLabels={isRealList}
+      showLabels={isRealList && !mapShown}
       labelOptions={c.labelOptions}
       labelFilter={c.labelFilter}
       onLabelFilter={c.setLabelFilter}
