@@ -279,6 +279,125 @@ body.trek-ui {
 @media (max-width: 639px) {
   .trek-modal-enter { animation: trek-drawer-enter 320ms cubic-bezier(0.32, 0.72, 0, 1); }
 }
+
+/* Mobile layer ------------------------------------------------------------- *
+ * TREK 4 gives the phone its own design: a translucent, border-led surface over
+ * a gradient, no drop shadows, and touch feedback rather than hover. The host
+ * hands the mobile palette (--m-*) down with the rest of the tokens whenever a
+ * frame is mounted inside the mobile shell, so these rules only restate the
+ * SHAPE — the colours come from the same variables the native screens use.
+ *
+ * Everything here is keyed on [data-form-factor="phone"], which the host sets
+ * from the viewport it reports. On desktop not a single rule below applies. */
+
+[data-form-factor="phone"] .trek-ui,
+[data-form-factor="phone"] body.trek-ui { font-size: 15px; }
+
+/* The card is the workhorse. On the phone it is a translucent tile with a hairline
+   border and no shadow — a drop shadow over the gradient reads as a sticker. */
+[data-form-factor="phone"] .trek-card {
+  background: var(--m-card, var(--bg-card));
+  border: 1px solid var(--m-cbr, var(--border-primary));
+  border-radius: 16px;
+  box-shadow: none;
+  padding: 14px;
+  -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  backdrop-filter: blur(30px) saturate(1.8);
+}
+[data-form-factor="phone"] .trek-glass {
+  background: var(--m-glass, var(--glass-bg));
+  border-color: var(--m-gbr, var(--glass-border));
+  border-radius: 20px;
+  box-shadow: none;
+  padding: 16px;
+}
+
+/* Touch has no hover. The lift on hover never fires on a phone and the pressed
+   state never existed, so a tap gave no feedback at all. */
+[data-form-factor="phone"] .trek-card.trek-interactive:hover,
+[data-form-factor="phone"] .trek-glass.trek-interactive:hover { transform: none; box-shadow: none; }
+[data-form-factor="phone"] .trek-interactive:active,
+[data-form-factor="phone"] .trek-btn:active,
+[data-form-factor="phone"] .trek-row:active { transform: scale(.985); opacity: .9; }
+[data-form-factor="phone"] .trek-btn:hover { filter: none; }
+
+/* 44px is the smallest target that reliably hits on a phone. */
+[data-form-factor="phone"] .trek-btn { min-height: 44px; border-radius: 12px; }
+[data-form-factor="phone"] .trek-row { min-height: 48px; }
+
+/* An input below 16px makes iOS Safari zoom the page on focus, and the zoom does
+   not come back. This is the single most common mobile bug in embedded UI. */
+[data-form-factor="phone"] .trek-input,
+[data-form-factor="phone"] .trek-select,
+[data-form-factor="phone"] .trek-textarea { font-size: 16px; min-height: 44px; border-radius: 12px; }
+
+/* Ink follows the mobile palette where it exists. */
+[data-form-factor="phone"] .trek-title { color: var(--m-ink, var(--text-primary)); }
+[data-form-factor="phone"] .trek-sub,
+[data-form-factor="phone"] .trek-muted { color: var(--m-muted, var(--text-muted)); }
+
+/* A filling surface owns its own scrolling: the host will not scroll for it, and
+   a height report is discarded. Anchor the body and scroll the content. */
+[data-fill] .trek-ui, [data-fill] body.trek-ui { height: 100%; overflow: hidden; }
+[data-fill] .trek-scroll {
+  height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Building blocks the native mobile screens are made of, so a plugin does not
+   have to reverse-engineer them from screenshots. */
+.trek-eyebrow {
+  font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--m-faint, var(--text-faint));
+}
+.trek-countpill {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
+  background: var(--m-ic, var(--bg-tertiary)); color: var(--m-muted, var(--text-muted));
+  font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.trek-sectionhead {
+  display: flex; align-items: center; gap: 7px; width: 100%;
+  margin: 15px 0 2px; padding: 0 2px; background: none; border: 0;
+  font: inherit; text-align: left; cursor: pointer;
+}
+.trek-statusdot { width: 8px; height: 8px; border-radius: 999px; flex: none; background: var(--m-st-neutral, var(--text-faint)); }
+.trek-statusdot[data-status="confirmed"] { background: var(--m-st-confirmed, var(--success)); }
+.trek-statusdot[data-status="pending"] { background: var(--m-st-pending, var(--warning)); }
+.trek-statusdot[data-status="info"] { background: var(--m-st-info, var(--info)); }
+.trek-statusdot[data-status="danger"] { background: var(--m-st-danger, var(--danger)); }
+.trek-iconbtn {
+  display: inline-grid; place-items: center; flex: none;
+  width: 38px; height: 38px; border-radius: 999px; cursor: pointer;
+  background: var(--m-ic, var(--bg-tertiary));
+  border: 1px solid var(--m-gbr, var(--border-primary));
+  color: var(--m-ink, var(--text-primary));
+}
+.trek-iconbtn:active { transform: scale(.94); }
+.trek-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.trek-field > .trek-field-label {
+  font-size: 9px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--m-faint, var(--text-faint));
+}
+.trek-field > .trek-field-value {
+  font-size: 13px; font-weight: 600; color: var(--m-ink, var(--text-primary));
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.trek-segmented {
+  display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 999px;
+  background: var(--m-glass, var(--bg-tertiary));
+  border: 1px solid var(--m-gbr, var(--border-primary));
+}
+.trek-segmented > button {
+  border: 0; background: none; cursor: pointer; font: inherit;
+  padding: 8px 16px; border-radius: 999px; white-space: nowrap;
+  font-size: 13px; font-weight: 500; color: var(--m-ink, var(--text-primary));
+}
+.trek-segmented > button[aria-pressed="true"],
+.trek-segmented > button.on {
+  background: var(--m-act, var(--accent)); color: var(--m-actfg, var(--accent-text)); font-weight: 600;
+}
+
 .trek-backdrop-enter { animation: trek-backdrop-enter 180ms var(--trek-ease-quint); }
 .trek-toast-enter { animation: trek-toast-enter 260ms var(--trek-ease-quint); will-change: transform, opacity; }
 .trek-pie-reveal {
@@ -371,6 +490,18 @@ export const TREK_THEME_JS = `(function () {
     if (m.theme) { docEl.setAttribute('data-theme', m.theme); }
     if (m.locale) { docEl.setAttribute('lang', m.locale); }
     docEl.setAttribute('dir', m.dir === 'rtl' ? 'rtl' : 'ltr');
+    // Where this frame sits, and in what shape. data-form-factor drives the
+    // mobile layer of this stylesheet; data-surface lets a plugin tell a
+    // full-height tab from a widget that reports its height. The insets are the
+    // space the HOST already keeps clear — exposed so a plugin can align its own
+    // sticky chrome with the host's, not so it adds padding on top.
+    var vp = m.viewport || {};
+    if (vp.formFactor) { docEl.setAttribute('data-form-factor', vp.formFactor); }
+    if (vp.surface) { docEl.setAttribute('data-surface', vp.surface); }
+    setFlag('data-fill', vp.fill);
+    var ins = vp.insets || {};
+    docEl.style.setProperty('--trek-inset-top', (ins.top || 0) + 'px');
+    docEl.style.setProperty('--trek-inset-bottom', (ins.bottom || 0) + 'px');
     var t = m.tokens || {};
     for (var k in t) {
       if (Object.prototype.hasOwnProperty.call(t, k) && t[k]) { docEl.style.setProperty(k, t[k]); }
