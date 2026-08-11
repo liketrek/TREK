@@ -69,6 +69,7 @@ function makeHook(overrides: Record<string, unknown> = {}) {
     places: [{ id: 10 }],
     visiblePlaces: [{ id: 10 }],
     mappable: [{ id: 10 }],
+    hasMappable: true,
     members: [],
     incomingInvites: [],
     counts: { all: 1, idea: 0, want: 1, visited: 0 },
@@ -124,8 +125,25 @@ describe('CollectionsPage — Add place button reachability (#1485)', () => {
   })
 
   it('shows the Add button on an empty collection', () => {
-    mockUseCollections.mockReturnValue(makeHook({ places: [], visiblePlaces: [], mappable: [] }))
+    mockUseCollections.mockReturnValue(makeHook({ places: [], visiblePlaces: [], mappable: [], hasMappable: false }))
     render(<CollectionsPage />)
     expect(screen.getAllByRole('button', { name: 'collections.addPlace' })).toHaveLength(1)
+  })
+})
+
+describe('CollectionsPage — the map survives a filter that matches nothing', () => {
+  it('keeps the map when a label filter empties the list', () => {
+    // Clicking a label with no places behind it left visiblePlaces empty, and
+    // the layout hung off exactly that: the map was torn out and the page
+    // reflowed to full width. A filter should empty the map, not remove it.
+    mockUseCollections.mockReturnValue(makeHook({ visiblePlaces: [], mappable: [], hasMappable: true }))
+    render(<CollectionsPage />)
+    expect(screen.getByTestId('map')).toBeInTheDocument()
+  })
+
+  it('still hides the map for a list with nothing mappable in it at all', () => {
+    mockUseCollections.mockReturnValue(makeHook({ mappable: [], hasMappable: false }))
+    render(<CollectionsPage />)
+    expect(screen.queryByTestId('map')).toBeNull()
   })
 })

@@ -206,6 +206,7 @@ function makeHook(overrides: Hook = {}): Hook {
     places: [{ id: 10 }],
     visiblePlaces: [{ id: 10 }],
     mappable: [{ id: 10 }],
+    hasMappable: true,
     members: [],
     incomingInvites: [],
     counts: { all: 1, idea: 0, want: 1, visited: 0 },
@@ -340,7 +341,7 @@ describe('CollectionsPage — shell', () => {
   })
 
   it('FE-PAGE-COLLPAGE-007: shows a spinner while the first places load', () => {
-    renderPage({ places: [], visiblePlaces: [], mappable: [], placesLoading: true })
+    renderPage({ places: [], visiblePlaces: [], mappable: [], hasMappable: false, placesLoading: true })
     expect(document.querySelector('.col-spinner')).not.toBeNull()
     expect(screen.queryByTestId('list')).toBeNull()
   })
@@ -348,7 +349,7 @@ describe('CollectionsPage — shell', () => {
 
 describe('CollectionsPage — body branches', () => {
   it('FE-PAGE-COLLPAGE-008: an empty list shows the empty state plus the add CTA', () => {
-    const hook = renderPage({ places: [], visiblePlaces: [], mappable: [] })
+    const hook = renderPage({ places: [], visiblePlaces: [], mappable: [], hasMappable: false })
     expect(screen.getByTestId('empty-collections')).toHaveTextContent('collections.empty.title')
 
     fireEvent.click(screen.getByRole('button', { name: /collections.addPlace/ }))
@@ -356,7 +357,7 @@ describe('CollectionsPage — body branches', () => {
   })
 
   it('FE-PAGE-COLLPAGE-009: a viewer on an empty list gets no add CTA', () => {
-    renderPage({ places: [], visiblePlaces: [], mappable: [], canEdit: false })
+    renderPage({ places: [], visiblePlaces: [], mappable: [], hasMappable: false, canEdit: false })
     expect(screen.getByTestId('empty-collections')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /collections.addPlace/ })).toBeNull()
   })
@@ -384,13 +385,13 @@ describe('CollectionsPage — body branches', () => {
   })
 
   it('FE-PAGE-COLLPAGE-013: places without coordinates keep the list column even on a wide layout', () => {
-    renderPage({ mappable: [] })
+    renderPage({ mappable: [], hasMappable: false })
     expect(screen.getByTestId('list')).toBeInTheDocument()
     expect(screen.queryByTestId('map-overlay')).toBeNull()
   })
 
   it('FE-PAGE-COLLPAGE-014: a filter that matches nothing keeps the filter bar and shows the no-match state', () => {
-    renderPage({ visiblePlaces: [], mappable: [] })
+    renderPage({ visiblePlaces: [], mappable: [], hasMappable: false })
     expect(screen.getByTestId('filterbar')).toBeInTheDocument()
     expect(screen.getByTestId('empty-search')).toHaveTextContent('collections.empty.noMatchTitle')
     expect(screen.queryByTestId('list')).toBeNull()

@@ -177,6 +177,11 @@ export function useCollections() {
   // Stable reference so the map doesn't tear down + rebuild every marker on each
   // unrelated re-render (which would swallow marker clicks mid-rebuild).
   const mappable = useMemo(() => mappablePlaces(visiblePlaces), [visiblePlaces])
+  // Whether this list has anything mappable AT ALL, filters aside. The layout
+  // hangs off this rather than off `mappable`: a label with no places left the
+  // filtered set empty, which tore the map out and reflowed the page to full
+  // width. The filter should empty the map, not remove it.
+  const hasMappable = useMemo(() => mappablePlaces(places).length > 0, [places])
   const counts = useMemo(() => statusCounts(places), [places])
 
   // ── Handlers ────────────────────────────────────────────────────────
@@ -385,7 +390,7 @@ export function useCollections() {
     collections, ownedLists, sharedLists, activeCollection, isAllSaved, isOwner,
     myRole, canEdit, canDelete,
     canShare, shareMemberCount,
-    activeId, places, visiblePlaces, mappable, members, incomingInvites, counts,
+    activeId, places, visiblePlaces, mappable, hasMappable, members, incomingInvites, counts,
     view, statusFilter, categoryFilter, categoryOptions, ratingFilter, sortMode, search, selectedPlaceId, selectMode, selectedIds,
     labels, labelFilter, labelOptions,
     loading, placesLoading,
