@@ -83,6 +83,9 @@ export const assignmentTransportRequestSchema = z.object({
   // The legacy route read `body.transport_mode ?? null`, so an absent key
   // behaves like an explicit null — keep it optional on the wire.
   transport_mode: z.string().nullable().optional(),
+  // Which leg this write targets: the one leaving this stop (default, and the
+  // legacy behaviour) or the one arriving at it (#1281 boundary legs).
+  direction: z.enum(['outgoing', 'incoming']).default('outgoing'),
 });
 export type AssignmentTransportRequest = z.infer<typeof assignmentTransportRequestSchema>;
 

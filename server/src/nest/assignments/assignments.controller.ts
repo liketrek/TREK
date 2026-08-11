@@ -175,7 +175,9 @@ export class AssignmentOpsController {
     if (!this.assignments.getAssignmentForTrip(id, tripId)) {
       throw new HttpException({ error: 'Assignment not found' }, 404);
     }
-    const assignment = this.assignments.setLegTransportMode(id, body.transport_mode ?? null);
+    const assignment = body.direction === 'incoming'
+      ? this.assignments.setIncomingLegTransportMode(id, body.transport_mode ?? null)
+      : this.assignments.setLegTransportMode(id, body.transport_mode ?? null);
     this.assignments.broadcast(tripId, 'assignment:updated', { assignment }, socketId);
     return { assignment };
   }

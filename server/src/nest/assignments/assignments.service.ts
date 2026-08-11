@@ -272,6 +272,17 @@ export class AssignmentsService {
     return this.getAssignmentWithPlace(Number(id));
   }
 
+  /**
+   * Set the travel mode of the leg arriving at this stop (#1281 boundary legs).
+   * Mirrors setLegTransportMode but targets incoming_leg_transport_mode; inert
+   * when the previous timeline element is a place (the column is only read for
+   * non-place origins like a booking arrival or a morning hotel departure).
+   */
+  setIncomingLegTransportMode(id: string | number, mode: string | null) {
+    this.dbs.run('UPDATE day_assignments SET incoming_leg_transport_mode = ? WHERE id = ?', mode ?? null, id);
+    return this.getAssignmentWithPlace(Number(id));
+  }
+
   setParticipants(assignmentId: string | number, userIds: number[]) {
     this.dbs.transaction(() => {
       this.dbs.run('DELETE FROM assignment_participants WHERE assignment_id = ?', assignmentId);
