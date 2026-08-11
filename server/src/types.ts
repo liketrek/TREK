@@ -111,6 +111,7 @@ export interface DayAssignment {
   assignment_time?: string | null;
   assignment_end_time?: string | null;
   leg_transport_mode?: string | null;
+  incoming_leg_transport_mode?: string | null;
   created_at?: string;
 }
 

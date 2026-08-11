@@ -43,6 +43,10 @@ export const assignmentSchema = z.object({
   // Per-segment travel mode (#1281): the transport mode of the leg LEAVING this
   // stop for the next one. null = inherit the day's default_transport_mode.
   leg_transport_mode: z.string().nullable().optional(),
+  // Per-segment travel mode of the leg ENTERING this stop when its origin is
+  // not a place (booking arrival / morning hotel). null = inherit the day default.
+  // Inert when the previous timeline element is a place.
+  incoming_leg_transport_mode: z.string().nullable().optional(),
   participants: z.array(assignmentParticipantSchema).optional(),
   created_at: z.string().optional(),
   place: assignmentPlaceSchema,
