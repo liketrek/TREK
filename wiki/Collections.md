@@ -43,6 +43,7 @@ Places can be assigned a **category** from the same admin-defined set used acros
 - **Search and add** — the "+" action opens a search; pick a result and set the name, category, status, a markdown description and links before saving, all in one step.
 - **Save from a trip** — the place inspector and the trip place context menu both offer **Save to collection**, which toggles that place in or out of each of your lists.
 - **Bulk-add from a trip** — in the trip place list, enter select mode, tick several places, and use the **Save to collection** action in the selection bar to copy them all into a chosen list at once. Duplicates (by name or coordinates) are skipped automatically.
+- **Import a whole trip** — the download button in the list's filter row (and the second button on an empty list) opens **Import from a trip**: pick one of your trips, then tick the places you want. Places you already saved are greyed out and cannot be picked twice, and the ones no day of that trip holds start out selected, since those are the plans a trip left behind. **Only new** hides everything already on the list, and the counter on the import button always shows what is about to be added.
 
 ## Place detail
 
