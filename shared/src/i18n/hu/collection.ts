@@ -98,6 +98,13 @@ const collection: TranslationStrings = {
   'collections.status.filterAll': 'Összes',
   'collections.status.cycleHint': 'koppints a módosításhoz',
 
+  'collections.markVisited': 'Megjelölés látogatottként',
+  'collections.markVisitedAll': 'Mindenhol látogatott',
+  'collections.markVisitedSelection': 'Megjelölés látogatottként a listáidban',
+  'collections.markVisitedNone': 'Ezek közül egy hely sincs listába mentve',
+  'collections.markedVisited': 'Látogatottként megjelölve',
+  'collections.markedVisitedTrip': '{count} hely megjelölve látogatottként',
+
   'collections.copyToTrip': 'Másolás utazásba',
   'collections.copyToTripTitle': 'Másolás utazásba',
   'collections.copyN': '{count} másolása utazásba',

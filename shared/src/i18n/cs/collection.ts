@@ -96,6 +96,13 @@ const collection: TranslationStrings = {
   'collections.status.filterAll': 'Vše',
   'collections.status.cycleHint': 'klepnutím změníte',
 
+  'collections.markVisited': 'Označit jako navštívené',
+  'collections.markVisitedAll': 'Navštíveno všude',
+  'collections.markVisitedSelection': 'Označit jako navštívené v seznamech',
+  'collections.markVisitedNone': 'Žádné z těchto míst není uloženo v seznamu',
+  'collections.markedVisited': 'Označeno jako navštívené',
+  'collections.markedVisitedTrip': '{count} míst označeno jako navštívená',
+
   'collections.copyToTrip': 'Kopírovat do výletu',
   'collections.copyToTripTitle': 'Kopírovat do výletu',
   'collections.copyN': 'Kopírovat {count} do výletu',

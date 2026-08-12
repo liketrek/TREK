@@ -1,4 +1,4 @@
-// FE-COMP-SAVETOCOL-001 to FE-COMP-SAVETOCOL-016
+// FE-COMP-SAVETOCOL-001 to FE-COMP-SAVETOCOL-020
 import React from 'react';
 import { afterEach, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render';
@@ -120,7 +120,7 @@ describe('SaveToCollectionModal', () => {
   it('FE-COMP-SAVETOCOL-006: lists already holding the place are marked saved', async () => {
     vi.spyOn(collectionsApi, 'membership').mockResolvedValue({
       saved: true,
-      lists: [{ collection_id: 1, name: 'Favorites', place_id: 900 }],
+      lists: [{ collection_id: 1, name: 'Favorites', place_id: 900, status: 'want', can_edit: true }],
     });
     openFor();
     render(<SaveToCollectionModal />);
@@ -194,7 +194,7 @@ describe('SaveToCollectionModal', () => {
   it('FE-COMP-SAVETOCOL-011: picking a saved list removes that place instead', async () => {
     vi.spyOn(collectionsApi, 'membership').mockResolvedValue({
       saved: true,
-      lists: [{ collection_id: 1, name: 'Favorites', place_id: 900 }],
+      lists: [{ collection_id: 1, name: 'Favorites', place_id: 900, status: 'want', can_edit: true }],
     });
     const del = vi.spyOn(collectionsApi, 'deletePlace').mockResolvedValue({});
     const save = vi.spyOn(collectionsApi, 'savePlace');
@@ -261,6 +261,65 @@ describe('SaveToCollectionModal', () => {
     resolve(listResponse([FAVORITES]));
     await Promise.resolve();
     expect(screen.queryByText('Favorites')).not.toBeInTheDocument();
+  });
+
+  // ── Per-list status + "visited everywhere" (#1469) ────────────────────────
+
+  const savedIn = (over: Partial<CollectionMembership['lists'][number]> = {}): CollectionMembership => ({
+    saved: true,
+    lists: [{ collection_id: 1, name: 'Favorites', place_id: 900, status: 'want', can_edit: true, ...over }],
+  });
+
+  it('FE-COMP-SAVETOCOL-017: a saved list shows its own status and one tap cycles it', async () => {
+    vi.spyOn(collectionsApi, 'membership').mockResolvedValue(savedIn());
+    const setStatus = vi.spyOn(collectionsApi, 'setStatus').mockResolvedValue({} as never);
+    const del = vi.spyOn(collectionsApi, 'deletePlace').mockResolvedValue({});
+    openFor();
+    render(<SaveToCollectionModal />);
+
+    const badge = await screen.findByRole('button', { name: 'Want to go' });
+    fireEvent.click(badge);
+
+    // want → visited, and the row toggle must NOT have fired underneath it.
+    await waitFor(() => expect(setStatus).toHaveBeenCalledWith(900, 'visited'));
+    expect(del).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-SAVETOCOL-018: the header action marks every list holding the place visited', async () => {
+    vi.spyOn(collectionsApi, 'membership').mockResolvedValue({
+      saved: true,
+      lists: [
+        { collection_id: 1, name: 'Favorites', place_id: 900, status: 'want', can_edit: true },
+        { collection_id: 2, name: 'Wishlist', place_id: 901, status: 'idea', can_edit: true },
+      ],
+    });
+    const many = vi.spyOn(collectionsApi, 'setStatusMany').mockResolvedValue({ updated: 2 });
+    openFor();
+    render(<SaveToCollectionModal />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Visited everywhere' }));
+    await waitFor(() => expect(many).toHaveBeenCalledWith([900, 901], 'visited'));
+  });
+
+  it('FE-COMP-SAVETOCOL-019: the action disappears once every list is visited', async () => {
+    vi.spyOn(collectionsApi, 'membership').mockResolvedValue(savedIn({ status: 'visited' }));
+    openFor();
+    render(<SaveToCollectionModal />);
+
+    await screen.findByText('Favorites');
+    expect(screen.queryByRole('button', { name: /Visited everywhere|Mark visited/ })).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-SAVETOCOL-020: a read-only list shows its status but does not offer to change it', async () => {
+    vi.spyOn(collectionsApi, 'membership').mockResolvedValue(savedIn({ can_edit: false }));
+    openFor();
+    render(<SaveToCollectionModal />);
+
+    await screen.findByText('Favorites');
+    expect(screen.queryByRole('button', { name: 'Want to go' })).not.toBeInTheDocument();
+    expect(screen.getByTitle('Want to go')).toBeInTheDocument();
+    // Nothing to offer: the only list holding it is one the viewer cannot edit.
+    expect(screen.queryByRole('button', { name: /Visited everywhere|Mark visited/ })).not.toBeInTheDocument();
   });
 
   it('FE-COMP-SAVETOCOL-014: the footer navigates to the collections page or just closes', async () => {

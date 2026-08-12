@@ -96,6 +96,13 @@ const collection: TranslationStrings = {
   'collections.status.filterAll': '全部',
   'collections.status.cycleHint': '点按切换',
 
+  'collections.markVisited': '标记为已去过',
+  'collections.markVisitedAll': '在所有清单中标记',
+  'collections.markVisitedSelection': '在清单中标记为已去过',
+  'collections.markVisitedNone': '这些地点都没有保存在任何清单中',
+  'collections.markedVisited': '已标记为去过',
+  'collections.markedVisitedTrip': '已将 {count} 个地点标记为去过',
+
   'collections.copyToTrip': '复制到行程',
   'collections.copyToTripTitle': '复制到行程',
   'collections.copyN': '将 {count} 个复制到行程',

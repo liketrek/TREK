@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router'
-import { Bookmark, BookmarkCheck, Check, Loader2, Plus, X } from 'lucide-react'
+import { Bookmark, BookmarkCheck, Check, CheckCircle2, Loader2, Plus, X } from 'lucide-react'
 import MSheet from '../../mobile/components/MSheet'
 import MIconBtn from '../../mobile/components/MIconBtn'
 import { useToast } from '../shared/Toast'
@@ -8,7 +8,8 @@ import { useTranslation } from '../../i18n'
 import { collectionsApi } from '../../api/collections'
 import { useSaveToCollectionStore } from '../../store/saveToCollectionStore'
 import { getApiErrorMessage } from '../../utils/apiError'
-import type { Collection, CollectionMembership } from '@trek/shared'
+import { STATUS_META, nextStatus } from '../../pages/collections/collectionsModel'
+import type { Collection, CollectionMembership, CollectionStatus } from '@trek/shared'
 
 /**
  * Mobile counterpart of SaveToCollectionModal — the same store-driven list
@@ -71,12 +72,44 @@ export default function MSaveToCollectionSheet() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target])
 
-  const savedByCollection = new Map<number, number>()
-  for (const l of membership?.lists ?? []) savedByCollection.set(l.collection_id, l.place_id)
+  const savedByCollection = new Map<number, CollectionMembership['lists'][number]>()
+  for (const l of membership?.lists ?? []) savedByCollection.set(l.collection_id, l)
+
+  /** Lists holding this place that the viewer may edit and that are not visited yet. */
+  const unvisited = (membership?.lists ?? []).filter(l => l.can_edit && l.status !== 'visited')
+
+  const handleStatus = async (entry: CollectionMembership['lists'][number], next: CollectionStatus) => {
+    if (busyId != null) return
+    setBusyId(entry.collection_id)
+    try {
+      await collectionsApi.setStatus(entry.place_id, next)
+      await refreshMembership()
+      bumpVersion()
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('common.error')))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const handleVisitedEverywhere = async () => {
+    if (busyId != null || unvisited.length === 0) return
+    setBusyId(-1)
+    try {
+      const { updated } = await collectionsApi.setStatusMany(unvisited.map(l => l.place_id), 'visited')
+      toast.success(t('collections.markedVisited', { count: updated }))
+      await refreshMembership()
+      bumpVersion()
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('common.error')))
+    } finally {
+      setBusyId(null)
+    }
+  }
 
   const handleToggle = async (list: Collection) => {
     if (busyId != null || !target) return
-    const savedPlaceId = savedByCollection.get(list.id)
+    const savedPlaceId = savedByCollection.get(list.id)?.place_id
     setBusyId(list.id)
     try {
       if (savedPlaceId != null) {
@@ -156,8 +189,11 @@ export default function MSaveToCollectionSheet() {
           </div>
         ) : (
           lists.map(list => {
-            const saved = savedByCollection.has(list.id)
+            const entry = savedByCollection.get(list.id)
+            const saved = !!entry
             const busy = busyId === list.id
+            const statusMeta = entry ? STATUS_META[entry.status] : null
+            const StatusIcon = statusMeta?.icon
             return (
               <button
                 key={list.id}
@@ -178,9 +214,27 @@ export default function MSaveToCollectionSheet() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[0.8125rem] font-semibold text-m-ink">{list.name}</span>
-                  <span className="mt-px block font-geist text-[0.65625rem] text-m-muted">
-                    {t('collections.placeCount', { count: list.place_count ?? 0 })}
-                  </span>
+                  {/* Saved lists show their own status here instead of the place
+                      count — that number matters when picking a list, the status
+                      matters once the place is in it (#1469). */}
+                  {entry && statusMeta && StatusIcon ? (
+                    <span
+                      role={entry.can_edit ? 'button' : undefined}
+                      tabIndex={entry.can_edit ? 0 : undefined}
+                      aria-label={t(statusMeta.labelKey)}
+                      onClick={entry.can_edit ? e => { e.preventDefault(); e.stopPropagation(); void handleStatus(entry, nextStatus(entry.status)) } : undefined}
+                      onKeyDown={entry.can_edit ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); void handleStatus(entry, nextStatus(entry.status)) } } : undefined}
+                      className="mt-[3px] inline-flex items-center gap-1 rounded-full bg-[color:var(--m-inner)] px-2 py-[3px] font-geist text-[0.65625rem] font-semibold"
+                      style={{ color: statusMeta.color }}
+                    >
+                      <StatusIcon size={11} strokeWidth={2.4} />
+                      {t(statusMeta.labelKey)}
+                    </span>
+                  ) : (
+                    <span className="mt-px block font-geist text-[0.65625rem] text-m-muted">
+                      {t('collections.placeCount', { count: list.place_count ?? 0 })}
+                    </span>
+                  )}
                 </span>
                 {list.is_owner === false && (
                   <span className="flex-none font-geist text-[0.5625rem] font-bold uppercase tracking-[.05em] text-m-faint">
@@ -199,6 +253,22 @@ export default function MSaveToCollectionSheet() {
           })
         )}
       </div>
+
+      {unvisited.length > 0 && (
+        <div className="flex-none px-[14px] pb-1">
+          <button
+            type="button"
+            onClick={handleVisitedEverywhere}
+            disabled={busyId != null}
+            className="flex w-full items-center justify-center gap-1.5 rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] py-[10px] text-[0.78125rem] font-semibold text-m-ink disabled:opacity-60"
+          >
+            {busyId === -1
+              ? <Loader2 size={14} className="animate-spin" />
+              : <CheckCircle2 size={14} strokeWidth={2.2} />}
+            {unvisited.length > 1 ? t('collections.markVisitedAll') : t('collections.markVisited')}
+          </button>
+        </div>
+      )}
 
       {lists.length > 0 && (
         <div className="flex flex-none items-center justify-between gap-2 border-t border-[color:var(--m-rowbr)] px-[18px] py-3">

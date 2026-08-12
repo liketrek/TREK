@@ -1,11 +1,13 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react'
 import {
-  Bookmark, Check, CheckCheck, ListChecks, MapPin, MoreHorizontal, Plus,
+  Bookmark, Check, CheckCheck, CheckCircle2, ListChecks, Loader2, MapPin, MoreHorizontal, Plus,
   SlidersHorizontal, Tag, Trash2, X,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { useTripStore } from '../../../../store/tripStore'
 import { useAddonStore } from '../../../../store/addonStore'
+import { useToast } from '../../../../components/shared/Toast'
+import { collectionsApi } from '../../../../api/collections'
 import PlaceAvatar from '../../../../components/shared/PlaceAvatar'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
 import { resolveTrackColor } from '../../../../components/Map/trackColors'
@@ -43,6 +45,8 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
   const [saveToListOpen, setSaveToListOpen] = useState(false)
+  const [markVisitedBusy, setMarkVisitedBusy] = useState(false)
+  const toast = useToast()
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
   // Entering the browser from the edit segment starts on the unplanned pool.
@@ -84,6 +88,23 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
       else next.add(id)
       return next
     })
+
+  /** Mark the selection visited in every list it is saved to (#1469). */
+  const markSelectionVisited = async () => {
+    const ids = [...selectedIds]
+    if (ids.length === 0 || markVisitedBusy) return
+    setMarkVisitedBusy(true)
+    try {
+      const { updated, places: matched } = await collectionsApi.setStatusFromTrip(trip.id, ids, 'visited')
+      if (updated === 0) toast.info(t('collections.markVisitedNone'))
+      else toast.success(t('collections.markedVisitedTrip', { count: matched ?? 0 }))
+      exitSelectMode()
+    } catch {
+      toast.error(t('common.error'))
+    } finally {
+      setMarkVisitedBusy(false)
+    }
+  }
 
   // Compare the ids, not just the counts: a place removed remotely while another
   // one is selected keeps the sizes equal without the sets matching.
@@ -221,6 +242,15 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
               {collectionsEnabled && (
                 <BulkBtn label={t('inspector.saveToCollection')} disabled={selectedIds.size === 0} onClick={() => setSaveToListOpen(true)}>
                   <Bookmark size={14} strokeWidth={2} />
+                </BulkBtn>
+              )}
+              {collectionsEnabled && (
+                <BulkBtn
+                  label={t('collections.markVisitedSelection')}
+                  disabled={selectedIds.size === 0 || markVisitedBusy}
+                  onClick={markSelectionVisited}
+                >
+                  {markVisitedBusy ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} strokeWidth={2} />}
                 </BulkBtn>
               )}
               <BulkBtn label={t('places.deleteSelected')} disabled={selectedIds.size === 0} onClick={() => setConfirmDeleteOpen(true)}>

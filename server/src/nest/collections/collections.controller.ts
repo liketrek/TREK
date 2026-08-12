@@ -42,6 +42,8 @@ import {
   CollectionSaveFromTripManyDto,
   CollectionPlaceUpdateDto,
   CollectionSetStatusDto,
+  CollectionSetStatusManyDto,
+  CollectionSetStatusFromTripDto,
   CollectionCopyToTripDto,
   CollectionInviteDto,
   CollectionInviteActionDto,
@@ -130,6 +132,18 @@ export class CollectionsController {
   @HttpCode(200)
   deleteMany(@CurrentUser() user: User, @Body() body: CollectionDeleteManyDto, @Headers('x-socket-id') socketId?: string) {
     return { deleted: this.collections.deletePlacesMany(user.id, body.ids, socketId) };
+  }
+
+  @Post('places/status-many')
+  @HttpCode(200)
+  setStatusMany(@CurrentUser() user: User, @Body() body: CollectionSetStatusManyDto, @Headers('x-socket-id') socketId?: string) {
+    return this.collections.setStatusMany(user.id, body.ids, body.status, socketId);
+  }
+
+  @Post('places/status-from-trip')
+  @HttpCode(200)
+  setStatusFromTrip(@CurrentUser() user: User, @Body() body: CollectionSetStatusFromTripDto, @Headers('x-socket-id') socketId?: string) {
+    return this.collections.setStatusFromTrip(user.id, body.trip_id, body.place_ids, body.status, socketId);
   }
 
   @Patch('places/:pid')

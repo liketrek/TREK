@@ -206,6 +206,31 @@ export type CollectionPlaceUpdateRequest = z.infer<typeof collectionPlaceUpdateR
 export const collectionSetStatusRequestSchema = z.object({ status: collectionStatusSchema });
 export type CollectionSetStatusRequest = z.infer<typeof collectionSetStatusRequestSchema>;
 
+/** Set one status on several saved places at once — the place dialog's "mark
+ *  visited everywhere it is saved" (#1469). Ids are collection_places ids. */
+export const collectionSetStatusManyRequestSchema = z.object({
+  ids: z.array(z.number()).min(1).max(1000),
+  status: collectionStatusSchema,
+});
+export type CollectionSetStatusManyRequest = z.infer<typeof collectionSetStatusManyRequestSchema>;
+
+/** Same, but naming the places by their TRIP ids: the server resolves each one to
+ *  the lists it is saved in. Drives the planner's bulk "mark as visited" (#1469). */
+export const collectionSetStatusFromTripRequestSchema = z.object({
+  trip_id: z.number(),
+  place_ids: z.array(z.number()).min(1).max(1000),
+  status: collectionStatusSchema,
+});
+export type CollectionSetStatusFromTripRequest = z.infer<typeof collectionSetStatusFromTripRequestSchema>;
+
+export const collectionSetStatusManyResponseSchema = z.object({
+  /** Saved places whose status actually changed. */
+  updated: z.number(),
+  /** Trip places that were found in at least one list (from-trip form only). */
+  places: z.number().optional(),
+});
+export type CollectionSetStatusManyResponse = z.infer<typeof collectionSetStatusManyResponseSchema>;
+
 /** Bulk-delete saved places. Plain z.number() (no .min/.int) mirrors the legacy
  *  hand-rolled check the DTO ratchet replaced (same shape as placeBulkDeleteRequestSchema). */
 export const collectionDeleteManyRequestSchema = z.object({
@@ -311,7 +336,15 @@ export type CollectionSaveResult = z.infer<typeof collectionSaveResultSchema>;
 /** Library-wide "is this place already saved anywhere I can see?" lookup (inspector indicator). */
 export const collectionMembershipSchema = z.object({
   saved: z.boolean(),
-  lists: z.array(z.object({ collection_id: z.number(), name: z.string(), place_id: z.number() })),
+  lists: z.array(z.object({
+    collection_id: z.number(),
+    name: z.string(),
+    place_id: z.number(),
+    /** Per-list status, so the picker can show and change it without a second round trip (#1469). */
+    status: collectionStatusSchema,
+    /** False for a list the viewer may read but not edit — its status pill stays read-only. */
+    can_edit: z.boolean().default(true),
+  })),
 });
 export type CollectionMembership = z.infer<typeof collectionMembershipSchema>;
 

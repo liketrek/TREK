@@ -96,6 +96,13 @@ const collection: TranslationStrings = {
   'collections.status.filterAll': 'すべて',
   'collections.status.cycleHint': 'タップで変更',
 
+  'collections.markVisited': '訪問済みにする',
+  'collections.markVisitedAll': 'すべてで訪問済み',
+  'collections.markVisitedSelection': 'リストで訪問済みにする',
+  'collections.markVisitedNone': 'これらの場所はどのリストにも保存されていません',
+  'collections.markedVisited': '訪問済みにしました',
+  'collections.markedVisitedTrip': '{count} 件の場所を訪問済みにしました',
+
   'collections.copyToTrip': '旅行にコピー',
   'collections.copyToTripTitle': '旅行にコピー',
   'collections.copyN': '{count}件を旅行にコピー',

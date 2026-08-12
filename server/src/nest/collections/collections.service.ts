@@ -757,6 +757,109 @@ export class CollectionsService {
     return deleted;
   }
 
+  /**
+   * Set the same status on several saved places at once (#1469).
+   *
+   * Same all-or-nothing shape as deletePlacesMany: every id is resolved and
+   * permission-checked before the first write, so a list the caller may not edit
+   * cannot leave half the batch applied. Rows that already carry the status are
+   * counted as untouched rather than rewritten, which keeps updated_at honest.
+   */
+  setStatusMany(userId: number, ids: number[], status: CollectionStatus, socketId?: string): { updated: number } {
+    const touched = new Set<number>();
+    for (const id of ids) {
+      const collectionId = this.collectionIdOfPlace(id);
+      this.assertCanEdit(userId, collectionId);
+      touched.add(collectionId);
+    }
+    let updated = 0;
+    this.db.transaction(() => {
+      for (const id of ids) {
+        const res = this.db.run(
+          "UPDATE collection_places SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status IS NOT ?",
+          status, id, status,
+        );
+        updated += res.changes;
+      }
+    });
+    if (updated > 0) touched.forEach(cid => this.notifyCollectionUsers(cid, socketId, 'collections:updated'));
+    return { updated };
+  }
+
+  /**
+   * Set a status on every saved copy of the given trip places (#1469): "I have
+   * been here now" said once from the trip, instead of hunting the place down in
+   * each list it was saved to.
+   *
+   * The match is findMembership's, so what gets updated is exactly what the
+   * place dialog listed as "saved in". Lists the caller may only read are left
+   * alone rather than refused — a shared list you cannot edit should not stop
+   * you marking your own.
+   */
+  setStatusFromTrip(
+    userId: number,
+    tripId: number,
+    placeIds: number[],
+    status: CollectionStatus,
+    socketId?: string,
+  ): { updated: number; places: number } {
+    if (!this.db.canAccessTrip(tripId, userId)) httpError(404, 'Trip not found');
+
+    const sources = placeIds.length
+      ? this.db.all<{ id: number; name: string; lat: number | null; lng: number | null; google_place_id: string | null; google_ftid: string | null; osm_id: string | null }>(`
+        SELECT id, name, lat, lng, google_place_id, google_ftid, osm_id
+        FROM places WHERE trip_id = ? AND id IN (${placeIds.map(() => '?').join(',')})
+      `, tripId, ...placeIds)
+      : [];
+    if (sources.length === 0) return { updated: 0, places: 0 };
+
+    const editable = this.accessibleCollectionIds(userId).filter(cid => {
+      const role = this.roleOf(userId, cid);
+      return role !== null && role !== 'viewer';
+    });
+    if (editable.length === 0) return { updated: 0, places: 0 };
+
+    const matched = new Set<number>();
+    const placesWithMatch = new Set<number>();
+    for (const src of sources) {
+      for (const row of this.matchingCollectionPlaces(editable, tripId, src)) {
+        matched.add(row.id);
+        placesWithMatch.add(src.id);
+      }
+    }
+    if (matched.size === 0) return { updated: 0, places: 0 };
+
+    const { updated } = this.setStatusMany(userId, [...matched], status, socketId);
+    return { updated, places: placesWithMatch.size };
+  }
+
+  /**
+   * The saved copies of one trip place. Same signals findMembership uses — a
+   * provider id, or the same spot within the dedup tolerance — plus the
+   * source link a place saved out of this very trip already carries, which beats
+   * inferring anything. A bare name match is left out here for the same reason
+   * as there: every "Starbucks" in the library would answer to it.
+   */
+  private matchingCollectionPlaces(
+    collectionIds: number[],
+    tripId: number,
+    place: { id: number; lat: number | null; lng: number | null; google_place_id: string | null; google_ftid: string | null; osm_id: string | null },
+  ): Array<{ id: number }> {
+    const conditions: string[] = ['(cp.source_trip_id = ? AND cp.source_place_id = ?)'];
+    const params: (string | number)[] = [...collectionIds, tripId, place.id];
+    if (place.google_place_id) { conditions.push('cp.google_place_id = ?'); params.push(place.google_place_id); }
+    if (place.google_ftid) { conditions.push('cp.google_ftid = ?'); params.push(place.google_ftid); }
+    if (place.osm_id) { conditions.push('cp.osm_id = ?'); params.push(place.osm_id); }
+    if (place.lat != null && place.lng != null) {
+      conditions.push('(cp.lat IS NOT NULL AND cp.lng IS NOT NULL AND abs(cp.lat - ?) <= ? AND abs(cp.lng - ?) <= ?)');
+      params.push(place.lat, COORD_DEDUP_TOLERANCE, place.lng, COORD_DEDUP_TOLERANCE);
+    }
+    return this.db.all<{ id: number }>(`
+      SELECT cp.id FROM collection_places cp
+      WHERE cp.collection_id IN (${collectionIds.map(() => '?').join(',')}) AND (${conditions.join(' OR ')})
+    `, ...params);
+  }
+
   /** Set (or clear) a saved place's custom thumbnail, reclaiming the previous upload. */
   setPlaceImage(userId: number, placeId: number, imageUrl: string | null, socketId?: string): CollectionPlace {
     const collectionId = this.collectionIdOfPlace(placeId);
@@ -884,14 +987,26 @@ export class CollectionsService {
     }
     if (conditions.length === 0) return { saved: false, lists: [] };
 
-    const rows = this.db.all<{ place_id: number; collection_id: number; name: string }>(`
-    SELECT cp.id AS place_id, cp.collection_id, c.name
+    const rows = this.db.all<{ place_id: number; collection_id: number; name: string; status: CollectionStatus }>(`
+    SELECT cp.id AS place_id, cp.collection_id, c.name, cp.status
     FROM collection_places cp
     JOIN collections c ON c.id = cp.collection_id
     WHERE cp.collection_id IN (${placeholders}) AND (${conditions.join(' OR ')})
   `, ...params);
 
-    return { saved: rows.length > 0, lists: rows.map(r => ({ collection_id: r.collection_id, name: r.name, place_id: r.place_id })) };
+    return {
+      saved: rows.length > 0,
+      lists: rows.map(r => {
+        const role = this.roleOf(userId, r.collection_id);
+        return {
+          collection_id: r.collection_id,
+          name: r.name,
+          place_id: r.place_id,
+          status: r.status ?? 'idea',
+          can_edit: role !== null && role !== 'viewer',
+        };
+      }),
+    };
   }
 
   // -------------------------------------------------------------------------

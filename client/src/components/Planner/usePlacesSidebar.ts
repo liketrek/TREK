@@ -5,6 +5,7 @@ import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import { useContextMenu } from '../shared/ContextMenu'
 import { placesApi } from '../../api/client'
+import { collectionsApi } from '../../api/collections'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useAuthStore } from '../../store/authStore'
@@ -157,7 +158,31 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
   const [saveToListOpen, setSaveToListOpen] = useState(false)
 
+  const [markVisitedBusy, setMarkVisitedBusy] = useState(false)
+
   const exitSelectMode = () => { setSelectMode(false); setSelectedIds(new Set()) }
+
+  /**
+   * "I have been to these" for the selection, applied wherever the places are
+   * saved in the library (#1469). The server does the matching, so a place saved
+   * under a different name in a list is still found.
+   */
+  const markSelectionVisited = useCallback(async () => {
+    const ids = Array.from(selectedIds)
+    if (ids.length === 0 || markVisitedBusy) return
+    setMarkVisitedBusy(true)
+    try {
+      const { updated, places: matchedPlaces } = await collectionsApi.setStatusFromTrip(props.tripId, ids, 'visited')
+      if (updated === 0) toast.info(t('collections.markVisitedNone'))
+      else toast.success(t('collections.markedVisitedTrip', { count: matchedPlaces ?? 0 }))
+      exitSelectMode()
+    } catch {
+      toast.error(t('common.error'))
+    } finally {
+      setMarkVisitedBusy(false)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedIds, markVisitedBusy, props.tripId, t])
 
   // Auto-exit when all selected places have been removed from the store (e.g. after bulk delete)
   useEffect(() => {
@@ -275,6 +300,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     selectMode, setSelectMode, selectedIds, setSelectedIds, pendingDeleteIds, setPendingDeleteIds,
     categoryPickerOpen, setCategoryPickerOpen,
     saveToListOpen, setSaveToListOpen, collectionsEnabled, tripId,
+    markSelectionVisited, markVisitedBusy,
     exitSelectMode, toggleSelected, toggleCategoryFilter, dayPickerPlace, setDayPickerPlace,
     catDropOpen, setCatDropOpen, mobileShowDays, setMobileShowDays,
     hasTracks, plannedIds, filtered, registerPlaceRow, isAssignedToSelectedDay, inDaySet, openContextMenu,

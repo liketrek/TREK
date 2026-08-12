@@ -92,6 +92,13 @@ const collection: TranslationStrings = {
   'collections.status.visited': 'Visitat',
   'collections.status.filterAll': 'Tot',
   'collections.status.cycleHint': 'toca per canviar',
+
+  'collections.markVisited': 'Marca com a visitat',
+  'collections.markVisitedAll': 'Visitat pertot',
+  'collections.markVisitedSelection': 'Marca com a visitat a les teves llistes',
+  'collections.markVisitedNone': 'Cap d\'aquests llocs no és desat en cap llista',
+  'collections.markedVisited': 'Marcat com a visitat',
+  'collections.markedVisitedTrip': '{count} llocs marcats com a visitats',
   'collections.copyToTrip': 'Copiar al viatge',
   'collections.copyToTripTitle': 'Copiar al viatge',
   'collections.copyN': 'Copia {count} al viatge',

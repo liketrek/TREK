@@ -17,6 +17,7 @@ import type {
   CollectionInviteActionRequest,
   CollectionInviteCancelRequest,
   CollectionStatus,
+  CollectionSetStatusManyResponse,
   Collection,
   CollectionPlace,
   CollectionLabel,
@@ -77,6 +78,10 @@ export const collectionsApi = {
     postMultipart(`${base}/places/${pid}/image`, formData),
   setStatus: (pid: number, status: CollectionStatus): Promise<CollectionPlace> =>
     ax.post(`${base}/places/${pid}/status`, { status }).then((r: AxiosResponse) => r.data),
+  setStatusMany: (ids: number[], status: CollectionStatus): Promise<CollectionSetStatusManyResponse> =>
+    ax.post(`${base}/places/status-many`, { ids, status }).then((r: AxiosResponse) => r.data),
+  setStatusFromTrip: (tripId: number, placeIds: number[], status: CollectionStatus): Promise<CollectionSetStatusManyResponse> =>
+    ax.post(`${base}/places/status-from-trip`, { trip_id: tripId, place_ids: placeIds, status }).then((r: AxiosResponse) => r.data),
   ratePlace: (pid: number, rating: number | null): Promise<CollectionPlace> =>
     rating === null
       ? ax.delete(`${base}/places/${pid}/rating`).then((r: AxiosResponse) => r.data)

@@ -291,6 +291,41 @@ describe('Collections e2e (real auth guard + real service + temp SQLite)', () =>
     expect(imported.body.skipped.map((s: { name: string }) => s.name)).toEqual(['Musée Rodin']);
   });
 
+  // ── bulk visited (#1469) ─────────────────────────────────────────────────
+  it('COLLECTIONS-E2E-073: a trip selection can be marked visited in every list holding it', async () => {
+    const paris = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Paris' })).body;
+    const museums = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Museums' })).body;
+    const trip = createTrip(db as never, ownerId);
+    const louvre = createPlace(db as never, trip.id, { name: 'Louvre', lat: 48.8606, lng: 2.3376 });
+
+    for (const col of [paris, museums]) {
+      await request(server).post('/api/addons/collections/places/from-trip')
+        .set('Cookie', sessionCookie(ownerId)).send({ collection_id: col.id, source_trip_id: trip.id, source_place_id: louvre.id });
+    }
+
+    const res = await request(server).post('/api/addons/collections/places/status-from-trip')
+      .set('Cookie', sessionCookie(ownerId)).send({ trip_id: trip.id, place_ids: [louvre.id], status: 'visited' });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ updated: 2, places: 1 });
+
+    // …and the dialog's per-list view now says so.
+    const membership = await request(server).get('/api/addons/collections/membership')
+      .query({ lat: 48.8606, lng: 2.3376 }).set('Cookie', sessionCookie(ownerId));
+    expect(membership.body.lists.map((l: { status: string }) => l.status)).toEqual(['visited', 'visited']);
+  });
+
+  it('COLLECTIONS-E2E-074: status-many refuses a list the caller may only read', async () => {
+    const col = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Shared' })).body;
+    await request(server).post('/api/addons/collections/invite').set('Cookie', sessionCookie(ownerId)).send({ collection_id: col.id, user_id: otherId, role: 'viewer' });
+    await request(server).post('/api/addons/collections/invite/accept').set('Cookie', sessionCookie(otherId)).send({ collection_id: col.id });
+    const place = (await request(server).post('/api/addons/collections/places')
+      .set('Cookie', sessionCookie(ownerId)).send({ collection_id: col.id, name: 'Louvre' })).body.place;
+
+    const res = await request(server).post('/api/addons/collections/places/status-many')
+      .set('Cookie', sessionCookie(otherId)).send({ ids: [place.id], status: 'visited' });
+    expect(res.status).toBe(403);
+  });
+
   it('COLLECTIONS-E2E-072: a trip the caller cannot see is a 404, and so is a foreign list', async () => {
     const col = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Private' })).body;
     const foreignTrip = createTrip(db as never, otherId);

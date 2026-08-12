@@ -96,6 +96,13 @@ const collection: TranslationStrings = {
   'collections.status.filterAll': 'Все',
   'collections.status.cycleHint': 'нажмите, чтобы изменить',
 
+  'collections.markVisited': 'Отметить как посещённое',
+  'collections.markVisitedAll': 'Посещено везде',
+  'collections.markVisitedSelection': 'Отметить посещённым в списках',
+  'collections.markVisitedNone': 'Ни одно из этих мест не сохранено в списке',
+  'collections.markedVisited': 'Отмечено как посещённое',
+  'collections.markedVisitedTrip': 'Отмечено мест как посещённые: {count}',
+
   'collections.copyToTrip': 'Скопировать в поездку',
   'collections.copyToTripTitle': 'Скопировать в поездку',
   'collections.copyN': 'Скопировать {count} в поездку',

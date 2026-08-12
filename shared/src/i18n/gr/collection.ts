@@ -97,6 +97,13 @@ const collection: TranslationStrings = {
   'collections.status.filterAll': 'Όλα',
   'collections.status.cycleHint': 'πάτησε για αλλαγή',
 
+  'collections.markVisited': 'Σήμανση ως επισκεφθέν',
+  'collections.markVisitedAll': 'Επισκεφθέν παντού',
+  'collections.markVisitedSelection': 'Σήμανση ως επισκεφθέν στις λίστες σου',
+  'collections.markVisitedNone': 'Καμία από αυτές τις τοποθεσίες δεν είναι αποθηκευμένη σε λίστα',
+  'collections.markedVisited': 'Σημειώθηκε ως επισκεφθέν',
+  'collections.markedVisitedTrip': '{count} τοποθεσίες σημειώθηκαν ως επισκεφθείσες',
+
   'collections.copyToTrip': 'Αντιγραφή σε ταξίδι',
   'collections.copyToTripTitle': 'Αντιγραφή σε ταξίδι',
   'collections.copyN': 'Αντιγραφή {count} σε ταξίδι',

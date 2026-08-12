@@ -97,6 +97,13 @@ const collection: TranslationStrings = {
   'collections.status.filterAll': 'Tümü',
   'collections.status.cycleHint': 'değiştirmek için dokun',
 
+  'collections.markVisited': 'Ziyaret edildi işaretle',
+  'collections.markVisitedAll': 'Her yerde ziyaret edildi',
+  'collections.markVisitedSelection': 'Listelerinde ziyaret edildi olarak işaretle',
+  'collections.markVisitedNone': 'Bu yerlerin hiçbiri bir listede kayıtlı değil',
+  'collections.markedVisited': 'Ziyaret edildi olarak işaretlendi',
+  'collections.markedVisitedTrip': '{count} yer ziyaret edildi olarak işaretlendi',
+
   'collections.copyToTrip': 'Geziye kopyala',
   'collections.copyToTripTitle': 'Geziye kopyala',
   'collections.copyN': '{count} öğeyi geziye kopyala',

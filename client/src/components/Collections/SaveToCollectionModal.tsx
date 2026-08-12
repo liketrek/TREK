@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router'
-import { Bookmark, BookmarkCheck, Check, Loader2, Plus } from 'lucide-react'
+import { Bookmark, BookmarkCheck, Check, CheckCircle2, Loader2, Plus } from 'lucide-react'
 import Modal from '../shared/Modal'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { collectionsApi } from '../../api/collections'
+import StatusBadge from './StatusBadge'
 import { useSaveToCollectionStore } from '../../store/saveToCollectionStore'
 import { getApiErrorMessage } from '../../utils/apiError'
-import type { Collection, CollectionMembership } from '@trek/shared'
+import type { Collection, CollectionMembership, CollectionStatus } from '@trek/shared'
 
 /**
  * Globally-mounted list picker for the "Save to Collection" entry points
@@ -70,12 +71,44 @@ export default function SaveToCollectionModal(): React.ReactElement | null {
 
   if (!target) return null
 
-  const savedByCollection = new Map<number, number>()
-  for (const l of membership?.lists ?? []) savedByCollection.set(l.collection_id, l.place_id)
+  const savedByCollection = new Map<number, CollectionMembership['lists'][number]>()
+  for (const l of membership?.lists ?? []) savedByCollection.set(l.collection_id, l)
+
+  /** Lists holding this place that the viewer may edit and that are not visited yet. */
+  const unvisited = (membership?.lists ?? []).filter(l => l.can_edit && l.status !== 'visited')
+
+  const handleStatus = async (entry: CollectionMembership['lists'][number], next: CollectionStatus) => {
+    if (busyId != null) return
+    setBusyId(entry.collection_id)
+    try {
+      await collectionsApi.setStatus(entry.place_id, next)
+      await refreshMembership()
+      bumpVersion()
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('common.error')))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const handleVisitedEverywhere = async () => {
+    if (busyId != null || unvisited.length === 0) return
+    setBusyId(-1)
+    try {
+      const { updated } = await collectionsApi.setStatusMany(unvisited.map(l => l.place_id), 'visited')
+      toast.success(t('collections.markedVisited', { count: updated }))
+      await refreshMembership()
+      bumpVersion()
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('common.error')))
+    } finally {
+      setBusyId(null)
+    }
+  }
 
   const handleToggle = async (list: Collection) => {
     if (busyId != null) return
-    const savedPlaceId = savedByCollection.get(list.id)
+    const savedPlaceId = savedByCollection.get(list.id)?.place_id
     setBusyId(list.id)
     try {
       if (savedPlaceId != null) {
@@ -140,7 +173,23 @@ export default function SaveToCollectionModal(): React.ReactElement | null {
       }
     >
       <div className="flex flex-col gap-2">
-        <p className="text-[13px] font-semibold text-content truncate">{target.name}</p>
+        <div className="flex items-center gap-2 min-w-0">
+          <p className="flex-1 min-w-0 text-[13px] font-semibold text-content truncate">{target.name}</p>
+          {/* One tap for "I have been here", however many lists hold it (#1469). */}
+          {unvisited.length > 0 && (
+            <button
+              type="button"
+              onClick={handleVisitedEverywhere}
+              disabled={busyId != null}
+              className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-edge bg-surface-card text-[11px] font-semibold text-content-secondary hover:bg-surface-hover disabled:opacity-60"
+            >
+              {busyId === -1
+                ? <Loader2 size={12} className="animate-spin" />
+                : <CheckCircle2 size={12} strokeWidth={2.2} />}
+              {unvisited.length > 1 ? t('collections.markVisitedAll') : t('collections.markVisited')}
+            </button>
+          )}
+        </div>
         {loading ? (
           <div className="flex items-center justify-center py-8 text-content-faint">
             <Loader2 size={20} className="animate-spin" />
@@ -162,7 +211,8 @@ export default function SaveToCollectionModal(): React.ReactElement | null {
         ) : (
           <div className="flex flex-col gap-1 max-h-[50vh] overflow-y-auto -mx-1 px-1">
             {lists.map(list => {
-              const saved = savedByCollection.has(list.id)
+              const entry = savedByCollection.get(list.id)
+              const saved = !!entry
               const busy = busyId === list.id
               return (
                 <button
@@ -170,12 +220,23 @@ export default function SaveToCollectionModal(): React.ReactElement | null {
                   type="button"
                   onClick={() => handleToggle(list)}
                   disabled={busyId != null}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors disabled:opacity-60 ${saved ? 'border-accent bg-accent-subtle' : 'border-edge bg-surface-card hover:bg-surface-hover'}`}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-colors disabled:opacity-60 ${saved ? 'border-accent bg-accent-subtle' : 'border-edge bg-surface-card hover:bg-surface-hover'}`}
                 >
                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: list.color || 'var(--accent)' }} />
                   <span className="flex-1 min-w-0 text-[13px] font-medium text-content truncate">{list.name}</span>
                   {list.is_owner === false && (
                     <span className="text-[10px] uppercase font-semibold text-content-faint">{t('collections.shared')}</span>
+                  )}
+                  {/* Per-list status, so one place can be an idea in one list and
+                      visited in another. A role=button span, safe to nest here. */}
+                  {entry && (
+                    <StatusBadge
+                      status={entry.status}
+                      showLabel={false}
+                      size={12}
+                      onChange={entry.can_edit ? next => { void handleStatus(entry, next) } : undefined}
+                      t={t}
+                    />
                   )}
                   <span className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${saved ? 'bg-accent text-accent-text' : 'border border-edge text-transparent'}`}>
                     {busy ? <Loader2 size={13} className="animate-spin text-content-faint" /> : saved ? <BookmarkCheck size={13} /> : <Check size={13} />}

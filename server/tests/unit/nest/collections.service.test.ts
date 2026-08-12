@@ -853,3 +853,104 @@ describe('atomic bulk writes (post-fold quirk fixes)', () => {
     expect(broadcastToUser).toHaveBeenCalledWith(u.id, expect.objectContaining({ type: 'collections:updated' }), 'sock-2');
   });
 });
+
+// ── Bulk "visited" from a trip (#1469) ───────────────────────────────────────
+
+describe('bulk status', () => {
+  it('COLLECTIONS-SVC-093: setStatusMany writes one status across lists and counts only real changes', () => {
+    const u = createUser(testDb).user;
+    const a = svc.createCollection(u.id, { name: 'A' });
+    const b = svc.createCollection(u.id, { name: 'B' });
+    const pa = svc.savePlace(u.id, { collection_id: a.id, name: 'Louvre' }).place!;
+    const pb = svc.savePlace(u.id, { collection_id: b.id, name: 'Louvre' }).place!;
+    svc.setStatus(u.id, pb.id, 'visited');
+
+    // pb is already visited, so only pa is a change.
+    expect(svc.setStatusMany(u.id, [pa.id, pb.id], 'visited')).toEqual({ updated: 1 });
+    expect(svc.getPlaceById(pa.id).status).toBe('visited');
+    expect(svc.setStatusMany(u.id, [pa.id, pb.id], 'visited')).toEqual({ updated: 0 });
+  });
+
+  it('COLLECTIONS-SVC-094: setStatusMany is all-or-nothing — a read-only list stops the batch', () => {
+    const owner = createUser(testDb).user;
+    const viewer = createUser(testDb).user;
+    const mine = svc.createCollection(viewer.id, { name: 'Mine' });
+    const readonly = svc.createCollection(owner.id, { name: 'Shared' });
+    addMember(readonly.id, viewer.id, 'viewer');
+    const p1 = svc.savePlace(viewer.id, { collection_id: mine.id, name: 'Louvre' }).place!;
+    const p2 = svc.savePlace(owner.id, { collection_id: readonly.id, name: 'Louvre' }).place!;
+
+    expect(() => svc.setStatusMany(viewer.id, [p1.id, p2.id], 'visited')).toThrow('You have read-only access to this list');
+    expect(svc.getPlaceById(p1.id).status).toBe('idea');
+  });
+
+  it('COLLECTIONS-SVC-095: setStatusFromTrip marks every saved copy of the selected trip places', () => {
+    const u = createUser(testDb).user;
+    createCategory(testDb);
+    const trip = createTrip(testDb, u.id);
+    const louvre = createPlace(testDb, trip.id, { name: 'Louvre', lat: 48.8606, lng: 2.3376 });
+    const orsay = createPlace(testDb, trip.id, { name: 'Orsay', lat: 48.86, lng: 2.3266 });
+    const a = svc.createCollection(u.id, { name: 'Paris' });
+    const b = svc.createCollection(u.id, { name: 'Museums' });
+    svc.saveFromTripPlace(u.id, a.id, trip.id, louvre.id);
+    svc.saveFromTripPlace(u.id, b.id, trip.id, louvre.id);
+    svc.saveFromTripPlace(u.id, a.id, trip.id, orsay.id);
+
+    expect(svc.setStatusFromTrip(u.id, trip.id, [louvre.id], 'visited')).toEqual({ updated: 2, places: 1 });
+    const statuses = testDb.prepare('SELECT status FROM collection_places ORDER BY id').all() as { status: string }[];
+    expect(statuses.map(s => s.status)).toEqual(['visited', 'visited', 'idea']);
+  });
+
+  it('COLLECTIONS-SVC-096: a place renamed in the list is still found by its source link', () => {
+    const u = createUser(testDb).user;
+    createCategory(testDb);
+    const trip = createTrip(testDb, u.id);
+    const place = createPlace(testDb, trip.id, { name: 'Trattoria da Enzo', lat: 41.88, lng: 12.47 });
+    const col = svc.createCollection(u.id, { name: 'Rome' });
+    const saved = svc.saveFromTripPlace(u.id, col.id, trip.id, place.id).place!;
+    // Renamed on both sides, and moved far enough that coordinates cannot match.
+    svc.updatePlace(u.id, saved.id, { name: 'Dinner spot', lat: 45, lng: 9 });
+    testDb.prepare('UPDATE places SET name = ? WHERE id = ?').run('Enzo', place.id);
+
+    expect(svc.setStatusFromTrip(u.id, trip.id, [place.id], 'visited')).toEqual({ updated: 1, places: 1 });
+  });
+
+  it('COLLECTIONS-SVC-097: a trip the caller cannot see is a 404, and unsaved places are a no-op', () => {
+    const u = createUser(testDb).user;
+    const stranger = createUser(testDb).user;
+    createCategory(testDb);
+    const trip = createTrip(testDb, u.id);
+    const place = createPlace(testDb, trip.id, { name: 'Louvre' });
+
+    expect(() => svc.setStatusFromTrip(stranger.id, trip.id, [place.id], 'visited')).toThrow('Trip not found');
+    expect(svc.setStatusFromTrip(u.id, trip.id, [place.id], 'visited')).toEqual({ updated: 0, places: 0 });
+  });
+
+  it('COLLECTIONS-SVC-098: lists the caller may only read are skipped, not refused', () => {
+    const owner = createUser(testDb).user;
+    const viewer = createUser(testDb).user;
+    createCategory(testDb);
+    const trip = createTrip(testDb, viewer.id);
+    const place = createPlace(testDb, trip.id, { name: 'Louvre', lat: 48.8606, lng: 2.3376 });
+    const readonly = svc.createCollection(owner.id, { name: 'Shared' });
+    addMember(readonly.id, viewer.id, 'viewer');
+    const theirs = svc.savePlace(owner.id, { collection_id: readonly.id, name: 'Louvre', lat: 48.8606, lng: 2.3376 }).place!;
+
+    expect(svc.setStatusFromTrip(viewer.id, trip.id, [place.id], 'visited')).toEqual({ updated: 0, places: 0 });
+    expect(svc.getPlaceById(theirs.id).status).toBe('idea');
+  });
+
+  it('COLLECTIONS-SVC-099: findMembership reports the per-list status and edit right', () => {
+    const owner = createUser(testDb).user;
+    const viewer = createUser(testDb).user;
+    const readonly = svc.createCollection(owner.id, { name: 'Shared' });
+    addMember(readonly.id, viewer.id, 'viewer');
+    const saved = svc.savePlace(owner.id, { collection_id: readonly.id, name: 'Louvre', google_place_id: 'gp-9' }).place!;
+    svc.setStatus(owner.id, saved.id, 'visited');
+
+    expect(svc.findMembership(viewer.id, { google_place_id: 'gp-9' }).lists).toEqual([
+      { collection_id: readonly.id, name: 'Shared', place_id: saved.id, status: 'visited', can_edit: false },
+    ]);
+    expect(svc.findMembership(owner.id, { google_place_id: 'gp-9' }).lists[0].can_edit).toBe(true);
+  });
+});

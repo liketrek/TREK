@@ -98,6 +98,13 @@ const collection: TranslationStrings = {
   'collections.status.filterAll': 'Alle',
   'collections.status.cycleHint': 'tippen zum Ändern',
 
+  'collections.markVisited': 'Als besucht markieren',
+  'collections.markVisitedAll': 'Überall als besucht',
+  'collections.markVisitedSelection': 'In deinen Listen als besucht markieren',
+  'collections.markVisitedNone': 'Keiner dieser Orte ist in einer Liste gespeichert',
+  'collections.markedVisited': 'Als besucht markiert',
+  'collections.markedVisitedTrip': '{count} Orte als besucht markiert',
+
   'collections.copyToTrip': 'In Reise kopieren',
   'collections.copyToTripTitle': 'In Reise kopieren',
   'collections.copyN': '{count} in Reise kopieren',

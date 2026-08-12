@@ -96,6 +96,13 @@ const collection: TranslationStrings = {
   'collections.status.filterAll': '전체',
   'collections.status.cycleHint': '탭하여 변경',
 
+  'collections.markVisited': '방문함으로 표시',
+  'collections.markVisitedAll': '모든 목록에서 방문함',
+  'collections.markVisitedSelection': '내 목록에서 방문함으로 표시',
+  'collections.markVisitedNone': '이 장소들은 어떤 목록에도 저장되어 있지 않습니다',
+  'collections.markedVisited': '방문함으로 표시했습니다',
+  'collections.markedVisitedTrip': '장소 {count}곳을 방문함으로 표시했습니다',
+
   'collections.copyToTrip': '여행에 복사',
   'collections.copyToTripTitle': '여행에 복사',
   'collections.copyN': '{count}개를 여행에 복사',

@@ -96,6 +96,13 @@ const collection: TranslationStrings = {
   'collections.status.filterAll': 'Alla',
   'collections.status.cycleHint': 'tryck för att ändra',
 
+  'collections.markVisited': 'Markera som besökt',
+  'collections.markVisitedAll': 'Besökt överallt',
+  'collections.markVisitedSelection': 'Markera som besökt i dina listor',
+  'collections.markVisitedNone': 'Ingen av dessa platser finns i en lista',
+  'collections.markedVisited': 'Markerad som besökt',
+  'collections.markedVisitedTrip': '{count} platser markerade som besökta',
+
   'collections.copyToTrip': 'Kopiera till resa',
   'collections.copyToTripTitle': 'Kopiera till resa',
   'collections.copyN': 'Kopiera {count} till resa',

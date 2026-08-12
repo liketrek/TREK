@@ -97,6 +97,13 @@ const collection: TranslationStrings = {
   'collections.status.filterAll': 'Semua',
   'collections.status.cycleHint': 'ketuk untuk mengubah',
 
+  'collections.markVisited': 'Tandai dikunjungi',
+  'collections.markVisitedAll': 'Dikunjungi di semua',
+  'collections.markVisitedSelection': 'Tandai dikunjungi di daftar Anda',
+  'collections.markVisitedNone': 'Tidak ada tempat ini yang tersimpan di daftar',
+  'collections.markedVisited': 'Ditandai sebagai dikunjungi',
+  'collections.markedVisitedTrip': '{count} tempat ditandai sebagai dikunjungi',
+
   'collections.copyToTrip': 'Salin ke perjalanan',
   'collections.copyToTripTitle': 'Salin ke perjalanan',
   'collections.copyN': 'Salin {count} ke perjalanan',

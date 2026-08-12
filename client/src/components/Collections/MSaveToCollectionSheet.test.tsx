@@ -115,7 +115,7 @@ describe('MSaveToCollectionSheet', () => {
   it('FE-COMP-MSAVESHEET-006: lists already holding the place are marked saved', async () => {
     vi.spyOn(collectionsApi, 'membership').mockResolvedValue({
       saved: true,
-      lists: [{ collection_id: 1, name: 'Favorites', place_id: 900 }],
+      lists: [{ collection_id: 1, name: 'Favorites', place_id: 900, status: 'want', can_edit: true }],
     });
     openFor();
     render(<MSaveToCollectionSheet />);
@@ -167,7 +167,7 @@ describe('MSaveToCollectionSheet', () => {
   it('FE-COMP-MSAVESHEET-010: tapping a saved list removes that place instead', async () => {
     vi.spyOn(collectionsApi, 'membership').mockResolvedValue({
       saved: true,
-      lists: [{ collection_id: 1, name: 'Favorites', place_id: 900 }],
+      lists: [{ collection_id: 1, name: 'Favorites', place_id: 900, status: 'want', can_edit: true }],
     });
     const del = vi.spyOn(collectionsApi, 'deletePlace').mockResolvedValue({});
     openFor();

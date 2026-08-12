@@ -97,6 +97,13 @@ const collection: TranslationStrings = {
   'collections.status.filterAll': 'Tất cả',
   'collections.status.cycleHint': 'chạm để thay đổi',
 
+  'collections.markVisited': 'Đánh dấu đã đến',
+  'collections.markVisitedAll': 'Đã đến ở mọi danh sách',
+  'collections.markVisitedSelection': 'Đánh dấu đã đến trong danh sách của bạn',
+  'collections.markVisitedNone': 'Không có địa điểm nào trong số này được lưu vào danh sách',
+  'collections.markedVisited': 'Đã đánh dấu là đã đến',
+  'collections.markedVisitedTrip': 'Đã đánh dấu {count} địa điểm là đã đến',
+
   'collections.copyToTrip': 'Sao chép vào chuyến đi',
   'collections.copyToTripTitle': 'Sao chép vào chuyến đi',
   'collections.copyN': 'Sao chép {count} vào chuyến đi',

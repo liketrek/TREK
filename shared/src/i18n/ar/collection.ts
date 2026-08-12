@@ -97,6 +97,13 @@ const collection: TranslationStrings = {
   'collections.status.filterAll': 'الكل',
   'collections.status.cycleHint': 'انقر للتغيير',
 
+  'collections.markVisited': 'وضع علامة كمَزار',
+  'collections.markVisitedAll': 'مَزار في كل القوائم',
+  'collections.markVisitedSelection': 'وضع علامة كمَزار في قوائمك',
+  'collections.markVisitedNone': 'لا يوجد أي من هذه الأماكن في أي قائمة',
+  'collections.markedVisited': 'تم وضع علامة كمَزار',
+  'collections.markedVisitedTrip': 'تم وضع علامة على {count} مكان كمَزار',
+
   'collections.copyToTrip': 'نسخ إلى رحلة',
   'collections.copyToTripTitle': 'نسخ إلى رحلة',
   'collections.copyN': 'نسخ {count} إلى رحلة',
