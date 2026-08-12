@@ -476,6 +476,14 @@ The Atlas map's country and sub-national (province/county) boundaries come from
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). See [NOTICE.md](NOTICE.md)
 for full third-party attributions.
 
+## Fork maintenance
+
+Maintainers of `syyangv/TREK` should use the
+[fork customization checklist](docs/FORK_CUSTOMIZATIONS.md) and the
+[upstream synchronization workflow](docs/UPSTREAM_SYNC_WORKFLOW.md) when
+integrating upstream releases. These documents define the fork behaviors that
+must survive updates and the protected release/deployment procedure.
+
 ## License
 
 TREK is [AGPL v3](LICENSE). Self-host freely for personal or internal company use. If you modify and offer TREK as a network service to third parties, your modifications must be open-sourced under the same licence.
