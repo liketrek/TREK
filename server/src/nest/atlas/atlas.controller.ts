@@ -14,7 +14,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import type { RegionGeo } from '@trek/shared';
+import type { AtlasLocateResponse, RegionGeo } from '@trek/shared';
 import type { User } from '../../types';
 import { AtlasService } from './atlas.service';
 import { AtlasMarkRegionDto, AtlasCreateBucketItemDto, AtlasUpdateBucketItemDto } from './atlas.dto';
@@ -49,6 +49,24 @@ export class AtlasController {
   @Header('Cache-Control', 'no-cache, no-store')
   regions(@CurrentUser() user: User) {
     return this.atlas.visitedRegions(user.id);
+  }
+
+  /**
+   * Which country and admin1 region a coordinate falls in (#1115). The Atlas search
+   * used to know country names only, so finding Milan meant knowing it is in Lombardy
+   * first. The client geocodes the term through /maps/search as everywhere else and
+   * sends the winning coordinate here; resolution runs against the same bundled
+   * polygons the visited-region colouring uses, so the answer is always a feature the
+   * map can actually highlight.
+   */
+  @Get('locate')
+  async locate(@Query('lat') lat: string, @Query('lng') lng: string): Promise<AtlasLocateResponse> {
+    const latNum = Number(lat);
+    const lngNum = Number(lng);
+    if (!Number.isFinite(latNum) || !Number.isFinite(lngNum) || Math.abs(latNum) > 90 || Math.abs(lngNum) > 180) {
+      throw new HttpException({ error: 'Valid lat and lng are required' }, 400);
+    }
+    return this.atlas.locate(latNum, lngNum);
   }
 
   @Get('regions/geo')

@@ -1,16 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { CONTINENT_MAP, strongerVisitStatus, todayUtc, tripVisitStatus, VisitStatus } from '@trek/shared';
+import type { AtlasLocateResponse } from '@trek/shared';
 import { Trip, Place } from '../../types';
 import { DatabaseService } from '../database/database.service';
 import {
   getCountryFromCoords,
   getCountryGeoGz,
+  getRegionFromCoords,
   getRegionGeo,
   geocodingInFlight,
   resolveCountryCodeSync,
   reverseGeocodeRegion,
 } from './atlas-geo';
 import { KNOWN_COUNTRIES } from './known-countries';
+import { cityFromAddress } from './city-from-address';
 import { haversineKm } from '../common/geo';
 
 export type CreateBucketData = {
@@ -705,6 +708,26 @@ export class AtlasService {
 
   // ── Region GeoJSON / country geometry (delegates to the atlas-geo module) ──
 
+  /**
+   * Resolve a coordinate to the country and admin1 region the map draws (#1115), so
+   * searching for a city can highlight the region it sits in without the user knowing
+   * which one that is. Reads the same bundled polygons as the visited-region colouring,
+   * so the answer is always a feature the client can highlight. A country with no admin1
+   * coverage in the bundle resolves to a country and a null region, which is a real
+   * answer rather than a failure: zooming to the country is still what the user wanted.
+   */
+  async locate(lat: number, lng: number): Promise<AtlasLocateResponse> {
+    const countryCode = getCountryFromCoords(lat, lng);
+    if (!countryCode) return { country_code: null, region_code: null, region_name: null };
+
+    const region = await getRegionFromCoords(countryCode, lat, lng);
+    return {
+      country_code: countryCode.toUpperCase(),
+      region_code: region?.region_code ?? null,
+      region_name: region?.region_name ?? null,
+    };
+  }
+
   regionGeo(countries: string[]) {
     return getRegionGeo(countries);
   }
@@ -796,11 +819,14 @@ export class AtlasService {
   // ---------------------------------------------------------------------------
 
   getTravelStats(userId: number) {
-    const places = this.db.all<{ address: string | null; lat: number | null; lng: number | null }>(`
-    SELECT DISTINCT p.address, p.lat, p.lng
+    // The resolved region rides along so cityFromAddress can tell the city apart from
+    // the region sitting right above it in the same address (#1115).
+    const places = this.db.all<{ address: string | null; lat: number | null; lng: number | null; region_name: string | null }>(`
+    SELECT DISTINCT p.address, p.lat, p.lng, pr.region_name
     FROM places p
     JOIN trips t ON p.trip_id = t.id
     LEFT JOIN trip_members tm ON t.id = tm.trip_id
+    LEFT JOIN place_regions pr ON pr.place_id = p.id
     WHERE t.user_id = ? OR tm.user_id = ?
   `, userId, userId);
 
@@ -823,11 +849,8 @@ export class AtlasService {
       // Explicit null checks: lat/lng of exactly 0 (equator / prime meridian)
       // are valid coordinates the former falsy check silently dropped.
       if (p.lat != null && p.lng != null) coords.push({ lat: p.lat, lng: p.lng });
-      if (p.address) {
-        const parts = p.address.split(',').map(s => s.trim().replace(/\d{3,}/g, '').trim());
-        const cityPart = parts.find(s => !KNOWN_COUNTRIES.has(s) && /^[A-Za-z\u00C0-\u00FF\s-]{2,}$/.test(s));
-        if (cityPart) cities.add(cityPart);
-      }
+      const cityPart = cityFromAddress(p.address, part => KNOWN_COUNTRIES.has(part), p.region_name);
+      if (cityPart) cities.add(cityPart);
     });
 
     // Visited countries \u2014 same source the Atlas page uses: ISO-2 codes from

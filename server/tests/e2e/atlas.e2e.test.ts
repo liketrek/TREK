@@ -184,4 +184,38 @@ describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
     expect(jp.status).toBe(200);
     expect(jp.body.status).toBe('planned');
   });
+  // ── /locate (#1115) ────────────────────────────────────────────────────────
+  describe('GET locate', () => {
+    it('resolves a coordinate to the country and the region the map can highlight', async () => {
+      // Rome. Italy has admin1 coverage in the bundle, so both come back.
+      const res = await request(server)
+        .get('/api/addons/atlas/locate?lat=41.9028&lng=12.4964')
+        .set('Cookie', sessionCookie(userId));
+
+      expect(res.status).toBe(200);
+      expect(res.body.country_code).toBe('IT');
+      expect(typeof res.body.region_code === 'string' || res.body.region_code === null).toBe(true);
+    });
+
+    it('answers with nulls out at sea rather than failing', async () => {
+      const res = await request(server)
+        .get('/api/addons/atlas/locate?lat=0&lng=-140')
+        .set('Cookie', sessionCookie(userId));
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ country_code: null, region_code: null, region_name: null });
+    });
+
+    it('rejects a missing or out-of-range coordinate', async () => {
+      for (const query of ['', '?lat=41.9', '?lat=abc&lng=12.5', '?lat=91&lng=12.5', '?lat=41.9&lng=181']) {
+        const res = await request(server).get(`/api/addons/atlas/locate${query}`).set('Cookie', sessionCookie(userId));
+        expect(res.status).toBe(400);
+        expect(res.body).toEqual({ error: 'Valid lat and lng are required' });
+      }
+    });
+
+    it('needs a session like every other atlas route', async () => {
+      expect((await request(server).get('/api/addons/atlas/locate?lat=41.9&lng=12.5')).status).toBe(401);
+    });
+  });
 });

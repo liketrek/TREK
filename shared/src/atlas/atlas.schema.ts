@@ -57,6 +57,19 @@ export const regionGeoSchema = z.object({
 export type RegionGeo = z.infer<typeof regionGeoSchema>;
 
 /**
+ * Where a coordinate lands on the atlas map (#1115). Both fields are nullable: the
+ * point may sit outside every bundled polygon (open sea, a simplification gap at a
+ * coastline), and plenty of countries have no admin1 coverage in the bundle at all,
+ * in which case the country resolves and the region does not.
+ */
+export const atlasLocateResponseSchema = z.object({
+  country_code: z.string().nullable(),
+  region_code: z.string().nullable(),
+  region_name: z.string().nullable(),
+});
+export type AtlasLocateResponse = z.infer<typeof atlasLocateResponseSchema>;
+
+/**
  * How a country/region ended up on the atlas map. Before this, every trip counted as a
  * visit, so a booked-but-not-taken trip painted the map as if you had already been there.
  * Requested in discussion #1048 — note that's a discussion, not an issue:
