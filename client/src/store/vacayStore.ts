@@ -141,6 +141,17 @@ interface VacayState {
   loadAll: () => Promise<void>
 }
 
+/**
+ * Prefer the current calendar year when it is configured. If it is absent,
+ * fall back to the nearest past year, or the earliest future year.
+ */
+export function defaultVacayYear(years: number[], currentYear = new Date().getFullYear()): number {
+  if (years.includes(currentYear)) return currentYear
+  const sorted = [...years].sort((a, b) => a - b)
+  const pastYears = sorted.filter((year) => year < currentYear)
+  return pastYears[pastYears.length - 1] ?? sorted[0] ?? currentYear
+}
+
 export const useVacayStore = create<VacayState>((set, get) => ({
   plan: null,
   users: [],
@@ -213,10 +224,10 @@ export const useVacayStore = create<VacayState>((set, get) => ({
 
   loadYears: async () => {
     const data = await api.getYears()
-    set({ years: data.years })
-    if (data.years.length > 0) {
-      set({ selectedYear: data.years[data.years.length - 1] })
-    }
+    set({
+      years: data.years,
+      selectedYear: defaultVacayYear(data.years),
+    })
   },
 
   addYear: async (year: number) => {
