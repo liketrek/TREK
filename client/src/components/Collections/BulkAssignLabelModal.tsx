@@ -39,7 +39,7 @@ export default function BulkAssignLabelModal({ isOpen, labels, count, onAssign, 
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t('collections.labels.assignN', { count })} size="sm">
+    <Modal isOpen={isOpen} onClose={onClose} title={t('collections.labels.assignN', { count })} size="lg">
       {labels.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-6 text-center">
           <Tags size={26} className="text-content-faint" />
@@ -67,18 +67,20 @@ export default function BulkAssignLabelModal({ isOpen, labels, count, onAssign, 
               )
             })}
           </div>
+          {/* nowrap on all three: the labels are long in several locales and used to
+              wrap into two lines inside the buttons before the dialog got wider. */}
           <div className="flex justify-end gap-2 pt-2 border-t border-edge">
-            <button type="button" onClick={onManage} className="mr-auto flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] text-content-secondary hover:bg-surface-hover">
+            <button type="button" onClick={onManage} className="mr-auto flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] text-content-secondary whitespace-nowrap hover:bg-surface-hover">
               <Settings2 size={14} /> {t('collections.labels.manage')}
             </button>
-            <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg border border-edge text-content-secondary text-[13px] hover:bg-surface-hover">
+            <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg border border-edge text-content-secondary text-[13px] whitespace-nowrap hover:bg-surface-hover">
               {t('common.cancel')}
             </button>
             <button
               type="button"
               onClick={assign}
               disabled={picked.length === 0 || busy}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-accent text-white text-[13px] font-semibold hover:opacity-90 disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-accent text-accent-text text-[13px] font-semibold whitespace-nowrap hover:opacity-90 disabled:opacity-50"
             >
               {busy ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} {t('collections.labels.assign')}
             </button>
