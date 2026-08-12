@@ -1303,6 +1303,17 @@ describe('M7 — Cookie-only auth on privileged OAuth endpoints', () => {
 });
 
 describe('C3 — Refresh token replay detection', () => {
+    /**
+     * Push a rotation out of the concurrency grace window (#1007) so a replay
+     * below still describes theft — a token used minutes later — rather than two
+     * clients refreshing at the same moment.
+     */
+    function agePastGrace(rawRefreshToken: string) {
+        const hash = crypto.createHash('sha256').update(rawRefreshToken).digest('hex');
+        const old = new Date(Date.now() - 5 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19);
+        testDb.prepare('UPDATE oauth_tokens SET revoked_at = ? WHERE refresh_token_hash = ?').run(old, hash);
+    }
+
     it('OAUTH-SEC-012 — replaying a rotated (old) refresh token returns invalid_grant', async () => {
         const { user } = createUser(testDb);
         const r = createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
@@ -1340,6 +1351,7 @@ describe('C3 — Refresh token replay detection', () => {
         expect(t2.status).toBe(200);
 
         // Replay the original (now rotated/revoked) refresh token — must be rejected
+        agePastGrace(originalRefreshToken);
         const t3 = await request(app).post('/oauth/token').send({
             grant_type: 'refresh_token',
             client_id: r.client!.client_id,
@@ -1348,6 +1360,46 @@ describe('C3 — Refresh token replay detection', () => {
         });
         expect(t3.status).toBe(400);
         expect(t3.body.error).toBe('invalid_grant');
+    });
+
+    it('OAUTH-SEC-012b — two clients refreshing the same token at once both keep working (#1007)', async () => {
+        const { user } = createUser(testDb);
+        const r = createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
+        const { verifier, challenge } = makePkce();
+
+        const code = createAuthCode({
+            clientId: r.client!.client_id as string,
+            userId: user.id,
+            redirectUri: 'https://app.example.com/cb',
+            scopes: ['trips:read'],
+            codeChallenge: challenge,
+            codeChallengeMethod: 'S256',
+            resource: null,
+        });
+        const t1 = await request(app).post('/oauth/token').send({
+            grant_type: 'authorization_code',
+            client_id: r.client!.client_id,
+            client_secret: r.client!.client_secret,
+            code,
+            redirect_uri: 'https://app.example.com/cb',
+            code_verifier: verifier,
+        });
+        const shared = t1.body.refresh_token;
+
+        const refresh = () => request(app).post('/oauth/token').send({
+            grant_type: 'refresh_token',
+            client_id: r.client!.client_id,
+            client_secret: r.client!.client_secret,
+            refresh_token: shared,
+        });
+
+        // The second MCP session posts the token its sibling has just spent.
+        const first = await refresh();
+        const second = await refresh();
+
+        expect(first.status).toBe(200);
+        expect(second.status).toBe(200);
+        expect(second.body.refresh_token).not.toBe(first.body.refresh_token);
     });
 
     it('OAUTH-SEC-013 — replaying old token also invalidates the new chain', async () => {
@@ -1385,6 +1437,7 @@ describe('C3 — Refresh token replay detection', () => {
         const newRefreshToken = t2.body.refresh_token;
 
         // Replay original — triggers chain revocation
+        agePastGrace(originalRefreshToken);
         await request(app).post('/oauth/token').send({
             grant_type: 'refresh_token',
             client_id: r.client!.client_id,

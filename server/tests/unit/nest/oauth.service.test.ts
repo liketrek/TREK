@@ -812,6 +812,17 @@ describe('getUserByAccessToken — includes clientId (C2)', () => {
 // C3 — Refresh token replay detection and chain revocation
 // ---------------------------------------------------------------------------
 
+/**
+ * Push a token's rotation out of the concurrency grace window (#1007), so the
+ * replay cases below still describe theft — a token used minutes later — rather
+ * than two clients racing.
+ */
+function agePastGrace(rawRefreshToken: string) {
+  const hash = crypto.createHash('sha256').update(rawRefreshToken).digest('hex');
+  const old = new Date(Date.now() - 5 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19);
+  testDb.prepare('UPDATE oauth_tokens SET revoked_at = ? WHERE refresh_token_hash = ?').run(old, hash);
+}
+
 describe('refreshTokens — replay detection (C3)', () => {
   it('replaying a revoked refresh token returns invalid_grant', () => {
     const { user } = createUser(testDb);
@@ -825,7 +836,9 @@ describe('refreshTokens — replay detection (C3)', () => {
     expect(rotateResult.error).toBeUndefined();
     const { refresh_token: secondRefresh } = rotateResult.tokens!;
 
-    // Replay the FIRST (now revoked) refresh token
+    // Replay the FIRST (now revoked) refresh token, long enough after the
+    // rotation that it cannot be a concurrent refresh.
+    agePastGrace(firstRefresh);
     const callsBefore = vi.mocked(revokeUserSessionsForClient).mock.calls.length;
     const replayResult = refreshTokens(firstRefresh, clientId, rawSecret);
     expect(replayResult.error).toBe('invalid_grant');
@@ -847,6 +860,7 @@ describe('refreshTokens — replay detection (C3)', () => {
     const { access_token: access2, refresh_token: second } = r1.tokens!;
 
     // Replay first (revoked) refresh token → chain revoke
+    agePastGrace(first);
     refreshTokens(first, clientId, rawSecret);
 
     // The rotated access token should also be dead now
@@ -873,11 +887,93 @@ describe('refreshTokens — replay detection (C3)', () => {
     const { refresh_token: third } = r2.tokens!;
 
     // Replay the first revoked token → revokes chain containing first+second+third
+    agePastGrace(first);
     refreshTokens(first, clientId, rawSecret);
 
     // third should now be revoked too (it's in the same chain)
     const r3 = refreshTokens(third, clientId, rawSecret);
     expect(r3.error).toBe('invalid_grant');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// #1007 — Concurrent rotation is not a replay
+// ---------------------------------------------------------------------------
+
+describe('refreshTokens — concurrent rotation grace (#1007)', () => {
+  const setup = () => {
+    const { user } = createUser(testDb);
+    const created = makeClient(user.id);
+    return {
+      user,
+      clientId: created.client!.client_id as string,
+      rawSecret: created.client!.client_secret as string,
+    };
+  };
+
+  it('OAUTH-GRACE-001: two clients refreshing the same token both get tokens', () => {
+    const { user, clientId, rawSecret } = setup();
+    const { refresh_token: shared } = issueTokens(clientId, user.id, ['trips:read']);
+
+    const first = refreshTokens(shared, clientId, rawSecret);
+    const callsBefore = vi.mocked(revokeUserSessionsForClient).mock.calls.length;
+    const second = refreshTokens(shared, clientId, rawSecret);
+
+    expect(first.error).toBeUndefined();
+    expect(second.error).toBeUndefined();
+    expect(second.tokens!.refresh_token).not.toBe(first.tokens!.refresh_token);
+    // The whole point: no chain revocation, no torn-down MCP sessions, no login window.
+    expect(vi.mocked(revokeUserSessionsForClient).mock.calls.length).toBe(callsBefore);
+    expect(getUserByAccessToken(first.tokens!.access_token)).not.toBeNull();
+    expect(getUserByAccessToken(second.tokens!.access_token)).not.toBeNull();
+  });
+
+  it('OAUTH-GRACE-002: both successors keep working afterwards', () => {
+    const { user, clientId, rawSecret } = setup();
+    const { refresh_token: shared } = issueTokens(clientId, user.id, ['trips:read']);
+    const a = refreshTokens(shared, clientId, rawSecret).tokens!;
+    const b = refreshTokens(shared, clientId, rawSecret).tokens!;
+
+    expect(refreshTokens(a.refresh_token, clientId, rawSecret).error).toBeUndefined();
+    expect(refreshTokens(b.refresh_token, clientId, rawSecret).error).toBeUndefined();
+  });
+
+  it('OAUTH-GRACE-003: the same token replayed after the window is still theft', () => {
+    const { user, clientId, rawSecret } = setup();
+    const { refresh_token: shared } = issueTokens(clientId, user.id, ['trips:read']);
+    const rotated = refreshTokens(shared, clientId, rawSecret).tokens!;
+
+    agePastGrace(shared);
+    const replay = refreshTokens(shared, clientId, rawSecret);
+
+    expect(replay.error).toBe('invalid_grant');
+    expect(refreshTokens(rotated.refresh_token, clientId, rawSecret).error).toBe('invalid_grant');
+  });
+
+  it('OAUTH-GRACE-004: a token revoked by logout is not re-opened by the window', () => {
+    const { user, clientId, rawSecret } = setup();
+    const { refresh_token: shared } = issueTokens(clientId, user.id, ['trips:read']);
+
+    // Explicit revocation leaves no successor, so there is nothing to be
+    // concurrent with — the grace must not resurrect it.
+    revokeToken(shared, clientId, user.id);
+    const result = refreshTokens(shared, clientId, rawSecret);
+
+    expect(result.error).toBe('invalid_grant');
+  });
+
+  it('OAUTH-GRACE-005: a chain killed by a real replay stays dead inside the window', () => {
+    const { user, clientId, rawSecret } = setup();
+    const { refresh_token: first } = issueTokens(clientId, user.id, ['trips:read']);
+    const second = refreshTokens(first, clientId, rawSecret).tokens!;
+
+    // Real theft: the first token turns up again once the window has passed.
+    agePastGrace(first);
+    expect(refreshTokens(first, clientId, rawSecret).error).toBe('invalid_grant');
+
+    // The successor was revoked with the chain, so presenting it now must not
+    // find a live child and slip through as "concurrent".
+    expect(refreshTokens(second.refresh_token, clientId, rawSecret).error).toBe('invalid_grant');
   });
 });
 

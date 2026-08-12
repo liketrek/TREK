@@ -18,10 +18,12 @@ import {
   ACCESS_TOKEN_TTL_S,
   CODE_CHALLENGE_RE,
   CODE_VERIFIER_RE,
+  REFRESH_ROTATION_GRACE_MS,
   REFRESH_TOKEN_TTL_MS,
   generateAccessToken,
   generateRefreshToken,
   hashToken,
+  parseSqliteUtc,
   timingSafeEqualHex,
   type OAuthClientRow,
   type OAuthTokenRow,
@@ -422,6 +424,27 @@ export class OauthService {
     return ids;
   }
 
+  /**
+   * True when a revoked refresh token is the loser of a concurrent rotation
+   * rather than a replayed one.
+   *
+   * Two conditions, and both matter. The revocation has to be recent, and it has
+   * to have produced a successor that is still alive. The second one is what
+   * keeps the window from re-opening a session someone deliberately closed: an
+   * explicit revoke leaves no live child, and a chain revoked after a real replay
+   * has every child revoked with it, so neither can slip through here.
+   */
+  private isConcurrentRotation(row: OAuthTokenRow): boolean {
+    const revokedAt = parseSqliteUtc(row.revoked_at);
+    if (!revokedAt) return false;
+    if (Date.now() - revokedAt.getTime() > REFRESH_ROTATION_GRACE_MS) return false;
+    const successor = this.db.get<{ id: number }>(
+      'SELECT id FROM oauth_tokens WHERE parent_token_id = ? AND revoked_at IS NULL LIMIT 1',
+      row.id,
+    );
+    return !!successor;
+  }
+
   refreshTokens(
     rawRefreshToken: string,
     clientId: string,
@@ -447,6 +470,22 @@ export class OauthService {
 
     // ---- Replay detection (C3) ----
     if (row.revoked_at) {
+      // …unless the rotation that revoked it happened seconds ago and produced a
+      // successor that is still alive. That is two clients refreshing at once,
+      // not theft (#1007): they share one token, both post it, and the loser used
+      // to take the whole chain down with it. Issue a sibling pair off the same
+      // parent so each client walks away with its own token.
+      if (this.isConcurrentRotation(row)) {
+        const tokens = this.issueTokens(clientId, row.user_id, JSON.parse(row.scopes), row.id, row.audience ?? null);
+        this.audit.writeAudit({
+          userId: row.user_id,
+          action: 'oauth.token.refresh',
+          details: { client_id: clientId, concurrent: true },
+          ip,
+        });
+        return { tokens };
+      }
+
       // A revoked refresh token was replayed — assume token theft. Cascade-revoke the chain.
       const rootId = this.findChainRoot(row.id);
       this.revokeChain(rootId);
