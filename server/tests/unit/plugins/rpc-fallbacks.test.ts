@@ -107,7 +107,7 @@ describe('optional fields fall back rather than reaching the service as undefine
 describe('a service that says no becomes a refusal, not a crash', () => {
   it('FALLBACK-006 a place that will not delete is refused', async () => {
     const { guards } = guardsFor();
-    const places = { get: vi.fn(() => ({ id: 7 })), remove: vi.fn(() => false), create: vi.fn(), update: vi.fn() } as never;
+    const places = { get: vi.fn(() => ({ id: 7 })), remove: vi.fn(() => false), create: vi.fn(), update: vi.fn(), linkedExpenseIds: vi.fn(() => []) } as never;
     const journey = { onPlaceDeleted: vi.fn(), onPlaceCreated: vi.fn(), onPlaceUpdated: vi.fn() } as never;
     const host = new PluginRpcHost('p', ALL, makeDeps(), createTestPluginRegistry([new PlacesRpc(places, journey, realtime(), guards)]));
     expect(err(await host.dispatch(req('places.delete', { tripId: 1, placeId: 7 }), 42)).message).toBe('no place 7 on trip 1');

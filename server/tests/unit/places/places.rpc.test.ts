@@ -37,6 +37,7 @@ function build(opts: { canEdit?: boolean; journeyThrows?: boolean } = {}) {
     update: vi.fn((_t: string, id: string) => (id === '7' ? { id: 7, name: 'updated' } : null)),
     get: vi.fn((_t: string, id: string) => (id === '7' ? { id: 7 } : undefined)),
     remove: vi.fn((_t: string, id: string) => id === '7'),
+    linkedExpenseIds: vi.fn(() => []),
   };
   const journey = {
     onPlaceCreated: vi.fn(() => { if (opts.journeyThrows) throw new Error('journey down'); }),
