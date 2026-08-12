@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Search, X, ChevronRight, MapPin, Loader2 } from 'lucide-react'
 import type { TranslationFn } from '../../types'
 import type { AtlasPlaceHit } from './atlasModel'
@@ -31,12 +31,28 @@ export default function AtlasCountrySearch({
   dark, t, search, setSearch, results, setResults, open, setOpen, options, onSelect,
   placeResults, placesLoading, onQueryChange, onSelectPlace,
 }: AtlasCountrySearchProps): React.ReactElement {
+  const boxRef = useRef<HTMLDivElement>(null)
+
+  // Close on a click outside rather than on mouseleave. Leaving the box used to
+  // close it, which was survivable while the list was only local countries and
+  // appeared complete in one go. Geocoded places arrive a moment later and make
+  // the list grow under a cursor that is already resting there, so the panel
+  // closed by itself seconds after opening.
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => {
+      if (!boxRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open, setOpen])
+
   return (
     <div
       className="absolute z-20 flex justify-center"
       style={{ top: 'calc(env(safe-area-inset-top, 0px) + 14px)', left: 0, right: 0, pointerEvents: 'none' }}
     >
-      <div style={{ width: 'min(520px, calc(100vw - 28px))', pointerEvents: 'auto' }}>
+      <div ref={boxRef} style={{ width: 'min(520px, calc(100vw - 28px))', pointerEvents: 'auto' }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -124,7 +140,6 @@ export default function AtlasCountrySearch({
               WebkitBackdropFilter: 'blur(18px) saturate(180%)',
               boxShadow: dark ? '0 12px 30px rgba(0,0,0,0.35)' : '0 12px 30px rgba(0,0,0,0.12)',
             }}
-            onMouseLeave={() => setOpen(false)}
           >
             {results.map((r) => (
               <button
