@@ -421,6 +421,20 @@ export class JourneyController {
     return { entries };
   }
 
+  /**
+   * The GPX tracks drawn on this journey's map (#1260). Read-only and derived: the
+   * geometries belong to the trips the entries came from, so uploading a GPX in the
+   * planner is all it takes for it to show up here.
+   */
+  @Get(':id/tracks')
+  listTracks(@CurrentUser() user: User, @Param('id') id: string) {
+    const tracks = this.journey.journeyTracks(Number(id), user.id);
+    if (!tracks) {
+      throw new HttpException({ error: 'Journey not found' }, 404);
+    }
+    return { tracks };
+  }
+
   @Post(':id/entries')
   createEntry(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyEntryCreateDto, @Headers('x-socket-id') socketId?: string) {
     if (!body.entry_date) {

@@ -2009,3 +2009,73 @@ describe('entry enrichment', () => {
     expect((entry as any).source_trip_name).toBeNull();
   });
 });
+
+// ── GPX tracks on the journey map (#1260) ─────────────────────────────────────
+describe('journeyTracks', () => {
+  /** A GPX import stores the geometry on the place, as JSON [lat, lng] pairs. */
+  const withGeometry = (placeId: number, geometry: unknown, color: string | null = null) =>
+    testDb
+      .prepare('UPDATE places SET route_geometry = ?, route_color = ? WHERE id = ?')
+      .run(typeof geometry === 'string' ? geometry : JSON.stringify(geometry), color, placeId);
+
+  it('JOURNEY-SVC-TRACKS-001: returns the tracks of the trips the entries came from', () => {
+    const { user } = createUser(testDb);
+    const { trip, place } = tripWithPlace(user.id);
+    withGeometry(place.id, [[35.1, 135.7], [35.2, 135.8]], '#ff0000');
+    const journey = svc.createJourney(user.id, { title: 'J', trip_ids: [trip.id] });
+
+    const tracks = svc.journeyTracks(journey.id, user.id)!;
+    expect(tracks).toHaveLength(1);
+    expect(tracks[0]).toMatchObject({ place_id: place.id, trip_id: trip.id, color: '#ff0000' });
+    expect(tracks[0].points).toEqual([[35.1, 135.7], [35.2, 135.8]]);
+  });
+
+  it('JOURNEY-SVC-TRACKS-002: keeps the elevation out and the pair in', () => {
+    const { user } = createUser(testDb);
+    const { trip, place } = tripWithPlace(user.id);
+    // The importer keeps elevation as a third value where the file had it.
+    withGeometry(place.id, [[47.1, 11.2, 1830], [47.2, 11.3, 1902]]);
+    const journey = svc.createJourney(user.id, { title: 'J', trip_ids: [trip.id] });
+
+    expect(svc.journeyTracks(journey.id, user.id)![0].points).toEqual([[47.1, 11.2], [47.2, 11.3]]);
+  });
+
+  it('JOURNEY-SVC-TRACKS-003: a place without geometry contributes nothing', () => {
+    const { user } = createUser(testDb);
+    const { trip } = tripWithPlace(user.id);
+    const journey = svc.createJourney(user.id, { title: 'J', trip_ids: [trip.id] });
+
+    expect(svc.journeyTracks(journey.id, user.id)).toEqual([]);
+  });
+
+  it('JOURNEY-SVC-TRACKS-004: unusable geometry is skipped, not fatal', () => {
+    const { user } = createUser(testDb);
+    const { trip, place } = tripWithPlace(user.id);
+    const second = createPlace(testDb, trip.id, { name: 'Good one' });
+    withGeometry(place.id, 'not json at all');
+    withGeometry(second.id, [[1, 2], [3, 4]]);
+    const journey = svc.createJourney(user.id, { title: 'J', trip_ids: [trip.id] });
+
+    const tracks = svc.journeyTracks(journey.id, user.id)!;
+    expect(tracks.map(t => t.place_id)).toEqual([second.id]);
+  });
+
+  it('JOURNEY-SVC-TRACKS-005: a single point is a pin, not a line', () => {
+    const { user } = createUser(testDb);
+    const { trip, place } = tripWithPlace(user.id);
+    withGeometry(place.id, [[35.1, 135.7]]);
+    const journey = svc.createJourney(user.id, { title: 'J', trip_ids: [trip.id] });
+
+    expect(svc.journeyTracks(journey.id, user.id)).toEqual([]);
+  });
+
+  it('JOURNEY-SVC-TRACKS-006: a stranger gets null, not another user route', () => {
+    const { user } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const { trip, place } = tripWithPlace(user.id);
+    withGeometry(place.id, [[1, 2], [3, 4]]);
+    const journey = svc.createJourney(user.id, { title: 'J', trip_ids: [trip.id] });
+
+    expect(svc.journeyTracks(journey.id, stranger.id)).toBeNull();
+  });
+});

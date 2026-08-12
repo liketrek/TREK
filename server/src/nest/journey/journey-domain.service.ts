@@ -3,7 +3,7 @@ import { avatarUrl } from '../common/avatarUrl';
 import type { Journey, JourneyEntry, JourneyPhoto, JourneyContributor } from '../../types';
 import { DatabaseService } from '../database/database.service';
 import { RealtimeService } from '../realtime/realtime.service';
-import type { TrekWsUserEventName } from '@trek/shared';
+import type { JourneyTrack, TrekWsUserEventName } from '@trek/shared';
 import { TrekPhotosRepository } from '../photos/trek-photos.repository';
 
 
@@ -770,6 +770,63 @@ export class JourneyDomainService {
   }
 
   // ── Entries ──────────────────────────────────────────────────────────────
+
+  /**
+   * The GPX tracks belonging to a journey (#1260). A journey has no trip of its own,
+   * so the link runs through its entries: every entry records the trip it came from,
+   * and a trip's routed geometries live on its places. Uploading a GPX in the planner
+   * therefore already puts everything in place; nothing drew it in the journal.
+   *
+   * Only places that actually carry geometry are returned, so a journey whose trips
+   * have no tracks answers with an empty list rather than a wall of null points.
+   */
+  journeyTracks(journeyId: number, userId: number): JourneyTrack[] | null {
+    if (!this.canAccessJourney(journeyId, userId)) return null;
+
+    const rows = this.db.prepare(`
+      SELECT DISTINCT p.id AS place_id, p.trip_id, p.name, p.route_color, p.route_geometry
+        FROM journey_entries je
+        JOIN places p ON p.trip_id = je.source_trip_id
+       WHERE je.journey_id = ?
+         AND je.source_trip_id IS NOT NULL
+         AND p.route_geometry IS NOT NULL
+       ORDER BY p.trip_id, p.id
+    `).all(journeyId) as {
+      place_id: number; trip_id: number; name: string | null;
+      route_color: string | null; route_geometry: string;
+    }[];
+
+    const tracks: JourneyTrack[] = [];
+    for (const row of rows) {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(row.route_geometry);
+      } catch {
+        continue; // A geometry that is not JSON is not worth failing the whole map over.
+      }
+      if (!Array.isArray(parsed)) continue;
+
+      const points: [number, number][] = [];
+      for (const entry of parsed) {
+        if (!Array.isArray(entry) || entry.length < 2) continue;
+        const lat = Number(entry[0]);
+        const lng = Number(entry[1]);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+        points.push([lat, lng]);
+      }
+      // A single point is a pin, not a line, and the map already has the entry markers.
+      if (points.length < 2) continue;
+
+      tracks.push({
+        place_id: row.place_id,
+        trip_id: row.trip_id,
+        name: row.name ?? '',
+        color: row.route_color,
+        points,
+      });
+    }
+    return tracks;
+  }
 
   listEntries(journeyId: number, userId: number) {
     if (!this.canAccessJourney(journeyId, userId)) return null;

@@ -130,3 +130,24 @@ export const journeyShareLinkRequestSchema = z.looseObject({
   share_map: z.unknown().optional(),
 });
 export type JourneyShareLinkRequest = z.infer<typeof journeyShareLinkRequestSchema>;
+
+/**
+ * GPX tracks a journey can draw (#1260). A journey has no trip of its own, but its
+ * entries record the trip and place they came from, so the tracks are the routed
+ * geometries of the places in those trips. Points are [lat, lng] pairs, matching the
+ * order the GPX importer stored them in; elevation, where the import kept it, is
+ * dropped here because nothing on the map reads it.
+ */
+export const journeyTrackSchema = z.object({
+  place_id: z.number(),
+  trip_id: z.number(),
+  name: z.string(),
+  color: z.string().nullable(),
+  points: z.array(z.tuple([z.number(), z.number()])),
+});
+export type JourneyTrack = z.infer<typeof journeyTrackSchema>;
+
+export const journeyTracksResponseSchema = z.object({
+  tracks: z.array(journeyTrackSchema),
+});
+export type JourneyTracksResponse = z.infer<typeof journeyTracksResponseSchema>;
