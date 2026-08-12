@@ -209,9 +209,12 @@ function JourneyMap(
       const coords = track.points.map(([lat, lng]) => [lat, lng] as L.LatLngTuple)
       const color = track.color || TRACK_FALLBACK_COLOR
       L.polyline(coords, { color: '#ffffff', weight: 6, opacity: 0.75, lineCap: 'round', lineJoin: 'round' }).addTo(map)
-      L.polyline(coords, { color, weight: 3.5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
-        .bindTooltip(track.name || '', { sticky: true })
-        .addTo(map)
+      const line = L.polyline(coords, { color, weight: 3.5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
+      // Same tooltip the markers on this map use, rather than Leaflet's default box:
+      // it follows the appearance tokens, so it lands right in dark mode and with
+      // transparency switched off.
+      if (track.name) line.bindTooltip(track.name, { sticky: true, direction: 'top', className: 'map-tooltip' })
+      line.addTo(map)
       coords.forEach(c => allCoords.push(c))
     }
 

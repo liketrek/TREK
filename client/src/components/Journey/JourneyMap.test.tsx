@@ -510,6 +510,30 @@ describe('JourneyMap', () => {
     expect((line![1] as any).dashArray).toBeUndefined();
   });
 
+  it('FE-COMP-JOURNEYMAP-043: labels a track with the map tooltip the markers use', () => {
+    vi.mocked(L.polyline).mockClear();
+    render(<JourneyMap checkins={[]} entries={entriesWithCoords} tracks={[track({ name: 'Morning hike' })]} />);
+
+    const line = vi.mocked(L.polyline).mock.results
+      .map(r => r.value as any)
+      .find(v => v.bindTooltip.mock.calls.length > 0);
+    expect(line).toBeDefined();
+    const [label, opts] = line.bindTooltip.mock.calls[0];
+    expect(label).toBe('Morning hike');
+    // The house tooltip, not Leaflet's default box: it reads the appearance tokens.
+    expect(opts.className).toBe('map-tooltip');
+  });
+
+  it('FE-COMP-JOURNEYMAP-044: an unnamed track gets no empty tooltip', () => {
+    vi.mocked(L.polyline).mockClear();
+    render(<JourneyMap checkins={[]} entries={entriesWithCoords} tracks={[track({ name: '' })]} />);
+
+    const tooltipped = vi.mocked(L.polyline).mock.results
+      .map(r => r.value as any)
+      .filter(v => v.bindTooltip.mock.calls.length > 0);
+    expect(tooltipped).toHaveLength(0);
+  });
+
   it('FE-COMP-JOURNEYMAP-041: a track without its own colour falls back rather than vanishing', () => {
     vi.mocked(L.polyline).mockClear();
     render(<JourneyMap checkins={[]} entries={entriesWithCoords} tracks={[track({ color: null })]} />);
