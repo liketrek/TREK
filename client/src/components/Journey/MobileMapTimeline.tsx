@@ -5,6 +5,7 @@ import MobileEntryCard from './MobileEntryCard'
 import type { JourneyMapHandle } from './JourneyMap'
 import type { JourneyEntry } from '../../store/journeyStore'
 import { DAY_COLORS } from './dayColors'
+import type { JourneyTrack } from '@trek/shared'
 
 interface MapEntry {
   id: string
@@ -19,6 +20,7 @@ interface Props {
   entries: JourneyEntry[] | any[]
   mapEntries: MapEntry[]
   trail?: { lat: number; lng: number }[]
+  tracks?: JourneyTrack[]
   dark?: boolean
   readOnly?: boolean
   onEntryClick: (entry: any) => void
@@ -31,6 +33,7 @@ export default function MobileMapTimeline({
   entries,
   mapEntries,
   trail,
+  tracks,
   dark,
   readOnly,
   onEntryClick,
@@ -160,6 +163,7 @@ export default function MobileMapTimeline({
           entries={mapEntries}
           checkins={[]}
           trail={trail}
+          tracks={tracks}
           height={9999}
           dark={dark}
           onMarkerClick={handleMarkerClick}
@@ -190,6 +194,7 @@ export default function MobileMapTimeline({
         entries={mapEntries}
         checkins={[]}
         trail={trail}
+        tracks={tracks}
         height={9999}
         dark={dark}
         activeMarkerId={activeEntryId}

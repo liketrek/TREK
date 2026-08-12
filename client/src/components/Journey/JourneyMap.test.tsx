@@ -35,14 +35,14 @@ vi.mock('leaflet', () => {
       map: vi.fn(() => mockMap),
       tileLayer: vi.fn(() => ({ addTo: vi.fn() })),
       marker: vi.fn(() => mockMarker),
-      polyline: vi.fn(() => ({ addTo: vi.fn() })),
+      polyline: vi.fn(() => { const line: any = { addTo: vi.fn(() => line), bindTooltip: vi.fn(() => line) }; return line }),
       divIcon: vi.fn(() => ({})),
       latLngBounds: vi.fn(() => ({})),
     },
     map: vi.fn(() => mockMap),
     tileLayer: vi.fn(() => ({ addTo: vi.fn() })),
     marker: vi.fn(() => mockMarker),
-    polyline: vi.fn(() => ({ addTo: vi.fn() })),
+    polyline: vi.fn(() => { const line: any = { addTo: vi.fn(() => line), bindTooltip: vi.fn(() => line) }; return line }),
     divIcon: vi.fn(() => ({})),
     latLngBounds: vi.fn(() => ({})),
   };
@@ -488,5 +488,42 @@ describe('JourneyMap', () => {
     const before = vi.mocked(map.remove).mock.calls.length;
     unmount();
     expect(vi.mocked(map.remove).mock.calls.length).toBe(before + 1);
+  });
+  // ── GPX tracks (#1260) ──────────────────────────────────────────────────────
+  const track = (over: Partial<{ place_id: number; trip_id: number; name: string; color: string | null; points: [number, number][] }> = {}) => ({
+    place_id: 1, trip_id: 1, name: 'Morning hike', color: '#ff0000',
+    points: [[47.1, 11.2], [47.2, 11.3]] as [number, number][], ...over,
+  });
+
+  it('FE-COMP-JOURNEYMAP-040: draws a track as a casing plus a coloured line', () => {
+    vi.mocked(L.polyline).mockClear();
+    render(<JourneyMap checkins={[]} entries={entriesWithCoords} tracks={[track()]} />);
+
+    const calls = vi.mocked(L.polyline).mock.calls;
+    const casing = calls.find(c => (c[1] as any)?.color === '#ffffff');
+    const line = calls.find(c => (c[1] as any)?.color === '#ff0000');
+    expect(casing).toBeDefined();
+    expect(line).toBeDefined();
+    // Leaflet wants [lat, lng], which is the order the geometry is stored in.
+    expect(line![0]).toEqual([[47.1, 11.2], [47.2, 11.3]]);
+    // Solid, unlike the dashed line that merely connects entries in time order.
+    expect((line![1] as any).dashArray).toBeUndefined();
+  });
+
+  it('FE-COMP-JOURNEYMAP-041: a track without its own colour falls back rather than vanishing', () => {
+    vi.mocked(L.polyline).mockClear();
+    render(<JourneyMap checkins={[]} entries={entriesWithCoords} tracks={[track({ color: null })]} />);
+
+    const colors = vi.mocked(L.polyline).mock.calls.map(c => (c[1] as any)?.color);
+    expect(colors).toContain('#4f46e5');
+  });
+
+  it('FE-COMP-JOURNEYMAP-042: a track with fewer than two points draws nothing', () => {
+    vi.mocked(L.polyline).mockClear();
+    render(<JourneyMap checkins={[]} entries={entriesWithCoords} tracks={[track({ points: [[47.1, 11.2]] })]} />);
+
+    const colors = vi.mocked(L.polyline).mock.calls.map(c => (c[1] as any)?.color);
+    expect(colors).not.toContain('#ff0000');
+    expect(colors).not.toContain('#ffffff');
   });
 });

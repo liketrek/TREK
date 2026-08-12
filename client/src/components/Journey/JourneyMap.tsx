@@ -1,6 +1,7 @@
 import { useEffect, useRef, useImperativeHandle, useCallback, type Ref } from 'react'
 import L from 'leaflet'
 import { useSettingsStore } from '../../store/settingsStore'
+import type { JourneyTrack } from '@trek/shared'
 
 export interface MapMarkerItem {
   id: string
@@ -35,6 +36,8 @@ interface Props {
   checkins: any[]
   entries: MapEntry[]
   trail?: { lat: number; lng: number }[]
+  /** Routed GPX geometries from the journey's trips (#1260). */
+  tracks?: JourneyTrack[]
   height?: number
   dark?: boolean
   activeMarkerId?: string | null
@@ -84,11 +87,15 @@ function markerSvg(dayColor: string, dayLabel: number, highlighted: boolean): st
 }
 
 const EMPTY_TRAIL: { lat: number; lng: number }[] = []
+const EMPTY_TRACKS: JourneyTrack[] = []
+/** Fallback when a track carries no colour of its own, matching the planner's default. */
+const TRACK_FALLBACK_COLOR = '#4f46e5'
 
 function JourneyMap(
-  { entries, trail, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, ref }: Props,
+  { entries, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, ref }: Props,
 ) {
   const stableTrail = trail || EMPTY_TRAIL
+  const stableTracks = tracks || EMPTY_TRACKS
   const mapTileUrl = useSettingsStore(s => s.settings.map_tile_url)
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
@@ -194,6 +201,20 @@ function JourneyMap(
       coords.forEach(c => allCoords.push(c))
     }
 
+    // GPX tracks — drawn solid and in their own colour, so they read as a recorded
+    // route rather than as the dashed line that merely connects entries in time order.
+    // A white casing keeps them legible on satellite tiles, same as the planner map.
+    for (const track of stableTracks) {
+      if (track.points.length < 2) continue
+      const coords = track.points.map(([lat, lng]) => [lat, lng] as L.LatLngTuple)
+      const color = track.color || TRACK_FALLBACK_COLOR
+      L.polyline(coords, { color: '#ffffff', weight: 6, opacity: 0.75, lineCap: 'round', lineJoin: 'round' }).addTo(map)
+      L.polyline(coords, { color, weight: 3.5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
+        .bindTooltip(track.name || '', { sticky: true })
+        .addTo(map)
+      coords.forEach(c => allCoords.push(c))
+    }
+
     // route polyline — only in non-fullscreen (sidebar map) mode
     if (!fullScreen && items.length > 1) {
       const routeCoords = items.map(i => [i.lat, i.lng] as L.LatLngTuple)
@@ -255,7 +276,7 @@ function JourneyMap(
       mapRef.current = null
       markersRef.current.clear()
     }
-  }, [entries, stableTrail, dark, mapTileUrl, fullScreen, paddingBottom])
+  }, [entries, stableTrail, stableTracks, dark, mapTileUrl, fullScreen, paddingBottom])
 
   // react to activeMarkerId prop changes — runs after map is built
   useEffect(() => {

@@ -11,7 +11,7 @@ import {
   mapsPlaceEnrichmentResultSchema,
   type NotificationRespondRequest,
   type SettingUpsertRequest, type SettingsBulkRequest,
-  type JourneyCreateRequest, type JourneyAddTripRequest,
+  type JourneyCreateRequest, type JourneyAddTripRequest, type JourneyTracksResponse,
   type JourneyReorderEntriesRequest, type JourneyProviderPhotosRequest,
   type JourneyShareLinkRequest,
   type RegisterRequest, type LoginRequest, type ForgotPasswordRequest,
@@ -887,6 +887,8 @@ export const journeyApi = {
 
   // Entries
   listEntries: (id: number) => apiClient.get(`/journeys/${id}/entries`).then(r => r.data),
+  // GPX tracks of the trips this journey's entries came from (#1260).
+  listTracks: (id: number): Promise<JourneyTracksResponse> => apiClient.get(`/journeys/${id}/tracks`).then(r => r.data),
   createEntry: (id: number, data: Record<string, unknown>) => apiClient.post(`/journeys/${id}/entries`, data).then(r => r.data),
   updateEntry: (entryId: number, data: Record<string, unknown>) => apiClient.patch(`/journeys/entries/${entryId}`, data).then(r => r.data),
   deleteEntry: (entryId: number) => apiClient.delete(`/journeys/entries/${entryId}`).then(r => r.data),

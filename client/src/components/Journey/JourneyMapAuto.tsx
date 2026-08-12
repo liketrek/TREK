@@ -5,6 +5,7 @@ import ErrorBoundary from '../shared/ErrorBoundary'
 import type { JourneyMapGLHandle } from './JourneyMapGL'
 
 import { JourneyMapGLMapbox, JourneyMapGLMaplibre } from '../Map/glLazy'
+import type { JourneyTrack } from '@trek/shared'
 
 // Unified handle — both providers expose the same three methods.
 export type JourneyMapAutoHandle = JourneyMapHandle
@@ -26,6 +27,7 @@ interface Props {
   checkins: unknown[]
   entries: MapEntry[]
   trail?: { lat: number; lng: number }[]
+  tracks?: JourneyTrack[]
   height?: number
   dark?: boolean
   activeMarkerId?: string | null

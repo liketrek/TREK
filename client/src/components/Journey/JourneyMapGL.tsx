@@ -3,6 +3,7 @@ import type mapboxgl from 'mapbox-gl'
 import { useSettingsStore } from '../../store/settingsStore'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from '../Map/mapboxSetup'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from '../Map/glProviders'
+import type { JourneyTrack } from '@trek/shared'
 
 export interface JourneyMapGLHandle {
   highlightMarker: (id: string | null) => void
@@ -27,6 +28,8 @@ interface Props {
   checkins: unknown[]
   entries: MapEntry[]
   trail?: { lat: number; lng: number }[]
+  /** Routed GPX geometries from the journey's trips (#1260). */
+  tracks?: JourneyTrack[]
   height?: number
   dark?: boolean
   activeMarkerId?: string | null
@@ -209,11 +212,15 @@ function markerHtml(dayColor: string, dayLabel: number, highlighted: boolean): H
 }
 
 const EMPTY_TRAIL: { lat: number; lng: number }[] = []
+const EMPTY_TRACKS: JourneyTrack[] = []
+/** Fallback when a track carries no colour of its own, matching the planner's default. */
+const TRACK_FALLBACK_COLOR = '#4f46e5'
 
 function JourneyMapGL(
-  { entries, trail, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, glProvider = 'mapbox-gl', gl, ref }: Props,
+  { entries, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, glProvider = 'mapbox-gl', gl, ref }: Props,
 ) {
   const stableTrail = trail || EMPTY_TRAIL
+  const stableTracks = tracks || EMPTY_TRACKS
   const rawMapboxStyle = useSettingsStore(s => s.settings.mapbox_style || MAPBOX_DEFAULT_STYLE)
   const rawMaplibreStyle = useSettingsStore(s => s.settings.maplibre_style || '')
   const mapboxToken = useSettingsStore(s => s.settings.mapbox_access_token || '')
@@ -416,6 +423,43 @@ function JourneyMapGL(
         }
       }
 
+      // GPX tracks — one source for all of them, coloured per feature so a journey
+      // with several recorded routes keeps them apart. Casing underneath, same as the
+      // planner map, so a track stays readable on satellite tiles.
+      if (stableTracks.length > 0) {
+        const featureCollection: GeoJSON.FeatureCollection = {
+          type: 'FeatureCollection',
+          features: stableTracks
+            .filter(track => track.points.length > 1)
+            .map(track => ({
+              type: 'Feature' as const,
+              properties: { color: track.color || TRACK_FALLBACK_COLOR, name: track.name },
+              geometry: { type: 'LineString' as const, coordinates: track.points.map(([lat, lng]) => [lng, lat]) },
+            })),
+        }
+        if (featureCollection.features.length > 0) {
+          if (map.getSource('journey-tracks')) {
+            (map.getSource('journey-tracks') as mapboxgl.GeoJSONSource).setData(featureCollection)
+          } else {
+            map.addSource('journey-tracks', { type: 'geojson', data: featureCollection })
+            map.addLayer({
+              id: 'journey-tracks-casing',
+              type: 'line',
+              source: 'journey-tracks',
+              paint: { 'line-color': '#ffffff', 'line-width': 6, 'line-opacity': 0.75 },
+              layout: { 'line-cap': 'round', 'line-join': 'round' },
+            })
+            map.addLayer({
+              id: 'journey-tracks-line',
+              type: 'line',
+              source: 'journey-tracks',
+              paint: { 'line-color': ['get', 'color'], 'line-width': 3.5, 'line-opacity': 0.95 },
+              layout: { 'line-cap': 'round', 'line-join': 'round' },
+            })
+          }
+        }
+      }
+
       // markers
       items.forEach((item) => {
         const el = markerHtml(item.dayColor, item.dayLabel, false)
@@ -454,7 +498,7 @@ function JourneyMapGL(
       try { map.remove() } catch { /* noop */ }
       mapRef.current = null
     }
-  }, [entries, stableTrail, glProvider, glStyle, mapboxToken, enableMapbox3d, mapboxQuality, fullScreen, paddingBottom])
+  }, [entries, stableTrail, stableTracks, glProvider, glStyle, mapboxToken, enableMapbox3d, mapboxQuality, fullScreen, paddingBottom])
 
   // Switching the UI language has to repin the basemap labels without tearing
   // the map down. The load handler covers the initial run.
