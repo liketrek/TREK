@@ -44,7 +44,7 @@ function JourneyDetailPageDesktop() {
     unlinkTrip, setUnlinkTrip, showSettings, setShowSettings,
     hideSkeletons, setHideSkeletons,
     mapRef, fullMapRef, activeLocationId, handleMarkerClick, handleLocationClick,
-    mapEntries, sidebarMapItems, tripDates, isMobile,
+    mapEntries, sidebarMapItems, tripDates, isMobile, tracks,
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,
   } = useJourneyDetail()
 
@@ -86,6 +86,7 @@ function JourneyDetailPageDesktop() {
         <MobileMapTimeline
           entries={timelineEntries}
           mapEntries={sidebarMapItems}
+          tracks={tracks}
           dark={document.documentElement.classList.contains('dark')}
           readOnly={!canEditEntries}
           onEntryClick={(entry) => setViewingEntry(entry)}
@@ -441,6 +442,7 @@ function JourneyDetailPageDesktop() {
                   ref={mapRef}
                   checkins={[]}
                   entries={sidebarMapItems as any}
+                  tracks={tracks}
                   height={9999}
                   activeMarkerId={activeEntryId}
                   onMarkerClick={handleMarkerClick}

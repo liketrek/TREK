@@ -3,6 +3,8 @@ import { useParams, useNavigate, useSearchParams } from 'react-router'
 import { useJourneyStore } from '../../store/journeyStore'
 import { useTranslation } from '../../i18n'
 import { addListener, removeListener } from '../../api/websocket'
+import { journeyApi } from '../../api/client'
+import type { JourneyTrack } from '@trek/shared'
 import { DAY_COLORS } from '../../components/Journey/dayColors'
 import type { JourneyMapAutoHandle as JourneyMapHandle } from '../../components/Journey/JourneyMapAuto'
 import { useToast } from '../../components/shared/Toast'
@@ -59,6 +61,19 @@ export function useJourneyDetail() {
 
   useEffect(() => {
     if (id) loadJourney(Number(id)).catch(() => {})
+  }, [id])
+
+  // GPX tracks of the trips behind this journey (#1260). Loaded separately from the
+  // journey itself: a journey without tracks is the common case, and a failed lookup
+  // should cost the map its lines, not the whole page.
+  const [tracks, setTracks] = useState<JourneyTrack[]>([])
+  useEffect(() => {
+    if (!id) return
+    let cancelled = false
+    journeyApi.listTracks(Number(id))
+      .then(res => { if (!cancelled) setTracks(res.tracks ?? []) })
+      .catch(() => { if (!cancelled) setTracks([]) })
+    return () => { cancelled = true }
   }, [id])
 
   useEffect(() => {
@@ -287,7 +302,7 @@ export function useJourneyDetail() {
     unlinkTrip, setUnlinkTrip, showSettings, setShowSettings,
     hideSkeletons, setHideSkeletons,
     mapRef, fullMapRef, activeLocationId, handleMarkerClick, handleLocationClick,
-    mapEntries, sidebarMapItems, tripDates, isMobile,
+    mapEntries, sidebarMapItems, tripDates, isMobile, tracks,
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,
   }
 }

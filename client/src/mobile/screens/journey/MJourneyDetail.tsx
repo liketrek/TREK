@@ -38,7 +38,7 @@ export default function MJourneyDetail() {
     showInvite, setShowInvite,
     showSettings, setShowSettings,
     hideSkeletons,
-    sidebarMapItems,
+    sidebarMapItems, tracks,
     loadJourney, updateEntry, deleteEntry, uploadPhotos,
   } = useJourneyDetail()
 
@@ -209,6 +209,7 @@ export default function MJourneyDetail() {
           ref={mapRef}
           checkins={[]}
           entries={sidebarMapItems}
+          tracks={tracks}
           height={9999}
           dark={dark}
           activeMarkerId={entries[activeIndex] ? String(entries[activeIndex].id) : null}
