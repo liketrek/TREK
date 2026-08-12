@@ -1,0 +1,21 @@
+# fly.toml app configuration file generated for trek-c7mdrq on 2026-08-12T09:44:33Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'trek-c7mdrq'
+primary_region = 'iad'
+
+[http_service]
+  auto_start_machines = true
+  auto_stop_machines = 'stop'
+  force_https = true
+  internal_port = 8080
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  cpu_kind = 'shared'
+  cpus = 1
+  memory = '1gb'
+  memory_mb = 256
