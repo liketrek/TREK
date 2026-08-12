@@ -5,6 +5,7 @@ declare global { interface Window { __dragData: DragDataPayload | null } }
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react'
 import { avatarSrc } from '../../utils/avatarSrc'
 import { ChevronDown, ChevronRight, ChevronUp, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Trash2, Car, Lock, Hotel, Footprints, Route as RouteIcon, Bookmark, TramFront, Zap } from 'lucide-react'
+import { type PickedPlace } from './TransitSearchPanel'
 import { assignmentsApi, reservationsApi, daysApi } from '../../api/client'
 import { calculateRouteWithLegs, optimizeRoute, generateGoogleMapsUrl } from '../Map/RouteCalculator'
 import PlaceAvatar from '../shared/PlaceAvatar'
@@ -99,6 +100,12 @@ interface DayPlanSidebarProps {
   onAddTransport?: (dayId: number) => void
   /** Opens the public-transit route search for a day (#1065). */
   onPlanTransit?: (dayId: number) => void
+  /**
+   * Opens the public-transit search pre-filled for a single leg (#1281 follow-up):
+   * the leg's origin and destination endpoints plus the origin's departure time,
+   * so "public transport" becomes an option on any connector, not just the day header.
+   */
+  onPlanTransitLeg?: (leg: { dayId: number; from: PickedPlace; to: PickedPlace; time: string | null }) => void
   /** Opens the journey view for a saved transit entry (#1065). */
   onOpenTransit?: (reservation: Reservation) => void
   onEditTransport?: (reservation: Reservation) => void
@@ -148,6 +155,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   onRouteRefresh,
   onAddTransport,
   onPlanTransit,
+  onPlanTransitLeg,
   onOpenTransit,
   onEditTransport,
   onEditReservation,
@@ -977,6 +985,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     onRouteRefresh,
     onAddTransport,
     onPlanTransit,
+    onPlanTransitLeg,
     onOpenTransit,
     onEditTransport,
     expandedTransitIds,
@@ -1151,6 +1160,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     onRouteRefresh,
     onAddTransport,
     onPlanTransit,
+    onPlanTransitLeg,
     onOpenTransit,
     onEditTransport,
     expandedTransitIds,
@@ -1284,11 +1294,53 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     })
   }
 
-  // Open the mode menu at the clicked connector: every route profile plus a
-  // "use day default" entry that clears the per-leg override.
-  const openLegModeMenu = (e: React.MouseEvent, assignmentId: number, dayId: number) => {
+  // A connector's endpoints carry only coordinates (RouteSegment.from/to, both
+  // [lat, lng]); resolve them back to the named, timed points the transit search
+  // wants by indexing every located place, hotel and booking endpoint on the trip.
+  // A connector only renders when both ends are located, so a coordinate that misses
+  // the index is rare — fall back to a nameless pick (the search still runs off the
+  // coordinates alone).
+  const transitPointIndex = useMemo(() => {
+    const m = new Map<string, { name: string; time: string | null }>()
+    const put = (lat?: number | null, lng?: number | null, name?: string | null, time?: string | null) => {
+      if (lat == null || lng == null) return
+      const k = `${lat},${lng}`
+      if (!m.has(k)) m.set(k, { name: name || '', time: time ?? null })
+    }
+    for (const list of Object.values(assignments)) {
+      for (const a of list) put(a.place?.lat, a.place?.lng, a.place?.name, a.place?.place_time)
+    }
+    for (const acc of accommodations) put(acc.place_lat, acc.place_lng, acc.place_name, null)
+    for (const r of reservations) {
+      for (const ep of (r.endpoints || [])) put(ep.lat, ep.lng, ep.name, ep.local_time)
+    }
+    return m
+  }, [assignments, accommodations, reservations])
+
+  // Build the "public transport" prefill for a leg from its RouteSegment: MOTIS is
+  // driven off the coordinates, the names + departure time come from the index above.
+  const buildTransitLeg = (seg?: RouteSegment): { from: PickedPlace; to: PickedPlace; time: string | null } | null => {
+    if (!seg?.from || !seg?.to) return null
+    const pick = (c: [number, number]): PickedPlace => ({ name: transitPointIndex.get(`${c[0]},${c[1]}`)?.name || '', lat: c[0], lng: c[1] })
+    const rawTime = transitPointIndex.get(`${seg.from[0]},${seg.from[1]}`)?.time
+    return { from: pick(seg.from), to: pick(seg.to), time: rawTime && /^\d{2}:\d{2}/.test(rawTime) ? rawTime.slice(0, 5) : null }
+  }
+
+  // The extra connector-menu entry (#1281 follow-up): search public transit for this
+  // leg instead of drawing a road route. Only when a handler is wired (day has dates).
+  const transitLegMenuItem = (dayId: number, seg?: RouteSegment) => {
+    if (!onPlanTransitLeg) return []
+    const leg = buildTransitLeg(seg)
+    if (!leg) return []
+    return [{ label: t('transit.title'), icon: TramFront, onClick: () => onPlanTransitLeg({ dayId, from: leg.from, to: leg.to, time: leg.time }) }]
+  }
+
+  // Open the mode menu at the clicked connector: every route profile, the optional
+  // "public transport" entry, plus a "use day default" entry that clears the override.
+  const openLegModeMenu = (e: React.MouseEvent, assignmentId: number, dayId: number, seg?: RouteSegment) => {
     ctxMenu.open(e, [
       ...routeProfileOptions.map(o => ({ label: o.label, icon: modeIcon(o.key), onClick: () => setLegMode(assignmentId, dayId, o.key) })),
+      ...transitLegMenuItem(dayId, seg ?? routeLegs[dayId]?.[assignmentId]),
       { divider: true },
       { label: t('dayplan.transportMode.useDefault'), icon: RotateCcw, onClick: () => setLegMode(assignmentId, dayId, null) },
     ])
@@ -1310,9 +1362,10 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     })
   }
 
-  const openIncomingLegModeMenu = (e: React.MouseEvent, assignmentId: number, dayId: number) => {
+  const openIncomingLegModeMenu = (e: React.MouseEvent, assignmentId: number, dayId: number, seg?: RouteSegment) => {
     ctxMenu.open(e, [
       ...routeProfileOptions.map(o => ({ label: o.label, icon: modeIcon(o.key), onClick: () => setIncomingLegMode(assignmentId, dayId, o.key) })),
+      ...transitLegMenuItem(dayId, seg),
       { divider: true },
       { label: t('dayplan.transportMode.useDefault'), icon: RotateCcw, onClick: () => setIncomingLegMode(assignmentId, dayId, null) },
     ])
@@ -1642,7 +1695,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     const targetId = hotelLegs[day.id]?.top?.targetId
                     const connector = <HotelRouteConnector seg={hotelLegs[day.id]!.top!.seg} name={hotelLegs[day.id]!.top!.name} profile={routeProfile} placement="top" />
                     return canEditDays && targetId != null ? (
-                      <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openIncomingLegModeMenu(e, targetId, day.id)} style={{ cursor: 'pointer' }}>
+                      <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openIncomingLegModeMenu(e, targetId, day.id, hotelLegs[day.id]!.top!.seg)} style={{ cursor: 'pointer' }}>
                         {connector}
                       </div>
                     ) : connector
@@ -2012,7 +2065,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           </div>
                           {daySchedule.byAssignment[day.id]?.[assignment.id]?.map(si => <PluginDayScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
                           {routeLegs[day.id]?.[assignment.id] && (canEditDays ? (
-                            <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openLegModeMenu(e, assignment.id, day.id)} style={{ cursor: 'pointer' }}>
+                            <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openLegModeMenu(e, assignment.id, day.id, routeLegs[day.id]![assignment.id])} style={{ cursor: 'pointer' }}>
                               <RouteConnector seg={routeLegs[day.id]![assignment.id]} profile={routeProfile} />
                             </div>
                           ) : (
@@ -2251,7 +2304,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             const nextPlaceId = merged.slice(idx + 1).find(i => i.type === 'place' && i.data.place?.lat && i.data.place?.lng)?.data.id
                             const connector = <RouteConnector seg={routeLegs[day.id]![res.id]} profile={routeProfile} />
                             return canEditDays && nextPlaceId != null ? (
-                              <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openIncomingLegModeMenu(e, Number(nextPlaceId), day.id)} style={{ cursor: 'pointer' }}>
+                              <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openIncomingLegModeMenu(e, Number(nextPlaceId), day.id, routeLegs[day.id]![res.id])} style={{ cursor: 'pointer' }}>
                                 {connector}
                               </div>
                             ) : connector
@@ -2385,7 +2438,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     const targetId = hotelLegs[day.id]?.bottom?.targetId
                     const connector = <HotelRouteConnector seg={hotelLegs[day.id]!.bottom!.seg} name={hotelLegs[day.id]!.bottom!.name} profile={routeProfile} placement="bottom" />
                     return canEditDays && targetId != null ? (
-                      <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openLegModeMenu(e, targetId, day.id)} style={{ cursor: 'pointer' }}>
+                      <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openLegModeMenu(e, targetId, day.id, hotelLegs[day.id]!.bottom!.seg)} style={{ cursor: 'pointer' }}>
                         {connector}
                       </div>
                     ) : connector

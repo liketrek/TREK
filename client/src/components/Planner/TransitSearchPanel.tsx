@@ -318,9 +318,11 @@ interface TransitSearchPanelProps {
   /** Pre-seed from/to — used by "change route" on an existing journey. */
   initialFrom?: PickedPlace | null
   initialTo?: PickedPlace | null
+  /** Pre-seed the departure time ('HH:mm') — used when planning a specific leg. */
+  initialTime?: string | null
 }
 
-export default function TransitSearchPanel({ day, days, places, accommodations = [], onAdd, initialFrom = null, initialTo = null }: TransitSearchPanelProps) {
+export default function TransitSearchPanel({ day, days, places, accommodations = [], onAdd, initialFrom = null, initialTo = null, initialTime = null }: TransitSearchPanelProps) {
   const { t } = useTranslation()
   const toast = useToast()
   const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
@@ -328,7 +330,7 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
 
   const [from, setFrom] = useState<PickedPlace | null>(initialFrom)
   const [to, setTo] = useState<PickedPlace | null>(initialTo)
-  const [time, setTime] = useState('09:00')
+  const [time, setTime] = useState(initialTime || '09:00')
   const [arriveBy, setArriveBy] = useState(false)
   const [activeModes, setActiveModes] = useState<Set<string>>(() => new Set(MODE_GROUPS.map(m => m.key)))
   const [pref, setPref] = useState<'best' | 'transfers' | 'walking'>('best')

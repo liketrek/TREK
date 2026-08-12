@@ -177,6 +177,20 @@ describe('TransitSearchPanel', () => {
     expect(transitApiMock.plan.mock.calls[0][0]).toMatchObject({ arriveBy: true, time: '2025-06-01T08:00:00.000Z' })
   })
 
+  it('FE-PLANNER-TRANSIT-008b: initialTime seeds the departure time', async () => {
+    const user = userEvent.setup()
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [] })
+    render(<TransitSearchPanel {...makeProps({
+      initialFrom: { name: 'Fernsehturm', lat: 52.5208, lng: 13.4094 },
+      initialTo: { name: 'London Victoria', lat: 51.5074, lng: -0.1278 },
+      initialTime: '11:00',
+    })} />)
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await waitFor(() => expect(transitApiMock.plan).toHaveBeenCalled())
+    // 11:00 in Berlin (UTC+2) anchors depart-by to the origin zone → 09:00Z.
+    expect(transitApiMock.plan.mock.calls[0][0]).toMatchObject({ time: '2025-06-01T09:00:00.000Z' })
+  })
+
   it('FE-PLANNER-TRANSIT-009: arrive-by lists the latest-arriving itinerary first', async () => {
     const user = userEvent.setup()
     // MOTIS returns arrive-by results ascending, deadline-adjacent last (#1479).

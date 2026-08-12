@@ -241,7 +241,7 @@ export function useTripPlanner() {
   // Public transit (#1065): open the TransportModal in its Automated mode, seed
   // the search (change-route), and show the journey view for a saved entry.
   const [transportModalAutomated, setTransportModalAutomated] = useState<boolean>(false)
-  const [transitPrefill, setTransitPrefill] = useState<{ from?: { name: string; lat: number; lng: number } | null; to?: { name: string; lat: number; lng: number } | null } | null>(null)
+  const [transitPrefill, setTransitPrefill] = useState<{ from?: { name: string; lat: number; lng: number } | null; to?: { name: string; lat: number; lng: number } | null; time?: string | null } | null>(null)
   const [transitJourney, setTransitJourney] = useState<Reservation | null>(null)
 
   // The bottom-nav "+" is context-aware per tab: on the Bookings / Transports tabs

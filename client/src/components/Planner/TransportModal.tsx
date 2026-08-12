@@ -160,8 +160,8 @@ interface TransportModalProps {
   initialAutomated?: boolean
   /** Transit search needs real dates to depart on, so the Automated mode is hidden on a dateless trip. */
   tripHasDates?: boolean
-  /** Pre-seed the transit search — used by "change route" on an existing journey. */
-  transitPrefill?: { from?: PickedPlace | null; to?: PickedPlace | null } | null
+  /** Pre-seed the transit search — used by "change route" and by per-leg planning. */
+  transitPrefill?: { from?: PickedPlace | null; to?: PickedPlace | null; time?: string | null } | null
   /** Trip members + guests, for the traveler picker (#1517). */
   tripMembers?: TripMember[]
 }
@@ -701,6 +701,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
                 onAdd={(payload) => onSave(payload as Record<string, any> & { title: string })}
                 initialFrom={transitPrefill?.from ?? null}
                 initialTo={transitPrefill?.to ?? null}
+                initialTime={transitPrefill?.time ?? null}
               />
             )
           })()}
