@@ -3772,17 +3772,6 @@ function runMigrations(db: Database.Database): void {
         if (!err.message?.includes('duplicate column name')) throw err;
       }
     },
-    // Per-segment travel mode for boundary legs: a leg whose ORIGIN is not a place
-    // (booking arrival, morning hotel) stores its mode on the DESTINATION stop.
-    // NULL = inherit the day default. INERT whenever the previous timeline element
-    // is itself a place (that place's outgoing leg_transport_mode wins).
-    () => {
-      try {
-        db.exec('ALTER TABLE day_assignments ADD COLUMN incoming_leg_transport_mode TEXT');
-      } catch (err: any) {
-        if (!err.message?.includes('duplicate column name')) throw err;
-      }
-    },
     // School holidays are a visual Vacay calendar layer. Keep them separate from
     // public holidays so applyHolidayCalendars never removes vacation entries for
     // school-break dates. Appended LAST: this branch was cut before #1435/#1281
@@ -3875,6 +3864,20 @@ function runMigrations(db: Database.Database): void {
     () => {
       const hasColor = db.prepare("SELECT 1 FROM pragma_table_info('day_notes') WHERE name = 'color'").get();
       if (!hasColor) db.exec('ALTER TABLE day_notes ADD COLUMN color TEXT');
+    },
+
+    // Per-segment travel mode for boundary legs: a leg whose ORIGIN is not a place
+    // (booking arrival, morning hotel) stores its mode on the DESTINATION stop.
+    // NULL = inherit the day default. INERT whenever the previous timeline element
+    // is itself a place (that place's outgoing leg_transport_mode wins).
+    // Appended LAST: the array is index-addressed against schema_version, so a slot
+    // inserted anywhere above this line is simply skipped on every existing database.
+    () => {
+      try {
+        db.exec('ALTER TABLE day_assignments ADD COLUMN incoming_leg_transport_mode TEXT');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
     },
   ];
 
