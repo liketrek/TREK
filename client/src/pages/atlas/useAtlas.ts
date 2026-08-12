@@ -5,7 +5,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import apiClient, { mapsApi, pluginsApi, type PluginAtlasLayer } from '../../api/client'
 import L from 'leaflet'
 import type { GeoJsonFeatureCollection } from '../../types'
-import { A2_TO_A3, countryStatus, isCountryVisible, normalizeRegionName, withCountryMarkedVisited, wishlistA3Codes, countryColor, type AtlasData, type CountryDetail, type BucketItem } from './atlasModel'
+import { A2_TO_A3, countryStatus, isCountryVisible, normalizeRegionName, withCountryMarkedVisited, wishlistA3Codes, countryColor, type AtlasData, type AtlasPlaceHit, type CountryDetail, type BucketItem } from './atlasModel'
 import { continentForCountry, type VisitStatus } from '@trek/shared'
 
 const PLANNED_KEY = 'trek_atlas_show_planned'
@@ -149,6 +149,13 @@ export function useAtlas() {
   const [atlas_country_search, set_atlas_country_search] = useState('')
   const [atlas_country_results, set_atlas_country_results] = useState<{ code: string; label: string }[]>([])
   const [atlas_country_open, set_atlas_country_open] = useState(false)
+  // Geocoded places beside the local country matches (#1115): searching for Milan
+  // should not require knowing it sits in Lombardy. Kept in its own list so the
+  // instant offline country filter never waits on a network round trip.
+  const [atlas_place_results, set_atlas_place_results] = useState<AtlasPlaceHit[]>([])
+  const [atlas_places_loading, set_atlas_places_loading] = useState(false)
+  const placeSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const placeSearchSeqRef = useRef(0)
 
   // visitedCountries drives the colour palette and every "how many" number;
   // visibleCountries drives what the map paints and what stays clickable.
@@ -710,6 +717,89 @@ export function useAtlas() {
     setConfirmAction({ type: 'unmark', code, name: resolveName(code) })
   }
 
+  /** Debounced forward geocode for the atlas search box. Runs through the same
+   *  /maps/search everything else uses, so it follows the configured provider. */
+  const search_places = (raw: string): void => {
+    const query = raw.trim()
+    if (placeSearchTimerRef.current) clearTimeout(placeSearchTimerRef.current)
+    if (query.length < 3) {
+      set_atlas_place_results([])
+      set_atlas_places_loading(false)
+      return
+    }
+    set_atlas_places_loading(true)
+    // Sequence guard: a slow answer for an earlier query must not overwrite a
+    // newer one the user has already typed past.
+    const seq = ++placeSearchSeqRef.current
+    placeSearchTimerRef.current = setTimeout(() => {
+      mapsApi.search(query, language)
+        .then(result => {
+          if (seq !== placeSearchSeqRef.current) return
+          // The provider blob is deliberately open (Google and OSM disagree on
+          // fields), so narrow rather than cast.
+          const hits: AtlasPlaceHit[] = []
+          for (const raw of result.places || []) {
+            const p = raw as Record<string, unknown>
+            if (typeof p.lat !== 'number' || typeof p.lng !== 'number') continue
+            hits.push({
+              name: typeof p.name === 'string' && p.name ? p.name : query,
+              address: typeof p.address === 'string' && p.address ? p.address : null,
+              lat: p.lat,
+              lng: p.lng,
+            })
+            if (hits.length === 5) break
+          }
+          set_atlas_place_results(hits)
+        })
+        .catch(() => { if (seq === placeSearchSeqRef.current) set_atlas_place_results([]) })
+        .finally(() => { if (seq === placeSearchSeqRef.current) set_atlas_places_loading(false) })
+    }, 350)
+  }
+
+  /**
+   * Picking a geocoded place: fly there, then ask the server which country and admin1
+   * region the coordinate falls in and offer the same dialog a click on that region
+   * would. Zoom 7 because the region layer only loads from zoom 5 up, so landing
+   * closer means the highlighted region is actually on screen.
+   */
+  const select_place_from_search = async (hit: AtlasPlaceHit): Promise<void> => {
+    set_atlas_country_search(hit.name)
+    set_atlas_country_open(false)
+    set_atlas_country_results([])
+    set_atlas_place_results([])
+
+    try {
+      mapInstance.current?.setView([hit.lat, hit.lng], 7, { animate: true })
+    } catch (e) {
+      console.error('Error flying to place', e)
+    }
+
+    let info: { country_code: string | null; region_code: string | null; region_name: string | null }
+    try {
+      info = (await apiClient.get('/addons/atlas/locate', { params: { lat: hit.lat, lng: hit.lng } })).data
+    } catch {
+      return // The map already moved; a failed lookup just means no dialog.
+    }
+    if (!info.country_code) return
+
+    // No admin1 coverage for this country: fall back to the country flow, which is
+    // what the search did before it knew about places at all.
+    if (!info.region_code || !info.region_name) {
+      select_country_from_search(info.country_code)
+      return
+    }
+
+    const countryName = resolveName(info.country_code)
+    const alreadyVisited = (visitedRegions[info.country_code] || []).some(r => r.code === info.region_code)
+    setConfirmAction({
+      type: alreadyVisited ? 'unmark-region' : 'choose-region',
+      code: info.country_code,
+      name: info.region_name,
+      regionCode: info.region_code,
+      countryName,
+    })
+  }
+
   const select_country_from_search = (country_code: string): void => {
     const country_label = resolveName(country_code)
     set_atlas_country_search(country_label)
@@ -865,6 +955,7 @@ export function useAtlas() {
     atlas_country_search, set_atlas_country_search,
     atlas_country_results, set_atlas_country_results,
     atlas_country_open, set_atlas_country_open, atlas_country_options,
+    atlas_place_results, atlas_places_loading, search_places, select_place_from_search,
     confirmAction, setConfirmAction, executeConfirmAction,
     bucketMonth, setBucketMonth, bucketYear, setBucketYear,
     bucketList, setBucketList, bucketTab, setBucketTab,

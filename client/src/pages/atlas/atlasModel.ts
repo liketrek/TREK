@@ -89,6 +89,14 @@ export function withCountryMarkedVisited(prev: AtlasData, code: string): AtlasDa
   }
 }
 
+/** A geocoded hit in the atlas search box (#1115), before it is resolved to a region. */
+export interface AtlasPlaceHit {
+  name: string
+  address: string | null
+  lat: number
+  lng: number
+}
+
 export interface BucketItem {
   id: number
   name: string

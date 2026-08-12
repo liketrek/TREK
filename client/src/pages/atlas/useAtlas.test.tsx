@@ -37,6 +37,7 @@ const lf = vi.hoisted(() => ({
   mapsCreated: 0,
   mapsRemoved: 0,
   markers: 0,
+  map: null as null | { setView: ReturnType<typeof vi.fn> },
   reset() {
     this.mapHandlers = {};
     this.geoJson = [];
@@ -82,6 +83,9 @@ vi.mock('leaflet', () => {
     createPane: vi.fn((name: string) => { lf.panes[name] = { style: {} }; }),
     getPane: vi.fn((name: string) => lf.panes[name]),
   };
+  // Published so a test can assert the map actually moved (place search flies
+  // there before the region lookup returns).
+  lf.map = map;
 
   const L = {
     map: vi.fn(() => { lf.mapsCreated += 1; return map; }),
@@ -866,6 +870,82 @@ describe('useAtlas', () => {
       // whether or not the planned layer is on, and a planned country never takes it.
       expect(styleFor('FR').fillColor).toBe(frBeforeToggle);
       expect(styleFor('DE').fillColor).not.toBe(styleFor('FR').fillColor);
+    });
+  });
+  // ── Place search (#1115) ───────────────────────────────────────────────────
+  describe('searching for a place, not just a country', () => {
+    const milan = { name: 'Milan', address: 'Milan, Lombardy, Italy', lat: 45.46, lng: 9.19 };
+
+    beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
+    afterEach(() => vi.useRealTimers());
+
+    const typeAndSettle = async (query: string) => {
+      act(() => atlas.search_places(query));
+      await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+    };
+
+    it('FE-HOOK-ATLAS-051: geocodes the term and offers the hits', async () => {
+      await mountAtlas();
+      server.use(http.post('/api/maps/search', () => HttpResponse.json({ places: [milan], source: 'osm' })));
+
+      await typeAndSettle('milan');
+      await waitFor(() => expect(atlas.atlas_place_results).toHaveLength(1));
+      expect(atlas.atlas_place_results[0]).toMatchObject({ name: 'Milan', lat: 45.46, lng: 9.19 });
+    });
+
+    it('FE-HOOK-ATLAS-052: leaves the network alone for a query too short to mean anything', async () => {
+      await mountAtlas();
+      const hit = vi.fn(() => HttpResponse.json({ places: [milan], source: 'osm' }));
+      server.use(http.post('/api/maps/search', hit));
+
+      await typeAndSettle('mi');
+      expect(hit).not.toHaveBeenCalled();
+      expect(atlas.atlas_place_results).toEqual([]);
+    });
+
+    it('FE-HOOK-ATLAS-053: drops a provider hit without usable coordinates', async () => {
+      await mountAtlas();
+      server.use(http.post('/api/maps/search', () => HttpResponse.json({
+        places: [{ name: 'No coords' }, milan],
+        source: 'osm',
+      })));
+
+      await typeAndSettle('milan');
+      await waitFor(() => expect(atlas.atlas_place_results).toHaveLength(1));
+      expect(atlas.atlas_place_results[0].name).toBe('Milan');
+    });
+
+    it('FE-HOOK-ATLAS-054: picking a place resolves its region and offers to mark it', async () => {
+      await mountAtlas();
+      server.use(
+        http.post('/api/maps/search', () => HttpResponse.json({ places: [milan], source: 'osm' })),
+        http.get('/api/addons/atlas/locate', () => HttpResponse.json({ country_code: 'IT', region_code: 'IT-25', region_name: 'Lombardia' })),
+      );
+
+      await act(async () => { await atlas.select_place_from_search(milan); });
+
+      expect(atlas.confirmAction).toMatchObject({ type: 'choose-region', code: 'IT', regionCode: 'IT-25', name: 'Lombardia' });
+      // The map went there rather than waiting for the lookup.
+      expect(lf.map!.setView).toHaveBeenCalledWith([45.46, 9.19], 7, expect.anything());
+    });
+
+    it('FE-HOOK-ATLAS-055: a region already visited offers removal instead', async () => {
+      await mountAtlas({ regions: { IT: [{ code: 'IT-25', name: 'Lombardia', placeCount: 1 }] } });
+      await waitFor(() => expect(atlas.visitedRegions.IT).toHaveLength(1));
+      server.use(http.get('/api/addons/atlas/locate', () => HttpResponse.json({ country_code: 'IT', region_code: 'IT-25', region_name: 'Lombardia' })));
+
+      await act(async () => { await atlas.select_place_from_search(milan); });
+      expect(atlas.confirmAction).toMatchObject({ type: 'unmark-region', regionCode: 'IT-25' });
+    });
+
+    it('FE-HOOK-ATLAS-056: a country without region coverage falls back to the country flow', async () => {
+      await mountAtlas();
+      server.use(http.get('/api/addons/atlas/locate', () => HttpResponse.json({ country_code: 'FR', region_code: null, region_name: null })));
+
+      await act(async () => { await atlas.select_place_from_search({ ...milan, name: 'Somewhere' }); });
+      // FR is in the fixture as visited with places, so the country flow opens its detail
+      // rather than the mark dialog — either way, not a region dialog.
+      expect(atlas.confirmAction?.type).not.toBe('choose-region');
     });
   });
 });

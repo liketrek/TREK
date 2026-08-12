@@ -1,6 +1,7 @@
 import React from 'react'
-import { Search, X, ChevronRight } from 'lucide-react'
+import { Search, X, ChevronRight, MapPin, Loader2 } from 'lucide-react'
 import type { TranslationFn } from '../../types'
+import type { AtlasPlaceHit } from './atlasModel'
 
 type CountryOption = { code: string; label: string }
 
@@ -15,6 +16,12 @@ interface AtlasCountrySearchProps {
   setOpen: (v: boolean) => void
   options: CountryOption[]
   onSelect: (code: string) => void
+  /** Geocoded places for the same query (#1115) — a second, clearly separated
+   *  section below the countries, so the instant local matches stay on top. */
+  placeResults: AtlasPlaceHit[]
+  placesLoading: boolean
+  onQueryChange: (raw: string) => void
+  onSelectPlace: (hit: AtlasPlaceHit) => void
 }
 
 // The floating country search box that overlays the globe (search input + results
@@ -22,6 +29,7 @@ interface AtlasCountrySearchProps {
 // markup are byte-identical to the inline version it replaced.
 export default function AtlasCountrySearch({
   dark, t, search, setSearch, results, setResults, open, setOpen, options, onSelect,
+  placeResults, placesLoading, onQueryChange, onSelectPlace,
 }: AtlasCountrySearchProps): React.ReactElement {
   return (
     <div
@@ -47,6 +55,7 @@ export default function AtlasCountrySearch({
             onChange={(e) => {
               const raw = e.target.value
               setSearch(raw)
+              onQueryChange(raw)
               const q = raw.trim().toLowerCase()
               if (!q) {
                 setResults([])
@@ -69,7 +78,9 @@ export default function AtlasCountrySearch({
               }
               if (e.key === 'Enter') {
                 const first = results[0]
-                if (first) onSelect(first.code)
+                if (first) { onSelect(first.code); return }
+                const place = placeResults[0]
+                if (place) onSelectPlace(place)
               }
             }}
             placeholder={t('atlas.searchCountry')}
@@ -101,7 +112,7 @@ export default function AtlasCountrySearch({
           )}
         </div>
 
-        {open && results.length > 0 && (
+        {open && (results.length > 0 || placeResults.length > 0 || placesLoading) && (
           <div
             style={{
               marginTop: 8,
@@ -139,6 +150,66 @@ export default function AtlasCountrySearch({
                   <img src={`https://flagcdn.com/w40/${r.code.toLowerCase()}.png`} alt={r.code} style={{ width: 28, height: 20, borderRadius: 4, objectFit: 'cover' }} />
                   <span className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 650, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {r.label}
+                  </span>
+                </span>
+                <ChevronRight size={16} className="text-content-faint" style={{ flexShrink: 0 }} />
+              </button>
+            ))}
+
+            {(placeResults.length > 0 || placesLoading) && (
+              <div
+                className="text-content-faint"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '7px 12px',
+                  fontSize: 'calc(10px * var(--fs-scale-caption, 1))',
+                  fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
+                  borderTop: results.length > 0 ? '1px solid ' + (dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)') : 'none',
+                }}
+              >
+                {placesLoading && <Loader2 size={11} className="animate-spin" />}
+                {t('atlas.searchPlaces')}
+              </div>
+            )}
+            {placeResults.map((p) => (
+              <button
+                key={`${p.lat},${p.lng},${p.name}`}
+                onClick={() => onSelectPlace(p)}
+                style={{
+                  width: '100%',
+                  border: 'none',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  padding: '10px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  fontFamily: 'inherit',
+                  textAlign: 'left',
+                  borderBottom: '1px solid ' + (dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                  <span
+                    style={{
+                      width: 28, height: 20, borderRadius: 4, flexShrink: 0,
+                      display: 'grid', placeItems: 'center',
+                      background: dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+                    }}
+                  >
+                    <MapPin size={13} className="text-content-faint" />
+                  </span>
+                  <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    <span className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 650, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {p.name}
+                    </span>
+                    {p.address && (
+                      <span className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {p.address}
+                      </span>
+                    )}
                   </span>
                 </span>
                 <ChevronRight size={16} className="text-content-faint" style={{ flexShrink: 0 }} />
