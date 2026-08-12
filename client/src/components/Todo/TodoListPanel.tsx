@@ -105,7 +105,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
   })()
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 180px)', minHeight: 400 }}>
+    <div style={{ display: 'flex', height: 'calc(100dvh - 180px)', minHeight: 400 }}>
 
       {/* ── Left Sidebar ── */}
       <div style={{
@@ -269,7 +269,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
         <div onClick={e => { if (e.target === e.currentTarget) setIsAddingNew(false) }}
           className="trek-modal-backdrop"
           style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 'calc(var(--nav-h) + 60px)', paddingBottom: 40 }}>
-          <div style={{ width: 'min(520px, 92vw)', maxHeight: 'calc(100vh - var(--nav-h) - 120px)', overflow: 'auto', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}
+          <div style={{ width: 'min(520px, 92vw)', maxHeight: 'calc(100dvh - var(--nav-h) - 120px)', overflow: 'auto', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}
             ref={el => { if (el) { const child = el.firstElementChild as HTMLElement; if (child) { child.style.width = '100%'; child.style.borderLeft = 'none'; child.style.borderRadius = '16px' } } }}>
             <NewTaskPane
               tripId={tripId}

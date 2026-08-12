@@ -83,7 +83,7 @@ export default function SharedTripPage() {
     return (
       <div
         className="bg-[#f3f4f6]"
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh' }}
       >
         <div style={{ textAlign: 'center', padding: 40 }}>
           <div style={{ fontSize: 'calc(48px * var(--fs-scale-title, 1))', marginBottom: 16 }}>🔒</div>
@@ -101,7 +101,7 @@ export default function SharedTripPage() {
     return (
       <div
         className="bg-[#f3f4f6]"
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh' }}
       >
         <div
           style={{
@@ -147,7 +147,7 @@ export default function SharedTripPage() {
   const initialView = framed ?? { center: DEFAULT_MAP_CENTER, zoom: DEFAULT_MAP_ZOOM };
 
   return (
-    <div className="bg-surface-secondary" style={{ minHeight: '100vh', fontFamily: 'var(--font-system)' }}>
+    <div className="bg-surface-secondary" style={{ minHeight: '100dvh', fontFamily: 'var(--font-system)' }}>
       {/* Header */}
       <div
         className="text-white"

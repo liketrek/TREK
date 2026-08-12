@@ -52,7 +52,7 @@ export default function PageSidebar({
     <div
       className="rounded-2xl overflow-hidden flex flex-col lg:flex-row relative bg-surface-card border border-edge"
       style={{
-        minHeight: 'min(820px, calc(100vh - var(--nav-h) - 120px))',
+        minHeight: 'min(820px, calc(100dvh - var(--nav-h) - 120px))',
       }}
     >
       {/* Mobile top bar with hamburger */}

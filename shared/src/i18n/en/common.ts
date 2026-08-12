@@ -43,6 +43,8 @@ const common: TranslationStrings = {
   'common.daysAgo': '{count}d ago',
   'common.saved': 'Saved',
   'common.update': 'Update',
+  'common.updateAvailable': 'A new version of TREK is available.',
+  'common.reload': 'Reload',
   'common.change': 'Change',
   'common.uploading': 'Uploading…',
   'common.backToPlanning': 'Back to Planning',

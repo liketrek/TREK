@@ -6,7 +6,12 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' parks a new service worker in the `waiting` state instead of
+      // calling skipWaiting() immediately. iOS standalone PWAs keep the old
+      // worker alive until every instance is fully closed (not backgrounded),
+      // so 'autoUpdate' silently stranded home-screen users on stale code with
+      // no signal. UpdateBanner surfaces the waiting worker and reloads on tap.
+      registerType: 'prompt',
       workbox: {
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2,ttf}'],

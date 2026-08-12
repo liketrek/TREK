@@ -78,7 +78,7 @@ export default function InAppNotificationBell(): React.ReactElement {
               right: 8,
               width: 360,
               maxWidth: 'calc(100vw - 16px)',
-              maxHeight: 'min(480px, calc(100vh - var(--nav-h) - 16px))',
+              maxHeight: 'min(480px, calc(100dvh - var(--nav-h) - 16px))',
               zIndex: 9999,
               display: 'flex',
               flexDirection: 'column',

@@ -60,7 +60,7 @@ export default function HelpPage() {
       <div className="max-w-[1600px] mx-auto px-4 lg:px-10 py-6 flex gap-10">
         {/* Desktop sidebar */}
         <aside className="hidden lg:block w-[260px] shrink-0">
-          <div className="sticky top-[calc(var(--nav-h,56px)+24px)] max-h-[calc(100vh-var(--nav-h,56px)-48px)] overflow-y-auto pr-1">
+          <div className="sticky top-[calc(var(--nav-h,56px)+24px)] max-h-[calc(100dvh-var(--nav-h,56px)-48px)] overflow-y-auto pr-1">
             <div className="flex items-center gap-2 mb-4 px-2">
               <BookOpen size={16} className="text-accent" />
               <span className="text-[14px] font-bold text-content">{t('help.title')}</span>

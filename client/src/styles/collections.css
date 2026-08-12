@@ -9,7 +9,7 @@
 
 /* The page wrapper: dashboard background + font, normal document flow (no fixed
    shell), cleared below the fixed navbar. */
-.trek-dash.col-root { min-height: 100vh; padding-top: var(--nav-h); }
+.trek-dash.col-root { min-height: 100dvh; padding-top: var(--nav-h); }
 
 /* Sticky left list rail + fluid body. */
 .trek-dash .col-page {
@@ -25,7 +25,7 @@
   border-radius: var(--r-xl); box-shadow: var(--glass-shadow), var(--glass-highlight);
   backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
   padding: 12px; display: flex; flex-direction: column; gap: 2px;
-  max-height: calc(100vh - var(--nav-h) - 44px); overflow-y: auto; overscroll-behavior: contain;
+  max-height: calc(100dvh - var(--nav-h) - 44px); overflow-y: auto; overscroll-behavior: contain;
 }
 .trek-dash .col-rail-new {
   display: flex; align-items: center; gap: 9px; width: 100%;
@@ -311,7 +311,7 @@
 /* map view fills the body */
 .trek-dash .col-mapwrap {
   border-radius: var(--r-xl); overflow: hidden; border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);
-  height: calc(100vh - var(--nav-h) - 320px); min-height: 380px;
+  height: calc(100dvh - var(--nav-h) - 320px); min-height: 380px;
 }
 
 /* list + map split (list view on wide screens): scrollable list left, sticky
@@ -329,7 +329,7 @@
 .trek-dash .col-split.map-full .col-split-list { opacity: 0; pointer-events: none; overflow: hidden; }
 .trek-dash .col-split-map {
   position: sticky; top: calc(var(--nav-h) + 22px);
-  height: calc(100vh - var(--nav-h) - 210px); min-height: 440px;
+  height: calc(100dvh - var(--nav-h) - 210px); min-height: 440px;
   border-radius: var(--r-xl); overflow: hidden;
   border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);
 }
@@ -355,7 +355,7 @@
   border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line);
   box-shadow: var(--sh-lg);
 }
-.trek-dash .col-detail.docked { max-height: min(66vh, calc(100vh - var(--nav-h) - 60px)); }
+.trek-dash .col-detail.docked { max-height: min(66vh, calc(100dvh - var(--nav-h) - 60px)); }
 .trek-dash .col-detail-cover { position: relative; height: 116px; flex-shrink: 0; background-size: cover; background-position: center; }
 .trek-dash .col-detail-cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .trek-dash .col-detail-cover-scrim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.12) 0%, rgba(0,0,0,.55) 100%); }
