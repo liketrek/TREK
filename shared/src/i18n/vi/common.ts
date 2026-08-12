@@ -55,6 +55,8 @@ const common: TranslationStrings = {
   'common.daysAgo': '{count} ngày trước',
   'common.saved': 'Đã lưu',
   'common.update': 'Cập nhật',
+  'common.updateAvailable': 'A new version of TREK is available.',
+  'common.reload': 'Reload',
   'common.change': 'Thay đổi',
   'common.uploading': 'Đang tải lên…',
   'common.backToPlanning': 'Quay lại Kế hoạch',

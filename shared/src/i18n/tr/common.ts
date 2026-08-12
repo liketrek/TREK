@@ -43,6 +43,8 @@ const common: TranslationStrings = {
   'common.daysAgo': '{count} gün önce',
   'common.saved': 'Kaydedildi',
   'common.update': 'Güncelle',
+  'common.updateAvailable': 'A new version of TREK is available.',
+  'common.reload': 'Reload',
   'common.change': 'Değiştir',
   'common.uploading': 'Yükleniyor…',
   'common.backToPlanning': 'Planlamaya dön',

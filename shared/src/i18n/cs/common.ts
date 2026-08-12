@@ -42,6 +42,8 @@ const common: TranslationStrings = {
   'common.collapse': 'Sbalit',
   'common.saved': 'Uloženo',
   'common.update': 'Aktualizovat',
+  'common.updateAvailable': 'A new version of TREK is available.',
+  'common.reload': 'Reload',
   'common.change': 'Změnit',
   'common.uploading': 'Nahrávání…',
   'common.backToPlanning': 'Zpět k plánování',

@@ -40,6 +40,8 @@ const common: TranslationStrings = {
   'common.saving': 'جارٍ الحفظ...',
   'common.saved': 'تم الحفظ',
   'common.update': 'تحديث',
+  'common.updateAvailable': 'A new version of TREK is available.',
+  'common.reload': 'Reload',
   'common.change': 'تغيير',
   'common.uploading': 'جارٍ الرفع...',
   'common.backToPlanning': 'العودة إلى التخطيط',

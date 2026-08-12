@@ -42,6 +42,8 @@ const common: TranslationStrings = {
   'common.collapse': 'Összecsukás',
   'common.saved': 'Mentve',
   'common.update': 'Frissítés',
+  'common.updateAvailable': 'A new version of TREK is available.',
+  'common.reload': 'Reload',
   'common.change': 'Módosítás',
   'common.uploading': 'Feltöltés…',
   'common.backToPlanning': 'Vissza a tervezéshez',
