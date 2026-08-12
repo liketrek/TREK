@@ -55,6 +55,10 @@ On mobile, entries are displayed in a horizontal scrolling timeline of card thum
 
 The journey detail page includes a map on the right (desktop) or an integrated map-timeline (mobile) showing all entry locations alongside the places from linked trips.
 
+**GPX tracks are drawn too.** Any route you imported into one of the journey's linked trips, from a `.gpx`, `.kml` or `.kmz` file, appears on the journey map as well, in the same colour it has in the trip planner and with a white casing so it stays readable on satellite tiles. Nothing to switch on: the tracks belong to the trips your entries came from, so importing the file while planning is all it takes. Hovering a track shows its name.
+
+The thin dashed line connecting entries in date order is something else and stays as it is: that one is drawn by TREK, while a track is the route you actually recorded.
+
 ![Journey detail page for "Autumn in Japan" with its cover header and day/place/entry/photo counts, the day-by-day timeline with Add Entry actions on the left, and the entry map on the right](assets/JourneyDetail.png)
 
 ## Plugin entry rows
