@@ -28,6 +28,8 @@ Countries on your bucket list that you have not been to yet are drawn with a dia
 
 Click any country on the map to open an action popup where you can mark it as visited or add it to your bucket list. Use the search bar at the top of the map to find and fly to a country — pressing Enter or selecting a result from the dropdown opens the same action popup.
 
+The search box also finds **places**, not just countries. Type a city, a landmark or an address and the matches appear under a **Places** heading below the country hits. Picking one flies there and works out which sub-national region the coordinate falls in, so you can mark Lombardy as visited by searching for Milan, without knowing that Milan is in Lombardy. Countries with no region data in the map bundle fall back to the country itself.
+
 To remove a manually-marked country (one with no trips or places recorded in it), click it on the map and confirm removal in the popup.
 
 If the country is already on your bucket list, the same popup offers **Remove from wishlist**, which takes every entry for that country off the list without the detour through the Bucket List tab.
@@ -49,7 +51,7 @@ Your Atlas statistics panel shows:
 - **Countries visited** — total number of distinct countries you have actually been to. Countries from upcoming trips are counted separately and shown next to this number.
 - **Trips** — total number of trips across all time.
 - **Places** — total number of individual places logged in trips.
-- **Cities** — total number of distinct cities visited.
+- **Cities** — total number of distinct cities visited. Derived from the addresses of your places, read from the administrative end of the address and cross-checked against the region the map resolved for that place, so a restaurant or a street is never mistaken for a city.
 - **Travel days** — total days spent travelling.
 - **Continent breakdown** — number of countries visited per continent (Europe, Asia, North America, South America, Africa, Oceania). Antarctica joins the row once you have been.
 - **Travel streak** — number of consecutive years in which you have taken at least one trip.
