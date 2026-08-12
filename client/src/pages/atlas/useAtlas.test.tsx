@@ -843,24 +843,29 @@ describe('useAtlas', () => {
       await waitFor(() => expect(countryLayers().length).toBeGreaterThan(0));
       const before = countryLayers().length;
 
-      act(() => atlas.togglePlanned());
-      await waitFor(() => expect(countryLayers().length).toBeGreaterThan(before));
-
-      const layers = countryLayers();
-      const layer = layers[layers.length - 1];
-      const styleFor = (a2: string) => {
+      const styleOn = (layer: MockGeoJson, a2: string) => {
         const i = (layer.data.features ?? []).findIndex(
           (f) => (f.properties as Record<string, string>).ISO_A2 === a2,
         );
         return layer.styles[i] as { fillOpacity: number; dashArray?: string; fillColor: string };
       };
+      const newestLayer = () => {
+        const layers = countryLayers();
+        return layers[layers.length - 1];
+      };
+      const frBeforeToggle = styleOn(newestLayer(), 'FR').fillColor;
+
+      act(() => atlas.togglePlanned());
+      await waitFor(() => expect(countryLayers().length).toBeGreaterThan(before));
+
+      const styleFor = (a2: string) => styleOn(newestLayer(), a2);
 
       expect(styleFor('FR').dashArray).toBeUndefined();
       expect(styleFor('DE').dashArray).toBe('6 4');
-      // The palette is built from the visited list only, so France keeps the first colour
-      // whether or not the planned layer is on.
-      expect(styleFor('FR').fillColor).toBe('#6366f1');
-      expect(styleFor('DE').fillColor).not.toBe('#6366f1');
+      // Colours are hashed from the country code, so France keeps the same colour
+      // whether or not the planned layer is on, and a planned country never takes it.
+      expect(styleFor('FR').fillColor).toBe(frBeforeToggle);
+      expect(styleFor('DE').fillColor).not.toBe(styleFor('FR').fillColor);
     });
   });
 });
