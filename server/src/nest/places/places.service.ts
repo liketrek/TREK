@@ -33,6 +33,7 @@ import {
   MAX_LIST_RESPONSE_BYTES,
   googleMapsFeatureIdFromItem,
   gpxParser,
+  externalIdsOf,
   isPlaceDuplicate,
   kmlParser,
   mapWithConcurrency,
@@ -422,25 +423,46 @@ export class PlacesService {
 
   /** Build a lookup of names/coords for places already in a trip. */
   private buildDedupSet(tripId: string): DedupSet {
-    const rows = this.dbs.all<{ name: string | null; lat: number | null; lng: number | null }>(
-      'SELECT name, lat, lng FROM places WHERE trip_id = ?', tripId,
+    const rows = this.dbs.all<{
+      name: string | null; lat: number | null; lng: number | null;
+      google_place_id: string | null; google_ftid: string | null; osm_id: string | null;
+    }>(
+      'SELECT name, lat, lng, google_place_id, google_ftid, osm_id FROM places WHERE trip_id = ?', tripId,
     );
     const names = new Set<string>();
     const coords: Array<{ lat: number; lng: number }> = [];
+    // Provider ids are collected for every place, named or not: they are what lets a
+    // renamed place still be recognised on a re-import (#1550).
+    const externalIds = new Set<string>();
     for (const row of rows) {
+      for (const id of externalIdsOf(row)) externalIds.add(id);
       if (row.name) {
         names.add(row.name.trim().toLowerCase());
       } else if (row.lat != null && row.lng != null) {
         coords.push({ lat: row.lat, lng: row.lng });
       }
     }
-    return { names, coords };
+    return { names, coords, externalIds };
   }
 
   private findDuplicatePlace(
     tripId: string,
-    place: { name: string | null | undefined; lat: number | null; lng: number | null },
+    place: {
+      name: string | null | undefined; lat: number | null; lng: number | null;
+      google_place_id?: string | null; google_ftid?: string | null; osm_id?: string | null;
+    },
   ): { id: number; google_ftid: string | null } | null {
+    // Same order as isPlaceDuplicate: the provider id wins, because it is what
+    // survives a rename (#1550).
+    for (const id of externalIdsOf(place)) {
+      const byId = this.dbs.get<{ id: number; google_ftid: string | null }>(`
+      SELECT id, google_ftid FROM places
+      WHERE trip_id = ? AND (google_place_id = ? OR google_ftid = ? OR osm_id = ?)
+      ORDER BY id ASC
+      LIMIT 1
+    `, tripId, id, id, id);
+      if (byId) return byId;
+    }
     const normalizedName = place.name?.trim().toLowerCase();
     if (normalizedName) {
       const duplicate = this.dbs.get<{ id: number; google_ftid: string | null }>(`
@@ -901,7 +923,7 @@ export class PlacesService {
     let skipped = 0;
     this.dbs.transaction(() => {
       for (const p of places) {
-        if (isPlaceDuplicate({ name: p.name, lat: p.lat, lng: p.lng }, dedup)) {
+        if (isPlaceDuplicate({ name: p.name, lat: p.lat, lng: p.lng, google_ftid: p.googleFtid }, dedup)) {
           const duplicate = this.findDuplicatePlace(tripId, p);
           if (duplicate && !duplicate.google_ftid && p.googleFtid) {
             updateGoogleFtidStmt.run(p.googleFtid, duplicate.id);
@@ -912,7 +934,7 @@ export class PlacesService {
         const result = insertStmt.run(tripId, p.name, p.lat, p.lng, p.notes, p.googleFtid);
         const place = this.dbs.getPlaceWithTags(Number(result.lastInsertRowid))!;
         created.push(place);
-        trackInsertedInDedupSet({ name: p.name, lat: p.lat, lng: p.lng }, dedup);
+        trackInsertedInDedupSet({ name: p.name, lat: p.lat, lng: p.lng, google_ftid: p.googleFtid }, dedup);
       }
     });
 

@@ -21,6 +21,7 @@ import {
   COORD_DEDUP_TOLERANCE,
   googleMapsFeatureIdFromItem,
   googleMapsHexId,
+  externalIdsOf,
   isPlaceDuplicate,
   KMZ_DECOMPRESSED_SIZE_LIMIT,
   mapWithConcurrency,
@@ -78,7 +79,7 @@ describe('unpackKmzToKml', () => {
 
 // ── Import dedup predicates ───────────────────────────────────────────────────
 
-const emptyDedup = (): DedupSet => ({ names: new Set(), coords: [] });
+const emptyDedup = (): DedupSet => ({ names: new Set(), coords: [], externalIds: new Set() });
 
 describe('isPlaceDuplicate / trackInsertedInDedupSet', () => {
   it('matches a named place case- and whitespace-insensitively', () => {
@@ -106,6 +107,45 @@ describe('isPlaceDuplicate / trackInsertedInDedupSet', () => {
 
   it('a candidate with neither a name nor coordinates is never a duplicate', () => {
     expect(isPlaceDuplicate({ name: null, lat: null, lng: null }, emptyDedup())).toBe(false);
+  });
+
+  // #1550 — the reported bug: rename an imported place, re-import the list, get a twin.
+  it('recognises a renamed place by its provider id', () => {
+    const dedup = emptyDedup();
+    trackInsertedInDedupSet({ name: 'Trattoria da Enzo', lat: 41.88, lng: 12.47, google_ftid: '0x1:0x2' }, dedup);
+    // The user renamed it in TREK; the list still calls it what Google calls it.
+    dedup.names.delete('trattoria da enzo');
+    dedup.names.add('dinner tuesday');
+    expect(isPlaceDuplicate({ name: 'Trattoria da Enzo', lat: 41.88, lng: 12.47, google_ftid: '0x1:0x2' }, dedup)).toBe(true);
+  });
+
+  it('matches on any of the three id columns, and ignores blank ones', () => {
+    const dedup = emptyDedup();
+    trackInsertedInDedupSet({ name: 'A', lat: null, lng: null, google_place_id: 'ChIJ_a' }, dedup);
+    trackInsertedInDedupSet({ name: 'B', lat: null, lng: null, osm_id: 'node/42' }, dedup);
+    expect(isPlaceDuplicate({ name: 'renamed', lat: null, lng: null, google_place_id: 'ChIJ_a' }, dedup)).toBe(true);
+    expect(isPlaceDuplicate({ name: 'renamed', lat: null, lng: null, osm_id: 'node/42' }, dedup)).toBe(true);
+    expect(isPlaceDuplicate({ name: 'renamed', lat: null, lng: null, google_ftid: '  ' }, dedup)).toBe(false);
+  });
+
+  it('keeps two different places in the same building apart', () => {
+    const dedup = emptyDedup();
+    // Identical coordinates, different ids: the restaurant and the bar downstairs.
+    trackInsertedInDedupSet({ name: 'Rooftop Bar', lat: 52.52, lng: 13.405, google_ftid: '0xaa:0xbb' }, dedup);
+    expect(isPlaceDuplicate({ name: 'Ground Floor Diner', lat: 52.52, lng: 13.405, google_ftid: '0xcc:0xdd' }, dedup)).toBe(false);
+  });
+
+  it('leaves id-less imports on their old behaviour', () => {
+    const dedup = emptyDedup();
+    trackInsertedInDedupSet({ name: 'Colosseum', lat: 41.89, lng: 12.49 }, dedup);
+    expect(dedup.externalIds.size).toBe(0);
+    expect(isPlaceDuplicate({ name: 'colosseum', lat: null, lng: null }, dedup)).toBe(true);
+    expect(isPlaceDuplicate({ name: 'Colosseum renamed', lat: 41.89, lng: 12.49 }, dedup)).toBe(false);
+  });
+
+  it('externalIdsOf trims and drops empties', () => {
+    expect(externalIdsOf({ google_place_id: ' ChIJ ', google_ftid: '', osm_id: null })).toEqual(['ChIJ']);
+    expect(externalIdsOf({})).toEqual([]);
   });
 });
 

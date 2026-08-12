@@ -118,17 +118,48 @@ export function reclaimPhotoCache(cache: PlacePhotoCacheService, googlePlaceId: 
 export interface DedupSet {
   names: Set<string>;
   coords: Array<{ lat: number; lng: number }>;
+  /** Provider ids (google_place_id, google_ftid, osm_id) of the places already in the trip. */
+  externalIds: Set<string>;
+}
+
+/** The provider ids a candidate can be recognised by, ignoring blanks. */
+export function externalIdsOf(candidate: {
+  google_place_id?: string | null;
+  google_ftid?: string | null;
+  osm_id?: string | null;
+}): string[] {
+  return [candidate.google_place_id, candidate.google_ftid, candidate.osm_id]
+    .filter((id): id is string => typeof id === 'string' && id.trim() !== '')
+    .map(id => id.trim());
 }
 
 /**
  * Returns true if a candidate place is already represented in the dedup set.
- * Named places match by case-insensitive name; unnamed places fall back to
- * coordinate proximity.
+ *
+ * The provider id comes first, because it is the only part of a place that
+ * survives the user editing it. Re-importing a Google Maps list used to duplicate
+ * every place someone had renamed (#1550): the name no longer matched, and the
+ * coordinate fallback never ran for a named candidate. The ids were already being
+ * stored, and even backfilled onto matched places, they were simply never read.
+ *
+ * Name and coordinates keep their previous roles below it, deliberately unchanged:
+ * widening the coordinate check to named places would merge the restaurant and the
+ * bar in the same building, which is a worse failure than the one being fixed.
  */
 export function isPlaceDuplicate(
-  candidate: { name: string | null | undefined; lat: number | null; lng: number | null },
+  candidate: {
+    name: string | null | undefined;
+    lat: number | null;
+    lng: number | null;
+    google_place_id?: string | null;
+    google_ftid?: string | null;
+    osm_id?: string | null;
+  },
   dedup: DedupSet,
 ): boolean {
+  for (const id of externalIdsOf(candidate)) {
+    if (dedup.externalIds.has(id)) return true;
+  }
   const normalizedName = candidate.name?.trim().toLowerCase();
   if (normalizedName) return dedup.names.has(normalizedName);
   if (candidate.lat != null && candidate.lng != null) {
@@ -143,9 +174,17 @@ export function isPlaceDuplicate(
 
 /** Record a newly inserted place so subsequent candidates in the same batch are checked against it. */
 export function trackInsertedInDedupSet(
-  place: { name: string | null | undefined; lat: number | null; lng: number | null },
+  place: {
+    name: string | null | undefined;
+    lat: number | null;
+    lng: number | null;
+    google_place_id?: string | null;
+    google_ftid?: string | null;
+    osm_id?: string | null;
+  },
   dedup: DedupSet,
 ): void {
+  for (const id of externalIdsOf(place)) dedup.externalIds.add(id);
   const normalizedName = place.name?.trim().toLowerCase();
   if (normalizedName) {
     dedup.names.add(normalizedName);

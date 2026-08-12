@@ -5,6 +5,13 @@ import { DatabaseService } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { reclaimPlaceImage } from '../places/place-image';
+import {
+  COORD_DEDUP_TOLERANCE,
+  externalIdsOf,
+  isPlaceDuplicate,
+  trackInsertedInDedupSet,
+  type DedupSet,
+} from '../places/places.helpers';
 import type {
   Collection,
   CollectionDetailResponse,
@@ -69,32 +76,6 @@ interface PlaceRow extends CollectionPlace {
   category_name?: string | null;
   category_color?: string | null;
   category_icon?: string | null;
-}
-
-// ---------------------------------------------------------------------------
-// Dedup (collection-scoped ports of placeService helpers)
-// ---------------------------------------------------------------------------
-
-const COORD_DEDUP_TOLERANCE = 0.0001; // ≈ 11 m
-
-interface DedupSet {
-  names: Set<string>;
-  coords: Array<{ lat: number; lng: number }>;
-}
-
-function isCollectionPlaceDuplicate(
-  candidate: { name: string | null | undefined; lat: number | null | undefined; lng: number | null | undefined },
-  dedup: DedupSet,
-): boolean {
-  const normalizedName = candidate.name?.trim().toLowerCase();
-  if (normalizedName) return dedup.names.has(normalizedName);
-  if (candidate.lat != null && candidate.lng != null) {
-    return dedup.coords.some(c =>
-      Math.abs(c.lat - candidate.lat!) <= COORD_DEDUP_TOLERANCE &&
-      Math.abs(c.lng - candidate.lng!) <= COORD_DEDUP_TOLERANCE,
-    );
-  }
-  return false;
 }
 
 const MAX_LABELS_PER_COLLECTION = 50;
@@ -823,10 +804,15 @@ export class CollectionsService {
       sources.push(row);
     }
 
-    // Trip dedup set (mirrors placeService.buildDedupSet).
-    const existing = this.db.all<{ name: string | null; lat: number | null; lng: number | null }>('SELECT name, lat, lng FROM places WHERE trip_id = ?', body.trip_id);
-    const dedup: DedupSet = { names: new Set(), coords: [] };
+    // Trip dedup set — same helpers the importers use, so a place renamed in the
+    // trip is still recognised by its provider id when it is copied again (#1550).
+    const existing = this.db.all<{
+      name: string | null; lat: number | null; lng: number | null;
+      google_place_id: string | null; google_ftid: string | null; osm_id: string | null;
+    }>('SELECT name, lat, lng, google_place_id, google_ftid, osm_id FROM places WHERE trip_id = ?', body.trip_id);
+    const dedup: DedupSet = { names: new Set(), coords: [], externalIds: new Set() };
     for (const r of existing) {
+      for (const id of externalIdsOf(r)) dedup.externalIds.add(id);
       if (r.name) dedup.names.add(r.name.trim().toLowerCase());
       else if (r.lat != null && r.lng != null) dedup.coords.push({ lat: r.lat, lng: r.lng });
     }
@@ -844,7 +830,10 @@ export class CollectionsService {
     // The whole copy is one logical write — atomic since the post-fold quirk pass.
     this.db.transaction(() => {
       for (const s of sources) {
-        if (!body.force && isCollectionPlaceDuplicate({ name: s.name, lat: s.lat, lng: s.lng }, dedup)) {
+        if (!body.force && isPlaceDuplicate({
+          name: s.name, lat: s.lat, lng: s.lng,
+          google_place_id: s.google_place_id, google_ftid: s.google_ftid, osm_id: s.osm_id,
+        }, dedup)) {
           skipped.push({ id: s.id, name: s.name });
           continue;
         }
@@ -861,8 +850,7 @@ export class CollectionsService {
         const votes = this.db.all<{ user_id: number; rating: number }>('SELECT user_id, rating FROM collection_place_ratings WHERE collection_place_id = ?', s.id);
         for (const v of votes) if (tripMemberIds.has(v.user_id)) insertRating.run(newPlaceId, v.user_id, v.rating);
 
-        if (s.name) dedup.names.add(s.name.trim().toLowerCase());
-        else if (s.lat != null && s.lng != null) dedup.coords.push({ lat: s.lat, lng: s.lng });
+        trackInsertedInDedupSet(s, dedup);
         copied++;
       }
     });

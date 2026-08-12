@@ -665,6 +665,58 @@ describe('importGoogleList', () => {
     expect(row.google_ftid).toBe('0x882bf179e806d471:0x8591dde29c821a93');
   });
 
+  it('PLACE-SVC-028d — a renamed place is not re-imported as a twin (#1550)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const listPayload = [
+      [null, null, null, null, 'My Test List', null, null, null, [
+        [null, [null, null, null, null, '878 Weber St N', [null, null, 43.5118527, -80.5542617], ['-8634542354666695567', '-8822026229683971437']], "St. Jacobs Farmers' Market"],
+      ]],
+    ];
+    const respond = () => vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => 'prefix\n' + JSON.stringify(listPayload),
+    }));
+    const url = 'https://www.google.com/maps/placelists/list/ABC123DEF456';
+
+    respond();
+    const first = await svc.importGoogleList(String(trip.id), url) as any;
+    expect(first.places).toHaveLength(1);
+
+    // What the reporter does: rename it to something they can actually read, and
+    // move it far enough that the coordinate fallback would not save us either.
+    testDb.prepare('UPDATE places SET name = ?, lat = ?, lng = ? WHERE id = ?')
+      .run('Saturday market', 43.6, -80.6, first.places[0].id);
+
+    respond();
+    const second = await svc.importGoogleList(String(trip.id), url) as any;
+    expect(second.places).toHaveLength(0);
+    expect(second.skipped).toBe(1);
+    expect(testDb.prepare('SELECT COUNT(*) c FROM places WHERE trip_id = ?').get(trip.id)).toEqual({ c: 1 });
+  });
+
+  it('PLACE-SVC-028e — two places at the same coordinates still both import', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    // A bar and a diner in one building: same spot, different feature ids.
+    const listPayload = [
+      [null, null, null, null, 'One Building', null, null, null, [
+        [null, [null, null, null, null, 'Same street 1', [null, null, 52.52, 13.405], ['1', '2']], 'Rooftop Bar'],
+        [null, [null, null, null, null, 'Same street 1', [null, null, 52.52, 13.405], ['3', '4']], 'Ground Floor Diner'],
+      ]],
+    ];
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => 'prefix\n' + JSON.stringify(listPayload),
+    }));
+
+    const result = await svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456') as any;
+    expect(result.places).toHaveLength(2);
+    expect(result.skipped).toBe(0);
+  });
+
   it('PLACE-SVC-029 — returns error when list items array is empty', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
