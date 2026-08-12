@@ -856,6 +856,11 @@ describe('atomic bulk writes (post-fold quirk fixes)', () => {
 
 // ── Bulk "visited" from a trip (#1469) ───────────────────────────────────────
 
+/** The stored status of a saved place, read straight off the row. */
+function statusOf(placeId: number): string {
+  return (testDb.prepare('SELECT status FROM collection_places WHERE id = ?').get(placeId) as { status: string }).status;
+}
+
 describe('bulk status', () => {
   it('COLLECTIONS-SVC-093: setStatusMany writes one status across lists and counts only real changes', () => {
     const u = createUser(testDb).user;
@@ -867,7 +872,7 @@ describe('bulk status', () => {
 
     // pb is already visited, so only pa is a change.
     expect(svc.setStatusMany(u.id, [pa.id, pb.id], 'visited')).toEqual({ updated: 1 });
-    expect(svc.getPlaceById(pa.id).status).toBe('visited');
+    expect(statusOf(pa.id)).toBe('visited');
     expect(svc.setStatusMany(u.id, [pa.id, pb.id], 'visited')).toEqual({ updated: 0 });
   });
 
@@ -881,7 +886,7 @@ describe('bulk status', () => {
     const p2 = svc.savePlace(owner.id, { collection_id: readonly.id, name: 'Louvre' }).place!;
 
     expect(() => svc.setStatusMany(viewer.id, [p1.id, p2.id], 'visited')).toThrow('You have read-only access to this list');
-    expect(svc.getPlaceById(p1.id).status).toBe('idea');
+    expect(statusOf(p1.id)).toBe('idea');
   });
 
   it('COLLECTIONS-SVC-095: setStatusFromTrip marks every saved copy of the selected trip places', () => {
@@ -937,7 +942,7 @@ describe('bulk status', () => {
     const theirs = svc.savePlace(owner.id, { collection_id: readonly.id, name: 'Louvre', lat: 48.8606, lng: 2.3376 }).place!;
 
     expect(svc.setStatusFromTrip(viewer.id, trip.id, [place.id], 'visited')).toEqual({ updated: 0, places: 0 });
-    expect(svc.getPlaceById(theirs.id).status).toBe('idea');
+    expect(statusOf(theirs.id)).toBe('idea');
   });
 
   it('COLLECTIONS-SVC-099: findMembership reports the per-list status and edit right', () => {
