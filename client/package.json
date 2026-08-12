@@ -82,7 +82,7 @@
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^29.0.1",
     "msw": "^2.13.0",
-    "postcss": "^8.4.35",
+    "postcss": "^8.5.26",
     "prettier": "^3.8.3",
     "prettier-plugin-organize-imports": "^4.3.0",
     "prettier-plugin-tailwindcss": "^0.8.0",
