@@ -115,6 +115,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'Không tạo được danh mục',
   'places.nameRequired': 'Vui lòng nhập tên',
   'places.saveError': 'Không lưu được',
+  'places.createExpenseHint': 'Lưu địa điểm rồi mở trình sửa chi phí.',
   'places.duplicateExists': "'{name}' đã có trong chuyến đi này.",
   'places.addAnyway': 'Vẫn thêm',
   'places.enrichOnImport': 'Làm phong phú các địa điểm thông qua Google',

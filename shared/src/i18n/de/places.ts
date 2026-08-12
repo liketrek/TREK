@@ -115,6 +115,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'Fehler beim Erstellen der Kategorie',
   'places.nameRequired': 'Bitte einen Namen eingeben',
   'places.saveError': 'Fehler beim Speichern',
+  'places.createExpenseHint': 'Speichert den Ort und öffnet dann den Kosten-Editor.',
   'places.duplicateExists': "'{name}' ist bereits in dieser Reise.",
   'places.uploadImage': 'Bild hochladen',
   'places.changeImage': 'Bild ändern',

@@ -115,6 +115,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'Det gick inte att skapa kategorin',
   'places.nameRequired': 'Ange ett namn',
   'places.saveError': 'Det gick inte att spara',
+  'places.createExpenseHint': 'Sparar platsen och öppnar sedan kostnadsredigeraren.',
   'places.duplicateExists': "'{name}' ingår redan i resan.",
   'places.addAnyway': 'Lägg till ändå',
   'places.enrichOnImport': 'Berika platser via Google',

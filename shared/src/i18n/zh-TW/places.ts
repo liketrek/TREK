@@ -113,6 +113,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': '建立分類失敗',
   'places.nameRequired': '請輸入名稱',
   'places.saveError': '儲存失敗',
+  'places.createExpenseHint': '先儲存地點，然後開啟費用編輯器。',
   'places.duplicateExists': "'{name}' 已在此行程中。",
   'places.addAnyway': '仍要新增',
   'places.enrichOnImport': '透過 Google 豐富地點資訊',

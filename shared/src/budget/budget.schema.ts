@@ -116,6 +116,9 @@ export const budgetItemSchema = z.object({
   /** Itemized receipt behind a per-item split, as JSON. Its own column since #1658. */
   ticket_json: z.string().nullable().optional(),
   reservation_id: z.number().nullable().optional(),
+  /** Set when the expense was created from a place (#1298) — the same link
+   *  reservation_id is for a booking, on the other side of the planner. */
+  place_id: z.number().nullable().optional(),
   paid_by_user_id: z.number().nullable().optional(),
   expense_date: z.string().nullable().optional(),
   sort_order: z.number().optional(),
@@ -155,6 +158,9 @@ export const budgetCreateItemRequestSchema = z.object({
   // Link this expense to a reservation (e.g. created from a booking's
   // "add expense" flow). The server stores it on budget_items.reservation_id.
   reservation_id: z.number().optional(),
+  // The same for a place: the place form's "add expense" flow saves the place
+  // first, then creates the expense against it (#1298).
+  place_id: z.number().optional(),
 });
 export type BudgetCreateItemRequest = z.infer<typeof budgetCreateItemRequestSchema>;
 

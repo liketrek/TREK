@@ -106,6 +106,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'Nie udało się utworzyć kategorii',
   'places.nameRequired': 'Proszę podać nazwę',
   'places.saveError': 'Nie udało się zapisać',
+  'places.createExpenseHint': 'Zapisuje miejsce i otwiera edytor kosztów.',
   'places.duplicateExists': "'{name}' jest już w tej podróży.",
   'places.addAnyway': 'Dodaj mimo to',
   'places.importNaverList': 'Lista Naver',

@@ -115,6 +115,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'فشل إنشاء الفئة',
   'places.nameRequired': 'يرجى إدخال اسم',
   'places.saveError': 'فشل الحفظ',
+  'places.createExpenseHint': 'يحفظ المكان ثم يفتح محرر التكاليف.',
   'places.duplicateExists': "'{name}' موجود بالفعل في هذه الرحلة.",
   'places.addAnyway': 'الإضافة على أي حال',
   'places.enrichOnImport': 'إثراء الأماكن عبر Google',

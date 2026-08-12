@@ -139,6 +139,9 @@ export interface BudgetItem {
   /** Itemized receipt for a per-item split, as JSON. Its own column since #1658. */
   ticket_json?: string | null;
   reservation_id?: number | null;
+  /** Set when the expense was created from a place (#1298) — the other side of
+   *  the same link reservation_id is for a booking. */
+  place_id?: number | null;
   paid_by_user_id?: number | null;
   expense_date?: string | null;
   sort_order: number;

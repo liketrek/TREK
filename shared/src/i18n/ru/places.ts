@@ -115,6 +115,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'Не удалось создать категорию',
   'places.nameRequired': 'Введите название',
   'places.saveError': 'Ошибка сохранения',
+  'places.createExpenseHint': 'Сохраняет место и открывает редактор расходов.',
   'places.duplicateExists': "'{name}' уже есть в этой поездке.",
   'places.addAnyway': 'Всё равно добавить',
   'places.enrichOnImport': 'Обогатить места через Google',

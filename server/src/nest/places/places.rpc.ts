@@ -80,10 +80,13 @@ export class PlacesRpc {
     // journey_entries.source_place_id is ON DELETE SET NULL, so afterwards the hook
     // finds nothing left to detach and the entries linger as orphans.
     this.mirrorJourneys(() => this.journey.onPlaceDeleted(placeId));
+    // The link is gone once the place is, so read it first (#1298).
+    const expenseIds = this.places.linkedExpenseIds(tripId, [placeId]);
     if (!this.places.remove(String(tripId), String(placeId))) {
       throw new ForbiddenResource(`no place ${placeId} on trip ${tripId}`);
     }
     this.realtime.broadcast(tripId, 'place:deleted', { placeId });
+    for (const itemId of expenseIds) this.realtime.broadcast(tripId, 'budget:deleted', { itemId });
     return { deleted: true };
   }
 

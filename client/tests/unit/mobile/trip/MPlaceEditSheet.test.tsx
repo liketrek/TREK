@@ -4,10 +4,11 @@ import MPlaceEditSheet from '../../../../src/mobile/screens/trip/sheets/MPlaceEd
 import type { TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import type { Assignment, Category, Place } from '../../../../src/types'
 import { buildPlanner } from '../../../helpers/mobileTrip'
+import { useAddonStore } from '../../../../src/store/addonStore'
 import { server } from '../../../helpers/msw/server'
 import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-PLEDIT-001 to FE-MOB-PLEDIT-024
+// FE-MOB-PLEDIT-001 to FE-MOB-PLEDIT-024, plus FE-MOB-PLEDIT-033 to -035
 // planner.t echoes the key, so every label/placeholder is asserted as its key.
 
 const CATEGORIES = [
@@ -27,8 +28,9 @@ const EDITED = {
 
 function setup(overrides: Partial<TripPlanner> = {}) {
   const planner = buildPlanner({ showPlaceForm: true, categories: CATEGORIES, ...overrides })
-  const view = render(<MPlaceEditSheet planner={planner} />)
-  return { ...view, planner }
+  const onOpenExpense = vi.fn()
+  const view = render(<MPlaceEditSheet planner={planner} onOpenExpense={onOpenExpense} />)
+  return { ...view, planner, onOpenExpense }
 }
 
 const nameField = () => screen.getByPlaceholderText('places.formNamePlaceholder')
@@ -247,7 +249,7 @@ describe('MPlaceEditSheet', () => {
 
   it('FE-MOB-PLEDIT-020: shows the saving label and blocks the button while the save runs', async () => {
     let release: () => void = () => {}
-    const handleSavePlace = vi.fn(() => new Promise<void>(resolve => { release = resolve }))
+    const handleSavePlace = vi.fn(() => new Promise<{ id: number }>(resolve => { release = () => resolve({ id: 1 }) }))
     setup({ handleSavePlace })
     fireEvent.change(nameField(), { target: { value: 'Nakamise' } })
     fireEvent.click(submit())
@@ -389,5 +391,51 @@ describe('MPlaceEditSheet', () => {
 
   it('FE-MOB-PLEDIT-032: sends no bias for a trip without any located place', async () => {
     expect(await capturedBias([])).toBeUndefined()
+  })
+
+  // ── Linked expense (#1298) — the same block the booking sheet has ──────────
+
+  describe('Costs', () => {
+    const withBudget = () => useAddonStore.setState({
+      addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }] as never,
+      loaded: true,
+    })
+
+    it('FE-MOB-PLEDIT-033: the button only appears while the Budget addon is on', () => {
+      const { unmount } = setup()
+      expect(screen.queryByRole('button', { name: 'reservations.createExpense' })).not.toBeInTheDocument()
+      unmount()
+
+      withBudget()
+      setup()
+      expect(screen.getByRole('button', { name: 'reservations.createExpense' })).toBeInTheDocument()
+    })
+
+    it('FE-MOB-PLEDIT-034: creating an expense saves the place first, then opens the editor', async () => {
+      withBudget()
+      const handleSavePlace = vi.fn(async () => ({ id: 42 }))
+      const { onOpenExpense } = setup({ handleSavePlace })
+
+      fireEvent.change(nameField(), { target: { value: 'Louvre' } })
+      fireEvent.click(screen.getByRole('button', { name: 'reservations.createExpense' }))
+
+      await waitFor(() => expect(onOpenExpense).toHaveBeenCalled())
+      expect(handleSavePlace.mock.invocationCallOrder[0]).toBeLessThan(onOpenExpense.mock.invocationCallOrder[0])
+      expect(onOpenExpense).toHaveBeenCalledWith({
+        prefill: { placeId: 42, name: 'Louvre', category: 'activities' },
+      })
+    })
+
+    it('FE-MOB-PLEDIT-035: a save that yields no id opens no editor', async () => {
+      withBudget()
+      const handleSavePlace = vi.fn(async () => undefined)
+      const { onOpenExpense } = setup({ handleSavePlace })
+
+      fireEvent.change(nameField(), { target: { value: 'Louvre' } })
+      fireEvent.click(screen.getByRole('button', { name: 'reservations.createExpense' }))
+
+      await waitFor(() => expect(handleSavePlace).toHaveBeenCalled())
+      expect(onOpenExpense).not.toHaveBeenCalled()
+    })
   })
 })

@@ -393,6 +393,51 @@ describe('remove', () => {
     expect(remaining[0].id).toBe(p1.id);
   });
 
+  it('PLACE-SVC-019c — the linked expense goes with the place (#1298)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Louvre' }) as any;
+    const other = createPlace(testDb, trip.id, { name: 'Orsay', lat: 48.86, lng: 2.3266 }) as any;
+    const linked = Number(testDb.prepare("INSERT INTO budget_items (trip_id, name, total_price, place_id) VALUES (?, 'Tickets', 34, ?)").run(trip.id, place.id).lastInsertRowid);
+    const untouched = Number(testDb.prepare("INSERT INTO budget_items (trip_id, name, total_price, place_id) VALUES (?, 'Other tickets', 12, ?)").run(trip.id, other.id).lastInsertRowid);
+    const standalone = Number(testDb.prepare("INSERT INTO budget_items (trip_id, name, total_price) VALUES (?, 'Coffee', 3)").run(trip.id).lastInsertRowid);
+
+    // Read the link before the delete — that is what the controller broadcasts.
+    expect(svc.linkedExpenseIds(trip.id, [place.id])).toEqual([linked]);
+    expect(svc.remove(String(trip.id), String(place.id))).toBe(true);
+
+    const rows = testDb.prepare('SELECT id FROM budget_items ORDER BY id').all() as { id: number }[];
+    expect(rows.map(r => r.id)).toEqual([untouched, standalone]);
+  });
+
+  it('PLACE-SVC-019d — removeMany takes the expense of every deleted place with it', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const a = createPlace(testDb, trip.id, { name: 'A' }) as any;
+    const b = createPlace(testDb, trip.id, { name: 'B', lat: 48.86, lng: 2.3266 }) as any;
+    const keep = createPlace(testDb, trip.id, { name: 'C', lat: 48.87, lng: 2.34 }) as any;
+    for (const p of [a, b, keep]) {
+      testDb.prepare("INSERT INTO budget_items (trip_id, name, total_price, place_id) VALUES (?, 'x', 1, ?)").run(trip.id, p.id);
+    }
+
+    expect(svc.linkedExpenseIds(trip.id, [a.id, b.id])).toHaveLength(2);
+    svc.removeMany(String(trip.id), [a.id, b.id]);
+
+    const rows = testDb.prepare('SELECT place_id FROM budget_items').all() as { place_id: number }[];
+    expect(rows.map(r => r.place_id)).toEqual([keep.id]);
+  });
+
+  it('PLACE-SVC-019e — linkedExpenseIds ignores places of another trip and an empty list', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const other = createTrip(testDb, user.id);
+    const place = createPlace(testDb, other.id, { name: 'Elsewhere' }) as any;
+    testDb.prepare("INSERT INTO budget_items (trip_id, name, total_price, place_id) VALUES (?, 'x', 1, ?)").run(other.id, place.id);
+
+    expect(svc.linkedExpenseIds(trip.id, [place.id])).toEqual([]);
+    expect(svc.linkedExpenseIds(trip.id, [])).toEqual([]);
+  });
+
   it('PLACE-SVC-019b — reclaims the photo cache for the deleted place', () => {
     removeIfUnreferencedSpy.mockClear();
     const { user } = createUser(testDb);

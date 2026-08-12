@@ -115,6 +115,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'Αποτυχία δημιουργίας κατηγορίας',
   'places.nameRequired': 'Παρακαλώ εισαγάγετε ένα όνομα',
   'places.saveError': 'Αποτυχία αποθήκευσης',
+  'places.createExpenseHint': 'Αποθηκεύει την τοποθεσία και ανοίγει τον επεξεργαστή εξόδων.',
   'places.duplicateExists': "Το '{name}' υπάρχει ήδη σε αυτό το ταξίδι.",
   'places.addAnyway': 'Προσθήκη ούτως ή άλλως',
   'places.enrichOnImport': 'Εμπλουτισμός τόπων μέσω Google',

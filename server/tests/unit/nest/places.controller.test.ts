@@ -15,6 +15,7 @@ function svc(o: Partial<PlacesService> = {}): PlacesService {
     // Trip-scoping reads the delete paths run before firing the journey hook
     // (#1745); default to "everything belongs to the trip".
     get: vi.fn().mockReturnValue({ id: 9 }), scopedIds: vi.fn((_t: string, ids: number[]) => ids),
+    linkedExpenseIds: vi.fn().mockReturnValue([]),
     ...o,
   } as unknown as PlacesService;
 }
@@ -207,6 +208,19 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       expect(onDeleted).toHaveBeenCalledTimes(1);
       expect(onDeleted).toHaveBeenCalledWith(1);
       expect(onDeleted.mock.invocationCallOrder[0]).toBeLessThan(removeMany.mock.invocationCallOrder[0]);
+    });
+
+    // #1298: the link is gone once the place is, so the ids have to be read first.
+    it('announces the expenses the deleted places took with them', () => {
+      const removeMany = vi.fn().mockReturnValue([1, 2]);
+      const linkedExpenseIds = vi.fn().mockReturnValue([77]);
+      const broadcast = vi.fn();
+      const s = svc({ removeMany, linkedExpenseIds, broadcast } as Partial<PlacesService>);
+      new PlacesController(s, new RuntimeEnvService()).bulkDelete(user, '5', { ids: [1, 2] }, 'sock');
+
+      expect(linkedExpenseIds).toHaveBeenCalledWith('5', [1, 2]);
+      expect(linkedExpenseIds.mock.invocationCallOrder[0]).toBeLessThan(removeMany.mock.invocationCallOrder[0]);
+      expect(broadcast).toHaveBeenCalledWith('5', 'budget:deleted', { itemId: 77 }, 'sock');
     });
   });
 

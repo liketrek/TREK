@@ -291,6 +291,21 @@ describe('Tool: delete_place', () => {
     });
   });
 
+  it('takes the linked expense with it and announces that too (#1298)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id);
+    const itemId = Number(testDb
+      .prepare("INSERT INTO budget_items (trip_id, name, total_price, place_id) VALUES (?, 'Tickets', 34, ?)")
+      .run(trip.id, place.id).lastInsertRowid);
+
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({ name: 'delete_place', arguments: { tripId: trip.id, placeId: place.id } });
+      expect(testDb.prepare('SELECT id FROM budget_items WHERE id = ?').get(itemId)).toBeUndefined();
+      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'budget:deleted', expect.objectContaining({ itemId }));
+    });
+  });
+
   it('broadcasts place:deleted event', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);

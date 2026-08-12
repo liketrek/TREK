@@ -114,6 +114,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'Gagal membuat kategori',
   'places.nameRequired': 'Harap masukkan nama',
   'places.saveError': 'Gagal menyimpan',
+  'places.createExpenseHint': 'Menyimpan tempat, lalu membuka editor biaya.',
   'places.duplicateExists': "'{name}' sudah ada di perjalanan ini.",
   'places.addAnyway': 'Tetap tambahkan',
   'places.enrichOnImport': 'Perkaya tempat via Google',

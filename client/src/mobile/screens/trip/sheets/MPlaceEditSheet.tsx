@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ClipboardEvent } from 'react'
-import { MapPin } from 'lucide-react'
+import { MapPin, Plus } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import {
   DEFAULT_FORM,
@@ -8,6 +8,8 @@ import {
   type ResultField,
 } from '../../../../components/Planner/PlaceFormModal.helpers'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
+import { useAddonStore } from '../../../../store/addonStore'
+import type { BookingExpenseRequest } from '../../../../components/Planner/BookingCostsSection.types'
 import PlPlaceSearch, { type PlSearchPick } from './PlPlaceSearch'
 import PlCategoryPicker from './PlCategoryPicker'
 import PlTimeFields from './PlTimeFields'
@@ -17,6 +19,8 @@ import type { TripPlanner } from '../MTripShell'
 
 export interface MPlaceEditSheetProps {
   planner: TripPlanner
+  /** Opens the Costs editor for this place's linked expense (#1298). */
+  onOpenExpense: (req: BookingExpenseRequest) => void
 }
 
 // #1152: same duplicate heuristic as the desktop form — shared Google Place ID,
@@ -51,7 +55,7 @@ function findDuplicateName(
  * planner.handleSavePlace, which owns the assignment-time split, pending-file
  * upload and undo.
  */
-export default function MPlaceEditSheet({ planner }: MPlaceEditSheetProps) {
+export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSheetProps) {
   const {
     t, toast, places, assignments, canUploadFiles,
     showPlaceForm, setShowPlaceForm,
@@ -68,6 +72,10 @@ export default function MPlaceEditSheet({ planner }: MPlaceEditSheetProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [resolvingPick, setResolvingPick] = useState(false)
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
+  const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
+  // Set right before submit: the place has to exist before an expense can point
+  // at it, exactly like MReservationSheet does it.
+  const expenseIntentRef = useRef(false)
   const [deleteArmed, setDeleteArmed] = useState(false)
   // Open-time snapshot: closing clears the planner flags immediately, but the
   // sheet still shows through its exit animation — render off the snapshot so
@@ -221,15 +229,21 @@ export default function MPlaceEditSheet({ planner }: MPlaceEditSheetProps) {
         return
       }
     }
+    const withExpense = expenseIntentRef.current
+    expenseIntentRef.current = false
     setIsSaving(true)
     try {
-      await handleSavePlace({
+      const saved = await handleSavePlace({
         ...form,
         lat: form.lat ? parseFloat(form.lat) : null,
         lng: form.lng ? parseFloat(form.lng) : null,
         category_id: form.category_id || null,
         _pendingFiles: pendingFiles.length > 0 ? pendingFiles : undefined,
       })
+      const savedId = saved?.id ?? sheetPlace?.id ?? null
+      if (withExpense && savedId) {
+        onOpenExpense({ prefill: { placeId: savedId, name: form.name.trim(), category: 'activities' } })
+      }
       handleClose()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('places.saveError'))
@@ -359,6 +373,23 @@ export default function MPlaceEditSheet({ planner }: MPlaceEditSheetProps) {
             onAdd={files => setPendingFiles(prev => [...prev, ...files])}
             onRemove={idx => setPendingFiles(prev => prev.filter((_, i) => i !== idx))}
           />
+        )}
+
+        {/* COSTS — same block, same flow as the booking sheet (#1298) */}
+        {isBudgetEnabled && (
+          <>
+            <Eyebrow className="mb-[6px] mt-3 uppercase">{t('reservations.costsLabel')}</Eyebrow>
+            <button
+              type="button"
+              onClick={() => { expenseIntentRef.current = true; handleSubmit() }}
+              disabled={!form.name.trim() || isSaving}
+              className="flex w-full items-center justify-center gap-[6px] rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] py-[11px] text-[0.78125rem] font-semibold text-m-ink disabled:opacity-40"
+            >
+              <Plus size={13} strokeWidth={2.2} />
+              {t('reservations.createExpense')}
+            </button>
+            <div className="mt-[5px] font-geist text-[0.625rem] text-m-faint">{t('places.createExpenseHint')}</div>
+          </>
         )}
       </div>
 

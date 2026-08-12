@@ -1393,6 +1393,26 @@ describe('CostsPanel — expense modal', () => {
     expect(posted).toMatchObject({ name: 'Hotel Astoria', category: 'accommodation', total_price: 240, reservation_id: 12 })
     expect(onSaved).toHaveBeenCalled()
   })
+
+  it('FE-W5COSTS-038b: a prefill from a place links the expense to that place (#1298)', async () => {
+    const user = userEvent.setup()
+    let posted: Record<string, unknown> | null = null
+    server.use(http.post('/api/trips/1/budget', async ({ request }) => {
+      posted = await request.json() as Record<string, unknown>
+      return HttpResponse.json({ item: dinner() })
+    }))
+    render(
+      <ExpenseModal tripId={1} base="EUR" people={tripMembers} me={1} editing={null}
+        prefill={{ name: 'Louvre', category: 'activities', amount: 34, placeId: 7 }}
+        onClose={() => {}} onSaved={vi.fn()} />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Add expense' }))
+
+    await waitFor(() => expect(posted).toBeTruthy());
+    expect(posted).toMatchObject({ name: 'Louvre', category: 'activities', total_price: 34, place_id: 7 })
+    expect(posted).not.toHaveProperty('reservation_id')
+  })
 })
 
 describe('CostsPanel — remaining paths', () => {

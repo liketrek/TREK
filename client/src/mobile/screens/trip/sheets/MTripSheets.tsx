@@ -73,7 +73,7 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
       <MImportSheet planner={planner} open={sheet?.id === 'import'} onClose={shell.closeSheet} />
 
       {/* ── Planner-flag editors (also serve ?create= and the import review) ── */}
-      <MPlaceEditSheet planner={planner} />
+      <MPlaceEditSheet planner={planner} onOpenExpense={openBookingExpense} />
 
       <MReservationSheet planner={planner} onOpenExpense={openBookingExpense} />
 

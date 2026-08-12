@@ -301,6 +301,7 @@ export class BudgetService {
       persons?: number | null; days?: number | null; note?: string | null; expense_date?: string | null;
       ticket_json?: string | null;
       reservation_id?: number | null;
+      place_id?: number | null;
     },
   ) {
     return this.db.transaction(() => {
@@ -330,7 +331,7 @@ export class BudgetService {
       const { note, ticket } = splitLegacyTicketNote(data.note, data.ticket_json);
 
       const result = this.db.run(
-        'INSERT INTO budget_items (trip_id, category, name, total_price, currency, exchange_rate, persons, days, note, ticket_json, sort_order, expense_date, reservation_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO budget_items (trip_id, category, name, total_price, currency, exchange_rate, persons, days, note, ticket_json, sort_order, expense_date, reservation_id, place_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         tripId,
         cat,
         data.name,
@@ -344,6 +345,7 @@ export class BudgetService {
         sortOrder,
         data.expense_date || null,
         data.reservation_id != null ? data.reservation_id : null,
+        data.place_id != null ? data.place_id : null,
       );
 
       const itemId = result.lastInsertRowid as number;

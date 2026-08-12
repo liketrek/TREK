@@ -34,23 +34,32 @@ describe('incoming_leg_transport_mode migration', () => {
   });
 
   // The case above starts from an empty database and runs every migration, so it
-  // passes wherever this one sits in the array. Existing installs replay only the
-  // slots above their schema_version, which is why the migration has to be the
-  // trailing entry: from anywhere but the end it is silently skipped on upgrade.
-  it('still lands on a database that already holds every earlier migration', () => {
+  // passes wherever a migration sits in the array.
+  it('the trailing migration lands on a database that is one version behind', () => {
+    // What actually has to hold: existing installs replay only the slots above
+    // their schema_version, so a migration inserted mid-array is silently
+    // skipped on every one of them. Undoing what the LAST migration did and
+    // rewinding one version is the only way to prove it still runs.
+    //
+    // >>> Appending a migration? Re-point the DROP below at the column yours
+    // >>> adds. That is the whole maintenance cost of this guard.
+    const TRAILING_TABLE = 'budget_items';
+    const TRAILING_COLUMN = 'place_id';
+
     const upgraded = new Database(':memory:');
     upgraded.exec('PRAGMA foreign_keys = ON');
     createTables(upgraded);
     runMigrations(upgraded);
 
     const { version } = upgraded.prepare('SELECT version FROM schema_version').get() as { version: number };
-    upgraded.exec('ALTER TABLE day_assignments DROP COLUMN incoming_leg_transport_mode');
+    upgraded.exec(`ALTER TABLE ${TRAILING_TABLE} DROP COLUMN ${TRAILING_COLUMN}`);
     upgraded.prepare('UPDATE schema_version SET version = ?').run(version - 1);
 
     runMigrations(upgraded);
 
-    const cols = upgraded.prepare(`PRAGMA table_info(day_assignments)`).all() as { name: string }[];
-    expect(cols.map(c => c.name)).toContain('incoming_leg_transport_mode');
+    const cols = upgraded.prepare(`PRAGMA table_info(${TRAILING_TABLE})`).all() as { name: string }[];
+    expect(cols.map(c => c.name)).toContain(TRAILING_COLUMN);
+    expect(upgraded.prepare('SELECT version FROM schema_version').get()).toEqual({ version });
     upgraded.close();
   });
 });

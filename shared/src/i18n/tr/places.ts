@@ -117,6 +117,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'Kategori oluşturulamadı',
   'places.nameRequired': 'Lütfen bir ad girin',
   'places.saveError': 'Kaydedilemedi',
+  'places.createExpenseHint': 'Yeri kaydeder, sonra masraf düzenleyicisini açar.',
   'places.duplicateExists': "'{name}' zaten bu gezide var.",
   'places.addAnyway': 'Yine de ekle',
   'places.enrichOnImport': 'Yerleri Google ile zenginleştir',

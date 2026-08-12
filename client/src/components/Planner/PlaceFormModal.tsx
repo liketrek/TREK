@@ -16,7 +16,9 @@ import { useTranslation } from '../../i18n'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import { DEFAULT_FORM, isGoogleMapsUrl, mergeResult, type PlaceFormData, type ResultField } from './PlaceFormModal.helpers'
 import { getApiErrorMessage } from '../../utils/apiError'
-import type { Place, Category, Assignment } from '../../types'
+import { BookingCostsSection } from './BookingCostsSection'
+import type { BookingExpenseRequest } from './BookingCostsSection.types'
+import type { Place, Category, Assignment, BudgetItem } from '../../types'
 import { NumericInput } from '../shared/NumericInput'
 
 // The submit payload mirrors the form, but lat/lng are parsed to numbers and
@@ -31,7 +33,7 @@ export interface PlaceSubmitData extends Omit<PlaceFormData, 'lat' | 'lng' | 'ca
 interface PlaceFormModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: PlaceSubmitData, files?: File[]) => Promise<void> | void
+  onSave: (data: PlaceSubmitData, files?: File[]) => Promise<{ id: number } | void> | void
   place: Place | null
   prefillCoords?: { lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string } | null
   tripId: number
@@ -43,6 +45,9 @@ interface PlaceFormModalProps {
    *  picker column when the Collections addon is enabled. Sourced from the trip
    *  planner's matchMedia('(max-width:767px)'). */
   isMobile?: boolean
+  /** Opens the Costs editor for this place's linked expense (#1298) — the same
+   *  seam the booking and transport modals use. */
+  onOpenExpense?: (req: BookingExpenseRequest) => void
 }
 
 
@@ -78,6 +83,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const {
   isOpen, onClose, onSave, place, prefillCoords, tripId, categories,
   onCategoryCreated, assignmentId, dayAssignments = [], isMobile = false,
+  onOpenExpense,
   } = props
   const [form, setForm] = useState(DEFAULT_FORM)
   const [mapsSearch, setMapsSearch] = useState('')
@@ -108,6 +114,11 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const tripObj = useTripStore((s) => s.trip)
   const canUploadFiles = can('file_upload', tripObj)
   const collectionsEnabled = useAddonStore((s) => s.isEnabled('collections'))
+  const isBudgetEnabled = useAddonStore((s) => s.isEnabled('budget'))
+  const deleteBudgetItem = useTripStore((s) => s.deleteBudgetItem)
+  // Set right before submit when the user clicked create/edit expense — the
+  // place has to exist before an expense can point at it (see ReservationModal).
+  const expenseIntentRef = useRef<{ editItem?: BudgetItem; create?: boolean } | null>(null)
 
   useEffect(() => {
     if (place) {
@@ -430,9 +441,12 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
 
   const hasTimeError = place && form.place_time && form.end_time && form.place_time.length >= 5 && form.end_time.length >= 5 && form.end_time <= form.place_time
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const handleSubmit = async (e?: { preventDefault?: () => void }) => {
+    e?.preventDefault?.()
     if (!form.name.trim()) {
+      // Nothing was saved, so an expense intent from a previous click is stale —
+      // otherwise the next plain Save would open a Costs editor out of nowhere.
+      expenseIntentRef.current = null
       toast.error(t('places.nameRequired'))
       return
     }
@@ -449,19 +463,35 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     }
     setIsSaving(true)
     try {
-      await onSave({
+      const saved = await onSave({
         ...form,
         lat: form.lat ? parseFloat(form.lat) : null,
         lng: form.lng ? parseFloat(form.lng) : null,
         category_id: form.category_id || null,
         _pendingFiles: pendingFiles.length > 0 ? pendingFiles : undefined,
       })
+      // Open the Costs editor for the saved place when the user asked to
+      // create/edit its linked expense — gated on an id, so a create that the
+      // server refused never opens an editor pointing at nothing (#1298).
+      const intent = expenseIntentRef.current
+      expenseIntentRef.current = null
+      const savedId = (saved && 'id' in saved ? saved.id : null) ?? place?.id ?? null
+      if (intent && onOpenExpense && savedId) {
+        if (intent.editItem) onOpenExpense({ editItem: intent.editItem })
+        else onOpenExpense({ prefill: { placeId: savedId, name: form.name.trim(), category: 'activities' } })
+      }
       onClose()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('places.saveError'))
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const handleCreateExpense = () => { expenseIntentRef.current = { create: true }; void handleSubmit() }
+  const handleEditExpense = (item: BudgetItem) => { expenseIntentRef.current = { editItem: item }; void handleSubmit() }
+  const handleRemoveExpense = async (item: BudgetItem) => {
+    try { await deleteBudgetItem(Number(tripId), item.id) } catch { toast.error(t('common.unknownError')) }
   }
 
   return {
@@ -527,6 +557,10 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     handleSubmit,
     duplicateWarning,
     detailsSelection,
+    isBudgetEnabled,
+    handleCreateExpense,
+    handleEditExpense,
+    handleRemoveExpense,
   }
 }
 
@@ -593,6 +627,10 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     handleSubmit,
     duplicateWarning,
     detailsSelection,
+    isBudgetEnabled,
+    handleCreateExpense,
+    handleEditExpense,
+    handleRemoveExpense,
   } = S
   // Desktop + Collections addon → the saved-place picker on the right. Mobile
   // always keeps the original single-column form untouched.
@@ -915,6 +953,19 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
               </div>
             )}
           </div>
+        )}
+
+        {/* Costs — create / view the expense linked to this place (#1298).
+            Same block, same flow as a booking: save first, then the editor. */}
+        {isBudgetEnabled && (
+          <BookingCostsSection
+            placeId={place?.id ?? null}
+            reservationId={null}
+            hintKey="places.createExpenseHint"
+            onCreate={handleCreateExpense}
+            onEdit={handleEditExpense}
+            onRemove={handleRemoveExpense}
+          />
         )}
 
       </form>

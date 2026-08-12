@@ -79,6 +79,14 @@ Type or paste a `lat, lng` pair (e.g. `48.8566, 2.3522`) into the **Latitude** f
 
 Two inline warnings are shown when editing times: one if the end time is set to a value before or equal to the start time, and one if the times overlap with another place already assigned to the same day.
 
+## Costs for a place
+
+With the [Costs/Budget addon](Budget-Tracking) enabled, the place form carries the same **Costs** block that bookings and transports have. **Create expense** saves the place and then opens the Costs editor for a new expense linked to it — the museum ticket, the guided tour, the entry fee. Once linked, the block shows that expense with edit and remove actions.
+
+The expense belongs to the **place**, not to a day. Putting the same place on several days does not multiply it: you bought the ticket once. If you really pay each time, add a second expense from the Costs tab.
+
+Deleting the place deletes its linked expense too, the same way deleting a booking does.
+
 ## Custom place image
 
 By default a place's thumbnail is fetched automatically (from Google/OpenStreetMap when the place was imported or matched, otherwise a category icon). To use your own photo instead, open the place's detail panel and click its round thumbnail — pick an image and it becomes that place's thumbnail everywhere (list, map marker, itinerary, PDF export and shared trips). A small remove button on the thumbnail clears the custom image and restores the automatic default. Accepted formats are JPG, PNG, GIF and WebP (HEIC is converted automatically), up to 20 MB.

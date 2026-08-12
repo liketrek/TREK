@@ -73,7 +73,7 @@ Click **Add** (or the + button) in the Reservations panel. Fill in the form:
 9. **Hotel-specific fields** — shown only for Hotel type, immediately after status: hotel place, check-in day, check-out day, check-in time (window start and end), and check-out time. See [Accommodations](Accommodations)
 10. **Notes**
 11. **Files** — attach from your device (PDF, Word documents, text files, images) or link an existing trip file. Files added before saving are uploaded automatically after the reservation is created
-12. **Price and budget category** — shown only when the Budget addon is enabled. Entering a price greater than zero automatically creates a linked budget entry. See [Budget-Tracking](Budget-Tracking)
+12. **Costs** — shown only when the Budget addon is enabled. Instead of a price field, the form carries a **Create expense** button: it saves the booking and then opens the Costs editor for a new expense linked to it, so the expense gets a payer, a split and a date like any other. Once linked, the block shows that expense with edit and remove actions. See [Budget-Tracking](Budget-Tracking)
 
 <!-- TODO: screenshot: Create Reservation modal -->
 

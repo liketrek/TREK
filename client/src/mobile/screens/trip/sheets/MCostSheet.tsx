@@ -258,6 +258,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
       note: note.trim() || null,
       ticket_json: splitMode === 'ticket' ? writeTicketItems(ticketItems) : null,
       ...(!editing && prefill?.reservationId ? { reservation_id: prefill.reservationId } : {}),
+      ...(!editing && prefill?.placeId ? { place_id: prefill.placeId } : {}),
     }
     try {
       if (editing) await updateBudgetItem(tripId, editing.id, data)

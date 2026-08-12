@@ -232,9 +232,12 @@ export class PlacesMcp {
       return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
     }
     try { this.journey.onPlaceDeleted(placeId); } catch { /* non-fatal */ } // sync journeys before the row is gone
+    // The link is gone once the place is, so read it first (#1298).
+    const expenseIds = this.places.linkedExpenseIds(tripId, [placeId]);
     const deleted = this.places.remove(String(tripId), String(placeId));
     if (!deleted) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
     this.guards.safeBroadcast(tripId, 'place:deleted', { placeId });
+    for (const itemId of expenseIds) this.guards.safeBroadcast(tripId, 'budget:deleted', { itemId });
     return ok({ success: true });
   }
 
@@ -337,11 +340,15 @@ export class PlacesMcp {
     // Trip-scoped, and ahead of the DELETE: journey_entries.source_place_id is
     // ON DELETE SET NULL, so a hook that ran afterwards found nothing left to
     // detach and left the entries as orphans.
-    for (const id of this.places.scopedIds(String(tripId), placeIds)) {
+    const scoped = this.places.scopedIds(String(tripId), placeIds);
+    for (const id of scoped) {
       try { this.journey.onPlaceDeleted(id); } catch { /* non-fatal */ }
     }
+    // The link is gone once the places are, so read it first (#1298).
+    const expenseIds = this.places.linkedExpenseIds(tripId, scoped);
     const deleted = this.places.removeMany(String(tripId), placeIds);
     for (const id of deleted) this.guards.safeBroadcast(tripId, 'place:deleted', { placeId: id });
+    for (const itemId of expenseIds) this.guards.safeBroadcast(tripId, 'budget:deleted', { itemId });
     return ok({ deleted, count: deleted.length });
   }
 

@@ -3879,6 +3879,18 @@ function runMigrations(db: Database.Database): void {
         if (!err.message?.includes('duplicate column name')) throw err;
       }
     },
+    // #1298 — an expense can hang off a place, exactly as it already hangs off a
+    // reservation. Same nullable FK, same ON DELETE SET NULL: the delete paths
+    // take the linked expense with the place themselves, so the constraint is a
+    // backstop for anything that removes a place without going through them.
+    // Appended LAST: the array is index-addressed against schema_version, so a
+    // slot inserted above this line never runs on an existing database.
+    () => {
+      const cols = db.prepare("SELECT name FROM pragma_table_info('budget_items')").all() as Array<{ name: string }>;
+      if (!cols.some(c => c.name === 'place_id')) {
+        db.exec('ALTER TABLE budget_items ADD COLUMN place_id INTEGER REFERENCES places(id) ON DELETE SET NULL DEFAULT NULL');
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

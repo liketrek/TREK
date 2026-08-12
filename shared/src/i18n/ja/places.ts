@@ -115,6 +115,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'カテゴリの作成に失敗しました',
   'places.nameRequired': '名前を入力してください',
   'places.saveError': '保存に失敗しました',
+  'places.createExpenseHint': '場所を保存してから費用エディタを開きます。',
   'places.duplicateExists': '「{name}」はすでにこの旅程に含まれています。',
   'places.addAnyway': 'それでも追加',
   'places.enrichOnImport': 'Googleで場所を補完',

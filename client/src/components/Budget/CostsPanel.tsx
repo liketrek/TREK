@@ -1000,6 +1000,8 @@ export interface ExpensePrefill {
   category?: string
   amount?: number
   reservationId?: number
+  /** Set when the expense is being created from a place (#1298). */
+  placeId?: number
 }
 
 export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClose, onSaved }: {
@@ -1252,6 +1254,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
       note: note.trim() || null,
       ticket_json: splitMode === 'ticket' ? writeTicketItems(ticketItems) : null,
       ...(!editing && prefill?.reservationId ? { reservation_id: prefill.reservationId } : {}),
+      ...(!editing && prefill?.placeId ? { place_id: prefill.placeId } : {}),
     }
     try {
       if (editing) await updateBudgetItem(tripId, editing.id, data)

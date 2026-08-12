@@ -114,6 +114,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': '카테고리 생성 실패',
   'places.nameRequired': '이름을 입력하세요',
   'places.saveError': '저장 실패',
+  'places.createExpenseHint': '장소를 저장한 뒤 비용 편집기를 엽니다.',
   'places.duplicateExists': "'{name}'은(는) 이미 이 여행에 있습니다.",
   'places.addAnyway': '그래도 추가',
   'places.enrichOnImport': 'Google로 장소 정보 보강',

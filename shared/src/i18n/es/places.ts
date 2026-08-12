@@ -115,6 +115,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'No se pudo crear la categoría',
   'places.nameRequired': 'Introduce un nombre',
   'places.saveError': 'No se pudo guardar',
+  'places.createExpenseHint': 'Guarda el lugar y luego abre el editor de gastos.',
   'places.duplicateExists': "'{name}' ya está en este viaje.",
   'places.addAnyway': 'Añadir de todos modos',
   'places.enrichOnImport': 'Enriquecer lugares con Google',

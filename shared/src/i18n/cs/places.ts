@@ -115,6 +115,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'Nepodařilo se vytvořit kategorii',
   'places.nameRequired': 'Prosím zadejte název',
   'places.saveError': 'Uložení se nezdařilo',
+  'places.createExpenseHint': 'Uloží místo a poté otevře editor nákladů.',
   'places.duplicateExists': "'{name}' už v tomto výletu existuje.",
   'places.addAnyway': 'Přesto přidat',
   'places.enrichOnImport': 'Obohatit místa přes Google',

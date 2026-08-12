@@ -113,6 +113,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': "No s'ha pogut crear la categoria",
   'places.nameRequired': 'Introdueix un nom',
   'places.saveError': "No s'ha pogut desar",
+  'places.createExpenseHint': 'Desa el lloc i després obre l’editor de despeses.',
 
   'places.changeCategory': 'Canviar categoria',
   'places.categoryChanged': '{count} llocs actualitzats',

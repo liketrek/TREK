@@ -1,4 +1,4 @@
-// FE-COMP-PLACEFORM-001 to FE-COMP-PLACEFORM-036, FE-PLANNER-PLACEFORM-016 to FE-PLANNER-PLACEFORM-062
+// FE-COMP-PLACEFORM-001 to FE-COMP-PLACEFORM-036, FE-PLANNER-PLACEFORM-016 to FE-PLANNER-PLACEFORM-067, plus FE-PLANNER-PLACEFORM-068 to -072
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -1465,6 +1465,96 @@ describe('PlaceFormModal remaining branches', () => {
 
       await searchFor(user, STATION);
       expect(websiteInput().value).toBe('https://stored.example');
+    });
+  });
+
+  // ── Linked expense (#1298) — the same block bookings have ──────────────────
+
+  describe('Costs section', () => {
+    const withBudget = () => seedStore(useAddonStore, {
+      addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
+      loaded: true,
+    });
+
+    it('FE-PLANNER-PLACEFORM-068: the block only appears while the Budget addon is on', () => {
+      const { unmount } = render(<PlaceFormModal {...defaultProps} />);
+      expect(screen.queryByRole('button', { name: /Create expense/i })).not.toBeInTheDocument();
+      unmount();
+
+      withBudget();
+      render(<PlaceFormModal {...defaultProps} />);
+      expect(screen.getByRole('button', { name: /Create expense/i })).toBeInTheDocument();
+    });
+
+    it('FE-PLANNER-PLACEFORM-069: creating an expense saves the place first, then opens the editor', async () => {
+      withBudget();
+      const onSave = vi.fn().mockResolvedValue({ id: 42 });
+      const onOpenExpense = vi.fn();
+      render(<PlaceFormModal {...defaultProps} onSave={onSave} onOpenExpense={onOpenExpense} />);
+
+      fireEvent.change(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), { target: { value: 'Louvre' } });
+      fireEvent.click(screen.getByRole('button', { name: /Create expense/i }));
+
+      await waitFor(() => expect(onOpenExpense).toHaveBeenCalled());
+      expect(onSave).toHaveBeenCalled();
+      expect(onSave.mock.invocationCallOrder[0]).toBeLessThan(onOpenExpense.mock.invocationCallOrder[0]);
+      expect(onOpenExpense).toHaveBeenCalledWith({
+        prefill: { placeId: 42, name: 'Louvre', category: 'activities' },
+      });
+    });
+
+    it('FE-PLANNER-PLACEFORM-070: a save that yields no id opens no editor', async () => {
+      withBudget();
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      const onOpenExpense = vi.fn();
+      render(<PlaceFormModal {...defaultProps} onSave={onSave} onOpenExpense={onOpenExpense} />);
+
+      fireEvent.change(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), { target: { value: 'Louvre' } });
+      fireEvent.click(screen.getByRole('button', { name: /Create expense/i }));
+
+      await waitFor(() => expect(onSave).toHaveBeenCalled());
+      expect(onOpenExpense).not.toHaveBeenCalled();
+    });
+
+    it('FE-PLANNER-PLACEFORM-070b: a nameless click drops the intent instead of arming the next save', async () => {
+      withBudget();
+      const onSave = vi.fn().mockResolvedValue({ id: 42 });
+      const onOpenExpense = vi.fn();
+      render(<PlaceFormModal {...defaultProps} onSave={onSave} onOpenExpense={onOpenExpense} />);
+
+      // No name yet — the save is refused and the intent must not survive it.
+      fireEvent.click(screen.getByRole('button', { name: /Create expense/i }));
+      await waitFor(() => expect(onSave).not.toHaveBeenCalled());
+
+      fireEvent.change(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), { target: { value: 'Louvre' } });
+      fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+
+      await waitFor(() => expect(onSave).toHaveBeenCalled());
+      expect(onOpenExpense).not.toHaveBeenCalled();
+    });
+
+    it('FE-PLANNER-PLACEFORM-071: an already-linked expense is shown with its amount instead of the button', () => {
+      withBudget();
+      seedStore(useTripStore, {
+        trip: buildTrip({ id: 1 }),
+        budgetItems: [{ id: 8, trip_id: 1, name: 'Louvre tickets', total_price: 34, category: 'activities', place_id: 7 }],
+      });
+      render(<PlaceFormModal {...defaultProps} place={{ id: 7, name: 'Louvre' } as never} />);
+
+      expect(screen.getByText('Louvre tickets')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Create expense/i })).not.toBeInTheDocument();
+    });
+
+    it('FE-PLANNER-PLACEFORM-072: an expense linked to another place is not claimed', () => {
+      withBudget();
+      seedStore(useTripStore, {
+        trip: buildTrip({ id: 1 }),
+        budgetItems: [{ id: 8, trip_id: 1, name: 'Orsay tickets', total_price: 16, category: 'activities', place_id: 99 }],
+      });
+      render(<PlaceFormModal {...defaultProps} place={{ id: 7, name: 'Louvre' } as never} />);
+
+      expect(screen.queryByText('Orsay tickets')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Create expense/i })).toBeInTheDocument();
     });
   });
 });

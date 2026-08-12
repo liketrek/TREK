@@ -47,6 +47,9 @@ const { db } = vi.hoisted(() => {
   tmp.exec(`CREATE TABLE collection_places (id INTEGER PRIMARY KEY AUTOINCREMENT, image_url TEXT);`);
   // reclaimPhotoCache's removeIfUnreferenced sweeps the Google photo cache.
   tmp.exec(`CREATE TABLE google_place_photo_meta (place_id TEXT PRIMARY KEY, attribution TEXT, error_at DATETIME);`);
+  // Deleting a place takes its linked expense with it (#1298).
+  tmp.exec(`CREATE TABLE budget_items (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
+    name TEXT, total_price REAL DEFAULT 0, place_id INTEGER, reservation_id INTEGER);`);
   return { db: tmp };
 });
 
@@ -258,6 +261,17 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     const foreign = await request(server).delete('/api/trips/5/places/10').set('Cookie', sessionCookie(1));
     expect(foreign.status).toBe(404);
     expect(foreign.body).toEqual({ error: 'Place not found' });
+  });
+
+  it('DELETE :id takes the expense linked to the place with it (#1298)', async () => {
+    db.prepare("INSERT INTO places (id, trip_id, name) VALUES (12, 5, 'Louvre')").run();
+    db.prepare("INSERT INTO budget_items (id, trip_id, name, total_price, place_id) VALUES (44, 5, 'Tickets', 34, 12)").run();
+    db.prepare("INSERT INTO budget_items (id, trip_id, name, total_price) VALUES (45, 5, 'Coffee', 3)").run();
+
+    const res = await request(server).delete('/api/trips/5/places/12').set('Cookie', sessionCookie(1));
+
+    expect(res.status).toBe(200);
+    expect(db.prepare('SELECT id FROM budget_items ORDER BY id').all()).toEqual([{ id: 45 }]);
   });
 
   it('404 trip when not accessible', async () => {

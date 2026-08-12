@@ -343,12 +343,32 @@ export class PlacesService {
   // Delete place
   // -------------------------------------------------------------------------
 
+  /**
+   * The expenses hanging off these places (#1298), so a caller can broadcast the
+   * budget:deleted events for the rows remove()/removeMany() are about to take
+   * with them. Read it BEFORE deleting — afterwards the link is gone.
+   */
+  linkedExpenseIds(tripId: string | number, placeIds: Array<string | number>): number[] {
+    if (placeIds.length === 0) return [];
+    const rows = this.dbs.all<{ id: number }>(
+      `SELECT id FROM budget_items WHERE trip_id = ? AND place_id IN (${placeIds.map(() => '?').join(',')})`,
+      tripId, ...placeIds,
+    );
+    return rows.map(r => r.id);
+  }
+
   remove(tripId: string, placeId: string): boolean {
     const place = this.dbs.get<{ google_place_id: string | null; image_url: string | null }>(
       'SELECT google_place_id, image_url FROM places WHERE id = ? AND trip_id = ?', placeId, tripId,
     );
     if (!place) return false;
-    this.dbs.run('DELETE FROM places WHERE id = ?', placeId);
+    // The linked expense goes with the place, the same way a booking takes its
+    // expense with it (#1298). One transaction, so a place can never survive
+    // half-detached from its money.
+    this.dbs.transaction(() => {
+      this.dbs.run('DELETE FROM budget_items WHERE trip_id = ? AND place_id = ?', tripId, placeId);
+      this.dbs.run('DELETE FROM places WHERE id = ?', placeId);
+    });
     reclaimPhotoCache(this.photoCache, place.google_place_id, place.image_url);
     reclaimPlaceImage(place.image_url);
     return true;
@@ -358,12 +378,14 @@ export class PlacesService {
     if (ids.length === 0) return [];
     const selectStmt = this.dbs.prepare('SELECT google_place_id, image_url FROM places WHERE id = ? AND trip_id = ?');
     const deleteStmt = this.dbs.prepare('DELETE FROM places WHERE id = ?');
+    const deleteExpenseStmt = this.dbs.prepare('DELETE FROM budget_items WHERE trip_id = ? AND place_id = ?');
     const deleted: number[] = [];
     const reclaimable: { google_place_id: string | null; image_url: string | null }[] = [];
     this.dbs.transaction(() => {
       for (const id of ids) {
         const row = selectStmt.get(id, tripId) as { google_place_id: string | null; image_url: string | null } | undefined;
         if (!row) continue;
+        deleteExpenseStmt.run(tripId, id);
         deleteStmt.run(id);
         deleted.push(id);
         reclaimable.push(row);

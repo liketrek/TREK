@@ -59,6 +59,12 @@ Click any editable cell to edit it inline. Drag the grip handle to reorder items
 
 Add a new item using the inline **add row** at the bottom of each category table.
 
+### Expenses linked to a booking or a place
+
+An expense can hang off a **booking** (reservation or transport) or off a **place** — both offer a **Create expense** button in their form, which saves the record first and then opens the expense editor for it. A linked expense is an ordinary expense: it takes a payer, a split, a date and a currency like any other, and it shows up in the settlement.
+
+Deleting the booking or the place deletes its linked expense with it. Removing the expense from the record's Costs block deletes only the expense and leaves the record standing.
+
 ## Splitting costs
 
 The **Persons** column behaves differently depending on the trip:

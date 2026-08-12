@@ -115,6 +115,7 @@ const places: TranslationStrings = {
   'places.categoryCreateError': 'Nem sikerült létrehozni a kategóriát',
   'places.nameRequired': 'Kérjük, adj meg egy nevet',
   'places.saveError': 'Nem sikerült menteni',
+  'places.createExpenseHint': 'Menti a helyet, majd megnyitja a költségszerkesztőt.',
   'places.duplicateExists': "A(z) '{name}' már szerepel ebben az utazásban.",
   'places.addAnyway': 'Hozzáadás mindenképp',
   'places.enrichOnImport': 'Helyek gazdagítása a Google-lel',

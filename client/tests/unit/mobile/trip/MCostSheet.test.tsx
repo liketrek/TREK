@@ -33,7 +33,7 @@ interface SheetOverrides {
   me?: number
   base?: string
   editing?: BudgetItem | null
-  prefill?: { name?: string; category?: string; amount?: number; reservationId?: number }
+  prefill?: { name?: string; category?: string; amount?: number; reservationId?: number; placeId?: number }
 }
 
 function renderSheet(overrides: SheetOverrides = {}) {
@@ -173,6 +173,19 @@ describe('MCostSheet', () => {
     expect(addBudgetItem).toHaveBeenCalledWith(1, expect.objectContaining({
       name: 'Ryokan', category: 'accommodation', total_price: 240, reservation_id: 77,
     }))
+  })
+
+  it('FE-MOB-COSTSH-003b: a place prefill carries the place link into the payload (#1298)', async () => {
+    renderSheet({ prefill: { name: 'Louvre', category: 'activities', placeId: 12 } })
+    expect(nameField()).toHaveValue('Louvre')
+
+    fireEvent.change(totalField(), { target: { value: '34' } })
+    fireEvent.click(submit())
+    await waitFor(() => expect(addBudgetItem).toHaveBeenCalledTimes(1))
+    expect(addBudgetItem).toHaveBeenCalledWith(1, expect.objectContaining({
+      name: 'Louvre', category: 'activities', total_price: 34, place_id: 12,
+    }))
+    expect(addBudgetItem.mock.calls[0][1]).not.toHaveProperty('reservation_id')
   })
 
   it('FE-MOB-COSTSH-004: dropping a participant re-splits and shrinks the member list', async () => {

@@ -452,6 +452,31 @@ describe('composite service paths (ex budget.bridge delegation)', () => {
     const row = testDb.prepare('SELECT reservation_id FROM budget_items WHERE id = ?').get(item.id) as { reservation_id: number | null };
     expect(row.reservation_id).toBe(reservationId);
   });
+
+  it('BUDGET-SVC-DB-018b: an expense can be created against a place (#1298)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const placeId = Number(testDb
+      .prepare("INSERT INTO places (trip_id, name) VALUES (?, 'Louvre')")
+      .run(trip.id).lastInsertRowid);
+
+    const item = budget.createBudgetItem(trip.id, { name: 'Louvre tickets', total_price: 34, place_id: placeId });
+
+    expect(item.place_id).toBe(placeId);
+    expect(item.reservation_id).toBeNull();
+    const row = testDb.prepare('SELECT place_id FROM budget_items WHERE id = ?').get(item.id) as { place_id: number | null };
+    expect(row.place_id).toBe(placeId);
+  });
+
+  it('BUDGET-SVC-DB-018c: an expense without a link stores neither id', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const item = budget.createBudgetItem(trip.id, { name: 'Coffee', total_price: 3 });
+
+    expect(item.place_id).toBeNull();
+    expect(item.reservation_id).toBeNull();
+  });
 });
 
 describe('post-fold quirk fixes', () => {
