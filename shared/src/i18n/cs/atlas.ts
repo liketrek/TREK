@@ -17,6 +17,8 @@ const atlas: TranslationStrings = {
   'atlas.bucketNamePlaceholder': 'Název (země, město, místo...)',
   'atlas.month': 'Měsíc',
   'atlas.addToBucketHint': 'Uložit jako místo, které chcete navštívit',
+  'atlas.removeFromBucket': 'Odebrat ze seznamu přání',
+  'atlas.removeFromBucketHint': 'Odebrat tuto zemi z vašeho bucket listu',
   'atlas.bucketWhen': 'Kdy plánujete návštěvu?',
   'atlas.statsTab': 'Statistiky',
   'atlas.bucketTab': 'Bucket List',

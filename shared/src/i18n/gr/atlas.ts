@@ -19,6 +19,8 @@ const atlas: TranslationStrings = {
   'atlas.month': 'Μήνας',
   'atlas.year': 'Έτος',
   'atlas.addToBucketHint': 'Αποθηκεύστε ως μέρος που θέλετε να επισκεφθείτε',
+  'atlas.removeFromBucket': 'Αφαίρεση από τη λίστα επιθυμιών',
+  'atlas.removeFromBucketHint': 'Αφαιρέστε αυτή τη χώρα από τη λίστα επιθυμιών σας',
   'atlas.bucketWhen': 'Πότε σκοπεύετε να το επισκεφθείτε;',
   'atlas.statsTab': 'Στατιστικά',
   'atlas.bucketTab': 'Λίστα Επιθυμιών',

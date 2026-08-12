@@ -53,6 +53,8 @@ const atlas: TranslationStrings = {
   'atlas.searchCountry': 'Rechercher un pays…',
   'atlas.month': 'Mois',
   'atlas.addToBucketHint': 'Sauvegarder comme lieu à visiter',
+  'atlas.removeFromBucket': 'Retirer de la bucket list',
+  'atlas.removeFromBucketHint': 'Enlever ce pays de votre bucket list',
   'atlas.bucketWhen': "Quand prévoyez-vous d'y aller ?",
   'atlas.planned': 'Prévu',
   'atlas.showPlanned': 'Afficher les pays prévus',

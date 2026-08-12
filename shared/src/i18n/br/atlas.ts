@@ -19,6 +19,8 @@ const atlas: TranslationStrings = {
   'atlas.month': 'Mês',
   'atlas.year': 'Ano',
   'atlas.addToBucketHint': 'Salvar como lugar que você quer visitar',
+  'atlas.removeFromBucket': 'Remover da lista de desejos',
+  'atlas.removeFromBucketHint': 'Tirar este país da sua lista de desejos',
   'atlas.bucketWhen': 'Quando pretende visitar?',
   'atlas.statsTab': 'Estatísticas',
   'atlas.bucketTab': 'Lista de desejos',

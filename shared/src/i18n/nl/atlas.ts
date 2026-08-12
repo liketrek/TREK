@@ -53,6 +53,8 @@ const atlas: TranslationStrings = {
   'atlas.searchCountry': 'Zoek een land...',
   'atlas.month': 'Maand',
   'atlas.addToBucketHint': 'Opslaan als plek die je wilt bezoeken',
+  'atlas.removeFromBucket': 'Uit bucket list verwijderen',
+  'atlas.removeFromBucketHint': 'Haal dit land van je bucketlist af',
   'atlas.bucketWhen': 'Wanneer ben je van plan te gaan?',
   'atlas.planned': 'Gepland',
   'atlas.showPlanned': 'Geplande landen tonen',

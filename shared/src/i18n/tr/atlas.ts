@@ -19,6 +19,8 @@ const atlas: TranslationStrings = {
   'atlas.month': 'Ay',
   'atlas.year': 'Yıl',
   'atlas.addToBucketHint': 'Ziyaret etmek istediğiniz yer olarak kaydedin',
+  'atlas.removeFromBucket': 'Yapılacaklar listesinden kaldır',
+  'atlas.removeFromBucketHint': 'Bu ülkeyi yapılacaklar listenizden çıkarın',
   'atlas.bucketWhen': 'Ne zaman ziyaret etmeyi planlıyorsunuz?',
   'atlas.statsTab': 'İstatistikler',
   'atlas.bucketTab': 'Yapılacaklar Listesi',

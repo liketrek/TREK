@@ -53,6 +53,8 @@ const atlas: TranslationStrings = {
   'atlas.searchCountry': '搜尋國家...',
   'atlas.month': '月份',
   'atlas.addToBucketHint': '儲存為想去的地方',
+  'atlas.removeFromBucket': '從心願單移除',
+  'atlas.removeFromBucketHint': '將此國家從心願單中移除',
   'atlas.bucketWhen': '你計劃什麼時候去？',
   'atlas.planned': '計劃中',
   'atlas.showPlanned': '顯示計劃中的國家',

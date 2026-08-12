@@ -18,6 +18,8 @@ const atlas: TranslationStrings = {
   'atlas.bucketNamePlaceholder': 'Név (ország, város, hely...)',
   'atlas.month': 'Hónap',
   'atlas.addToBucketHint': 'Mentés meglátogatni kívánt helyként',
+  'atlas.removeFromBucket': 'Eltávolítás a bakancslistáról',
+  'atlas.removeFromBucketHint': 'Vedd le ezt az országot a bakancslistádról',
   'atlas.bucketWhen': 'Mikor tervezed meglátogatni?',
   'atlas.statsTab': 'Statisztikák',
   'atlas.bucketTab': 'Bakancslista',

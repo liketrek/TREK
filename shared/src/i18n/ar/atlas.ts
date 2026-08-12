@@ -19,6 +19,8 @@ const atlas: TranslationStrings = {
   'atlas.month': 'الشهر',
   'atlas.year': 'السنة',
   'atlas.addToBucketHint': 'حفظ كمكان تريد زيارته',
+  'atlas.removeFromBucket': 'إزالة من قائمة الأمنيات',
+  'atlas.removeFromBucketHint': 'إزالة هذا البلد من قائمة أمنياتك',
   'atlas.bucketWhen': 'متى تخطط للزيارة؟',
   'atlas.statsTab': 'الإحصائيات',
   'atlas.bucketTab': 'قائمة الأمنيات',

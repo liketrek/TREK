@@ -19,6 +19,8 @@ const atlas: TranslationStrings = {
   'atlas.month': 'Tháng',
   'atlas.year': 'Năm',
   'atlas.addToBucketHint': 'Lưu làm địa điểm bạn muốn ghé thăm',
+  'atlas.removeFromBucket': 'Xóa khỏi danh sách nhóm',
+  'atlas.removeFromBucketHint': 'Bỏ quốc gia này khỏi danh sách nhóm của bạn',
   'atlas.bucketWhen': 'Khi nào bạn có kế hoạch đến thăm?',
   'atlas.statsTab': 'Thống kê',
   'atlas.bucketTab': 'Danh sách nhóm',
