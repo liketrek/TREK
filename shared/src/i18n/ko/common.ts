@@ -43,6 +43,8 @@ const common: TranslationStrings = {
   'common.daysAgo': '{count}일 전',
   'common.saved': '저장됨',
   'common.update': '업데이트',
+  'common.updateAvailable': 'A new version of TREK is available.',
+  'common.reload': 'Reload',
   'common.change': '변경',
   'common.uploading': '업로드 중…',
   'common.backToPlanning': '계획으로 돌아가기',

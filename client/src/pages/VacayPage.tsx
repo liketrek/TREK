@@ -29,7 +29,7 @@ export default function VacayPage(): React.ReactElement {
 
   if (loading) {
     return (
-      <PageShell background="var(--bg-primary)" contentClassName="flex items-center justify-center" contentStyle={{ minHeight: 'calc(100vh - var(--nav-h))' }}>
+      <PageShell background="var(--bg-primary)" contentClassName="flex items-center justify-center" contentStyle={{ minHeight: 'calc(100dvh - var(--nav-h))' }}>
         <div className="w-8 h-8 border-2 rounded-full animate-spin border-edge border-t-content" />
       </PageShell>
     )

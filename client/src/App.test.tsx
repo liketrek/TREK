@@ -302,7 +302,7 @@ describe('Version cache-busting', () => {
     )
   })
 
-  it('FE-COMP-APP-025: calls window.location.reload() when version changes', async () => {
+  it('FE-COMP-APP-025: leaves reload control to Workbox when version changes', async () => {
     localStorage.setItem('trek_app_version', '2.9.9')
     const reload = vi.fn()
     Object.defineProperty(window, 'location', {
@@ -317,6 +317,9 @@ describe('Version cache-busting', () => {
     )
     seedAuth()
     renderApp('/')
-    await waitFor(() => expect(reload).toHaveBeenCalled())
+    await waitFor(() =>
+      expect(localStorage.getItem('trek_app_version')).toBe('2.9.10')
+    )
+    expect(reload).not.toHaveBeenCalled()
   })
 })

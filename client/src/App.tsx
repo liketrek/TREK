@@ -35,6 +35,7 @@ import { usePermissionsStore, PermissionLevel } from './store/permissionsStore'
 import { useInAppNotificationListener } from './hooks/useInAppNotificationListener.ts'
 import { registerSyncTriggers, unregisterSyncTriggers } from './sync/syncTriggers'
 import OfflineBanner from './components/Layout/OfflineBanner'
+import UpdateBanner from './components/Layout/UpdateBanner'
 import { SystemNoticeHost } from './components/SystemNotices/SystemNoticeHost.js'
 // Notice action registrations (side-effect imports):
 import './pages/Trips/noticeActions.js'
@@ -127,7 +128,7 @@ export default function App() {
         loadUser()
       }
     }
-    authApi.getAppConfig().then(async (config: { demo_mode?: boolean; dev_mode?: boolean; is_prerelease?: boolean; has_maps_key?: boolean; version?: string; timezone?: string; require_mfa?: boolean; trip_reminders_enabled?: boolean; places_photos_enabled?: boolean; places_autocomplete_enabled?: boolean; places_details_enabled?: boolean; permissions?: Record<string, PermissionLevel> }) => {
+    authApi.getAppConfig().then((config: { demo_mode?: boolean; dev_mode?: boolean; is_prerelease?: boolean; has_maps_key?: boolean; version?: string; timezone?: string; require_mfa?: boolean; trip_reminders_enabled?: boolean; places_photos_enabled?: boolean; places_autocomplete_enabled?: boolean; places_details_enabled?: boolean; permissions?: Record<string, PermissionLevel> }) => {
       setDemoMode(!!config?.demo_mode)
       if (config?.dev_mode) setDevMode(true)
       if (config?.is_prerelease !== undefined) setIsPrerelease(config.is_prerelease)
@@ -142,22 +143,9 @@ export default function App() {
       if (config?.permissions) usePermissionsStore.getState().setPermissions(config.permissions)
 
       if (config?.version) {
-        const storedVersion = localStorage.getItem('trek_app_version')
-        if (storedVersion && storedVersion !== config.version) {
-          try {
-            if ('caches' in window) {
-              const names = await caches.keys()
-              await Promise.all(names.map(n => caches.delete(n)))
-            }
-            if ('serviceWorker' in navigator) {
-              const regs = await navigator.serviceWorker.getRegistrations()
-              await Promise.all(regs.map(r => r.unregister()))
-            }
-          } catch {}
-          localStorage.setItem('trek_app_version', config.version)
-          window.location.reload()
-          return
-        }
+        // Workbox owns the client update lifecycle. Clearing caches and
+        // unregistering service workers here used to preempt its update prompt
+        // and also erased the intentionally persistent offline map-tile cache.
         localStorage.setItem('trek_app_version', config.version)
       }
     }).catch(() => {})
@@ -212,6 +200,7 @@ export default function App() {
       {!isAuthPage && <BackgroundTasksWidget />}
       {!isAuthPage && <SaveToCollectionModal />}
       <OfflineBanner />
+      <UpdateBanner />
       <Routes>
         <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<LoginPage />} />

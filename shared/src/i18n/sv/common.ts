@@ -55,6 +55,8 @@ const common: TranslationStrings = {
   'common.daysAgo': '{count}d sedan',
   'common.saved': 'Sparad',
   'common.update': 'Uppdatera',
+  'common.updateAvailable': 'A new version of TREK is available.',
+  'common.reload': 'Reload',
   'common.change': 'Ändra',
   'common.uploading': 'Laddar upp…',
   'common.backToPlanning': 'Tillbaka till planering',

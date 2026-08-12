@@ -42,6 +42,8 @@ const common: TranslationStrings = {
   'common.expand': 'Развернуть',
   'common.collapse': 'Свернуть',
   'common.update': 'Обновить',
+  'common.updateAvailable': 'A new version of TREK is available.',
+  'common.reload': 'Reload',
   'common.change': 'Изменить',
   'common.uploading': 'Загрузка…',
   'common.backToPlanning': 'Вернуться к планированию',

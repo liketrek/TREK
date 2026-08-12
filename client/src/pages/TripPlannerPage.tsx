@@ -238,7 +238,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
   if (isLoading || !splashDone) {
     return (
       <div className="bg-surface" style={{
-        minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         ...fontStyle,
       }}>
         <style>{`

@@ -42,6 +42,8 @@ const common: TranslationStrings = {
   'common.expand': '展開',
   'common.collapse': '折疊',
   'common.update': '更新',
+  'common.updateAvailable': 'A new version of TREK is available.',
+  'common.reload': 'Reload',
   'common.change': '修改',
   'common.uploading': '上傳中…',
   'common.backToPlanning': '返回規劃',
