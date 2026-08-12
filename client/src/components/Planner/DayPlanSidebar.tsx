@@ -1295,42 +1295,60 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
   }
 
   // A connector's endpoints carry only coordinates (RouteSegment.from/to, both
-  // [lat, lng]); resolve them back to the named, timed points the transit search
-  // wants by indexing every located place, hotel and booking endpoint on the trip.
-  // A connector only renders when both ends are located, so a coordinate that misses
-  // the index is rare — fall back to a nameless pick (the search still runs off the
-  // coordinates alone).
-  const transitPointIndex = useMemo(() => {
-    const m = new Map<string, { name: string; time: string | null }>()
-    const put = (lat?: number | null, lng?: number | null, name?: string | null, time?: string | null) => {
-      if (lat == null || lng == null) return
+  // [lat, lng]); resolve them back to the NAMES the transit search shows by indexing
+  // every located place, hotel and booking endpoint on the trip. Name is a property
+  // of a coordinate, so a trip-wide index is fine; a connector only renders when both
+  // ends are located, so a coordinate that misses the index is rare (nameless pick).
+  const transitNameIndex = useMemo(() => {
+    const m = new Map<string, string>()
+    const put = (lat?: number | null, lng?: number | null, name?: string | null) => {
+      if (lat == null || lng == null || !name) return
       const k = `${lat},${lng}`
-      if (!m.has(k)) m.set(k, { name: name || '', time: time ?? null })
+      if (!m.has(k)) m.set(k, name)
     }
     for (const list of Object.values(assignments)) {
-      for (const a of list) put(a.place?.lat, a.place?.lng, a.place?.name, a.place?.place_time)
+      for (const a of list) put(a.place?.lat, a.place?.lng, a.place?.name)
     }
-    for (const acc of accommodations) put(acc.place_lat, acc.place_lng, acc.place_name, null)
+    for (const acc of accommodations) put(acc.place_lat, acc.place_lng, acc.place_name)
     for (const r of reservations) {
-      for (const ep of (r.endpoints || [])) put(ep.lat, ep.lng, ep.name, ep.local_time)
+      for (const ep of (r.endpoints || [])) put(ep.lat, ep.lng, ep.name)
     }
     return m
   }, [assignments, accommodations, reservations])
 
+  // The leg's departure time must be resolved WITHIN its day: the same located POI can
+  // be revisited on another day at a different time (a supported pattern), so a
+  // trip-wide coordinate index would return the wrong day's time. Scope to this day's
+  // assignments (and the reservations that touch it) so a revisit keeps its own time.
+  const originDepartureTime = (originKey: string, dayId: number): string | null => {
+    for (const a of assignments[String(dayId)] ?? []) {
+      if (a.place?.lat != null && a.place?.lng != null && `${a.place.lat},${a.place.lng}` === originKey) return a.place.place_time ?? null
+    }
+    for (const r of reservations) {
+      if (r.day_id !== dayId && r.end_day_id !== dayId) continue
+      for (const ep of (r.endpoints || [])) {
+        if (ep.lat != null && ep.lng != null && `${ep.lat},${ep.lng}` === originKey) return ep.local_time ?? null
+      }
+    }
+    return null
+  }
+
   // Build the "public transport" prefill for a leg from its RouteSegment: MOTIS is
-  // driven off the coordinates, the names + departure time come from the index above.
-  const buildTransitLeg = (seg?: RouteSegment): { from: PickedPlace; to: PickedPlace; time: string | null } | null => {
+  // driven off the coordinates, the names come from the index and the departure time
+  // from the origin's own day. Accepts 'H:mm' or 'HH:mm[:ss]', normalised to 'HH:mm'.
+  const buildTransitLeg = (seg: RouteSegment | undefined, dayId: number): { from: PickedPlace; to: PickedPlace; time: string | null } | null => {
     if (!seg?.from || !seg?.to) return null
-    const pick = (c: [number, number]): PickedPlace => ({ name: transitPointIndex.get(`${c[0]},${c[1]}`)?.name || '', lat: c[0], lng: c[1] })
-    const rawTime = transitPointIndex.get(`${seg.from[0]},${seg.from[1]}`)?.time
-    return { from: pick(seg.from), to: pick(seg.to), time: rawTime && /^\d{2}:\d{2}/.test(rawTime) ? rawTime.slice(0, 5) : null }
+    const pick = (c: [number, number]): PickedPlace => ({ name: transitNameIndex.get(`${c[0]},${c[1]}`) || '', lat: c[0], lng: c[1] })
+    const rawTime = originDepartureTime(`${seg.from[0]},${seg.from[1]}`, dayId)
+    const m = rawTime ? /^(\d{1,2}):(\d{2})/.exec(rawTime) : null
+    return { from: pick(seg.from), to: pick(seg.to), time: m ? `${m[1].padStart(2, '0')}:${m[2]}` : null }
   }
 
   // The extra connector-menu entry (#1281 follow-up): search public transit for this
   // leg instead of drawing a road route. Only when a handler is wired (day has dates).
   const transitLegMenuItem = (dayId: number, seg?: RouteSegment) => {
     if (!onPlanTransitLeg) return []
-    const leg = buildTransitLeg(seg)
+    const leg = buildTransitLeg(seg, dayId)
     if (!leg) return []
     return [{ label: t('transit.title'), icon: TramFront, onClick: () => onPlanTransitLeg({ dayId, from: leg.from, to: leg.to, time: leg.time }) }]
   }
@@ -1340,7 +1358,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
   const openLegModeMenu = (e: React.MouseEvent, assignmentId: number, dayId: number, seg?: RouteSegment) => {
     ctxMenu.open(e, [
       ...routeProfileOptions.map(o => ({ label: o.label, icon: modeIcon(o.key), onClick: () => setLegMode(assignmentId, dayId, o.key) })),
-      ...transitLegMenuItem(dayId, seg ?? routeLegs[dayId]?.[assignmentId]),
+      ...transitLegMenuItem(dayId, seg),
       { divider: true },
       { label: t('dayplan.transportMode.useDefault'), icon: RotateCcw, onClick: () => setLegMode(assignmentId, dayId, null) },
     ])

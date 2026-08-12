@@ -3496,7 +3496,35 @@ describe('DayPlanSidebar', () => {
       dayId: 11,
       from: { name: 'Hotel Lutetia', lat: 48.85, lng: 2.35 },
       to: { name: 'Louvre', lat: 48.86, lng: 2.34 },
+      // The hotel has no place_time, so the departure time falls back to null (the
+      // panel then uses its own 09:00 default).
+      time: null,
     }))
+  })
+
+  it('FE-PLANNER-DAYPLAN-171e: a revisited stop seeds THIS day\'s departure time, not another day\'s', async () => {
+    const user = userEvent.setup()
+    const onPlanTransitLeg = vi.fn()
+    const days = [
+      buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' }),
+      buildDay({ id: 11, date: '2025-06-02', title: 'Day 2' }),
+    ]
+    // The SAME located POI (identical coords) is visited on both days at different
+    // times. Day 10 has it alone (no leg); day 11 pairs it with Rodin (one leg).
+    const assignments = {
+      '10': [
+        buildAssignment({ id: 11, day_id: 10, order_index: 0, place: buildPlace({ id: 1, name: 'Louvre', place_time: '09:00', lat: 48.86, lng: 2.34 }) }),
+      ],
+      '11': [
+        buildAssignment({ id: 21, day_id: 11, order_index: 0, place: buildPlace({ id: 1, name: 'Louvre', place_time: '16:30', lat: 48.86, lng: 2.34 }) }),
+        buildAssignment({ id: 22, day_id: 11, order_index: 1, place: buildPlace({ id: 3, name: 'Rodin', lat: 48.855, lng: 2.315 }) }),
+      ],
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({ days, assignments, selectedDayId: 11, routeShown: true, onPlanTransitLeg })} />)
+    await user.click(await screen.findByTitle('Change travel mode'))
+    await user.click(contextMenu().getByRole('button', { name: 'Public transit' }))
+    // Day 11's own 16:30, not day 10's 09:00 (a trip-wide coord index would leak it).
+    expect(onPlanTransitLeg).toHaveBeenCalledWith(expect.objectContaining({ dayId: 11, time: '16:30' }))
   })
 
   it('FE-PLANNER-DAYPLAN-172: a failing per-segment save is reported and the days are refetched', async () => {
