@@ -59,6 +59,8 @@ The feed carries the same events as the ICS export:
 - **Timed day assignments** — one event per place that has a time, using the place name as the title, its address as the location, and its notes in the description. Times are anchored to the place's own time zone.
 - **A per-day summary event** — an all-day event for each day that has untimed places or notes, titled with the day title (or *Day N*), listing those places and notes in the description.
 - **Reservations** — hotels, restaurants, and transport. Flights and other transport take their start and end from the departure and arrival endpoints, each in its own time zone. Reservations with no placeable date are skipped.
+- **Accommodations** — an all-day event covering every night of the stay, from the arrival day to the departure day, so a hotel sits above those days rather than appearing once on the day you check in. The dates come from the trip days the stay is attached to, so reordering days moves the event with them.
+- **Check-in and check-out** — separate timed events on the arrival and departure days whenever the stay records those times. If you entered a check-in window, its end becomes the event's end time.
 
 Feeds are served with cache headers that tell clients not to cache, plus an hourly refresh hint (`REFRESH-INTERVAL` / `X-PUBLISHED-TTL` of one hour). Most calendar apps treat that as a suggestion — Google in particular refreshes on its own schedule, often much slower — so an edit may take a while to show up.
 

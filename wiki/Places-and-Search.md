@@ -91,6 +91,8 @@ Drag a `.gpx`, `.kml`, or `.kmz` file onto the Places sidebar to import all wayp
 
 Imported tracks each get their own line colour so multiple routes stay apart on the map; you can override it per track from the place details. See [Map Features](Map-Features) for the details.
 
+Importing the same list again does not duplicate what is already in the trip. A place is recognised by the provider id it was imported with (Google place id, Google feature id, or OSM id) before its name or its coordinates are considered, so renaming a place in TREK — or moving its pin — does not make it come back as a second copy on the next import.
+
 > **Admin:** Google Maps API key is set in [User-Settings](User-Settings). Without it, OSM search is used automatically.
 
 **See also:** [Day-Plans-and-Notes](Day-Plans-and-Notes) · [Map-Features](Map-Features) · [Tags-and-Categories](Tags-and-Categories)

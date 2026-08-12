@@ -34,6 +34,15 @@ Every saved place carries a status you can cycle with one tap:
 
 Status is a Collections concept and is not carried into a trip when you copy a place.
 
+### Setting it from a trip
+
+You usually find out you have been somewhere while looking at the trip, not while browsing the library, so the status can be set from there too:
+
+- The **Save to list** dialog on a trip place shows every list that already holds it, each with its own status pill. Tap a pill to cycle that list's status, or use **Visited everywhere** to mark all of them at once.
+- The places panel has a **mark visited** action in its selection bar (and in the bulk toolbar on phones). Select the places — *Select all* covers the whole trip — and every saved copy of them is marked visited.
+
+Matching is by the place's provider id, its coordinates, or the link a place saved out of that trip already carries, so a copy you renamed inside a list is still found. Lists shared with you read-only are left alone.
+
 ## Categories
 
 Places can be assigned a **category** from the same admin-defined set used across TREK (see [Admin: Categories](Admin-Categories)). Category colours and icons show on the place avatar, the place detail and the list rows, and you can filter a list by category.

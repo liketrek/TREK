@@ -48,6 +48,8 @@ Each item row contains:
 
 Hovering over an item reveals a **category picker** (colored dot), a **rename** button (pencil icon), and a **delete** button. Add new items using the inline "add item" row at the bottom of each category.
 
+On phones the row keeps the name and reduces everything else: sharing shows as an icon rather than a sentence, a weight nobody entered prints nothing, and edit/delete sit behind the **⋯** button at the end of the row while the list is in edit mode.
+
 ## Sharing packing items
 
 Every packing item has a sharing tier that controls who sees it and who is bringing it. By default everything sits in the shared group pool, exactly as before — the tiers are opt-in per item.

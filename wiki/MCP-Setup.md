@@ -88,7 +88,7 @@ Each user can have up to **10 OAuth clients**.
 
 Use this when your AI agent or automation script needs to authenticate silently without any browser interaction. Instead of going through an OAuth consent flow, the client exchanges a `client_id` and `client_secret` directly for an access token ([RFC 6749 §4.4 — Client Credentials grant](https://datatracker.ietf.org/doc/html/rfc6749#section-4.4)).
 
-**Why this exists:** browser-based OAuth flows break when an AI agent runs unattended. The agent may fire multiple concurrent token refreshes, causing replay detection to invalidate the session and open browser windows. Machine clients sidestep this entirely — there is no refresh token and no rotation race.
+**Why this exists:** browser-based OAuth flows are an awkward fit for an agent running unattended. Two sessions sharing one refresh token used to be read as a replay, which revoked the whole chain and popped a login window; TREK now allows a short grace period on a just-rotated token, so a concurrent refresh no longer ends the session. Machine clients still sidestep the question entirely — there is no refresh token and no rotation at all.
 
 **How it works:** the token acts as its owner (the user who created the client), scoped to the permissions chosen at creation. All TREK permission checks still apply — the AI agent can only access what you can access, narrowed further to the selected scopes.
 

@@ -41,6 +41,10 @@ Each entry corresponds to a day in your journey. The entry editor provides:
 - **Location** — pin the entry to a map location.
 - **Time** — optionally record a time of day for the entry.
 
+### Getting around a long journal
+
+Everything that adds to a journal sits at the top of the page — the **Add Entry** button, the gallery upload — while what you were last reading sits at the bottom. Two small buttons ride along the left edge of the timeline once there is more than a screenful to travel: one jumps back to the top, the other to the last entry. Each appears only when there is somewhere to go in that direction.
+
 ### External photos
 
 The entry editor includes an **External photos** tab for connected Immich and Synology Photos libraries. It searches the selected calendar day automatically. When the entry has a pinned location, photos with GPS metadata are shown nearest to that location first. Photos without GPS, and photos taken farther away on the same day, remain available below the nearby results; no distance cutoff is applied.
