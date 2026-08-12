@@ -244,13 +244,12 @@ describe('AtlasPage', () => {
     });
   });
 
-  describe('FE-PAGE-ATLAS-004: last trip shows in highlights', () => {
-    it('displays the lastTrip title returned by the API', async () => {
+  describe('FE-PAGE-ATLAS-004: the highlights row no longer carries a last-trip tile', () => {
+    it('keeps the trip out of the stats bar even when the API still returns one', async () => {
       render(<AtlasPage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Paris Trip')).toBeInTheDocument();
-      });
+      // The row is stats only now; the trip lives in the country detail below.
+      await waitFor(() => expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0));
+      expect(screen.queryByText('Paris Trip')).not.toBeInTheDocument();
     });
   });
 
@@ -756,24 +755,6 @@ describe('AtlasPage', () => {
       } else {
         // Fallback: verify Santorini is rendered
         expect(screen.getByText('Santorini')).toBeInTheDocument();
-      }
-    });
-  });
-
-  describe('FE-PAGE-ATLAS-026: lastTrip button click navigates to trip', () => {
-    it('clicking the lastTrip button triggers navigation to the trip', async () => {
-      const user = userEvent.setup();
-      render(<AtlasPage />);
-
-      await waitFor(() => expect(screen.getByText('Paris Trip')).toBeInTheDocument());
-
-      // Click the Paris Trip button
-      const parisTripEl = screen.getByText('Paris Trip');
-      const tripButton = parisTripEl.closest('button') as HTMLButtonElement | null;
-      if (tripButton) {
-        await user.click(tripButton);
-        // Navigation would happen; verify no error thrown
-        expect(screen.queryByText('Paris Trip')).toBeDefined();
       }
     });
   });

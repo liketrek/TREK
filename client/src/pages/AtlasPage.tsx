@@ -35,6 +35,7 @@ function AtlasPageDesktop(): React.ReactElement {
     atlas_country_search, set_atlas_country_search,
     atlas_country_results, set_atlas_country_results,
     atlas_country_open, set_atlas_country_open, atlas_country_options,
+    atlas_place_results, atlas_places_loading, search_places, select_place_from_search,
     confirmAction, setConfirmAction, executeConfirmAction,
     bucketMonth, setBucketMonth, bucketYear, setBucketYear,
     bucketList, setBucketList, bucketTab, setBucketTab,
@@ -89,6 +90,10 @@ function AtlasPageDesktop(): React.ReactElement {
           setOpen={set_atlas_country_open}
           options={atlas_country_options}
           onSelect={select_country_from_search}
+          placeResults={atlas_place_results}
+          placesLoading={atlas_places_loading}
+          onQueryChange={search_places}
+          onSelectPlace={select_place_from_search}
         />
         <AtlasLayerToggle
           t={t}
@@ -682,18 +687,6 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
 
       {/* ═══ SECTION 3: Highlights & Streaks ═══ */}
       <div className="flex items-center gap-5 px-3 py-4">
-        {/* Last trip */}
-        {lastTrip && (
-          <button onClick={() => onTripClick(lastTrip.id)} className="flex items-center gap-2.5 text-left transition-opacity hover:opacity-75">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0" style={{ background: bg(0.06) }}>
-              {lastTrip.countryCode ? countryCodeToFlag(lastTrip.countryCode) : <MapPin size={16} style={{ color: tm }} />}
-            </div>
-            <div className="min-w-0">
-              <p className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: tf }}>{t('atlas.lastTrip')}</p>
-              <p className="text-[13px] font-bold truncate" style={{ color: tp }}>{lastTrip.title}</p>
-            </div>
-          </button>
-        )}
         {/* Streak */}
         {streak > 0 && (
           <div className="flex flex-col items-center justify-center px-3">

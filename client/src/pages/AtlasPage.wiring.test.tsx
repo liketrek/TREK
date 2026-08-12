@@ -392,7 +392,7 @@ describe('AtlasPage wiring', () => {
   });
 
   describe('sidebar', () => {
-    it('FE-PAGE-ATLASW-019: the stats tab lists totals, continents ordered by size and the last trip', () => {
+    it('FE-PAGE-ATLASW-019: the stats tab lists totals and continents ordered by size', () => {
       const atlas = setAtlas({
         data: buildAtlasData({
           continents: { Europe: 3, Asia: 5, Africa: 1 },
@@ -411,8 +411,8 @@ describe('AtlasPage wiring', () => {
       expect(screen.getByText('atlas.yearInRow')).toBeInTheDocument();
       expect(screen.getByText(/atlas\.tripIn/)).toBeInTheDocument();
 
-      fireEvent.click(screen.getByText('Paris Trip'));
-      expect(atlas.navigate).toHaveBeenCalledWith('/trips/7');
+      // The last-trip tile used to sit in this row; the row is stats only now.
+      expect(screen.queryByText('Paris Trip')).not.toBeInTheDocument();
     });
 
     it('FE-PAGE-ATLASW-020: an empty atlas shows the mascot empty state instead of the stats', () => {
@@ -420,7 +420,6 @@ describe('AtlasPage wiring', () => {
       render(<AtlasPage />);
 
       expect(screen.getByText('atlas.noData')).toBeInTheDocument();
-      expect(screen.queryByText('atlas.lastTrip')).not.toBeInTheDocument();
     });
 
     it('FE-PAGE-ATLASW-021: the country detail overlay lists trips and offers the manual unmark', () => {
