@@ -300,6 +300,18 @@
 .trek-dash .col-labelchip { display: inline-flex; align-items: center; gap: 6px; max-width: 180px; padding: 5px 9px; border-radius: 8px; font-size: 12.5px; font-weight: 600; white-space: nowrap; color: var(--ink-2); background: transparent; border: 1px solid transparent; transition: background .12s, border-color .12s, color .12s; }
 .trek-dash .col-labelchip:hover { background: var(--surface); color: var(--ink); }
 .trek-dash .col-labelchip .col-filter-lbl { overflow: hidden; text-overflow: ellipsis; }
+/* The count sits next to a larger label, so as bare text it rides the baseline and
+   reads as misaligned. A pill gives it its own box and centres it against the name. */
+.trek-dash .col-labelchip .col-filter-count {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  background: color-mix(in oklch, var(--ink) 8%, transparent);
+  color: var(--ink-2); font-size: 10.5px; line-height: 1;
+}
+.trek-dash .col-labelchip.on .col-filter-count {
+  background: color-mix(in oklch, var(--label, var(--accent)) 22%, transparent);
+  color: inherit;
+}
 .trek-dash .col-labelchip.on { color: var(--label, var(--accent)); background: color-mix(in oklch, var(--label, var(--accent)) 16%, transparent); border-color: color-mix(in oklch, var(--label, var(--accent)) 42%, transparent); }
 .trek-dash .col-labelchip.on .col-labelchip-dot { background: var(--label, var(--accent)); }
 .trek-dash .col-labelchip.static { cursor: default; color: var(--label, var(--accent)); background: color-mix(in oklch, var(--label, var(--accent)) 14%, transparent); border-color: transparent; }
@@ -391,6 +403,13 @@
 }
 .trek-dash .col-cta:hover { transform: translateY(-1px); box-shadow: var(--sh-lg); }
 .trek-dash .col-cta:active { transform: translateY(0); }
+/* Second action beside the primary CTA — same shape, quieter, so an empty list can
+   offer both "add one place" and "import a whole trip" without competing. */
+.trek-dash .col-cta.col-cta-ghost {
+  background: var(--surface); color: var(--ink-2); border: 1px solid var(--line-2);
+  box-shadow: var(--sh-xs);
+}
+.trek-dash .col-cta.col-cta-ghost:hover { background: var(--surface-2); color: var(--ink); box-shadow: var(--sh-sm); }
 
 /* ----------------- place detail bottom sheet ----------------- */
 .trek-dash .col-detail {
@@ -541,3 +560,134 @@
 .trek-dash .col-drawer-head button { width: 40px; height: 40px; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--ink-2); }
 .trek-dash .col-drawer-head button:hover { background: var(--surface-2); color: var(--ink); }
 @media (max-width: 720px) { .trek-dash .col-drawer { padding-top: calc(16px + env(safe-area-inset-top, 0px)); } }
+
+/* ----------------- import-from-trip dialog -----------------
+   Lives in the modal portal, i.e. OUTSIDE .trek-dash, so it reads the global
+   theme tokens directly instead of the dashboard's --ink/--surface aliases. */
+.col-imp { display: flex; flex-direction: column; gap: 14px; }
+.col-imp-lead { font-size: 13px; line-height: 1.5; color: var(--text-secondary); margin: -2px 0 2px; }
+
+/* step 1 — trips */
+.col-imp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 640px) { .col-imp-grid { grid-template-columns: 1fr; } }
+.col-imp-trip {
+  display: flex; align-items: center; gap: 11px; width: 100%; padding: 10px 12px 10px 10px;
+  border: 1px solid var(--border-primary); border-radius: 14px; background: var(--bg-card);
+  text-align: left; cursor: pointer;
+  transition: border-color .14s ease, background .14s ease, transform .14s ease, box-shadow .14s ease;
+}
+.col-imp-trip:hover {
+  border-color: var(--accent); background: var(--bg-hover);
+  transform: translateY(-1px); box-shadow: var(--shadow-md);
+}
+.col-imp-trip-cover {
+  width: 42px; height: 42px; flex: none; border-radius: 11px; overflow: hidden;
+  background: var(--bg-tertiary); color: var(--text-faint);
+  display: grid; place-items: center;
+}
+.col-imp-trip-cover img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s cubic-bezier(0.23, 1, 0.32, 1); }
+.col-imp-trip:hover .col-imp-trip-cover img { transform: scale(1.06); }
+.col-imp-trip-body { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 5px; }
+.col-imp-trip-name { font-size: 13.5px; font-weight: 650; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-imp-trip-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; min-width: 0; }
+/* Each fact is its own pill so a narrow tile wraps between them instead of
+   clipping a word. The date pill yields first; the count never shrinks. */
+.col-imp-pill {
+  display: inline-flex; align-items: center; gap: 4px; min-width: 0; max-width: 100%;
+  padding: 2px 7px; border-radius: 999px; background: var(--bg-tertiary);
+  font-size: 10.5px; font-weight: 600; color: var(--text-muted);
+  font-variant-numeric: tabular-nums; line-height: 1.45;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.col-imp-pill svg { flex: none; opacity: .75; }
+.col-imp-pill.num { flex: none; }
+.col-imp-trip-go { color: var(--text-faint); flex: none; transition: transform .14s ease, color .14s ease; }
+.col-imp-trip:hover .col-imp-trip-go { transform: translateX(2px); color: var(--text-secondary); }
+
+/* step 2 — toolbar */
+.col-imp-bar { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.col-imp-back {
+  width: 30px; height: 30px; flex: none; display: grid; place-items: center; border-radius: 9px;
+  border: 1px solid var(--border-primary); color: var(--text-secondary); background: var(--bg-card);
+  transition: background .14s ease, color .14s ease;
+}
+.col-imp-back:hover { background: var(--bg-hover); color: var(--text-primary); }
+.col-imp-search {
+  position: relative; display: flex; align-items: center; gap: 7px; flex: 1; min-width: 150px;
+  padding: 0 10px; height: 30px; border-radius: 9px;
+  border: 1px solid var(--border-primary); background: var(--bg-input); color: var(--text-faint);
+  transition: border-color .14s ease;
+}
+.col-imp-search:focus-within { border-color: var(--accent); }
+.col-imp-search input {
+  flex: 1; min-width: 0; background: none; border: 0; outline: none;
+  font-size: 12.5px; color: var(--text-primary);
+}
+.col-imp-chip {
+  display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 11px; flex: none;
+  border-radius: 999px; border: 1px solid var(--border-primary); background: var(--bg-card);
+  font-size: 11.5px; font-weight: 600; color: var(--text-secondary); cursor: pointer;
+  transition: background .14s ease, color .14s ease, border-color .14s ease;
+}
+.col-imp-chip:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
+.col-imp-chip.on { background: var(--accent-subtle); border-color: var(--accent); color: var(--accent-on); }
+.col-imp-chip:disabled { opacity: .45; cursor: default; }
+
+/* step 2 — rows */
+.col-imp-list { display: flex; flex-direction: column; gap: 5px; max-height: 46vh; overflow-y: auto; padding: 1px; margin: -1px; }
+.col-imp-row {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 11px;
+  border: 1px solid var(--border-primary); border-radius: 12px; background: var(--bg-card);
+  text-align: left; cursor: pointer;
+  transition: border-color .14s ease, background .14s ease;
+}
+.col-imp-row:hover:not(.dup) { background: var(--bg-hover); }
+.col-imp-row.on { border-color: var(--accent); background: var(--accent-subtle); }
+.col-imp-row.dup { opacity: .5; cursor: default; }
+.col-imp-box {
+  width: 18px; height: 18px; flex: none; border-radius: 6px; display: grid; place-items: center;
+  border: 1.5px solid var(--border-secondary); color: var(--accent-text); background: var(--bg-input);
+  transition: background .14s ease, border-color .14s ease;
+}
+.col-imp-row.on .col-imp-box { background: var(--accent); border-color: var(--accent); }
+.col-imp-row.dup .col-imp-box { visibility: hidden; }
+.col-imp-ico {
+  width: 28px; height: 28px; flex: none; border-radius: 9px; display: grid; place-items: center;
+  background: var(--bg-tertiary); color: var(--text-muted);
+}
+.col-imp-txt { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 1px; }
+.col-imp-txt .nm { font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-imp-txt .ad { font-size: 11px; color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-imp-tag {
+  flex: none; padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 650;
+  background: var(--bg-tertiary); color: var(--text-muted); white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.col-imp-tag.fresh { background: var(--accent-subtle); color: var(--accent-on); }
+.col-imp-tag.saved { background: transparent; color: var(--text-faint); }
+
+/* empty + done */
+.col-imp-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px;
+  padding: 34px 16px; border: 1px dashed var(--border-primary); border-radius: 14px;
+  color: var(--text-faint); font-size: 12.5px; text-align: center;
+}
+.col-imp-empty-good { color: var(--success); border-color: var(--success); background: var(--success-soft); }
+.col-imp-done { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 26px 16px 20px; text-align: center; }
+@keyframes col-imp-pop {
+  0%   { opacity: 0; transform: scale(0.6); }
+  60%  { opacity: 1; transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.col-imp-done-ring {
+  width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--success-soft); color: var(--success);
+  animation: col-imp-pop 420ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.col-imp-done-t { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.col-imp-done-s { font-size: 12.5px; color: var(--text-faint); max-width: 320px; line-height: 1.5; }
+@media (prefers-reduced-motion: reduce) {
+  .col-imp-done-ring { animation: none; }
+  .col-imp-trip:hover { transform: none; }
+  .col-imp-trip:hover .col-imp-trip-cover img { transform: none; }
+}

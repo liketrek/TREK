@@ -68,6 +68,7 @@ export function useCollections() {
   const [mobileRailOpen, setMobileRailOpen] = useState(false)
   const [showShare, setShowShare] = useState(false)
   const [showAddPlace, setShowAddPlace] = useState(false)
+  const [showImport, setShowImport] = useState(false)
   // The place ids the Copy-to-trip modal is open for (null = closed). Single
   // place from the detail panel, or the select-mode set for a bulk copy.
   const [copyIds, setCopyIds] = useState<number[] | null>(null)
@@ -403,6 +404,7 @@ export function useCollections() {
     // local UI state
     editorTarget, setEditorTarget, handleEditorCreated,
     showAddPlace, setShowAddPlace, handlePlaceAdded,
+    showImport, setShowImport,
     confirmDeleteList, setConfirmDeleteList,
     mobileRailOpen, setMobileRailOpen,
     showShare, setShowShare, handleAfterLeave,

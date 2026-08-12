@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { ChevronDown, Check, Layers, Tag, CheckSquare, Star, Plus, ArrowDownUp } from 'lucide-react'
+import { ChevronDown, Check, Layers, Tag, CheckSquare, Star, Plus, ArrowDownUp, DownloadCloud } from 'lucide-react'
 import type { StatusFilter, CollectionSortMode } from '../../store/collectionStore'
 import type { TranslationFn } from '../../types'
 import { getCategoryIcon } from '../shared/categoryIcons'
@@ -87,6 +87,10 @@ interface CollectionFilterBarProps {
   showSelect: boolean
   selectMode: boolean
   onToggleSelect: () => void
+  /** Bulk import from a trip — only on a real list, never the "All saved" union,
+   *  which has no single destination to import into. */
+  canImport: boolean
+  onImport: () => void
   t: TranslationFn
 }
 
@@ -100,7 +104,7 @@ export default function CollectionFilterBar({
   onStatusFilter, onCategoryFilter, onRatingFilter, onSortMode,
   canAddPlace, onAddPlace,
   showLabels, labelOptions, labelFilter, onLabelFilter, canManageLabels, onManageLabels,
-  showSelect, selectMode, onToggleSelect, t,
+  showSelect, selectMode, onToggleSelect, canImport, onImport, t,
 }: CollectionFilterBarProps): React.ReactElement {
   const statusOpts: Opt[] = [
     { key: 'all', label: t('common.all'), count: counts.all },
@@ -158,6 +162,17 @@ export default function CollectionFilterBar({
           title={t('collections.select')}
         >
           <CheckSquare size={15} />
+        </button>
+      )}
+      {canImport && (
+        <button
+          type="button"
+          onClick={onImport}
+          className="col-filter-btn col-filter-icon"
+          aria-label={t('collections.importFromTrip')}
+          title={t('collections.importFromTrip')}
+        >
+          <DownloadCloud size={15} />
         </button>
       )}
       {showLabels && (labelOptions.length > 0 || canManageLabels) && (

@@ -41,6 +41,8 @@ function makeProps(overrides: Partial<HarnessProps> = {}): HarnessProps {
     onLabelFilter: vi.fn(),
     canManageLabels: false,
     onManageLabels: vi.fn(),
+    canImport: false,
+    onImport: vi.fn(),
     showSelect: true,
     selectMode: false,
     onToggleSelect: vi.fn(),

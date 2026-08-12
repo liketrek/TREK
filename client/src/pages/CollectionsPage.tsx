@@ -1,5 +1,5 @@
 import React from 'react'
-import { List as ListIcon, Map as MapIcon, Search, Bookmark, CheckCheck, X, Trash2, Copy, CopyPlus, FolderInput, Plus, Tags } from 'lucide-react'
+import { List as ListIcon, Map as MapIcon, Search, Bookmark, CheckCheck, X, Trash2, Copy, CopyPlus, FolderInput, Plus, Tags, DownloadCloud } from 'lucide-react'
 import Navbar from '../components/Layout/Navbar'
 import Modal from '../components/shared/Modal'
 import ListsRail from '../components/Collections/ListsRail'
@@ -12,6 +12,7 @@ import CopyToTripModal from '../components/Collections/CopyToTripModal'
 import MoveToListModal from '../components/Collections/MoveToListModal'
 import ShareCollectionModal from '../components/Collections/ShareCollectionModal'
 import AddPlaceToCollectionModal from '../components/Collections/AddPlaceToCollectionModal'
+import ImportFromTripModal from '../components/Collections/ImportFromTripModal'
 import CollectionPlaceDetail from '../components/Collections/CollectionPlaceDetail'
 import LabelManager from '../components/Collections/LabelManager'
 import BulkAssignLabelModal from '../components/Collections/BulkAssignLabelModal'
@@ -120,6 +121,8 @@ function CollectionsPageDesktop(): React.ReactElement {
       onLabelFilter={c.setLabelFilter}
       canManageLabels={canManageLabels}
       onManageLabels={() => c.setShowLabelManager(true)}
+      canImport={canAddPlace}
+      onImport={() => c.setShowImport(true)}
       showSelect={showSelect}
       selectMode={c.selectMode}
       onToggleSelect={() => c.setSelectMode(!c.selectMode)}
@@ -143,9 +146,16 @@ function CollectionsPageDesktop(): React.ReactElement {
       <div className="flex flex-col items-center">
         <EmptyState scene="collections" title={t('collections.empty.title')} className={canAddPlace ? 'pb-4' : undefined} />
         {canAddPlace && (
-          <button type="button" onClick={() => c.setShowAddPlace(true)} className="col-cta">
-            <Plus size={16} /> {t('collections.addPlace')}
-          </button>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button type="button" onClick={() => c.setShowAddPlace(true)} className="col-cta">
+              <Plus size={16} /> {t('collections.addPlace')}
+            </button>
+            {/* An empty list is exactly where a trip import saves the most typing,
+                so it gets the same billing as adding one place by hand. */}
+            <button type="button" onClick={() => c.setShowImport(true)} className="col-cta col-cta-ghost">
+              <DownloadCloud size={16} /> {t('collections.importFromTrip')}
+            </button>
+          </div>
         )}
       </div>
     )
@@ -327,6 +337,19 @@ function CollectionsPageDesktop(): React.ReactElement {
           categories={c.categories}
           onClose={() => c.setShowAddPlace(false)}
           onAdded={c.handlePlaceAdded}
+          t={t}
+        />
+      )}
+
+      {/* Bulk import of a trip's places into the current list */}
+      {typeof c.activeId === 'number' && c.activeCollection && (
+        <ImportFromTripModal
+          isOpen={c.showImport}
+          collectionId={c.activeId}
+          collectionName={c.activeCollection.name}
+          categories={c.categories}
+          onClose={() => c.setShowImport(false)}
+          onImported={c.handlePlaceAdded}
           t={t}
         />
       )}
