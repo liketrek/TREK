@@ -1,21 +1,69 @@
-# fly.toml app configuration file generated for trek-c7mdrq on 2026-08-12T09:44:33Z
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
+# TREK on Fly.io
+app = "trek-c7mdrq"
+primary_region = "iad"
 
-app = 'trek-c7mdrq'
-primary_region = 'iad'
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  # Must match internal_port below. The image already defaults to 3000; kept
+  # explicit so the two can't silently drift.
+  PORT = "3000"
+  NODE_ENV = "production"
+  TZ = "UTC"
+  LOG_LEVEL = "info"
+
+  # fly-proxy terminates TLS and sets X-Forwarded-Proto. TRUST_PROXY makes the
+  # app honour it, so secure cookies and generated links come out as https.
+  TRUST_PROXY = "1"
+  FORCE_HTTPS = "true"
+
+  # Both must be the public URL, or the SPA's API calls fail CORS and email
+  # links point at the wrong host.
+  APP_URL = "https://trek-c7mdrq.fly.dev"
+  ALLOWED_ORIGINS = "https://trek-c7mdrq.fly.dev"
 
 [http_service]
-  auto_start_machines = true
-  auto_stop_machines = 'stop'
+  # THE fix: the container listens on 3000 (Dockerfile sets ENV PORT=3000 and
+  # EXPOSE 3000). This was 8080 — fly-launch's default — so fly-proxy dialled a
+  # port nothing was bound to.
+  internal_port = 3000
   force_https = true
-  internal_port = 8080
-  min_machines_running = 0
-  processes = ['app']
+  processes = ["app"]
+  # TREK runs an in-process scheduler (reminders, backups, cron tasks). A stopped
+  # machine runs nothing, so keep one always up rather than scale-to-zero.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/api/health"
 
 [[vm]]
-  cpu_kind = 'shared'
+  cpu_kind = "shared"
   cpus = 1
-  memory = '1gb'
-  memory_mb = 256
+  # Was `memory = '1gb'` alongside `memory_mb = 256`; the memory_mb won, and 256MB
+  # cannot boot the runtime (NestJS + native better-sqlite3) — it OOM-loops.
+  # One key only, so the two can't contradict each other again.
+  memory = "1gb"
+
+# Persistent storage — COMMENTED OUT because the volumes do not exist yet and
+# `fly deploy` fails on a mount with no matching volume. Until these are enabled,
+# every deploy starts from an empty database and regenerates
+# data/.encryption_key, which invalidates any stored secrets (API keys, SMTP,
+# OIDC). To turn them on, create the volumes in the app's region first:
+#
+#   fly volumes create trek_data    --size 1 -r iad -a trek-c7mdrq
+#   fly volumes create trek_uploads --size 3 -r iad -a trek-c7mdrq
+#
+# [[mounts]]
+#   source = "trek_data"          # SQLite DB, logs, .encryption_key
+#   destination = "/app/data"
+#
+# [[mounts]]
+#   source = "trek_uploads"       # covers, avatars, photos, files
+#   destination = "/app/uploads"
