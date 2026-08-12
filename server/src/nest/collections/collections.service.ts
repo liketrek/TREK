@@ -21,6 +21,7 @@ import type {
   CollectionPlaceUpdateRequest,
   CollectionStatus,
   CollectionLabel,
+  CollectionImportablesResponse,
 } from '@trek/shared';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -565,6 +566,46 @@ export class CollectionsService {
       source_place_id: placeId,
       force,
     }, socketId);
+  }
+
+  /** The trip's places as offered to the bulk import, each already carrying the verdict
+   *  saveFromTripPlaces would reach for it. Reusing findDuplicateCollectionPlace is the
+   *  whole point: a row the dialog shows as new can never come back as `skipped`, and a
+   *  greyed-out one is exactly a row the import would refuse. Re-deriving that rule in the
+   *  client would be a second copy of it, free to drift.
+   *
+   *  `scheduled` is false for places no day holds. Those are what a trip leaves behind and
+   *  what this import exists for, so the dialog pre-selects them. */
+  importablePlaces(userId: number, collectionId: number, tripId: number): CollectionImportablesResponse {
+    this.assertCanEdit(userId, collectionId);
+    if (!this.db.canAccessTrip(tripId, userId)) httpError(404, 'Trip not found');
+
+    // One row per place: a place can sit on several days, so the day columns resolve to the
+    // earliest one rather than multiplying the place out across its assignments.
+    const rows = this.db.all<{
+      place_id: number; name: string; address: string | null; lat: number | null; lng: number | null;
+      category_id: number | null; image_url: string | null; day_number: number | null; date: string | null;
+    }>(`
+      SELECT p.id AS place_id, p.name, p.address, p.lat, p.lng, p.category_id, p.image_url,
+             (SELECT MIN(d.day_number) FROM day_assignments da
+                JOIN days d ON d.id = da.day_id
+               WHERE da.place_id = p.id AND d.trip_id = p.trip_id) AS day_number,
+             (SELECT d.date FROM day_assignments da
+                JOIN days d ON d.id = da.day_id
+               WHERE da.place_id = p.id AND d.trip_id = p.trip_id
+               ORDER BY d.day_number ASC LIMIT 1) AS date
+        FROM places p
+       WHERE p.trip_id = ?
+       ORDER BY p.name COLLATE NOCASE
+    `, tripId);
+
+    return {
+      places: rows.map(r => ({
+        ...r,
+        already_in_list: this.findDuplicateCollectionPlace(collectionId, { name: r.name, lat: r.lat, lng: r.lng }) != null,
+        scheduled: r.day_number != null,
+      })),
+    };
   }
 
   /** Bulk copy of several trip places into a list in one shot — one access check,

@@ -37,7 +37,7 @@ vi.mock('../../src/websocket', () => ({ broadcastToUser: vi.fn(), broadcast: vi.
 
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
-import { createUser, createTrip, createCategory } from '../helpers/factories';
+import { createUser, createTrip, createCategory, createDay, createPlace, createDayAssignment } from '../helpers/factories';
 import { CollectionsModule } from '../../src/nest/collections/collections.module';
 import { DatabaseModule } from '../../src/nest/database/database.module';
 import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
@@ -246,6 +246,57 @@ describe('Collections e2e (real auth guard + real service + temp SQLite)', () =>
     const res = await request(server).post('/api/addons/collections/labels')
       .set('Cookie', sessionCookie(otherId)).send({ collection_id: col.id, name: 'Nope' });
     expect(res.status).toBe(404);
+  });
+
+  // ── import preview ───────────────────────────────────────────────────────
+  it('COLLECTIONS-E2E-070: the preview marks scheduled places and carries the day they sit on', async () => {
+    const col = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Rome ideas' })).body;
+    const trip = createTrip(db as never, ownerId);
+    const day = createDay(db as never, trip.id, { day_number: 2, date: '2026-05-02' });
+    const planned = createPlace(db as never, trip.id, { name: 'Colosseum', lat: 41.89, lng: 12.49 });
+    createPlace(db as never, trip.id, { name: 'Testaccio Market', lat: 41.87, lng: 12.47 });
+    createDayAssignment(db as never, day.id, planned.id);
+
+    const res = await request(server).get(`/api/addons/collections/${col.id}/importable/${trip.id}`).set('Cookie', sessionCookie(ownerId));
+    expect(res.status).toBe(200);
+
+    const byName = Object.fromEntries(res.body.places.map((p: { name: string }) => [p.name, p]));
+    expect(byName['Colosseum'].scheduled).toBe(true);
+    expect(byName['Colosseum'].day_number).toBe(2);
+    expect(byName['Colosseum'].date).toBe('2026-05-02');
+    // The one no day holds — what the import is for, so the dialog can pre-select it.
+    expect(byName['Testaccio Market'].scheduled).toBe(false);
+    expect(byName['Testaccio Market'].day_number).toBeNull();
+  });
+
+  it('COLLECTIONS-E2E-071: the preview verdict is the one the import then acts on', async () => {
+    const col = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Paris ideas' })).body;
+    const trip = createTrip(db as never, ownerId);
+    const a = createPlace(db as never, trip.id, { name: 'Musée Rodin', lat: 48.85, lng: 2.31 });
+    const b = createPlace(db as never, trip.id, { name: 'Rue Cler', lat: 48.85, lng: 2.30 });
+
+    // Save one of them first, so the list already holds it.
+    await request(server).post('/api/addons/collections/places')
+      .set('Cookie', sessionCookie(ownerId)).send({ collection_id: col.id, name: 'Musée Rodin', lat: 48.85, lng: 2.31 });
+
+    const preview = await request(server).get(`/api/addons/collections/${col.id}/importable/${trip.id}`).set('Cookie', sessionCookie(ownerId));
+    const flagged = preview.body.places.filter((p: { already_in_list: boolean }) => p.already_in_list).map((p: { name: string }) => p.name);
+    expect(flagged).toEqual(['Musée Rodin']);
+
+    // Importing both must skip exactly what the preview greyed out, and copy the rest.
+    const imported = await request(server).post('/api/addons/collections/places/from-trip-many')
+      .set('Cookie', sessionCookie(ownerId)).send({ collection_id: col.id, source_trip_id: trip.id, source_place_ids: [a.id, b.id] });
+    expect(imported.status).toBe(200);
+    expect(imported.body.copied).toBe(1);
+    expect(imported.body.skipped.map((s: { name: string }) => s.name)).toEqual(['Musée Rodin']);
+  });
+
+  it('COLLECTIONS-E2E-072: a trip the caller cannot see is a 404, and so is a foreign list', async () => {
+    const col = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Private' })).body;
+    const foreignTrip = createTrip(db as never, otherId);
+
+    expect((await request(server).get(`/api/addons/collections/${col.id}/importable/${foreignTrip.id}`).set('Cookie', sessionCookie(ownerId))).status).toBe(404);
+    expect((await request(server).get(`/api/addons/collections/${col.id}/importable/${tripId}`).set('Cookie', sessionCookie(otherId))).status).toBe(404);
   });
 
   // ── delete ───────────────────────────────────────────────────────────────

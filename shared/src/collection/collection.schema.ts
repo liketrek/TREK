@@ -314,3 +314,28 @@ export const collectionMembershipSchema = z.object({
   lists: z.array(z.object({ collection_id: z.number(), name: z.string(), place_id: z.number() })),
 });
 export type CollectionMembership = z.infer<typeof collectionMembershipSchema>;
+
+/** One trip place as offered by the import preview. `already_in_list` is the SAME dedup
+ *  verdict the bulk import applies (name, or coordinates within tolerance), resolved on the
+ *  server so the dialog can never disagree with what the write path then does. `scheduled`
+ *  is false for a place no day holds — the ones a trip left behind, which is exactly what
+ *  the import is for, so the dialog pre-selects them. */
+export const collectionImportablePlaceSchema = z.object({
+  place_id: z.number(),
+  name: z.string(),
+  address: z.string().nullable(),
+  lat: z.number().nullable(),
+  lng: z.number().nullable(),
+  category_id: z.number().nullable(),
+  image_url: z.string().nullable(),
+  already_in_list: z.boolean(),
+  scheduled: z.boolean(),
+  day_number: z.number().nullable(),
+  date: z.string().nullable(),
+});
+export type CollectionImportablePlace = z.infer<typeof collectionImportablePlaceSchema>;
+
+export const collectionImportablesResponseSchema = z.object({
+  places: z.array(collectionImportablePlaceSchema),
+});
+export type CollectionImportablesResponse = z.infer<typeof collectionImportablesResponseSchema>;

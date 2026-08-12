@@ -356,6 +356,14 @@ export class CollectionsController {
     return this.collections.setCollectionCover(user.id, Number(id), coverUrl, socketId);
   }
 
+  /** Preview for the bulk trip import: the trip's places plus, per place, the same
+   *  duplicate verdict the import itself applies. Read-only, so the dialog can grey out
+   *  what would be skipped instead of reporting it afterwards. */
+  @Get(':id/importable/:tripId')
+  importable(@CurrentUser() user: User, @Param('id') id: string, @Param('tripId') tripId: string) {
+    return this.collections.importablePlaces(user.id, Number(id), Number(tripId));
+  }
+
   @Get(':id')
   get(@CurrentUser() user: User, @Param('id') id: string) {
     return this.collections.getCollection(user.id, Number(id));
