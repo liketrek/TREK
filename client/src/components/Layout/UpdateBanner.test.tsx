@@ -52,4 +52,18 @@ describe('UpdateBanner', () => {
     expect(pwa.updateServiceWorker).toHaveBeenCalledOnce()
     expect(pwa.updateServiceWorker).toHaveBeenCalledWith(true)
   })
+
+  it('FE-COMP-UPDATE-004: restores the reload action when activation fails', async () => {
+    pwa.needRefresh = true
+    pwa.updateServiceWorker.mockRejectedValueOnce(new Error('registration failed'))
+    const user = userEvent.setup()
+    render(<UpdateBanner />)
+
+    const reload = screen.getByRole('button', { name: 'Reload' })
+    await user.click(reload)
+
+    expect(pwa.updateServiceWorker).toHaveBeenCalledOnce()
+    expect(reload).toBeEnabled()
+    expect(reload).toHaveAttribute('aria-busy', 'false')
+  })
 })

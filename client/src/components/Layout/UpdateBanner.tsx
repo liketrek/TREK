@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { useRegisterSW } from '../../pwaRegistration'
 import { useTranslation } from '../../i18n'
@@ -9,12 +9,25 @@ import { useTranslation } from '../../i18n'
  */
 export default function UpdateBanner(): React.ReactElement | null {
   const { t } = useTranslation()
+  const [isApplying, setIsApplying] = useState(false)
   const {
     needRefresh: [needRefresh],
     updateServiceWorker,
   } = useRegisterSW()
 
   if (!needRefresh) return null
+
+  async function applyUpdate(): Promise<void> {
+    if (isApplying) return
+    setIsApplying(true)
+    try {
+      await updateServiceWorker(true)
+    } catch {
+      // A transient registration failure should leave the prompt usable so the
+      // user can retry rather than producing an unhandled promise rejection.
+      setIsApplying(false)
+    }
+  }
 
   return (
     <aside
@@ -24,7 +37,9 @@ export default function UpdateBanner(): React.ReactElement | null {
         position: 'fixed',
         left: 14,
         right: 14,
-        bottom: 'calc(var(--bottom-nav-h) + 14px)',
+        // Leave the bottom slot available for OfflineBanner. Its failed-sync
+        // state is more urgent and must remain visible while an update waits.
+        bottom: 'calc(var(--bottom-nav-h) + 64px)',
         zIndex: 10000,
         display: 'flex',
         alignItems: 'center',
@@ -43,7 +58,9 @@ export default function UpdateBanner(): React.ReactElement | null {
       </span>
       <button
         type="button"
-        onClick={() => void updateServiceWorker(true)}
+        onClick={() => void applyUpdate()}
+        disabled={isApplying}
+        aria-busy={isApplying}
         style={{
           minHeight: 44,
           border: 0,
@@ -53,6 +70,7 @@ export default function UpdateBanner(): React.ReactElement | null {
           background: '#b45309',
           fontWeight: 700,
           cursor: 'pointer',
+          opacity: isApplying ? 0.7 : 1,
           flexShrink: 0,
         }}
       >

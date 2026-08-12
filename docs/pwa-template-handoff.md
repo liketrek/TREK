@@ -286,12 +286,14 @@ The prior immutable image remains the rollback target:
 thvysy44/trek-fork@sha256:ba0018609f5147e581391fcb8b4c91e20969d9bbff5fe024fde76933f1c0564e
 ```
 
-### Durability warning
+### Durability follow-up
 
 This deployment uses a local Docker image and the Compose override only selects
 it when `TREK_IMAGE=trek-local:3.5.1-pwa` is supplied. A future plain
 `docker compose up` can revert to the configured registry image. The repository
-changes are also still uncommitted on a `3.4.1`-based branch.
+changes were subsequently committed on `feat/pwa-update-ux`; they still require
+the normal reviewed merge and immutable registry-image release to make this
+deployment path durable.
 
 For a durable release, port the patch onto a maintained `3.5.1`-based branch,
 commit it, publish an immutable registry image, and update the deployment image
