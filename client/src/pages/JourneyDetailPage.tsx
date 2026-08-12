@@ -45,6 +45,7 @@ function JourneyDetailPageDesktop() {
     hideSkeletons, setHideSkeletons,
     mapRef, fullMapRef, activeLocationId, handleMarkerClick, handleLocationClick,
     mapEntries, sidebarMapItems, tripDates, isMobile, tracks,
+    feedEdge, scrollFeedTo,
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,
   } = useJourneyDetail()
 
@@ -210,12 +211,12 @@ function JourneyDetailPageDesktop() {
                     {/* Status badge — keep completed/upcoming/draft/archived, but drop live + synced-with-trips per UX trim */}
                     <div className="hidden md:flex items-center gap-2">
                       {lifecycle !== 'live' && lifecycle !== 'archived' && (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/[0.12] backdrop-blur border border-white/15 rounded-full text-[11px] font-medium">
+                        <div className="inline-flex h-[34px] items-center gap-1.5 px-3.5 bg-white/[0.12] backdrop-blur border border-white/15 rounded-full text-[11px] font-medium">
                           {t(`journey.status.${lifecycle === 'upcoming' ? 'upcoming' : lifecycle === 'draft' ? 'draft' : 'completed'}`)}
                         </div>
                       )}
                       {lifecycle === 'archived' && (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/[0.12] backdrop-blur border border-white/15 rounded-full text-[11px] font-medium">
+                        <div className="inline-flex h-[34px] items-center gap-1.5 px-3.5 bg-white/[0.12] backdrop-blur border border-white/15 rounded-full text-[11px] font-medium">
                           {t('journey.status.archived')}
                         </div>
                       )}
@@ -426,6 +427,41 @@ function JourneyDetailPageDesktop() {
                   onRefresh={() => loadJourney(Number(id))}
                 />
               </div>
+
+              {/* Jump to the top (where adding lives) and back to the last entry
+                  (where reading left off) — #1088. Centred over the feed and
+                  clear of both edges: the right one belongs to the Add Entry
+                  buttons, the left to the reorder arrows. Zero-height sticky box
+                  so it rides the scroll without taking layout space, and each
+                  half appears only when there is somewhere to go. */}
+              {!isMobile && (!feedEdge.atTop || !feedEdge.atBottom) && (
+                <div className="sticky bottom-0 z-20 h-0 pointer-events-none">
+                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5 pointer-events-auto">
+                    {!feedEdge.atTop && (
+                      <button
+                        onClick={() => scrollFeedTo('top')}
+                        aria-label={t('journey.detail.jumpToTop')}
+                        title={t('journey.detail.jumpToTop')}
+                        className="w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-transform hover:-translate-y-0.5"
+                        style={{ background: 'var(--vg-surf)', border: '1px solid var(--vg-line)', color: 'var(--vg-ink)' }}
+                      >
+                        <ChevronUp size={16} strokeWidth={2.4} />
+                      </button>
+                    )}
+                    {!feedEdge.atBottom && (
+                      <button
+                        onClick={() => scrollFeedTo('bottom')}
+                        aria-label={t('journey.detail.jumpToLast')}
+                        title={t('journey.detail.jumpToLast')}
+                        className="w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-transform hover:translate-y-0.5"
+                        style={{ background: 'var(--vg-surf)', border: '1px solid var(--vg-line)', color: 'var(--vg-ink)' }}
+                      >
+                        <ChevronDown size={16} strokeWidth={2.4} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
             </div>
 

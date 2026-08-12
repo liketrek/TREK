@@ -76,6 +76,8 @@ const journey: TranslationStrings = {
   'journey.detail.backToJourney': 'Zpět na cestovní deník',
   'journey.detail.syncedWithTrips': 'Synchronizováno s cestami',
   'journey.detail.addEntry': 'Přidat záznam',
+  'journey.detail.jumpToTop': 'Zpět nahoru',
+  'journey.detail.jumpToLast': 'Přejít na poslední záznam',
   'journey.detail.newEntry': 'Nový záznam',
   'journey.detail.editEntry': 'Upravit záznam',
   'journey.detail.noEntries': 'Zatím žádné záznamy',

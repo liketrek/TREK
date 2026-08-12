@@ -1,4 +1,4 @@
-// FE-JRN-DETHOOK-001 to FE-JRN-DETHOOK-022
+// FE-JRN-DETHOOK-001 to FE-JRN-DETHOOK-025
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import { useLocation } from 'react-router';
 import { http, HttpResponse } from 'msw';
@@ -334,5 +334,53 @@ describe('useJourneyDetail', () => {
     latest.setView('gallery');
     await waitFor(() => expect(invalidateSize).toHaveBeenCalled());
     expect(latest.view).toBe('gallery');
+  });
+
+  // ── Jump to top / to the last entry (#1088) ────────────────────────────────
+
+  /** jsdom has no layout, so hand the feed the numbers a real scrollport would report. */
+  function stubFeedScroll(metrics: { scrollTop: number; scrollHeight: number; clientHeight: number }) {
+    const feed = screen.getByTestId('feed');
+    for (const [prop, value] of Object.entries(metrics)) {
+      Object.defineProperty(feed, prop, { value, configurable: true });
+    }
+    return feed;
+  }
+
+  it('FE-JRN-DETHOOK-023: a feed short enough to read in one go offers no jump', async () => {
+    setup();
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    const feed = stubFeedScroll({ scrollTop: 0, scrollHeight: 900, clientHeight: 800 });
+
+    fireEvent.scroll(feed);
+    await waitFor(() => expect(latest.feedEdge).toEqual({ atTop: true, atBottom: true }));
+  });
+
+  it('FE-JRN-DETHOOK-024: deep in a long journal both directions are offered', async () => {
+    setup();
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    const feed = stubFeedScroll({ scrollTop: 3000, scrollHeight: 9000, clientHeight: 800 });
+
+    fireEvent.scroll(feed);
+    await waitFor(() => expect(latest.feedEdge).toEqual({ atTop: false, atBottom: false }));
+
+    // Back at the bottom only the way up is left.
+    Object.defineProperty(feed, 'scrollTop', { value: 8200, configurable: true });
+    fireEvent.scroll(feed);
+    await waitFor(() => expect(latest.feedEdge).toEqual({ atTop: false, atBottom: true }));
+  });
+
+  it('FE-JRN-DETHOOK-025: the jumps scroll the feed, not the window', async () => {
+    setup();
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    const feed = stubFeedScroll({ scrollTop: 3000, scrollHeight: 9000, clientHeight: 800 });
+    const scrollTo = vi.fn();
+    Object.defineProperty(feed, 'scrollTo', { value: scrollTo, configurable: true });
+
+    latest.scrollFeedTo('top');
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+
+    latest.scrollFeedTo('bottom');
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 9000, behavior: 'smooth' });
   });
 });

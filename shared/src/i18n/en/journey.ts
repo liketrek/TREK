@@ -76,6 +76,8 @@ const journey: TranslationStrings = {
   'journey.detail.backToJourney': 'Back to Journey',
   'journey.detail.syncedWithTrips': 'Synced with Trips',
   'journey.detail.addEntry': 'Add Entry',
+  'journey.detail.jumpToTop': 'Back to top',
+  'journey.detail.jumpToLast': 'Jump to the last entry',
   'journey.detail.newEntry': 'New Entry',
   'journey.detail.editEntry': 'Edit Entry',
   'journey.detail.noEntries': 'No entries yet',

@@ -186,6 +186,58 @@ export function useJourneyDetail() {
     return () => scrollCleanupRef.current?.()
   }, [current?.entries, setupScrollSync])
 
+  // ── Jump to top / to the last entry (#1088) ───────────────────────────────
+  // A long journal is a long scroll: everything that adds to it — the entry
+  // button, the gallery upload — sits at the top, and where you were reading
+  // sits at the bottom. Two buttons beat two trips of the scroll wheel.
+  const [feedEdge, setFeedEdge] = useState<{ atTop: boolean; atBottom: boolean }>({ atTop: true, atBottom: true })
+
+  useEffect(() => {
+    const feed = feedRef.current
+    if (!feed) return
+    // 400px of travel before either button is worth offering; below that the
+    // scroll is short enough that a button is just clutter.
+    const THRESHOLD = 400
+    let frame: number | null = null
+    let pending = false
+    const measure = () => {
+      pending = false
+      const el = feedRef.current
+      if (!el) return
+      const scrolled = el.scrollTop
+      const remaining = el.scrollHeight - el.clientHeight - scrolled
+      setFeedEdge(prev => {
+        const next = { atTop: scrolled <= THRESHOLD, atBottom: remaining <= THRESHOLD }
+        return prev.atTop === next.atTop && prev.atBottom === next.atBottom ? prev : next
+      })
+    }
+    // The "already scheduled" flag is its own variable rather than the frame id:
+    // the id is only assigned once requestAnimationFrame returns, which is after
+    // the callback has already run whenever rAF fires synchronously.
+    const onScroll = () => {
+      if (pending) return
+      pending = true
+      frame = window.requestAnimationFrame(measure)
+    }
+    feed.addEventListener('scroll', onScroll, { passive: true })
+    measure()
+    // Entries load in batches, so the scrollable height grows after mount.
+    const ro = new ResizeObserver(measure)
+    ro.observe(feed)
+    if (feed.firstElementChild) ro.observe(feed.firstElementChild)
+    return () => {
+      feed.removeEventListener('scroll', onScroll)
+      ro.disconnect()
+      if (frame != null) window.cancelAnimationFrame(frame)
+    }
+  }, [current?.id, view])
+
+  const scrollFeedTo = useCallback((edge: 'top' | 'bottom') => {
+    const el = feedRef.current
+    if (!el) return
+    el.scrollTo({ top: edge === 'top' ? 0 : el.scrollHeight, behavior: 'smooth' })
+  }, [])
+
   const handleMarkerClick = useCallback((entryId: string) => {
     const el = document.querySelector(`[data-entry-id="${entryId}"]`)
     if (!el) return
@@ -303,6 +355,7 @@ export function useJourneyDetail() {
     hideSkeletons, setHideSkeletons,
     mapRef, fullMapRef, activeLocationId, handleMarkerClick, handleLocationClick,
     mapEntries, sidebarMapItems, tripDates, isMobile, tracks,
+    feedEdge, scrollFeedTo,
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,
   }
 }

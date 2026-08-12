@@ -105,6 +105,7 @@ function buildHook(over: Record<string, unknown> = {}): Record<string, unknown> 
     mapRef: { current: null }, fullMapRef: { current: null },
     activeLocationId: null, handleMarkerClick: vi.fn(), handleLocationClick: vi.fn(),
     mapEntries: [], sidebarMapItems: [], tripDates: new Set<string>(), isMobile: false,
+    feedEdge: { atTop: true, atBottom: true }, scrollFeedTo: vi.fn(),
     loadJourney: vi.fn(), updateEntry: vi.fn(async () => {}), deleteEntry: vi.fn(async () => {}),
     reorderEntries: vi.fn(async () => {}), uploadPhotos: vi.fn(async () => ({ succeeded: [], failed: [] })),
     deletePhoto: vi.fn(async () => {}),
@@ -457,5 +458,39 @@ describe('JourneyDetailPage wiring', () => {
   it('FE-JRN-DETWIRE-028: a cover image is layered behind the hero gradient', () => {
     setup({ current: buildDetail({ cover_image: 'covers/j.jpg' }) });
     expect(document.querySelector('img[src="/uploads/covers/j.jpg"]')).toBeInTheDocument();
+  });
+
+  // ── Jump buttons (#1088) ──────────────────────────────────────────────────
+
+  it('FE-JRN-DETWIRE-029: a feed with nowhere to jump shows no buttons', () => {
+    setup({ feedEdge: { atTop: true, atBottom: true } });
+    expect(screen.queryByLabelText('journey.detail.jumpToTop')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('journey.detail.jumpToLast')).not.toBeInTheDocument();
+  });
+
+  it('FE-JRN-DETWIRE-030: each button appears only when that direction is available', () => {
+    const { unmount } = setup({ feedEdge: { atTop: false, atBottom: true } });
+    expect(screen.getByLabelText('journey.detail.jumpToTop')).toBeInTheDocument();
+    expect(screen.queryByLabelText('journey.detail.jumpToLast')).not.toBeInTheDocument();
+    unmount();
+
+    setup({ feedEdge: { atTop: true, atBottom: false } });
+    expect(screen.queryByLabelText('journey.detail.jumpToTop')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('journey.detail.jumpToLast')).toBeInTheDocument();
+  });
+
+  it('FE-JRN-DETWIRE-031: the buttons scroll the feed to the matching end', () => {
+    const { hook } = setup({ feedEdge: { atTop: false, atBottom: false } });
+
+    fireEvent.click(screen.getByLabelText('journey.detail.jumpToTop'));
+    expect(hook.scrollFeedTo).toHaveBeenCalledWith('top');
+
+    fireEvent.click(screen.getByLabelText('journey.detail.jumpToLast'));
+    expect(hook.scrollFeedTo).toHaveBeenLastCalledWith('bottom');
+  });
+
+  it('FE-JRN-DETWIRE-032: the phone layout has its own chrome and gets no jump buttons', () => {
+    setup({ isMobile: true, feedEdge: { atTop: false, atBottom: false } });
+    expect(screen.queryByLabelText('journey.detail.jumpToTop')).not.toBeInTheDocument();
   });
 });

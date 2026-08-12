@@ -76,6 +76,8 @@ const journey: TranslationStrings = {
   'journey.detail.backToJourney': "Journey'e dön",
   'journey.detail.syncedWithTrips': 'Seyahatlerle senkronize',
   'journey.detail.addEntry': 'Kayıt Ekle',
+  'journey.detail.jumpToTop': 'Başa dön',
+  'journey.detail.jumpToLast': 'Son girdiye git',
   'journey.detail.newEntry': 'Yeni Kayıt',
   'journey.detail.editEntry': 'Kaydı Düzenle',
   'journey.detail.noEntries': 'Henüz kayıt yok',

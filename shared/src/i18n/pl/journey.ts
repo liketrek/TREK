@@ -76,6 +76,8 @@ const journey: TranslationStrings = {
   'journey.detail.backToJourney': 'Powrót do dziennika podróży',
   'journey.detail.syncedWithTrips': 'Zsynchronizowany z podróżami',
   'journey.detail.addEntry': 'Dodaj wpis',
+  'journey.detail.jumpToTop': 'Powrót na górę',
+  'journey.detail.jumpToLast': 'Przejdź do ostatniego wpisu',
   'journey.detail.newEntry': 'Nowy wpis',
   'journey.detail.editEntry': 'Edytuj wpis',
   'journey.detail.noEntries': 'Brak wpisów',

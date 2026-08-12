@@ -76,6 +76,8 @@ const journey: TranslationStrings = {
   'journey.detail.backToJourney': 'Kembali ke Journey',
   'journey.detail.syncedWithTrips': 'Tersinkron dengan Perjalanan',
   'journey.detail.addEntry': 'Tambah Entri',
+  'journey.detail.jumpToTop': 'Kembali ke atas',
+  'journey.detail.jumpToLast': 'Ke entri terakhir',
   'journey.detail.newEntry': 'Entri Baru',
   'journey.detail.editEntry': 'Edit Entri',
   'journey.detail.noEntries': 'Belum ada entri',

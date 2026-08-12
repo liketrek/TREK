@@ -125,6 +125,8 @@ const journey: TranslationStrings = {
   'journey.frontpage.places': 'places', // en-fallback
   'journey.detail.syncedWithTrips': 'Synced with Trips', // en-fallback
   'journey.detail.addEntry': 'Add Entry', // en-fallback
+  'journey.detail.jumpToTop': 'العودة إلى الأعلى',
+  'journey.detail.jumpToLast': 'الانتقال إلى آخر مدخل',
   'journey.detail.newEntry': 'New Entry', // en-fallback
   'journey.detail.editEntry': 'Edit Entry', // en-fallback
   'journey.detail.noEntries': 'No entries yet', // en-fallback

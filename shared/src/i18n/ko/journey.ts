@@ -76,6 +76,8 @@ const journey: TranslationStrings = {
   'journey.detail.backToJourney': 'Journey로 돌아가기',
   'journey.detail.syncedWithTrips': '여행과 동기화됨',
   'journey.detail.addEntry': '항목 추가',
+  'journey.detail.jumpToTop': '맨 위로',
+  'journey.detail.jumpToLast': '마지막 기록으로',
   'journey.detail.newEntry': '새 항목',
   'journey.detail.editEntry': '항목 편집',
   'journey.detail.noEntries': '아직 항목이 없습니다',

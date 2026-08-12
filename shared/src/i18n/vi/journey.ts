@@ -76,6 +76,8 @@ const journey: TranslationStrings = {
   'journey.detail.backToJourney': 'Quay lại Hành trình',
   'journey.detail.syncedWithTrips': 'Đã đồng bộ hóa với Chuyến đi',
   'journey.detail.addEntry': 'Thêm mục nhập',
+  'journey.detail.jumpToTop': 'Lên đầu trang',
+  'journey.detail.jumpToLast': 'Đến mục cuối cùng',
   'journey.detail.newEntry': 'Mục mới',
   'journey.detail.editEntry': 'Chỉnh sửa mục nhập',
   'journey.detail.noEntries': 'Chưa có mục nào',

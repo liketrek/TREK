@@ -76,6 +76,8 @@ const journey: TranslationStrings = {
   'journey.detail.backToJourney': 'Torna a la travesia',
   'journey.detail.syncedWithTrips': 'Sincronitzat amb viatges',
   'journey.detail.addEntry': 'Afegeix una entrada',
+  'journey.detail.jumpToTop': 'Torna a dalt',
+  'journey.detail.jumpToLast': 'Ves a l’última entrada',
   'journey.detail.newEntry': 'Entrada nova',
   'journey.detail.editEntry': "Edita l'entrada",
   'journey.detail.noEntries': 'Encara no hi ha entrades',

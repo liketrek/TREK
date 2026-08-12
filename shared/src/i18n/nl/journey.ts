@@ -76,6 +76,8 @@ const journey: TranslationStrings = {
   'journey.detail.backToJourney': 'Terug naar reisverslag',
   'journey.detail.syncedWithTrips': 'Gesynchroniseerd met reizen',
   'journey.detail.addEntry': 'Vermelding toevoegen',
+  'journey.detail.jumpToTop': 'Terug naar boven',
+  'journey.detail.jumpToLast': 'Naar de laatste notitie',
   'journey.detail.newEntry': 'Nieuwe vermelding',
   'journey.detail.editEntry': 'Vermelding bewerken',
   'journey.detail.noEntries': 'Nog geen vermeldingen',

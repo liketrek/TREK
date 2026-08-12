@@ -76,6 +76,8 @@ const journey: TranslationStrings = {
   'journey.detail.backToJourney': '日記に戻る',
   'journey.detail.syncedWithTrips': '旅行と同期済み',
   'journey.detail.addEntry': 'エントリーを追加',
+  'journey.detail.jumpToTop': '先頭へ戻る',
+  'journey.detail.jumpToLast': '最後の記録へ',
   'journey.detail.newEntry': '新しいエントリー',
   'journey.detail.editEntry': 'エントリーを編集',
   'journey.detail.noEntries': 'エントリーはまだありません',

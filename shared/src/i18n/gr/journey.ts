@@ -76,6 +76,8 @@ const journey: TranslationStrings = {
   'journey.detail.backToJourney': 'Πίσω στο Ταξίδι',
   'journey.detail.syncedWithTrips': 'Συγχρονισμένο με Ταξίδια',
   'journey.detail.addEntry': 'Προσθήκη Καταχώρησης',
+  'journey.detail.jumpToTop': 'Επιστροφή στην κορυφή',
+  'journey.detail.jumpToLast': 'Μετάβαση στην τελευταία καταχώρηση',
   'journey.detail.newEntry': 'Νέα Καταχώρηση',
   'journey.detail.editEntry': 'Επεξεργασία Καταχώρησης',
   'journey.detail.noEntries': 'Δεν υπάρχουν καταχωρήσεις ακόμα',

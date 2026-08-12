@@ -76,6 +76,8 @@ const journey: TranslationStrings = {
   'journey.detail.backToJourney': 'Tillbaka till Journey',
   'journey.detail.syncedWithTrips': 'Synkroniserat med resor',
   'journey.detail.addEntry': 'Lägg till inlägg',
+  'journey.detail.jumpToTop': 'Till toppen',
+  'journey.detail.jumpToLast': 'Till senaste inlägget',
   'journey.detail.newEntry': 'Ny inlägg',
   'journey.detail.editEntry': 'Redigera inlägg',
   'journey.detail.noEntries': 'Inga inlägg än så länge',

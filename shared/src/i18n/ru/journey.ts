@@ -76,6 +76,8 @@ const journey: TranslationStrings = {
   'journey.detail.backToJourney': 'Назад к путешествию',
   'journey.detail.syncedWithTrips': 'Синхронизировано с поездками',
   'journey.detail.addEntry': 'Добавить запись',
+  'journey.detail.jumpToTop': 'Наверх',
+  'journey.detail.jumpToLast': 'К последней записи',
   'journey.detail.newEntry': 'Новая запись',
   'journey.detail.editEntry': 'Редактировать запись',
   'journey.detail.noEntries': 'Пока нет записей',

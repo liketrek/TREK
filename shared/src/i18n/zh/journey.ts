@@ -76,6 +76,8 @@ const journey: TranslationStrings = {
   'journey.detail.backToJourney': '返回旅程',
   'journey.detail.syncedWithTrips': '已与旅行同步',
   'journey.detail.addEntry': '添加条目',
+  'journey.detail.jumpToTop': '回到顶部',
+  'journey.detail.jumpToLast': '跳到最后一条',
   'journey.detail.newEntry': '新建条目',
   'journey.detail.editEntry': '编辑条目',
   'journey.detail.noEntries': '还没有条目',

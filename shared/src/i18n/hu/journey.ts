@@ -76,6 +76,8 @@ const journey: TranslationStrings = {
   'journey.detail.backToJourney': 'Vissza az útinaplóhoz',
   'journey.detail.syncedWithTrips': 'Szinkronizálva az utakkal',
   'journey.detail.addEntry': 'Bejegyzés hozzáadása',
+  'journey.detail.jumpToTop': 'Vissza a tetejére',
+  'journey.detail.jumpToLast': 'Ugrás az utolsó bejegyzéshez',
   'journey.detail.newEntry': 'Új bejegyzés',
   'journey.detail.editEntry': 'Bejegyzés szerkesztése',
   'journey.detail.noEntries': 'Még nincsenek bejegyzések',
