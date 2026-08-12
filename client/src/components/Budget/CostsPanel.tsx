@@ -15,6 +15,7 @@ import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import { SYMBOLS, currenciesWith, SPLIT_COLORS } from './BudgetPanel.constants'
+import { payersBalanced, rebalancePayers } from './CostsPanel.helpers'
 import { COST_CATEGORY_LIST, catMeta } from './costsCategories'
 import type { BudgetItem } from '../../types'
 import type { TripMember } from './BudgetPanelMemberChips'
@@ -93,6 +94,9 @@ interface Settlement {
   from_user_id: number
   to_user_id: number
   amount: number
+  // The currency the transfer was entered in. Legacy rows predate it (null) and are
+  // read as the display currency, which is what the server assumes for them too.
+  currency?: string | null
   created_at?: string
   from_username?: string
   to_username?: string
@@ -774,18 +778,23 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   // A settle-up payment as a ledger row — visually distinct from an expense, with
   // inline edit + undo (reuses deleteSettlement) so it isn't buried in a modal.
   function SettlementRow({ s }: { s: Settlement }) {
+    // Legacy transfers carry no currency and were entered in the display base.
+    const cur = (s.currency || base).toUpperCase()
     return (
       <div className="bg-surface-card border border-edge exp-row" style={{ display: 'grid', gridTemplateColumns: '46px 1fr auto', gap: 16, alignItems: 'center', borderRadius: 18, padding: '16px 20px' }}>
         <span style={{ width: 46, height: 46, borderRadius: 13, display: 'grid', placeItems: 'center', background: 'rgba(22,163,74,0.12)', color: '#16a34a' }}><ArrowLeftRight size={21} /></span>
         <div style={{ minWidth: 0 }}>
-          <div className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, marginBottom: 6 }}>{t('costs.payment')}</div>
+          <div className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, marginBottom: 6 }}>
+            {t('costs.payment')}
+            {cur !== base && <span className="text-content-faint" style={{ fontWeight: 400, fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}> · {fmt(s.amount, cur)} → {fmt(convert(s.amount, cur))}</span>}
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }} title={`${personName(s.from_user_id)} → ${personName(s.to_user_id)}`}>
             <Avatar id={s.from_user_id} size={20} /><ArrowRight size={13} className="text-content-faint" /><Avatar id={s.to_user_id} size={20} />
             <span className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{personName(s.from_user_id)} → {personName(s.to_user_id)}</span>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, alignSelf: 'center' }}>
-          <div className="text-content" style={{ fontSize: 'calc(18px * var(--fs-scale-subtitle, 1))', fontWeight: 600, whiteSpace: 'nowrap' }}>{fmt(s.amount)}</div>
+          <div className="text-content" style={{ fontSize: 'calc(18px * var(--fs-scale-subtitle, 1))', fontWeight: 600, whiteSpace: 'nowrap' }}>{fmt(convert(s.amount, cur))}</div>
           {canEdit && (
             <div className="exp-actions" style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
               <button title={t('common.edit')} onClick={() => setEditingSettlement(s)} className="bg-surface-secondary border border-edge text-content-muted" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 999, cursor: 'pointer' }}><Pencil size={13} /></button>
@@ -901,9 +910,12 @@ function FlowPills({ ids, lead, Avatar, name }: { ids: number[]; lead: string; A
   )
 }
 
-// Add or edit a settle-up payment (from / to / amount). Reachable inline from the
-// ledger row and from a manual "Add payment" button, so recording "I sent money to
-// X" works the same whether or not there's an outstanding expense behind it.
+// Add or edit a settle-up payment (from / to / amount / currency). Reachable inline
+// from the ledger row and from a manual "Add payment" button, so recording "I sent
+// money to X" works the same whether or not there's an outstanding expense behind it.
+// A transfer can be made in any currency — paying a rouble debt in euros is normal —
+// so it carries its own, defaulting to the display currency. The server freezes its
+// FX rate on write, the same way an expense's is frozen.
 function SettlementModal({ tripId, people, me, editing, currency, onClose, onSaved }: {
   tripId: number; people: TripMember[]; me: number; editing: Settlement | null; currency: string; onClose: () => void; onSaved: () => void
 }) {
@@ -913,6 +925,7 @@ function SettlementModal({ tripId, people, me, editing, currency, onClose, onSav
   const [fromId, setFromId] = useState<string>(String(editing?.from_user_id ?? me))
   const [toId, setToId] = useState<string>(String(editing?.to_user_id ?? otherDefault))
   const [amount, setAmount] = useState<string>(editing ? String(editing.amount) : '')
+  const [cur, setCur] = useState<string>((editing?.currency || currency).toUpperCase())
   const [saving, setSaving] = useState(false)
 
   const amt = parseFloat(amount) || 0
@@ -922,7 +935,7 @@ function SettlementModal({ tripId, people, me, editing, currency, onClose, onSav
   const save = async () => {
     if (!valid) return
     setSaving(true)
-    const data = { from_user_id: Number(fromId), to_user_id: Number(toId), amount: amt, currency }
+    const data = { from_user_id: Number(fromId), to_user_id: Number(toId), amount: amt, currency: cur }
     try {
       if (editing) await budgetApi.updateSettlement(tripId, editing.id, data)
       else await budgetApi.createSettlement(tripId, data)
@@ -930,7 +943,6 @@ function SettlementModal({ tripId, people, me, editing, currency, onClose, onSav
     } catch { toast.error(t('common.unknownError')) } finally { setSaving(false) }
   }
 
-  const inputCls = 'w-full bg-surface-input border border-edge text-content'
   const labelCls = 'block text-[11px] font-semibold uppercase tracking-[0.08em] text-content-faint mb-[6px]'
 
   return (
@@ -950,10 +962,22 @@ function SettlementModal({ tripId, people, me, editing, currency, onClose, onSav
           <label className={labelCls}>{t('costs.to')}</label>
           <CustomSelect value={toId} onChange={v => setToId(String(v))} options={opts} style={{ width: '100%' }} />
         </div>
-        <div>
-          <label className={labelCls}>{t('costs.amount')}</label>
-          <input type="text" inputMode="decimal" placeholder="0.00" value={amount}
-            onChange={e => setAmount(e.target.value.replace(',', '.'))} className={inputCls} style={{ borderRadius: 10, padding: '11px 13px', fontSize: 'calc(14px * var(--fs-scale-body, 1))', outline: 'none', fontWeight: 600 }} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ minWidth: 0 }}>
+            <label className={labelCls}>{t('costs.amount')}</label>
+            <div className="bg-surface-input border border-edge" style={{ height: FIELD_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderRadius: 10, padding: '0 12px' }}>
+              <span className="text-content-faint" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))' }}>{SYMBOLS[cur] || (cur + ' ')}</span>
+              <input type="text" inputMode="decimal" placeholder="0.00" value={amount}
+                onChange={e => setAmount(e.target.value.replace(',', '.'))}
+                className="text-content" style={{ flex: 1, border: 0, background: 'none', outline: 'none', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, paddingLeft: 6, width: '100%' }} />
+            </div>
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <label className={labelCls}>{t('costs.currency')}</label>
+            <CustomSelect value={cur} onChange={v => setCur(String(v))} searchable
+              options={currenciesWith(cur).map(c => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }))}
+              style={{ width: '100%' }} />
+          </div>
         </div>
       </div>
     </Modal>
@@ -989,11 +1013,29 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const [participants, setParticipants] = useState<Set<number>>(() =>
     editing ? new Set((editing.members || []).map(m => m.user_id)) : new Set(people.map(p => p.id)))
 
-  // Payer state: 0 represents "Nobody (planning entry)"
+  // Payer state. An expense can be fronted by several people, each with their own
+  // amount (budget_item_payers) — a shared card, or "I got this round, you get the
+  // next". The single-payer dropdown stays the default path; multiPayer swaps in a
+  // per-person amount editor. 0 represents "Nobody (planning entry)"; on an
+  // existing expense a missing payer is a deliberate choice, so only a brand-new
+  // one defaults to me.
+  const initialPayers = (editing?.payers || []).filter(p => p.amount > 0)
+
   const [payerId, setPayerId] = useState<number>(() => {
-    const existingPayer = (editing?.payers || []).find(p => p.amount > 0)
-    return existingPayer ? existingPayer.user_id : me
+    const existingPayer = initialPayers[0]
+    if (existingPayer) return existingPayer.user_id
+    return editing ? 0 : me
   })
+  const [multiPayer, setMultiPayer] = useState(() => initialPayers.length > 1)
+  const [payerIds, setPayerIds] = useState<Set<number>>(() => new Set(initialPayers.map(p => p.user_id)))
+  const [payerAmounts, setPayerAmounts] = useState<Record<number, string>>(() => {
+    const m: Record<number, string> = {}
+    for (const p of initialPayers) m[p.user_id] = String(p.amount)
+    return m
+  })
+  // Payers the user typed an amount for: rebalance leaves these alone and makes
+  // the others absorb the remainder.
+  const [pinnedPayers, setPinnedPayers] = useState<Set<number>>(() => new Set(initialPayers.map(p => p.user_id)))
 
   const [splitMode, setSplitMode] = useState<'equally' | 'custom' | 'ticket'>(() => {
     if (editing?.note && editing.note.startsWith('TICKETJSON:')) {
@@ -1064,7 +1106,8 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   }, [totalNum, participants, customAmounts, editing])
   
   const ticketValid = ticketItems.length > 0 && ticketItems.every(item => item.name.trim().length > 0 && (parseFloat(item.price) || 0) > 0 && item.participants.size > 0)
-  const valid = name.trim().length > 0 && (
+  const payersOk = !multiPayer || (payerIds.size > 0 && payersBalanced(payerAmounts, payerIds, totalNum))
+  const valid = name.trim().length > 0 && payersOk && (
     isTicketMode
       ? ticketValid
       : totalNum > 0 && (participants.size === 0 || splitMode === 'equally' || customBalanced)
@@ -1072,6 +1115,52 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
 
   const onTotalChange = (v: string) => {
     setTotal(v.replace(',', '.'))
+  }
+
+  // Keep the payer amounts summing to the total as it changes — including in ticket
+  // mode, where the total is derived from the ticket items rather than typed.
+  useEffect(() => {
+    if (!multiPayer) return
+    setPayerAmounts(prev => rebalancePayers(prev, pinnedPayers, payerIds, totalNum))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalNum])
+
+  const enableMultiPayer = () => {
+    const seed = payerIds.size > 0 ? new Set(payerIds) : new Set<number>([payerId > 0 ? payerId : me])
+    const pinned = new Set<number>()
+    setPayerIds(seed)
+    setPinnedPayers(pinned)
+    setPayerAmounts(prev => rebalancePayers(prev, pinned, seed, totalNum))
+    setMultiPayer(true)
+  }
+
+  const disableMultiPayer = () => {
+    // Collapsing back keeps the first payer; their amount becomes the whole total.
+    const [first] = [...payerIds]
+    setPayerId(first ?? me)
+    setMultiPayer(false)
+  }
+
+  const togglePayer = (id: number) => {
+    const nextIds = new Set(payerIds)
+    const nextPinned = new Set(pinnedPayers)
+    if (nextIds.has(id)) {
+      nextIds.delete(id)
+      nextPinned.delete(id)
+    } else {
+      nextIds.add(id)
+    }
+    setPayerIds(nextIds)
+    setPinnedPayers(nextPinned)
+    setPayerAmounts(prev => rebalancePayers(prev, nextPinned, nextIds, totalNum))
+  }
+
+  const onPayerAmountChange = (id: number, v: string) => {
+    const val = v.replace(',', '.')
+    const nextPinned = new Set(pinnedPayers)
+    nextPinned.add(id)
+    setPinnedPayers(nextPinned)
+    setPayerAmounts(prev => rebalancePayers({ ...prev, [id]: val }, nextPinned, payerIds, totalNum))
   }
 
   const handleCustomAmountChange = (id: number, val: string) => {
@@ -1138,7 +1227,11 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const save = async () => {
     if (!valid) return
     setSaving(true)
-    const payerList = (payerId > 0 && participants.size > 0) ? [{ user_id: payerId, amount: totalNum }] : []
+    const payerList = multiPayer
+      ? [...payerIds]
+          .map(id => ({ user_id: id, amount: parseFloat(payerAmounts[id]) || 0 }))
+          .filter(p => p.amount > 0)
+      : (payerId > 0 && participants.size > 0) ? [{ user_id: payerId, amount: totalNum }] : []
     const memberList = [...participants].map(id => ({
       user_id: id,
       amount: splitMode === 'custom'
@@ -1243,13 +1336,66 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
         </div>
 
         <div>
-          <label className={labelCls}>{t('costs.whoPaid')}</label>
-          <CustomSelect value={String(payerId)} onChange={v => setPayerId(Number(v))}
-            options={[
-              { value: '0', label: t('costs.noOnePaid') || 'Nobody (planning entry)' },
-              ...people.map(p => ({ value: String(p.id), label: p.id === me ? t('costs.you') : p.username }))
-            ]}
-            style={{ width: '100%' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <label className={labelCls} style={{ marginBottom: 0 }}>{t('costs.whoPaid')}</label>
+            <button type="button" onClick={() => (multiPayer ? disableMultiPayer() : enableMultiPayer())}
+              className="text-content-muted"
+              style={{ background: 'none', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, textDecoration: 'underline' }}>
+              {multiPayer ? t('costs.singlePayer') : t('costs.multiplePayers')}
+            </button>
+          </div>
+          {!multiPayer ? (
+            <CustomSelect value={String(payerId)} onChange={v => setPayerId(Number(v))}
+              options={[
+                { value: '0', label: t('costs.noOnePaid') || 'Nobody (planning entry)' },
+                ...people.map(p => ({ value: String(p.id), label: p.id === me ? t('costs.you') : p.username }))
+              ]}
+              style={{ width: '100%' }} />
+          ) : (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {people.map((p, idx) => {
+                  const on = payerIds.has(p.id)
+                  return (
+                    <div key={p.id} className="bg-surface-secondary border border-edge"
+                      style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 10, alignItems: 'center', padding: '8px 11px', borderRadius: 10, opacity: on ? 1 : 0.5 }}>
+                      <button type="button" onClick={() => togglePayer(p.id)} data-testid="payer-toggle"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'none', border: 0, cursor: 'pointer', fontFamily: 'inherit', padding: 0, minWidth: 0, textAlign: 'left' }}>
+                        {p.avatar_url
+                          ? <img src={p.avatar_url} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', display: 'block', flexShrink: 0, opacity: on ? 1 : 0.45 }} />
+                          : <span style={{ width: 22, height: 22, borderRadius: '50%', background: SPLIT_COLORS[idx % SPLIT_COLORS.length].gradient, color: '#fff', display: 'grid', placeItems: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0, opacity: on ? 1 : 0.45 }}>
+                              {(p.id === me ? t('costs.youShort') : p.username.charAt(0)).toUpperCase()}
+                            </span>}
+                        <span className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {p.id === me ? t('costs.you') : p.username}
+                        </span>
+                      </button>
+                      {on ? (
+                        <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 8, padding: '0 10px' }}>
+                          <span className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{sym(currency)}</span>
+                          <NumericInput mode="decimal" placeholder="0.00" data-testid="payer-amount"
+                            value={payerAmounts[p.id] || ''}
+                            onValueChange={v => onPayerAmountChange(p.id, v)}
+                            className="text-content"
+                            style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, padding: '8px 0', textAlign: 'right' }} />
+                        </div>
+                      ) : (
+                        <button type="button" onClick={() => togglePayer(p.id)} className="text-content-faint"
+                          style={{ background: 'none', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(12px * var(--fs-scale-caption, 1))', textAlign: 'right' }}>
+                          {t('costs.tapToInclude')}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              {!payersOk && (
+                <div style={{ marginTop: 8, fontSize: 'calc(12.5px * var(--fs-scale-caption, 1))', color: '#d97706' }}>
+                  {t('costs.payersUnbalanced', { amount: formatMoney(totalNum, currency, locale) })}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <div>
@@ -1279,16 +1425,16 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {ticketItems.map((item, itemIdx) => (
                   <div key={item.id} className="bg-surface-secondary border border-edge" style={{ padding: 10, borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 130px auto', gap: 8, alignItems: 'center' }}>
                       <input
                         type="text"
                         placeholder="Item name"
                         value={item.name}
                         onChange={e => handleUpdateItemName(item.id, e.target.value)}
                         className="bg-surface-input border border-edge text-content"
-                        style={{ flex: 2, padding: '6px 10px', borderRadius: 8, fontSize: 13, border: '1px solid var(--border-color)', outline: 'none' }}
+                        style={{ minWidth: 0, padding: '6px 10px', borderRadius: 8, fontSize: 13, border: '1px solid var(--border-color)', outline: 'none' }}
                       />
-                      <div className="bg-surface-input border border-edge" style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '0 8px', borderRadius: 8 }}>
+                      <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', padding: '0 8px', borderRadius: 8 }}>
                         <span className="text-content-faint" style={{ fontSize: 12 }}>{sym(currency)}</span>
                         <NumericInput
                           mode="decimal"

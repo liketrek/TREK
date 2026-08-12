@@ -7,6 +7,14 @@
  * node:sqlite, serves your routes over HTTP and your page/widget UI, and reloads
  * on every save.
  *
+ * Enforcement is NOT limited to ctx. TREK gates hooks, event subscriptions, jobs
+ * and outbound network BEFORE a plugin's ctx is ever reached, and it does so
+ * SILENTLY — an ungranted hook is simply never called, with no error and no log, so
+ * "my plugin does nothing" is all the author ever sees. Dev therefore refuses the
+ * same things, loudly: it warns at load about every entry point you implement but
+ * did not grant (see grantGaps), returns 403 from /__dev/fire for one, and installs
+ * the real egress guard so an undeclared host fails here rather than after install.
+ *
  * Dependency-free: node:http + node:sqlite (when present) + built-ins.
  */
 import fs from 'node:fs';
@@ -16,6 +24,11 @@ import { createRequire } from 'node:module';
 import * as sdk from '../index.js';
 import { injectTrekUi } from '../ui/kit.js';
 import { readJsonFile } from './json.js';
+import {
+  PermissionDenied, HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, JOBS_PERMISSION,
+  grantGaps, grantedHosts, type GrantGap,
+} from '../permissions.js';
+import { installEgressGuard } from '../egress-policy.js';
 
 // Dev fixtures ARE mock-host options — the dev ctx delegates every non-db-own
 // capability to a grant-enforcing mock host, so dev-fixtures.json can seed the full
@@ -36,7 +49,34 @@ interface PluginLike {
   hooks?: Record<string, Record<string, Handler>>;
 }
 
-class PermissionDenied extends Error {}
+// /__dev/fire/<kind> → the permission TREK requires before it would ever fire that
+// entry point. `hook` is resolved per hook name via HOOK_PERMISSION instead.
+const FIRE_PERMISSION: Readonly<Record<string, string | undefined>> = {
+  job: JOBS_PERMISSION,
+  scheduled: JOBS_PERMISSION,
+  event: EVENTS_PERMISSION,
+  deleteUserData: USER_DATA_PERMISSION,
+  exportUserData: USER_DATA_PERMISSION,
+};
+
+/** Refuse an entry point the manifest never granted. An unknown kind/hook has no
+ * permission to check — it falls through to the handler's own 400/404. */
+function needGrant(grants: ReadonlySet<string>, perm: string | undefined, what: string): void {
+  if (perm && !grants.has(perm)) {
+    throw new PermissionDenied(
+      `PERMISSION_DENIED: ${what} requires "${perm}" — add it to permissions in trek-plugin.json. ` +
+        `TREK would never fire this entry point (it skips ungranted plugins silently).`,
+    );
+  }
+}
+
+/** Warn about every entry point the plugin implements but cannot run. Printed at load
+ * and on every hot reload, because this failure is invisible in production. */
+function printGaps(gaps: GrantGap[]): void {
+  for (const g of gaps) {
+    console.warn(`  ⚠ ${g.entryPoint} is implemented but "${g.permission}" is NOT granted — ${g.consequence}`);
+  }
+}
 
 // The same SQL guards the real host's PluginDataDb applies (plugin-data.service.ts):
 // forbidden statement types, an sql-length cap, a result-row cap, and — inside tx() —
@@ -92,9 +132,31 @@ function flatBind(args: unknown[]): unknown[] {
 
 /** A dev db backed by node:sqlite if available, else an in-memory recorder that returns []. */
 export function createDevDb(dbFile: string): { db: PluginContextDb; note: string; close: () => void } {
+  // node:sqlite ships on Node 22.5+. Probe for it SEPARATELY from opening the database:
+  // one try/catch around both meant an mkdir/permission failure silently degraded to the
+  // stub too, and the stub swallows every write while reporting success — a db:own plugin
+  // "works" in dev and persists nothing. Fail loudly on a real error; degrade only on old Node.
+  let DatabaseSync: (new (p: string) => SqliteDb) | undefined;
   try {
-    // node:sqlite is available on Node 22.5+ (experimental). Fall back gracefully if not.
-    const { DatabaseSync } = createRequire(import.meta.url)('node:sqlite') as { DatabaseSync: new (p: string) => SqliteDb };
+    ({ DatabaseSync } = createRequire(import.meta.url)('node:sqlite') as { DatabaseSync: new (p: string) => SqliteDb });
+  } catch {
+    console.warn(
+      `\n  ⚠ node:sqlite is unavailable on this Node (${process.version}) — ctx.db is a STUB.\n` +
+      `    Every query returns [] and every write reports 0 changes: a db:own plugin will look\n` +
+      `    like it works and persist NOTHING. Upgrade to Node 22.5+ to test db:own for real.\n`,
+    );
+    return {
+      note: `db:own → in-memory STUB (writes are discarded — upgrade to Node 22.5+; you are on ${process.version})`,
+      close: () => {},
+      db: {
+        async query(sql: string) { guardSql(sql); return []; },
+        async exec(sql: string) { guardSql(sql); return { changes: 0 }; },
+        async migrate(_id: string, sql: string) { guardSql(sql); return { applied: true }; },
+      },
+    };
+  }
+
+  {
     fs.mkdirSync(path.dirname(dbFile), { recursive: true });
     const sq = new DatabaseSync(dbFile);
     const applied = new Set<string>();
@@ -114,16 +176,6 @@ export function createDevDb(dbFile: string): { db: PluginContextDb; note: string
           sq.exec(sql); return { changes: 0 };
         },
         async migrate(id: string, sql: string) { guardSql(sql); if (applied.has(id)) return { applied: false }; sq.exec(sql); applied.add(id); return { applied: true }; },
-      },
-    };
-  } catch {
-    return {
-      note: 'db:own → in-memory stub (upgrade to Node 22.5+ for a real SQLite dev db)',
-      close: () => {},
-      db: {
-        async query(sql: string) { guardSql(sql); return []; },
-        async exec(sql: string) { guardSql(sql); return { changes: 0 }; },
-        async migrate(_id: string, sql: string) { guardSql(sql); return { applied: true }; },
       },
     };
   }
@@ -265,9 +317,17 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
   const req = createRequire(path.join(abs, 'server', 'index.js'));
 
   let plugin: PluginLike = {};
+  let gaps: GrantGap[] = [];
   let version = 0;
   const { ctx, userlessCtx } = createDevContext(id, grants, fx, db, broadcasts);
   const port = opts.port ?? 4317;
+
+  // The plugin's outbound network, restricted to the hosts it was granted — with none,
+  // everything is blocked, exactly as in TREK. `operatorEgressHosts` in dev-fixtures.json
+  // stands in for the hosts an admin supplies at runtime to an `operatorEgress` plugin,
+  // which by definition cannot name them in its manifest.
+  const egressHosts = [...grantedHosts(grants), ...(fx.operatorEgressHosts ?? [])];
+  installEgressGuard(egressHosts);
 
   // Block a browser-initiated cross-site request to the side-effectful endpoints:
   // modern browsers stamp Sec-Fetch-Site (anything but same-origin is another site;
@@ -292,17 +352,25 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
       await plugin.onLoad?.(ctx);
       version++;
       console.log(`  ↻ loaded ${plugin.routes?.length ?? 0} route(s)`);
+      // Recomputed on every reload: adding a hook (or removing its permission) mid-session
+      // must change the warning, not leave a stale one from boot. The initial load's gaps
+      // are printed by the startup banner; a reload prints its own (see reload()).
+      gaps = grantGaps(plugin, grants);
     } catch (e) {
       // A plugin whose load/onLoad throws would fail activation in TREK — don't
       // keep serving its routes here, or dev would hide exactly that failure.
       plugin = {};
+      gaps = [];
       console.error('  ✗ plugin failed to load:', e instanceof Error ? e.message : e);
     }
   };
   await load();
 
   let timer: NodeJS.Timeout | null = null;
-  const reload = () => { if (timer) clearTimeout(timer); timer = setTimeout(() => { console.log('  change detected'); void load(); }, 120); };
+  const reload = () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => { console.log('  change detected'); void load().then(() => printGaps(gaps)); }, 120);
+  };
   watchTree(path.join(abs, 'server'), reload);
   watchTree(path.join(abs, 'client'), reload);
 
@@ -332,6 +400,10 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
       if (typeof bodyRaw === 'string') { try { payload = JSON.parse(bodyRaw); } catch { payload = bodyRaw; } }
       if (payload === undefined) { const q: Record<string, string> = {}; url.searchParams.forEach((v, k) => { q[k] = v; }); if (Object.keys(q).length) payload = q; }
       try {
+        // TREK gates these entry points on a permission BEFORE the plugin is reached, and
+        // an ungranted one is never invoked — silently. Refuse it here, loudly, or dev
+        // would keep green-lighting a plugin that does nothing at all once installed.
+        needGrant(grants, kind === 'hook' ? HOOK_PERMISSION[name] : FIRE_PERMISSION[kind], `${kind}${name ? `/${name}` : ''}`);
         // Jobs, scheduled tasks, events and the GDPR handlers run with NO acting user in
         // production — fire them against the userless ctx so a membership read fails here
         // exactly like it would in TREK. Hooks stay user-bound.
@@ -341,7 +413,26 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
         else if (kind === 'event') { for (const s of plugin.events ?? []) if (s.on === name || s.on === '*') await s.handler({ event: name, tripId: 0, ...(payload as object) }, userlessCtx); out = { delivered: true }; }
         else if (kind === 'deleteUserData') { if (!plugin.deleteUserData) return send(404, 'no deleteUserData handler'); out = await plugin.deleteUserData({ userId: Number((payload as { userId?: unknown })?.userId ?? name ?? 0) }, userlessCtx); }
         else if (kind === 'exportUserData') { if (!plugin.exportUserData) return send(404, 'no exportUserData handler'); out = await plugin.exportUserData({ userId: Number((payload as { userId?: unknown })?.userId ?? name ?? 0) }, userlessCtx); }
-        else if (kind === 'hook') { const impl = plugin.hooks?.[name]; if (!impl || typeof impl[fn] !== 'function') return send(404, `no hook ${name}.${fn}`); out = await impl[fn](...(Array.isArray(payload) ? payload : payload != null ? [payload] : []), ctx); }
+        else if (kind === 'hook') {
+          const impl = plugin.hooks?.[name];
+          if (!impl || typeof impl[fn] !== 'function') return send(404, `no hook ${name}.${fn}`);
+          if (name === 'notificationChannel') {
+            // A notification channel is NOT like the other hooks: the host fires it with no
+            // acting user (it delivers to an arbitrary recipient), and hands the recipient's
+            // decrypted settings in as a separate `config` argument —
+            //   send(msg, config, ctx) · test(config, ctx)
+            // Firing it like a normal hook passed `ctx` where `config` belongs, so a channel
+            // plugin read its settings off the ctx object and "worked" in dev while being
+            // broken in production. Mirror the host (and createMockHost) exactly.
+            const config = (fx.userSettings ?? {}) as Record<string, unknown>;
+            const args = Array.isArray(payload) ? (payload as unknown[]) : payload != null ? [payload] : [];
+            out = fn === 'test'
+              ? await impl[fn](config, userlessCtx)
+              : await impl[fn](args[0], (args[1] as Record<string, unknown>) ?? config, userlessCtx);
+          } else {
+            out = await impl[fn](...(Array.isArray(payload) ? payload : payload != null ? [payload] : []), ctx);
+          }
+        }
         else return send(400, `unknown fire kind "${kind}"`);
         return send(200, JSON.stringify(out ?? { ok: true }, null, 2), 'application/json; charset=utf-8');
       } catch (e) {
@@ -350,19 +441,33 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
       }
     }
 
-    if (url.pathname === '/') return send(200, dashboard(id, String(manifest.type), plugin.routes ?? [], dbNote, broadcasts.length), 'text/html; charset=utf-8');
+    if (url.pathname === '/') return send(200, dashboard(id, String(manifest.type), plugin.routes ?? [], dbNote, broadcasts.length, gaps), 'text/html; charset=utf-8');
 
     // Faithful host preview: embeds /ui in a sandboxed opaque-origin iframe (exactly
     // like TREK) and plays the host — posts trek:context (with a theme/accent toggle),
     // proxies trek:invoke to your /api routes, and honours resize/notify/navigate. This
     // is where the design kit actually renders themed.
     if (url.pathname === '/preview' && String(manifest.type) !== 'integration') {
-      return send(200, preview(id, String(manifest.type)), 'text/html; charset=utf-8');
+      // Preview against a trip that actually EXISTS in the fixtures. This used to be
+      // hard-coded to 42 while the scaffold seeds trip 1, so the widget's first
+      // trek:invoke hit assertMember(42, …) and 500'd with RESOURCE_FORBIDDEN.
+      const previewTripId = Number(Object.keys(fx.trips ?? {})[0] ?? 1) || 1;
+      // ?chrome=0 strips the dev toolbar and centres the plugin — what `trek-plugin shot`
+      // renders into docs/screenshot.png. ?theme=dark picks the dark palette.
+      const chrome = url.searchParams.get('chrome') !== '0';
+      const theme = url.searchParams.get('theme') === 'dark' ? 'dark' : 'light';
+      return send(200, preview(id, String(manifest.type), previewTripId, { chrome, theme }), 'text/html; charset=utf-8');
     }
 
-    // Static plugin UI at /ui (page/widget client bundle)
+    // Static plugin UI at /ui (page/widget client bundle). The iframe loads
+    // `/ui/index.html` (not bare `/ui`) so relative asset URLs — `./assets/x.js`
+    // from a multi-file Vite/React build with `base: './'` — resolve to
+    // `/ui/assets/x.js`, exactly as the real host resolves them against
+    // `/plugin-frame/<id>/index.html`. A bare `/ui` document would resolve them
+    // against the origin root (`/assets/x.js`) and 404. Bare `/ui` and `/ui/` both
+    // still serve index.html for direct navigation.
     if (url.pathname === '/ui' || url.pathname.startsWith('/ui/')) {
-      const relFile = url.pathname === '/ui' ? 'index.html' : url.pathname.slice('/ui/'.length);
+      const relFile = url.pathname === '/ui' ? 'index.html' : (url.pathname.slice('/ui/'.length) || 'index.html');
       const file = path.join(abs, 'client', relFile);
       if (!file.startsWith(path.join(abs, 'client'))) return send(403, 'forbidden');
       if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return send(404, 'not found — build your client/ bundle');
@@ -418,6 +523,8 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
   console.log(`\n  trek-plugin dev — ${id} (${String(manifest.type)})`);
   console.log(`  ${dbNote}`);
   console.log(`  granted: ${[...grants].join(', ') || '(none)'}`);
+  console.log(`  egress:  ${egressHosts.join(', ') || '(none — all outbound is blocked, as in TREK)'}`);
+  printGaps(gaps);
   console.log(`\n  ▸ http://localhost:${port}/        dashboard`);
   if (String(manifest.type) !== 'integration') {
     console.log(`  ▸ http://localhost:${port}/preview themed host preview`);
@@ -452,20 +559,32 @@ function contentType(file: string): string {
 
 const LIVE_RELOAD = `<script>let __v;setInterval(async()=>{try{const v=await(await fetch('/__dev/version')).text();if(__v&&v!==__v)location.reload();__v=v;}catch(e){}},1000)</script>`;
 
-function dashboard(id: string, type: string, routes: PluginRouteLike[], dbNote: string, bcasts: number): string {
+function dashboard(id: string, type: string, routes: PluginRouteLike[], dbNote: string, bcasts: number, gaps: GrantGap[]): string {
   const rows = routes.length
     ? routes.map((r) => `<tr><td><code>${r.method}</code></td><td><a href="/api${r.path}">/api${r.path}</a></td><td>${r.auth === false ? 'public' : 'auth'}</td></tr>`).join('')
     : '<tr><td colspan="3" style="opacity:.6">no routes declared</td></tr>';
   const ui = type !== 'integration'
     ? `<p><a href="/preview">▸ open the themed host preview (/preview)</a> &nbsp;·&nbsp; <a href="/ui">raw /ui</a></p>`
     : '';
+  // The silent killer, made loud: in TREK these entry points are simply never invoked,
+  // with nothing logged anywhere. If any exist, they are the most important thing here.
+  const warn = gaps.length
+    ? `<div class="warn"><strong>⚠ ${gaps.length} entry point(s) TREK would never run</strong><ul>${gaps
+        .map((g) => `<li><code>${g.entryPoint}</code> needs <code>${g.permission}</code> — ${g.consequence}</li>`)
+        .join('')}</ul><p>Add the permission(s) to <code>trek-plugin.json</code>. Until then this works in dev and does nothing once installed.</p></div>`
+    : '';
   return `<!doctype html><meta charset="utf-8"><title>${id} · trek-plugin dev</title>
 <style>body{font:15px/1.5 system-ui,sans-serif;max-width:720px;margin:3rem auto;padding:0 1rem;color:#111}
 h1{font-size:1.4rem}code{background:#f3f4f6;padding:.1em .35em;border-radius:4px}
 table{border-collapse:collapse;width:100%;margin:1rem 0}td{border-bottom:1px solid #eee;padding:.5rem .4rem;text-align:left}
-.muted{color:#6b7280;font-size:.9rem}a{color:#4f46e5}@media(prefers-color-scheme:dark){body{background:#111827;color:#e5e7eb}code{background:#1f2937}td{border-color:#374151}}</style>
+.muted{color:#6b7280;font-size:.9rem}a{color:#4f46e5}
+.warn{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:.75rem 1rem;margin:1rem 0}
+.warn ul{margin:.5rem 0;padding-left:1.2rem}.warn p{margin:.5rem 0 0;font-size:.9rem}
+@media(prefers-color-scheme:dark){body{background:#111827;color:#e5e7eb}code{background:#1f2937}td{border-color:#374151}
+.warn{background:#3f1d1d;border-color:#7f1d1d}}</style>
 <h1>${id} <span class="muted">· ${type}</span></h1>
 <p class="muted">${dbNote} · ${bcasts} ws broadcast(s) captured</p>
+${warn}
 ${ui}
 <table><tr><th>Method</th><th>URL</th><th>Auth</th></tr>${rows}</table>
 <p class="muted">Add <code>?_anon=1</code> to a route to hit it as an unauthenticated request. Edit <code>server/</code> or <code>client/</code> and this reloads.</p>
@@ -479,12 +598,19 @@ ${LIVE_RELOAD}`;
  * toggle), proxies trek:invoke to the dev server's /api routes with the dev user,
  * and surfaces resize/notify/navigate. This is where the design kit renders themed.
  */
-function preview(id: string, type: string): string {
+function preview(id: string, type: string, tripId: number, opts: { chrome?: boolean; theme?: 'light' | 'dark' } = {}): string {
   const maxW = type === 'widget' ? '440px' : '1000px';
+  // `trek-plugin shot` renders this page into docs/screenshot.png — the image the plugin store
+  // shows. The theme picker and the "runs sandboxed at an opaque origin" note are DEV furniture:
+  // useful while you build, absurd on a store card. So shot mode strips them and centres the
+  // plugin in the frame, and the shot is of the plugin rather than of the tool that drew it.
+  const chrome = opts.chrome !== false;
+  const dark = opts.theme === 'dark';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>${id} · preview</title>
 <style>
 *{box-sizing:border-box}
+${chrome ? '' : 'header,.hint{display:none!important}.stage{min-height:100vh;align-items:center;padding:0 20px}'}
 body{margin:0;font:14px/1.5 system-ui,-apple-system,sans-serif;background:#f4f5f7;color:#111827}
 body.dark{background:#0e0e11;color:#e5e7eb}
 header{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid #e5e7eb;position:sticky;top:0;background:inherit;z-index:2}
@@ -504,13 +630,13 @@ iframe{width:100%;border:0;background:transparent;min-height:120px;display:block
 <header>
   <strong>${id}</strong><span style="opacity:.5">· ${type} preview</span>
   <span class="sp"></span>
-  <label>Theme <select id="theme"><option value="light">light</option><option value="dark">dark</option></select></label>
+  <label>Theme <select id="theme"><option value="light"${dark ? '' : ' selected'}>light</option><option value="dark"${dark ? ' selected' : ''}>dark</option></select></label>
   <label>Accent <select id="accent"><option value="default">default</option><option value="indigo">indigo</option><option value="teal">teal</option><option value="rose">rose</option></select></label>
   <label><input type="checkbox" id="rm"> reduce motion</label>
   <label><input type="checkbox" id="nt"> no transparency</label>
   <label><input type="checkbox" id="trip" checked> trip context</label>
 </header>
-<div class="stage"><div class="wrap"><iframe id="f" src="/ui" sandbox="allow-scripts allow-forms" referrerpolicy="no-referrer" title="${id}"></iframe></div></div>
+<div class="stage"><div class="wrap"><iframe id="f" src="/ui/index.html" sandbox="allow-scripts allow-forms" referrerpolicy="no-referrer" title="${id}"></iframe></div></div>
 <p class="hint">The frame runs sandboxed at an opaque origin, exactly like TREK — <code>trek.invoke()</code> is proxied to your /api routes as the dev user.</p>
 <div class="toast" id="toast"></div>
 <script>
@@ -529,7 +655,7 @@ function ctx(){
   document.body.classList.toggle("dark", theme==="dark");
   var tokens={}; var src=theme==="dark"?DA[accent]:LA[accent]; for(var k in src){tokens[k]=src[k];}
   return {type:"trek:context",theme:theme,locale:"en",hostOrigin:location.origin,
-    tripId: val("trip").checked?42:null, userId:"1",
+    tripId: val("trip").checked?${tripId}:null, userId:"1",
     user:{name:"Dev User",avatar:null,isAdmin:true},
     appearance:{scheme:accent,density:"comfortable",reducedMotion:val("rm").checked,noTransparency:val("nt").checked},
     formats:{locale:"en",currency:"EUR",timeFormat:"24h",distanceUnit:"metric",temperatureUnit:"celsius",timezone:Intl.DateTimeFormat().resolvedOptions().timeZone},

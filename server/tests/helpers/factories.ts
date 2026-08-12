@@ -99,7 +99,7 @@ export function createTrip(
     const end = new Date(overrides.end_date);
     const tripId = result.lastInsertRowid as number;
     let dayNumber = 1;
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
       const dateStr = d.toISOString().slice(0, 10);
       db.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (?, ?, ?)').run(tripId, dayNumber++, dateStr);
     }

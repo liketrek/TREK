@@ -1,6 +1,6 @@
 {
   "name": "trek-plugin-sdk",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "SDK for building TREK plugins: types, definePlugin, a mock host, manifest validation, and the create-trek-plugin / trek-plugin CLIs.",
   "type": "module",
   "license": "MIT",
@@ -15,14 +15,14 @@
       "url": "https://github.com/jubnl"
     }
   ],
-  "homepage": "https://github.com/mauriceboe/TREK/wiki/Plugin-Development",
+  "homepage": "https://github.com/liketrek/TREK/wiki/Plugin-Development",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mauriceboe/TREK.git",
+    "url": "git+https://github.com/liketrek/TREK.git",
     "directory": "plugin-sdk"
   },
   "bugs": {
-    "url": "https://github.com/mauriceboe/TREK/issues"
+    "url": "https://github.com/liketrek/TREK/issues"
   },
   "engines": {
     "node": ">=18"
@@ -64,7 +64,8 @@
   ],
   "dependencies": {
     "@clack/prompts": "^1.7.0",
-    "semver": "^7.7.4"
+    "semver": "^7.7.4",
+    "update-notifier": "^7.3.1"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.cjs.json && node scripts/finish-cjs.mjs",
@@ -75,6 +76,7 @@
   "devDependencies": {
     "@types/node": "^22.20.0",
     "@types/semver": "^7.7.1",
+    "@types/update-notifier": "^6.0.8",
     "typescript": "^5.9.3",
     "vitest": "^4.1.9"
   },

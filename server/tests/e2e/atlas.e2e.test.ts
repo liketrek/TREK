@@ -5,6 +5,7 @@
  * bespoke 400/404 bodies.
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import zlib from 'zlib';
 import request from 'supertest';
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
@@ -33,7 +34,7 @@ const { mocks } = vi.hoisted(() => ({
     unmarkRegionVisited: vi.fn(),
     getVisitedRegions: vi.fn(),
     getRegionGeo: vi.fn(),
-    getCountryGeo: vi.fn(),
+    getCountryGeoGz: vi.fn(),
     listBucketList: vi.fn(),
     createBucketItem: vi.fn(),
     updateBucketItem: vi.fn(),
@@ -76,10 +77,13 @@ describe('Atlas e2e (real auth guard + temp SQLite)', () => {
     expect(res.status).toBe(401);
   });
 
-  it('200 countries/geo returns the admin-0 FeatureCollection', async () => {
-    mocks.getCountryGeo.mockReturnValue({ type: 'FeatureCollection', features: [{ id: 'NO' }] });
+  it('200 countries/geo serves gzipped admin-0 that the client decompresses to a FeatureCollection', async () => {
+    const gz = zlib.gzipSync(JSON.stringify({ type: 'FeatureCollection', features: [{ id: 'NO' }] }));
+    mocks.getCountryGeoGz.mockReturnValue(gz);
     const res = await request(server).get('/api/addons/atlas/countries/geo').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
+    expect(res.headers['content-encoding']).toBe('gzip');
+    // superagent transparently decompresses, mirroring the browser.
     expect(res.body.type).toBe('FeatureCollection');
     expect(res.headers['cache-control']).toContain('max-age=86400');
   });

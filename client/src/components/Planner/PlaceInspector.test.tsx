@@ -443,7 +443,24 @@ describe('PlaceInspector', () => {
   it('FE-PLANNER-INSPECTOR-032: price chip shown when place.price > 0', () => {
     const p = buildPlace({ id: 300, price: 15, currency: 'EUR' } as any);
     render(<PlaceInspector {...defaultProps} place={p} />);
-    expect(screen.getByText(/15 EUR/)).toBeTruthy();
+    // formatMoney renders in the currency's home convention (de-DE for EUR).
+    expect(screen.getByText(/15,00/)).toBeTruthy();
+  });
+
+  it('FE-PLANNER-INSPECTOR-032b: price chip formats in the place currency with a neutral icon (#1561)', () => {
+    const p = buildPlace({ id: 300, price: 15, currency: 'USD' } as any);
+    render(<PlaceInspector {...defaultProps} place={p} />);
+    expect(screen.getByText('$15.00')).toBeTruthy();
+    // The chip icon must be currency-neutral, not the euro glyph.
+    expect(document.querySelector('.lucide-euro')).toBeNull();
+    expect(document.querySelector('.lucide-banknote')).not.toBeNull();
+  });
+
+  it('FE-PLANNER-INSPECTOR-032c: a currency-less price falls back to the trip currency (#1561)', () => {
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'NOK' }) } as any);
+    const p = buildPlace({ id: 300, price: 250, currency: null } as any);
+    render(<PlaceInspector {...defaultProps} place={p} />);
+    expect(screen.getByText(/250,00\s?kr|kr\s?250,00/)).toBeTruthy();
   });
 
   // ── Phone number ───────────────────────────────────────────────────────────

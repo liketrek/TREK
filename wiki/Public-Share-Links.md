@@ -2,8 +2,6 @@
 
 Share a read-only view of your trip with people who do not have a TREK account. The viewer opens in a browser without logging in.
 
-<!-- TODO: screenshot: share link creation form with permission toggles -->
-
 ![Public share link](assets/Share.png)
 
 ## Creating a share link
@@ -34,6 +32,10 @@ When creating or updating a share link you choose what the recipient can see. Th
 
 Disabled toggles hide the corresponding tab from the public viewer entirely. Permission changes take effect immediately — you do not need to recreate the link.
 
+### Which currency guests see
+
+A public viewer has no account, so there is no "their" display currency to use. The Budget tab is rendered in **the sharer's display currency, falling back to the trip's own currency** — in other words, a guest sees the money the way the person who shared the trip sees it. If the sharer leaves their display currency on **Trip currency** (the default), guests read the trip in the trip's own currency. See [Currencies](Currencies).
+
 ## What the public viewer shows
 
 The shared trip page renders a branded read-only interface with a dark hero header showing the trip title, description, and date range. A tab bar at the top provides access to the sections you enabled. The viewer can switch the display language using a language picker in the top-right corner.
@@ -52,4 +54,4 @@ The Travel Journal (Journey addon) has a separate share mechanism with its own t
 
 ## Related pages
 
-[Trip-Members-and-Sharing](Trip-Members-and-Sharing) · [Journey-Journal](Journey-Journal) · [Real-Time-Collaboration](Real-Time-Collaboration)
+[Trip-Members-and-Sharing](Trip-Members-and-Sharing) · [Currencies](Currencies) · [Journey-Journal](Journey-Journal) · [Real-Time-Collaboration](Real-Time-Collaboration)

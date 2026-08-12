@@ -47,8 +47,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': '팁:',
   'settings.mapTip':
     '우클릭 후 드래그하여 지도를 회전/기울이세요. 가운데 클릭으로 장소를 추가할 수 있습니다 (우클릭은 회전 전용).',
-  'settings.latitude': '위도',
-  'settings.longitude': '경도',
   'settings.saveMap': '지도 저장',
   'settings.apiKeys': 'API 키',
   'settings.mapsKey': 'Google Maps API 키',
@@ -294,6 +292,7 @@ const settings: TranslationStrings = {
   'settings.oauth.badge.machine': '머신',
   'settings.currency': 'Currency',
   'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currencyTrip': '여행 통화',
   'settings.passkey.title': '패스키',
   'settings.passkey.description':
     '지문, 얼굴, PIN 또는 하드웨어 키 같은 패스키로 더 빠르고 피싱에 강하게 로그인하세요. 비밀번호는 백업으로 그대로 유지됩니다.',
@@ -482,6 +481,9 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': '리소스',
   'settings.pluginActivity.columns.when': '시간',
   'settings.pluginActivity.columns.status': '결과',
+  'settings.alwaysShowRoutes': '예약 경로 항상 표시',
+  'settings.alwaysShowRoutesHint':
+    '항공편, 기차 등 모든 예약의 경로를 개별적으로 켤 필요 없이 지도에 자동으로 표시합니다.',
 };
 
 export default settings;

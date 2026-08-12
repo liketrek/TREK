@@ -54,6 +54,7 @@ import { createUser } from '../helpers/factories';
 import { generateToken } from '../helpers/auth';
 import { createMcpToken } from '../helpers/factories';
 import { closeMcpSessions } from '../../src/mcp/index';
+import { sessions } from '../../src/mcp/sessionManager';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -208,24 +209,25 @@ describe('MCP session management', () => {
     return sessionId as string;
   }
 
-  it('MCP-003 — session limit of 5 per user', async () => {
+  it('MCP-003 — at the session cap, the coldest session is evicted rather than the request refused', async () => {
     const { user } = createUser(testDb);
     testDb.prepare("UPDATE addons SET enabled = 1 WHERE id = 'mcp'").run();
 
-    // Create 5 sessions
-    for (let i = 0; i < 20; i++) {
-      await createSession(user.id);
-    }
+    const sessionsForUser = () => [...sessions.values()].filter((s) => s.userId === user.id).length;
 
-    // 6th should fail
-    const token = generateToken(user.id);
-    const res = await request(app)
-      .post('/mcp')
-      .set('Authorization', `Bearer ${token}`)
-      .set('Accept', 'application/json, text/event-stream')
-      .send({ jsonrpc: '2.0', method: 'initialize', id: 1, params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'test', version: '1' } } });
-    expect(res.status).toBe(429);
-    expect(res.body.error).toMatch(/session limit/i);
+    // Fill the default cap of 20.
+    const firstSessionId = await createSession(user.id);
+    for (let i = 1; i < 20; i++) await createSession(user.id);
+    expect(sessionsForUser()).toBe(20);
+
+    // The 21st initialize must still succeed. A hard 429 here is what wedged real users: a
+    // client that can't persist its Mcp-Session-Id re-initializes on every tool call, and
+    // would be locked out of the server permanently once it hit the cap.
+    const newSessionId = await createSession(user.id);
+
+    expect(sessionsForUser()).toBe(20); // capped, not growing
+    expect(sessions.has(newSessionId)).toBe(true);
+    expect(sessions.has(firstSessionId)).toBe(false); // the least-recently-active one made room
   });
 
   it('MCP — session resumption with valid mcp-session-id', async () => {
@@ -257,6 +259,44 @@ describe('MCP session management', () => {
       .set('mcp-session-id', sessionId)
       .send({ jsonrpc: '2.0', method: 'tools/list', id: 2 });
     expect(res.status).toBe(403);
+  });
+
+  it('MCP — a session-less non-initialize POST is rejected without registering a session', async () => {
+    const { user } = createUser(testDb);
+    testDb.prepare("UPDATE addons SET enabled = 1 WHERE id = 'mcp'").run();
+    const token = generateToken(user.id);
+
+    const before = sessions.size;
+    const res = await request(app)
+      .post('/mcp')
+      .set('Authorization', `Bearer ${token}`)
+      .set('Accept', 'application/json, text/event-stream')
+      .send({ jsonrpc: '2.0', method: 'tools/list', id: 1, params: {} });
+
+    // The SDK rejects it ("Server not initialized"); the McpServer built to serve it must not
+    // linger — it is in no session, so nothing would ever sweep or close it.
+    expect(res.status).toBe(400);
+    expect(sessions.size).toBe(before);
+  });
+
+  it('MCP — initialize response exposes Mcp-Session-Id to browser-context clients', async () => {
+    const { user } = createUser(testDb);
+    testDb.prepare("UPDATE addons SET enabled = 1 WHERE id = 'mcp'").run();
+    const token = generateToken(user.id);
+
+    const res = await request(app)
+      .post('/mcp')
+      .set('Authorization', `Bearer ${token}`)
+      .set('Origin', 'https://claude.ai')
+      .set('Accept', 'application/json, text/event-stream')
+      .send({ jsonrpc: '2.0', method: 'initialize', id: 1, params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'test', version: '1' } } });
+
+    expect(res.status).toBe(200);
+    expect(res.headers['mcp-session-id']).toBeTruthy();
+    // Without this header the Fetch spec hides Mcp-Session-Id from the client, so it can never
+    // echo it back and every tool call mints a fresh session until the cap kills the connection.
+    expect(String(res.headers['access-control-expose-headers'] ?? '').toLowerCase())
+      .toContain('mcp-session-id');
   });
 
   it('MCP — GET without mcp-session-id returns 400', async () => {

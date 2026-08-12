@@ -160,6 +160,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.otherFlights': 'Другие рейсы',
   'reservations.airtrail.empty': 'В вашей учётной записи AirTrail не найдено рейсов.',
   'reservations.airtrail.importCta': 'Импортировать {count}',
+  'reservations.airtrail.joinConnection': 'Импортировать как один рейс с пересадкой в {stops}',
   'reservations.costsLabel': 'Costs',
   'reservations.createExpense': 'Create expense',
   'reservations.createExpenseHint': 'Saves the booking, then opens the Costs editor.',

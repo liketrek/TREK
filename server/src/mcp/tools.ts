@@ -14,6 +14,7 @@ import { registerPackingTools } from './tools/packing';
 import { registerCollabTools } from './tools/collab';
 import { registerTripTools } from './tools/trips';
 import { registerTransportTools } from './tools/transports';
+import { registerTransitTools } from './tools/transit';
 import { registerVacayTools } from './tools/vacay';
 import { registerMcpPrompts } from './tools/prompts';
 
@@ -43,6 +44,8 @@ export function registerTools(server: McpServer, userId: number, scopes: string[
   registerCollabTools(server, userId, scopes);
 
   registerTransportTools(server, userId, scopes);
+
+  registerTransitTools(server, userId, scopes);
 
   registerJourneyTools(server, userId, scopes);
 

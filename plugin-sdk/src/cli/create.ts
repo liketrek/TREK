@@ -11,10 +11,12 @@ import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import {
   intro, outro, note, logInfo, logSuccess, logWarn, spinner,
-  promptText, promptSelect, promptMultiselect, promptConfirm,
-  PERMISSION_CATALOG,
+  promptText, promptSelect, promptMultiselect, promptGroupMultiselect, promptConfirm,
+  PERMISSION_FAMILIES,
 } from './ui.js';
 import { KNOWN_ADDONS } from '../manifest.js';
+import { LUCIDE_ICON_NAMES } from '../lucide-icon-names.js';
+import { notifySdkUpdate } from './update-notice.js';
 
 /** This package's own version, for the scaffold's devDependency range. */
 function sdkVersionRange(): string {
@@ -47,9 +49,37 @@ export interface ScaffoldOptions {
    * channel is a plain `integration` that implements the `notificationChannel` hook.
    */
   template?: 'blank' | 'notification-channel';
+  /** A lucide icon name (PascalCase). Falls back to a sensible default for the type. */
+  icon?: string;
+  /** Where a `widget` renders. Omitting it silently means 'sidebar'. */
+  slot?: WidgetSlot;
 }
 
 export const TEMPLATES = ['blank', 'notification-channel'] as const;
+
+/** Mirrors the server's widget slots (and the manifest validator's). */
+export const WIDGET_SLOTS = ['sidebar', 'hero', 'place-detail', 'day-detail', 'reservation-detail'] as const;
+export type WidgetSlot = (typeof WIDGET_SLOTS)[number];
+
+export const WIDGET_SLOT_HINTS: Record<WidgetSlot, string> = {
+  sidebar: 'The trip sidebar, alongside weather and countdown (the default)',
+  hero: 'The banner at the top of the trip',
+  'place-detail': "Inside a place's detail panel",
+  'day-detail': "Inside a day's detail panel",
+  'reservation-detail': "Inside a reservation's detail panel",
+};
+
+/**
+ * A defensible starting icon per plugin type. Not a guess at what the plugin DOES — it cannot know
+ * that — just a better default than every new plugin sharing the generic `Blocks` glyph.
+ */
+function defaultIconFor(type: string, isChannel: boolean): string {
+  if (isChannel) return 'BellRing';
+  if (type === 'widget') return 'LayoutGrid';
+  if (type === 'page') return 'BookOpen';
+  if (type === 'trip-page') return 'Map';
+  return 'Plug';
+}
 
 export function scaffold(name: string, type: string, targetDir: string, opts: ScaffoldOptions = {}): void {
   if (!/^[a-z][a-z0-9-]{2,39}$/.test(name)) throw new Error(`invalid plugin id "${name}" (lowercase slug, 3–40 chars)`);
@@ -91,7 +121,11 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
     author: opts.author || 'Your Name',
     description: opts.description || (isChannel ? `Deliver TREK notifications over ${displayName}.` : 'Describe what your plugin does.'),
     type,
-    trek: '>=3.3.0 <4.0.0',
+    // 3.4.0, not 3.3.0. The `ctx` namespaces this scaffold is written against — ctx.meta,
+    // ctx.places, ctx.days, ctx.itinerary, ctx.costs, ctx.packing, ctx.files — only exist from
+    // 3.4.0. Claiming 3.3.0 lets the plugin install on a host where they are `undefined`, which
+    // fails at the first call with a TypeError instead of a clear "incompatible" at install.
+    trek: '>=3.4.0 <4.0.0',
     nativeModules: false,
     permissions: perms,
     // Dependency declarations (empty by default). `requiredAddons` lists addon ids
@@ -100,6 +134,10 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
     requiredAddons: opts.requiredAddons ?? [],
     pluginDependencies: opts.pluginDependencies ?? [],
   };
+  // The store tile, the nav entry, the widget header and the admin row all render this. Omitting
+  // it is legal — TREK falls back to `Blocks` — but then every plugin that skipped it is the same
+  // grey square in the store, so the scaffold picks a real one rather than leaving it out.
+  manifest.icon = opts.icon && LUCIDE_ICON_NAMES.has(opts.icon) ? opts.icon : defaultIconFor(type, isChannel);
   if (egress.length) manifest.egress = egress;
   // A notification channel usually targets a SELF-HOSTED service, whose hostname the
   // author cannot know at publish time. Declaring operatorEgress lets the admin add the
@@ -112,7 +150,12 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
   // host ignores a manifest `routes`. A `page` plugin gets its nav entry
   // automatically, so there's no `capabilities.nav` either; only `widget` carries a
   // capability worth scaffolding.
-  if (type === 'widget') manifest.capabilities = { widget: { title: displayName, defaultSize: 'medium' } };
+  // `slot` decides WHERE the widget renders, and omitting it silently means 'sidebar' — so a
+  // widget meant for a place's detail panel would quietly appear in the trip sidebar instead,
+  // with nothing anywhere to say why. Always write it.
+  if (type === 'widget') {
+    manifest.capabilities = { widget: { title: displayName, defaultSize: 'medium', slot: opts.slot ?? 'sidebar' } };
+  }
   if (isChannel) {
     manifest.capabilities = { notificationChannel: { title: displayName } };
     // The recipient's own credential. `scope: 'user'` is what makes it per-user, and
@@ -159,7 +202,43 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
     fs.mkdirSync(path.join(root, 'client'), { recursive: true });
     fs.writeFileSync(path.join(root, 'client', 'index.html'), CLIENT_HTML);
   }
+
+  // The README has always linked ./docs/screenshot.png, and the scaffold has never created the
+  // directory — so the very first thing an author was told to do had nowhere to go, and the only
+  // thing that noticed was the registry, after the release was immutable. Make the destination
+  // real, and say what belongs in it.
+  fs.mkdirSync(path.join(root, 'docs'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'docs', 'README.md'), DOCS_README);
+
+  // Normalise line endings. The registry pins the artifact's sha256, and a CRLF checkout produces
+  // different bytes for the same source — so a Windows author re-packing the same commit gets a
+  // hash that no longer matches the entry they published.
+  fs.writeFileSync(path.join(root, '.gitattributes'), GITATTRIBUTES);
 }
+
+const DOCS_README = `Put \`screenshot.png\` here.
+
+It is what the plugin's store card shows, and the registry REJECTS a plugin whose README has no
+screenshot that resolves to a real image — so this is not optional.
+
+  - 16:9, 1600×900 is ideal. The card crops the edges, so leave some margin.
+  - Show the plugin doing its job, in context, inside TREK.
+
+The quickest way: run \`trek-plugin dev\`, then \`trek-plugin shot\` in another terminal — it
+renders your plugin in a themed TREK frame and writes docs/screenshot.png for you.
+
+This directory is NOT shipped in plugin.zip; it lives in your repo, and the README links it at the
+commit the registry pins.
+`;
+
+const GITATTRIBUTES = `# The registry pins the sha256 of your packed artifact. A CRLF checkout changes those bytes for
+# the same source, so re-packing the same commit on Windows would produce a hash that no longer
+# matches the entry you published. Pin the line endings and the artifact stays reproducible.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.zip binary
+`;
 
 const CHANNEL_JS = `// A TREK notification channel — runs in an isolated child process.
 //
@@ -404,11 +483,21 @@ export async function interactiveScaffold(defaultDir: string, presetName?: strin
     defaultValue: 'Describe what your plugin does.',
   });
 
-  const permissions = await promptMultiselect<string>({
-    message: 'Which permissions does it need?',
-    options: PERMISSION_CATALOG.map((p) => ({ value: p.value, label: p.label, hint: p.hint })),
+  // ONE prompt, grouped by area. 58 permissions in a flat list is unreadable, but asking in
+  // two steps (areas → permissions) was worse: Clack has no "back", so picking the wrong
+  // areas was a dead end you could only escape with ^C. A grouped multiselect is a single
+  // scrollable screen — space toggles a permission, or a whole area from its header.
+  const permissions = await promptGroupMultiselect<string>({
+    message: 'Which permissions does it need? (space toggles; a group header toggles the whole area)',
+    options: Object.fromEntries(
+      PERMISSION_FAMILIES.map((f) => [
+        `${f.label} — ${f.hint}`,
+        f.permissions.map((p) => ({ value: p.value, label: p.value, hint: p.hint })),
+      ]),
+    ),
     initialValues: ['db:own'],
     required: false,
+    selectableGroups: true,
   });
 
   let egress: string[] | undefined;
@@ -435,11 +524,38 @@ export async function interactiveScaffold(defaultDir: string, presetName?: strin
     required: false,
   });
 
+  // A widget with no slot silently renders in the sidebar. Ask, rather than let an author
+  // discover months later that `hero` was always available.
+  let slot: WidgetSlot | undefined;
+  if (type === 'widget') {
+    slot = await promptSelect<WidgetSlot>({
+      message: 'Where should the widget appear?',
+      initialValue: 'sidebar',
+      options: WIDGET_SLOTS.map((s) => ({ value: s, label: s, hint: WIDGET_SLOT_HINTS[s] })),
+    });
+  }
+
+  // The store tile, the nav entry and the admin row all render this. The registry REJECTS a name
+  // lucide does not have, so validate it here rather than at publish time.
+  const fallbackIcon = defaultIconFor(type, template === 'notification-channel');
+  const icon = await promptText({
+    message: 'Icon — a lucide name (see https://lucide.dev/icons)',
+    placeholder: fallbackIcon,
+    defaultValue: fallbackIcon,
+    validate: (v) => {
+      const name = (v ?? '').trim();
+      if (!name) return undefined; // the default is used
+      return LUCIDE_ICON_NAMES.has(name) ? undefined : `lucide has no icon called "${name}" — TREK would fall back to Blocks`;
+    },
+  }).then((v) => v.trim() || fallbackIcon);
+
   note(
     [
       `id           ${id}`,
       `type         ${type}`,
       template !== 'blank' ? `template     ${template}` : undefined,
+      slot ? `slot         ${slot}` : undefined,
+      `icon         ${icon}`,
       `location     ${dest}`,
       `author       ${author}`,
       `permissions  ${permissions.join(', ') || '(none)'}`,
@@ -456,7 +572,7 @@ export async function interactiveScaffold(defaultDir: string, presetName?: strin
     process.exit(0);
   }
 
-  scaffold(id, type, parentDir, { author, description, permissions, egress, requiredAddons, template });
+  scaffold(id, type, parentDir, { author, description, permissions, egress, requiredAddons, template, icon, slot });
   logSuccess(`Created ${dest}`);
 
   if (!insideGitRepo(parentDir)) {
@@ -484,13 +600,38 @@ export async function interactiveScaffold(defaultDir: string, presetName?: strin
     }
   }
 
-  const cd = path.relative(process.cwd(), dest) || dest;
-  outro(`Next steps:\n  cd ${cd}\n  npx trek-plugin-sdk dev`);
+  outro(nextStepsAfterCreate(dest));
   return id;
+}
+
+/**
+ * What to do next, said ONCE.
+ *
+ * There used to be three of these — the wizard's outro, the `create` dispatch branch and the
+ * standalone `create-trek-plugin` bin — and they named three different next commands (`dev`,
+ * `dev`, `validate`). Whichever an author hit was a coin toss, and none of them mentioned that
+ * the plugin they had just been handed could not be published as-is.
+ *
+ * So it points at `dev` (the thing you actually want to do next) and at `status` (the thing that
+ * will tell you the truth about what is still missing), and it does not pretend the scaffold is
+ * finished.
+ */
+export function nextStepsAfterCreate(dest: string): string {
+  const cd = path.relative(process.cwd(), dest) || dest;
+  return [
+    'Next steps:',
+    `  cd ${cd}`,
+    '  trek-plugin dev        run it locally, hot-reloaded',
+    '  trek-plugin status     what is left before you can publish',
+    '',
+    'The scaffold is not publishable yet — it needs a written README and a screenshot.',
+    '`status` lists exactly what, whenever you ask it.',
+  ].join('\n');
 }
 
 // CLI entry
 if (process.argv[1] && process.argv[1].endsWith('create.js')) {
+  notifySdkUpdate();
   const args = process.argv.slice(2);
   const name = args.find((a: string) => !a.startsWith('-'));
   const typeIdx = args.indexOf('--type');
@@ -503,7 +644,8 @@ if (process.argv[1] && process.argv[1].endsWith('create.js')) {
   }
   try {
     scaffold(name, type, process.cwd(), { template });
-    console.log(`Created ${name}/ — fill in the README, build server/index.js, then \`npx trek-plugin-sdk validate ${name}\`.`);
+    // The SAME message the wizard and `trek-plugin create` print. These three used to disagree.
+    console.log(nextStepsAfterCreate(path.join(process.cwd(), name)));
   } catch (e) {
     console.error(e instanceof Error ? e.message : e);
     process.exit(1);

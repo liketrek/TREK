@@ -64,7 +64,7 @@ export class BudgetController {
     @Query('base') base?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
-    return this.budget.settlement(tripId, base, (trip as { currency?: string }).currency || 'EUR');
+    return this.budget.settlement(tripId, base, trip.currency || 'EUR');
   }
 
   @Get('settlements')

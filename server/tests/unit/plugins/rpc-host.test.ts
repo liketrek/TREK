@@ -6,6 +6,8 @@
  * child (the router runs in the host).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import Database from 'better-sqlite3';
+import { createTables } from '../../../src/db/schema';
 import { PluginRpcHost, type HostDeps } from '../../../src/nest/plugins/host/rpc-host';
 import type { RpcRequest, RpcResponse, RpcError } from '../../../src/nest/plugins/protocol/envelope';
 
@@ -1028,6 +1030,33 @@ describe('PluginRpcHost — capability enforcement', () => {
     // no host-bound acting user (a job / forged call) → refused
     const noUser = await host.dispatch(req('meta.get', { entityType: 'trip', entityId: 1, key: 'k' }), undefined);
     expect((noUser as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+  });
+
+  // Regression (#getPlaces): the mocked `db.prepare` above never parses the SQL, so an
+  // invalid column sails through. Drive the trip reads against a REAL schema-loaded
+  // SQLite instead — `places` has no day_id/position (those live on day_assignments),
+  // so the old `ORDER BY day_id, position` threw `no such column` on every call.
+  it('trips.getPlaces runs against the real places schema and returns the trip pool', async () => {
+    const realDb = new Database(':memory:');
+    createTables(realDb);
+    realDb.exec(`
+      INSERT INTO users (id, username, email, password_hash) VALUES (42, 'ada', 'ada@example.com', 'x');
+      INSERT INTO trips (id, user_id, title) VALUES (1, 42, 'Japan'), (2, 42, 'Peru');
+      INSERT INTO places (id, trip_id, name, created_at) VALUES
+        (1, 1, 'Older', '2027-01-01 10:00:00'),
+        (2, 1, 'Newer', '2027-01-02 10:00:00'),
+        (3, 2, 'Other trip', '2027-01-03 10:00:00');
+    `);
+    deps.db = realDb as unknown as HostDeps['db'];
+
+    const host = new PluginRpcHost('p', new Set(['db:read:trips']), deps);
+    const res = await host.dispatch(req('trips.getPlaces', { tripId: 1 }), 42);
+
+    expect(ok(res)).toBe(true);
+    const rows = (res as RpcResponse).result as Array<{ id: number; name: string }>;
+    // only trip 1's places, newest first (mirrors the REST list's created_at DESC)
+    expect(rows.map(r => r.name)).toEqual(['Newer', 'Older']);
+    realDb.close();
   });
 
   it('meta WRITES need the entity edit permission — a read-only member is RESOURCE_FORBIDDEN', async () => {

@@ -56,8 +56,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Tip:',
   'settings.mapTip':
     'right-click and drag to rotate/pitch the map. Middle-click to add a place (right-click is reserved for rotation).',
-  'settings.latitude': 'Latitude',
-  'settings.longitude': 'Longitude',
   'settings.saveMap': 'Save Map',
   'settings.apiKeys': 'API Keys',
   'settings.mapsKey': 'Google Maps API Key',
@@ -309,6 +307,7 @@ const settings: TranslationStrings = {
   'settings.mfa.demoBlocked': 'Not available in demo mode',
   'settings.currency': 'Currency',
   'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currencyTrip': 'Trip currency',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Sign in faster and phishing-resistant with a passkey — your fingerprint, face, PIN, or a hardware key. Your password stays as a backup.',
@@ -484,6 +483,9 @@ const settings: TranslationStrings = {
   'settings.offline.banner.syncing': 'Syncing {count}…',
   'settings.offline.banner.failed': 'Failed to sync: {count}',
   'settings.offline.banner.conflicts': 'Conflicts: {count}',
+  'settings.alwaysShowRoutes': 'Always show booking routes',
+  'settings.alwaysShowRoutesHint':
+    'Automatically draw the route for every flight, train and other booking on the map — no need to switch it on per item.',
 };
 
 export default settings;

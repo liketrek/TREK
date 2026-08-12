@@ -10,7 +10,8 @@ const { testDb } = vi.hoisted(() => {
   db.exec(`CREATE TABLE plugins (
     id TEXT PRIMARY KEY, name TEXT, description TEXT, type TEXT, icon TEXT, version TEXT,
     status TEXT, enabled INTEGER DEFAULT 0, last_error TEXT, reviewed_at TEXT, source_repo TEXT, config TEXT DEFAULT '{}', permissions TEXT DEFAULT '[]', capabilities TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', operator_egress INTEGER DEFAULT 0, updated_at TEXT,
-    sort_order INTEGER DEFAULT 0);
+    author_pubkey TEXT, update_block_code TEXT, update_block_detail TEXT, update_block_version TEXT,
+    trek_range TEXT, sort_order INTEGER DEFAULT 0);
     CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, scope TEXT, secret INTEGER);
     CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT DEFAULT '2026-01-01');`);
   return { testDb: db };
@@ -60,6 +61,65 @@ describe('PluginsService.list', () => {
     expect(out.plugins).toEqual([]);
   });
 
+  // The four trust states an admin can be in. `signed` derives from the TOFU-pinned
+  // author key; sideloaded/dev-linked derive from source_repo — so they are NOT
+  // mutually exclusive in the data, and a sideloaded plugin legitimately reports
+  // signed:false. The UI's precedence rule (source badge wins) depends on that being
+  // reported honestly rather than papered over here.
+  describe('signature status', () => {
+    const insert = (id: string, sourceRepo: string | null, pubkey: string | null) =>
+      testDb
+        .prepare('INSERT INTO plugins (id, name, type, status, version, source_repo, author_pubkey) VALUES (?,?,?,?,?,?,?)')
+        .run(id, id, 'widget', 'inactive', '1.0.0', sourceRepo, pubkey);
+
+    it('reports signed + a display fingerprint for a registry plugin with a pinned key', () => {
+      const key = 'RWTvBn0aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcd';
+      insert('signed-one', 'acme/signed-one', key);
+
+      const p = new PluginsService().list().plugins[0];
+      expect(p.signed).toBe(true);
+      // Short head…tail, for eyeballing against what the author reads out over the
+      // phone. NOT a confidentiality measure — the key is public, and the re-trust
+      // round-trip deliberately carries it in full.
+      expect(p.keyFingerprint).toBe(`${key.slice(0, 8)}…${key.slice(-8)}`);
+    });
+
+    it('reports unsigned for a registry plugin with no pinned key', () => {
+      insert('plain', 'acme/plain', null);
+      const p = new PluginsService().list().plugins[0];
+      expect(p.signed).toBe(false);
+      expect(p.keyFingerprint).toBeNull();
+    });
+
+    it('reports unsigned for a sideloaded and a dev-linked plugin (they carry no key)', () => {
+      insert('uploaded', 'local:upload', null);
+      insert('linked', 'local:link', null);
+      const plugins = new PluginsService().list().plugins;
+      expect(plugins.map((p) => [p.id, p.signed, p.source_repo])).toEqual([
+        ['linked', false, 'local:link'],
+        ['uploaded', false, 'local:upload'],
+      ]);
+    });
+
+    it('surfaces a recorded update block, and reports none when there is none', () => {
+      insert('blocked', 'acme/blocked', 'RWTvBn0aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcd');
+      insert('fine', 'acme/fine', null);
+      testDb
+        .prepare('UPDATE plugins SET update_block_code = ?, update_block_detail = ?, update_block_version = ? WHERE id = ?')
+        .run('SIGNATURE_KEY_CHANGED', 'the key changed', '2.0.0', 'blocked');
+
+      const byId = Object.fromEntries(new PluginsService().list().plugins.map((p) => [p.id, p]));
+      expect(byId.blocked.updateBlock).toEqual({ code: 'SIGNATURE_KEY_CHANGED', detail: 'the key changed', version: '2.0.0' });
+      expect(byId.fine.updateBlock).toBeNull();
+    });
+
+    it('never leaks the raw pinned key into the list response (only the fingerprint)', () => {
+      insert('signed-one', 'acme/signed-one', 'RWTvBn0aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789abcd');
+      const p = new PluginsService().list().plugins[0] as Record<string, unknown>;
+      expect(p.author_pubkey).toBeUndefined();
+    });
+  });
+
   it('controller delegates to the service', () => {
     const svc = { list: vi.fn(() => ({ enabled: false, plugins: [] })) } as unknown as PluginsService;
     const runtime = {} as unknown as import('../../../src/nest/plugins/plugin-runtime.service').PluginRuntimeService;
@@ -96,6 +156,15 @@ describe('PluginsFeedController (client feed)', () => {
     testDb.prepare("INSERT INTO plugins (id, name, type, icon, status, capabilities) VALUES ('d','D','widget','Box','active','{\"widget\":{\"slot\":\"day-detail\"}}')").run();
     process.env.TREK_PLUGINS_ENABLED = 'true';
     expect(new PluginsFeedController().list().plugins.find((p) => p.id === 'd')?.slot).toBe('day-detail');
+  });
+
+  it('exposes settingsUi only when the capability is exactly true', () => {
+    testDb.prepare("INSERT INTO plugins (id, name, type, icon, status, capabilities) VALUES ('su','S','widget','Box','active','{\"settingsUi\":true}')").run();
+    testDb.prepare("INSERT INTO plugins (id, name, type, icon, status, capabilities) VALUES ('no','N','widget','Box','active','{\"settingsUi\":\"yes\"}')").run();
+    process.env.TREK_PLUGINS_ENABLED = 'true';
+    const out = new PluginsFeedController().list();
+    expect(out.plugins.find((p) => p.id === 'su')?.settingsUi).toBe(true);
+    expect(out.plugins.find((p) => p.id === 'no')?.settingsUi).toBeUndefined();
   });
 
   it('exposes the reservation-detail slot (a booking-card widget must not fall back to the dashboard)', () => {

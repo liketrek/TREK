@@ -219,14 +219,17 @@ const admin: TranslationStrings = {
   'admin.plugins.viewErrors': 'エラーログを表示',
   'admin.plugins.errorLog': 'エラーログ',
   'admin.plugins.allowedHosts': '許可するホスト',
-  'admin.plugins.allowedHosts.hint': 'このプラグインは、あなたしか指定できないサービス（セルフホストのサーバー）と通信します。到達を許可するホストを追加してください。それ以外には到達できません。',
+  'admin.plugins.allowedHosts.hint':
+    'このプラグインは、あなたしか指定できないサービス（セルフホストのサーバー）と通信します。到達を許可するホストを追加してください。それ以外には到達できません。',
   'admin.plugins.allowedHosts.none': 'ホストはまだ追加されていません。',
-  'admin.plugins.allowedHosts.unsupported': 'このプラグインは運用者指定のホストを使いません。許可ホストはマニフェストで固定されています。',
+  'admin.plugins.allowedHosts.unsupported':
+    'このプラグインは運用者指定のホストを使いません。許可ホストはマニフェストで固定されています。',
   'admin.plugins.allowedHosts.restartNote': '保存するとプラグインが再起動し、新しい一覧が反映されます。',
   'admin.plugins.allowedHosts.add': '許可ホストを追加',
   'admin.plugins.allowedHosts.count': '許可ホスト {n} 件',
   'admin.plugins.operatorEgressPill': '+ 追加するホスト',
-  'admin.plugins.operatorEgressHint': 'このプラグインは、あなたしか指定できないサービス（セルフホストのサーバー）と通信します。インストール後、⋯ → 許可するホスト から追加してください。それ以外には到達できません。',
+  'admin.plugins.operatorEgressHint':
+    'このプラグインは、あなたしか指定できないサービス（セルフホストのサーバー）と通信します。インストール後、⋯ → 許可するホスト から追加してください。それ以外には到達できません。',
   'admin.plugins.noErrors': '記録されたエラーはありません。',
   'admin.plugins.uninstalled': 'プラグインをアンインストールしました',
   'admin.plugins.uninstallTitle': 'プラグインをアンインストールしますか？',
@@ -372,6 +375,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': '「レビュー済み」の意味',
   'admin.plugins.security.reviewedBody':
     'レビュー済みのプラグインは、TREKのメンテナーが各バージョンで手動でマルウェアの有無を確認したものです — 悪意のあるコードの有無を確認したものであり、正しく動作するかどうかを確認したものではありません。プラグインが無害であることを約束するものではありません。',
+  'admin.plugins.security.signedTitle': '「署名済み」の意味',
+  'admin.plugins.security.signedBody':
+    'TREKがインストールのたびに検証するチェックサムは、ファイルがレジストリの保証するものとまったく同一であることを証明します。署名が証明するのは別のことです。そのファイルが作者本人から届いたこと、そして作者だけが持つ鍵で署名されていることです。署名済みのプラグインはその両方を備えています。署名がないプラグインが危険というわけではありません — 保証がひとつ少ないだけであり、現時点ではレジストリのプラグインの多くは署名されていません。',
+  'admin.plugins.signed': '署名済み',
+  'admin.plugins.signedHint': 'インストール時に作者の署名鍵で検証済み',
+  'admin.plugins.unsigned': '署名なし',
+  'admin.plugins.unsignedHint':
+    'ファイルはレジストリが保証するものと一致しますが、作者と結びつけるものはありません。保証がひとつ少ないだけで、危険というわけではありません。',
+  'admin.plugins.updateBlocked': 'アップデートをブロックしました — {reason}',
+  'admin.plugins.reviewBlock': '確認する',
+  'admin.plugins.retrusted': '新しい署名鍵を信頼しました — プラグインを更新しました',
+  'admin.plugins.sig.title': '{name}の署名を検証できませんでした',
+  'admin.plugins.sig.keyChangedBody':
+    '作者の署名鍵が、このプラグインをインストールしたときの鍵と異なります。作者が鍵を更新することは実際にあります — ただし、プラグインを乗っ取った攻撃者も、ここからはまったく同じように見えます。',
+  'admin.plugins.sig.invalidBody':
+    'ファイルが作者の署名と一致しません。作者が署名したものではなく、破損したか、改ざんされたかのどちらかです。これを上書きすることはできません。',
+  'admin.plugins.sig.missingBody':
+    'このプラグインはインストール時には署名されていましたが、新しいバージョンには署名がありません。TREKはこの後退を黙って受け入れることはしません。これを上書きすることはできません。',
+  'admin.plugins.sig.incompleteBody':
+    'レジストリの登録内容が中途半端です。作者の鍵は宣言されているのに、このバージョンには署名がありません（またはその逆です）。これはプラグイン側の不備です。これを上書きすることはできません。',
+  'admin.plugins.sig.pinnedKey': 'インストール時の鍵',
+  'admin.plugins.sig.newKey': '現在提示されている鍵',
+  'admin.plugins.sig.confirmOutOfBand':
+    'TREKには、正当な鍵の更新と乗っ取りを見分けることはできません — ここからは両者はまったく同じに見えます。受け入れる前に、すでに信頼している経路で作者に新しい鍵を確認してください。受け入れると、プラグインが更新され、新しい鍵が記憶されます。',
+  'admin.plugins.sig.retrustConfirm': '新しい鍵を信頼して更新',
+  'admin.plugins.sig.cancel': '信頼しない',
+  'admin.plugins.sig.consentUnsigned':
+    'このバージョンと作者を結びつけるものはありません — ファイルはレジストリと一致しますが、作者の署名は付いていません。',
   'admin.plugins.security.trustTitle': '結論',
   'admin.plugins.security.trustBody':
     'プラグインのインストールは、サードパーティ製アプリのインストールと同じです。信頼できる作者のコードのみを追加し、少しでも疑わしい場合は、まずご自身で内容を確認してください。TREKはサードパーティ製プラグインについて一切の責任を負いません。',
@@ -431,6 +462,10 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'ダウンロード',
   'admin.plugins.dep.update': '更新',
   'admin.plugins.dep.resolveHint': '独自の依存関係を含め、最新の互換バージョンをダウンロードします。',
+  'admin.plugins.dep.trekIncompatible': 'TREK {range} が必要です — このサーバーは {host} です',
+  'admin.plugins.dep.trekUnknown': '対応する TREK バージョンが宣言されていません',
+  'admin.plugins.installCompatible': '{version} をインストール',
+  'admin.plugins.incompatible': '非対応',
   'admin.plugins.accessTitle': 'アクセスできるもの',
   'admin.plugins.connectsTitle': '接続先',
   'admin.plugins.detailsTitle': '詳細',

@@ -2,8 +2,6 @@
 
 Reuse packing lists across trips using pre-built templates.
 
-<!-- TODO: screenshot: packing template list with categories and items -->
-
 ![Packing Templates](assets/PackingTemplate.png)
 
 ## Applying a template

@@ -153,7 +153,7 @@ export class TripsController {
       ? (this.trips.getRaw(id) as { cover_image: string | null } | undefined)?.cover_image
       : undefined;
     try {
-      const result = this.trips.update(id, user.id, body, user.role);
+      const result = await this.trips.update(id, user.id, body, user.role);
       if (body.cover_image !== undefined && body.cover_image !== oldCover) {
         this.trips.deleteOldCover(oldCover);
       }

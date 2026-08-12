@@ -207,7 +207,7 @@ function withDatePart(timestamp: string, date: string): string {
  * date (time-of-day preserved). Transport endpoints (flight legs) shift by the
  * same per-booking day delta so multi-leg timing stays internally consistent.
  */
-function restampReservationDates(
+export function restampReservationDates(
   tripId: string | number,
   oldDateById: Map<number, string | null>,
   newDateById: Map<number, string | null>,
@@ -261,6 +261,56 @@ function assertNoInvertedAccommodation(tripId: string | number): void {
   for (const span of spans) {
     if (span.start_no > span.end_no) {
       throw new DayReorderError('This move would make an accommodation end before it starts.');
+    }
+  }
+}
+
+/**
+ * After a trip's date range changes, generateDays positionally re-dates the day rows
+ * (keeping their ids), so an accommodation — which has no absolute date, only
+ * start_day_id/end_day_id — visually shifts with the range (#1288). Re-anchor each
+ * stay to the days now holding its pre-change dates (from the snapshot taken before
+ * generateDays ran). A stay whose dates fall outside the new range is left glued to
+ * its day rows, mirroring resyncReservationDays' out-of-range semantics, so moving a
+ * whole trip still shifts everything together. The linked hotel reservation follows
+ * its accommodation's start day in both branches.
+ */
+export function resyncAccommodationDays(
+  tripId: string | number,
+  prevDateByDayId: Map<number, string | null>,
+): void {
+  const stays = db.prepare(
+    'SELECT id, start_day_id, end_day_id FROM day_accommodations WHERE trip_id = ?'
+  ).all(tripId) as { id: number; start_day_id: number; end_day_id: number }[];
+  if (stays.length === 0) return;
+
+  const dayByDate = db.prepare('SELECT id, day_number FROM days WHERE trip_id = ? AND date = ? LIMIT 1');
+  const updateStay = db.prepare('UPDATE day_accommodations SET start_day_id = ?, end_day_id = ? WHERE id = ?');
+  const restampLinkedRes = db.prepare(`
+    UPDATE reservations SET day_id = :dayId,
+      reservation_time = CASE WHEN reservation_time IS NULL THEN :date
+        ELSE :date || SUBSTR(reservation_time, 11) END
+    WHERE accommodation_id = :accId AND type = 'hotel'
+  `);
+
+  for (const stay of stays) {
+    const oldStartDate = prevDateByDayId.get(stay.start_day_id);
+    const oldEndDate = prevDateByDayId.get(stay.end_day_id);
+    if (oldStartDate && oldEndDate) {
+      const newStart = dayByDate.get(tripId, oldStartDate) as { id: number; day_number: number } | undefined;
+      const newEnd = dayByDate.get(tripId, oldEndDate) as { id: number; day_number: number } | undefined;
+      if (newStart && newEnd && newStart.day_number <= newEnd.day_number
+        && (newStart.id !== stay.start_day_id || newEnd.id !== stay.end_day_id)) {
+        updateStay.run(newStart.id, newEnd.id, stay.id);
+        stay.start_day_id = newStart.id;
+      }
+    }
+    // Keep the linked reservation on the stay's (possibly re-dated) start day — its
+    // reservation_time is a snapshot of that day's date, stale after any range change.
+    const startDayDate = (db.prepare('SELECT date FROM days WHERE id = ?')
+      .get(stay.start_day_id) as { date: string | null } | undefined)?.date;
+    if (startDayDate) {
+      restampLinkedRes.run({ dayId: stay.start_day_id, date: startDayDate, accId: stay.id });
     }
   }
 }

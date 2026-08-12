@@ -4,13 +4,15 @@ import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { createRequire } from 'node:module';
-import { definePlugin, PLUGIN_API_VERSION, validateManifest, createMockHost } from '../src/index.js';
+import { definePlugin, PLUGIN_API_VERSION, validateManifest, createMockHost, PermissionDenied } from '../src/index.js';
+import { isUnboundedRange } from '../src/manifest.js';
 import { scaffold } from '../src/cli/create.js';
 import { validatePluginDir } from '../src/cli/validate.js';
 import { makeZip, listZipNames } from '../src/zip.js';
 import { packPluginDir } from '../src/cli/pack.js';
 import { buildEntry } from '../src/cli/entry.js';
 import { generateKeypair, signArtifact, publicKeyBase64, verifyArtifact, loadPrivateKey } from '../src/cli/sign.js';
+import { makePublishable } from './helpers.js';
 
 /** A central-directory zip reader mirroring the TREK server's, to prove round-trip. */
 function readZip(buf: Buffer): Record<string, Buffer> {
@@ -44,7 +46,7 @@ describe('definePlugin + api version', () => {
 });
 
 describe('validateManifest', () => {
-  const base = { id: 'flight-tracker', name: 'Flight', version: '1.0.0', type: 'widget', apiVersion: 1 };
+  const base = { id: 'flight-tracker', name: 'Flight', version: '1.0.0', type: 'widget', apiVersion: 1, trek: '>=3.2.0 <4.0.0' };
   it('accepts a valid manifest', () => {
     expect(validateManifest(base).ok).toBe(true);
   });
@@ -97,6 +99,11 @@ describe('validateManifest', () => {
     expect(validateManifest({ ...page, capabilities: { tripPage: { replaces: ['plan'] } } }).ok).toBe(false);
     expect(validateManifest({ ...page, capabilities: { tripPage: { replaces: ['nope'] } } }).ok).toBe(false);
     expect(validateManifest({ ...page, capabilities: { tripPage: { position: -1 } } }).ok).toBe(false);
+  });
+  it('validates settingsUi as a boolean', () => {
+    expect(validateManifest({ ...base, capabilities: { settingsUi: true } }).ok).toBe(true);
+    expect(validateManifest({ ...base, capabilities: { settingsUi: false } }).ok).toBe(true);
+    expect(validateManifest({ ...base, capabilities: { settingsUi: 'yes' } }).ok).toBe(false);
   });
 });
 
@@ -283,7 +290,12 @@ describe('createMockHost', () => {
       async exportUserData({ userId }) { return { userId, rows: 2 }; },
       hooks: { tripCardProvider: { async getCards(tripIds) { return tripIds.map((id) => ({ tripId: id, id: 'b', label: 'X' })); } } },
     });
-    const host = createMockHost({ grants: ['jobs:run', 'hook:trip-card-provider'], actingUserId: 7 });
+    // Every entry point needs the grant TREK would gate it on — events and the GDPR
+    // handlers included, or the driver refuses them exactly as the host would.
+    const host = createMockHost({
+      grants: ['jobs:run', 'events:subscribe', 'hook:user-data', 'hook:trip-card-provider'],
+      actingUserId: 7,
+    });
     const d = host.run(def);
 
     const res = await d.route({ method: 'GET', path: '/ping' });
@@ -301,6 +313,52 @@ describe('createMockHost', () => {
     // missing handlers / unknown ids throw a clear error, not a silent no-op
     await expect(d.job('nope')).rejects.toThrow(/no job/);
     await expect(host.run(definePlugin({})).scheduled('x')).rejects.toThrow(/no scheduled handler/);
+  });
+
+  // TREK gates hooks, events, jobs and the GDPR handlers on a permission BEFORE the plugin
+  // is reached, and skips an ungranted plugin silently — no error, no log, it just never
+  // runs. The driver must refuse them, or a green unit test still means a dead plugin.
+  it('refuses every entry point the manifest did not grant, the way TREK would', async () => {
+    const ran: string[] = [];
+    const def = definePlugin({
+      jobs: [{ id: 'refresh', schedule: '* * * * *', async handler() { ran.push('job'); } }],
+      async scheduled() { ran.push('scheduled'); },
+      events: [{ on: 'place:created', handler() { ran.push('event'); } }],
+      async deleteUserData() { ran.push('delete'); },
+      async exportUserData() { ran.push('export'); return {}; },
+      hooks: {
+        warningProvider: { async getWarnings() { ran.push('warn'); return []; } },
+        notificationChannel: { async send() { ran.push('send'); }, async test() { ran.push('test'); } },
+      },
+    });
+    const d = createMockHost({ grants: [] }).run(def); // implements everything, granted nothing
+
+    await expect(d.job('refresh')).rejects.toThrow(PermissionDenied);
+    await expect(d.job('refresh')).rejects.toThrow(/requires jobs:run/);
+    await expect(d.scheduled('daily')).rejects.toThrow(/requires jobs:run/);
+    await expect(d.event('place:created')).rejects.toThrow(/requires events:subscribe/);
+    await expect(d.deleteUserData(1)).rejects.toThrow(/requires hook:user-data/);
+    await expect(d.exportUserData(1)).rejects.toThrow(/requires hook:user-data/);
+    await expect(d.hook('warningProvider', 'getWarnings', 1)).rejects.toThrow(/requires hook:trip-warning-provider/);
+    await expect(d.channel.send({ event: 'todo_due', title: 'T', body: 'B' })).rejects.toThrow(/requires hook:notification-channel/);
+    await expect(d.channel.test()).rejects.toThrow(/requires hook:notification-channel/);
+
+    // Not one handler ran. That is the production behaviour this mirrors.
+    expect(ran).toEqual([]);
+  });
+
+  it('runs the same entry points once the grants are there', async () => {
+    const ran: string[] = [];
+    const def = definePlugin({
+      jobs: [{ id: 'refresh', schedule: '* * * * *', async handler() { ran.push('job'); } }],
+      events: [{ on: 'place:created', handler() { ran.push('event'); } }],
+      hooks: { warningProvider: { async getWarnings() { ran.push('warn'); return []; } } },
+    });
+    const d = createMockHost({ grants: ['jobs:run', 'events:subscribe', 'hook:trip-warning-provider'] }).run(def);
+    await d.job('refresh');
+    await d.event('place:created');
+    await d.hook('warningProvider', 'getWarnings', 1);
+    expect(ran).toEqual(['job', 'event', 'warn']);
   });
 
   it('exposes the scheduler timers a plugin armed via ctx.scheduler', async () => {
@@ -396,16 +454,78 @@ describe('scaffold + validate CLIs', () => {
   beforeEach(() => { tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sdk-')); });
   afterEach(() => { fs.rmSync(tmp, { recursive: true, force: true }); });
 
-  it('scaffolds a widget plugin that then validates (with README warnings)', () => {
+  /**
+   * A scaffold is HONESTLY INCOMPLETE: it builds and runs, but it is not publishable until it is
+   * documented. These two facts are the contract, and they are deliberately different:
+   *
+   *   pack/dev      work immediately — you can install it into a local TREK and try it.
+   *   validate      fails until the README is written and a screenshot exists.
+   *
+   * It used to be the other way round: a fresh scaffold passed `validate` (which only checked a
+   * fifth of the registry's rules and demoted the README to a warning), and the author learned
+   * the truth from CI — after cutting an immutable release. A green that means nothing is worse
+   * than a red that tells you what to do.
+   */
+  it('scaffolds a widget that builds immediately but is not yet publishable', () => {
     scaffold('my-widget', 'widget', tmp);
     const dir = path.join(tmp, 'my-widget');
     expect(fs.existsSync(path.join(dir, 'trek-plugin.json'))).toBe(true);
     expect(fs.existsSync(path.join(dir, 'server', 'index.js'))).toBe(true);
     expect(fs.existsSync(path.join(dir, 'client', 'index.html'))).toBe(true);
 
+    // It packs — the dev loop is not blocked by the docs gates.
+    expect(() => packPluginDir(dir, path.join(tmp, 'w.zip'))).not.toThrow();
+
+    // But it does not publish, and it says exactly why. Both of these used to be WARNINGS, which
+    // is how a scaffold could sail through `validate` and then be rejected by the registry.
     const r = validatePluginDir(dir);
-    expect(r.ok).toBe(true); // manifest + files valid
-    expect(r.warnings.some((w) => /placeholder|screenshot/.test(w))).toBe(true); // README is the unfilled template
+    expect(r.ok).toBe(false);
+    expect(r.errors.some((e) => /placeholder/.test(e))).toBe(true);
+    // The scaffold's README references ./docs/screenshot.png and never creates it. The old check
+    // regexed for an image LINK and passed; this one resolves the path.
+    expect(r.errors.some((e) => /screenshot/.test(e))).toBe(true);
+    expect(fs.existsSync(path.join(dir, 'docs', 'screenshot.png'))).toBe(false);
+  });
+
+  it('a documented scaffold passes validate clean — the scaffold is not born unfixable', () => {
+    scaffold('done-plug', 'widget', tmp);
+    const dir = path.join(tmp, 'done-plug');
+    makePublishable(dir);
+
+    const r = validatePluginDir(dir);
+    expect(r.errors).toEqual([]);
+    expect(r.ok).toBe(true);
+  });
+
+  /**
+   * The registry REJECTS an icon lucide does not have (validate-entry.mjs: "is not a lucide icon
+   * name"), so warning about it locally was a false green: the author saw a pass, cut the release,
+   * and CI failed them once the artifact was immutable. Local severity now matches the registry's.
+   */
+  it('rejects an icon lucide does not know — the registry does, so we must too', () => {
+    scaffold('icon-plug', 'widget', tmp);
+    const dir = path.join(tmp, 'icon-plug');
+    makePublishable(dir);
+    const file = path.join(dir, 'trek-plugin.json');
+    const m = JSON.parse(fs.readFileSync(file, 'utf8'));
+    fs.writeFileSync(file, JSON.stringify({ ...m, icon: 'Stethscope' }, null, 2));
+
+    const r = validatePluginDir(dir);
+    expect(r.ok).toBe(false);
+    expect(r.errors.some((e) => /Stethscope.*not a lucide icon/.test(e))).toBe(true);
+  });
+
+  it('accepts any real lucide icon name, not just a curated few', () => {
+    scaffold('icon-plug', 'widget', tmp);
+    const dir = path.join(tmp, 'icon-plug');
+    makePublishable(dir);
+    const file = path.join(dir, 'trek-plugin.json');
+    const m = JSON.parse(fs.readFileSync(file, 'utf8'));
+    fs.writeFileSync(file, JSON.stringify({ ...m, icon: 'Stethoscope' }, null, 2));
+
+    const r = validatePluginDir(dir);
+    expect(r.ok).toBe(true);
+    expect(r.errors.some((e) => /lucide icon/.test(e))).toBe(false);
   });
 
   it('scaffolds a client that opts into the design kit via the marker (source stays one line)', () => {
@@ -422,6 +542,7 @@ describe('scaffold + validate CLIs', () => {
     const m = JSON.parse(fs.readFileSync(path.join(dir, 'trek-plugin.json'), 'utf8'));
     expect(m.type).toBe('trip-page');
     expect(fs.existsSync(path.join(dir, 'client', 'index.html'))).toBe(true); // non-integration → gets a UI
+    makePublishable(dir);
     expect(validatePluginDir(dir).ok).toBe(true);
   });
 
@@ -458,9 +579,16 @@ describe('scaffold + validate CLIs', () => {
 
   it('tolerates a UTF-8 BOM in trek-plugin.json (Windows editors add one)', () => {
     scaffold('bom-plug', 'integration', tmp);
-    const mp = path.join(tmp, 'bom-plug', 'trek-plugin.json');
+    const dir = path.join(tmp, 'bom-plug');
+    makePublishable(dir);
+    const mp = path.join(dir, 'trek-plugin.json');
     fs.writeFileSync(mp, '\uFEFF' + fs.readFileSync(mp, 'utf8'));
-    expect(validatePluginDir(path.join(tmp, 'bom-plug')).ok).toBe(true);
+
+    // A bare JSON.parse chokes on the BOM and reports "Unexpected token" against an invisible
+    // character \u2014 the manifest must still parse, and the plugin must still be publishable.
+    const r = validatePluginDir(dir);
+    expect(r.errors.some((e) => /not valid JSON/.test(e))).toBe(false);
+    expect(r.ok).toBe(true);
   });
 
   it('validatePluginDir flags a missing manifest', () => {
@@ -587,18 +715,18 @@ describe('pack + entry (publishing automation)', () => {
   it('refuses a plugin that ships a native binary', () => {
     const bad = path.join(tmp, 'bad');
     fs.mkdirSync(path.join(bad, 'server'), { recursive: true });
-    fs.writeFileSync(path.join(bad, 'trek-plugin.json'), JSON.stringify({ id: 'bad-plug', name: 'Bad', version: '1.0.0', type: 'integration', permissions: [], egress: [] }));
+    fs.writeFileSync(path.join(bad, 'trek-plugin.json'), JSON.stringify({ id: 'bad-plug', name: 'Bad', version: '1.0.0', type: 'integration', permissions: [], egress: [], trek: '>=3.2.0 <4.0.0' }));
     fs.writeFileSync(path.join(bad, 'server', 'index.js'), 'module.exports={}');
     fs.writeFileSync(path.join(bad, 'server', 'thing.node'), Buffer.from([1, 2, 3]));
     fs.writeFileSync(path.join(bad, 'README.md'), '# Bad\n![x](x.png)\ncontent');
     expect(() => packPluginDir(bad, path.join(tmp, 'x.zip'))).toThrow(/native binaries/);
   });
 
-  it('builds a registry entry with sha256/size/commit/minTrekVersion filled in', () => {
+  it('builds a registry entry with sha256/size/commit/trek filled in', () => {
     const out = path.join(tmp, 'plugin.zip');
     const packed = packPluginDir(koffi, out);
     const entry = buildEntry({
-      dir: koffi, repo: 'mauriceboe/trek-plugin-koffi', tag: 'v1.0.0', zipPath: out,
+      dir: koffi, repo: 'mauriceboe/TREK-plugin-koffi', tag: 'v1.0.0', zipPath: out,
       commit: 'a'.repeat(40), now: '2026-07-04T00:00:00.000Z',
     });
     expect(entry.id).toBe('koffi');
@@ -607,21 +735,96 @@ describe('pack + entry (publishing automation)', () => {
     expect(v.sha256).toBe(packed.sha256);
     expect(v.size).toBe(packed.size);
     expect(v.commitSha).toBe('a'.repeat(40));
-    expect(v.minTrekVersion).toBe('3.2.0');
-    expect(v.downloadUrl).toBe('https://github.com/mauriceboe/trek-plugin-koffi/releases/download/v1.0.0/plugin.zip');
+    // The RAW range is the one compatibility field an entry carries. minTrekVersion is gone:
+    // it restated the range's lower bound in a weaker form (it cannot express the exclusive
+    // upper bound), so the entry used to drop "<4.0.0" silently and a TREK 4 server read
+    // "requires 3.2.0+" and considered the plugin compatible.
+    expect(v.trek).toBe('>=3.2.0 <4.0.0');
+    expect(v).not.toHaveProperty('minTrekVersion');
+    expect(v.downloadUrl).toBe('https://github.com/mauriceboe/TREK-plugin-koffi/releases/download/v1.0.0/plugin.zip');
     expect(v.nativeModules).toBe(false);
   });
+
+  // The store tile reads `icon` off the registry ENTRY (the index has no manifest to consult),
+  // so if the entry generator drops it, every plugin in the store renders as a generic Blocks.
+  it('carries the manifest icon onto the registry entry', () => {
+    const out = path.join(tmp, 'plugin.zip');
+    packPluginDir(koffi, out);
+    const entry = buildEntry({
+      dir: koffi, repo: 'mauriceboe/TREK-plugin-koffi', tag: 'v1.0.0', zipPath: out,
+      commit: 'a'.repeat(40), now: '2026-07-04T00:00:00.000Z',
+    });
+    expect(entry.icon).toBe('Luggage'); // koffi's trek-plugin.json declares it
+  });
+
+  it('--merge refreshes the icon from the manifest, but never wipes one the entry already carries', () => {
+    const out = path.join(tmp, 'plugin.zip');
+    packPluginDir(koffi, out);
+    const prior = (icon: string) => {
+      const p = path.join(tmp, `prior-${icon}.json`);
+      fs.writeFileSync(p, JSON.stringify({
+        id: 'koffi', name: 'Koffi', author: 'TREK', description: 'x',
+        repo: 'mauriceboe/TREK-plugin-koffi', type: 'widget', icon,
+        versions: [{ version: '0.9.0', gitTag: 'v0.9.0', commitSha: 'b'.repeat(40), downloadUrl: 'https://x/y.zip', sha256: 'c'.repeat(64), size: 10, apiVersion: 1, nativeModules: false, publishedAt: '2026-01-01T00:00:00.000Z' }],
+      }));
+      return p;
+    };
+
+    // koffi's manifest declares Luggage → an author who rebrands sees it in the store
+    const rebranded = buildEntry({
+      dir: koffi, repo: 'mauriceboe/TREK-plugin-koffi', tag: 'v1.0.0', zipPath: out,
+      commit: 'a'.repeat(40), now: '2026-07-04T00:00:00.000Z', mergePath: prior('Coffee'),
+    });
+    expect(rebranded.icon).toBe('Luggage');
+
+    // a manifest that declares NO icon leaves the entry's existing one alone
+    const noIconOpts = entryOptsFor('no-icon', '>=3.2.0 <4.0.0');
+    const keepPath = path.join(tmp, 'keep.json');
+    fs.writeFileSync(keepPath, JSON.stringify({
+      id: 'no-icon', name: 'No Icon', author: 'TREK', description: 'x', repo: 'a/b',
+      type: 'integration', icon: 'Coffee', versions: [],
+    }));
+    const kept = buildEntry({ ...noIconOpts, now: '2026-07-04T00:00:00.000Z', mergePath: keepPath });
+    expect(kept.icon).toBe('Coffee');
+  });
+
+  it('publishes an upper-bound-only range verbatim, with no floor to get wrong', () => {
+    // This is why the derived floor is gone. "<4.0.0" has a first X.Y.Z of 4.0.0 but a lower
+    // bound of 0.0.0, and the old regex published 4.0.0 as the MINIMUM — advertising a plugin
+    // that supports everything BELOW 4 as requiring 4+, the precise inverse of what its author
+    // wrote. A field that only ever restates the range cannot be wrong if it does not exist.
+    const entry = buildEntry({ ...entryOptsFor('upper-only', '<4.0.0'), now: '2026-07-04T00:00:00.000Z' });
+    expect(entry.versions[0].trek).toBe('<4.0.0');
+    expect(entry.versions[0]).not.toHaveProperty('minTrekVersion');
+  });
+
+  it('refuses to publish a plugin with no usable trek range', () => {
+    expect(() => buildEntry({ ...entryOptsFor('no-trek', undefined), now: '2026-07-04T00:00:00.000Z' }))
+      .toThrow(/no valid "trek" version range/);
+    expect(() => buildEntry({ ...entryOptsFor('bad-trek', '>=4.0.0 <3.0.0'), now: '2026-07-04T00:00:00.000Z' }))
+      .toThrow(/no valid "trek" version range/);
+  });
+
+  /** A minimal plugin dir + artifact for buildEntry (which only needs the zip to exist). */
+  function entryOptsFor(id: string, trek: string | undefined) {
+    const dir = path.join(tmp, id);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'trek-plugin.json'), JSON.stringify({ id, name: id, version: '1.0.0', type: 'integration', ...(trek === undefined ? {} : { trek }) }));
+    const zipPath = path.join(tmp, `${id}.zip`);
+    fs.writeFileSync(zipPath, makeZip([{ name: 'trek-plugin.json', data: Buffer.from('{}') }]));
+    return { dir, repo: 'a/b', tag: 'v1.0.0', zipPath, commit: 'a'.repeat(40) };
+  }
 
   it('--merge prepends the new version onto an existing entry, newest-first', () => {
     const out = path.join(tmp, 'plugin.zip');
     packPluginDir(koffi, out);
     const existingPath = path.join(tmp, 'koffi.json');
     fs.writeFileSync(existingPath, JSON.stringify({
-      id: 'koffi', name: 'Koffi', author: 'TREK', description: 'x', repo: 'mauriceboe/trek-plugin-koffi', type: 'widget',
+      id: 'koffi', name: 'Koffi', author: 'TREK', description: 'x', repo: 'mauriceboe/TREK-plugin-koffi', type: 'widget',
       versions: [{ version: '0.9.0', gitTag: 'v0.9.0', commitSha: 'b'.repeat(40), downloadUrl: 'https://github.com/x/y/releases/download/v0.9.0/plugin.zip', sha256: 'c'.repeat(64), minTrekVersion: '3.2.0', size: 10, apiVersion: 1, nativeModules: false, publishedAt: '2026-01-01T00:00:00.000Z' }],
     }));
     const merged = buildEntry({
-      dir: koffi, repo: 'mauriceboe/trek-plugin-koffi', tag: 'v1.0.0', zipPath: out,
+      dir: koffi, repo: 'mauriceboe/TREK-plugin-koffi', tag: 'v1.0.0', zipPath: out,
       commit: 'a'.repeat(40), mergePath: existingPath, now: '2026-07-04T00:00:00.000Z',
     });
     expect(merged.versions.map((v) => v.version)).toEqual(['1.0.0', '0.9.0']);
@@ -665,7 +868,7 @@ describe('sign + keygen (author signatures, TOFU)', () => {
     packPluginDir(koffi, out);
     const keyPath = path.join(tmp, 'k.pem');
     const { publicKey } = generateKeypair(keyPath);
-    const entry = buildEntry({ dir: koffi, repo: 'mauriceboe/trek-plugin-koffi', tag: 'v1.0.0', zipPath: out, commit: 'a'.repeat(40), signKeyPath: keyPath, now: '2026-07-04T00:00:00.000Z' });
+    const entry = buildEntry({ dir: koffi, repo: 'mauriceboe/TREK-plugin-koffi', tag: 'v1.0.0', zipPath: out, commit: 'a'.repeat(40), signKeyPath: keyPath, now: '2026-07-04T00:00:00.000Z' });
     expect(entry.authorPublicKey).toBe(publicKey);
     const sig = entry.versions[0].signature;
     expect(sig).toBeTruthy();
@@ -677,12 +880,12 @@ describe('sign + keygen (author signatures, TOFU)', () => {
     packPluginDir(koffi, out);
     const key1 = path.join(tmp, 'k1.pem');
     generateKeypair(key1);
-    const existing = buildEntry({ dir: koffi, repo: 'mauriceboe/trek-plugin-koffi', tag: 'v1.0.0', zipPath: out, commit: 'a'.repeat(40), signKeyPath: key1, now: '2026-07-04T00:00:00.000Z' });
+    const existing = buildEntry({ dir: koffi, repo: 'mauriceboe/TREK-plugin-koffi', tag: 'v1.0.0', zipPath: out, commit: 'a'.repeat(40), signKeyPath: key1, now: '2026-07-04T00:00:00.000Z' });
     const existingPath = path.join(tmp, 'koffi.json');
     fs.writeFileSync(existingPath, JSON.stringify({ ...existing, versions: existing.versions.map((v) => ({ ...v, version: '0.9.0', gitTag: 'v0.9.0' })) }));
     const key2 = path.join(tmp, 'k2.pem');
     generateKeypair(key2);
-    expect(() => buildEntry({ dir: koffi, repo: 'mauriceboe/trek-plugin-koffi', tag: 'v1.1.0', zipPath: out, commit: 'a'.repeat(40), mergePath: existingPath, signKeyPath: key2, now: '2026-07-04T00:00:00.000Z' })).toThrow(/differs from the one already published/);
+    expect(() => buildEntry({ dir: koffi, repo: 'mauriceboe/TREK-plugin-koffi', tag: 'v1.1.0', zipPath: out, commit: 'a'.repeat(40), mergePath: existingPath, signKeyPath: key2, now: '2026-07-04T00:00:00.000Z' })).toThrow(/differs from the one already published/);
   });
 });
 
@@ -753,13 +956,15 @@ describe('mock-host inter-plugin (plugins.call + events.emit)', () => {
     await expect(narrowed.channel.send({ event: 'trip_invite', title: 'T', body: 'B' })).rejects.toThrow(/never dispatches/);
     await expect(narrowed.channel.send({ event: 'todo_due', title: 'T', body: 'B' })).resolves.toBeUndefined();
 
-    await expect(createMockHost({}).run(definePlugin({})).channel.send({ event: 'todo_due', title: 'T', body: 'B' }))
+    await expect(createMockHost({ grants: ['hook:notification-channel'] }).run(definePlugin({}))
+      .channel.send({ event: 'todo_due', title: 'T', body: 'B' }))
       .rejects.toThrow(/no notificationChannel hook/);
   });
 
   it('a plugin with no notificationChannel.test is a clear error, not a silent pass', async () => {
     const def = definePlugin({ hooks: { notificationChannel: { async send() {} } } });
-    await expect(createMockHost({}).run(def).channel.test()).rejects.toThrow(/no notificationChannel\.test/);
+    await expect(createMockHost({ grants: ['hook:notification-channel'] }).run(def).channel.test())
+      .rejects.toThrow(/no notificationChannel\.test/);
   });
 
   it('runs a settings action as the CLICKING user and shapes the result like the host', async () => {
@@ -808,7 +1013,7 @@ describe('mock-host inter-plugin (plugins.call + events.emit)', () => {
 });
 
 describe('validateManifest capabilities.provides/emits', () => {
-  const base = { id: 'my-plug', name: 'My Plug', version: '1.0.0', type: 'integration', permissions: ['db:own'] };
+  const base = { id: 'my-plug', name: 'My Plug', version: '1.0.0', type: 'integration', permissions: ['db:own'], trek: '>=3.2.0 <4.0.0' };
   it('accepts well-formed provides + emits', () => {
     const r = validateManifest({ ...base, capabilities: { provides: ['computeRate'], emits: ['rate.updated'] } });
     expect(r.ok).toBe(true);
@@ -816,5 +1021,39 @@ describe('validateManifest capabilities.provides/emits', () => {
   it('rejects a malformed export/event name and a non-array', () => {
     expect(validateManifest({ ...base, capabilities: { provides: ['bad name!'] } }).ok).toBe(false);
     expect(validateManifest({ ...base, capabilities: { emits: 'nope' } }).ok).toBe(false);
+  });
+});
+
+/**
+ * The `trek` range is what TREK gates installs on, so it has to be caught HERE — the same
+ * validateManifest the registry CI runs — rather than by a rejected install.
+ */
+describe('validateManifest: the trek range', () => {
+  const base = { id: 'my-plug', name: 'My Plug', version: '1.0.0', type: 'integration', permissions: ['db:own'] };
+
+  it('requires a range', () => {
+    const r = validateManifest({ ...base });
+    expect(r.ok).toBe(false);
+    expect(r.errors.join()).toMatch(/missing "trek"/);
+  });
+
+  it('rejects a range that is not semver, and one nothing can satisfy', () => {
+    expect(validateManifest({ ...base, trek: '3.2+' }).ok).toBe(false);
+    // Syntactically valid, semantically empty: no TREK could ever run it.
+    expect(validateManifest({ ...base, trek: '>=4.0.0 <3.0.0' }).ok).toBe(false);
+  });
+
+  it('accepts the ranges authors really write, and carries the range through', () => {
+    for (const trek of ['>=3.2.0 <4.0.0', '^3.2.0', '>=3']) {
+      const r = validateManifest({ ...base, trek });
+      expect(r.ok, trek).toBe(true);
+      expect(r.manifest?.trek).toBe(trek);
+    }
+  });
+
+  it('allows "*" (it is a legal claim) but validate warns — it is nearly always a lie', () => {
+    expect(validateManifest({ ...base, trek: '*' }).ok).toBe(true);
+    expect(isUnboundedRange('*')).toBe(true);
+    expect(isUnboundedRange('>=3.2.0 <4.0.0')).toBe(false);
   });
 });

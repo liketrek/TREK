@@ -13,5 +13,7 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Museum & budaya',
   'poi.cat.nature': 'Alam & taman',
   'poi.cat.activities': 'Aktivitas',
+  'map.showAllConnections': 'Tampilkan semua rute pemesanan',
+  'map.hideAllConnections': 'Sembunyikan semua rute pemesanan',
 };
 export default map;

@@ -216,3 +216,61 @@ describe('pipeAsset', () => {
     expect(res.end).toHaveBeenCalled();
   });
 });
+
+// ── pipeAsset fetch options (#1611) ───────────────────────────────────────────
+
+describe('pipeAsset fetch options (#1611)', () => {
+  function mockResponse(overrides: Record<string, any> = {}) {
+    return {
+      status: vi.fn().mockReturnThis(),
+      set: vi.fn().mockReturnThis(),
+      end: vi.fn(),
+      json: vi.fn(),
+      headersSent: false,
+      ...overrides,
+    } as any;
+  }
+
+  it('MEM-HELPERS-021: forwards fetchOptions to safeFetch', async () => {
+    mockSafeFetch.mockResolvedValue({
+      status: 200,
+      headers: { get: vi.fn(() => null) },
+      body: null,
+    });
+    const res = mockResponse();
+
+    await pipeAsset('https://example.com/asset', res, undefined, undefined, undefined, { rejectUnauthorized: false });
+
+    expect(mockSafeFetch).toHaveBeenCalledWith(
+      'https://example.com/asset',
+      expect.anything(),
+      { rejectUnauthorized: false },
+    );
+  });
+
+  it('MEM-HELPERS-022: omitting fetchOptions leaves safeFetch options undefined', async () => {
+    mockSafeFetch.mockResolvedValue({
+      status: 200,
+      headers: { get: vi.fn(() => null) },
+      body: null,
+    });
+    const res = mockResponse();
+
+    await pipeAsset('https://example.com/asset', res);
+
+    expect(mockSafeFetch.mock.calls[0][2]).toBeUndefined();
+  });
+
+  it('MEM-HELPERS-023: logs the underlying error when responding 500', async () => {
+    const boom = new Error('unable to verify the first certificate');
+    mockSafeFetch.mockRejectedValue(boom);
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const res = mockResponse({ headersSent: false });
+
+    await pipeAsset('https://example.com/asset', res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(errorSpy).toHaveBeenCalledWith(expect.any(String), boom);
+    errorSpy.mockRestore();
+  });
+});

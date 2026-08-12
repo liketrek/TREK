@@ -6,8 +6,6 @@ TREK stores all data in a single SQLite database (`travel.db`) plus an `uploads/
 
 **Admin Panel → Backup** tab.
 
-<!-- TODO: screenshot: backup tab with backup list and auto-backup settings -->
-
 ![Backup tab](assets/Backup.png)
 
 ## What a backup contains

@@ -1,20 +1,42 @@
+import { existsSync, promises as fs } from 'fs';
 import path from 'path';
-import { promises as fs } from 'fs';
 
 /**
- * In-app Help/Wiki content, sourced from the TREK GitHub wiki (kept in the repo
- * under `wiki/**` and mirrored to the GitHub wiki on push to main). The server
- * fetches the markdown from GitHub and caches it, so the embedded help stays in
- * sync with wiki edits without a redeploy — and the client never talks to GitHub
- * directly (images are proxied too). A bundled snapshot under server/assets/wiki
- * is the cold-start / offline fallback.
+ * In-app Help/Wiki content, sourced from the `wiki/**` directory that ships with
+ * the app — the same content that CI mirrors to the public GitHub wiki. Reading
+ * from disk keeps the help pages pinned to the running version (a v1.2 install
+ * shows v1.2 docs, not whatever `main` says) and works offline.
+ *
+ * If that directory can't be resolved — an unusual layout, an image built without
+ * it — we fall back to fetching from the GitHub wiki over the network and caching
+ * hourly, so help degrades instead of disappearing. The client never talks to
+ * GitHub directly either way; images are proxied through /api/help/asset.
  */
 
-const REPO = 'mauriceboe/TREK';
+const REPO = 'liketrek/TREK';
 const RAW_BASE = `https://raw.githubusercontent.com/${REPO}/main/wiki`;
-const TTL_MS = 60 * 60 * 1000; // refresh from GitHub at most hourly
-const SNAPSHOT_DIR = path.join(__dirname, '..', '..', 'assets', 'wiki');
+const TTL_MS = 60 * 60 * 1000; // remote fallback only: refresh from GitHub at most hourly
 const SLUG_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+/**
+ * `server/{src,dist}/services` both sit three levels under the repo root, so this
+ * one anchor resolves in dev, a built source install, vitest, and Docker (where
+ * the Dockerfile copies `wiki/` to /app/wiki). `process.cwd()` would not — Docker
+ * runs the server from /app/server.
+ */
+const WIKI_DIR = process.env.TREK_WIKI_DIR ?? path.join(__dirname, '..', '..', '..', 'wiki');
+
+/**
+ * Probe for the sidebar rather than the bare directory: an empty or half-copied
+ * `wiki/` should fall back to GitHub, not serve an empty table of contents.
+ */
+const useLocalWiki = existsSync(path.join(WIKI_DIR, '_Sidebar.md'));
+
+if (!useLocalWiki) {
+  console.warn(
+    `[help] wiki not found at ${WIKI_DIR} — falling back to the GitHub wiki (help may not match this version)`,
+  );
+}
 
 export class WikiNotFound extends Error {
   status = 404;
@@ -29,16 +51,26 @@ const assetCache = new Map<string, { buf: Buffer; type: string; ts: number }>();
 
 const fresh = (ts: number): boolean => Date.now() - ts < TTL_MS;
 
-async function readSnapshot(file: string): Promise<string | null> {
-  try {
-    return await fs.readFile(path.join(SNAPSHOT_DIR, file), 'utf8');
-  } catch {
-    return null;
-  }
+/** Resolve a path inside the wiki dir, refusing anything that escapes it. */
+function resolveInWiki(rel: string): string {
+  const root = path.resolve(WIKI_DIR);
+  const full = path.resolve(root, rel);
+  if (full !== root && !full.startsWith(root + path.sep)) throw new WikiNotFound(rel);
+  return full;
 }
 
-/** Fetch a wiki text file with cache → stale-cache → bundled-snapshot fallback. */
+/** Fetch a wiki text file: local disk, or GitHub with cache → stale-cache fallback. */
 async function fetchText(file: string): Promise<string> {
+  if (useLocalWiki) {
+    try {
+      return await fs.readFile(resolveInWiki(file), 'utf8');
+    } catch (err) {
+      if (err instanceof WikiNotFound) throw err;
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') throw new WikiNotFound(file);
+      throw err;
+    }
+  }
+
   const cached = textCache.get(file);
   if (cached && fresh(cached.ts)) return cached.data;
   try {
@@ -53,14 +85,9 @@ async function fetchText(file: string): Promise<string> {
     if (res.status === 404) throw new WikiNotFound(file);
   } catch (err) {
     if (err instanceof WikiNotFound) throw err;
-    // network/parse error — fall through to stale cache or snapshot
+    // network/parse error — fall through to stale cache
   }
   if (cached) return cached.data; // serve stale rather than fail
-  const snap = await readSnapshot(file);
-  if (snap != null) {
-    textCache.set(file, { data: snap, ts: Date.now() });
-    return snap;
-  }
   throw new WikiNotFound(file);
 }
 
@@ -105,16 +132,56 @@ function processMarkdown(md: string): string {
   // markdown renderer would otherwise surface them as raw text.
   let out = md.replace(/<!--[\s\S]*?-->/g, '');
   out = out.replace(/\[\[([^\]]+)\]\]/g, (_m, inner: string) => {
-    const [title, slugRaw] = inner.includes('|') ? inner.split('|') : [inner, inner];
+    const [titleRaw, slugRaw] = inner.includes('|') ? inner.split('|') : [inner, inner];
     const slug = slugRaw.trim().replace(/\s+/g, '-');
-    return `[${title.trim()}](/help/${slug})`;
+    // `[[Plugin Development#talking-to-plugins|Plugin-Development]]` must not
+    // render its anchor as visible link text.
+    const [title, anchor] = titleRaw.includes('#') ? titleRaw.split('#') : [titleRaw, ''];
+    const hash = anchor ? `#${anchor.trim()}` : '';
+    return `[${title.trim()}](/help/${slug}${hash})`;
   });
   out = out.replace(/!\[([^\]]*)\]\(([^)\s]+)([^)]*)\)/g, (m, alt: string, url: string) => {
     if (/^https?:\/\//i.test(url) || url.startsWith('/api/help/asset/')) return m;
     const clean = url.replace(/^\.?\//, '').replace(/^wiki\//, '');
     return `![${alt}](/api/help/asset/${clean})`;
   });
+  // Bare relative links — `[Currencies](Currencies)`, the native GitHub-wiki
+  // spelling and by far the most common in these pages (455 of them across 81
+  // files, against 114 `[[..]]` links). GitHub resolves them against the wiki
+  // root; in-app they used to fall through to HelpPage's external-link branch
+  // and open a dead tab. Rewriting them here fixes every page at once and keeps
+  // the source GitHub-compatible, so contributors can keep writing either form.
+  //
+  // Runs last: `[[..]]` links and images have already become absolute paths by
+  // this point, so the leading-slash guard skips them.
+  out = outsideCode(out, (segment) =>
+    segment.replace(/(^|[^!])\[([^\]]+)\]\(([^)\s]+)\)/g, (m, prefix: string, text: string, url: string) => {
+      if (/^(https?:|mailto:|tel:|#|\/)/i.test(url)) return m;
+      const [pageRaw, anchor] = url.includes('#') ? url.split('#') : [url, ''];
+      const page = pageRaw.replace(/^\.?\//, '').replace(/\.md$/i, '').trim();
+      if (!page || !SLUG_RE.test(page)) return m;
+      return `${prefix}[${text}](/help/${page}${anchor ? `#${anchor}` : ''})`;
+    }),
+  );
   return out;
+}
+
+/**
+ * Apply `fn` to the parts of the markdown that are NOT code, leaving fenced
+ * blocks and inline spans untouched.
+ *
+ * Without this the link rewriter corrupts code samples: Plugin-Development.md
+ * documents `actions[key](ctx)`, which reads as a markdown link and would be
+ * rewritten to `actions[key](/help/ctx)` inside what is supposed to be a
+ * verbatim snippet.
+ */
+function outsideCode(md: string, fn: (segment: string) => string): string {
+  // Alternation order matters: fenced blocks first, so a ``` fence containing
+  // backticks is consumed whole rather than being split by the inline rule.
+  const CODE = /(```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]*`)/g;
+  const parts = md.split(CODE);
+  // split() with a capturing group yields [text, code, text, code, …].
+  return parts.map((part, i) => (i % 2 === 1 ? part : fn(part))).join('');
 }
 
 function extractTitle(md: string, fallback: string): string {
@@ -127,6 +194,9 @@ export interface WikiPage {
   title: string;
   markdown: string;
 }
+
+/** True when help is served from the bundled wiki rather than fetched from GitHub. */
+export const isLocalWiki = (): boolean => useLocalWiki;
 
 export async function getWikiIndex(): Promise<{ sections: WikiNavSection[] }> {
   const md = await fetchText('_Sidebar.md');
@@ -148,13 +218,25 @@ const ASSET_TYPES: Record<string, string> = {
   '.svg': 'image/svg+xml',
 };
 
-/** Proxy a wiki image so the browser never calls GitHub directly. */
+/** Read a wiki image from disk, or proxy it from GitHub so the browser never calls it directly. */
 export async function getWikiAsset(assetPath: string): Promise<{ buf: Buffer; type: string }> {
   // Defend against traversal; allow nested image folders.
   if (assetPath.includes('..') || !/^[A-Za-z0-9/._-]+$/.test(assetPath)) throw new WikiNotFound(assetPath);
   const ext = path.extname(assetPath).toLowerCase();
   const type = ASSET_TYPES[ext];
   if (!type) throw new WikiNotFound(assetPath);
+
+  if (useLocalWiki) {
+    try {
+      // resolveInWiki re-checks containment: the regex above is a filter, this is the boundary.
+      const buf = await fs.readFile(resolveInWiki(assetPath));
+      return { buf, type };
+    } catch (err) {
+      if (err instanceof WikiNotFound) throw err;
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') throw new WikiNotFound(assetPath);
+      throw err;
+    }
+  }
 
   const cached = assetCache.get(assetPath);
   if (cached && fresh(cached.ts)) return { buf: cached.buf, type: cached.type };
@@ -171,10 +253,5 @@ export async function getWikiAsset(assetPath: string): Promise<{ buf: Buffer; ty
     /* fall through */
   }
   if (cached) return { buf: cached.buf, type: cached.type };
-  try {
-    const buf = await fs.readFile(path.join(SNAPSHOT_DIR, assetPath));
-    return { buf, type };
-  } catch {
-    throw new WikiNotFound(assetPath);
-  }
+  throw new WikiNotFound(assetPath);
 }

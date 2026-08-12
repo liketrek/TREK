@@ -5,7 +5,8 @@ import { FileText, Info, Clock, MapPin, Navigation, Train, Plane, Bus, Car, Ship
 import { accommodationsApi, mapsApi, pluginsApi } from '../../api/client'
 import type { Trip, Day, Place, Category, AssignmentsMap, DayNote } from '../../types'
 import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
-import { splitReservationDateTime } from '../../utils/formatters'
+import { formatMoney, formatMoneySum, splitReservationDateTime, type MoneyEntry } from '../../utils/formatters'
+import { fetchExchangeRates } from '../../hooks/useExchangeRates'
 import { getFlightLegs, getTrainLegs } from '../../utils/flightLegs'
 
 function renderLucideIcon(icon:LucideIcon, props = {}) {
@@ -40,7 +41,7 @@ const svgPin   = `<svg width="11" height="11" viewBox="0 0 24 24" fill="#94a3b8"
 const svgClock = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`
 const svgClock2= `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`
 const svgCheck = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L19 7"/></svg>`
-const svgEuro  = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round"><path d="M14 5c-3.87 0-7 3.13-7 7s3.13 7 7 7c2.17 0 4.1-.99 5.4-2.55"/><path d="M5 11h8M5 13h8"/></svg>`
+const svgMoney = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 12h6" stroke-linecap="round"/></svg>`
 
 function escHtml(str) {
   if (!str) return ''
@@ -92,9 +93,15 @@ function longDateRange(days, locale) {
   return `${f.toLocaleDateString(locale, { day: 'numeric', month: 'long', timeZone: 'UTC' })} – ${l.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}`
 }
 
-function dayCost(assignments, dayId, locale) {
-  const total = (assignments[String(dayId)] || []).reduce((s, a) => s + (parseFloat(a.place?.price) || 0), 0)
-  return total > 0 ? `${total.toLocaleString(locale)} EUR` : null
+// Day totals render in the trip's currency; foreign-currency place prices are
+// converted via the pre-fetched rates, or listed per-currency when rates are
+// unavailable (#1561).
+function dayCost(assignments, dayId, locale, tripCurrency, rates) {
+  const entries: MoneyEntry[] = (assignments[String(dayId)] || []).map(a => ({
+    amount: parseFloat(a.place?.price) || 0,
+    currency: a.place?.currency || tripCurrency,
+  }))
+  return formatMoneySum(entries, tripCurrency, locale || 'en', rates)
 }
 
 // Pre-fetch place photos for all assigned places.
@@ -160,8 +167,18 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   const totalAssigned = new Set(
     Object.values(assignments || {}).flatMap(a => a.map(x => x.place?.id)).filter(Boolean)
   ).size
-  const totalCost = Object.values(assignments || {})
-    .flatMap(a => a).reduce((s, a) => s + (Number(a.place?.price) || 0), 0)
+  // The PDF is a trip-scoped, shareable document, so totals stay in the trip's
+  // own currency. Rates are resolved ONCE before any HTML is built so the cover
+  // stat and every day header agree; all-same-currency trips skip the FX fetch
+  // entirely (offline export keeps working), and a failed fetch degrades to
+  // per-currency breakdowns instead of mislabeled sums (#1561).
+  const tripCur = (trip?.currency || 'EUR').toUpperCase()
+  const allCostEntries: MoneyEntry[] = Object.values(assignments || {})
+    .flatMap(a => a)
+    .map(a => ({ amount: Number(a.place?.price) || 0, currency: a.place?.currency || tripCur }))
+  const needsFx = allCostEntries.some(e => e.amount > 0 && e.currency.toUpperCase() !== tripCur)
+  const fxRates = needsFx ? await fetchExchangeRates(tripCur) : null
+  const totalCostLabel = formatMoneySum(allCostEntries, tripCur, loc || 'en', fxRates)
 
   // Span helpers for multi-day transport (mirrors DayPlanSidebar logic)
   const pdfGetDayOrder = (d: Day) => d.day_number
@@ -204,7 +221,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   const daysHtml = sorted.map((day, di) => {
     const assigned = assignments[String(day.id)] || []
     const notes = (dayNotes || []).filter(n => n.day_id === day.id)
-    const cost = dayCost(assignments, day.id, loc)
+    const cost = dayCost(assignments, day.id, loc, tripCur, fxRates)
 
     // Reservations for this day (hotel rendered via accommodations block; car middle-phase rendered in sidebar header only)
     const dayReservations = pdfGetTransportForDay(day.id)
@@ -320,7 +337,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
 
           const chips = [
             place.place_time ? `<span class="chip">${svgClock}${escHtml(place.place_time)}</span>` : '',
-            place.price && parseFloat(place.price) > 0 ? `<span class="chip chip-green">${svgEuro}${Number(place.price).toLocaleString(loc)} EUR</span>` : '',
+            place.price && parseFloat(place.price) > 0 ? `<span class="chip chip-green">${svgMoney}${formatMoney(Number(place.price), place.currency || trip.currency, loc)}</span>` : '',
           ].filter(Boolean).join('')
 
           return `
@@ -495,7 +512,11 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   .day-title { font-size: 13px; font-weight: 600; color: #fff; flex: 1; }
   .day-date  { font-size: 9px; color: rgba(255,255,255,0.45); }
   .day-cost  { font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.65); }
-  .day-body  { padding: 12px 28px 6px; }
+  /* The gap under the header bar must sit inside the repeated <thead> cell: a block-start
+     padding on .day-body is only painted on the box's first fragment, so overflow pages
+     would render their first card flush against the bar (#1531). */
+  .day-header > tr > td { padding-bottom: 12px; }
+  .day-body  { padding: 0 28px 6px; }
 
   /* accommodation info */
   .day-accommodations-overview { font-size: 12px; }
@@ -620,8 +641,8 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
         <div class="cover-stat-num">${totalAssigned}</div>
         <div class="cover-stat-lbl">${escHtml(tr('pdf.planned'))}</div>
       </div>
-      ${totalCost > 0 ? `<div>
-        <div class="cover-stat-num">${totalCost.toLocaleString(loc)}</div>
+      ${totalCostLabel ? `<div>
+        <div class="cover-stat-num">${totalCostLabel}</div>
         <div class="cover-stat-lbl">${escHtml(tr('pdf.costLabel'))}</div>
       </div>` : ''}
     </div>

@@ -1,4 +1,4 @@
-import { Blocks } from 'lucide-react'
+import PluginIcon from '../shared/PluginIcon'
 import PluginFrame from './PluginFrame'
 import type { ActivePlugin } from '../../store/pluginStore'
 
@@ -35,7 +35,7 @@ export default function PluginWidgets({ plugins, tripId = null }: { plugins: Act
               color: 'var(--ink-3)',
             }}
           >
-            <Blocks size={14} style={{ flexShrink: 0 }} />
+            <PluginIcon name={p.icon} size={14} style={{ flexShrink: 0 }} />
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
           </div>
           {/* min-height is just a pre-resize floor; trek:resize drives the real height. */}

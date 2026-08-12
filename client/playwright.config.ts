@@ -35,6 +35,28 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], storageState: 'e2e/.tmp/state.json' },
       dependencies: ['setup'],
     },
+    // Documentation screenshots (`npm run shots`). Excluded from the normal e2e
+    // run by its own testMatch — these capture artwork for wiki/assets/, they
+    // assert nothing. 2x scale keeps text crisp at the sizes the wiki renders.
+    // Populates the demo trip the screenshots are taken of. Separate project so
+    // it runs exactly once, between auth and capture.
+    {
+      name: 'seed',
+      testMatch: /seed\.setup\.ts/,
+      use: { ...devices['Desktop Chrome'], storageState: 'e2e/.tmp/state.json' },
+      dependencies: ['setup'],
+    },
+    {
+      name: 'screenshots',
+      testMatch: /\.shot\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.tmp/state.json',
+        viewport: { width: 1440, height: 900 },
+        deviceScaleFactor: 2,
+      },
+      dependencies: ['seed'],
+    },
   ],
   webServer: [
     {

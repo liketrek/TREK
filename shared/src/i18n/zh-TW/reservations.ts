@@ -159,6 +159,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.otherFlights': '其他航班',
   'reservations.airtrail.empty': '在你的 AirTrail 帳戶中找不到任何航班。',
   'reservations.airtrail.importCta': '匯入 {count}',
+  'reservations.airtrail.joinConnection': '匯入為一個航班（在{stops}轉機）',
   'reservations.costsLabel': 'Costs',
   'reservations.createExpense': 'Create expense',
   'reservations.createExpenseHint': 'Saves the booking, then opens the Costs editor.',

@@ -1,19 +1,24 @@
-import nodemailer from 'nodemailer';
 import { db } from '../db/database';
+import { checkSsrf, createPinnedDispatcher } from '../utils/ssrfGuard';
 import { decrypt_api_key } from './apiKeyCrypto';
 import { logInfo, logDebug, logError } from './auditLog';
-import { checkSsrf, createPinnedDispatcher } from '../utils/ssrfGuard';
-
 // ── Types ──────────────────────────────────────────────────────────────────
 
 import type { NotifEventType } from './notificationPreferencesService';
 import { EMAIL_I18N as I18N, EVENT_TEXTS, PASSWORD_RESET_I18N } from '@trek/shared/i18n/externalNotifications';
-import type { EmailStrings, EventText, PasswordResetStrings, NotificationEventKey } from '@trek/shared/i18n/externalNotifications';
+import type {
+  EmailStrings,
+  EventText,
+  PasswordResetStrings,
+  NotificationEventKey,
+} from '@trek/shared/i18n/externalNotifications';
+
+import nodemailer from 'nodemailer';
 
 // Compile-time guard: shared NotificationEventKey and server NotifEventType must stay in sync.
-type _EvtFwd = NotifEventType extends NotificationEventKey ? true : never
-type _EvtBwd = NotificationEventKey extends NotifEventType ? true : never
-const _eventKeyDriftGuard: [_EvtFwd, _EvtBwd] = [true, true]
+type _EvtFwd = NotifEventType extends NotificationEventKey ? true : never;
+type _EvtBwd = NotificationEventKey extends NotifEventType ? true : never;
+const _eventKeyDriftGuard: [_EvtFwd, _EvtBwd] = [true, true];
 
 interface SmtpConfig {
   host: string;
@@ -38,7 +43,10 @@ function escapeHtml(str: string): string {
 // ── Settings helpers ───────────────────────────────────────────────────────
 
 function getAppSetting(key: string): string | null {
-  return (db.prepare("SELECT value FROM app_settings WHERE key = ?").get(key) as { value: string } | undefined)?.value || null;
+  return (
+    (db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined)?.value ||
+    null
+  );
 }
 
 function getSmtpConfig(): SmtpConfig | null {
@@ -48,7 +56,14 @@ function getSmtpConfig(): SmtpConfig | null {
   const pass = process.env.SMTP_PASS || decrypt_api_key(getAppSetting('smtp_pass')) || '';
   const from = process.env.SMTP_FROM || getAppSetting('smtp_from');
   if (!host || !port || !from) return null;
-  return { host, port: parseInt(port, 10), user: user || '', pass: pass || '', from, secure: parseInt(port, 10) === 465 };
+  return {
+    host,
+    port: parseInt(port, 10),
+    user: user || '',
+    pass: pass || '',
+    from,
+    secure: parseInt(port, 10) === 465,
+  };
 }
 
 // Exported for use by notificationService
@@ -57,8 +72,7 @@ export function getAppUrl(): string {
     try {
       const _ = new URL(process.env.APP_URL);
       return process.env.APP_URL.replace(/\/+$/, '');
-    } catch (_ignored) {
-    }
+    } catch (_ignored) {}
   }
   const origins = process.env.ALLOWED_ORIGINS;
   if (origins) {
@@ -67,8 +81,7 @@ export function getAppUrl(): string {
       try {
         const _ = new URL(first);
         return first.replace(/\/+$/, '');
-      } catch (_ignored) {
-      }
+      } catch (_ignored) {}
     }
   }
   const port = Number(process.env.PORT) || 3001;
@@ -99,15 +112,32 @@ export function isSmtpConfigured(): boolean {
 
 export function getUserEmail(userId: number): string | null {
   // Defense-in-depth (#1362): a guest's synthetic email must never be emailed.
-  return (db.prepare('SELECT email FROM users WHERE id = ? AND COALESCE(is_guest, 0) = 0').get(userId) as { email: string } | undefined)?.email || null;
+  return (
+    (
+      db.prepare('SELECT email FROM users WHERE id = ? AND COALESCE(is_guest, 0) = 0').get(userId) as
+        | { email: string }
+        | undefined
+    )?.email || null
+  );
 }
 
 export function getUserLanguage(userId: number): string {
-  return (db.prepare("SELECT value FROM settings WHERE user_id = ? AND key = 'language'").get(userId) as { value: string } | undefined)?.value || 'en';
+  return (
+    (
+      db.prepare("SELECT value FROM settings WHERE user_id = ? AND key = 'language'").get(userId) as
+        | { value: string }
+        | undefined
+    )?.value || 'en'
+  );
 }
 
 export function getUserWebhookUrl(userId: number): string | null {
-  const value = (db.prepare("SELECT value FROM settings WHERE user_id = ? AND key = 'webhook_url'").get(userId) as { value: string } | undefined)?.value || null;
+  const value =
+    (
+      db.prepare("SELECT value FROM settings WHERE user_id = ? AND key = 'webhook_url'").get(userId) as
+        | { value: string }
+        | undefined
+    )?.value || null;
   return value ? decrypt_api_key(value) : null;
 }
 
@@ -130,10 +160,16 @@ export function getEventText(lang: string, event: NotifEventType, params: Record
 
 // ── Email HTML builder ─────────────────────────────────────────────────────
 
-export function buildEmailHtml(subject: string, body: string, lang: string, navigateTarget?: string, rawBody = false): string {
+export function buildEmailHtml(
+  subject: string,
+  body: string,
+  lang: string,
+  navigateTarget?: string,
+  rawBody = false,
+): string {
   const s = I18N[lang] || I18N.en;
   const appUrl = getAppUrl();
-  const ctaHref = escapeHtml(navigateTarget ? `${appUrl}${navigateTarget}` : (appUrl || ''));
+  const ctaHref = escapeHtml(navigateTarget ? `${appUrl}${navigateTarget}` : appUrl || '');
   const safeSubject = escapeHtml(subject);
   const safeBody = rawBody ? body : escapeHtml(body);
 
@@ -157,13 +193,17 @@ export function buildEmailHtml(subject: string, body: string, lang: string, navi
           <p style="margin: 0; font-size: 14px; color: #4b5563; line-height: 1.7; white-space: pre-wrap;">${safeBody}</p>
         </td></tr>
         <!-- CTA -->
-        ${appUrl ? `<tr><td style="padding: 8px 32px 32px; text-align: center;">
+        ${
+          appUrl
+            ? `<tr><td style="padding: 8px 32px 32px; text-align: center;">
           <a href="${ctaHref}" style="display: inline-block; padding: 12px 28px; background: #111827; color: #ffffff; font-size: 13px; font-weight: 600; text-decoration: none; border-radius: 10px; letter-spacing: 0.2px;">${s.openTrek}</a>
-        </td></tr>` : ''}
+        </td></tr>`
+            : ''
+        }
         <!-- Footer -->
         <tr><td style="padding: 20px 32px; background: #f9fafb; border-top: 1px solid #f3f4f6; text-align: center;">
           <p style="margin: 0 0 8px; font-size: 11px; color: #9ca3af; line-height: 1.5;">${s.footer}<br>${s.manage}</p>
-          <p style="margin: 0; font-size: 10px; color: #d1d5db;">${s.madeWith} <span style="color: #ef4444;">&hearts;</span> by Maurice &middot; <a href="https://github.com/mauriceboe/TREK" style="color: #9ca3af; text-decoration: none;">GitHub</a></p>
+          <p style="margin: 0; font-size: 10px; color: #d1d5db;">${s.madeWith} <span style="color: #ef4444;">&hearts;</span> by Maurice &middot; <a href="https://github.com/liketrek/TREK" style="color: #9ca3af; text-decoration: none;">GitHub</a></p>
         </td></tr>
       </table>
     </td></tr>
@@ -178,7 +218,13 @@ export function buildEmailHtml(subject: string, body: string, lang: string, navi
 
 // PASSWORD_RESET_I18N imported from @trek/shared/i18n/externalNotifications
 
-function buildPasswordResetHtml(subject: string, strings: PasswordResetStrings, recipient: string, resetUrl: string, lang: string): string {
+function buildPasswordResetHtml(
+  subject: string,
+  strings: PasswordResetStrings,
+  recipient: string,
+  resetUrl: string,
+  lang: string,
+): string {
   const safeGreeting = escapeHtml(`${strings.greeting}, ${recipient}`);
   const safeBody = escapeHtml(strings.body);
   const safeExpiry = escapeHtml(strings.expiry);
@@ -217,14 +263,14 @@ export async function sendPasswordResetEmail(
     // No SMTP configured — log the link in a visually distinct block so
     // the admin can relay it. Never log the associated user id/email
     // content at a lower level, only what's needed.
-     
+
     console.log(
       `\n===== PASSWORD RESET LINK =====\n` +
-      `to: ${to}\n` +
-      `url: ${resetUrl}\n` +
-      `expires: 60 minutes\n` +
-      `(SMTP is not configured — deliver this link to the user manually.)\n` +
-      `================================\n`,
+        `to: ${to}\n` +
+        `url: ${resetUrl}\n` +
+        `expires: 60 minutes\n` +
+        `(SMTP is not configured — deliver this link to the user manually.)\n` +
+        `================================\n`,
     );
     logInfo(`Password reset link issued (no SMTP) for=${to}`);
     return { delivered: 'log' };
@@ -254,7 +300,13 @@ export async function sendPasswordResetEmail(
   }
 }
 
-export async function sendEmail(to: string, subject: string, body: string, userId?: number, navigateTarget?: string): Promise<boolean> {
+export async function sendEmail(
+  to: string,
+  subject: string,
+  body: string,
+  userId?: number,
+  navigateTarget?: string,
+): Promise<boolean> {
   const config = getSmtpConfig();
   if (!config) return false;
 
@@ -286,20 +338,25 @@ export async function sendEmail(to: string, subject: string, body: string, userI
   }
 }
 
-export function buildWebhookBody(url: string, payload: { event: string; title: string; body: string; tripName?: string; link?: string }): string {
+export function buildWebhookBody(
+  url: string,
+  payload: { event: string; title: string; body: string; tripName?: string; link?: string },
+): string {
   const isDiscord = /discord(?:app)?\.com\/api\/webhooks\//.test(url);
   const isSlack = /hooks\.slack\.com\//.test(url);
 
   if (isDiscord) {
     return JSON.stringify({
-      embeds: [{
-        title: `📍 ${payload.title}`,
-        description: payload.body,
-        url: payload.link,
-        color: 0x3b82f6,
-        footer: { text: payload.tripName ? `Trip: ${payload.tripName}` : 'TREK' },
-        timestamp: new Date().toISOString(),
-      }],
+      embeds: [
+        {
+          title: `📍 ${payload.title}`,
+          description: payload.body,
+          url: payload.link,
+          color: 0x3b82f6,
+          footer: { text: payload.tripName ? `Trip: ${payload.tripName}` : 'TREK' },
+          timestamp: new Date().toISOString(),
+        },
+      ],
     });
   }
 
@@ -314,7 +371,10 @@ export function buildWebhookBody(url: string, payload: { event: string; title: s
   return JSON.stringify({ ...payload, timestamp: new Date().toISOString(), source: 'TREK' });
 }
 
-export async function sendWebhook(url: string, payload: { event: string; title: string; body: string; tripName?: string; link?: string }): Promise<boolean> {
+export async function sendWebhook(
+  url: string,
+  payload: { event: string; title: string; body: string; tripName?: string; link?: string },
+): Promise<boolean> {
   if (!url) return false;
 
   const ssrf = await checkSsrf(url);
@@ -373,7 +433,11 @@ export async function testSmtp(to: string): Promise<{ success: boolean; error?: 
 
 export async function testWebhook(url: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const sent = await sendWebhook(url, { event: 'test', title: 'Test Notification', body: 'This is a test webhook from TREK. If you received this, your webhook configuration is working correctly.' });
+    const sent = await sendWebhook(url, {
+      event: 'test',
+      title: 'Test Notification',
+      body: 'This is a test webhook from TREK. If you received this, your webhook configuration is working correctly.',
+    });
     return sent ? { success: true } : { success: false, error: 'Failed to send webhook' };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
@@ -390,22 +454,22 @@ export interface NtfyConfig {
 
 /** Priority and tags mapped to each notification event type. */
 const NTFY_EVENT_META: Partial<Record<NotifEventType, { priority: 1 | 2 | 3 | 4 | 5; tags: string[] }>> = {
-  trip_invite:              { priority: 4, tags: ['loudspeaker'] },
-  booking_change:           { priority: 3, tags: ['calendar'] },
-  trip_reminder:            { priority: 4, tags: ['bell', 'alarm_clock'] },
-  vacay_invite:             { priority: 4, tags: ['palm_tree'] },
-  photos_shared:            { priority: 3, tags: ['camera'] },
-  collab_message:           { priority: 3, tags: ['speech_balloon'] },
-  packing_tagged:           { priority: 3, tags: ['luggage'] },
-  version_available:        { priority: 4, tags: ['package'] },
+  trip_invite: { priority: 4, tags: ['loudspeaker'] },
+  booking_change: { priority: 3, tags: ['calendar'] },
+  trip_reminder: { priority: 4, tags: ['bell', 'alarm_clock'] },
+  vacay_invite: { priority: 4, tags: ['palm_tree'] },
+  photos_shared: { priority: 3, tags: ['camera'] },
+  collab_message: { priority: 3, tags: ['speech_balloon'] },
+  packing_tagged: { priority: 3, tags: ['luggage'] },
+  version_available: { priority: 4, tags: ['package'] },
   synology_session_cleared: { priority: 3, tags: ['warning'] },
 };
 const NTFY_DEFAULT_META = { priority: 3 as const, tags: [] as string[] };
 
 export function getUserNtfyConfig(userId: number): NtfyConfig | null {
-  const rows = db.prepare(
-    "SELECT key, value FROM settings WHERE user_id = ? AND key IN ('ntfy_topic', 'ntfy_server', 'ntfy_token')"
-  ).all(userId) as { key: string; value: string }[];
+  const rows = db
+    .prepare("SELECT key, value FROM settings WHERE user_id = ? AND key IN ('ntfy_topic', 'ntfy_server', 'ntfy_token')")
+    .all(userId) as { key: string; value: string }[];
   if (rows.length === 0) return null;
   const map: Record<string, string> = {};
   for (const r of rows) map[r.key] = r.value;
@@ -428,19 +492,28 @@ export function getAdminNtfyConfig(): NtfyConfig {
 }
 
 /**
- * Resolve the ntfy POST URL from admin base config + user override.
- * Returns null if topic cannot be determined.
+ * Resolve the ntfy POST URL for a per-user send. The topic must come from the
+ * user's own config — the admin topic is reserved for admin-scoped sends
+ * (see resolveAdminNtfyUrl). Only the server falls back to the admin default.
+ * Returns null if the user has no topic.
  */
 export function resolveNtfyUrl(adminCfg: NtfyConfig, userCfg: NtfyConfig | null): string | null {
-  const topic = userCfg?.topic || adminCfg.topic;
+  const topic = userCfg?.topic;
   if (!topic) return null;
   const base = (userCfg?.server || adminCfg.server || 'https://ntfy.sh').replace(/\/+$/, '');
   return `${base}/${encodeURIComponent(topic)}`;
 }
 
+/** Resolve the ntfy POST URL for admin-scoped sends. Returns null if no admin topic. */
+export function resolveAdminNtfyUrl(adminCfg: NtfyConfig): string | null {
+  if (!adminCfg.topic) return null;
+  const base = (adminCfg.server || 'https://ntfy.sh').replace(/\/+$/, '');
+  return `${base}/${encodeURIComponent(adminCfg.topic)}`;
+}
+
 function encodeHeaderValue(value: string): string {
   for (let i = 0; i < value.length; i++) {
-    if (value.charCodeAt(i) > 0xFF) {
+    if (value.charCodeAt(i) > 0xff) {
       return `=?UTF-8?B?${Buffer.from(value, 'utf8').toString('base64')}?=`;
     }
   }
@@ -464,8 +537,8 @@ export async function sendNtfy(
 
   // ntfy header-based API: POST to topic URL, body = plain text message, metadata in headers
   const headers: Record<string, string> = {
-    'Title': encodeHeaderValue(payload.title),
-    'Priority': String(meta.priority),
+    Title: encodeHeaderValue(payload.title),
+    Priority: String(meta.priority),
   };
   if (meta.tags.length > 0) headers['Tags'] = meta.tags.join(',');
   if (payload.link) headers['Click'] = encodeHeaderValue(payload.link);
@@ -495,7 +568,11 @@ export async function sendNtfy(
   }
 }
 
-export async function testNtfy(cfg: { topic: string; server?: string | null; token?: string | null }): Promise<{ success: boolean; error?: string }> {
+export async function testNtfy(cfg: {
+  topic: string;
+  server?: string | null;
+  token?: string | null;
+}): Promise<{ success: boolean; error?: string }> {
   const adminCfg = getAdminNtfyConfig();
   const url = resolveNtfyUrl(adminCfg, { topic: cfg.topic, server: cfg.server ?? null, token: cfg.token ?? null });
   if (!url) return { success: false, error: 'Could not resolve ntfy URL — missing topic' };
@@ -510,4 +587,3 @@ export async function testNtfy(cfg: { topic: string; server?: string | null; tok
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
   }
 }
-

@@ -283,6 +283,10 @@ export class ReservationMapboxOverlay {
     // overlay, so tiny no-op transport lines don't clutter the map.
     const visibleItems = show ? this.items.filter(item => {
       try {
+        // A transit journey draws its real alignment, not a straight from->to line, so
+        // don't let the endpoint-proximity declutter hide it when the map is zoomed out
+        // (#1570). Mirrors the Leaflet overlay.
+        if (item.type === 'transit' && getTransitMapSegments(item.res).length > 0) return true
         const fromPx = map.project([item.from.lng, item.from.lat])
         const toPx = map.project([item.to.lng, item.to.lat])
         const dx = fromPx.x - toPx.x, dy = fromPx.y - toPx.y

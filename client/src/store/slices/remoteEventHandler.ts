@@ -164,6 +164,10 @@ async function _writeDayToDb(dayId: number, state: TripStoreState): Promise<void
 export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocketEvent): void {
   const { type, ...payload } = event
 
+  // Snapshot before set(): the trip:updated case below replaces state.trip, so a
+  // date-change check made after it would compare the new trip against itself.
+  const prevTrip = get().trip
+
   set(state => {
     switch (type) {
       // Places
@@ -467,6 +471,20 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
     if (tripId) {
       get().refreshDays(tripId)
       get().loadReservations(tripId)
+    }
+  }
+
+  // A trip date-range change re-dates day rows and re-anchors bookings and
+  // accommodations server-side (#1288), so pull the authoritative days +
+  // reservations and tell the planner to reload accommodations (they live in
+  // page-local state, not this store).
+  if (type === 'trip:updated') {
+    const updated = payload.trip as Trip
+    if (prevTrip && updated.id === prevTrip.id
+      && (updated.start_date !== prevTrip.start_date || updated.end_date !== prevTrip.end_date)) {
+      get().refreshDays(updated.id)
+      get().loadReservations(updated.id)
+      window.dispatchEvent(new CustomEvent('accommodations:refresh'))
     }
   }
 

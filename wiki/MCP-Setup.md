@@ -2,8 +2,6 @@
 
 This page explains how to connect an AI assistant to your TREK instance. TREK supports three authentication methods: OAuth 2.1 with browser consent (recommended for interactive clients), machine clients with no browser login (recommended for AI agents and scripts), and static API tokens (deprecated).
 
-<!-- TODO: screenshot: OAuth client registration form -->
-
 ![MCP Setup](assets/MCPConfig.png)
 
 > **Cloudflare users:** If your TREK instance is proxied through Cloudflare, Bot Fight Mode and Super Bot Fight Mode will block MCP requests from ChatGPT. Claude.ai is not affected. See [Troubleshooting → MCP requests blocked by Cloudflare WAF](#mcp-requests-blocked-by-cloudflare-waf-bot-fight-mode) for the fix.
@@ -154,3 +152,5 @@ Each user can create up to **10 static tokens**.
 - [MCP-Scopes](MCP-Scopes)
 - [Admin-MCP-Tokens](Admin-MCP-Tokens)
 - [Environment-Variables](Environment-Variables)
+- [Reverse-Proxy](Reverse-Proxy) — the proxy must pass `Mcp-Session-Id` through, or every tool call opens a new session
+- [Troubleshooting](Troubleshooting) — OAuth flow not starting, sessions piling up, Cloudflare WAF blocks

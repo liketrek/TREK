@@ -6,13 +6,14 @@
  * dblclick fires the default double-click-zoom, so two quick one-finger pans zoomed
  * instead of panning (#1440).
  *
- * Reorder DnD is disabled on mobile viewports (#1432), so the polyfill has no job below
- * the lg breakpoint — skip it there to remove the phantom-dblclick source on phones
- * while keeping touch DnD on desktop / large (touch) viewports.
+ * Reorder DnD is disabled wherever the primary pointer is coarse (#1432), so the only
+ * device class left with a job for the polyfill is the hybrid laptop: a mouse as the
+ * primary pointer, with a touchscreen also available. Loading it anywhere else — notably
+ * on tablets, which a width check misclassifies as desktop — re-arms the very gesture
+ * hijack #1432 removed, and drags the #1440 phantom-dblclick along with it.
  */
 export function maybeInstallTouchDragPolyfill(): Promise<unknown> | void {
   if (typeof window === 'undefined') return
-  // Mirrors useIsMobile's SSR-safe initial check (lg breakpoint = 1024px).
-  if (window.innerWidth < 1024) return
+  if (!window.matchMedia('(pointer: fine) and (any-pointer: coarse)').matches) return
   return import('drag-drop-touch')
 }

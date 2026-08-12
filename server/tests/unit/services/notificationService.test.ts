@@ -527,10 +527,22 @@ describe('send() — ntfy channel dispatch', () => {
   it('NTFY-SVCB-003 — ntfy skips when user has no topic configured', async () => {
     const { user } = createUser(testDb);
     setNotificationChannels(testDb, 'ntfy');
-    // No ntfy_topic set, but no admin_ntfy_server either — resolveNtfyUrl returns null
+    // No ntfy_topic set — resolveNtfyUrl requires a user topic, so it returns null
 
     fetchMock.mockClear();
     await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Rome', actor: 'Alice', invitee: 'Bob', tripId: '1' } });
+
+    const ntfyCalls = fetchMock.mock.calls.filter(([url]: [string]) => url.includes('ntfy.sh'));
+    expect(ntfyCalls.length).toBe(0);
+  });
+
+  it('NTFY-SVCB-005 — ntfy does not fall back to admin topic when user has no topic (#1608)', async () => {
+    const { user } = createUser(testDb);
+    setAdminNtfyTopic();
+    setNotificationChannels(testDb, 'ntfy');
+
+    fetchMock.mockClear();
+    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Oslo', actor: 'Alice', invitee: 'Bob', tripId: '1' } });
 
     const ntfyCalls = fetchMock.mock.calls.filter(([url]: [string]) => url.includes('ntfy.sh'));
     expect(ntfyCalls.length).toBe(0);

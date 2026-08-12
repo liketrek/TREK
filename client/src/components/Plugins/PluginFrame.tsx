@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useTripStore } from '../../store/tripStore'
 import { useToast } from '../shared/Toast'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { pluginsApi } from '../../api/client'
@@ -96,6 +97,12 @@ interface PluginFrameProps {
   fill?: boolean
   className?: string
   title?: string
+  /**
+   * Entry document inside the plugin's client/ dir. Defaults to the widget's
+   * index.html; the user-settings surface loads settings.html instead. Host-set
+   * literals only — never user input (it becomes part of the frame URL).
+   */
+  path?: string
 }
 
 type Inbound =
@@ -117,7 +124,7 @@ interface ConfirmRequest {
   danger: boolean
 }
 
-export default function PluginFrame({ pluginId, tripId = null, placeId = null, dayId = null, reservationId = null, fill = false, className, title }: PluginFrameProps) {
+export default function PluginFrame({ pluginId, tripId = null, placeId = null, dayId = null, reservationId = null, fill = false, className, title, path = 'index.html' }: PluginFrameProps) {
   const frameRef = useRef<HTMLIFrameElement | null>(null)
   // A sandboxed frame may navigate ITSELF (connect-src can't stop that), and its
   // window identity keeps matching our iframe afterwards. Track loads and refuse
@@ -141,6 +148,10 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
   const userAvatar = useAuthStore((s) => s.user?.avatar_url ?? null)
   const isAdmin = useAuthStore((s) => s.user?.role === 'admin')
   const settings = useSettingsStore((s) => s.settings)
+  // Plugins format money against a concrete code, so resolve the same chain Costs
+  // uses: the user's display currency, else the trip's own.
+  const tripCurrency = useTripStore((s) => s.trip?.currency)
+  const displayCurrency = (settings.default_currency || tripCurrency || 'EUR').toUpperCase()
   const [height, setHeight] = useState<number | null>(null)
   // A host-rendered ConfirmDialog on the plugin's behalf: sandboxed frames have no
   // allow-modals and can't overlay the host, so destructive plugin actions get the
@@ -177,7 +188,7 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
     appearance: readAppearance(),
     formats: {
       locale,
-      currency: settings.default_currency,
+      currency: displayCurrency,
       timeFormat: settings.time_format,
       distanceUnit: settings.distance_unit,
       temperatureUnit: settings.temperature_unit,
@@ -364,7 +375,7 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
       <iframe
         key={pluginId}
         ref={frameRef}
-        src={`/plugin-frame/${pluginId}/index.html`}
+        src={`/plugin-frame/${pluginId}/${path}`}
         // Deliver the context as soon as the document is parsed (the plugin sets up its
         // message listener during parse), closing the trek:ready race so the theme is
         // right on first paint. A 2nd load is a self-navigation — don't bridge to it.

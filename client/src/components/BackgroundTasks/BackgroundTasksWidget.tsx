@@ -136,7 +136,14 @@ export default function BackgroundTasksWidget() {
                   {t('common.import')}
                 </button>
               ) : (
-                <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 1 }}>{t('reservations.import.previewEmpty')}</div>
+                <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 1 }}>
+                  {t('reservations.import.previewEmpty')}
+                  {(task.warnings?.length ?? 0) > 0 && (
+                    <div style={{ color: '#b45309', marginTop: 3, whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 96, overflowY: 'auto' }}>
+                      {task.warnings!.join('\n')}
+                    </div>
+                  )}
+                </div>
               )
             )}
 

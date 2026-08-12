@@ -188,14 +188,18 @@ const admin: TranslationStrings = {
   'admin.plugins.viewErrors': 'Fehlerprotokoll ansehen',
   'admin.plugins.errorLog': 'Fehlerprotokoll',
   'admin.plugins.allowedHosts': 'Erlaubte Hosts',
-  'admin.plugins.allowedHosts.hint': 'Dieses Plugin spricht mit einem Dienst, den nur du benennen kannst (ein selbst gehosteter Server). Füge die Hosts hinzu, die es erreichen darf — andere erreicht es nicht.',
+  'admin.plugins.allowedHosts.hint':
+    'Dieses Plugin spricht mit einem Dienst, den nur du benennen kannst (ein selbst gehosteter Server). Füge die Hosts hinzu, die es erreichen darf — andere erreicht es nicht.',
   'admin.plugins.allowedHosts.none': 'Noch keine Hosts hinzugefügt.',
-  'admin.plugins.allowedHosts.unsupported': 'Dieses Plugin nutzt keine vom Betreiber angegebenen Hosts. Seine erlaubten Hosts stehen fest im Manifest.',
-  'admin.plugins.allowedHosts.restartNote': 'Beim Speichern wird das Plugin neu gestartet, damit es die neue Liste übernimmt.',
+  'admin.plugins.allowedHosts.unsupported':
+    'Dieses Plugin nutzt keine vom Betreiber angegebenen Hosts. Seine erlaubten Hosts stehen fest im Manifest.',
+  'admin.plugins.allowedHosts.restartNote':
+    'Beim Speichern wird das Plugin neu gestartet, damit es die neue Liste übernimmt.',
   'admin.plugins.allowedHosts.add': 'Erlaubten Host hinzufügen',
   'admin.plugins.allowedHosts.count': '{n} erlaubte Hosts',
   'admin.plugins.operatorEgressPill': '+ von dir ergänzte Hosts',
-  'admin.plugins.operatorEgressHint': 'Dieses Plugin spricht mit einem Dienst, den nur du benennen kannst (ein selbst gehosteter Server). Füge nach der Installation unter ⋯ → Erlaubte Hosts die erreichbaren Hosts hinzu. Andere erreicht es nicht.',
+  'admin.plugins.operatorEgressHint':
+    'Dieses Plugin spricht mit einem Dienst, den nur du benennen kannst (ein selbst gehosteter Server). Füge nach der Installation unter ⋯ → Erlaubte Hosts die erreichbaren Hosts hinzu. Andere erreicht es nicht.',
   'admin.plugins.noErrors': 'Keine Fehler protokolliert.',
   'admin.plugins.uninstalled': 'Plugin deinstalliert',
   'admin.plugins.uninstallTitle': 'Plugin deinstallieren?',
@@ -359,6 +363,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': 'Was „Geprüft" bedeutet',
   'admin.plugins.security.reviewedBody':
     'Ein geprüftes Plugin wurde bei jeder Version von einem TREK-Maintainer manuell auf Schadsoftware gescannt — geprüft auf feindlichen Code, nicht darauf, ob es gut funktioniert. Es ist kein Versprechen, dass das Plugin harmlos ist.',
+  'admin.plugins.security.signedTitle': 'Was „Signiert" bedeutet',
+  'admin.plugins.security.signedBody':
+    'Die Prüfsumme, die TREK bei jeder Installation prüft, belegt, dass die Dateien genau das sind, wofür die Registry einsteht. Eine Signatur belegt etwas anderes: dass sie vom Autor stammen, signiert mit einem Schlüssel, den nur er besitzt. Ein signiertes Plugin hat beides. Ein unsigniertes ist nicht unsicher — es trägt schlicht eine Garantie weniger, und die meisten Plugins in der Registry sind heute unsigniert.',
+  'admin.plugins.signed': 'Signiert',
+  'admin.plugins.signedHint': 'Bei der Installation gegen den Signaturschlüssel des Autors geprüft',
+  'admin.plugins.unsigned': 'Unsigniert',
+  'admin.plugins.unsignedHint':
+    'Die Dateien entsprechen dem, wofür die Registry einsteht, aber nichts verbindet sie mit dem Autor. Eine Garantie weniger — nicht unsicher.',
+  'admin.plugins.updateBlocked': 'Update blockiert — {reason}',
+  'admin.plugins.reviewBlock': 'Ansehen',
+  'admin.plugins.retrusted': 'Neuem Signaturschlüssel vertraut — das Plugin ist aktualisiert',
+  'admin.plugins.sig.title': 'Die Signatur von {name} konnte nicht geprüft werden',
+  'admin.plugins.sig.keyChangedBody':
+    'Der Signaturschlüssel des Autors ist nicht der, mit dem dieses Plugin installiert wurde. Autoren wechseln ihre Schlüssel durchaus — aber ein Angreifer, der das Plugin übernommen hat, sähe von hier aus genau so aus.',
+  'admin.plugins.sig.invalidBody':
+    'Die Dateien passen nicht zur Signatur des Autors. Sie sind nicht das, was der Autor signiert hat — entweder wurden sie beschädigt oder manipuliert. Das lässt sich nicht übergehen.',
+  'admin.plugins.sig.missingBody':
+    'Dieses Plugin war signiert, als du es installiert hast, aber die neue Version bringt keine Signatur mit. TREK akzeptiert diesen Rückschritt nicht stillschweigend. Das lässt sich nicht übergehen.',
+  'admin.plugins.sig.incompleteBody':
+    'Der Registry-Eintrag ist nur halb signiert: Er nennt einen Autorenschlüssel, die Version trägt aber keine Signatur (oder umgekehrt). Das ist ein Fehler auf Seiten des Plugins. Das lässt sich nicht übergehen.',
+  'admin.plugins.sig.pinnedKey': 'Schlüssel, mit dem es installiert wurde',
+  'admin.plugins.sig.newKey': 'Schlüssel, den es jetzt anbietet',
+  'admin.plugins.sig.confirmOutOfBand':
+    'TREK kann einen legitimen Schlüsselwechsel nicht von einer Übernahme unterscheiden — von hier aus sehen beide gleich aus. Bestätige den neuen Schlüssel beim Autor über einen Kanal, dem du bereits vertraust, bevor du ihn annimmst. Sobald du das tust, wird das Plugin aktualisiert und der neue Schlüssel gemerkt.',
+  'admin.plugins.sig.retrustConfirm': 'Neuem Schlüssel vertrauen & aktualisieren',
+  'admin.plugins.sig.cancel': 'Nicht vertrauen',
+  'admin.plugins.sig.consentUnsigned':
+    'Nichts verbindet diese Version mit ihrem Autor — die Dateien entsprechen der Registry, tragen aber keine Autorensignatur.',
   'admin.plugins.security.trustTitle': 'Das Fazit',
   'admin.plugins.security.trustBody':
     'Ein Plugin zu installieren ist wie jede fremde App zu installieren: Füge nur Code von Autoren hinzu, denen du vertraust, und prüfe ihn im Zweifel zuerst selbst. TREK übernimmt keine Verantwortung für Plugins von Drittanbietern.',
@@ -418,6 +450,10 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Herunterladen',
   'admin.plugins.dep.update': 'Aktualisieren',
   'admin.plugins.dep.resolveHint': 'Lädt die neueste kompatible Version samt eigener Abhängigkeiten herunter.',
+  'admin.plugins.dep.trekIncompatible': 'Benötigt TREK {range} — auf diesem Server läuft {host}',
+  'admin.plugins.dep.trekUnknown': 'Gibt nicht an, welche TREK-Versionen unterstützt werden',
+  'admin.plugins.installCompatible': '{version} installieren',
+  'admin.plugins.incompatible': 'Nicht kompatibel',
   'admin.plugins.accessTitle': 'Worauf es zugreift',
   'admin.plugins.connectsTitle': 'Verbindet sich mit',
   'admin.plugins.detailsTitle': 'Details',

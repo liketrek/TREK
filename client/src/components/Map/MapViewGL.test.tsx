@@ -5,6 +5,8 @@ import { act } from '@testing-library/react'
 import { resetAllStores } from '../../../tests/helpers/store'
 import { buildPlace } from '../../../tests/helpers/factories'
 import { useSettingsStore } from '../../store/settingsStore'
+import maplibregl from 'maplibre-gl'
+import { DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 
 // Stable fake map so fitBounds call counts survive re-renders. The canvas
 // container is a single element so listeners registered by the component are
@@ -37,6 +39,23 @@ const glMap = vi.hoisted(() => ({
   easeTo: vi.fn(),
 }))
 
+const glBounds = vi.hoisted(() => {
+  const state = {
+    instances: [] as Array<{ extend: ReturnType<typeof vi.fn> }>,
+  }
+  return {
+    get instances() { return state.instances },
+    clear: () => { state.instances = [] },
+    create: () => {
+      const bounds = {
+        extend: vi.fn(() => bounds),
+      }
+      state.instances.push(bounds)
+      return bounds
+    },
+  }
+})
+
 vi.mock('mapbox-gl', () => ({
   default: {
     accessToken: '',
@@ -52,7 +71,7 @@ vi.mock('mapbox-gl', () => ({
       }
     }),
     LngLatBounds: vi.fn(function () {
-      return { extend: vi.fn().mockReturnThis() }
+      return glBounds.create()
     }),
     NavigationControl: vi.fn(),
     Popup: vi.fn(function () {
@@ -81,7 +100,7 @@ vi.mock('maplibre-gl', () => ({
       }
     }),
     LngLatBounds: vi.fn(function () {
-      return { extend: vi.fn().mockReturnThis() }
+      return glBounds.create()
     }),
     NavigationControl: vi.fn(),
     Popup: vi.fn(function () {
@@ -148,6 +167,7 @@ beforeEach(() => {
   glMap.on.mockImplementation(() => glMap)
   glMap.off.mockImplementation(() => glMap)
   glMap.once.mockImplementation(() => glMap)
+  glMap.loaded.mockReturnValue(true)
   glMap.getSource.mockReturnValue(null)
   glMap.getLayer.mockReturnValue(null)
   glMap.queryRenderedFeatures.mockReturnValue([])
@@ -165,6 +185,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.clearAllMocks()
+  glBounds.clear()
   resetAllStores()
 })
 
@@ -242,6 +263,39 @@ describe('MapViewGL', () => {
     // The MapLibre engine builds the map even without a token; Mapbox is not used.
     expect(maplibregl.Map).toHaveBeenCalled()
     expect(mapboxgl.Map).not.toHaveBeenCalled()
+  })
+
+  it('FE-COMP-MAPVIEWGL-014: MapLibre maps disable the around-center mouse rotate (#1545)', async () => {
+    const mapboxgl = (await import('mapbox-gl')).default
+    const maplibregl = (await import('maplibre-gl')).default
+    useSettingsStore.setState({
+      settings: {
+        ...useSettingsStore.getState().settings,
+        map_provider: 'maplibre-gl',
+        mapbox_access_token: '',
+        maplibre_style: 'https://tiles.openfreemap.org/styles/liberty',
+      },
+    } as any)
+    const places = [buildMapPlace({ id: 1, lat: 48.8584, lng: 2.2945 })]
+
+    render(<MapViewGL places={places} fitKey={1} glProvider="maplibre-gl" />)
+    await act(async () => {})
+    // MapLibre 5's around-center rotate reverses direction at a drifting
+    // mid-screen line, so the map must opt out of it.
+    expect((maplibregl.Map as any).mock.calls[0][0]).toMatchObject({ aroundCenter: false })
+
+    vi.clearAllMocks()
+    useSettingsStore.setState({
+      settings: {
+        ...useSettingsStore.getState().settings,
+        map_provider: 'mapbox-gl',
+        mapbox_access_token: 'pk.test_token',
+      },
+    } as any)
+    render(<MapViewGL places={places} fitKey={1} glProvider="mapbox-gl" />)
+    await act(async () => {})
+    // mapbox-gl has no such option — it must not receive the stray key.
+    expect((mapboxgl.Map as any).mock.calls[0][0]).not.toHaveProperty('aroundCenter')
   })
 
   it('FE-COMP-MAPVIEWGL-005: adds the clustered place source + layers so markers group on zoom-out (#1385)', async () => {
@@ -438,5 +492,188 @@ describe('MapViewGL', () => {
     act(() => { moveEnds.forEach(fn => fn()) })
     act(() => { el.dispatchEvent(new MouseEvent('mouseenter', { clientX: 10, clientY: 10 })) })
     expect(queryByTestId('tooltip')).toBeTruthy()
+  })
+
+  // The map opens already framed on its places, so these exercise the fits that happen
+  // afterwards — picking a day bumps fitKey.
+  it('FE-COMP-MAPVIEWGL-014: fits bounds immediately even when MapLibre loaded() is false', async () => {
+    glMap.loaded.mockReturnValue(false)
+    const places = [
+      buildMapPlace({ id: 1, lat: 35.38, lng: 136.94 }),
+      buildMapPlace({ id: 2, lat: 35.42, lng: 136.76 }),
+    ]
+
+    const { rerender } = render(
+      <MapViewGL places={places} dayPlaces={places} fitKey={1} glProvider="maplibre-gl" />,
+    )
+    await act(async () => {})
+
+    rerender(<MapViewGL places={places} dayPlaces={places} fitKey={2} glProvider="maplibre-gl" />)
+    await act(async () => {})
+
+    expect(glMap.fitBounds).toHaveBeenCalled()
+  })
+
+  it('FE-COMP-MAPVIEWGL-015: fits MapLibre bounds to route geometry when it arrives after a day fit', async () => {
+    const dayPlaces = [
+      buildMapPlace({ id: 1, lat: 35.38, lng: 136.94 }),
+      buildMapPlace({ id: 2, lat: 35.42, lng: 136.76 }),
+    ]
+    // The day's route is drawn as straight lines in the same batch as the fit, then
+    // upgraded to the real road geometry — which detours well outside the markers.
+    const straightLines: [number, number][][] = [[[35.38, 136.94], [35.42, 136.76]]]
+    const roadGeometry: [number, number][][] = [[[35.38, 136.94], [35.72, 137.51], [35.42, 136.76]]]
+
+    const { rerender } = render(
+      <MapViewGL
+        places={dayPlaces}
+        dayPlaces={dayPlaces}
+        route={straightLines}
+        fitKey={1}
+        glProvider="maplibre-gl"
+      />,
+    )
+    await act(async () => {})
+
+    // Pick a day: fits the markers, with only the straight-line route to go on so far.
+    rerender(
+      <MapViewGL
+        places={dayPlaces}
+        dayPlaces={dayPlaces}
+        route={straightLines}
+        fitKey={2}
+        glProvider="maplibre-gl"
+      />,
+    )
+    await act(async () => {})
+    const afterDayFit = glMap.fitBounds.mock.calls.length
+    expect(afterDayFit).toBeGreaterThan(0)
+
+    // The real geometry lands a moment later and the fit widens to take it in.
+    rerender(
+      <MapViewGL
+        places={dayPlaces}
+        dayPlaces={dayPlaces}
+        route={roadGeometry}
+        fitKey={2}
+        glProvider="maplibre-gl"
+      />,
+    )
+    await act(async () => {})
+
+    expect(glMap.fitBounds.mock.calls.length).toBeGreaterThan(afterDayFit)
+    const latestBounds = glBounds.instances[glBounds.instances.length - 1]
+    expect(latestBounds.extend).toHaveBeenCalledWith([137.51, 35.72])
+  })
+
+  describe('opening camera', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mapOptions = () => (maplibregl.Map as any).mock.calls.at(-1)[0]
+
+    it('FE-COMP-MAPVIEWGL-017: builds the map framed on the places, in [lng, lat] order', async () => {
+      const places = [
+        buildMapPlace({ id: 1, lat: 35.01, lng: 135.76 }),  // Kyoto
+        buildMapPlace({ id: 2, lat: 34.69, lng: 135.5 }),   // Osaka
+      ]
+
+      render(<MapViewGL places={places} glProvider="maplibre-gl" />)
+      await act(async () => {})
+
+      const { center, zoom } = mapOptions()
+      // GL takes [lng, lat] — the swap is the easiest thing to get backwards here.
+      expect(center[0]).toBeCloseTo(135.63, 1)
+      expect(center[1]).toBeCloseTo(34.85, 1)
+      // Framed on two cities ~30km apart: regional, not the world and not street level.
+      expect(zoom).toBeGreaterThan(6)
+      expect(zoom).toBeLessThan(12)
+    })
+
+    it('FE-COMP-MAPVIEWGL-020: does not jump to the default centre on mount, undoing the framing', async () => {
+      const places = [buildMapPlace({ id: 1, lat: 35.01, lng: 135.76 })]
+
+      render(<MapViewGL places={places} glProvider="maplibre-gl" />)
+      await act(async () => {})
+
+      // The centre prop is the world-view default nobody passed. Jumping to it on mount would
+      // throw away the camera the map was just built with and land on Null Island at zoom 2.
+      expect(glMap.jumpTo).not.toHaveBeenCalled()
+    })
+
+    it('FE-COMP-MAPVIEWGL-018: does not fit on mount when it opened already framed', async () => {
+      const places = [buildMapPlace({ id: 1, lat: 35.01, lng: 135.76 })]
+
+      const { rerender } = render(<MapViewGL places={places} fitKey={1} glProvider="maplibre-gl" />)
+      await act(async () => {})
+
+      // Fitting would only re-do the framing, and its maxZoom would overrule the gentler
+      // zoom a lone place opens at.
+      expect(glMap.fitBounds).not.toHaveBeenCalled()
+
+      // Picking a day still fits, as always.
+      rerender(<MapViewGL places={places} fitKey={2} glProvider="maplibre-gl" />)
+      await act(async () => {})
+      expect(glMap.fitBounds).toHaveBeenCalled()
+    })
+
+    it('FE-COMP-MAPVIEWGL-019: falls back to the world view when no place has coordinates', async () => {
+      render(
+        <MapViewGL
+          places={[buildMapPlace({ id: 1, lat: null, lng: null })]}
+          glProvider="maplibre-gl"
+        />,
+      )
+      await act(async () => {})
+
+      const { center, zoom } = mapOptions()
+      expect(center).toEqual([0, 0])
+      expect(zoom).toBe(DEFAULT_MAP_ZOOM)
+    })
+  })
+
+  it('FE-COMP-MAPVIEWGL-016: leaves the camera alone when a route appears long after the fit', async () => {
+    const dayPlaces = [
+      buildMapPlace({ id: 1, lat: 35.38, lng: 136.94 }),
+      buildMapPlace({ id: 2, lat: 35.42, lng: 136.76 }),
+    ]
+
+    const { rerender } = render(
+      <MapViewGL
+        places={dayPlaces}
+        dayPlaces={dayPlaces}
+        route={null}
+        fitKey={1}
+        glProvider="maplibre-gl"
+      />,
+    )
+    await act(async () => {})
+
+    // Pick a day with the route toggle off: no route is pending for this fit.
+    rerender(
+      <MapViewGL
+        places={dayPlaces}
+        dayPlaces={dayPlaces}
+        route={null}
+        fitKey={2}
+        glProvider="maplibre-gl"
+      />,
+    )
+    await act(async () => {})
+    const afterDayFit = glMap.fitBounds.mock.calls.length
+    expect(afterDayFit).toBeGreaterThan(0)
+
+    // Much later the user pans away and turns the route on. That is not the geometry this
+    // fit was waiting for, so the camera must stay put.
+    rerender(
+      <MapViewGL
+        places={dayPlaces}
+        dayPlaces={dayPlaces}
+        route={[[[35.38, 136.94], [35.72, 137.51], [35.42, 136.76]]]}
+        fitKey={2}
+        glProvider="maplibre-gl"
+      />,
+    )
+    await act(async () => {})
+
+    expect(glMap.fitBounds.mock.calls.length).toBe(afterDayFit)
   })
 })

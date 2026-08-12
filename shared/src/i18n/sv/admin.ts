@@ -244,14 +244,17 @@ const admin: TranslationStrings = {
   'admin.plugins.viewErrors': 'Visa felloggen',
   'admin.plugins.errorLog': 'Fellogg',
   'admin.plugins.allowedHosts': 'Tillåtna värdar',
-  'admin.plugins.allowedHosts.hint': 'Detta plugin pratar med en tjänst som bara du kan namnge (en självhostad server). Lägg till de värdar det får nå — inga andra.',
+  'admin.plugins.allowedHosts.hint':
+    'Detta plugin pratar med en tjänst som bara du kan namnge (en självhostad server). Lägg till de värdar det får nå — inga andra.',
   'admin.plugins.allowedHosts.none': 'Inga värdar tillagda ännu.',
-  'admin.plugins.allowedHosts.unsupported': 'Detta plugin använder inte operatörsangivna värdar. Dess tillåtna värdar är låsta i manifestet.',
+  'admin.plugins.allowedHosts.unsupported':
+    'Detta plugin använder inte operatörsangivna värdar. Dess tillåtna värdar är låsta i manifestet.',
   'admin.plugins.allowedHosts.restartNote': 'Att spara startar om pluginet så att den nya listan används.',
   'admin.plugins.allowedHosts.add': 'Lägg till tillåten värd',
   'admin.plugins.allowedHosts.count': '{n} tillåtna värdar',
   'admin.plugins.operatorEgressPill': '+ värdar du lägger till',
-  'admin.plugins.operatorEgressHint': 'Detta plugin pratar med en tjänst som bara du kan namnge (en självhostad server). Lägg efter installation till värdarna under ⋯ → Tillåtna värdar. Inga andra nås.',
+  'admin.plugins.operatorEgressHint':
+    'Detta plugin pratar med en tjänst som bara du kan namnge (en självhostad server). Lägg efter installation till värdarna under ⋯ → Tillåtna värdar. Inga andra nås.',
   'admin.plugins.noErrors': 'Inga fel loggade.',
   'admin.plugins.uninstalled': 'Pluginet har avinstallerats',
   'admin.plugins.uninstallTitle': 'Avinstallera pluginet?',
@@ -414,6 +417,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': 'Vad ”Granskad” betyder',
   'admin.plugins.security.reviewedBody':
     'Ett granskat plugin har manuellt skannats efter skadlig kod av en TREK-underhållare i varje version — kontrollerat för fientlig kod, inte för om det fungerar bra. Det är inget löfte om att pluginet är ofarligt.',
+  'admin.plugins.security.signedTitle': 'Vad ”Signerad” betyder',
+  'admin.plugins.security.signedBody':
+    'Kontrollsumman som TREK verifierar vid varje installation bevisar att filerna är exakt det som registret går i god för. En signatur bevisar något annat: att de kommer från upphovspersonen, signerade med en nyckel som bara hen har. Ett signerat plugin har båda delarna. Ett osignerat är inte osäkert — det bär helt enkelt en garanti mindre, och de flesta plugins i registret är osignerade i dag.',
+  'admin.plugins.signed': 'Signerad',
+  'admin.plugins.signedHint': 'Verifierad mot upphovspersonens signeringsnyckel när den installerades',
+  'admin.plugins.unsigned': 'Osignerad',
+  'admin.plugins.unsignedHint':
+    'Filerna stämmer med det registret går i god för, men ingenting knyter dem till upphovspersonen. En garanti mindre — inte osäkert.',
+  'admin.plugins.updateBlocked': 'Uppdateringen blockerad — {reason}',
+  'admin.plugins.reviewBlock': 'Granska',
+  'admin.plugins.retrusted': 'Ny signeringsnyckel betrodd — pluginet är uppdaterat',
+  'admin.plugins.sig.title': 'Signaturen för {name} kunde inte verifieras',
+  'admin.plugins.sig.keyChangedBody':
+    'Upphovspersonens signeringsnyckel är inte den som pluginet installerades med. Upphovspersoner byter faktiskt nycklar — men en angripare som tagit över pluginet skulle se ut precis så här.',
+  'admin.plugins.sig.invalidBody':
+    'Filerna stämmer inte med upphovspersonens signatur. De är inte det som upphovspersonen signerade — antingen har de skadats eller så har någon manipulerat dem. Detta går inte att förbigå.',
+  'admin.plugins.sig.missingBody':
+    'Det här pluginet var signerat när du installerade det, men den nya versionen levereras utan signatur. TREK accepterar inte den försämringen i tysthet. Detta går inte att förbigå.',
+  'admin.plugins.sig.incompleteBody':
+    'Registerposten är halvsignerad: den anger en upphovspersonsnyckel men versionen bär ingen signatur (eller tvärtom). Det är ett misstag på pluginets sida. Detta går inte att förbigå.',
+  'admin.plugins.sig.pinnedKey': 'Nyckeln det installerades med',
+  'admin.plugins.sig.newKey': 'Nyckeln det erbjuder nu',
+  'admin.plugins.sig.confirmOutOfBand':
+    'TREK kan inte skilja ett legitimt nyckelbyte från en kapning — härifrån ser de identiska ut. Bekräfta den nya nyckeln med upphovspersonen via en kanal du redan litar på innan du accepterar den. När du gör det uppdateras pluginet och den nya nyckeln sparas.',
+  'admin.plugins.sig.retrustConfirm': 'Lita på den nya nyckeln och uppdatera',
+  'admin.plugins.sig.cancel': 'Lita inte på den',
+  'admin.plugins.sig.consentUnsigned':
+    'Ingenting knyter den här versionen till sin upphovsperson — filerna stämmer med registret, men de bär ingen signatur från upphovspersonen.',
   'admin.plugins.security.trustTitle': 'Sammanfattningsvis',
   'admin.plugins.security.trustBody':
     'Att installera ett plugin är som att installera vilken tredjepartsapp som helst: lägg bara till kod från upphovspersoner du litar på, och granska det själv först om du är osäker. TREK tar inget ansvar för tredjepartsplugins.',
@@ -473,6 +504,10 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Ladda ner',
   'admin.plugins.dep.update': 'Uppdatera',
   'admin.plugins.dep.resolveHint': 'Laddar ner den senaste kompatibla versionen, inklusive dess egna beroenden.',
+  'admin.plugins.dep.trekIncompatible': 'Kräver TREK {range} — den här servern kör {host}',
+  'admin.plugins.dep.trekUnknown': 'Anger inte vilka TREK-versioner som stöds',
+  'admin.plugins.installCompatible': 'Installera {version}',
+  'admin.plugins.incompatible': 'Inkompatibel',
   'admin.plugins.accessTitle': 'Vad det har åtkomst till',
   'admin.plugins.connectsTitle': 'Ansluter till',
   'admin.plugins.detailsTitle': 'Detaljer',

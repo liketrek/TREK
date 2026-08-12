@@ -239,14 +239,17 @@ const admin: TranslationStrings = {
   'admin.plugins.viewErrors': 'View error log',
   'admin.plugins.errorLog': 'Error log',
   'admin.plugins.allowedHosts': 'Allowed hosts',
-  'admin.plugins.allowedHosts.hint': 'This plugin talks to a service only you can name (a self-hosted server). Add the hosts it may reach — it can reach no others.',
+  'admin.plugins.allowedHosts.hint':
+    'This plugin talks to a service only you can name (a self-hosted server). Add the hosts it may reach — it can reach no others.',
   'admin.plugins.allowedHosts.none': 'No hosts added yet.',
-  'admin.plugins.allowedHosts.unsupported': 'This plugin does not use operator-supplied hosts. Its allowed hosts are fixed in its manifest.',
+  'admin.plugins.allowedHosts.unsupported':
+    'This plugin does not use operator-supplied hosts. Its allowed hosts are fixed in its manifest.',
   'admin.plugins.allowedHosts.restartNote': 'Saving restarts the plugin so it picks up the new list.',
   'admin.plugins.allowedHosts.add': 'Add allowed host',
   'admin.plugins.allowedHosts.count': '{n} allowed host(s)',
   'admin.plugins.operatorEgressPill': '+ hosts you add',
-  'admin.plugins.operatorEgressHint': 'This plugin talks to a service only you can name (a self-hosted server). After installing, add the hosts it may reach under ⋯ → Allowed hosts. It can reach no others.',
+  'admin.plugins.operatorEgressHint':
+    'This plugin talks to a service only you can name (a self-hosted server). After installing, add the hosts it may reach under ⋯ → Allowed hosts. It can reach no others.',
   'admin.plugins.noErrors': 'No errors logged.',
   'admin.plugins.uninstalled': 'Plugin uninstalled',
   'admin.plugins.uninstallTitle': 'Uninstall plugin?',
@@ -394,6 +397,34 @@ const admin: TranslationStrings = {
   'admin.plugins.security.reviewedTitle': 'What "Reviewed" means',
   'admin.plugins.security.reviewedBody':
     'A reviewed plugin was manually scanned for malware by a TREK maintainer on each version — checked for hostile code, not for whether it works well. It is not a promise that the plugin is harmless.',
+  'admin.plugins.security.signedTitle': 'What "Signed" means',
+  'admin.plugins.security.signedBody':
+    'The checksum TREK verifies on every install proves the files are exactly what the registry vouches for. A signature proves something different: that they came from the author, signed with a key only they hold. A signed plugin has both. An unsigned one is not unsafe — it simply carries one guarantee fewer, and most plugins in the registry are unsigned today.',
+  'admin.plugins.signed': 'Signed',
+  'admin.plugins.signedHint': "Verified against the author's signing key when it was installed",
+  'admin.plugins.unsigned': 'Unsigned',
+  'admin.plugins.unsignedHint':
+    'The files match what the registry vouches for, but nothing ties them to the author. One guarantee fewer — not unsafe.',
+  'admin.plugins.updateBlocked': 'Update blocked — {reason}',
+  'admin.plugins.reviewBlock': 'Review',
+  'admin.plugins.retrusted': 'New signing key trusted — the plugin is updated',
+  'admin.plugins.sig.title': "{name}'s signature could not be verified",
+  'admin.plugins.sig.keyChangedBody':
+    "The author's signing key is not the one this plugin was installed with. Authors do rotate keys — but an attacker who took over the plugin would look exactly like this.",
+  'admin.plugins.sig.invalidBody':
+    "The files do not match the author's signature. They are not what the author signed — either they were corrupted, or they were tampered with. This cannot be overridden.",
+  'admin.plugins.sig.missingBody':
+    'This plugin was signed when you installed it, but the new version ships no signature. TREK will not quietly accept the downgrade. This cannot be overridden.',
+  'admin.plugins.sig.incompleteBody':
+    'The registry entry is half-signed: it declares an author key but the version carries no signature (or the reverse). That is a mistake on the plugin side. This cannot be overridden.',
+  'admin.plugins.sig.pinnedKey': 'Key it was installed with',
+  'admin.plugins.sig.newKey': 'Key it is offering now',
+  'admin.plugins.sig.confirmOutOfBand':
+    'TREK cannot tell a legitimate key rotation apart from a takeover — both look identical from here. Confirm the new key with the author through a channel you already trust before you accept it. Once you do, the plugin is updated and the new key is remembered.',
+  'admin.plugins.sig.retrustConfirm': 'Trust the new key & update',
+  'admin.plugins.sig.cancel': 'Do not trust it',
+  'admin.plugins.sig.consentUnsigned':
+    'Nothing ties this version to its author — the files match the registry, but they carry no author signature.',
   'admin.plugins.security.trustTitle': 'The bottom line',
   'admin.plugins.security.trustBody':
     'Installing a plugin is like installing any third-party app: only add code from authors you trust, and when in doubt, inspect it yourself first. TREK takes no responsibility for third-party plugins.',
@@ -453,6 +484,10 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Download',
   'admin.plugins.dep.update': 'Update',
   'admin.plugins.dep.resolveHint': 'Downloads the latest compatible version, including its own dependencies.',
+  'admin.plugins.dep.trekIncompatible': 'Needs TREK {range} — this server runs {host}',
+  'admin.plugins.dep.trekUnknown': 'Does not say which TREK versions it supports',
+  'admin.plugins.installCompatible': 'Install {version}',
+  'admin.plugins.incompatible': 'Incompatible',
   'admin.plugins.accessTitle': 'What it can access',
   'admin.plugins.connectsTitle': 'Connects to',
   'admin.plugins.detailsTitle': 'Details',

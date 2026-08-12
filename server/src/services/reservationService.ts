@@ -19,6 +19,38 @@ export interface ReservationEndpoint {
 
 export type EndpointInput = Omit<ReservationEndpoint, 'id' | 'reservation_id' | 'sequence'> & { sequence?: number };
 
+export function notifyBookingChange(
+  tripId: string | number,
+  actorId: number,
+  booking: string,
+  type: string,
+): void {
+  import('./notificationService')
+    .then(({ send }) => {
+      try {
+        const actor = db.prepare('SELECT email FROM users WHERE id = ?').get(actorId) as { email: string } | undefined;
+        if (!actor) return;
+        const trip = db.prepare('SELECT title FROM trips WHERE id = ?').get(tripId) as { title: string } | undefined;
+        send({
+          event: 'booking_change',
+          actorId,
+          scope: 'trip',
+          targetId: Number(tripId),
+          params: {
+            trip: trip?.title || 'Untitled',
+            actor: actor.email,
+            booking,
+            type: type || 'booking',
+            tripId: String(tripId),
+          },
+        }).catch(() => {});
+      } catch {
+        // Notifications must never make the booking write fail.
+      }
+    })
+    .catch(() => {});
+}
+
 export function loadEndpointsByTrip(tripId: string | number): Map<number, ReservationEndpoint[]> {
   const rows = db.prepare(`
     SELECT e.* FROM reservation_endpoints e
@@ -74,12 +106,14 @@ function resolveDayIdFromTime(
 // the booking visually shifts by the offset (#1288). Re-anchor non-hotel bookings to the
 // day matching their absolute reservation_time — the same derivation create/updateReservation
 // use. Only updates when a matching day exists, so a booking whose date now falls outside
-// the new range is left untouched. Hotels keep their range on the linked day_accommodation.
+// the new range is left untouched. Hotels linked to a day_accommodation are excluded here —
+// resyncAccommodationDays re-anchors the accommodation span and its linked reservation;
+// unlinked dated hotels (e.g. imported ones) re-anchor like any other booking.
 export function resyncReservationDays(tripId: string | number): void {
   const rows = db.prepare(
     `SELECT id, reservation_time, reservation_end_time, day_id, end_day_id
        FROM reservations
-      WHERE trip_id = ? AND type != 'hotel' AND reservation_time IS NOT NULL`,
+      WHERE trip_id = ? AND (type != 'hotel' OR accommodation_id IS NULL) AND reservation_time IS NOT NULL`,
   ).all(tripId) as {
     id: number; reservation_time: string | null; reservation_end_time: string | null;
     day_id: number | null; end_day_id: number | null;

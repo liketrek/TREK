@@ -17,6 +17,8 @@ export interface ActivePlugin {
    * replaces while active ('plan' never — enforced server-side) and its
    * preferred 0-based tab index. */
   tripPage?: { replaces?: string[]; position?: number }
+  /** The plugin ships a settings.html the user-settings page frames. */
+  settingsUi?: true
 }
 
 interface PluginState {

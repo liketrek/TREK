@@ -4,7 +4,7 @@ Production-ready setup using Docker Compose with security hardening enabled.
 
 ## Compose File
 
-See https://github.com/mauriceboe/TREK/blob/main/docker-compose.yml
+See https://github.com/liketrek/TREK/blob/main/docker-compose.yml
 
 ## Security Hardening Explained
 
@@ -64,17 +64,17 @@ Uncomment and fill in the OIDC, initial setup, or MCP variables as needed. For a
 
 Three tag strategies are available:
 
-| Tag | Example | Behavior |
-|---|---|---|
+| Tag | Example                  | Behavior |
+|---|--------------------------|---|
 | `latest` | `mauriceboe/trek:latest` | Always the newest release across all major versions |
-| Major version | `mauriceboe/trek:3` | Latest release pinned to that major version |
-| Full version | `mauriceboe/trek:3.0.15` | Exact release; never changes |
+| Major version | `mauriceboe/trek:3`      | Latest release pinned to that major version |
+| Full version | `mauriceboe/trek:3.4.0`  | Exact release; never changes |
 
 The compose file above uses `latest`. To pin, change the `image:` line:
 
 ```yaml
 image: mauriceboe/trek:3        # track major version 3
-image: mauriceboe/trek:3.0.15   # pin to exact release
+image: mauriceboe/trek:3.4.0   # pin to exact release
 ```
 
 ## Start TREK

@@ -1,6 +1,6 @@
 {
   "name": "@trek/server",
-  "version": "3.3.0",
+  "version": "3.4.1",
   "main": "src/index.ts",
   "scripts": {
     "start": "node --require tsconfig-paths/register dist/index.js",
@@ -22,7 +22,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.28.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@nestjs/common": "^11.1.24",
     "@nestjs/core": "^11.1.24",
     "@nestjs/platform-express": "^11.1.24",

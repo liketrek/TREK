@@ -46,8 +46,6 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityWarning': '可能影響低階裝置的效能。',
   'settings.mapTipLabel': '提示：',
   'settings.mapTip': '右鍵點擊並拖曳以旋轉/傾斜地圖。中鍵點擊新增地點(右鍵用於旋轉)。',
-  'settings.latitude': '緯度',
-  'settings.longitude': '經度',
   'settings.saveMap': '儲存地圖',
   'settings.apiKeys': 'API 金鑰',
   'settings.mapsKey': 'Google Maps API 金鑰',
@@ -285,6 +283,7 @@ const settings: TranslationStrings = {
   'settings.bookingLabelsHint': '在地圖上顯示車站 / 機場名稱。關閉時僅顯示圖示。',
   'settings.currency': 'Currency',
   'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currencyTrip': '行程貨幣',
   'settings.passkey.title': 'Passkey',
   'settings.passkey.description':
     '使用 Passkey 更快登入，並可抵禦網路釣魚——透過你的指紋、臉部、PIN 碼或硬體金鑰。你的密碼仍會保留作為備援。',
@@ -465,6 +464,8 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': '資源',
   'settings.pluginActivity.columns.when': '時間',
   'settings.pluginActivity.columns.status': '結果',
+  'settings.alwaysShowRoutes': '一律顯示訂票路線',
+  'settings.alwaysShowRoutesHint': '自動在地圖上顯示每個航班、火車及其他預訂的路線,不需要逐一手動開啟。',
 };
 
 export default settings;

@@ -160,6 +160,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.otherFlights': '기타 항공편',
   'reservations.airtrail.empty': 'AirTrail 계정에서 항공편을 찾을 수 없습니다.',
   'reservations.airtrail.importCta': '{count}개 가져오기',
+  'reservations.airtrail.joinConnection': '{stops} 경유 항공편 하나로 가져오기',
   'reservations.costsLabel': 'Costs',
   'reservations.createExpense': 'Create expense',
   'reservations.createExpenseHint': 'Saves the booking, then opens the Costs editor.',

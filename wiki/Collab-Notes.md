@@ -2,9 +2,7 @@
 
 Share structured, richly formatted notes with your group. Notes are organized into color-coded categories and can be pinned, attached with files, and linked to external websites.
 
-<!-- TODO: screenshot: collab notes editor with categories -->
-
-![Collab Notes](assets/Collab.png)
+![Shared trip notes, grouped by category with colour coding](assets/CollabNotes.png)
 
 ## Where to find it
 

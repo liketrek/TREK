@@ -2,8 +2,6 @@
 
 The Permissions panel, located at the bottom of the **Users** tab, controls which role level is required to perform each action. Changes apply immediately across the entire instance.
 
-<!-- TODO: screenshot: permissions matrix with role dropdowns -->
-
 ![Permissions panel](assets/PermissionSettings.png)
 
 ## Role model

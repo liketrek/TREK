@@ -30,13 +30,23 @@ function loadItemPayers(itemId: number | string) {
   return rows.map(p => ({ ...p, avatar_url: avatarUrl(p) }));
 }
 
+function knownUserIds(userIds: number[]): Set<number> {
+  const unique = [...new Set(userIds)];
+  if (unique.length === 0) return new Set();
+  const rows = db.prepare(
+    `SELECT id FROM users WHERE id IN (${unique.map(() => '?').join(',')})`
+  ).all(...unique) as { id: number }[];
+  return new Set(rows.map(r => r.id));
+}
+
 /** Replace the payer rows of an item and keep total_price = sum of payer amounts. */
 function writeItemPayers(itemId: number | string, payers: { user_id: number; amount: number }[]) {
   db.prepare('DELETE FROM budget_item_payers WHERE budget_item_id = ?').run(itemId);
   const insert = db.prepare('INSERT OR IGNORE INTO budget_item_payers (budget_item_id, user_id, amount) VALUES (?, ?, ?)');
+  const known = knownUserIds(payers.map(p => p.user_id));
   let total = 0;
   for (const p of payers) {
-    if (!(p.amount > 0)) continue;
+    if (!(p.amount > 0) || !known.has(p.user_id)) continue;
     insert.run(itemId, p.user_id, p.amount);
     total += p.amount;
   }
@@ -141,6 +151,76 @@ export async function freezeForeignRate(
   if (r && r > 0) data.exchange_rate = r;
 }
 
+/**
+ * Re-anchor a trip's money when its base currency changes (#1543).
+ *
+ * Every frozen `exchange_rate` is "units of the row's currency per 1 *trip*
+ * currency", and `currency = NULL` means "the trip's own currency" — both are
+ * relative to the trip currency, so swapping it out from under them silently
+ * corrupts the settlement: NULL rows redenominate (9 000 RUB becomes 9 000 EUR)
+ * and frozen rates keep pointing at the old base, which is exactly the mismatch
+ * that inflated #1543 by ~27x.
+ *
+ * So, before the switch: pin the implicit rows to the outgoing currency (their
+ * amounts really were in it) and re-freeze every row against the incoming one.
+ * No stored amount is rewritten — each expense keeps the figure the user typed,
+ * in the currency they typed it in, and its real-world value is preserved.
+ *
+ * Place prices follow the same NULL = "the trip's own currency" convention (that
+ * is how the PDF export and the place chips read them), so they are pinned too —
+ * otherwise a €15 museum on a trip switched to JPY starts reading as ¥15. They
+ * carry no frozen rate, so pinning the currency is all they need.
+ *
+ * Must run *before* the (synchronous) trip update, while the old currency is
+ * still in `trips`, and is a no-op when the currency isn't actually changing.
+ */
+export async function rebaseTripCurrency(
+  tripId: string | number,
+  newCurrency: string | null | undefined,
+): Promise<void> {
+  const next = (newCurrency || '').toUpperCase();
+  if (!next) return;
+  const trip = db.prepare('SELECT currency FROM trips WHERE id = ?')
+    .get(tripId) as { currency?: string } | undefined;
+  if (!trip) return;
+  const prev = (trip.currency || 'EUR').toUpperCase();
+  if (prev === next) return;
+
+  const rates = await getRates(next);
+  // A row already denominated in the new base needs no conversion (rate 1). When no
+  // live rate is available we also store 1 rather than a stale one: rate 1 means "not
+  // frozen", so the settlement falls back to live rates instead of trusting a figure
+  // anchored to a currency this trip no longer uses.
+  const rateFor = (cur: string): number => {
+    if (cur === next) return 1;
+    const r = rates?.[cur];
+    return r && r > 0 ? r : 1;
+  };
+
+  const rebase = (table: 'budget_items' | 'budget_settlements') => {
+    db.prepare(`UPDATE ${table} SET currency = ? WHERE trip_id = ? AND (currency IS NULL OR currency = '')`)
+      .run(prev, tripId);
+    const rows = db.prepare(`SELECT DISTINCT currency AS cur FROM ${table} WHERE trip_id = ? AND currency IS NOT NULL`)
+      .all(tripId) as { cur: string }[];
+    for (const { cur } of rows) {
+      db.prepare(`UPDATE ${table} SET exchange_rate = ? WHERE trip_id = ? AND currency = ?`)
+        .run(rateFor(cur.toUpperCase()), tripId, cur);
+    }
+  };
+
+  // Only priced places have anything to denominate; a currency on a free place would
+  // just be noise. `updated_at` doubles as the optimistic-concurrency token (#1135),
+  // so bumping it stops a client holding the pre-switch row from writing the pin away.
+  const pinPlaces = () => {
+    db.prepare(`
+      UPDATE places SET currency = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE trip_id = ? AND price IS NOT NULL AND (currency IS NULL OR currency = '')
+    `).run(prev, tripId);
+  };
+
+  db.transaction(() => { rebase('budget_items'); rebase('budget_settlements'); pinPlaces(); })();
+}
+
 export function createBudgetItem(
   tripId: string | number,
   data: {
@@ -172,6 +252,11 @@ export function createBudgetItem(
   const payerTotal = (data.payers || []).reduce((a, p) => a + (p.amount > 0 ? p.amount : 0), 0);
   const total = data.payers && data.payers.length > 0 ? payerTotal : (data.total_price || 0);
 
+  const knownMembers = data.members ? knownUserIds(data.members.map(m => m.user_id)) : null;
+  const members = data.members && knownMembers ? data.members.filter(m => knownMembers.has(m.user_id)) : undefined;
+  const knownIds = data.member_ids ? knownUserIds(data.member_ids) : null;
+  const memberIds = data.member_ids && knownIds ? data.member_ids.filter(uid => knownIds.has(uid)) : undefined;
+
   const result = db.prepare(
     'INSERT INTO budget_items (trip_id, category, name, total_price, currency, exchange_rate, persons, days, note, sort_order, expense_date, reservation_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(
@@ -181,7 +266,7 @@ export function createBudgetItem(
     total,
     data.currency || null,
     data.exchange_rate != null ? data.exchange_rate : 1,
-    data.member_ids ? data.member_ids.length : (data.persons != null ? data.persons : null),
+    memberIds ? memberIds.length : (data.persons != null ? data.persons : null),
     data.days !== undefined && data.days !== null ? data.days : null,
     data.note || null,
     sortOrder,
@@ -191,12 +276,12 @@ export function createBudgetItem(
 
   const itemId = result.lastInsertRowid as number;
   if (data.payers && data.payers.length > 0) writeItemPayers(itemId, data.payers);
-  if (data.members && data.members.length > 0) {
+  if (members && members.length > 0) {
     const insert = db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid, amount) VALUES (?, ?, 0, ?)');
-    for (const m of data.members) insert.run(itemId, m.user_id, m.amount !== undefined && m.amount !== null ? m.amount : null);
-  } else if (data.member_ids && data.member_ids.length > 0) {
+    for (const m of members) insert.run(itemId, m.user_id, m.amount !== undefined && m.amount !== null ? m.amount : null);
+  } else if (memberIds && memberIds.length > 0) {
     const insert = db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid, amount) VALUES (?, ?, 0, NULL)');
-    for (const uid of data.member_ids) insert.run(itemId, uid);
+    for (const uid of memberIds) insert.run(itemId, uid);
   }
 
   const item = db.prepare('SELECT * FROM budget_items WHERE id = ?').get(itemId) as BudgetItem;
@@ -277,15 +362,19 @@ export function updateBudgetItem(
     }
   }
   if (data.members !== undefined) {
+    const known = knownUserIds(data.members.map(m => m.user_id));
+    const members = data.members.filter(m => known.has(m.user_id));
     db.prepare('DELETE FROM budget_item_members WHERE budget_item_id = ?').run(id);
     const insert = db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid, amount) VALUES (?, ?, 0, ?)');
-    for (const m of data.members) insert.run(id, m.user_id, m.amount !== undefined && m.amount !== null ? m.amount : null);
-    db.prepare('UPDATE budget_items SET persons = ? WHERE id = ?').run(data.members.length || null, id);
+    for (const m of members) insert.run(id, m.user_id, m.amount !== undefined && m.amount !== null ? m.amount : null);
+    db.prepare('UPDATE budget_items SET persons = ? WHERE id = ?').run(members.length || null, id);
   } else if (data.member_ids !== undefined) {
+    const known = knownUserIds(data.member_ids);
+    const memberIds = data.member_ids.filter(uid => known.has(uid));
     db.prepare('DELETE FROM budget_item_members WHERE budget_item_id = ?').run(id);
     const insert = db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid, amount) VALUES (?, ?, 0, NULL)');
-    for (const uid of data.member_ids) insert.run(id, uid);
-    db.prepare('UPDATE budget_items SET persons = ? WHERE id = ?').run(data.member_ids.length || null, id);
+    for (const uid of memberIds) insert.run(id, uid);
+    db.prepare('UPDATE budget_items SET persons = ? WHERE id = ?').run(memberIds.length || null, id);
   }
 
   // If category changed, update category order table
@@ -339,10 +428,12 @@ export function updateMembers(id: string | number, tripId: string | number, user
 
   db.prepare('DELETE FROM budget_item_members WHERE budget_item_id = ?').run(id);
 
-  if (userIds.length > 0) {
+  const known = knownUserIds(userIds);
+  const memberIds = userIds.filter(uid => known.has(uid));
+  if (memberIds.length > 0) {
     const insert = db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid) VALUES (?, ?, ?)');
-    for (const userId of userIds) insert.run(id, userId, existingPaid[userId] || 0);
-    db.prepare('UPDATE budget_items SET persons = ? WHERE id = ?').run(userIds.length, id);
+    for (const userId of memberIds) insert.run(id, userId, existingPaid[userId] || 0);
+    db.prepare('UPDATE budget_items SET persons = ? WHERE id = ?').run(memberIds.length, id);
   } else {
     db.prepare('UPDATE budget_items SET persons = NULL WHERE id = ?').run(id);
   }
@@ -350,6 +441,23 @@ export function updateMembers(id: string | number, tripId: string | number, user
   const members = loadItemMembers(id).map(m => ({ ...m, avatar_url: avatarUrl(m) }));
   const updated = db.prepare('SELECT * FROM budget_items WHERE id = ?').get(id) as BudgetItem;
   return { members, item: updated };
+}
+
+export function removeUserFromBudgetItems(userId: number): void {
+  const itemIds = (db.prepare('SELECT DISTINCT budget_item_id FROM budget_item_members WHERE user_id = ?')
+    .all(userId) as { budget_item_id: number }[]).map(r => r.budget_item_id);
+  if (itemIds.length === 0) {
+    return;
+  }
+
+  db.prepare('DELETE FROM budget_item_members WHERE user_id = ?').run(userId);
+
+  const remaining = db.prepare('SELECT COUNT(*) AS count FROM budget_item_members WHERE budget_item_id = ?');
+  const setPersons = db.prepare('UPDATE budget_items SET persons = ? WHERE id = ?');
+  for (const itemId of itemIds) {
+    const { count } = remaining.get(itemId) as { count: number };
+    setPersons.run(count || null, itemId);
+  }
 }
 
 export function toggleMemberPaid(id: string | number, tripId: string | number, userId: string | number, paid: boolean) {

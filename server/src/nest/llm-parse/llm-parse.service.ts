@@ -71,6 +71,7 @@ export class LlmParseService {
         }
       }
     } catch (err) {
+      console.error(`[llm-parse] Could not read "${file.originalName}":`, err instanceof Error ? err.message : err);
       return {
         kiItems: [],
         warnings: [`${file.originalName}: could not read file — ${err instanceof Error ? err.message : String(err)}`],
@@ -90,6 +91,7 @@ export class LlmParseService {
         });
         return { kiItems: routed.kiItems, warnings: [...warnings, ...routed.warnings] };
       } catch (err) {
+        console.error(`[llm-parse] AI parsing failed for "${file.originalName}" (provider=${config.provider}):`, err instanceof Error ? err.message : err);
         return {
           kiItems: [],
           warnings: [`${file.originalName}: AI parsing failed — ${err instanceof Error ? err.message : String(err)}`],
@@ -102,6 +104,7 @@ export class LlmParseService {
       raw = await createLlmClient(config).extract(input);
       console.debug('[DEBUG] Raw LLM Response: ', raw);
     } catch (err) {
+      console.error(`[llm-parse] AI parsing failed for "${file.originalName}" (provider=${config.provider}):`, err instanceof Error ? err.message : err);
       return {
         kiItems: [],
         warnings: [`${file.originalName}: AI parsing failed — ${err instanceof Error ? err.message : String(err)}`],

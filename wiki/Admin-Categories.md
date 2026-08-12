@@ -2,8 +2,6 @@
 
 The **Personalization** tab → **Categories** section lets you manage global place categories. Categories are shared across all trips and all users on the instance.
 
-<!-- TODO: screenshot: category list in admin panel -->
-
 ![Category Manager](assets/CategoryManager.png)
 
 ## What categories are

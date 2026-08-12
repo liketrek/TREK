@@ -5,9 +5,21 @@ Deploy TREK on Kubernetes using the official Helm chart.
 ## Add the Chart Repository
 
 ```bash
-helm repo add trek https://mauriceboe.github.io/TREK
+helm repo add trek https://chart.liketrek.com
 helm repo update
 ```
+
+> **Note:** `chart.liketrek.com` is a custom domain (CNAME) for the GitHub Pages site at `https://liketrek.github.io/TREK` — both serve the same chart repository. Using the custom domain keeps your setup working even if the GitHub repository moves again.
+
+> **⚠️ Repository moved:** The chart is no longer served at `https://mauriceboe.github.io/TREK` (the project moved from a personal repo to the `liketrek` organization). If you added the repo from the old URL, switch to the new one:
+>
+> ```bash
+> helm repo remove trek
+> helm repo add trek https://chart.liketrek.com
+> helm repo update
+> ```
+>
+> Existing releases keep working — only the repo URL changes; future `helm repo update` / `helm upgrade` runs require the new URL. (`https://liketrek.github.io/TREK` also works — it redirects to `chart.liketrek.com`.)
 
 ## Basic Install
 
@@ -97,6 +109,7 @@ env:
   PORT: 3000
   # TZ: "Europe/Berlin"          # timezone for logs, reminders, cron jobs
   # LOG_LEVEL: "info"            # "info" = concise, "debug" = verbose
+  # TREK_WIKI_DIR: "/app/wiki"   # where /help reads its docs from; leave unset (the image ships them)
   # DEFAULT_LANGUAGE: "en"       # fallback language on login page; supported: de, en, es, fr, hu, nl, br, cs, pl, ru, zh, zh-TW, it, tr, ar, id, ja, ko, uk, gr
   # ALLOWED_ORIGINS: "https://trek.example.com"
   # APP_URL: "https://trek.example.com"
@@ -187,7 +200,7 @@ helm upgrade trek trek/trek
 
 ## Full Values Reference
 
-See the [`charts/README.md`](https://github.com/mauriceboe/TREK/blob/main/charts/README.md) for all available values.
+See the [`charts/README.md`](https://github.com/liketrek/TREK/blob/main/charts/README.md) for all available values.
 
 ## Next Steps
 

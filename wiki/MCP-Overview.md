@@ -44,6 +44,10 @@ See [MCP-Setup](MCP-Setup) for step-by-step instructions for each method.
 
 Rate limits are tracked per user–client pair, so each OAuth client has its own independent window. Sessions expire after 1 hour of inactivity by default (`MCP_SESSION_TTL`); an open SSE stream counts as activity. The server also sends an SSE comment ping every 25 seconds so reverse proxies with idle timeouts (e.g. nginx's default 60s) don't kill the stream between tool calls.
 
+Reaching `MCP_MAX_SESSION_PER_USER` does not refuse the request: the server closes that user's least-recently-active session to make room for the new one. This keeps a client that cannot hold onto its session id from locking itself out of the server.
+
+> **Reverse proxy:** MCP sessions depend on the `Mcp-Session-Id` header travelling in both directions. A proxy that strips it makes every tool call open a new session instead of reusing one. Nginx and Caddy pass it through by default — see [Reverse-Proxy](Reverse-Proxy) if you have customised header handling.
+
 > **Kubernetes / multi-replica:** MCP sessions are held in memory per instance. With more than one replica you need sticky sessions (or a single replica), or clients will intermittently see `404 Session not found`.
 
 ## Endpoint

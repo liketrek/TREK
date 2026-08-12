@@ -12,13 +12,16 @@ import { normalizeImageFile } from '../../utils/convertHeic'
 import { getApiErrorMessage, type Trip } from '../../types'
 import type { TripCreateRequest } from '@trek/shared'
 import { NumericInput } from '../shared/NumericInput'
+import { currenciesWith, SYMBOLS } from '../Budget/BudgetPanel.constants'
+
+type DateShiftMode = 'keep_bookings' | 'shift_all'
 
 interface TripFormModalProps {
   isOpen: boolean
   onClose: () => void
   // Create returns the new trip (so we can attach members / upload the cover);
   // update resolves without a payload.
-  onSave: (data: TripCreateRequest) => Promise<{ trip?: Trip } | void> | void
+  onSave: (data: TripCreateRequest & { date_shift_mode?: DateShiftMode }) => Promise<{ trip?: Trip } | void> | void
   trip: Trip | null
   onCoverUpdate?: (tripId: number, coverUrl: string | null) => void
 }
@@ -50,6 +53,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     description: '',
     start_date: '',
     end_date: '',
+    currency: 'EUR',
     reminder_days: 0 as number,
     day_count: 7 as number | '',
   })
@@ -68,6 +72,10 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const [selectedMembers, setSelectedMembers] = useState<number[]>([])
   const [existingMembers, setExistingMembers] = useState<{ id: number; username: string }[]>([])
   const [memberSelectValue, setMemberSelectValue] = useState('')
+  // Set when a start-date change on a dated trip needs the user to pick how the
+  // itinerary follows the new dates (#1288); holds the payload awaiting that choice.
+  const [pendingDateShift, setPendingDateShift] = useState<(TripCreateRequest & { date_shift_mode?: DateShiftMode }) | null>(null)
+  const [dateShiftMode, setDateShiftMode] = useState<DateShiftMode>('keep_bookings')
 
   useEffect(() => {
     if (trip) {
@@ -77,6 +85,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         description: trip.description || '',
         start_date: trip.start_date || '',
         end_date: trip.end_date || '',
+        currency: trip.currency || 'EUR',
         reminder_days: rd,
         day_count: trip.day_count || 7,
       })
@@ -84,7 +93,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       setCoverPreview(trip.cover_image || null)
       setCoverSearchQuery('')
     } else {
-      setFormData({ title: '', description: '', start_date: '', end_date: '', reminder_days: tripRemindersEnabled ? 3 : 0, day_count: 7 })
+      setFormData({ title: '', description: '', start_date: '', end_date: '', currency: 'EUR', reminder_days: tripRemindersEnabled ? 3 : 0, day_count: 7 })
       setCustomReminder(false)
       setCoverPreview(null)
       setCoverSearchQuery('')
@@ -94,6 +103,8 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     setCoverSearchResults([])
     setCoverSearchError('')
     setSelectedMembers([])
+    setPendingDateShift(null)
+    setDateShiftMode('keep_bookings')
     setError('')
     if (isOpen) {
       authApi.getAppConfig().then((c: { trip_reminders_enabled?: boolean }) => {
@@ -127,16 +138,31 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         setError(t('dashboard.dayCountRequired')); return
       }
     }
+    const payload: TripCreateRequest & { date_shift_mode?: DateShiftMode } = {
+      title: formData.title.trim(),
+      description: formData.description.trim() || null,
+      start_date: formData.start_date || null,
+      end_date: formData.end_date || null,
+      currency: formData.currency,
+      reminder_days: formData.reminder_days,
+      ...(!formData.start_date && !formData.end_date ? { day_count: Number(formData.day_count) } : {}),
+    }
+    // Moving the start of a dated trip shifts the whole day grid, so let the user
+    // choose how bookings follow before anything is saved (#1288). End-date-only
+    // changes don't shift days and dateless transitions have nothing to shift.
+    if (isEditing && trip?.start_date && trip?.end_date
+      && payload.start_date && payload.end_date && payload.start_date !== trip.start_date) {
+      setDateShiftMode('keep_bookings')
+      setPendingDateShift(payload)
+      return
+    }
+    await performSave(payload)
+  }
+
+  const performSave = async (payload: TripCreateRequest & { date_shift_mode?: DateShiftMode }) => {
     setIsLoading(true)
     try {
-      const result = await onSave({
-        title: formData.title.trim(),
-        description: formData.description.trim() || null,
-        start_date: formData.start_date || null,
-        end_date: formData.end_date || null,
-        reminder_days: formData.reminder_days,
-        ...(!formData.start_date && !formData.end_date ? { day_count: Number(formData.day_count) } : {}),
-      })
+      const result = await onSave(payload)
       const createdTrip = result ? result.trip : undefined
       // Add selected members for newly created trips
       if (selectedMembers.length > 0 && createdTrip?.id) {
@@ -313,24 +339,64 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEditing ? t('dashboard.editTrip') : t('dashboard.createTrip')}
+      title={pendingDateShift ? t('dashboard.dateShiftTitle') : isEditing ? t('dashboard.editTrip') : t('dashboard.createTrip')}
       size="md"
       footer={
         <div className="flex gap-3 justify-end">
-          <button type="button" onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
-            {t('common.cancel')}
-          </button>
-          <button onClick={handleSubmit} disabled={isLoading}
-            className="px-4 py-2 text-sm bg-slate-900 hover:bg-slate-700 disabled:bg-slate-400 text-white rounded-lg transition-colors flex items-center gap-2">
-            {isLoading
-              ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{t('common.saving')}</>
-              : isEditing ? t('common.update') : t('dashboard.createTrip')}
-          </button>
+          {pendingDateShift ? (
+            <>
+              <button type="button" onClick={() => setPendingDateShift(null)} disabled={isLoading}
+                className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                {t('common.back')}
+              </button>
+              <button onClick={() => performSave({ ...pendingDateShift, date_shift_mode: dateShiftMode })} disabled={isLoading}
+                className="px-4 py-2 text-sm bg-slate-900 hover:bg-slate-700 disabled:bg-slate-400 text-white rounded-lg transition-colors flex items-center gap-2">
+                {isLoading
+                  ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{t('common.saving')}</>
+                  : t('common.update')}
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" onClick={onClose}
+                className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                {t('common.cancel')}
+              </button>
+              <button onClick={handleSubmit} disabled={isLoading}
+                className="px-4 py-2 text-sm bg-slate-900 hover:bg-slate-700 disabled:bg-slate-400 text-white rounded-lg transition-colors flex items-center gap-2">
+                {isLoading
+                  ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{t('common.saving')}</>
+                  : isEditing ? t('common.update') : t('dashboard.createTrip')}
+              </button>
+            </>
+          )}
         </div>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4" onPaste={handlePaste}>
+      {pendingDateShift && (
+        <div className="space-y-3">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>
+          )}
+          <p className="text-sm text-slate-600">{t('dashboard.dateShiftIntro')}</p>
+          {([
+            { mode: 'keep_bookings' as DateShiftMode, label: t('dashboard.dateShiftKeepBookings'), desc: t('dashboard.dateShiftKeepBookingsDesc') },
+            { mode: 'shift_all' as DateShiftMode, label: t('dashboard.dateShiftAll'), desc: t('dashboard.dateShiftAllDesc') },
+          ]).map(({ mode, label, desc }) => (
+            <label key={mode}
+              className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${dateShiftMode === mode ? 'border-slate-900 bg-slate-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+              <input type="radio" name="date_shift_mode" value={mode} checked={dateShiftMode === mode}
+                onChange={() => setDateShiftMode(mode)} className="mt-1 accent-slate-900" />
+              <span>
+                <span className="block text-sm font-medium text-slate-800">{label}</span>
+                <span className="block text-sm text-slate-500 mt-0.5">{desc}</span>
+              </span>
+            </label>
+          ))}
+          <p className="text-xs text-slate-400">{t('dashboard.dateShiftHint')}</p>
+        </div>
+      )}
+      <form onSubmit={handleSubmit} className={pendingDateShift ? 'hidden' : 'space-y-4'} onPaste={handlePaste}>
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>
         )}
@@ -447,6 +513,17 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
             <p className="text-xs text-slate-400 mt-1.5">{t('dashboard.dayCountHint')}</p>
           </div>
         )}
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('dashboard.currency')}</label>
+          <CustomSelect
+            value={formData.currency}
+            onChange={v => canEditTrip && update('currency', v)}
+            disabled={!canEditTrip}
+            options={currenciesWith(formData.currency).map(c => ({ value: c, label: `${c} (${SYMBOLS[c] || c})` }))}
+            searchable
+          />
+        </div>
 
         {/* Reminder — only visible to owner (or when creating) */}
         {(!isEditing || trip?.user_id === currentUser?.id || currentUser?.role === 'admin') && (

@@ -49,8 +49,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Tip:',
   'settings.mapTip':
     'Rechts-klik en sleep om de kaart te roteren/kantelen. Middenklik om een locatie toe te voegen (rechts-klik is voor rotatie).',
-  'settings.latitude': 'Breedtegraad',
-  'settings.longitude': 'Lengtegraad',
   'settings.saveMap': 'Kaart opslaan',
   'settings.apiKeys': 'API-sleutels',
   'settings.mapsKey': 'Google Maps API-sleutel',
@@ -297,12 +295,14 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.configure': 'Instellen',
   'settings.notificationPreferences.testSuccess': 'Testmelding verstuurd.',
   'settings.notificationPreferences.testFailed': 'Test mislukt.',
-  'settings.notificationPreferences.pluginConfigured': 'Ingesteld. Beheer je gegevens op de instellingenpagina van de plug-in.',
+  'settings.notificationPreferences.pluginConfigured':
+    'Ingesteld. Beheer je gegevens op de instellingenpagina van de plug-in.',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
   'settings.currency': 'Valuta',
   'settings.currencyHint': 'Alle bedragen onder Onkosten worden omgerekend naar en weergegeven in deze valuta.',
+  'settings.currencyTrip': 'Valuta van de reis',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Log sneller en phishingbestendig in met een passkey — je vingerafdruk, gezicht, pincode of een hardwaresleutel. Je wachtwoord blijft als back-up bestaan.',
@@ -494,6 +494,9 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': 'Bron',
   'settings.pluginActivity.columns.when': 'Wanneer',
   'settings.pluginActivity.columns.status': 'Resultaat',
+  'settings.alwaysShowRoutes': 'Boekingsroutes altijd tonen',
+  'settings.alwaysShowRoutesHint':
+    'Toont automatisch de route van elke vlucht, trein en andere boeking op de kaart, zonder dat u dit per boeking hoeft in te schakelen.',
 };
 
 export default settings;

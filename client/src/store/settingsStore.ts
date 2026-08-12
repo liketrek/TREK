@@ -21,33 +21,39 @@ interface SettingsState {
 export const hasStoredLanguage = (): boolean =>
   typeof localStorage !== 'undefined' && !!localStorage.getItem('app_language')
 
+// The effective client-side defaults for a fresh instance. The server sends no value for
+// a setting an admin hasn't defaulted (see settingsService.getAdminUserDefaults), so these
+// are what a brand-new user actually sees. Keep them internally consistent — one
+// measurement system, not °F alongside kilometres — and note that DisplaySettingsTab
+// imports these same values for its fallbacks, so the store default and the UI fallback
+// can't drift apart again.
+export const DEFAULT_SETTINGS: Settings = {
+  map_tile_url: '',
+  dark_mode: false,
+  // Empty = no personal display currency, so Costs falls back to the trip's own.
+  default_currency: '',
+  language: localStorage.getItem('app_language') || 'en',
+  temperature_unit: 'celsius',
+  distance_unit: 'metric',
+  time_format: '24h',
+  show_place_description: false,
+  optimize_from_accommodation: true,
+  map_provider: 'leaflet',
+  map_poi_pill_enabled: true,
+  mapbox_access_token: '',
+  mapbox_style: 'mapbox://styles/mapbox/standard',
+  maplibre_style: '',
+  mapbox_3d_enabled: true,
+  mapbox_quality_mode: false,
+  dashboard_fx_from: 'EUR',
+  dashboard_fx_to: 'USD',
+  appearance: DEFAULT_APPEARANCE,
+  // dashboard_timezones is intentionally left unset so the widget can tell "never
+  // chosen" (fall back to home + defaults) from an explicitly emptied list.
+}
+
 export const useSettingsStore = create<SettingsState>((set, get) => ({
-  settings: {
-    map_tile_url: '',
-    default_lat: 48.8566,
-    default_lng: 2.3522,
-    default_zoom: 10,
-    dark_mode: false,
-    default_currency: 'USD',
-    language: localStorage.getItem('app_language') || 'en',
-    temperature_unit: 'fahrenheit',
-    distance_unit: 'metric',
-    time_format: '12h',
-    show_place_description: false,
-    optimize_from_accommodation: true,
-    map_provider: 'leaflet',
-    map_poi_pill_enabled: true,
-    mapbox_access_token: '',
-    mapbox_style: 'mapbox://styles/mapbox/standard',
-    maplibre_style: '',
-    mapbox_3d_enabled: true,
-    mapbox_quality_mode: false,
-    dashboard_fx_from: 'EUR',
-    dashboard_fx_to: 'USD',
-    appearance: DEFAULT_APPEARANCE,
-    // dashboard_timezones is intentionally left unset so the widget can tell "never
-    // chosen" (fall back to home + defaults) from an explicitly emptied list.
-  },
+  settings: { ...DEFAULT_SETTINGS },
   isLoaded: false,
 
   loadSettings: async () => {

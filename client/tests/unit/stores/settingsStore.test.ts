@@ -158,7 +158,10 @@ describe('settingsStore', () => {
 
       const state = useSettingsStore.getState();
       expect(state.settings.dark_mode).toBe(true);
-      expect(state.settings.default_currency).toBe('USD');
+      expect(state.settings.language).toBe('en');
+      // No display currency of their own: Costs then follows each trip's own currency
+      // rather than forcing every trip through one code.
+      expect(state.settings.default_currency).toBe('');
     });
   });
 
@@ -210,10 +213,10 @@ describe('settingsStore', () => {
       );
 
       await expect(
-        useSettingsStore.getState().updateSetting('default_zoom', 15)
+        useSettingsStore.getState().updateSetting('default_currency', 'EUR')
       ).rejects.toThrow();
 
-      expect(useSettingsStore.getState().settings.default_zoom).toBe(15);
+      expect(useSettingsStore.getState().settings.default_currency).toBe('EUR');
     });
   });
 });

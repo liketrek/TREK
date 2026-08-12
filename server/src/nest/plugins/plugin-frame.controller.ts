@@ -61,18 +61,36 @@ export class PluginFrameController {
     const ext = path.extname(resolved).toLowerCase();
     res.setHeader('Content-Type', MIME[ext] ?? 'application/octet-stream');
     res.setHeader('X-Content-Type-Options', 'nosniff');
+    // The frame document runs at an OPAQUE origin (sandbox without
+    // allow-same-origin), so its own <script src>/<link> subresource loads are
+    // cross-origin — helmet's default CORP: same-origin makes the browser drop
+    // them (ERR_BLOCKED_BY_RESPONSE) and a multi-file client dies on boot.
+    // The sandbox + per-plugin CSP are the isolation boundary here, not CORP:
+    // these files are the plugin's own public client code.
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     res.setHeader('Content-Security-Policy', this.frameCsp(pluginId, req.get('host')));
-    res.sendFile(resolved);
+    // Explicit { root } + basename, not the absolute path: under the Nest
+    // ExpressAdapter, res.sendFile(absolutePath) resolves against the rewritten
+    // req.url and 404s spuriously (same trap as files-download.controller.ts).
+    res.sendFile(path.basename(resolved), { root: path.dirname(resolved) });
   }
 
   /** Per-plugin, locked-down CSP for the sandboxed frame document. */
   private frameCsp(pluginId: string, host: string | undefined): string {
-    // Defense in depth: the manifest validator already constrains these hosts, but
-    // never interpolate anything that isn't a clean host/wildcard into connect-src
-    // (a stray space or `*` would inject an extra CSP source token).
-    const outbound = this.runtime
-      .outboundHostsOf(pluginId)
-      .filter((h) => /^(\*\.[a-z0-9-]+(\.[a-z0-9-]+)+|[a-z0-9-]+(\.[a-z0-9-]+)*)$/i.test(h));
+    // The frame must be able to reach exactly what the CHILD may reach. The child's egress
+    // guard is the union of the manifest's http:outbound:<host> grants AND the hosts an admin
+    // added post-install for an operatorEgress plugin (plugin-runtime.service: activate()).
+    // Building connect-src from the grants alone left an operatorEgress plugin WITH A UI able
+    // to call the operator's host from its server but CSP-blocked in its own iframe. The admin
+    // consented to these hosts at install and the child already reaches them, so matching the
+    // frame to the child widens no trust boundary that isn't already crossed.
+    //
+    // Defense in depth: both sources are validated upstream (the manifest validator; the
+    // admin writer's EGRESS_HOST_RE), but never interpolate anything that isn't a clean
+    // host/wildcard into connect-src — a stray space or `*` would inject an extra CSP source.
+    const outbound = [
+      ...new Set([...this.runtime.outboundHostsOf(pluginId), ...this.runtime.operatorEgressHosts(pluginId)]),
+    ].filter((h) => /^(\*\.[a-z0-9-]+(\.[a-z0-9-]+)+|[a-z0-9-]+(\.[a-z0-9-]+)*)$/i.test(h));
     // The frame runs at an OPAQUE origin (sandbox without allow-same-origin), so
     // 'self' matches nothing and the plugin's own <script src>/<link> files would
     // be blocked — a multi-file client build (Vite/React output) only worked

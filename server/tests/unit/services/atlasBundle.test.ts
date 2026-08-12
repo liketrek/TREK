@@ -8,6 +8,24 @@ import zlib from 'zlib';
 // "ESP", every Chinese "CHN", also CL/OM), which made marking one region light up the
 // whole country (#1217). build-atlas-geo.mjs now synthesizes a unique per-region code
 // for those; this asserts the shipped bundle actually carries distinct codes.
+// Countries with user-assigned ISO codes (Kosovo = XK/XKX) are absent from the
+// upstream ISO list the builder's A3_TO_A2 map was sourced from, which shipped
+// Kosovo with ISO_A2=null — unresolvable by the client, so it had no hover/click
+// handlers and never appeared in search (#1609). Guard that the country bundle
+// carries the alpha-2 code the client keys on.
+describe('Atlas admin0 country bundle (#1609)', () => {
+  const bundlePath = path.join(__dirname, '..', '..', '..', 'assets', 'atlas', 'admin0.geojson.gz');
+  const features = JSON.parse(zlib.gunzipSync(fs.readFileSync(bundlePath)).toString()).features as {
+    properties: { ISO_A2: string | null; ADM0_A3: string; NAME?: string };
+  }[];
+
+  it('ATLAS-BUNDLE-003 — Kosovo ships with a resolvable ISO_A2', () => {
+    const kosovo = features.filter(f => f.properties.ADM0_A3 === 'XKX');
+    expect(kosovo.length, 'exactly one Kosovo feature').toBe(1);
+    expect(kosovo[0].properties.ISO_A2).toBe('XK');
+  });
+});
+
 describe('Atlas admin1 region bundle (#1217)', () => {
   const bundlePath = path.join(__dirname, '..', '..', '..', 'assets', 'atlas', 'admin1.geojson.gz');
   const features = JSON.parse(zlib.gunzipSync(fs.readFileSync(bundlePath)).toString()).features as {

@@ -13,5 +13,7 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Muzea i kultura',
   'poi.cat.nature': 'Przyroda i parki',
   'poi.cat.activities': 'Aktywności',
+  'map.showAllConnections': 'Pokaż wszystkie trasy rezerwacji',
+  'map.hideAllConnections': 'Ukryj wszystkie trasy rezerwacji',
 };
 export default map;

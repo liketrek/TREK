@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Blocks, Save, Loader2, Link2, Unlink, CheckCircle } from 'lucide-react'
+import { Save, Loader2, Link2, Unlink, CheckCircle } from 'lucide-react'
+import PluginIcon from '../shared/PluginIcon'
+import PluginFrame from '../Plugins/PluginFrame'
 import { pluginsApi, type PluginUserSettingField, type PluginAction } from '../../api/client'
 import { usePluginStore } from '../../store/pluginStore'
 import { useToast } from '../shared/Toast'
@@ -57,7 +59,7 @@ const SECRET_MASK = '••••••••'
  * here; the field list is trusted, validated manifest data. Secrets stay write-only
  * (masked, never echoed back). One form per active plugin that declares user fields.
  */
-function PluginSettingsForm({ id, name }: { id: string; name: string }) {
+function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon: string | null }) {
   const { t } = useTranslation()
   const toast = useToast()
   const [fields, setFields] = useState<PluginUserSettingField[] | null>(null)
@@ -134,7 +136,7 @@ function PluginSettingsForm({ id, name }: { id: string; name: string }) {
   return (
     <div className="rounded-xl border border-border bg-surface p-5">
       <div className="flex items-center gap-2 mb-4">
-        <Blocks className="w-4 h-4 text-content-secondary" />
+        <PluginIcon name={icon} className="w-4 h-4 text-content-secondary" />
         <h3 className="text-sm font-semibold text-content">{name}</h3>
       </div>
       <div className="space-y-4">
@@ -220,6 +222,32 @@ function PluginSettingsForm({ id, name }: { id: string; name: string }) {
   )
 }
 
+/**
+ * A plugin's OWN settings surface (capabilities.settingsUi): its sandboxed
+ * client/settings.html framed inside the familiar settings card. Unlike the
+ * declared-fields form above, the plugin renders this itself — same opaque-origin
+ * sandbox and postMessage bridge as its widget, so it can only reach its own
+ * routes. The frame auto-sizes via trek:resize like a dashboard widget.
+ */
+function PluginSettingsUiCard({ id, name, icon }: { id: string; name: string; icon: string | null }) {
+  return (
+    <div className="rounded-xl border border-border bg-surface p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <PluginIcon name={icon} className="w-4 h-4 text-content-secondary" />
+        <h3 className="text-sm font-semibold text-content">{name}</h3>
+      </div>
+      {/* min-height covers the beat before the frame's first trek:resize lands.
+          color-scheme light on the frame element matches the sandboxed document's
+          default ("normal"): mismatched schemes make Chromium paint an opaque
+          white canvas behind the transparent frame (same trap .hero-overlay-frame
+          guards against), which glares in dark mode. */}
+      <div className="min-h-[120px]">
+        <PluginFrame pluginId={id} path="settings.html" title={name} className="[color-scheme:light]" />
+      </div>
+    </div>
+  )
+}
+
 export default function PluginSettingsTab() {
   const { t } = useTranslation()
   const plugins = usePluginStore(s => s.plugins)
@@ -232,7 +260,12 @@ export default function PluginSettingsTab() {
       </div>
       {plugins.length === 0
         ? <p className="text-sm text-content-muted">{t('settings.plugins.empty')}</p>
-        : plugins.map(p => <PluginSettingsForm key={p.id} id={p.id} name={p.name} />)}
+        : plugins.map(p => (
+          <div key={p.id} className="space-y-4">
+            <PluginSettingsForm id={p.id} name={p.name} icon={p.icon} />
+            {p.settingsUi && <PluginSettingsUiCard id={p.id} name={p.name} icon={p.icon} />}
+          </div>
+        ))}
       <PluginActivityPanel />
     </div>
   )

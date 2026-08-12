@@ -46,6 +46,7 @@ const packing: TranslationStrings = {
   'packing.bags': '行李',
   'packing.noBag': '未分配',
   'packing.totalWeight': '总重量',
+  'packing.quantity': '数量',
   'packing.bagName': '名称...',
   'packing.addBag': '添加行李',
   'packing.changeCategory': '移动到清单',

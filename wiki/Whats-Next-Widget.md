@@ -2,9 +2,7 @@
 
 The What's Next widget shows the upcoming assigned places across all days of your trip at a glance — useful for quickly orienting the group before heading out.
 
-<!-- TODO: screenshot: What's Next widget showing upcoming events -->
-
-![What's Next widget](assets/Collab.png)
+![The What's Next widget listing the next scheduled activities per day](assets/WhatsNext.png)
 
 ## Where to find it
 

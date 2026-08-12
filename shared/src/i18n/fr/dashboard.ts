@@ -86,6 +86,17 @@ const dashboard: TranslationStrings = {
   'dashboard.useUnsplashPhoto': 'Utiliser la photo Unsplash de {photographer}',
   'dashboard.titleRequired': 'Le titre est obligatoire',
   'dashboard.endDateError': 'La date de fin doit être postérieure à la date de début',
+  'dashboard.dateShiftTitle': 'Nouvelle date de début',
+  'dashboard.dateShiftIntro':
+    'Vous avez modifié la date de début de ce voyage. Comment vos plans doivent-ils suivre les nouvelles dates ?',
+  'dashboard.dateShiftKeepBookings': 'Conserver les réservations à leurs dates',
+  'dashboard.dateShiftKeepBookingsDesc':
+    "Les plans journaliers suivent les nouvelles dates, tandis que les réservations et hébergements restent à leurs dates d'origine tant que celles-ci font toujours partie du voyage.",
+  'dashboard.dateShiftAll': 'Tout décaler',
+  'dashboard.dateShiftAllDesc':
+    "L'itinéraire entier suit les nouvelles dates, y compris les réservations et hébergements.",
+  'dashboard.dateShiftHint':
+    "Astuce : pour ne décaler qu'une partie de votre itinéraire, utilisez plutôt « Ajouter un jour » dans le planificateur.",
   'dashboard.greeting.morning': 'Bonjour,',
   'dashboard.greeting.afternoon': 'Bon après-midi,',
   'dashboard.greeting.evening': 'Bonsoir,',

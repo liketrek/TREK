@@ -3,8 +3,9 @@ import { useAddonStore } from '../../store/addonStore'
 import { usePluginStore } from '../../store/pluginStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
-import { LayoutGrid, CalendarDays, Globe, Compass, Bookmark, Plus, Blocks } from 'lucide-react'
+import { LayoutGrid, CalendarDays, Globe, Compass, Bookmark, Plus } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { resolvePluginIcon } from '../shared/PluginIcon'
 
 const ADDON_NAV: Record<string, { icon: LucideIcon; labelKey: string }> = {
   vacay:       { icon: CalendarDays, labelKey: 'admin.addons.catalog.vacay.name' },
@@ -65,7 +66,7 @@ export default function BottomNav() {
       const nav = ADDON_NAV[addon.id]
       return nav ? [{ to: `/${addon.id}`, label: t(nav.labelKey), icon: nav.icon }] : []
     }),
-    ...pagePlugins.map(p => ({ to: `/plugins/${p.id}`, label: p.name, icon: Blocks })),
+    ...pagePlugins.map(p => ({ to: `/plugins/${p.id}`, label: p.name, icon: resolvePluginIcon(p.icon) })),
   ]
   // Split the items so the raised "+" sits dead centre.
   const splitAt = Math.ceil(items.length / 2)

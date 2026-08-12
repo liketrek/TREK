@@ -4,16 +4,17 @@ import {
   getWikiIndex,
   getWikiPage,
   getWikiAsset,
+  isLocalWiki,
   WikiNotFound,
   type WikiPage,
   type WikiNavSection,
 } from '../../services/wikiService';
 
 /**
- * /api/help — embedded TREK wiki. Content is public docs (the wiki is public on
- * GitHub), so these endpoints are unauthenticated; that also lets <img> tags load
- * the proxied assets without sending credentials. All upstream calls go to the
- * fixed TREK wiki path and are cached server-side.
+ * /api/help — embedded TREK wiki, served from the `wiki/` directory that ships
+ * with the app (see wikiService for the GitHub fallback). Content is public docs,
+ * so these endpoints are unauthenticated; that also lets <img> tags load the
+ * proxied assets without sending credentials.
  */
 @Controller('api/help')
 export class HelpController {
@@ -41,7 +42,9 @@ export class HelpController {
     try {
       const { buf, type } = await getWikiAsset(assetPath);
       res.setHeader('Content-Type', type);
-      res.setHeader('Cache-Control', 'public, max-age=3600');
+      // Bundled assets are pinned to this build, so they can be cached hard; the
+      // GitHub fallback refreshes hourly, so match that TTL instead.
+      res.setHeader('Cache-Control', isLocalWiki() ? 'public, max-age=86400' : 'public, max-age=3600');
       res.end(buf);
     } catch {
       res.status(404).end();

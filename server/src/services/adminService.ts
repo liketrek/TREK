@@ -1,22 +1,23 @@
-import bcrypt from 'bcryptjs';
-import { avatarUrl } from './avatarUrl';
-import crypto from 'crypto';
-import path from 'path';
-import fs from 'fs';
-import { db } from '../db/database';
-import { User, Addon } from '../types';
-import { updateJwtSecret } from '../config';
-import { maybe_encrypt_api_key, decrypt_api_key } from './apiKeyCrypto';
-import { getAllPermissions, savePermissions as savePerms, PERMISSION_ACTIONS } from './permissions';
-import { revokeUserSessions, revokeUserSessionsForClient } from '../mcp';
-import { deleteUserCompletely } from './userCleanupService';
-import { emitUserDeleted } from '../plugin-user-lifecycle';
-import { validatePassword } from './passwordPolicy';
-import { getPhotoProviderConfig } from './memories/helpersService';
 import { ADDON_IDS } from '../addons';
-import { prepareLlmAddonConfigForWrite, maskLlmAddonConfig } from './llmConfig';
-import { send as sendNotification } from './notificationService';
+import { updateJwtSecret } from '../config';
+import { db } from '../db/database';
+import { revokeUserSessions, revokeUserSessionsForClient } from '../mcp';
+import { emitUserDeleted } from '../plugin-user-lifecycle';
+import { User, Addon } from '../types';
+import { maybe_encrypt_api_key, decrypt_api_key } from './apiKeyCrypto';
 import { resolveAuthToggles } from './authService';
+import { avatarUrl } from './avatarUrl';
+import { prepareLlmAddonConfigForWrite, maskLlmAddonConfig } from './llmConfig';
+import { getPhotoProviderConfig } from './memories/helpersService';
+import { send as sendNotification } from './notificationService';
+import { validatePassword } from './passwordPolicy';
+import { getAllPermissions, savePermissions as savePerms, PERMISSION_ACTIONS } from './permissions';
+import { deleteUserCompletely } from './userCleanupService';
+
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -36,9 +37,11 @@ export function compareVersions(a: string, b: string): number {
     const preN = n !== null && Number.isFinite(n) ? n : null;
     return { parts, preN };
   };
-  const pa = parse(a), pb = parse(b);
+  const pa = parse(a),
+    pb = parse(b);
   for (let i = 0; i < Math.max(pa.parts.length, pb.parts.length); i++) {
-    const na = pa.parts[i] || 0, nb = pb.parts[i] || 0;
+    const na = pa.parts[i] || 0,
+      nb = pb.parts[i] || 0;
     if (na > nb) return 1;
     if (na < nb) return -1;
   }
@@ -54,8 +57,13 @@ export function compareVersions(a: string, b: string): number {
 
 export const isDocker = (() => {
   try {
-    return fs.existsSync('/.dockerenv') || (fs.existsSync('/proc/1/cgroup') && fs.readFileSync('/proc/1/cgroup', 'utf8').includes('docker'));
-  } catch { return false; }
+    return (
+      fs.existsSync('/.dockerenv') ||
+      (fs.existsSync('/proc/1/cgroup') && fs.readFileSync('/proc/1/cgroup', 'utf8').includes('docker'))
+    );
+  } catch {
+    return false;
+  }
 })();
 
 // ── User CRUD ──────────────────────────────────────────────────────────────
@@ -63,15 +71,21 @@ export const isDocker = (() => {
 export function listUsers() {
   // Guests (#1362) are accountless trip participants, not real users — keep them out
   // of admin user management entirely.
-  const users = db.prepare(
-    'SELECT id, username, email, role, avatar, created_at, updated_at, last_login FROM users WHERE COALESCE(is_guest, 0) = 0 ORDER BY created_at DESC'
-  ).all() as (Pick<User, 'id' | 'username' | 'email' | 'role' | 'created_at' | 'updated_at' | 'last_login'> & { avatar?: string | null })[];
+  const users = db
+    .prepare(
+      'SELECT id, username, email, role, avatar, created_at, updated_at, last_login FROM users WHERE COALESCE(is_guest, 0) = 0 ORDER BY created_at DESC',
+    )
+    .all() as (Pick<User, 'id' | 'username' | 'email' | 'role' | 'created_at' | 'updated_at' | 'last_login'> & {
+    avatar?: string | null;
+  })[];
   let onlineUserIds = new Set<number>();
   try {
     const { getOnlineUserIds } = require('../websocket');
     onlineUserIds = getOnlineUserIds();
-  } catch { /* */ }
-  return users.map(u => ({
+  } catch {
+    /* */
+  }
+  return users.map((u) => ({
     ...u,
     avatar_url: avatarUrl(u),
     created_at: utcSuffix(u.created_at),
@@ -98,7 +112,9 @@ export function createUser(data: { username: string; email: string; password: st
   }
 
   // Guests (#1362) live in a reserved synthetic namespace; never let one block a real account.
-  const existingUsername = db.prepare('SELECT id FROM users WHERE username = ? AND COALESCE(is_guest, 0) = 0').get(username);
+  const existingUsername = db
+    .prepare('SELECT id FROM users WHERE username = ? AND COALESCE(is_guest, 0) = 0')
+    .get(username);
   if (existingUsername) return { error: 'Username already taken', status: 409 };
 
   const existingEmail = db.prepare('SELECT id FROM users WHERE email = ? AND COALESCE(is_guest, 0) = 0').get(email);
@@ -106,13 +122,13 @@ export function createUser(data: { username: string; email: string; password: st
 
   const passwordHash = bcrypt.hashSync(password, BCRYPT_COST);
 
-  const result = db.prepare(
-    'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)'
-  ).run(username, email, passwordHash, data.role || 'user');
+  const result = db
+    .prepare('INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)')
+    .run(username, email, passwordHash, data.role || 'user');
 
-  const user = db.prepare(
-    'SELECT id, username, email, role, created_at, updated_at FROM users WHERE id = ?'
-  ).get(result.lastInsertRowid);
+  const user = db
+    .prepare('SELECT id, username, email, role, created_at, updated_at FROM users WHERE id = ?')
+    .get(result.lastInsertRowid);
 
   return {
     user,
@@ -134,11 +150,15 @@ export function updateUser(id: string, data: { username?: string; email?: string
   }
 
   if (username && username !== user.username) {
-    const conflict = db.prepare('SELECT id FROM users WHERE username = ? AND id != ? AND COALESCE(is_guest, 0) = 0').get(username, id);
+    const conflict = db
+      .prepare('SELECT id FROM users WHERE username = ? AND id != ? AND COALESCE(is_guest, 0) = 0')
+      .get(username, id);
     if (conflict) return { error: 'Username already taken', status: 409 };
   }
   if (email && email !== user.email) {
-    const conflict = db.prepare('SELECT id FROM users WHERE email = ? AND id != ? AND COALESCE(is_guest, 0) = 0').get(email, id);
+    const conflict = db
+      .prepare('SELECT id FROM users WHERE email = ? AND id != ? AND COALESCE(is_guest, 0) = 0')
+      .get(email, id);
     if (conflict) return { error: 'Email already taken', status: 409 };
   }
 
@@ -153,12 +173,15 @@ export function updateUser(id: string, data: { username?: string; email?: string
   if (role && role !== 'admin') {
     const current = db.prepare('SELECT role FROM users WHERE id = ?').get(id) as { role?: string } | undefined;
     if (current?.role === 'admin') {
-      const adminCount = (db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'admin'").get() as { count: number }).count;
+      const adminCount = (
+        db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'admin'").get() as { count: number }
+      ).count;
       if (adminCount <= 1) return { error: 'Cannot remove the last admin', status: 400 };
     }
   }
 
-  db.prepare(`
+  db.prepare(
+    `
     UPDATE users SET
       username = COALESCE(?, username),
       email = COALESCE(?, email),
@@ -166,11 +189,12 @@ export function updateUser(id: string, data: { username?: string; email?: string
       password_hash = COALESCE(?, password_hash),
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
-  `).run(username || null, email || null, role || null, passwordHash, id);
+  `,
+  ).run(username || null, email || null, role || null, passwordHash, id);
 
-  const updated = db.prepare(
-    'SELECT id, username, email, role, created_at, updated_at FROM users WHERE id = ?'
-  ).get(id);
+  const updated = db
+    .prepare('SELECT id, username, email, role, created_at, updated_at FROM users WHERE id = ?')
+    .get(id);
 
   const changed: string[] = [];
   if (username) changed.push('username');
@@ -190,7 +214,9 @@ export function deleteUser(id: string, currentUserId: number) {
     return { error: 'Cannot delete own account', status: 400 };
   }
 
-  const userToDel = db.prepare('SELECT id, email FROM users WHERE id = ?').get(id) as { id: number; email: string } | undefined;
+  const userToDel = db.prepare('SELECT id, email FROM users WHERE id = ?').get(id) as
+    | { id: number; email: string }
+    | undefined;
   if (!userToDel) return { error: 'User not found', status: 404 };
 
   deleteUserCompletely(userToDel.id);
@@ -201,7 +227,9 @@ export function deleteUser(id: string, currentUserId: number) {
 // ── Stats ──────────────────────────────────────────────────────────────────
 
 export function getStats() {
-  const totalUsers = (db.prepare('SELECT COUNT(*) as count FROM users WHERE COALESCE(is_guest, 0) = 0').get() as { count: number }).count;
+  const totalUsers = (
+    db.prepare('SELECT COUNT(*) as count FROM users WHERE COALESCE(is_guest, 0) = 0').get() as { count: number }
+  ).count;
   const totalTrips = (db.prepare('SELECT COUNT(*) as count FROM trips').get() as { count: number }).count;
   const totalPlaces = (db.prepare('SELECT COUNT(*) as count FROM places').get() as { count: number }).count;
   const totalFiles = (db.prepare('SELECT COUNT(*) as count FROM trip_files').get() as { count: number }).count;
@@ -212,7 +240,7 @@ export function getStats() {
 
 export function getPermissions() {
   const current = getAllPermissions();
-  const actions = PERMISSION_ACTIONS.map(a => ({
+  const actions = PERMISSION_ACTIONS.map((a) => ({
     key: a.key,
     level: current[a.key],
     defaultLevel: a.defaultLevel,
@@ -246,13 +274,17 @@ export function getAuditLog(query: { limit?: string; offset?: string }) {
     ip: string | null;
   };
 
-  const rows = db.prepare(`
+  const rows = db
+    .prepare(
+      `
     SELECT a.id, a.created_at, a.user_id, u.username, u.email as user_email, a.action, a.resource, a.details, a.ip
     FROM audit_log a
     LEFT JOIN users u ON u.id = a.user_id
     ORDER BY a.id DESC
     LIMIT ? OFFSET ?
-  `).all(limit, offset) as Row[];
+  `,
+    )
+    .all(limit, offset) as Row[];
 
   const total = (db.prepare('SELECT COUNT(*) as c FROM audit_log').get() as { c: number }).c;
 
@@ -265,7 +297,8 @@ export function getAuditLog(query: { limit?: string; offset?: string }) {
         details = { _parse_error: true };
       }
     }
-    const created_at = r.created_at && !r.created_at.endsWith('Z') ? r.created_at.replace(' ', 'T') + 'Z' : r.created_at;
+    const created_at =
+      r.created_at && !r.created_at.endsWith('Z') ? r.created_at.replace(' ', 'T') + 'Z' : r.created_at;
     return { ...r, created_at, details };
   });
 
@@ -275,7 +308,8 @@ export function getAuditLog(query: { limit?: string; offset?: string }) {
 // ── OIDC Settings ──────────────────────────────────────────────────────────
 
 export function getOidcSettings() {
-  const get = (key: string) => (db.prepare("SELECT value FROM app_settings WHERE key = ?").get(key) as { value: string } | undefined)?.value || '';
+  const get = (key: string) =>
+    (db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined)?.value || '';
   const secret = decrypt_api_key(get('oidc_client_secret'));
   return {
     issuer: get('oidc_issuer'),
@@ -296,10 +330,14 @@ export function updateOidcSettings(data: {
 }): { error?: string; status?: number; success?: boolean } {
   // Lockout prevention: can't remove OIDC config when password login is disabled
   if ((data.issuer === '' || data.client_id === '') && !resolveAuthToggles().password_login) {
-    return { error: 'Cannot remove SSO configuration while password login is disabled. Enable password login first.', status: 400 };
+    return {
+      error: 'Cannot remove SSO configuration while password login is disabled. Enable password login first.',
+      status: 400,
+    };
   }
 
-  const set = (key: string, val: string) => db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)").run(key, val || '');
+  const set = (key: string, val: string) =>
+    db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run(key, val || '');
   set('oidc_issuer', data.issuer ?? '');
   set('oidc_client_id', data.client_id ?? '');
   if (data.client_secret !== undefined) set('oidc_client_secret', maybe_encrypt_api_key(data.client_secret) ?? '');
@@ -328,10 +366,9 @@ export function saveDemoBaseline(): { error?: string; status?: number; message?:
 
 export async function getGithubReleases(perPage: string = '10', page: string = '1') {
   try {
-    const resp = await fetch(
-      `https://api.github.com/repos/mauriceboe/TREK/releases?per_page=${perPage}&page=${page}`,
-      { headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'TREK-Server' } }
-    );
+    const resp = await fetch(`https://api.github.com/repos/liketrek/TREK/releases?per_page=${perPage}&page=${page}`, {
+      headers: { Accept: 'application/vnd.github.v3+json', 'User-Agent': 'TREK-Server' },
+    });
     if (!resp.ok) return [];
     const data = await resp.json();
     return Array.isArray(data) ? data : [];
@@ -364,41 +401,59 @@ export async function checkVersion(): Promise<VersionInfo> {
 
   const currentVersion: string = process.env.APP_VERSION || require('../../package.json').version;
   const isPrerelease = currentVersion.includes('-pre.');
-  const fallback: VersionInfo = { current: currentVersion, latest: currentVersion, update_available: false, is_docker: isDocker, is_prerelease: isPrerelease };
+  const fallback: VersionInfo = {
+    current: currentVersion,
+    latest: currentVersion,
+    update_available: false,
+    is_docker: isDocker,
+    is_prerelease: isPrerelease,
+  };
   let result: VersionInfo;
   try {
     if (isPrerelease) {
       // Fetch release list and find the newest prerelease
-      const resp = await fetch(
-        'https://api.github.com/repos/mauriceboe/TREK/releases?per_page=100',
-        { headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'TREK-Server' } }
-      );
+      const resp = await fetch('https://api.github.com/repos/liketrek/TREK/releases?per_page=100', {
+        headers: { Accept: 'application/vnd.github.v3+json', 'User-Agent': 'TREK-Server' },
+      });
       if (!resp.ok) {
         return fallback;
       }
-      const data = await resp.json() as Array<{ tag_name?: string; html_url?: string; prerelease?: boolean }>;
-      const prereleases = Array.isArray(data) ? data.filter(r => r.prerelease) : [];
+      const data = (await resp.json()) as Array<{ tag_name?: string; html_url?: string; prerelease?: boolean }>;
+      const prereleases = Array.isArray(data) ? data.filter((r) => r.prerelease) : [];
       if (!prereleases.length) {
         return fallback;
       }
       // Pre-compute stripped versions, then sort descending
-      const tagged = prereleases.map(r => ({ r, v: (r.tag_name || '').replace(/^v/, '') }));
+      const tagged = prereleases.map((r) => ({ r, v: (r.tag_name || '').replace(/^v/, '') }));
       tagged.sort((a, b) => compareVersions(b.v, a.v));
       const latest = tagged[0].v;
       const update_available = !!latest && latest !== currentVersion && compareVersions(latest, currentVersion) > 0;
-      result = { current: currentVersion, latest, update_available, release_url: tagged[0].r.html_url || '', is_docker: isDocker, is_prerelease: true };
+      result = {
+        current: currentVersion,
+        latest,
+        update_available,
+        release_url: tagged[0].r.html_url || '',
+        is_docker: isDocker,
+        is_prerelease: true,
+      };
     } else {
-      const resp = await fetch(
-        'https://api.github.com/repos/mauriceboe/TREK/releases/latest',
-        { headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'TREK-Server' } }
-      );
+      const resp = await fetch('https://api.github.com/repos/liketrek/TREK/releases/latest', {
+        headers: { Accept: 'application/vnd.github.v3+json', 'User-Agent': 'TREK-Server' },
+      });
       if (!resp.ok) {
         return fallback;
       }
-      const data = await resp.json() as { tag_name?: string; html_url?: string };
+      const data = (await resp.json()) as { tag_name?: string; html_url?: string };
       const latest = (data.tag_name || '').replace(/^v/, '');
       const update_available = !!latest && latest !== currentVersion && compareVersions(latest, currentVersion) > 0;
-      result = { current: currentVersion, latest, update_available, release_url: data.html_url || '', is_docker: isDocker, is_prerelease: false };
+      result = {
+        current: currentVersion,
+        latest,
+        update_available,
+        release_url: data.html_url || '',
+        is_docker: isDocker,
+        is_prerelease: false,
+      };
     }
   } catch {
     return fallback;
@@ -413,10 +468,17 @@ export async function checkAndNotifyVersion(): Promise<void> {
     const result = await checkVersion();
     if (!result.update_available) return;
 
-    const lastNotified = (db.prepare('SELECT value FROM app_settings WHERE key = ?').get('last_notified_version') as { value: string } | undefined)?.value;
+    const lastNotified = (
+      db.prepare('SELECT value FROM app_settings WHERE key = ?').get('last_notified_version') as
+        | { value: string }
+        | undefined
+    )?.value;
     if (lastNotified === result.latest) return;
 
-    db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run('last_notified_version', result.latest);
+    db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run(
+      'last_notified_version',
+      result.latest,
+    );
 
     await sendNotification({
       event: 'version_available',
@@ -433,13 +495,17 @@ export async function checkAndNotifyVersion(): Promise<void> {
 // ── Invite Tokens ──────────────────────────────────────────────────────────
 
 export function listInvites() {
-  return db.prepare(`
+  return db
+    .prepare(
+      `
     SELECT i.*, u.username as created_by_name, t.title as trip_title
     FROM invite_tokens i
     JOIN users u ON i.created_by = u.id
     LEFT JOIN trips t ON i.trip_id = t.id
     ORDER BY i.created_at DESC
-  `).all();
+  `,
+    )
+    .all();
 }
 
 /** Trips an admin can bind an invite to — id + title only, for the picker (#1402). */
@@ -447,7 +513,10 @@ export function listTripsForInvite() {
   return db.prepare('SELECT id, title FROM trips ORDER BY title COLLATE NOCASE ASC').all();
 }
 
-export function createInvite(createdBy: number, data: { max_uses?: string | number; expires_in_days?: string | number; trip_id?: string | number | null }) {
+export function createInvite(
+  createdBy: number,
+  data: { max_uses?: string | number; expires_in_days?: string | number; trip_id?: string | number | null },
+) {
   const rawUses = parseInt(String(data.max_uses));
   const uses = rawUses === 0 ? 0 : Math.min(Math.max(rawUses || 1, 1), 5);
   const token = crypto.randomBytes(16).toString('hex');
@@ -465,18 +534,22 @@ export function createInvite(createdBy: number, data: { max_uses?: string | numb
     }
   }
 
-  const ins = db.prepare(
-    'INSERT INTO invite_tokens (token, max_uses, expires_at, created_by, trip_id) VALUES (?, ?, ?, ?, ?)'
-  ).run(token, uses, expiresAt, createdBy, tripId);
+  const ins = db
+    .prepare('INSERT INTO invite_tokens (token, max_uses, expires_at, created_by, trip_id) VALUES (?, ?, ?, ?, ?)')
+    .run(token, uses, expiresAt, createdBy, tripId);
 
   const inviteId = Number(ins.lastInsertRowid);
-  const invite = db.prepare(`
+  const invite = db
+    .prepare(
+      `
     SELECT i.*, u.username as created_by_name, t.title as trip_title
     FROM invite_tokens i
     JOIN users u ON i.created_by = u.id
     LEFT JOIN trips t ON i.trip_id = t.id
     WHERE i.id = ?
-  `).get(inviteId);
+  `,
+    )
+    .get(inviteId);
 
   return { invite, inviteId, uses, expiresInDays: data.expires_in_days ?? null, tripId };
 }
@@ -491,57 +564,82 @@ export function deleteInvite(id: string) {
 // ── Bag Tracking ───────────────────────────────────────────────────────────
 
 export function getBagTracking() {
-  const row = db.prepare("SELECT value FROM app_settings WHERE key = 'bag_tracking_enabled'").get() as { value: string } | undefined;
+  const row = db.prepare("SELECT value FROM app_settings WHERE key = 'bag_tracking_enabled'").get() as
+    | { value: string }
+    | undefined;
   return { enabled: row?.value === 'true' };
 }
 
 export function updateBagTracking(enabled: boolean) {
-  db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('bag_tracking_enabled', ?)").run(enabled ? 'true' : 'false');
+  db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('bag_tracking_enabled', ?)").run(
+    enabled ? 'true' : 'false',
+  );
   return { enabled: !!enabled };
 }
 
 // ── Places Photos ─────────────────────────────────────────────────────────
 
 export function getPlacesPhotos() {
-  const row = db.prepare("SELECT value FROM app_settings WHERE key = 'places_photos_enabled'").get() as { value: string } | undefined;
+  const row = db.prepare("SELECT value FROM app_settings WHERE key = 'places_photos_enabled'").get() as
+    | { value: string }
+    | undefined;
   return { enabled: row?.value !== 'false' };
 }
 
 export function updatePlacesPhotos(enabled: boolean) {
-  db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('places_photos_enabled', ?)").run(enabled ? 'true' : 'false');
+  db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('places_photos_enabled', ?)").run(
+    enabled ? 'true' : 'false',
+  );
   return { enabled: !!enabled };
 }
 
 // ── Places Autocomplete ────────────────────────────────────────────────────
 
 export function getPlacesAutocomplete() {
-  const row = db.prepare("SELECT value FROM app_settings WHERE key = 'places_autocomplete_enabled'").get() as { value: string } | undefined;
+  const row = db.prepare("SELECT value FROM app_settings WHERE key = 'places_autocomplete_enabled'").get() as
+    | { value: string }
+    | undefined;
   return { enabled: row?.value !== 'false' };
 }
 
 export function updatePlacesAutocomplete(enabled: boolean) {
-  db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('places_autocomplete_enabled', ?)").run(enabled ? 'true' : 'false');
+  db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('places_autocomplete_enabled', ?)").run(
+    enabled ? 'true' : 'false',
+  );
   return { enabled: !!enabled };
 }
 
 // ── Places Details ─────────────────────────────────────────────────────────
 
 export function getPlacesDetails() {
-  const row = db.prepare("SELECT value FROM app_settings WHERE key = 'places_details_enabled'").get() as { value: string } | undefined;
+  const row = db.prepare("SELECT value FROM app_settings WHERE key = 'places_details_enabled'").get() as
+    | { value: string }
+    | undefined;
   return { enabled: row?.value !== 'false' };
 }
 
 export function updatePlacesDetails(enabled: boolean) {
-  db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('places_details_enabled', ?)").run(enabled ? 'true' : 'false');
+  db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('places_details_enabled', ?)").run(
+    enabled ? 'true' : 'false',
+  );
   return { enabled: !!enabled };
 }
 
 // ── Collab Features ───────────────────────────────────────────────────────
 
-const COLLAB_FEATURE_KEYS = ['collab_chat_enabled', 'collab_notes_enabled', 'collab_polls_enabled', 'collab_whatsnext_enabled'] as const;
+const COLLAB_FEATURE_KEYS = [
+  'collab_chat_enabled',
+  'collab_notes_enabled',
+  'collab_polls_enabled',
+  'collab_whatsnext_enabled',
+] as const;
 
 export function getCollabFeatures() {
-  const rows = db.prepare("SELECT key, value FROM app_settings WHERE key IN ('collab_chat_enabled', 'collab_notes_enabled', 'collab_polls_enabled', 'collab_whatsnext_enabled')").all() as { key: string; value: string }[];
+  const rows = db
+    .prepare(
+      "SELECT key, value FROM app_settings WHERE key IN ('collab_chat_enabled', 'collab_notes_enabled', 'collab_polls_enabled', 'collab_whatsnext_enabled')",
+    )
+    .all() as { key: string; value: string }[];
   const map: Record<string, string> = {};
   for (const r of rows) map[r.key] = r.value;
   return {
@@ -552,10 +650,20 @@ export function getCollabFeatures() {
   };
 }
 
-export function updateCollabFeatures(features: { chat?: boolean; notes?: boolean; polls?: boolean; whatsnext?: boolean }) {
-  const mapping: Record<string, string> = { chat: 'collab_chat_enabled', notes: 'collab_notes_enabled', polls: 'collab_polls_enabled', whatsnext: 'collab_whatsnext_enabled' };
+export function updateCollabFeatures(features: {
+  chat?: boolean;
+  notes?: boolean;
+  polls?: boolean;
+  whatsnext?: boolean;
+}) {
+  const mapping: Record<string, string> = {
+    chat: 'collab_chat_enabled',
+    notes: 'collab_notes_enabled',
+    polls: 'collab_polls_enabled',
+    whatsnext: 'collab_whatsnext_enabled',
+  };
   const before = getCollabFeatures();
-  const stmt = db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)");
+  const stmt = db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)');
   for (const [feat, key] of Object.entries(mapping)) {
     if (features[feat] !== undefined) stmt.run(key, features[feat] ? 'true' : 'false');
   }
@@ -563,38 +671,50 @@ export function updateCollabFeatures(features: { chat?: boolean; notes?: boolean
   // Collab flags gate MCP tool/resource registration, so callers must know
   // whether anything actually flipped — a no-op save must not tear down every
   // live MCP session (#1414).
-  const changed = (Object.keys(after) as Array<keyof typeof after>).some(k => after[k] !== before[k]);
+  const changed = (Object.keys(after) as Array<keyof typeof after>).some((k) => after[k] !== before[k]);
   return { features: after, changed };
 }
 
 // ── Packing Templates ──────────────────────────────────────────────────────
 
 export function listPackingTemplates() {
-  return db.prepare(`
+  return db
+    .prepare(
+      `
     SELECT pt.*, u.username as created_by_name,
       (SELECT COUNT(*) FROM packing_template_items ti JOIN packing_template_categories tc ON ti.category_id = tc.id WHERE tc.template_id = pt.id) as item_count,
       (SELECT COUNT(*) FROM packing_template_categories WHERE template_id = pt.id) as category_count
     FROM packing_templates pt
     JOIN users u ON pt.created_by = u.id
     ORDER BY pt.created_at DESC
-  `).all();
+  `,
+    )
+    .all();
 }
 
 export function getPackingTemplate(id: string) {
   const template = db.prepare('SELECT * FROM packing_templates WHERE id = ?').get(id);
   if (!template) return { error: 'Template not found', status: 404 };
-  const categories = db.prepare('SELECT * FROM packing_template_categories WHERE template_id = ? ORDER BY sort_order, id').all(id) as any[];
-  const items = db.prepare(`
+  const categories = db
+    .prepare('SELECT * FROM packing_template_categories WHERE template_id = ? ORDER BY sort_order, id')
+    .all(id) as any[];
+  const items = db
+    .prepare(
+      `
     SELECT ti.* FROM packing_template_items ti
     JOIN packing_template_categories tc ON ti.category_id = tc.id
     WHERE tc.template_id = ? ORDER BY ti.sort_order, ti.id
-  `).all(id);
+  `,
+    )
+    .all(id);
   return { template, categories, items };
 }
 
 export function createPackingTemplate(name: string, createdBy: number) {
   if (!name?.trim()) return { error: 'Name is required', status: 400 };
-  const result = db.prepare('INSERT INTO packing_templates (name, created_by) VALUES (?, ?)').run(name.trim(), createdBy);
+  const result = db
+    .prepare('INSERT INTO packing_templates (name, created_by) VALUES (?, ?)')
+    .run(name.trim(), createdBy);
   const template = db.prepare('SELECT * FROM packing_templates WHERE id = ?').get(result.lastInsertRowid);
   return { template };
 }
@@ -619,20 +739,29 @@ export function createTemplateCategory(templateId: string, name: string) {
   if (!name?.trim()) return { error: 'Category name is required', status: 400 };
   const template = db.prepare('SELECT * FROM packing_templates WHERE id = ?').get(templateId);
   if (!template) return { error: 'Template not found', status: 404 };
-  const maxOrder = db.prepare('SELECT MAX(sort_order) as max FROM packing_template_categories WHERE template_id = ?').get(templateId) as { max: number | null };
-  const result = db.prepare('INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, ?, ?)').run(templateId, name.trim(), (maxOrder.max ?? -1) + 1);
+  const maxOrder = db
+    .prepare('SELECT MAX(sort_order) as max FROM packing_template_categories WHERE template_id = ?')
+    .get(templateId) as { max: number | null };
+  const result = db
+    .prepare('INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, ?, ?)')
+    .run(templateId, name.trim(), (maxOrder.max ?? -1) + 1);
   return { category: db.prepare('SELECT * FROM packing_template_categories WHERE id = ?').get(result.lastInsertRowid) };
 }
 
 export function updateTemplateCategory(templateId: string, catId: string, data: { name?: string }) {
-  const cat = db.prepare('SELECT * FROM packing_template_categories WHERE id = ? AND template_id = ?').get(catId, templateId);
+  const cat = db
+    .prepare('SELECT * FROM packing_template_categories WHERE id = ? AND template_id = ?')
+    .get(catId, templateId);
   if (!cat) return { error: 'Category not found', status: 404 };
-  if (data.name?.trim()) db.prepare('UPDATE packing_template_categories SET name = ? WHERE id = ?').run(data.name.trim(), catId);
+  if (data.name?.trim())
+    db.prepare('UPDATE packing_template_categories SET name = ? WHERE id = ?').run(data.name.trim(), catId);
   return { category: db.prepare('SELECT * FROM packing_template_categories WHERE id = ?').get(catId) };
 }
 
 export function deleteTemplateCategory(templateId: string, catId: string) {
-  const cat = db.prepare('SELECT * FROM packing_template_categories WHERE id = ? AND template_id = ?').get(catId, templateId);
+  const cat = db
+    .prepare('SELECT * FROM packing_template_categories WHERE id = ? AND template_id = ?')
+    .get(catId, templateId);
   if (!cat) return { error: 'Category not found', status: 404 };
   db.prepare('DELETE FROM packing_template_categories WHERE id = ?').run(catId);
   return {};
@@ -642,17 +771,24 @@ export function deleteTemplateCategory(templateId: string, catId: string) {
 
 export function createTemplateItem(templateId: string, catId: string, name: string) {
   if (!name?.trim()) return { error: 'Item name is required', status: 400 };
-  const cat = db.prepare('SELECT * FROM packing_template_categories WHERE id = ? AND template_id = ?').get(catId, templateId);
+  const cat = db
+    .prepare('SELECT * FROM packing_template_categories WHERE id = ? AND template_id = ?')
+    .get(catId, templateId);
   if (!cat) return { error: 'Category not found', status: 404 };
-  const maxOrder = db.prepare('SELECT MAX(sort_order) as max FROM packing_template_items WHERE category_id = ?').get(catId) as { max: number | null };
-  const result = db.prepare('INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, ?)').run(catId, name.trim(), (maxOrder.max ?? -1) + 1);
+  const maxOrder = db
+    .prepare('SELECT MAX(sort_order) as max FROM packing_template_items WHERE category_id = ?')
+    .get(catId) as { max: number | null };
+  const result = db
+    .prepare('INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, ?)')
+    .run(catId, name.trim(), (maxOrder.max ?? -1) + 1);
   return { item: db.prepare('SELECT * FROM packing_template_items WHERE id = ?').get(result.lastInsertRowid) };
 }
 
 export function updateTemplateItem(itemId: string, data: { name?: string }) {
   const item = db.prepare('SELECT * FROM packing_template_items WHERE id = ?').get(itemId);
   if (!item) return { error: 'Item not found', status: 404 };
-  if (data.name?.trim()) db.prepare('UPDATE packing_template_items SET name = ? WHERE id = ?').run(data.name.trim(), itemId);
+  if (data.name?.trim())
+    db.prepare('UPDATE packing_template_items SET name = ? WHERE id = ?').run(data.name.trim(), itemId);
   return { item: db.prepare('SELECT * FROM packing_template_items WHERE id = ?').get(itemId) };
 }
 
@@ -672,16 +808,31 @@ export function isAddonEnabled(addonId: string): boolean {
 
 export function listAddons() {
   const addons = db.prepare('SELECT * FROM addons ORDER BY sort_order, id').all() as Addon[];
-  const providers = db.prepare(`
+  const providers = db
+    .prepare(
+      `
     SELECT id, name, description, icon, enabled, sort_order
     FROM photo_providers
     ORDER BY sort_order, id
-  `).all() as Array<{ id: string; name: string; description?: string | null; icon: string; enabled: number; sort_order: number }>;
-  const fields = db.prepare(`
+  `,
+    )
+    .all() as Array<{
+    id: string;
+    name: string;
+    description?: string | null;
+    icon: string;
+    enabled: number;
+    sort_order: number;
+  }>;
+  const fields = db
+    .prepare(
+      `
     SELECT provider_id, field_key, label, input_type, placeholder, required, secret, settings_key, payload_key, sort_order
     FROM photo_provider_fields
     ORDER BY sort_order, id
-  `).all() as Array<{
+  `,
+    )
+    .all() as Array<{
     provider_id: string;
     field_key: string;
     label: string;
@@ -701,14 +852,15 @@ export function listAddons() {
   }
 
   return [
-    ...addons.map(a => ({
+    ...addons.map((a) => ({
       ...a,
       enabled: !!a.enabled,
-      config: a.id === ADDON_IDS.LLM_PARSING
-        ? maskLlmAddonConfig(JSON.parse(a.config || '{}'))
-        : JSON.parse(a.config || '{}'),
+      config:
+        a.id === ADDON_IDS.LLM_PARSING
+          ? maskLlmAddonConfig(JSON.parse(a.config || '{}'))
+          : JSON.parse(a.config || '{}'),
     })),
-    ...providers.map(p => ({
+    ...providers.map((p) => ({
       id: p.id,
       name: p.name,
       description: p.description,
@@ -716,7 +868,7 @@ export function listAddons() {
       icon: p.icon,
       enabled: !!p.enabled,
       config: getPhotoProviderConfig(p.id),
-      fields: (fieldsByProvider.get(p.id) || []).map(f => ({
+      fields: (fieldsByProvider.get(p.id) || []).map((f) => ({
         key: f.field_key,
         label: f.label,
         input_type: f.input_type,
@@ -734,44 +886,52 @@ export function listAddons() {
 
 export function updateAddon(id: string, data: { enabled?: boolean; config?: Record<string, unknown> }) {
   const addon = db.prepare('SELECT * FROM addons WHERE id = ?').get(id) as Addon | undefined;
-  const provider = db.prepare('SELECT * FROM photo_providers WHERE id = ?').get(id) as { id: string; name: string; description?: string | null; icon: string; enabled: number; sort_order: number } | undefined;
+  const provider = db.prepare('SELECT * FROM photo_providers WHERE id = ?').get(id) as
+    | { id: string; name: string; description?: string | null; icon: string; enabled: number; sort_order: number }
+    | undefined;
   if (!addon && !provider) return { error: 'Addon not found', status: 404 };
 
   if (addon) {
-    if (data.enabled !== undefined) db.prepare('UPDATE addons SET enabled = ? WHERE id = ?').run(data.enabled ? 1 : 0, id);
+    if (data.enabled !== undefined)
+      db.prepare('UPDATE addons SET enabled = ? WHERE id = ?').run(data.enabled ? 1 : 0, id);
     if (data.config !== undefined) {
       // The AI-parsing addon holds an API key — encrypt it at rest and preserve
       // the stored key when the client echoes the mask sentinel (see llmConfig.ts).
-      const configToStore = id === ADDON_IDS.LLM_PARSING
-        ? prepareLlmAddonConfigForWrite(data.config, JSON.parse(addon.config || '{}'))
-        : data.config;
+      const configToStore =
+        id === ADDON_IDS.LLM_PARSING
+          ? prepareLlmAddonConfigForWrite(data.config, JSON.parse(addon.config || '{}'))
+          : data.config;
       db.prepare('UPDATE addons SET config = ? WHERE id = ?').run(JSON.stringify(configToStore), id);
     }
   } else {
-    if (data.enabled !== undefined) db.prepare('UPDATE photo_providers SET enabled = ? WHERE id = ?').run(data.enabled ? 1 : 0, id);
+    if (data.enabled !== undefined)
+      db.prepare('UPDATE photo_providers SET enabled = ? WHERE id = ?').run(data.enabled ? 1 : 0, id);
   }
 
   const updatedAddon = db.prepare('SELECT * FROM addons WHERE id = ?').get(id) as Addon | undefined;
-  const updatedProvider = db.prepare('SELECT * FROM photo_providers WHERE id = ?').get(id) as { id: string; name: string; description?: string | null; icon: string; enabled: number; sort_order: number } | undefined;
+  const updatedProvider = db.prepare('SELECT * FROM photo_providers WHERE id = ?').get(id) as
+    | { id: string; name: string; description?: string | null; icon: string; enabled: number; sort_order: number }
+    | undefined;
   const updated = updatedAddon
     ? {
-      ...updatedAddon,
-      enabled: !!updatedAddon.enabled,
-      config: updatedAddon.id === ADDON_IDS.LLM_PARSING
-        ? maskLlmAddonConfig(JSON.parse(updatedAddon.config || '{}'))
-        : JSON.parse(updatedAddon.config || '{}'),
-    }
+        ...updatedAddon,
+        enabled: !!updatedAddon.enabled,
+        config:
+          updatedAddon.id === ADDON_IDS.LLM_PARSING
+            ? maskLlmAddonConfig(JSON.parse(updatedAddon.config || '{}'))
+            : JSON.parse(updatedAddon.config || '{}'),
+      }
     : updatedProvider
       ? {
-        id: updatedProvider.id,
-        name: updatedProvider.name,
-        description: updatedProvider.description,
-        type: 'photo_provider',
-        icon: updatedProvider.icon,
-        enabled: !!updatedProvider.enabled,
-        config: getPhotoProviderConfig(updatedProvider.id),
-        sort_order: updatedProvider.sort_order,
-      }
+          id: updatedProvider.id,
+          name: updatedProvider.name,
+          description: updatedProvider.description,
+          type: 'photo_provider',
+          icon: updatedProvider.icon,
+          enabled: !!updatedProvider.enabled,
+          config: getPhotoProviderConfig(updatedProvider.id),
+          sort_order: updatedProvider.sort_order,
+        }
       : null;
 
   // Only these addons gate MCP tool/resource/prompt registration (see
@@ -779,31 +939,45 @@ export function updateAddon(id: string, data: { enabled?: boolean; config?: Reco
   // what a session would register. Config-only saves, photo providers and
   // MCP-irrelevant addons must not tear down every live session (#1414).
   const MCP_RELEVANT_ADDONS = new Set<string>([
-    ADDON_IDS.MCP, ADDON_IDS.PACKING, ADDON_IDS.BUDGET, ADDON_IDS.COLLAB,
-    ADDON_IDS.ATLAS, ADDON_IDS.VACAY, ADDON_IDS.JOURNEY,
+    ADDON_IDS.MCP,
+    ADDON_IDS.PACKING,
+    ADDON_IDS.BUDGET,
+    ADDON_IDS.COLLAB,
+    ADDON_IDS.ATLAS,
+    ADDON_IDS.VACAY,
+    ADDON_IDS.JOURNEY,
   ]);
   const enabledChanged = !!addon && data.enabled !== undefined && (data.enabled ? 1 : 0) !== addon.enabled;
 
   return {
     addon: updated,
     mcpAffected: enabledChanged && MCP_RELEVANT_ADDONS.has(id),
-    auditDetails: { enabled: data.enabled !== undefined ? !!data.enabled : undefined, config_changed: data.config !== undefined },
+    auditDetails: {
+      enabled: data.enabled !== undefined ? !!data.enabled : undefined,
+      config_changed: data.config !== undefined,
+    },
   };
 }
 
 // ── MCP Tokens ─────────────────────────────────────────────────────────────
 
 export function listMcpTokens() {
-  return db.prepare(`
+  return db
+    .prepare(
+      `
     SELECT t.id, t.name, t.token_prefix, t.created_at, t.last_used_at, t.user_id, u.username
     FROM mcp_tokens t
     JOIN users u ON u.id = t.user_id
     ORDER BY t.created_at DESC
-  `).all();
+  `,
+    )
+    .all();
 }
 
 export function deleteMcpToken(id: string) {
-  const token = db.prepare('SELECT id, user_id FROM mcp_tokens WHERE id = ?').get(id) as { id: number; user_id: number } | undefined;
+  const token = db.prepare('SELECT id, user_id FROM mcp_tokens WHERE id = ?').get(id) as
+    | { id: number; user_id: number }
+    | undefined;
   if (!token) return { error: 'Token not found', status: 404 };
   db.prepare('DELETE FROM mcp_tokens WHERE id = ?').run(id);
   revokeUserSessions(token.user_id);
@@ -813,7 +987,9 @@ export function deleteMcpToken(id: string) {
 // ── OAuth Sessions ─────────────────────────────────────────────────────────
 
 export function listOAuthSessions() {
-  const rows = db.prepare(`
+  const rows = db
+    .prepare(
+      `
     SELECT ot.id, ot.client_id, oc.name AS client_name, ot.user_id, u.username,
            ot.scopes, ot.access_token_expires_at, ot.refresh_token_expires_at, ot.created_at
     FROM oauth_tokens ot
@@ -822,12 +998,16 @@ export function listOAuthSessions() {
     WHERE ot.revoked_at IS NULL
       AND ot.refresh_token_expires_at > CURRENT_TIMESTAMP
     ORDER BY ot.created_at DESC
-  `).all() as (Record<string, unknown> & { scopes: string })[];
-  return rows.map(r => ({ ...r, scopes: JSON.parse(r.scopes) }));
+  `,
+    )
+    .all() as (Record<string, unknown> & { scopes: string })[];
+  return rows.map((r) => ({ ...r, scopes: JSON.parse(r.scopes) }));
 }
 
 export function revokeOAuthSession(id: string) {
-  const row = db.prepare('SELECT id, user_id, client_id FROM oauth_tokens WHERE id = ?').get(id) as { id: number; user_id: number; client_id: string } | undefined;
+  const row = db.prepare('SELECT id, user_id, client_id FROM oauth_tokens WHERE id = ?').get(id) as
+    | { id: number; user_id: number; client_id: string }
+    | undefined;
   if (!row) return { error: 'Session not found', status: 404 };
   db.prepare('UPDATE oauth_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE id = ?').run(id);
   revokeUserSessionsForClient(row.user_id, row.client_id);

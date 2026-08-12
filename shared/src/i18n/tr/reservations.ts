@@ -162,6 +162,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.otherFlights': 'Diğer uçuşlar',
   'reservations.airtrail.empty': 'AirTrail hesabınızda uçuş bulunamadı.',
   'reservations.airtrail.importCta': '{count} içe aktar',
+  'reservations.airtrail.joinConnection': '{stops} aktarmalı tek uçuş olarak içe aktar',
   'reservations.costsLabel': 'Costs',
   'reservations.createExpense': 'Create expense',
   'reservations.createExpenseHint': 'Saves the booking, then opens the Costs editor.',

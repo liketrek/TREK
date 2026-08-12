@@ -39,6 +39,26 @@ function detach(tripId: number, reservationId: number): void {
   broadcastUpdated(tripId, reservationId);
 }
 
+/**
+ * True when the reservation has grown into a multi-leg booking locally (extra
+ * stops / metadata.legs) — a shape the single AirTrail flight it is linked to
+ * cannot represent. Syncing such a row in either direction would corrupt one
+ * side: a pull flattens the layover chain back to from→to, a push rewrites the
+ * AirTrail flight to span the whole route (#1535).
+ */
+function hasLocalMultiLegShape(reservationId: number, metadataJson: string | null | undefined): boolean {
+  try {
+    const meta = metadataJson ? JSON.parse(metadataJson) : {};
+    if (Array.isArray(meta?.legs) && meta.legs.length > 1) return true;
+  } catch {
+    /* malformed metadata — fall through to the endpoint count */
+  }
+  const row = db.prepare('SELECT COUNT(*) AS n FROM reservation_endpoints WHERE reservation_id = ?').get(reservationId) as {
+    n: number;
+  };
+  return row.n > 2;
+}
+
 // ── AirTrail → TREK (poll) ───────────────────────────────────────────────────
 
 /**
@@ -81,6 +101,13 @@ async function syncOwner(uid: number): Promise<number> {
 
     const current = getReservation(row.id, row.trip_id);
     if (!current) continue;
+    if (hasLocalMultiLegShape(row.id, (current as any).metadata)) {
+      // The user connected this flight into a multi-leg booking; applying the
+      // remote single-flight shape would flatten it. Stop syncing instead.
+      detach(row.trip_id, row.id);
+      changed++;
+      continue;
+    }
     try {
       updateReservation(row.id, row.trip_id, mapFlightToReservation(flight) as any, current as any);
       db.prepare('UPDATE reservations SET external_hash = ?, external_synced_at = ? WHERE id = ?').run(
@@ -247,6 +274,17 @@ export async function pushReservationToAirtrail(reservationId: number, tripId: n
     | undefined;
   if (!row || !row.sync_enabled) return;
 
+  // An edit that turned this linked flight into a multi-leg booking severs the
+  // 1:1 mapping to the AirTrail flight: pushing would rewrite that flight to the
+  // full span, and the next pull would flatten the layover again. Detach — the
+  // merge is a deliberate local restructuring, like a joined import (#1535).
+  const reservation = getReservationWithJoins(row.id);
+  if (!reservation) return;
+  if (hasLocalMultiLegShape(row.id, reservation.metadata)) {
+    detach(tripId, row.id);
+    return;
+  }
+
   // AirTrail is read-only by default (#1240). Only push when the flight's owner has
   // explicitly opted in. A no-op skip (not a detach): the link stays active so the
   // inbound, AirTrail-wins pull keeps the reservation up to date.
@@ -270,9 +308,6 @@ export async function pushReservationToAirtrail(reservationId: number, tripId: n
     detach(tripId, row.id); // gone in AirTrail → treat like a remote delete
     return;
   }
-
-  const reservation = getReservationWithJoins(row.id);
-  if (!reservation) return;
 
   const payload = buildSavePayload(reservation, existing);
   if (!payload) return;

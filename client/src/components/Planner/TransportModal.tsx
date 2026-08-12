@@ -423,6 +423,10 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         near(prevFrom.lat, fromPick.location.lat) && near(prevFrom.lng, fromPick.location.lng) &&
         near(prevTo.lat, toPick.location.lat) && near(prevTo.lng, toPick.location.lng))
       if (keepTransit) metadata.transit = prevMeta.transit
+      // A joined AirTrail import (#1535) records every source flight id in
+      // metadata.airtrail_ids so the picker doesn't offer those legs again —
+      // an edit in this form must not drop that linkage.
+      if (Array.isArray(prevMeta.airtrail_ids)) metadata.airtrail_ids = prevMeta.airtrail_ids
 
       const startDate = startDay?.date ?? null
       const endDate = (endDay ?? startDay)?.date ?? null

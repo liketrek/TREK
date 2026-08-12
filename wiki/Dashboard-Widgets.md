@@ -2,8 +2,6 @@
 
 The My Trips dashboard includes two utility widgets: a currency converter and a timezone clock.
 
-<!-- TODO: screenshot: widget gallery showing currency converter and timezone clock -->
-
 ![Dashboard Widgets](assets/DashboardWidgets.png)
 
 ## Where they appear

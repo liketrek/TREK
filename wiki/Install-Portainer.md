@@ -12,7 +12,7 @@ Portainer must be installed and connected to your Docker environment. Use **Stac
 
 1. In Portainer, go to **Stacks → Add stack**.
 2. Give the stack a name (e.g. `trek`).
-3. Select **Web editor** and paste the compose file from [docker-compose.yml](https://github.com/mauriceboe/TREK/blob/main/docker-compose.yml).
+3. Select **Web editor** and paste the compose file from [docker-compose.yml](https://github.com/liketrek/TREK/blob/main/docker-compose.yml).
 
 ![Web editor with the docker-compose content pasted in](assets/portainer-stack-save.png)
 
@@ -26,7 +26,7 @@ Portainer must be installed and connected to your Docker environment. Use **Stac
 
 ## Compose Content
 
-See https://github.com/mauriceboe/TREK/blob/main/docker-compose.yml
+See https://github.com/liketrek/TREK/blob/main/docker-compose.yml
 
 Set at minimum `ENCRYPTION_KEY`, `TZ`, and `APP_URL` in the **Environment variables** section of the stack editor. Generate an encryption key with:
 
@@ -42,9 +42,9 @@ Three tag strategies are available:
 |---|---|---|
 | `latest` | `mauriceboe/trek:latest` | Always the newest release across all major versions |
 | Major version | `mauriceboe/trek:3` | Latest release pinned to that major version |
-| Full version | `mauriceboe/trek:3.0.15` | Exact release; never changes |
+| Full version | `mauriceboe/trek:3.4.0` | Exact release; never changes |
 
-Use `latest` or a major-version tag (e.g. `3`) if you want automatic updates on redeploy. Use a full version tag (e.g. `3.0.15`) if you want explicit control over which release runs.
+Use `latest` or a major-version tag (e.g. `3`) if you want automatic updates on redeploy. Use a full version tag (e.g. `3.4.0`) if you want explicit control over which release runs.
 
 ## Updating
 
@@ -54,7 +54,7 @@ How you update depends on the tag you chose:
 
 ![Re-pull image and redeploy switch ticked, with arrows pointing to the switch and the Update button](assets/portainer-force-pull.png)
 
-**Pinned full-version tag** — Edit the stack, change the tag in the `image:` line (e.g. `3.0.15` → `3.0.16`), then click **Update the stack**. No need to toggle the re-pull switch — a tag change forces a fresh pull.
+**Pinned full-version tag** — Edit the stack, change the tag in the `image:` line (e.g. `3.4.0` → `3.4.1`), then click **Update the stack**. No need to toggle the re-pull switch — a tag change forces a fresh pull.
 
 ![Edit stack page with an arrow pointing to the image tag in the compose editor](assets/portainer-update-version.png)
 

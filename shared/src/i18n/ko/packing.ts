@@ -47,6 +47,7 @@ const packing: TranslationStrings = {
   'packing.bags': '가방',
   'packing.noBag': '미배정',
   'packing.totalWeight': '총 무게',
+  'packing.quantity': '수량',
   'packing.bagName': '가방 이름...',
   'packing.addBag': '가방 추가',
   'packing.changeCategory': '목록으로 이동',

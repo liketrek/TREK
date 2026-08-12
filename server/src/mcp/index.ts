@@ -9,7 +9,7 @@ import { isAddonEnabled } from '../services/adminService';
 import { ADDON_IDS } from '../addons';
 import { registerResources } from './resources';
 import { registerTools } from './tools';
-import { McpSession, sessions, revokeUserSessions, revokeUserSessionsForClient } from './sessionManager';
+import { McpSession, sessions, revokeUserSessions, revokeUserSessionsForClient, evictOldestSessionForUser } from './sessionManager';
 import { resolveSessionTtlMs, resolveKeepaliveMs } from './config';
 import { writeAudit, getClientIp } from '../services/auditLog';
 import { getMcpSafeUrl } from '../services/notifications';
@@ -183,6 +183,12 @@ const sessionSweepInterval = setInterval(() => {
 // Prevent the interval from keeping the process alive if nothing else is running
 sessionSweepInterval.unref();
 
+/** JSON-RPC 2.0 error body. MCP clients parse this and show `message`; a bare `{ error }`
+ *  envelope isn't valid JSON-RPC, so they fall back to a generic "tool execution failed". */
+function jsonRpcError(message: string, code = -32000): object {
+  return { jsonrpc: '2.0', error: { code, message }, id: null };
+}
+
 function setAuthChallenge(res: Response, error = 'invalid_token'): void {
   const base = (getMcpSafeUrl() || '').replace(/\/+$/, '');
   // RFC 9728 §5: resource with path component /mcp → PRM URL must include the path
@@ -304,9 +310,25 @@ export async function mcpHandler(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  // A client that reuses its session sends the header on every call after initialize, so a
+  // steady stream of session-less POSTs means the id isn't making it back to the client —
+  // usually a reverse proxy dropping Mcp-Session-Id, or a client that ignores it. Say so,
+  // because the visible symptom (sessions piling up to the cap) points nowhere near the cause.
+  console.warn(
+      `[MCP] POST without mcp-session-id for user ${user.id} — starting a new session. ` +
+      'If this repeats on every tool call, the Mcp-Session-Id response header is not reaching ' +
+      'the client (check that your reverse proxy forwards it).',
+  );
+
+  // At the cap, evict this user's coldest session rather than refusing the request: a client
+  // stuck re-initializing would otherwise be locked out until the process restarted.
   if (countSessionsForUser(user.id) >= MAX_SESSIONS_PER_USER) {
-    res.status(429).json({ error: 'Session limit reached. Close an existing session before opening a new one.' });
-    return;
+    const evicted = evictOldestSessionForUser(user.id);
+    if (!evicted) {
+      res.status(429).json(jsonRpcError('Session limit reached. Close an existing session before opening a new one.'));
+      return;
+    }
+    console.log(`[MCP] Session limit (${MAX_SESSIONS_PER_USER}) reached for user ${user.id} — evicted idle session ${evicted}`);
   }
 
   // Create a new per-user MCP server and session
@@ -348,6 +370,10 @@ export async function mcpHandler(req: Request, res: Response): Promise<void> {
       sessions.delete(sid);
     },
   });
+  // Belt-and-braces: whenever the SDK closes the transport for any reason, drop the map entry.
+  transport.onclose = () => {
+    if (transport.sessionId) sessions.delete(transport.sessionId);
+  };
 
   logToolCallAudit(req, user.id, clientId);
   armSseKeepalive(res);
@@ -358,6 +384,15 @@ export async function mcpHandler(req: Request, res: Response): Promise<void> {
     console.error('[MCP] transport.handleRequest error:', err);
     if (!res.headersSent) {
       res.status(500).json({ error: 'Internal MCP error' });
+    }
+  } finally {
+    // Only an `initialize` request assigns a sessionId (via onsessioninitialized). Any other
+    // session-less POST is rejected by the SDK with "Server not initialized" — and this server,
+    // with its ~200 registered tools, would otherwise be orphaned: never in `sessions`, never
+    // swept, never closed. Reap it here.
+    if (!transport.sessionId) {
+      try { server.close(); } catch { /* ignore */ }
+      try { transport.close(); } catch { /* ignore */ }
     }
   }
 }

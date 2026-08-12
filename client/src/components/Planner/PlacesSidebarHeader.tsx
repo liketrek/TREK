@@ -23,8 +23,8 @@ export function PlacesHeader(S: SidebarState) {
   const {
     canEditPlaces, onAddPlace, t, setFileImportOpen, setListImportOpen, hasMultipleListImportProviders,
     places, categories, categoryFilters, search, setSearch, plannedIds, hasTracks,
-    filter, setFilter, onPlacesFilterChange, setSelectedIds, selectMode, setSelectMode,
-    catDropOpen, setCatDropOpen, toggleCategoryFilter, setCategoryFiltersLocal, onCategoryFilterChange,
+    filter, setFilter, setSelectedIds, selectMode, setSelectMode,
+    catDropOpen, setCatDropOpen, toggleCategoryFilter, setCategoryFilters,
   } = S
   return (
     <div className="border-b border-edge-faint" style={{ padding: '14px 16px 10px', flexShrink: 0 }}>
@@ -99,7 +99,7 @@ export function PlacesHeader(S: SidebarState) {
               return (
                 <button
                   key={f.id}
-                  onClick={() => { setFilter(f.id); onPlacesFilterChange?.(f.id); setSelectedIds(new Set()) }}
+                  onClick={() => { setFilter(f.id); setSelectedIds(new Set()) }}
                   className={active ? 'bg-accent text-accent-text' : 'bg-surface-card text-content'}
                   style={{
                     appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
@@ -251,7 +251,7 @@ export function PlacesHeader(S: SidebarState) {
                   )
                 })()}
                 {categoryFilters.size > 0 && (
-                  <button onClick={() => { setCategoryFiltersLocal(new Set()); onCategoryFilterChange?.(new Set()) }} className="bg-transparent text-content-faint" style={{
+                  <button onClick={() => setCategoryFilters(new Set())} className="bg-transparent text-content-faint" style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                     width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
                     fontFamily: 'inherit', fontSize: 'calc(11px * var(--fs-scale-caption, 1))',

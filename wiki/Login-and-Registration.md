@@ -1,6 +1,6 @@
 # Login and Registration
 
-<!-- TODO: screenshot: login form with email and password fields -->
+![TREK login page: the product splash panel on the left and the Sign In card on the right with email and password fields, a Remember me switch, a Forgot password? link and a Register link](assets/Registration.png)
 
 ## Signing in
 

@@ -9,12 +9,13 @@ Putting TREK behind a TLS-terminating reverse proxy is strongly recommended for 
 - **OIDC / SSO** — identity providers require the redirect URI to use HTTPS.
 - **MCP** — the MCP API requires HTTPS for OAuth 2.1 auth.
 
-## Two Hard Requirements
+## Three Hard Requirements
 
-Whatever proxy you use, it must satisfy two constraints:
+Whatever proxy you use, it must satisfy three constraints:
 
 1. **WebSocket upgrades on `/ws`** — TREK uses WebSockets for real-time sync. Set `proxy_read_timeout 86400` (Nginx) or rely on Caddy's automatic upgrade handling.
 2. **Body size ≥ 500 MB** — backup restore ZIPs can include the full uploads directory. Set `client_max_body_size 500m` (Nginx) or `request_body_max_size 500mb` (Caddy) if you restore large backups.
+3. **Pass the `Mcp-Session-Id` header through on `/mcp`** — if you use MCP. See below.
 
 ## Nginx
 
@@ -82,6 +83,44 @@ trek.yourdomain.com {
     reverse_proxy localhost:3000
 }
 ```
+
+## MCP behind a proxy
+
+Skip this section if you don't use the MCP addon.
+
+MCP is session-based. On the first request the server replies with an `Mcp-Session-Id` response header, and the client sends that value back as a request header on every subsequent call. **Both directions must survive the proxy.** If the response header is stripped, the client never learns its session id, so every single tool call looks like a brand-new connection — the server opens a fresh session each time, sessions pile up, and once the user hits `MCP_MAX_SESSION_PER_USER` the oldest session is evicted to make room for each new one. The connection keeps working, but it is churning sessions instead of reusing one, and you will see this warning on every tool call:
+
+```
+[MCP] POST without mcp-session-id for user 1 — starting a new session. If this
+repeats on every tool call, the Mcp-Session-Id response header is not reaching
+the client (check that your reverse proxy forwards it).
+```
+
+Nginx and Caddy both forward custom headers in both directions by default, so **the standard configs above already work**. You only need to act if you have deliberately restricted headers:
+
+- Don't list `/mcp` under a `proxy_hide_header` directive, and don't run it through a response-header allowlist that omits `Mcp-Session-Id`.
+- If your proxy rewrites or lowercases headers, that's fine — HTTP header names are case-insensitive and both TREK and MCP clients treat them as such.
+- The browser-facing `Access-Control-Expose-Headers: Mcp-Session-Id` response header is what permits browser-based clients (Claude.ai, Claude Desktop connectors, MCP Inspector) to *read* the session id at all. TREK sends it automatically — don't strip or overwrite it in the proxy.
+
+TREK 3.3.0 and earlier did not send `Access-Control-Expose-Headers` at all, which caused exactly the symptom above regardless of proxy configuration. If you are on an older version and see a new session per tool call, upgrade — no proxy change will fix it.
+
+### Streaming responses
+
+The `/mcp` endpoint answers with Server-Sent Events. If your proxy buffers responses, tool results are delayed until the buffer flushes. Nginx buffers by default, so disable it for that path:
+
+```nginx
+location /mcp {
+    proxy_pass http://localhost:3000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_buffering off;      # SSE — deliver tool results as they stream
+    proxy_read_timeout 3600s; # long-lived streams between tool calls
+}
+```
+
+TREK sends an SSE keep-alive comment every 25 seconds (`MCP_SSE_KEEPALIVE`) precisely so proxies with a short idle timeout — nginx defaults to 60 s — don't drop an idle stream between tool calls. Lower the interval if your proxy's timeout is tighter than that.
 
 ## HTTPS Environment Variables
 

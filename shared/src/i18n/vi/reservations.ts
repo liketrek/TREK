@@ -163,6 +163,7 @@ const reservations: TranslationStrings = {
   'reservations.airtrail.otherFlights': 'Các chuyến bay khác',
   'reservations.airtrail.empty': 'Không tìm thấy chuyến bay nào trong tài khoản AirTrail của bạn.',
   'reservations.airtrail.importCta': 'Nhập {count}',
+  'reservations.airtrail.joinConnection': 'Nhập thành một chuyến bay với điểm dừng tại {stops}',
   'reservations.costsLabel': 'Chi phí',
   'reservations.createExpense': 'Tạo chi phí',
   'reservations.createExpenseHint': 'Lưu đặt chỗ, sau đó mở trình chỉnh sửa Chi phí.',

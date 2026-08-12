@@ -4,7 +4,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { validateManifest } from '../src/index.js';
 import { scaffold } from '../src/cli/create.js';
-import { PERMISSION_CATALOG, KNOWN_PERMISSIONS, isInteractive, missingArgs } from '../src/cli/ui.js';
+import { PERMISSION_CATALOG, PERMISSION_FAMILIES, KNOWN_PERMISSIONS, isInteractive, missingArgs } from '../src/cli/ui.js';
+// The authoritative set — what the HOST accepts at activation. The picker must match it.
+import { KNOWN_PERMISSIONS as MANIFEST_PERMISSIONS } from '../src/manifest.js';
 import { resolveMenuChoice, PRIMARY_MENU, ADVANCED_MENU } from '../src/cli/menu.js';
 
 describe('scaffold egress (http:outbound)', () => {
@@ -38,15 +40,32 @@ describe('scaffold egress (http:outbound)', () => {
 });
 
 describe('permission catalog', () => {
-  it('covers exactly the known permission ids (none lost in the move to ui.ts)', () => {
-    expect(KNOWN_PERMISSIONS).toEqual([
-      'db:own', 'db:read:trips', 'db:read:users', 'db:read:costs', 'db:write:costs',
-      'db:write:places', 'db:write:days', 'db:write:itinerary', 'db:write:trips',
-      'db:meta',
-      'ws:broadcast:trip', 'ws:broadcast:user',
-      'hook:photo-provider', 'hook:calendar-source', 'hook:notification-channel', 'hook:place-detail-provider', 'hook:trip-warning-provider', 'http:outbound',
-    ]);
-    for (const p of PERMISSION_CATALOG) expect(p.hint.length).toBeGreaterThan(0); // every option is described
+  // This test used to PIN an 18-item list and call it "exactly the known permission ids".
+  // It was wrong: the real set is ~58, so `create` could not offer jobs:run,
+  // events:subscribe or 7 of the 12 hooks, and the assertion guaranteed nobody noticed.
+  // It now asserts COVERAGE against the manifest validator's list, which is the only
+  // list the host actually honours — so a new TREK permission fails here until `create`
+  // can offer it.
+  it('offers every permission the host accepts — no more, no less', () => {
+    expect([...KNOWN_PERMISSIONS].sort()).toEqual([...MANIFEST_PERMISSIONS].sort());
+  });
+
+  it('describes every permission, and files it in exactly one family', () => {
+    for (const p of PERMISSION_CATALOG) {
+      expect(p.hint.length, `${p.value} has no hint`).toBeGreaterThan(0);
+      expect(PERMISSION_FAMILIES.filter((f) => f.permissions.some((x) => x.value === p.value)))
+        .toHaveLength(1);
+    }
+    // No duplicates across families — a permission listed twice would render twice.
+    expect(new Set(KNOWN_PERMISSIONS).size).toBe(KNOWN_PERMISSIONS.length);
+  });
+
+  it('every family is non-empty and described (an empty one is a dead prompt entry)', () => {
+    for (const f of PERMISSION_FAMILIES) {
+      expect(f.permissions.length, `family ${f.id} is empty`).toBeGreaterThan(0);
+      expect(f.label.length).toBeGreaterThan(0);
+      expect(f.hint.length).toBeGreaterThan(0);
+    }
   });
 });
 
@@ -110,7 +129,7 @@ describe('scaffold + validate dependencies', () => {
 });
 
 describe('validateManifest dependency rules', () => {
-  const base = { id: 'my-plug', name: 'My Plug', version: '1.0.0', type: 'integration', permissions: ['db:own'] };
+  const base = { id: 'my-plug', name: 'My Plug', version: '1.0.0', type: 'integration', permissions: ['db:own'], trek: '>=3.2.0 <4.0.0' };
   it('accepts valid requiredAddons + pluginDependencies', () => {
     const r = validateManifest({ ...base, requiredAddons: ['budget', 'journey'], pluginDependencies: [{ id: 'koffi', version: '>=1.0.0 <2.0.0' }] });
     expect(r.ok).toBe(true);
@@ -205,7 +224,7 @@ describe('notification-channel template', () => {
 describe('capabilities.notificationChannel validation', () => {
   const base = {
     id: 'chan', name: 'Chan', version: '1.0.0', apiVersion: 1, type: 'integration',
-    nativeModules: false, permissions: ['hook:notification-channel'],
+    nativeModules: false, permissions: ['hook:notification-channel'], trek: '>=3.2.0 <4.0.0',
   };
 
   it('accepts a narrowed event list', () => {

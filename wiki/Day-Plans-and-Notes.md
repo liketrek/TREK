@@ -2,9 +2,7 @@
 
 The Day Plan sidebar lets you organize places into days, add free-form notes, and manage the order of your itinerary.
 
-<!-- TODO: screenshot: itinerary view with assigned places and day notes -->
-
-![Day Plan](assets/TripPlaner.png)
+![Day Plan](assets/TripPlanner.png)
 
 ## The Day Plan sidebar
 
@@ -79,6 +77,6 @@ At the top of the Day Plan sidebar:
 - **Expand / Collapse all** — toggles all day sections open or closed at once.
 - **Undo** — reverses the last drag, reorder, or assign action.
 
-Route calculation controls (optimize order, open in Google Maps) appear inside each expanded day section after the place list.
+Route controls (optimize order, open in Google Maps) appear inside each expanded day section after the place list.
 
 **See also:** [Places-and-Search](Places-and-Search) · [Map-Features](Map-Features) · [Route-Optimization](Route-Optimization) · [Weather-Forecasts](Weather-Forecasts) · [Reservations-and-Bookings](Reservations-and-Bookings)

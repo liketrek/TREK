@@ -48,8 +48,6 @@ const settings: TranslationStrings = {
   'settings.mapTipLabel': 'Tip:',
   'settings.mapTip':
     'Klik kanan dan seret untuk memutar/memiringkan peta. Klik tengah untuk menambah tempat (klik kanan untuk rotasi).',
-  'settings.latitude': 'Lintang',
-  'settings.longitude': 'Bujur',
   'settings.saveMap': 'Simpan Peta',
   'settings.apiKeys': 'API Keys',
   'settings.mapsKey': 'Google Maps API Key',
@@ -301,6 +299,7 @@ const settings: TranslationStrings = {
   'settings.bookingLabelsHint': 'Menampilkan nama stasiun / bandara di peta. Jika mati, hanya ikon ditampilkan.',
   'settings.currency': 'Currency',
   'settings.currencyHint': 'All amounts in Costs are converted to and shown in this currency.',
+  'settings.currencyTrip': 'Mata uang perjalanan',
   'settings.passkey.title': 'Passkey',
   'settings.passkey.description':
     'Masuk lebih cepat dan tahan terhadap phishing dengan passkey — sidik jari, wajah, PIN, atau kunci keamanan fisik kamu. Kata sandimu tetap tersedia sebagai cadangan.',
@@ -492,6 +491,9 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.resource': 'Sumber daya',
   'settings.pluginActivity.columns.when': 'Waktu',
   'settings.pluginActivity.columns.status': 'Hasil',
+  'settings.alwaysShowRoutes': 'Selalu tampilkan rute pemesanan',
+  'settings.alwaysShowRoutesHint':
+    'Menampilkan rute setiap penerbangan, kereta, dan pemesanan lainnya di peta secara otomatis, tanpa perlu mengaktifkannya satu per satu.',
 };
 
 export default settings;

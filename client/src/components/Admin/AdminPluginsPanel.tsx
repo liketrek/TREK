@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Blocks, AlertTriangle, PackageOpen, RefreshCw, Trash2, Download, Bug, X, ShieldCheck, UploadCloud,
-  ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search, Link2,
+  ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search, Link2, KeyRound, ShieldAlert,
   SlidersHorizontal, ArrowUpDown, CircleDot, MoreHorizontal, RotateCw, ArrowRight, Database, Users, LayoutDashboard,
-  Radio, Luggage, Plane, Globe, Image, CalendarDays, Map, Bell, Cloud, Camera, Compass,
-  BookOpen, Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag, FileText,
+  Radio, Luggage, Globe, Image, CalendarDays, Bell,
+  Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag, FileText,
 } from 'lucide-react'
+import PluginIcon from '../shared/PluginIcon'
 import { adminApi } from '../../api/client'
 import { usePluginStore } from '../../store/pluginStore'
 import { useTranslation } from '../../i18n'
@@ -24,7 +26,7 @@ import ToggleSwitch from '../Settings/ToggleSwitch'
 
 interface PluginDep { id: string; version: string }
 interface VersionMismatch { id: string; wanted: string; installed: string }
-type DependencyStatus = 'ok' | 'addonDisabled' | 'missingPlugin'
+type DependencyStatus = 'ok' | 'addonDisabled' | 'missingPlugin' | 'hostIncompatible'
 interface PluginDependencies { requiredAddons: string[]; pluginDependencies: PluginDep[] }
 interface DependencyIssues { disabledAddons: string[]; missing: PluginDep[]; versionMismatch: VersionMismatch[] }
 
@@ -49,6 +51,17 @@ interface PluginRow {
   dependencies?: PluginDependencies
   dependencyStatus?: DependencyStatus
   dependencyIssues?: DependencyIssues
+  /** The TREK versions the plugin says it supports; null if it never declared any. */
+  trekRange?: string | null
+  /** The TREK this server is running — the server does the semver, the client just shows it. */
+  hostVersion?: string
+  /** The author's signature was verified and their key pinned at install. False means the
+   * bytes matched the registry's sha256 and nothing more — one fewer guarantee. */
+  signed?: boolean
+  /** Short form of the pinned key, for eyeballing against what the author reads out. */
+  keyFingerprint?: string | null
+  /** Why an update was refused, if one was. `version` is the version that was refused. */
+  updateBlock?: { code: string; detail: string | null; version: string | null } | null
 }
 interface RegistryItem {
   id: string
@@ -58,13 +71,26 @@ interface RegistryItem {
   repo: string
   homepage?: string | null
   type: string
+  /** Lucide icon name from the registry entry; absent → Blocks. */
+  icon?: string | null
   latest: string | null
   minTrekVersion: string | null
+  /** The latest version's declared TREK range; null on a legacy registry entry. */
+  trek?: string | null
+  hostVersion?: string
+  /** Whether the LATEST version can be installed on this TREK. Computed server-side. */
+  compatible?: boolean
+  /** Newest installable version — the latest, an older fallback, or null if none fits. */
+  latestCompatible?: string | null
   reviewedAt: string | null
   downloadCount?: number | null
   screenshotUrl: string | null
   requiredAddons?: string[]
   pluginDependencies?: PluginDep[]
+  /** The latest version ships an author signature and the entry declares a key. */
+  signed?: boolean
+  /** The full key — public, and carried in full because re-trust compares it exactly. */
+  authorPublicKey?: string | null
 }
 interface RegistryDetail extends RegistryItem {
   size: number | null
@@ -90,6 +116,49 @@ interface ActivateErr {
   }
 }
 
+/** The server's error envelope. Reading `code` — not the message text — is what lets the
+ * UI tell a rotated key (overridable) from a signature that doesn't verify (never). */
+function errBody(e: unknown): { error?: string; code?: string } {
+  return (e as { response?: { data?: { error?: string; code?: string } } })?.response?.data ?? {}
+}
+
+/** The ONE signature refusal an admin may override, because a rotation has a benign
+ * explanation. SIGNATURE_INVALID / _MISSING / _INCOMPLETE mean the bytes are not what the
+ * author signed — those get an explanation and no override button at all. */
+const RETRUSTABLE = 'SIGNATURE_KEY_CHANGED'
+const SIGNATURE_CODES = [RETRUSTABLE, 'SIGNATURE_INVALID', 'SIGNATURE_MISSING', 'SIGNATURE_INCOMPLETE']
+
+/**
+ * What the signature dialog needs to talk about a plugin — deliberately NOT a PluginRow.
+ *
+ * A refusal can land on a plugin that is not installed (a fresh install from Discover, or a
+ * dependency being downloaded), and those have no row. Keying the dialog off PluginRow meant
+ * the lookup missed and the refusal silently degraded to a toast — on the very path where an
+ * admin most often meets these codes for the first time. Name + pinned fingerprint is all the
+ * dialog ever reads, and both a row and a registry entry can supply that.
+ */
+type SigSubject = { id: string; name: string; keyFingerprint: string | null }
+
+/**
+ * Is a recorded update block still describing the version on offer?
+ *
+ * Once the registry offers something NEWER than the version that was refused, the block
+ * describes an artifact nobody is being offered anymore — so it reads as stale and the
+ * admin can simply re-attempt (the next install re-verifies and either succeeds or
+ * re-blocks with fresh values). When the registry is unreachable we can't prove staleness,
+ * so the block stands: silently dropping the last thing we knew would be the worse failure.
+ */
+function blockIsCurrent(p: PluginRow, latestVer?: string): boolean {
+  if (!p.updateBlock) return false
+  // A block describes a refused REGISTRY update. Once a plugin is sideloaded or dev-linked
+  // it has left the registry trust model — the running code is whatever the admin supplied,
+  // and a block about an author signing key says nothing about it. The server clears the
+  // block on both paths; this makes it impossible to render a stale one regardless.
+  if (!isRegistrySourced(p.source_repo)) return false
+  if (!latestVer || !p.updateBlock.version) return true
+  return latestVer === p.updateBlock.version
+}
+
 type T = (k: string, p?: Record<string, unknown>) => string
 type TypeFilter = 'all' | 'widget' | 'page' | 'integration' | 'trip-page'
 type StatusFilter = 'all' | 'on' | 'off' | 'update' | 'err'
@@ -103,11 +172,6 @@ const HEALTH: Record<string, string> = {
   inactive: 'bg-content-faint/60',
   disabled: 'bg-warning',
   incompatible: 'bg-warning',
-}
-
-// Manifest `icon` is a lucide name; map the common ones, fall back to Blocks.
-const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  Luggage, Plane, Globe, Image, CalendarDays, Map, Bell, Cloud, Camera, Compass, BookOpen, Wallet, Puzzle, Blocks,
 }
 
 // Known permissions → human-readable i18n key; unknown ones render as raw code.
@@ -186,10 +250,21 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string }; tripPag
 interface DepChip { icon: React.ComponentType<{ size?: number; className?: string }>; label: string; blocked: boolean }
 
 // A plugin's declared dependencies as chips — a required addon (amber when that
-// addon is disabled) or a plugin dependency (amber when missing / version-mismatched).
+// addon is disabled), a plugin dependency (amber when missing / version-mismatched),
+// or the TREK version itself (amber when this server has outgrown the plugin's range,
+// which is the one blocker the admin cannot fix by flipping something else on).
 function deriveDeps(p: PluginRow, t: T): DepChip[] {
   const out: DepChip[] = []
   const issues = p.dependencyIssues
+  if (p.dependencyStatus === 'hostIncompatible') {
+    out.push({
+      icon: AlertTriangle,
+      label: p.trekRange
+        ? t('admin.plugins.dep.trekIncompatible', { range: p.trekRange, host: p.hostVersion ?? '?' })
+        : t('admin.plugins.dep.trekUnknown'),
+      blocked: true,
+    })
+  }
   for (const a of p.dependencies?.requiredAddons ?? []) {
     out.push({ icon: Blocks, label: t('admin.plugins.cap.requiresAddon', { addon: a }), blocked: !!issues?.disabledAddons.includes(a) })
   }
@@ -200,9 +275,24 @@ function deriveDeps(p: PluginRow, t: T): DepChip[] {
   return out
 }
 
-function PluginIcon({ name, size = 20, className }: { name: string | null; size?: number; className?: string }) {
-  const Icon = (name && Object.prototype.hasOwnProperty.call(ICON_MAP, name) && ICON_MAP[name]) || Blocks
-  return <Icon size={size} className={className} />
+/**
+ * What the Install button may do for a registry item.
+ *
+ * The server already decided compatibility — it owns the semver, and a second
+ * implementation here would eventually disagree with the install gate and offer a button
+ * that 400s. This only picks the wording. Note the middle case: when the newest release
+ * has outrun this TREK but an older one still fits, offer THAT version rather than a dead
+ * grey button. The plugin is perfectly usable, just not at its newest.
+ */
+function installOffer(item: RegistryItem, t: T): { blocked: boolean; version?: string; label: string; title?: string } {
+  if (item.compatible !== false) return { blocked: false, label: t('admin.plugins.install') }
+  const title = item.trek
+    ? t('admin.plugins.dep.trekIncompatible', { range: item.trek, host: item.hostVersion ?? '?' })
+    : t('admin.plugins.dep.trekUnknown')
+  if (item.latestCompatible) {
+    return { blocked: false, version: item.latestCompatible, label: t('admin.plugins.installCompatible', { version: item.latestCompatible }), title }
+  }
+  return { blocked: true, label: t('admin.plugins.incompatible'), title }
 }
 
 function ReviewedBadge({ t, compact }: { t: T; compact?: boolean }) {
@@ -220,6 +310,46 @@ function SideloadedBadge({ t }: { t: T }) {
     <span className="inline-flex items-center gap-1 px-1.5 py-[2px] rounded-md text-[11px] font-medium bg-warning-soft text-warning border border-warning/25"
       title={t('admin.plugins.sideloadedHint')}>
       <UploadCloud size={11} /> {t('admin.plugins.sideloaded')}
+    </span>
+  )
+}
+
+/**
+ * Whether a plugin came from the REGISTRY (as opposed to a manual upload or a dev-link).
+ *
+ * This is the precedence rule for the trust badges, and it is load-bearing: `signed`
+ * derives from the pinned author key while sideloaded/dev-linked derive from source_repo,
+ * so the states are NOT mutually exclusive in the data. A sideloaded plugin genuinely has
+ * no pinned key, and a naive render would put "Unsigned" *and* "Sideloaded" side by side.
+ * The source badge wins — it already says something strictly stronger, and doubling up
+ * dilutes the amber into wallpaper, which is exactly what makes a warning worthless.
+ */
+function isRegistrySourced(sourceRepo: string | null | undefined): boolean {
+  return !!sourceRepo && sourceRepo !== 'local:upload' && sourceRepo !== 'local:link'
+}
+
+/**
+ * Signed / Unsigned, for registry plugins only (see isRegistrySourced).
+ *
+ * Signed is a quiet neutral tick, NOT a green celebration; unsigned is an amber note, NOT
+ * a red alarm. Roughly two thirds of the live registry is unsigned, so an alarming
+ * treatment would fire on most of the catalog and teach admins to ignore it — and the
+ * honest delta is small: sha256 proves the bytes are what the REGISTRY vouches for, a
+ * signature proves they came from the AUTHOR. Unsigned is one fewer guarantee, not "unsafe".
+ */
+function TrustBadge({ signed, t }: { signed: boolean; t: T }) {
+  if (signed) {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-[2px] rounded-md text-[11px] font-medium bg-surface-tertiary text-content-muted border border-edge-secondary"
+        title={t('admin.plugins.signedHint')}>
+        <KeyRound size={11} /> {t('admin.plugins.signed')}
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-[2px] rounded-md text-[11px] font-medium bg-warning-soft text-warning border border-warning/25"
+      title={t('admin.plugins.unsignedHint')}>
+      <ShieldAlert size={11} /> {t('admin.plugins.unsigned')}
     </span>
   )
 }
@@ -255,6 +385,13 @@ export default function AdminPluginsPanel() {
   const [view, setView] = useState<'installed' | 'discover'>('installed')
   const [registry, setRegistry] = useState<RegistryItem[] | null>(null)
   const [latest, setLatest] = useState<Record<string, string>>({})
+  // The registry entry per id — the re-trust dialog needs the NEW author key from it (in
+  // full: the server's equality check is exact), and the Discover/consent copy needs `signed`.
+  const [regById, setRegById] = useState<Record<string, RegistryItem>>({})
+  // Open when a signature check refused an install/update. Carries the code, so the dialog
+  // knows whether an override may even be offered.
+  const [signatureBlock, setSignatureBlock] = useState<{ subject: SigSubject; code: string; detail: string | null } | null>(null)
+  const [retrusting, setRetrusting] = useState(false)
   const [detailFor, setDetailFor] = useState<RegistryItem | null>(null)
   const [errorsFor, setErrorsFor] = useState<{ id: string; rows: Array<{ ts: string; level: string; message: string }> } | null>(null)
   const [egressFor, setEgressFor] = useState<{ id: string; supported: boolean; hosts: string[] } | null>(null)
@@ -288,6 +425,16 @@ export default function AdminPluginsPanel() {
   const uploadInputRef = useRef<HTMLInputElement>(null)
   const dragDepth = useRef(0)
 
+  // Index the registry once per fetch: the version map the update badges read, plus the
+  // whole entry (author key + signed flag) the trust badges and re-trust dialog need.
+  const indexRegistry = (items: RegistryItem[]) => {
+    const vers: Record<string, string> = {}
+    const byId: Record<string, RegistryItem> = {}
+    items.forEach((i) => { byId[i.id] = i; if (i.latest) vers[i.id] = i.latest })
+    setLatest(vers)
+    setRegById(byId)
+  }
+
   const refresh = () => {
     // Keep the app-wide active-plugin store in sync so widget/hero/tab consumers
     // (e.g. the dashboard) reflect an activate/deactivate without a full reload (F5).
@@ -298,13 +445,7 @@ export default function AdminPluginsPanel() {
         setDevLink(!!d.devLink)
         setPlugins(d.plugins || [])
         if ((d.plugins || []).length) {
-          adminApi.pluginBrowse()
-            .then((items: RegistryItem[]) => {
-              const map: Record<string, string> = {}
-              items.forEach((i) => { if (i.latest) map[i.id] = i.latest })
-              setLatest(map)
-            })
-            .catch(() => {})
+          adminApi.pluginBrowse().then(indexRegistry).catch(() => {})
         }
       })
       .catch(() => setError(true))
@@ -312,16 +453,43 @@ export default function AdminPluginsPanel() {
   }
   useEffect(refresh, [])
 
+  // A signature refusal is not an ordinary "action failed": it is the one class of error
+  // where WHICH failure it was decides what the admin may do about it. Route it to the
+  // dialog off the CODE, never off the message text. Returns true when handled.
+  //
+  // The subject is resolved from wherever it can be — the installed row, else the registry
+  // entry (a plugin being INSTALLED has no row yet), else the bare id. A signature code
+  // ALWAYS opens the dialog: falling back to a toast is what used to hide an invalid
+  // signature on a fresh install behind the same treatment as a network blip.
+  const routeSignatureError = (id: string, code?: string, detail?: string): boolean => {
+    if (!code || !SIGNATURE_CODES.includes(code)) return false
+    const row = plugins.find(p => p.id === id)
+    const subject: SigSubject = row
+      ? { id, name: row.name, keyFingerprint: row.keyFingerprint ?? null }
+      // Not installed: no pinned key exists, so SIGNATURE_KEY_CHANGED cannot arise and the
+      // dialog shows the no-override explanation — which is exactly right.
+      : { id, name: regById[id]?.name ?? id, keyFingerprint: null }
+    setSignatureBlock({ subject, code, detail: detail ?? null })
+    return true
+  }
+
   const act = async (id: string, fn: () => Promise<unknown>, ok: string) => {
     setBusy(id); setMenu(null)
     try { await fn(); toast.success(ok) }
-    catch (e) { toast.error((e as { response?: { data?: { error?: string } } })?.response?.data?.error || t('admin.plugins.actionError')) }
+    catch (e) {
+      const { error, code } = errBody(e)
+      if (!routeSignatureError(id, code, error)) toast.error(error || t('admin.plugins.actionError'))
+    }
     finally { setBusy(null); refresh() }
   }
 
   const openDiscover = () => {
     setView('discover')
-    if (!registry) adminApi.pluginBrowse().then(setRegistry).catch(() => setRegistry([]))
+    if (!registry) {
+      adminApi.pluginBrowse()
+        .then((items: RegistryItem[]) => { setRegistry(items); indexRegistry(items) })
+        .catch(() => setRegistry([]))
+    }
   }
   // The rescan/reload button rediscovers locally-installed plugins AND force-pulls
   // the remote registry (bypassing the 30-min server cache + GitHub's CDN), so a
@@ -330,9 +498,7 @@ export default function AdminPluginsPanel() {
     await adminApi.pluginRescan()
     const items: RegistryItem[] = await adminApi.pluginBrowse(true)
     setRegistry(items)
-    const map: Record<string, string> = {}
-    items.forEach((i) => { if (i.latest) map[i.id] = i.latest })
-    setLatest(map)
+    indexRegistry(items)
   }, t('admin.plugins.rescanned'))
 
   // Sideload a plugin archive (installs INACTIVE — the admin still consents on activation).
@@ -393,7 +559,7 @@ export default function AdminPluginsPanel() {
   }
 
   const updateAvailable = (p: PluginRow) => !!(p.version && latest[p.id] && isNewer(latest[p.id], p.version))
-  const install = (id: string) => act(id, () => adminApi.pluginInstall(id), t('admin.plugins.installed'))
+  const install = (id: string, version?: string) => act(id, () => adminApi.pluginInstall(id, version ? { version } : undefined), t('admin.plugins.installed'))
   const restart = (id: string) => act(id, async () => { await adminApi.pluginDeactivate(id); await adminApi.pluginActivate(id) }, t('admin.plugins.restarted'))
   // Dev-link: register a plugin from a local built directory (dev only). Reuses the
   // same busy/toast/refresh loop as uploadPlugin; the server gates it.
@@ -470,7 +636,13 @@ export default function AdminPluginsPanel() {
         if (r?.requiredAddons?.length) toast.error(t('admin.plugins.dep.addonDisabledToast', { addons: r.requiredAddons.join(', ') }))
         return attemptActivate(parent)
       })
-      .catch((e: ActivateErr) => onActivateError(parent, e))
+      // The DEPENDENCY is what's being downloaded, so a signature refusal here is about the
+      // dependency's author, not the parent's — route it under depId before falling through
+      // to the activation-error handling, which knows nothing about signature codes.
+      .catch((e: ActivateErr) => {
+        const { error, code } = errBody(e)
+        if (!routeSignatureError(depId, code, error)) onActivateError(parent, e)
+      })
       .finally(() => { setBusy(null); refresh() })
   }
 
@@ -481,8 +653,31 @@ export default function AdminPluginsPanel() {
         if (r.activated || (r.newPermissions.length === 0 && r.newEgress.length === 0)) toast.success(t('admin.plugins.updated'))
         else setConsentQueue(qq => [...qq, { plugin: p, version: r.version, newPermissions: r.newPermissions, newEgress: r.newEgress }])
       })
-      .catch(e => toast.error((e as { response?: { data?: { error?: string } } })?.response?.data?.error || t('admin.plugins.actionError')))
+      .catch(e => {
+        const { error, code } = errBody(e)
+        if (!routeSignatureError(p.id, code, error)) toast.error(error || t('admin.plugins.actionError'))
+      })
       .finally(() => { setBusy(null); refresh() })
+  }
+
+  // Confirm a key rotation: re-pin the new key AND update, in one server call. There is no
+  // follow-up /update — a re-pin that waited for a second call would leave the plugin
+  // pinned to a key no install had ever been verified against if that call never came.
+  const confirmRetrust = (id: string, version: string, publicKey: string) => {
+    setRetrusting(true)
+    adminApi.pluginRetrust(id, version, publicKey)
+      .then((r: { version: string; activated: boolean; newPermissions: string[]; newEgress: string[] }) => {
+        setSignatureBlock(null)
+        // A re-trusted update widening permissions still needs consent — re-trusting a
+        // signing key says nothing about what the new code is allowed to do. Re-trust only
+        // ever fires for an INSTALLED plugin, so the row is there to consent against.
+        const p = plugins.find(x => x.id === id)
+        if (p && !r.activated && (r.newPermissions.length > 0 || r.newEgress.length > 0)) {
+          setConsentQueue(qq => [...qq, { plugin: p, version: r.version, newPermissions: r.newPermissions, newEgress: r.newEgress }])
+        } else toast.success(t('admin.plugins.retrusted'))
+      })
+      .catch(e => toast.error(errBody(e).error || t('admin.plugins.actionError')))
+      .finally(() => { setRetrusting(false); refresh() })
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -691,8 +886,13 @@ export default function AdminPluginsPanel() {
             ) : shownInstalled.map(p => (
               <InstalledRow key={p.id} p={p} t={t} busy={busy} menu={menu} setMenu={setMenu}
                 hasUpdate={updateAvailable(p)} latestVer={latest[p.id]}
+                blocked={blockIsCurrent(p, latest[p.id])}
                 onToggle={() => toggle(p)}
                 onUpdate={() => runUpdate(p)} onRestart={() => restart(p.id)}
+                onReviewBlock={() => setSignatureBlock({
+                  subject: { id: p.id, name: p.name, keyFingerprint: p.keyFingerprint ?? null },
+                  code: p.updateBlock!.code, detail: p.updateBlock!.detail,
+                })}
                 onErrors={() => openErrors(p.id)} onEgress={() => openEgress(p.id)}
                 onUninstall={() => { setMenu(null); setConfirmUninstall(p) }} />
             ))}
@@ -791,9 +991,26 @@ export default function AdminPluginsPanel() {
         message={t('admin.plugins.uninstallBody')}
       />
 
+      {signatureBlock && (
+        <SignatureBlockDialog
+          data={signatureBlock} entry={regById[signatureBlock.subject.id]} busy={retrusting} t={t}
+          onRetrust={(version, publicKey) => confirmRetrust(signatureBlock.subject.id, version, publicKey)}
+          onClose={() => setSignatureBlock(null)}
+        />
+      )}
+
       {consentQueue[0] && (
         <UpdateConsentDialog
           data={consentQueue[0]} t={t}
+          // Prefer the REGISTRY's flag — consent is about the code being installed, not the
+          // code running now — but fall back to the installed row's, which the server always
+          // sends. Reading only the registry meant an unreachable registry left `regById`
+          // empty and the warning silently vanished at the exact moment an admin was widening
+          // what unsigned code may do.
+          unsigned={
+            isRegistrySourced(consentQueue[0].plugin.source_repo) &&
+            (regById[consentQueue[0].plugin.id]?.signed ?? consentQueue[0].plugin.signed) === false
+          }
           onApprove={async () => {
             const c = consentQueue[0]; setConsentQueue(qq => qq.slice(1))
             // consent:true — the ONLY path that may widen a plugin's granted rights.
@@ -886,14 +1103,33 @@ function EmptyState({ t, onDiscover }: { t: T; onDiscover: () => void }) {
   )
 }
 
-function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggle, onUpdate, onRestart, onErrors, onEgress, onUninstall }: {
+function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, blocked, onToggle, onUpdate, onRestart, onReviewBlock, onErrors, onEgress, onUninstall }: {
   p: PluginRow; t: T; busy: string | null; menu: string | null; setMenu: (v: string | null) => void
-  hasUpdate: boolean; latestVer?: string
-  onToggle: () => void; onUpdate: () => void; onRestart: () => void; onErrors: () => void; onEgress: () => void; onUninstall: () => void
+  hasUpdate: boolean; latestVer?: string; blocked: boolean
+  onToggle: () => void; onUpdate: () => void; onRestart: () => void; onReviewBlock: () => void
+  onErrors: () => void; onEgress: () => void; onUninstall: () => void
 }) {
   const caps = deriveCaps(parseJson<string[]>(p.permissions, []), parseJson<{ widget?: { slot?: string } }>(p.capabilities, {}), t)
   const deps = deriveDeps(p, t)
   const menuOpen = menu === `row:${p.id}`
+  const menuBtnRef = useRef<HTMLButtonElement>(null)
+
+  // The menu is portaled to <body> and positioned `fixed` against the ⋯ button,
+  // because the row's ancestor (PageSidebar) is `overflow-hidden` and would clip
+  // an in-flow `absolute` menu — losing Delete on the lower rows of a long list.
+  // Re-anchor while the page moves under it.
+  const [, reanchor] = useState(0)
+  useEffect(() => {
+    if (!menuOpen) return
+    const onMove = () => reanchor(n => n + 1)
+    window.addEventListener('scroll', onMove, true)
+    window.addEventListener('resize', onMove)
+    return () => {
+      window.removeEventListener('scroll', onMove, true)
+      window.removeEventListener('resize', onMove)
+    }
+  }, [menuOpen])
+
   return (
     <div className="group relative flex items-center gap-3 sm:gap-4 px-2.5 sm:px-3 py-3.5 rounded-2xl hover:bg-surface-secondary transition-colors">
       <div className="relative shrink-0">
@@ -911,8 +1147,24 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggl
           {p.reviewed_at && <ReviewedBadge t={t} compact />}
           {p.source_repo === 'local:upload' && <SideloadedBadge t={t} />}
           {p.source_repo === 'local:link' && <DevLinkBadge t={t} />}
+          {/* Registry plugins only — a sideloaded/dev-linked plugin already says something
+              strictly stronger, and stacking "Unsigned" on top of it just dilutes the amber. */}
+          {isRegistrySourced(p.source_repo) && <TrustBadge signed={!!p.signed} t={t} />}
         </div>
         {p.description && <p className="text-[12.5px] text-content-muted mt-0.5 truncate">{p.description}</p>}
+        {/* A refused update leaves a WORKING plugin pinned at its old version — so this is
+            its own row state, not an error state, and it persists until it is resolved
+            rather than dying with the toast that first reported it. */}
+        {blocked && p.updateBlock && (
+          <div className="flex items-center gap-1.5 mt-1.5 text-[11.5px] text-warning">
+            <ShieldAlert size={13} className="shrink-0" />
+            <span className="truncate">{t('admin.plugins.updateBlocked', { reason: p.updateBlock.detail ?? p.updateBlock.code })}</span>
+            <button onClick={onReviewBlock}
+              className="shrink-0 font-semibold underline underline-offset-2 hover:opacity-80 transition-opacity">
+              {t('admin.plugins.reviewBlock')}
+            </button>
+          </div>
+        )}
         {p.status === 'error' && p.last_error ? (
           <div className="flex items-center gap-1.5 mt-1.5 text-[11.5px] text-danger">
             <AlertTriangle size={13} className="shrink-0" /><span className="truncate">{p.last_error}</span>
@@ -970,12 +1222,13 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggl
         </span>
         <ToggleSwitch on={p.enabled === 1} label={t('admin.plugins.enabledToggle')} onToggle={onToggle} />
         <div className="relative">
-          <button onClick={() => setMenu(menuOpen ? null : `row:${p.id}`)}
+          <button ref={menuBtnRef} data-testid={`plugin-row-menu-btn-${p.id}`} onClick={() => setMenu(menuOpen ? null : `row:${p.id}`)}
             className="w-[34px] h-[34px] grid place-items-center rounded-lg text-content-faint hover:text-content hover:bg-surface-tertiary transition-colors">
             <MoreHorizontal size={17} />
           </button>
-          {menuOpen && (
-            <div className="absolute top-10 right-0 z-30 min-w-[180px] p-1.5 rounded-xl border border-edge bg-surface-card shadow-elevated">
+          {menuOpen && createPortal(
+            <div data-testid={`plugin-row-menu-${p.id}`} style={anchorMenu(menuBtnRef.current)}
+              className="min-w-[180px] p-1.5 rounded-xl border border-edge bg-surface-card shadow-elevated">
               {p.enabled === 1 && (
                 <MenuItem icon={<RotateCw size={14} />} label={t('admin.plugins.restart')} onClick={onRestart} />
               )}
@@ -995,12 +1248,30 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggl
               )}
               <div className="my-1 border-t border-edge-secondary" />
               <MenuItem icon={<Trash2 size={14} />} label={t('common.delete')} danger onClick={onUninstall} />
-            </div>
+            </div>,
+            document.body,
           )}
         </div>
       </div>
     </div>
   )
+}
+
+/** Tallest the ⋯ menu gets (6 items + divider + padding). Drives the flip. */
+const ROW_MENU_MAX_H = 260
+
+/** Pin a portaled menu to the right edge of its trigger, flipping up when the bottom is tight. */
+function anchorMenu(trigger: HTMLElement | null): CSSProperties {
+  const r = trigger?.getBoundingClientRect()
+  if (!r) return { position: 'fixed', top: 0, right: 0, zIndex: 100 }
+  const spaceBelow = window.innerHeight - r.bottom
+  const openUp = spaceBelow < ROW_MENU_MAX_H && r.top > spaceBelow
+  return {
+    position: 'fixed',
+    right: Math.max(8, window.innerWidth - r.right),
+    ...(openUp ? { bottom: window.innerHeight - r.top + 4 } : { top: r.bottom + 4 }),
+    zIndex: 100,
+  }
 }
 
 function MenuItem({ icon, label, onClick, danger }: { icon: React.ReactNode; label: string; onClick: () => void; danger?: boolean }) {
@@ -1030,7 +1301,7 @@ function Screenshot({ url, className, iconSize = 28 }: { url: string | null; cla
 
 function RegistryGrid({ items, onInstall, onOpenDetail, busy, t, installedIds, filtered }: {
   items: RegistryItem[] | null
-  onInstall: (id: string) => void
+  onInstall: (id: string, version?: string) => void
   onOpenDetail: (item: RegistryItem) => void
   busy: string | null
   t: T
@@ -1048,6 +1319,7 @@ function RegistryGrid({ items, onInstall, onOpenDetail, busy, t, installedIds, f
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4 px-4 sm:px-6 pb-5 pt-1">
       {items.map(item => {
         const installed = installedIds.has(item.id)
+        const offer = installOffer(item, t)
         return (
           <div key={item.id} role="button" tabIndex={0} onClick={() => onOpenDetail(item)}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenDetail(item) } }}
@@ -1061,24 +1333,28 @@ function RegistryGrid({ items, onInstall, onOpenDetail, busy, t, installedIds, f
                 </span>
               )}
               <div className="absolute left-3 -bottom-4 w-11 h-11 rounded-xl bg-surface-card border border-edge grid place-items-center shadow-card z-[1]">
-                <PluginIcon name={item.type === 'widget' ? 'Blocks' : null} size={22} className="text-content-secondary" />
+                <PluginIcon name={item.icon} size={22} className="text-content-secondary" />
               </div>
             </div>
             <div className="pt-6 px-3.5 pb-3.5 flex flex-col flex-1">
               <span className="text-sm font-semibold tracking-[-.006em] text-content truncate">{item.name}</span>
               <span className="text-[11.5px] text-content-faint mt-0.5">{item.author}</span>
               <p className="text-xs text-content-muted mt-2 line-clamp-2 flex-1">{item.description}</p>
-              <div className="flex items-center gap-2 mt-3">
+              <div className="flex items-center gap-2 mt-3 flex-wrap">
                 <TypeBadge type={item.type} t={t} />
+                {/* Everything in Discover is registry-sourced, so the badge always applies. */}
+                <TrustBadge signed={!!item.signed} t={t} />
                 {item.latest && <span className="text-[10.5px] text-content-faint tabular-nums">v{item.latest}</span>}
                 {typeof item.downloadCount === 'number' && item.downloadCount > 0 && (
                   <span className="inline-flex items-center gap-1 text-[10.5px] text-content-faint tabular-nums" title={t('admin.plugins.downloads')}>
                     <Download size={11} /> {formatCompactCount(item.downloadCount)}
                   </span>
                 )}
-                <button onClick={e => { e.stopPropagation(); onInstall(item.id) }} disabled={busy === item.id || installed}
+                <button onClick={e => { e.stopPropagation(); onInstall(item.id, offer.version) }}
+                  disabled={busy === item.id || installed || offer.blocked}
+                  title={installed ? undefined : offer.title}
                   className="ml-auto text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-accent text-accent-text hover:bg-accent-hover disabled:opacity-50 disabled:bg-surface-tertiary disabled:text-content-faint transition-colors">
-                  {installed ? t('admin.plugins.installed') : t('admin.plugins.install')}
+                  {installed ? t('admin.plugins.installed') : offer.label}
                 </button>
               </div>
             </div>
@@ -1106,7 +1382,7 @@ function PermLabel({ perm, t }: { perm: string; t: T }) {
 
 function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, locale }: {
   item: RegistryItem; installed: boolean; busy: string | null
-  onInstall: (id: string) => void; onClose: () => void; t: T; locale: string
+  onInstall: (id: string, version?: string) => void; onClose: () => void; t: T; locale: string
 }) {
   const [detail, setDetail] = useState<RegistryDetail | null>(null)
   const [failed, setFailed] = useState(false)
@@ -1124,6 +1400,9 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
   const repoUrl = `https://github.com/${item.repo}`
   const homepage = item.homepage && /^https?:\/\//i.test(item.homepage) && item.homepage !== repoUrl ? item.homepage : null
   const sizeKb = detail?.size ? Math.max(1, Math.round(detail.size / 1024)) : null
+  // The detail fetch carries the same compat verdict as the browse list; prefer it once
+  // it lands (it is keyed to the same entry) and fall back to the grid item until then.
+  const offer = installOffer(detail ?? item, t)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
@@ -1145,15 +1424,24 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
             </div>
             <p className="text-[12.5px] text-content-faint mt-0.5">{item.author}{item.latest ? ` · v${item.latest}` : ''}</p>
           </div>
-          <button onClick={() => onInstall(item.id)} disabled={busy === item.id || installed}
+          <button onClick={() => onInstall(item.id, offer.version)}
+            disabled={busy === item.id || installed || offer.blocked}
+            title={installed ? undefined : offer.title}
             className="self-end text-[13px] font-semibold px-3 sm:px-4 py-2 rounded-lg bg-accent text-accent-text hover:bg-accent-hover disabled:opacity-50 disabled:bg-surface-tertiary disabled:text-content-faint transition-colors shrink-0">
-            {installed ? t('admin.plugins.installed') : t('admin.plugins.install')}
+            {installed ? t('admin.plugins.installed') : offer.label}
           </button>
         </div>
 
         <div className="px-4 sm:px-5 pt-4 pb-5">
           <p className="text-[13.5px] text-content-secondary leading-relaxed">{item.description}</p>
           {failed && <p className="text-xs text-danger mt-3">{t('admin.plugins.detailError')}</p>}
+          {/* The reason the button is blocked (or offering an older version) — a tooltip
+              alone would leave a touch user with a dead button and no explanation. */}
+          {offer.title && !installed && (
+            <p className="flex items-start gap-1.5 text-xs text-warning bg-warning-soft border border-warning/25 rounded-lg px-2.5 py-2 mt-3">
+              <AlertTriangle size={13} className="shrink-0 mt-[1px]" /> {offer.title}
+            </p>
+          )}
 
           {manifest && (
             <div className="mt-5">
@@ -1220,7 +1508,11 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
             <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-2.5">
               {item.latest && <Meta k={t('admin.plugins.metaVersion')} v={`v${item.latest}`} />}
               {sizeKb && <Meta k={t('admin.plugins.metaSize')} v={`${sizeKb} KB`} />}
-              {item.minTrekVersion && <Meta k={t('admin.plugins.metaRequires')} v={`TREK ${item.minTrekVersion}+`} />}
+              {/* The range, not just its lower bound: "TREK 3.2.0+" reads as "and anything
+                  newer", which is exactly the claim a `<4.0.0` upper bound denies. */}
+              {(item.trek || item.minTrekVersion) && (
+                <Meta k={t('admin.plugins.metaRequires')} v={item.trek ? `TREK ${item.trek}` : `TREK ${item.minTrekVersion}+`} />
+              )}
               {item.reviewedAt && <Meta k={t('admin.plugins.metaReviewed')} v={new Date(item.reviewedAt).toLocaleDateString(locale)} />}
               {typeof item.downloadCount === 'number' && item.downloadCount > 0 && (
                 <Meta k={t('admin.plugins.downloads')} v={item.downloadCount.toLocaleString(locale)} />
@@ -1254,8 +1546,101 @@ function Meta({ k, v }: { k: string; v: string }) {
   return <div><div className="text-[12px] text-content-faint">{k}</div><div className="text-[12.5px] font-medium text-content mt-0.5">{v}</div></div>
 }
 
-function UpdateConsentDialog({ data, t, onApprove, onLater }: {
+/**
+ * A signature check refused an install/update.
+ *
+ * The override lives here, and it is scoped to exactly one code. A rotated key has a
+ * benign explanation — the author rotated it, or lost it and made a new one. A signature
+ * that does NOT verify does not: it means the bytes are not what the author signed, which
+ * is corruption or an attack, and there is no story where the right answer is "let the
+ * admin wave it through". So SIGNATURE_INVALID / _MISSING / _INCOMPLETE get a clear
+ * explanation and no override button AT ALL — not a disabled one, not one behind a
+ * confirm. The absence of an escape hatch is the feature.
+ *
+ * (The server enforces this too — it re-derives the condition and refuses anything but a
+ * changed key. This dialog is the convenience, not the control.)
+ */
+function SignatureBlockDialog({ data, entry, busy, t, onRetrust, onClose }: {
+  data: { subject: SigSubject; code: string; detail: string | null }
+  entry: RegistryItem | undefined
+  busy: boolean; t: T
+  onRetrust: (version: string, publicKey: string) => void
+  onClose: () => void
+}) {
+  const canRetrust = data.code === RETRUSTABLE
+  const newKey = entry?.authorPublicKey ?? null
+  const version = entry?.latest ?? null
+  // Only offer the override when we actually hold the new key + version to send: the
+  // request carries both, and the server compares the key exactly.
+  const offerRetrust = canRetrust && !!newKey && !!version
+
+  const bodyKey = data.code === RETRUSTABLE ? 'admin.plugins.sig.keyChangedBody'
+    : data.code === 'SIGNATURE_MISSING' ? 'admin.plugins.sig.missingBody'
+    : data.code === 'SIGNATURE_INCOMPLETE' ? 'admin.plugins.sig.incompleteBody'
+    : 'admin.plugins.sig.invalidBody'
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div className="bg-surface-card border border-edge rounded-2xl w-full max-w-md shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b border-edge-secondary flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg bg-warning-soft grid place-items-center shrink-0"><ShieldAlert size={18} className="text-warning" /></div>
+          <div>
+            <h3 className="text-sm font-semibold text-content">{t('admin.plugins.sig.title', { name: data.subject.name })}</h3>
+            <p className="text-xs text-content-muted mt-1">{t(bodyKey as never)}</p>
+          </div>
+        </div>
+        <div className="p-5 space-y-4">
+          {/* Fingerprints, not full keys: these exist to be COMPARED by a human — read the
+              new one back to the author over the phone. The full key travels in the request. */}
+          {canRetrust && (
+            <div className="space-y-2">
+              <KeyRow label={t('admin.plugins.sig.pinnedKey')} value={data.subject.keyFingerprint ?? '—'} />
+              <KeyRow label={t('admin.plugins.sig.newKey')} value={fingerprint(newKey) ?? '—'} highlight />
+              <p className="text-[11.5px] text-content-muted leading-relaxed pt-1">{t('admin.plugins.sig.confirmOutOfBand')}</p>
+            </div>
+          )}
+          {!canRetrust && data.detail && (
+            <p className="text-xs text-content-faint font-mono break-all bg-surface-tertiary rounded-lg px-3 py-2">{data.detail}</p>
+          )}
+        </div>
+        <div className="px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary flex items-center justify-end gap-2">
+          <button onClick={onClose}
+            className="text-xs font-medium px-3.5 py-2 rounded-lg border border-edge text-content-muted hover:text-content hover:bg-surface-tertiary transition-colors">
+            {offerRetrust ? t('admin.plugins.sig.cancel') : t('common.close')}
+          </button>
+          {offerRetrust && (
+            <button onClick={() => onRetrust(version, newKey)} disabled={busy}
+              className="text-xs font-semibold px-4 py-2 rounded-lg bg-warning text-white hover:opacity-90 transition-opacity disabled:opacity-50">
+              {t('admin.plugins.sig.retrustConfirm')}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function KeyRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-edge-secondary bg-surface-tertiary px-3 py-2">
+      <span className="text-[11.5px] text-content-muted shrink-0">{label}</span>
+      <code className={`font-mono text-[12px] break-all ${highlight ? 'text-warning font-semibold' : 'text-content'}`}>{value}</code>
+    </div>
+  )
+}
+
+/** Client-side twin of the server's fingerprint: head…tail of the base64 payload. Display
+ * only — every equality check that matters happens server-side against the full key. */
+function fingerprint(key: string | null): string | null {
+  if (!key) return null
+  const payload = key.trim().split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('untrusted comment')).pop()
+  if (!payload) return null
+  return payload.length <= 20 ? payload : `${payload.slice(0, 8)}…${payload.slice(-8)}`
+}
+
+function UpdateConsentDialog({ data, unsigned, t, onApprove, onLater }: {
   data: { plugin: PluginRow; version: string; newPermissions: string[]; newEgress: string[] }
+  unsigned: boolean
   t: T; onApprove: () => void; onLater: () => void
 }) {
   return (
@@ -1269,6 +1654,15 @@ function UpdateConsentDialog({ data, t, onApprove, onLater }: {
           </div>
         </div>
         <div className="p-5 space-y-4">
+          {/* The admin is about to widen what this code may do — so say, right here, that
+              nothing ties this code to its author. One line, no checkbox, no extra click:
+              this informs, it does not block. */}
+          {unsigned && (
+            <p className="flex items-start gap-2 text-xs text-warning bg-warning-soft border border-warning/25 rounded-lg px-3 py-2">
+              <ShieldAlert size={13} className="mt-0.5 shrink-0" />
+              <span>{t('admin.plugins.sig.consentUnsigned')}</span>
+            </p>
+          )}
           {data.newPermissions.length > 0 && (
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-content-muted">{t('admin.plugins.updateNewPermissions')}</h4>
@@ -1358,6 +1752,7 @@ function SecurityInfo({ t }: { t: T }) {
     ['admin.plugins.security.limitsTitle', 'admin.plugins.security.limitsBody'],
     ['admin.plugins.security.worstTitle', 'admin.plugins.security.worstBody'],
     ['admin.plugins.security.reviewedTitle', 'admin.plugins.security.reviewedBody'],
+    ['admin.plugins.security.signedTitle', 'admin.plugins.security.signedBody'],
     ['admin.plugins.security.trustTitle', 'admin.plugins.security.trustBody'],
   ]
   return (

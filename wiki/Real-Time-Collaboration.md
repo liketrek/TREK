@@ -2,7 +2,7 @@
 
 TREK keeps every trip in sync across all connected members without requiring a page refresh. A dedicated **Collab addon** adds a second layer on top of that sync: group chat, shared notes, polls, and a "What's Next" widget showing upcoming assigned places.
 
-<!-- TODO: screenshot: collaborative editing with presence indicators -->
+![The Collab tab: chat, shared notes, polls and the What's Next widget side by side](assets/Collab.png)
 
 ## Real-time sync
 

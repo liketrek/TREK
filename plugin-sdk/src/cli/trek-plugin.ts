@@ -2,36 +2,33 @@
 /**
  * `trek-plugin <command>` — the plugin author CLI (#plugins).
  *
- *   create [name] [--type t] [--interactive]   scaffold a plugin (wizard if no name)
- *   dev [dir] [--port 4317]                     run locally with hot reload
- *   validate [dir]                              check the manifest + layout
- *   pack [dir] [--out plugin.zip] [--json]      build plugin.zip, print sha256 + size
- *   keygen [--key file]                         create an Ed25519 signing key
- *   sign [zip] [--key file]                      print a signature + public key for an artifact
- *   entry --repo o/n --tag vX [--zip z]         print the ready-to-PR registry entry
- *         [--merge entry.json] [--sign [key]] [--out f]
- *   preflight [dir] --repo o/n --tag vX         run the registry CI checks locally
- *   submit [dir] --repo o/n --tag vX            open the registry PR for you
- *         [--sign [key]] [--registry o/n] [--draft]
- *   release [dir] --repo o/n --tag vX           pack -> gh release -> print entry
- *         [--sign [key]] [--merge entry.json]
- *   publish [dir] --repo o/n --tag vX           the lot: pack -> tag+release ->
- *         [--sign [key]] [--no-preflight]        preflight -> open the registry PR
+ * This file is the ROUTER, and nothing more: it parses flags, decides interactive vs not, and
+ * hands off. The per-command help lives in ./help.ts (single source of truth, so `--help` and the
+ * docs cannot drift), and the rules every command is judged by live in ./checks/.
  *
- * The goal: create -> dev -> publish, and never hand-compute sha256/size/commitSha
- * or hand-write the registry JSON.
+ * The path is four commands — create → dev → status → publish. The other nine are steps one of
+ * those already does, and are listed under "Also" rather than presented as things you must learn.
+ *
+ * The goal: never hand-compute sha256/size/commitSha, never hand-write the registry JSON, and
+ * never discover a problem after the release that pins it has been cut.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { validatePluginDir } from './validate.js';
 import { packPluginDir } from './pack.js';
 import { buildEntry } from './entry.js';
-import { scaffold, interactiveScaffold } from './create.js';
+import { scaffold, interactiveScaffold, nextStepsAfterCreate, type WidgetSlot } from './create.js';
 import { runDev } from './dev.js';
+import { runStatus } from './status.js';
+import { runShot } from './shot.js';
 import { preflight } from './preflight.js';
 import { submitEntry } from './submit.js';
 import { publishPlugin } from './publish.js';
+import { loadContext } from './checks/context.js';
+import { runOffline } from './checks/index.js';
+import { renderPlain } from './checks/report.js';
+import { topLevelHelp, commandHelp, VERSION_LINE } from './help.js';
+import { inspectSigning, proposeSigning, type SigningState } from './signing.js';
 import { generateKeypair, loadPrivateKey, signArtifact, publicKeyBase64, defaultKeyPath } from './sign.js';
 import { readJsonFile } from './json.js';
 import {
@@ -39,6 +36,7 @@ import {
   promptText, promptConfirm, clackLogSink, missingArgs,
 } from './ui.js';
 import { runMenu } from './menu.js';
+import { notifySdkUpdate } from './update-notice.js';
 
 const [cmd, ...args] = process.argv.slice(2);
 
@@ -63,6 +61,45 @@ function fail(msg: string): never {
 const { flags, pos } = parse(args);
 
 type Flags = Record<string, string>;
+
+/**
+ * Every flag each command reads. `parse()` accepts any `--x`, so a flag a command
+ * does NOT read used to be silently dropped — `create --template notification-channel`
+ * cheerfully scaffolded a blank plugin. Silently ignoring an author's explicit
+ * instruction is worse than refusing it, so unknown flags are now an error.
+ */
+const COMMAND_FLAGS: Record<string, readonly string[]> = {
+  create: ['type', 'interactive', 'author', 'description', 'permissions', 'template', 'egress', 'required-addons', 'icon', 'slot'],
+  dev: ['port'],
+  status: [],
+  shot: ['port', 'out', 'dark', 'no-serve'],
+  validate: [],
+  pack: ['out', 'json'],
+  keygen: ['key'],
+  sign: ['key'],
+  entry: ['repo', 'tag', 'dir', 'zip', 'commit', 'asset', 'merge', 'sign', 'key', 'out'],
+  preflight: ['repo', 'tag', 'entry', 'zip', 'commit', 'sign', 'key', 'all', 'registry'],
+  submit: ['repo', 'tag', 'zip', 'commit', 'sign', 'key', 'registry', 'branch', 'draft', 'keep'],
+  release: ['repo', 'tag', 'out', 'notes', 'commit', 'merge', 'sign', 'key'],
+  publish: ['repo', 'tag', 'sign', 'key', 'registry', 'draft', 'notes', 'no-preflight', 'no-checks', 'force'],
+};
+
+function assertKnownFlags(command: string, f: Flags): void {
+  const known = COMMAND_FLAGS[command];
+  if (!known) return;
+  const unknown = Object.keys(f).filter((k) => !known.includes(k));
+  if (unknown.length) {
+    const list = unknown.map((u) => `--${u}`).join(', ');
+    fail(`unknown flag${unknown.length > 1 ? 's' : ''} for \`${command}\`: ${list}\n       ${command} accepts: ${known.map((k) => '--' + k).join(', ') || '(none)'}`);
+  }
+}
+
+/** `--egress a,b` / `--permissions "a b"` → a string[]. */
+function listFlag(v: string | undefined): string[] | undefined {
+  if (!v || v === 'true') return undefined;
+  const parts = v.split(/[\s,]+/).filter(Boolean);
+  return parts.length ? parts : undefined;
+}
 
 /** --sign, --sign <keyfile>, or absent → the key path to sign with (or undefined). */
 function signKey(f: Flags): string | undefined {
@@ -89,47 +126,156 @@ async function ensureRepoTag(f: Flags, failMsg: string): Promise<{ repo: string;
   return { repo: repo.trim(), tag: tag.trim() };
 }
 
-const USAGE = 'usage: trek-plugin <create|dev|validate|pack|keygen|sign|entry|preflight|submit|release|publish> [...]';
+const USAGE = 'usage: trek-plugin <create|dev|status|publish|...>   (`trek-plugin help` for the full list)';
+
+/** The SDK's own version, for `--version` and the help banner. */
+function sdkVersion(): string {
+  try {
+    const pkg = readJsonFile<{ version?: string }>(path.join(import.meta.dirname, '..', '..', 'package.json'));
+    return pkg.version ?? '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
 
 async function main(): Promise<void> {
+  // Advisory only (update-notifier): prints from cache on stderr, refreshes in the
+  // background, never blocks. `dev` never returns, so this runs up front.
+  notifySdkUpdate();
+
+  // `--version` used to fall through to the `else` branch and print the usage line with exit 2,
+  // which is a strange way to answer a question every CLI is expected to answer.
+  if (cmd === 'version' || cmd === '--version' || cmd === '-v') {
+    console.log(VERSION_LINE(sdkVersion()));
+    return;
+  }
+
+  // Handled before dispatch, so assertKnownFlags never sees `--help` and rejects it as unknown.
+  // Help is not an error: it goes to stdout and exits 0.
+  //   trek-plugin help            the path, plus where to find everything else
+  //   trek-plugin help <cmd>      that command's own page
+  //   trek-plugin <cmd> --help    the same page — this is what people actually type
+  if (cmd === 'help' || cmd === '--help' || cmd === '-h') {
+    const topic = pos[0];
+    if (topic) {
+      const page = commandHelp(topic);
+      if (!page) fail(`no such command: ${topic}\n       ${USAGE}`);
+      console.log(page);
+      return;
+    }
+    console.log(topLevelHelp(sdkVersion()));
+    return;
+  }
+  if (cmd && flags.help) {
+    const page = commandHelp(cmd);
+    if (!page) fail(`no such command: ${cmd}\n       ${USAGE}`);
+    console.log(page);
+    return;
+  }
+
   if (!cmd) {
     // Bare invocation: a menu in a terminal, the usage line for scripts.
     if (!isInteractive()) { console.error(USAGE); process.exit(2); }
     const chosen = await runMenu();
-    if (chosen) await dispatch(chosen, {}, []);
+    if (chosen) {
+      // The menu used to dispatch with EMPTY positionals, so picking "Validate" or "Pack"
+      // silently ran against the cwd — which is very often not a plugin at all. Ask.
+      const dir = await promptPluginDir(chosen);
+      await dispatch(chosen, {}, dir ? [dir] : []);
+    }
     return;
   }
   await dispatch(cmd, flags, pos);
 }
 
+/** The plugin's id, or '' if this isn't a plugin directory. Never throws — the caller has better errors. */
+function readPluginId(dir: string): string {
+  try {
+    const m = readJsonFile<{ id?: unknown }>(path.join(path.resolve(dir), 'trek-plugin.json'));
+    return typeof m.id === 'string' ? m.id : '';
+  } catch {
+    return '';
+  }
+}
+
+/** Commands that operate on a plugin directory, and so need one when the menu launched them. */
+const DIR_COMMANDS = new Set(['dev', 'status', 'validate', 'pack', 'shot', 'publish', 'preflight', 'submit', 'release']);
+
+async function promptPluginDir(command: string): Promise<string | undefined> {
+  if (!DIR_COMMANDS.has(command)) return undefined;
+  // If the cwd IS a plugin, that is overwhelmingly what was meant — don't make them type a dot.
+  if (fs.existsSync(path.join(process.cwd(), 'trek-plugin.json'))) return undefined;
+  const dir = await promptText({
+    message: 'Which plugin directory?',
+    placeholder: './my-plugin',
+    defaultValue: '.',
+    validate: (v) => {
+      const d = (v || '.').trim();
+      if (!fs.existsSync(d)) return `${d} does not exist`;
+      if (!fs.existsSync(path.join(d, 'trek-plugin.json'))) return `${d} has no trek-plugin.json`;
+      return undefined;
+    },
+  });
+  return dir.trim() || '.';
+}
+
 async function dispatch(command: string, f: Flags, positional: string[]): Promise<void> {
   const tui = isInteractive();
+  assertKnownFlags(command, f);
   if (command === 'create') {
     const name = positional[0];
     if (!name || f.interactive) {
-      if (!tui) fail('create needs a plugin name in non-interactive mode: create <name> [--type integration|page|widget]');
+      if (!tui) fail('create needs a plugin name in non-interactive mode: create <name> [--type integration|page|widget|trip-page]');
       await interactiveScaffold(process.cwd(), name);
       return;
     }
     scaffold(name, f.type || 'integration', process.cwd(), {
       author: f.author, description: f.description,
-      permissions: f.permissions ? f.permissions.split(/[\s,]+/).filter(Boolean) : undefined,
+      permissions: listFlag(f.permissions),
+      egress: listFlag(f.egress),
+      requiredAddons: listFlag(f['required-addons']),
+      template: f.template as 'blank' | 'notification-channel' | undefined,
+      icon: f.icon,
+      slot: f.slot as WidgetSlot | undefined,
     });
-    console.log(`Created ${name}/ — build server/index.js, add docs/screenshot.png, then \`npx trek-plugin-sdk dev ${name}\`.`);
+    // The SAME text the wizard and the `create-trek-plugin` bin print. These three used to
+    // name three different next commands.
+    console.log(nextStepsAfterCreate(path.join(process.cwd(), name)));
   } else if (command === 'dev') {
     if (tui) intro(`trek-plugin dev — ${positional[0] || '.'}`);
     await runDev(positional[0] || '.', { port: f.port ? Number(f.port) : undefined });
-  } else if (command === 'validate') {
-    const r = validatePluginDir(positional[0] || '.');
+  } else if (command === 'status') {
+    // Never exits non-zero: `status` is for orientation, not gating. A command you are afraid
+    // to run because it might fail your build is not one you reach for when you are stuck.
+    const r = runStatus(positional[0] || '.', { colour: tui });
+    console.log(r.text);
+  } else if (command === 'shot') {
+    const dir = positional[0] || '.';
     if (tui) {
-      for (const w of r.warnings) logWarn(w);
-      if (!r.ok) { for (const e of r.errors) logError(e); outro('✗ plugin has errors'); process.exit(1); }
-      outro('✓ plugin is valid');
+      const s = spinner();
+      s.start('Rendering your plugin');
+      try {
+        const r = await runShot(dir, { port: f.port ? Number(f.port) : undefined, out: f.out, dark: !!f.dark, noServe: !!f['no-serve'] });
+        s.stop(`Wrote ${path.relative(process.cwd(), r.out) || r.out} (${r.width}×${r.height})`);
+        outro('next →  trek-plugin status');
+      } catch (e) {
+        s.stop('Could not take the screenshot');
+        throw e;
+      }
     } else {
-      for (const w of r.warnings) console.warn('warning: ' + w);
-      if (!r.ok) { for (const e of r.errors) console.error('error: ' + e); process.exit(1); }
-      console.log('✓ plugin is valid');
+      const r = await runShot(dir, { port: f.port ? Number(f.port) : undefined, out: f.out, dark: !!f.dark, noServe: !!f['no-serve'] });
+      console.log(`Wrote ${r.out} (${r.width}×${r.height})`);
     }
+  } else if (command === 'validate') {
+    const report = runOffline(loadContext(positional[0] || '.'));
+    const text = renderPlain(report);
+    if (text) console.error(text);
+    if (!report.ok) {
+      // Don't just fail — say where to see the whole picture.
+      console.error(`\n${report.errors.length} of these would be rejected by the registry. \`trek-plugin status\` shows the full checklist.`);
+      process.exit(1);
+    }
+    if (tui) outro('✓ plugin is valid'); else console.log('✓ plugin is valid');
   } else if (command === 'pack') {
     const r = packPluginDir(positional[0] || '.', f.out || 'plugin.zip');
     const rel = path.relative(process.cwd(), r.artifact) || r.artifact;
@@ -137,23 +283,25 @@ async function dispatch(command: string, f: Flags, positional: string[]): Promis
       console.log(JSON.stringify(r, null, 2)); // machine output — never decorated
     } else if (tui) {
       note([...r.files, '', `sha256: ${r.sha256}`, `size:   ${r.size}`].join('\n'), `Packed ${r.files.length} files → ${rel}`);
-      logInfo('Upload plugin.zip to your release, then run `npx trek-plugin-sdk entry`.');
+      // This used to point at `entry` — the low-level, assemble-the-PR-by-hand path — rather than
+      // at `publish`, which does the release, the entry and the PR and gets the ORDER right.
+      logInfo('Install this into a local TREK to try it. To ship it: `trek-plugin publish`.');
     } else {
       console.log(`Packed ${r.files.length} files -> ${rel}`);
       for (const file of r.files) console.log('  ' + file);
       console.log(`\nsha256: ${r.sha256}\nsize:   ${r.size}`);
-      console.log('\nUpload this plugin.zip to your release, then run `npx trek-plugin-sdk entry` to generate the registry entry.');
+      console.log('\nInstall this into a local TREK to try it. To ship it: `trek-plugin publish --repo <owner/name> --tag <vX.Y.Z>`.');
     }
   } else if (command === 'keygen') {
     const keyPath = f.key || defaultKeyPath();
     const { publicKey } = generateKeypair(keyPath);
     if (tui) {
       note(`Signing key written to ${keyPath}\nKeep it safe + BACK IT UP — losing it means you can't ship signed updates.\n\nauthorPublicKey (goes in your registry entry):\n${publicKey}`, 'Signing key');
-      logInfo('Sign releases with `npx trek-plugin-sdk release --sign` (or `entry --sign`).');
+      logInfo('`trek-plugin publish` will now offer to sign with this key — you do not need to pass --sign.');
     } else {
       console.log(`Signing key written to ${keyPath} (keep it safe + BACK IT UP — losing it means you can't ship signed updates).`);
       console.log(`\nauthorPublicKey (goes in your registry entry): ${publicKey}`);
-      console.log('\nSign releases with `npx trek-plugin-sdk release --sign` (or `entry --sign`).');
+      console.log('\nPass --sign to `trek-plugin publish` to sign a release with it (interactively, publish offers).');
     }
   } else if (command === 'sign') {
     const zip = positional[0] || 'plugin.zip';
@@ -208,15 +356,35 @@ async function dispatch(command: string, f: Flags, positional: string[]): Promis
     }
   } else if (command === 'publish') {
     const { repo, tag } = await ensureRepoTag(f, 'publish needs --repo <owner/name> and --tag <vX.Y.Z>');
+    const dir = positional[0] || '.';
+
+    // Signing used to be a flag you had to already know about, with `keygen` buried under
+    // "Advanced…" — so the default path shipped unsigned and never mentioned that signing existed.
+    // Offer it, once, at the moment it is actually a decision. A script that did not pass --sign
+    // gets exactly the behaviour it always got: prompting a pipeline is how you hang a pipeline.
+    let signKeyPath = signKey(f);
+    let signing: SigningState | undefined;
+    if (tui && !signKeyPath) {
+      const id = readPluginId(dir);
+      if (id) {
+        signing = await inspectSigning(id, { registry: f.registry, keyPath: f.key });
+        signKeyPath = await proposeSigning(signing);
+      }
+    }
+
     if (tui) {
-      note(`repo   ${repo}\ntag    ${tag}\ndir    ${positional[0] || '.'}`, 'Publish');
+      note(
+        `repo   ${repo}\ntag    ${tag}\ndir    ${dir}\nsign   ${signKeyPath ? `yes (${signKeyPath})` : 'no — unsigned'}`,
+        'Publish',
+      );
       const ok = await promptConfirm({ message: 'Create the GitHub release and open the registry PR?', initialValue: true });
       if (!ok) { outro('Cancelled — nothing was published.'); return; }
     }
     const { prUrl } = await publishPlugin({
-      dir: positional[0] || '.', repo, tag,
-      signKeyPath: signKey(f), registry: f.registry, draft: !!f.draft,
-      notes: f.notes, skipPreflight: !!f['no-preflight'], now: new Date().toISOString(),
+      dir, repo, tag,
+      signKeyPath, signing, registry: f.registry, draft: !!f.draft,
+      notes: f.notes, skipPreflight: !!f['no-preflight'], skipChecks: !!f['no-checks'], force: !!f.force,
+      now: new Date().toISOString(),
       log: tui ? clackLogSink : undefined,
     });
     if (tui) logSuccess('Published — registry PR:'); else console.error('\n✓ published — registry PR:');
@@ -265,7 +433,7 @@ async function dispatch(command: string, f: Flags, positional: string[]): Promis
       process.stdout.write(JSON.stringify(entry, null, 2) + '\n');
     }
   } else {
-    console.error(USAGE);
+    console.error(`unknown command: ${command}\n${USAGE}`);
     process.exit(2);
   }
 }

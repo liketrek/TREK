@@ -2,7 +2,7 @@ import { pipeline } from 'node:stream/promises';
 import { Readable } from 'node:stream';
 import { Response } from 'express';
 import { canAccessTrip, db } from "../../db/database";
-import { safeFetch, SsrfBlockedError } from '../../utils/ssrfGuard';
+import { safeFetch, SsrfBlockedError, type SafeFetchOptions } from '../../utils/ssrfGuard';
 import { decrypt_api_key } from '../apiKeyCrypto';
 
 // helpers for handling return types
@@ -251,9 +251,9 @@ export function updateSyncTimeForAlbumLink(linkId: string): void {
     db.prepare('UPDATE trip_album_links SET last_synced_at = CURRENT_TIMESTAMP WHERE id = ?').run(linkId);
 }
 
-export async function pipeAsset(url: string, response: Response, headers?: Record<string, string>, signal?: AbortSignal, defaultCacheControl?: string): Promise<void> {
+export async function pipeAsset(url: string, response: Response, headers?: Record<string, string>, signal?: AbortSignal, defaultCacheControl?: string, fetchOptions?: SafeFetchOptions): Promise<void> {
     try {
-        const resp = await safeFetch(url, { headers, signal: signal as any });
+        const resp = await safeFetch(url, { headers, signal: signal as any }, fetchOptions);
 
         response.status(resp.status);
         if (resp.headers.get('content-type')) response.set('Content-Type', resp.headers.get('content-type') as string);
@@ -284,6 +284,8 @@ export async function pipeAsset(url: string, response: Response, headers?: Recor
         if (error instanceof SsrfBlockedError) {
             response.status(400).json({ error: error.message });
         } else {
+            // Don't log the URL — it can carry a Synology _sid / passphrase.
+            console.error('pipeAsset: upstream fetch failed:', error);
             response.status(500).json({ error: 'Failed to fetch asset' });
         }
     }

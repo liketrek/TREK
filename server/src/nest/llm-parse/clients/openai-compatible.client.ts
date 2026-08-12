@@ -18,6 +18,10 @@ const MAX_TOKENS = 4096;
  * template inlined in a single user message, no system prompt and no
  * `response_format` (see ./nuextract.ts) — that's how the fine-tune expects to
  * be driven; the generic instruct path applies to every other model.
+ *
+ * Structured output is requested as `json_schema` first; servers that only
+ * support `json_object` (DeepSeek, Mistral, some vLLM/llama.cpp) reject that
+ * with a 400, so the request is retried once in `json_object` mode.
  */
 export class OpenAiCompatibleClient implements LlmExtractionClient {
   async extract(input: LlmExtractionInput): Promise<Record<string, unknown>[]> {
@@ -39,7 +43,7 @@ export class OpenAiCompatibleClient implements LlmExtractionClient {
       });
     }
 
-    const body = {
+    const baseBody = {
       model: input.model,
       max_tokens: MAX_TOKENS,
       // Extraction is a deterministic task — Ollama defaults to 0.7, which makes
@@ -53,33 +57,24 @@ export class OpenAiCompatibleClient implements LlmExtractionClient {
             { role: 'system', content: input.prompt },
             { role: 'user', content: userContent },
           ],
-      ...(nuextract
-        ? {}
-        : {
-            response_format: {
-              type: 'json_schema' as const,
-              json_schema: { name: 'reservations', schema: input.jsonSchema, strict: false },
-            },
-          }),
     };
+    const body = nuextract
+      ? baseBody
+      : {
+          ...baseBody,
+          response_format: {
+            type: 'json_schema' as const,
+            json_schema: { name: 'reservations', schema: input.jsonSchema, strict: false },
+          },
+        };
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-    let res: Response;
-    try {
-      // baseUrl is user-configurable — guard it against pointing at the cloud
-      // metadata endpoint, while still allowing a local/LAN Ollama.
-      res = await safeFetchLlm(url, {
-        method: 'POST',
-        signal: controller.signal,
-        headers: {
-          'content-type': 'application/json',
-          ...(input.apiKey ? { authorization: `Bearer ${input.apiKey}` } : {}),
-        },
-        body: JSON.stringify(body),
-      });
-    } finally {
-      clearTimeout(timer);
+    let res = await this.send(url, body, input.apiKey);
+    // Servers that only support `json_object` (DeepSeek, Mistral, some
+    // vLLM/llama.cpp) reject `json_schema` with a 400 — retry once in
+    // `json_object` mode. The system prompt already dictates the exact output
+    // shape (and mentions JSON, which json_object mode requires).
+    if (!res.ok && res.status === 400 && !nuextract) {
+      res = await this.send(url, { ...baseBody, response_format: { type: 'json_object' as const } }, input.apiKey);
     }
 
     if (!res.ok) {
@@ -92,6 +87,26 @@ export class OpenAiCompatibleClient implements LlmExtractionClient {
     };
     const content = data.choices?.[0]?.message?.content;
     return nuextract ? parseNuExtract(content) : parseReservations(content);
+  }
+
+  private async send(url: string, body: unknown, apiKey?: string): Promise<Response> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    try {
+      // baseUrl is user-configurable — guard it against pointing at the cloud
+      // metadata endpoint, while still allowing a local/LAN Ollama.
+      return await safeFetchLlm(url, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'content-type': 'application/json',
+          ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
+        },
+        body: JSON.stringify(body),
+      });
+    } finally {
+      clearTimeout(timer);
+    }
   }
 }
 

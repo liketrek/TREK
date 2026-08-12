@@ -2,8 +2,6 @@
 
 TREK can generate two kinds of PDFs from your trip data: a structured **Trip Plan PDF** and a photo-book-style **Journey Book PDF**. Both render as HTML in a sandboxed iframe and open the browser's native print/save dialog — no server-side processing is involved.
 
-<!-- TODO: screenshot: export options dialog or PDF preview modal -->
-
 ![PDF Export](assets/PDFTrip.png)
 
 ---
@@ -23,7 +21,7 @@ Open the Day Plan sidebar in the trip planner. Click the **PDF** button in the t
   - **Days** — total number of days in the trip
   - **Places** — total places in your trip's place list
   - **Planned** — number of unique places assigned to at least one day
-  - **Estimated cost** — sum of all assigned place prices in EUR (hidden if zero)
+  - **Estimated cost** — sum of all assigned place prices, shown in the trip's currency (hidden if zero)
 
 ### Per-day pages
 
