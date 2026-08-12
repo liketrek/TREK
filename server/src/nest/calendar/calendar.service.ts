@@ -147,11 +147,19 @@ export class CalendarService {
     const trip = this.db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as any;
     if (!trip) throw new NotFoundError('Trip not found');
 
+    // A hotel keeps its dates on the linked stay, not on the reservation: the
+    // booking form writes reservation_time = NULL for type 'hotel' and lets
+    // day_accommodations carry start day, end day and the check-in/out clock.
+    // Joining them here is what lets a stay span its whole range (#1586).
     const reservations = this.db
       .prepare(
-        `SELECT r.*, pl.lat AS place_lat, pl.lng AS place_lng
+        `SELECT r.*, pl.lat AS place_lat, pl.lng AS place_lng,
+                sd.date AS stay_start_date, ed.date AS stay_end_date
          FROM reservations r
          LEFT JOIN places pl ON r.place_id = pl.id
+         LEFT JOIN day_accommodations a ON r.accommodation_id = a.id
+         LEFT JOIN days sd ON a.start_day_id = sd.id
+         LEFT JOIN days ed ON a.end_day_id = ed.id
          WHERE r.trip_id = ?`,
       )
       .all(tripId) as any[];
@@ -302,6 +310,18 @@ export class CalendarService {
     // both ends in the subscribed feed (#1453). Hotels/restaurants have no
     // endpoints and fall through to reservation_time.
     const buildReservationTimeLines = (r: any): string | null => {
+      // A stay wins over everything below: it is the only source that knows how
+      // long the booking lasts. Emitted as an all-day range over every night, so
+      // the hotel sits above the day in a subscribed calendar instead of
+      // appearing once on the arrival day (#1586). DTEND is exclusive, hence +1.
+      if (isDate(r.stay_start_date)) {
+        const lastDay = isDate(r.stay_end_date) && r.stay_end_date >= r.stay_start_date
+          ? r.stay_end_date
+          : r.stay_start_date;
+        return `DTSTART;VALUE=DATE:${fmtDate(r.stay_start_date)}\r\n` +
+          `DTEND;VALUE=DATE:${fmtDate(addDays(lastDay, 1))}\r\n`;
+      }
+
       const eps = endpointsMap.get(r.id);
       const ordered = eps && eps.length > 0 ? [...eps].sort((a, b) => a.sequence - b.sequence) : null;
       const first = ordered?.[0];
@@ -387,6 +407,56 @@ export class CalendarService {
       if (r.location) ev += `LOCATION:${esc(r.location)}\r\n`;
       ev += `END:VEVENT\r\n`;
       events.push(ev);
+    }
+
+    // Check-in and check-out as their own timed events, when the stay records the
+    // clock (#1586). They are separate from the all-day stay above on purpose: an
+    // all-day event cannot carry a time, and "be there at 15:00" is the part a
+    // subscriber actually wants a reminder for. Emitted per stay rather than per
+    // reservation so a stay whose reservation was deleted still shows them.
+    const stays = this.db.prepare(`
+      SELECT a.id, a.check_in, a.check_in_end, a.check_out,
+             sd.date AS start_date, ed.date AS end_date,
+             p.name AS place_name, p.address AS place_address, p.lat AS place_lat, p.lng AS place_lng,
+             r.title AS reservation_title
+      FROM day_accommodations a
+      LEFT JOIN days sd ON a.start_day_id = sd.id
+      LEFT JOIN days ed ON a.end_day_id = ed.id
+      LEFT JOIN places p ON a.place_id = p.id
+      LEFT JOIN reservations r ON r.accommodation_id = a.id
+      WHERE a.trip_id = ?
+      ORDER BY a.id ASC
+    `).all(tripId) as any[];
+
+    for (const stay of stays) {
+      const name = stay.reservation_title || stay.place_name || 'Accommodation';
+      const zone = resolveTimeZone(stay.place_lat, stay.place_lng);
+      // No end day (the day row was removed) → check out on the arrival day.
+      const checkOutDate = isDate(stay.end_date) ? stay.end_date : stay.start_date;
+
+      const marker = (
+        kind: 'checkin' | 'checkout',
+        date: string,
+        time: string,
+        summary: string,
+        endTime?: string | null,
+      ) => {
+        const ref = `${date}T00:00`;
+        let ev = `BEGIN:VEVENT\r\nUID:${uid(stay.id, kind)}\r\nDTSTAMP:${now}\r\n`;
+        ev += dtLine('DTSTART', time, zone, ref);
+        if (isTime(endTime)) ev += dtLine('DTEND', endTime!, zone, ref);
+        ev += `SUMMARY:${esc(summary)}\r\n`;
+        if (stay.place_address) ev += `LOCATION:${esc(stay.place_address)}\r\n`;
+        ev += `END:VEVENT\r\n`;
+        events.push(ev);
+      };
+
+      if (isDate(stay.start_date) && isTime(stay.check_in)) {
+        marker('checkin', stay.start_date, stay.check_in, `Check-in: ${name}`, stay.check_in_end);
+      }
+      if (isDate(checkOutDate) && isTime(stay.check_out)) {
+        marker('checkout', checkOutDate, stay.check_out, `Check-out: ${name}`);
+      }
     }
 
     // Every referenced zone gets a VTIMEZONE. They are emitted before the first

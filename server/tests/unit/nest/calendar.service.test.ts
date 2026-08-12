@@ -669,6 +669,143 @@ describe('exportICS', () => {
   });
 });
 
+// ── Accommodations in the feed (#1586) ───────────────────────────────────────
+
+describe('accommodations', () => {
+  /** A stay with its linked hotel reservation, the shape createAccommodation writes. */
+  const createStay = (
+    tripId: number,
+    opts: {
+      start: string | null;
+      end?: string | null;
+      check_in?: string | null;
+      check_in_end?: string | null;
+      check_out?: string | null;
+      title?: string;
+      withReservation?: boolean;
+      lat?: number;
+      lng?: number;
+    },
+  ) => {
+    const place = createPlace(testDb, tripId, {
+      name: opts.title ?? 'Hotel Bellevue',
+      lat: opts.lat ?? 48.8566,
+      lng: opts.lng ?? 2.3522,
+    });
+    testDb.prepare('UPDATE places SET address = ? WHERE id = ?').run('1 Rue de Rivoli', place.id);
+    const startDay = createDay(testDb, tripId, { date: opts.start ?? undefined });
+    const endDay = opts.end === undefined
+      ? startDay
+      : createDay(testDb, tripId, { date: opts.end ?? undefined });
+    const stayId = testDb.prepare(`
+      INSERT INTO day_accommodations (trip_id, place_id, start_day_id, end_day_id, check_in, check_in_end, check_out)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      tripId, place.id, startDay.id, endDay.id,
+      opts.check_in ?? null, opts.check_in_end ?? null, opts.check_out ?? null,
+    ).lastInsertRowid as number;
+
+    if (opts.withReservation !== false) {
+      testDb.prepare(`
+        INSERT INTO reservations (trip_id, day_id, title, reservation_time, status, type, accommodation_id)
+        VALUES (?, ?, ?, ?, 'confirmed', 'hotel', ?)
+      `).run(tripId, startDay.id, opts.title ?? 'Hotel Bellevue', opts.start, String(stayId));
+    }
+    return { stayId, placeId: place.id };
+  };
+
+  it('CAL-025: a stay covers every night as one all-day event, not just the arrival day', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, { start: '2026-07-07', end: '2026-07-12' });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    // DTEND is exclusive, so the day after checkout.
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260707\r\nDTEND;VALUE=DATE:20260713');
+    expect(ics).toContain('SUMMARY:Hotel Bellevue');
+  });
+
+  it('CAL-026: check-in and check-out become their own timed events in the stay zone', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, {
+      start: '2026-07-07', end: '2026-07-12',
+      check_in: '15:00', check_in_end: '22:00', check_out: '11:00',
+    });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Check-in: Hotel Bellevue');
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260707T150000');
+    expect(ics).toContain('DTEND;TZID=Europe/Paris:20260707T220000');
+    expect(ics).toContain('SUMMARY:Check-out: Hotel Bellevue');
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260712T110000');
+    expect(ics).toContain('LOCATION:1 Rue de Rivoli');
+    expect(ics).toContain('BEGIN:VTIMEZONE\r\nTZID:Europe/Paris');
+  });
+
+  it('CAL-027: a stay without times emits the all-day range and nothing else', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, { start: '2026-07-07', end: '2026-07-12' });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).not.toContain('Check-in');
+    expect(ics).not.toContain('Check-out');
+  });
+
+  it('CAL-028: a stay whose end day lost its date falls back to the arrival day', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, { start: '2026-07-07', end: null, check_out: '11:00' });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260707\r\nDTEND;VALUE=DATE:20260708');
+    expect(ics).toContain('SUMMARY:Check-out: Hotel Bellevue');
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260707T110000');
+  });
+
+  it('CAL-029: a stay with no reservation still contributes its check-in event', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    createStay(trip.id, { start: '2026-07-07', end: '2026-07-09', check_in: '15:00', withReservation: false });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Check-in: Hotel Bellevue');
+    // No stay event without a reservation to carry it — the accommodation itself
+    // has no title, notes or confirmation of its own to show.
+    expect(ics).not.toContain('DTEND;VALUE=DATE:20260710');
+  });
+
+  it('CAL-030: a hotel reservation without a stay keeps its old single-day event', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    const reservation = createReservation(testDb, trip.id, { title: 'Airbnb', type: 'hotel' });
+    testDb.prepare('UPDATE reservations SET reservation_time=? WHERE id=?').run('2026-07-07', reservation.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260707');
+    expect(ics).not.toContain('DTEND;VALUE=DATE');
+  });
+
+  it('CAL-031: a dateless stay is skipped instead of emitting a broken event', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Someday' });
+    createStay(trip.id, { start: null, end: null, check_in: '15:00', check_out: '11:00' });
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).not.toContain('Check-in');
+    expect(ics).not.toContain('Check-out');
+    expect(ics).not.toContain('DTSTART;VALUE=DATE:');
+  });
+});
+
 describe('folded quirk branches', () => {
   it('TRIP-SVC-048: exportICS renders untimed/notes all-day summaries, multi-leg routes, endpoint routes and train/location fields', () => {
     const { user } = createUser(testDb);
