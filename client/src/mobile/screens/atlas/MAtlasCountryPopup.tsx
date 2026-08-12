@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ChevronRight, MapPin, Star } from 'lucide-react'
+import { ChevronRight, MapPin, Star, Trash2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import apiClient from '../../../api/client'
 import { continentForCountry } from '@trek/shared'
@@ -11,6 +11,7 @@ import type { AtlasController } from './atlasController'
 
 const markTint = 'bg-[rgba(47,163,122,.16)] text-[color:var(--m-st-confirmed)]' // theme-lint-disable — fixed tint from the design's option rows
 const bucketTint = 'bg-[rgba(232,161,58,.16)] text-[color:var(--m-st-pending)]' // theme-lint-disable — fixed tint from the design's option rows
+const removeTint = 'bg-[color:color-mix(in_srgb,var(--m-st-danger)_16%,transparent)] text-[color:var(--m-st-danger)]'
 
 const btnBase = 'flex-1 rounded-full py-[11px] text-[0.8125rem] font-bold'
 const cancelBtn = `${btnBase} bg-[color:var(--m-ic)] text-m-ink`
@@ -66,6 +67,8 @@ export default function MAtlasCountryPopup({ atlas }: MAtlasCountryPopupProps) {
     setVisitedRegions,
     setBucketList,
     visitedRegions,
+    bucketList,
+    handleDeleteBucketItem,
   } = atlas
   const toast = useToast()
   const [bucketDate, setBucketDate] = useState('')
@@ -155,7 +158,17 @@ export default function MAtlasCountryPopup({ atlas }: MAtlasCountryPopupProps) {
     setConfirmAction(null)
   }
 
+  // A country can sit on the bucket list more than once (one entry per place),
+  // so taking it off the wishlist means dropping every entry for that code.
+  const removeBucket = async (): Promise<void> => {
+    if (!confirmAction) return
+    const wishlistItems = bucketList.filter((b) => b.country_code === confirmAction.code)
+    await Promise.all(wishlistItems.map((item) => handleDeleteBucketItem(item.id)))
+    setConfirmAction(null)
+  }
+
   const a = confirmAction
+  const onWishlist = !!a && bucketList.some((b) => b.country_code === a.code)
 
   return (
     <MSheet open={!!a} onClose={() => setConfirmAction(null)} variant="card" ariaLabel={a?.name}>
@@ -190,6 +203,15 @@ export default function MAtlasCountryPopup({ atlas }: MAtlasCountryPopupProps) {
                 hint={t('atlas.addToBucketHint')}
                 onClick={() => setConfirmAction({ ...a, type: 'bucket' })}
               />
+              {onWishlist && (
+                <OptionRow
+                  icon={Trash2}
+                  tint={removeTint}
+                  title={t('atlas.removeFromBucket')}
+                  hint={t('atlas.removeFromBucketHint')}
+                  onClick={removeBucket}
+                />
+              )}
             </>
           )}
 
