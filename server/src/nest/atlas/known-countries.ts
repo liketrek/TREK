@@ -7,6 +7,10 @@
  * into places.address, which is display text in the user's language.
  */
 export const KNOWN_COUNTRIES = new Set([
+  // Nominatim inserts an extra tier above the country for France and its overseas
+  // territories, which reads exactly like a place name and would otherwise be counted
+  // as a city.
+  'Metropolitanes Frankreich', 'France métropolitaine', 'Metropolitan France',
   'Japan', 'Germany', 'Deutschland', 'France', 'Frankreich', 'Italy', 'Italien', 'Spain', 'Spanien',
   'United States', 'USA', 'United Kingdom', 'UK', 'Thailand', 'Australia', 'Australien',
   'Canada', 'Kanada', 'Mexico', 'Mexiko', 'Brazil', 'Brasilien', 'China', 'India', 'Indien',
