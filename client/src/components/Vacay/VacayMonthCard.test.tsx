@@ -86,6 +86,17 @@ describe('VacayMonthCard', () => {
     expect(cell.style.cursor).toBe('default')
   })
 
+  it('FE-COMP-VACAYMONTHCARD-006a: a blocked weekend cell that still holds an entry stays clickable (#1897)', () => {
+    const props = {
+      ...baseProps,
+      entryMap: { '2025-01-05': [{ date: '2025-01-05', user_id: 1, person_color: '#6366f1' }] },
+    }
+    render(<VacayMonthCard {...props} />)
+    const daySpan = screen.getByText('5')
+    const cell = daySpan.closest('div') as HTMLElement
+    expect(cell.style.cursor).toBe('pointer')
+  })
+
   it('FE-COMP-VACAYMONTHCARD-007: Company holiday cell shows amber fill', () => {
     const props = {
       ...baseProps,

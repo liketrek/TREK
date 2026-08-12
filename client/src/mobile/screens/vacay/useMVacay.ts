@@ -181,10 +181,19 @@ export function useMVacay() {
       await toggleCompanyHoliday(dateStr)
       return
     }
-    if (blockWeekends && isWeekend(dateStr, weekendDays)) return
+    if (blockWeekends && isWeekend(dateStr, weekendDays)) {
+      // A day already logged when the weekend config changed under it (#1897) keeps
+      // counting against the entitlement, so clearing it stays possible — with the
+      // entry's own fraction/kind, since the server only allows the delete on a
+      // blocked day, not a conversion. Logging a new one stays blocked.
+      const own = entryMap[dateStr]?.find(e => e.user_id === (selectedUserId ?? currentUser?.id))
+      if (!own) return
+      await toggleEntry(dateStr, selectedUserId || undefined, (own.fraction ?? 1) === 0.5 ? 0.5 : 1, own.kind ?? 'vacation')
+      return
+    }
     if (companyHolidaysEnabled && companyHolidaySet.has(dateStr)) return
     await toggleEntry(dateStr, selectedUserId || undefined, halfDay ? 0.5 : 1, compDay ? 'comp' : 'vacation')
-  }, [view, mode, halfDay, compDay, companyHolidaysEnabled, blockWeekends, weekendDays, companyHolidaySet, toggleEntry, toggleCompanyHoliday, selectedUserId])
+  }, [view, mode, halfDay, compDay, companyHolidaysEnabled, blockWeekends, weekendDays, companyHolidaySet, toggleEntry, toggleCompanyHoliday, selectedUserId, currentUser?.id, entryMap])
 
   // Entitlement stepper: never below what is already used this year
   // (carried-over days cover the difference when used > entitlement).

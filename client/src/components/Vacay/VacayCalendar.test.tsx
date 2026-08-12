@@ -270,6 +270,54 @@ describe('VacayCalendar', () => {
     expect(toggleEntry).toHaveBeenCalledWith('2025-01-01', 42, 0.5, 'comp')
   })
 
+  it('FE-COMP-VACAYCALENDAR-006e: a blocked weekend day without an entry stays inert', async () => {
+    const user = userEvent.setup()
+    const toggleEntry = vi.fn().mockResolvedValue(undefined)
+
+    seedStore(useVacayStore, {
+      selectedYear: 2025,
+      entries: [],
+      companyHolidays: [],
+      holidays: {},
+      plan: { ...basePlan, block_weekends: true, company_holidays_enabled: false },
+      users: [],
+      selectedUserId: 42,
+      toggleEntry,
+    })
+
+    render(<VacayCalendar />)
+
+    // Month 3 → '2025-01-04', a Saturday.
+    await user.click(screen.getByText('click-3'))
+
+    expect(toggleEntry).not.toHaveBeenCalled()
+  })
+
+  it('FE-COMP-VACAYCALENDAR-006f: a day stranded by a weekend-config change can still be cleared (#1897)', async () => {
+    const user = userEvent.setup()
+    const toggleEntry = vi.fn().mockResolvedValue(undefined)
+
+    seedStore(useVacayStore, {
+      selectedYear: 2025,
+      entries: [{ date: '2025-01-04', user_id: 42, fraction: 1, kind: 'vacation' }],
+      companyHolidays: [],
+      holidays: {},
+      plan: { ...basePlan, block_weekends: true, company_holidays_enabled: false },
+      users: [],
+      selectedUserId: 42,
+      toggleEntry,
+    })
+
+    render(<VacayCalendar />)
+
+    // The half-day modifier must not turn the clear into a conversion — the server
+    // only allows the delete on a blocked day.
+    await user.click(screen.getByRole('button', { name: 'Half day' }))
+    await user.click(screen.getByText('click-3'))
+
+    expect(toggleEntry).toHaveBeenCalledWith('2025-01-04', 42, 1, 'vacation')
+  })
+
   it('FE-COMP-VACAYCALENDAR-007: cell click on public holiday toggles vacation entry', async () => {
     const user = userEvent.setup()
     const toggleEntry = vi.fn().mockResolvedValue(undefined)

@@ -108,7 +108,9 @@ export default function VacayMonthCard({
           const isCompany = companyHolidaysEnabled && companyHolidaySet.has(dateStr)
           const dayEntries = entryMap[dateStr] || []
           const hasEntries = dayEntries.length > 0
-          const isBlocked = (weekend && blockWeekends) || (isCompany && !companyMode)
+          // A blocked weekend day that still carries an entry (#1897) stays clickable —
+          // the click clears the stranded day rather than logging a new one.
+          const isBlocked = (weekend && blockWeekends && !hasEntries) || (isCompany && !companyMode)
           const isToday = dateStr === todayStr
           const plain = !hasEntries && holidayMarkers.length === 0 && !isCompany
 

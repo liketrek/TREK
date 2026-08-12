@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback, useEffect } from 'react'
 import { useVacayStore } from '../../store/vacayStore'
+import { useAuthStore } from '../../store/authStore'
 import { useTranslation } from '../../i18n'
 import { isWeekend } from './holidays'
 import { inGridWindow, windowMonths } from '../../vacay/yearWindow'
@@ -15,6 +16,7 @@ export type SharedDayMark = { color: string; name: string; fraction?: number; co
 export default function VacayCalendar() {
   const { t, locale } = useTranslation()
   const { selectedYear, selectedUserId, entries, companyHolidays, toggleEntry, toggleCompanyHoliday, plan, users, holidays, sharedCalendars, yearSettings } = useVacayStore()
+  const currentUserId = useAuthStore(s => s.user?.id)
   const [mode, setMode] = useState<VacayMode>('vacation')
   // Half-day is a per-person modifier on the vacation action, not a mode: with it
   // on, clicking a day logs (or converts) it as a 0.5 day for the selected person.
@@ -92,10 +94,19 @@ export default function VacayCalendar() {
       await toggleCompanyHoliday(dateStr)
       return
     }
-    if (blockWeekends && isWeekend(dateStr, weekendDays)) return
+    if (blockWeekends && isWeekend(dateStr, weekendDays)) {
+      // A day already logged when the weekend config changed under it (#1897) keeps
+      // counting against the entitlement, so clearing it stays possible — with the
+      // entry's own fraction/kind, since the server only allows the delete on a
+      // blocked day, not a conversion. Logging a new one stays blocked.
+      const own = entryMap[dateStr]?.find(e => e.user_id === (selectedUserId ?? currentUserId))
+      if (!own) return
+      await toggleEntry(dateStr, selectedUserId || undefined, (own.fraction ?? 1) === 0.5 ? 0.5 : 1, own.kind ?? 'vacation')
+      return
+    }
     if (companyHolidaysEnabled && companyHolidaySet.has(dateStr)) return
     await toggleEntry(dateStr, selectedUserId || undefined, halfDay ? 0.5 : 1, compDay ? 'comp' : 'vacation')
-  }, [mode, halfDay, compDay, toggleEntry, toggleCompanyHoliday, companyHolidaySet, blockWeekends, weekendDays, companyHolidaysEnabled, selectedUserId])
+  }, [mode, halfDay, compDay, toggleEntry, toggleCompanyHoliday, companyHolidaySet, blockWeekends, weekendDays, companyHolidaysEnabled, selectedUserId, currentUserId, entryMap])
 
   // Cells with a half day or a shared overlay report a hover, so the tooltip
   // appears exactly when there's something to explain. Fixed-positioned at the

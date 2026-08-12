@@ -424,4 +424,22 @@ describe('useMVacay', () => {
     act(() => { result.current.goBack(); });
     expect(navigateMock).toHaveBeenCalledWith('/dashboard');
   });
+
+  it('FE-MOB-MVAC-026: a day stranded by a weekend-config change can still be cleared (#1897)', async () => {
+    const toggleEntry = vi.fn(async (_date: string, _userId?: number, _fraction?: 0.5 | 1, _kind?: 'vacation' | 'comp') => {});
+    // 2026-06-13 is a Saturday; alice logged it before Saturday became a weekend.
+    const entry: VacayEntry = { date: '2026-06-13', user_id: 1, fraction: 0.5, kind: 'comp' };
+    act(() => { useVacayStore.setState({ toggleEntry, entries: [entry] }); });
+    const { result } = await mount();
+    act(() => { result.current.toggleView(); });
+
+    await act(async () => { await result.current.handleDayTap('2026-06-13'); });
+    // Cleared with the entry's own fraction/kind, ignoring the toolbar modifiers —
+    // the server only allows the delete on a blocked day, not a conversion.
+    expect(toggleEntry).toHaveBeenCalledWith('2026-06-13', 1, 0.5, 'comp');
+
+    // A weekend day nobody logged stays inert.
+    await act(async () => { await result.current.handleDayTap('2026-06-14'); });
+    expect(toggleEntry).toHaveBeenCalledTimes(1);
+  });
 });
