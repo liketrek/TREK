@@ -48,7 +48,7 @@ describe('MAtlasCountryPopup', () => {
     const handleDeleteBucketItem = vi.fn().mockResolvedValue(undefined)
     const setConfirmAction = vi.fn()
     const atlas = makeAtlas({
-      // Two places in France plus one elsewhere — only the French ones go.
+      // Two places in France plus one elsewhere, only the French ones go.
       bucketList: [bucketItem(1, 'Paris', 'FR'), bucketItem(2, 'Nice', 'FR'), bucketItem(3, 'Tokyo', 'JP')],
       handleDeleteBucketItem,
       setConfirmAction,

@@ -22,11 +22,15 @@ Planned countries are hidden from the map by default. Use the **Show planned cou
 
 Countries you mark by hand always count as visited, whatever the dates of any trip going there.
 
+Countries on your bucket list that you have not been to yet are drawn with a diagonal hatch, in the colour that country would carry once you get there. That keeps a wishlist entry easy to tell apart from a visited country and from the plain grey of everywhere else. Every country keeps its colour permanently: marking one more country as visited never reshuffles the rest of the map.
+
 ## Marking countries as visited
 
 Click any country on the map to open an action popup where you can mark it as visited or add it to your bucket list. Use the search bar at the top of the map to find and fly to a country — pressing Enter or selecting a result from the dropdown opens the same action popup.
 
 To remove a manually-marked country (one with no trips or places recorded in it), click it on the map and confirm removal in the popup.
+
+If the country is already on your bucket list, the same popup offers **Remove from wishlist**, which takes every entry for that country off the list without the detour through the Bucket List tab.
 
 Visits detected automatically from your trips are shown in addition to any countries you mark manually.
 
