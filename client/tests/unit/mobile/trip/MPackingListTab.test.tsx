@@ -12,7 +12,7 @@ import { buildPlanner } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 
-// FE-MOB-PACKTAB-001 to FE-MOB-PACKTAB-046
+// FE-MOB-PACKTAB-001 to FE-MOB-PACKTAB-046 (plus 060-062)
 
 const ME = 7
 const ANNA = { id: 11, username: 'anna', avatar: null, avatar_url: 'https://cdn.example/anna.png' } as unknown as TripMember
@@ -648,16 +648,18 @@ describe('MPackingListTab', () => {
     await setup({ bagTracking: true })
     enterEditMode()
 
-    // The row shows the unit weight, not quantity x weight.
+    // The row shows the unit weight, not quantity x weight; a row without one
+    // says nothing rather than spending width on a dash (#1525).
     expect(within(itemRow('Socks')).getByText('120 g')).toBeInTheDocument()
-    expect(within(itemRow('Shirt')).getByText('— g')).toBeInTheDocument()
+    expect(within(itemRow('Shirt')).queryByText('— g')).not.toBeInTheDocument()
   })
 
   it('FE-MOB-PACKTAB-046: opens the item editor from the row', async () => {
     await setup()
     enterEditMode()
 
-    fireEvent.click(within(itemRow('Socks')).getByRole('button', { name: 'common.edit' }))
+    fireEvent.click(within(itemRow('Socks')).getByRole('button', { name: 'mobileTrip.more' }))
+    fireEvent.click(screen.getByRole('button', { name: 'common.edit' }))
 
     expect(screen.getByRole('dialog')).toHaveAttribute('aria-label', 'packing.editItem')
   })
@@ -666,7 +668,8 @@ describe('MPackingListTab', () => {
     const { planner } = await setup()
     enterEditMode()
 
-    await act(async () => { fireEvent.click(within(itemRow('Socks')).getByRole('button', { name: 'common.delete' })) })
+    fireEvent.click(within(itemRow('Socks')).getByRole('button', { name: 'mobileTrip.more' }))
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'common.delete' })) })
 
     expect(planner.tripActions.deletePackingItem).toHaveBeenCalledWith(3, 3)
   })
@@ -679,7 +682,8 @@ describe('MPackingListTab', () => {
     const { planner } = await setup({ items })
     enterEditMode()
 
-    await act(async () => { fireEvent.click(within(itemRow('Rope')).getByRole('button', { name: 'common.delete' })) })
+    fireEvent.click(within(itemRow('Rope')).getByRole('button', { name: 'mobileTrip.more' }))
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'common.delete' })) })
 
     expect(planner.tripActions.togglePackingItem).toHaveBeenCalledWith(3, 8, false)
     expect(planner.tripActions.updatePackingItem).toHaveBeenCalledWith(3, 8, {
@@ -693,7 +697,8 @@ describe('MPackingListTab', () => {
     asMock(planner.tripActions.deletePackingItem).mockRejectedValueOnce(new Error('x'))
     enterEditMode()
 
-    await act(async () => { fireEvent.click(within(itemRow('Socks')).getByRole('button', { name: 'common.delete' })) })
+    fireEvent.click(within(itemRow('Socks')).getByRole('button', { name: 'mobileTrip.more' }))
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'common.delete' })) })
 
     expect(planner.toast.error).toHaveBeenCalledWith('packing.toast.deleteError')
   })
@@ -706,7 +711,7 @@ describe('MPackingListTab', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'packing.viewPersonal' }))
 
-    expect(screen.getByText('packing.takenCareOf:owner')).toBeInTheDocument()
+    expect(screen.getByLabelText('packing.takenCareOf:owner')).toBeInTheDocument()
   })
 
   it('FE-MOB-PACKTAB-051: badges how many people my shared item covers', async () => {
@@ -718,7 +723,7 @@ describe('MPackingListTab', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'packing.viewPersonal' }))
 
-    expect(screen.getByText('packing.sharedWithCount:2')).toBeInTheDocument()
+    expect(screen.getByLabelText('packing.sharedWithCount:2')).toBeInTheDocument()
   })
 
   it('FE-MOB-PACKTAB-052: shows the owner avatar and the contributor count on a common item', async () => {
@@ -886,8 +891,47 @@ describe('MPackingListTab', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
 
     enterEditMode()
-    fireEvent.click(within(itemRow('Socks')).getByRole('button', { name: 'common.edit' }))
+    fireEvent.click(within(itemRow('Socks')).getByRole('button', { name: 'mobileTrip.more' }))
+    fireEvent.click(screen.getByRole('button', { name: 'common.edit' }))
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'common.close' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  // ── Row width (#1525) ─────────────────────────────────────────────────
+
+  it('FE-MOB-PACKTAB-063: the row actions stay behind one button until it is opened', async () => {
+    await setup()
+    enterEditMode()
+
+    expect(screen.queryByRole('button', { name: 'common.edit' })).not.toBeInTheDocument()
+    fireEvent.click(within(itemRow('Socks')).getByRole('button', { name: 'mobileTrip.more' }))
+    expect(screen.getByRole('button', { name: 'common.edit' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'common.delete' })).toBeInTheDocument()
+
+    fireEvent.click(within(itemRow('Socks')).getByRole('button', { name: 'mobileTrip.more' }))
+    expect(screen.queryByRole('button', { name: 'common.edit' })).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-PACKTAB-064: the menu and the bag picker never stand open together', async () => {
+    await setup({ bagTracking: true })
+    enterEditMode()
+
+    fireEvent.click(within(itemRow('Socks')).getByRole('button', { name: 'mobileTrip.more' }))
+    expect(screen.getByRole('button', { name: 'common.edit' })).toBeInTheDocument()
+
+    // Opening the bag picker on the same row closes the action menu.
+    fireEvent.click(within(itemRow('Socks')).getAllByRole('button', { name: 'packing.bags' })[0])
+    expect(screen.queryByRole('button', { name: 'common.edit' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /packing.noBag/ })).toBeInTheDocument()
+  })
+
+  it('FE-MOB-PACKTAB-065: the sharing state is an icon on the row, not a sentence', async () => {
+    const items = [packItem({ id: 1, name: 'Tent', is_private: 1, owner_id: 21, owner_username: 'owner' })]
+    await setup({ items })
+    fireEvent.click(screen.getByRole('button', { name: 'packing.viewPersonal' }))
+
+    // The wording is still reachable — it just does not eat the row any more.
+    expect(screen.queryByText('packing.takenCareOf:owner')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('packing.takenCareOf:owner')).toBeInTheDocument()
   })
 })

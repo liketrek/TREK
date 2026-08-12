@@ -767,6 +767,7 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
 }) {
   const { t, tripId, tripActions } = planner
   const [bagPickerOpen, setBagPickerOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [creatingBag, setCreatingBag] = useState(false)
   const [newBagName, setNewBagName] = useState('')
 
@@ -821,16 +822,26 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
           {isPlaceholder ? t('packing.addItemPlaceholder') : item.name}
         </span>
 
+        {/* Sharing state is an icon, not a sentence (#1525): "Taken care of by
+            Alexander" spelled out took a third of the row away from the item
+            name. The full wording lives on the pill as its label. */}
         {badgeSharedToMe && (
-          <span className="flex flex-none items-center gap-1 whitespace-nowrap rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] font-geist text-[0.59375rem] font-bold text-m-muted">
-            <HandHelping size={9} strokeWidth={2.2} />
-            {t('packing.takenCareOf', { name: item.owner_username || '' })}
+          <span
+            className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted"
+            title={t('packing.takenCareOf', { name: item.owner_username || '' })}
+            aria-label={t('packing.takenCareOf', { name: item.owner_username || '' })}
+          >
+            <HandHelping size={11} strokeWidth={2.2} />
           </span>
         )}
         {!badgeSharedToMe && badgeSharedByMe && (
-          <span className="flex flex-none items-center gap-1 whitespace-nowrap rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] font-geist text-[0.59375rem] font-bold text-m-muted">
-            <UserRound size={9} strokeWidth={2.2} />
-            {t('packing.sharedWithCount', { count: recipients.length })}
+          <span
+            className="flex flex-none items-center gap-[2px] rounded-full bg-[color:var(--m-ic)] px-[5px] py-[3px] font-geist text-[0.59375rem] font-bold text-m-muted"
+            title={t('packing.sharedWithCount', { count: recipients.length })}
+            aria-label={t('packing.sharedWithCount', { count: recipients.length })}
+          >
+            <UserRound size={10} strokeWidth={2.2} />
+            {recipients.length}
           </span>
         )}
         {!badgeSharedToMe && !badgeSharedByMe && badgeBroughtBy && (
@@ -850,16 +861,18 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
           </span>
         )}
 
-        {editMode && bagTrackingEnabled && (
+        {/* A weight nobody entered is not worth a column: "— g" on every row
+            cost as much width as a real value (#1525). */}
+        {editMode && bagTrackingEnabled && item.weight_grams != null && (
           <span className="flex-none font-geist text-[0.625rem] font-semibold tabular-nums text-m-faint">
-            {item.weight_grams != null ? formatWeight(item.weight_grams) : '— g'}
+            {formatWeight(item.weight_grams)}
           </span>
         )}
 
         {bagTrackingEnabled && (
           <button
             type="button"
-            onClick={() => setBagPickerOpen(v => !v)}
+            onClick={() => { setMenuOpen(false); setBagPickerOpen(v => !v) }}
             aria-label={t('packing.bags')}
             className="h-[18px] w-[18px] flex-none rounded-full"
             style={bag
@@ -868,17 +881,42 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
           />
         )}
 
+        {/* Edit and delete moved behind one button (#1525): two round targets
+            plus their gaps were the widest thing on an edit-mode row, and
+            neither is used often enough to earn a permanent seat. */}
         {editMode && canEdit && (
-          <>
-            <button type="button" onClick={onEdit} aria-label={t('common.edit')} className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted">
-              <Pencil size={11} strokeWidth={2} />
-            </button>
-            <button type="button" onClick={onDelete} aria-label={t('common.delete')} className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted">
-              <Trash2 size={11} strokeWidth={2} />
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={() => { setBagPickerOpen(false); setMenuOpen(v => !v) }}
+            aria-label={t('mobileTrip.more')}
+            aria-expanded={menuOpen}
+            className={`flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] ${menuOpen ? 'text-m-ink' : 'text-m-muted'}`}
+          >
+            <MoreHorizontal size={13} strokeWidth={2} />
+          </button>
         )}
       </div>
+
+      {menuOpen && editMode && canEdit && (
+        <div className="mb-[6px] ml-[28px] overflow-hidden rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)] backdrop-blur-[24px]">
+          <button
+            type="button"
+            onClick={() => { setMenuOpen(false); onEdit() }}
+            className="flex w-full items-center gap-[9px] border-b border-[color:var(--m-rowbr)] px-3 py-2 text-left text-[0.75rem] font-medium text-m-ink"
+          >
+            <Pencil size={12} strokeWidth={2} />
+            {t('common.edit')}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setMenuOpen(false); onDelete() }}
+            className="flex w-full items-center gap-[9px] px-3 py-2 text-left text-[0.75rem] font-medium text-[color:var(--m-st-danger)]"
+          >
+            <Trash2 size={12} strokeWidth={2} />
+            {t('common.delete')}
+          </button>
+        </div>
+      )}
 
       {bagPickerOpen && bagTrackingEnabled && (
         <div className="mb-[6px] ml-[28px] overflow-hidden rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)] backdrop-blur-[24px]">
