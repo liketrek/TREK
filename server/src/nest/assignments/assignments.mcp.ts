@@ -116,6 +116,35 @@ export class AssignmentsMcp {
   }
 
   @Tool({
+    name: 'set_leg_transport_mode',
+    description: 'Set the travel mode of a route leg for a place assignment. Use direction "outgoing" (default) for the common case: the leg leaving this stop toward the next. Use direction "incoming" ONLY when this stop\'s arriving leg originates from something that is not itself a place assignment (e.g. a flight/train booking arrival, or a morning hotel departure) – setting "incoming" on an ordinary place-to-place leg is stored but has no effect on route rendering, because it targets a column that is only read for non-place origins. transport_mode is a route profile key (e.g. "driving", "walking", "cycling", "transit"); null clears it so the leg inherits the day default.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      assignmentId: z.number().int().positive(),
+      transport_mode: z.string().nullable().optional().describe('Route profile key (e.g. "driving"), or null to inherit the day default'),
+      direction: z.enum(['outgoing', 'incoming']).default('outgoing').describe('Which leg to set: "outgoing" (leaving this stop, default) or "incoming" (arriving at it)'),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    access: { group: 'places', mode: 'write' },
+  })
+  async setLegTransportMode(
+    { tripId, assignmentId, transport_mode, direction }: {
+      tripId: number; assignmentId: number; transport_mode?: string | null; direction?: 'outgoing' | 'incoming';
+    },
+    ctx: McpContext,
+  ) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.assignments.verifyTripAccess(tripId, ctx.userId)) return noAccess();
+    if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!this.assignments.getAssignmentForTrip(assignmentId, tripId)) return errorResult('Assignment not found.');
+    const assignment = direction === 'incoming'
+      ? this.assignments.setIncomingLegTransportMode(assignmentId, transport_mode ?? null)
+      : this.assignments.setLegTransportMode(assignmentId, transport_mode ?? null);
+    this.guards.safeBroadcast(tripId, 'assignment:updated', { assignment });
+    return ok({ assignment });
+  }
+
+  @Tool({
     name: 'move_assignment',
     description: 'Move a place assignment to a different day.',
     inputSchema: {
