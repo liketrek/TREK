@@ -16,7 +16,8 @@ interface NavItem { to: string; label: string; icon: LucideIcon }
 // into yet), inside a journey it adds an entry, on the atlas it opens the
 // country search, on collections it adds a place to the active list —
 // everywhere else it creates a new trip. Pages pick the intent up from the
-// query params.
+// query params. The result is unused on /vacay: that screen draws its own centre
+// FAB, so the dock yields the slot instead (see screenFabSlot below, #1811).
 function useCreateAction(): { label: string; run: () => void } {
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -87,6 +88,11 @@ export default function MBottomNav() {
   // action (settings/admin, demo Z. 1372/1429).
   const logoSlot = location.pathname.startsWith('/settings') || location.pathname.startsWith('/admin')
   const searchFab = location.pathname.startsWith('/atlas')
+  // /vacay owns the centre slot itself: MVacay draws its year/edit toggle into
+  // exactly this 56px circle. The dock keeps the geometry but stays empty there,
+  // so the generic "+" can never sit underneath as a second, different action:
+  // not while the lazy screen chunk loads, and not while its data loads (#1811).
+  const screenFabSlot = location.pathname.startsWith('/vacay')
 
   // Split so the raised centre slot sits dead centre; the More slot always
   // closes the right group.
@@ -154,6 +160,10 @@ export default function MBottomNav() {
             <img src="/icons/icon-dark.svg" alt="" className="block h-6 w-6 opacity-75 dark:hidden" />
             <img src="/icons/icon-white.svg" alt="" className="hidden h-6 w-6 opacity-75 dark:block" />
           </span>
+        ) : screenFabSlot ? (
+          // Same box as MFab (56px, flex-none, mx-2) so both tab groups keep
+          // sitting symmetrically around the centre in every dock configuration.
+          <span aria-hidden="true" className="mx-2 h-14 w-14 flex-none" />
         ) : (
           <MFab onClick={create.run} ariaLabel={create.label} className="mx-2">
             {searchFab ? <Search size={24} strokeWidth={2.4} /> : <Plus size={26} strokeWidth={2.4} />}

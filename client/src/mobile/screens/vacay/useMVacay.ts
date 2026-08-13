@@ -172,10 +172,25 @@ export function useMVacay() {
     }
   }, [isFused, currentUser?.id, setSelectedUserId])
 
+  // Zoom the year overview into one month's editor (#1811). The overview used to
+  // swallow every tap, leaving the pen FAB as the only way in; it is a way in
+  // itself now, while its ~21px mini cells stay out of data changes.
+  const openMonthSlot = useCallback((slot: number) => {
+    setMonthSlot(slot)
+    setView('edit')
+  }, [])
+
   const handleDayTap = useCallback(async (dateStr: string) => {
-    // The year overview is read-only — logging only happens in edit mode
-    // (neither vacation days nor company holidays can be set while viewing).
-    if (view !== 'edit') return
+    // Outside edit mode a tap navigates instead of logging: it opens the month
+    // the day belongs to, where the cells are big enough to hit reliably (#1811).
+    if (view !== 'edit') {
+      const [year, month] = dateStr.split('-').map(Number)
+      // Resolved against the window months, not the calendar month: with a
+      // shifted leave year (#737) slot 0 is not January.
+      const slot = months.findIndex(m => m.year === year && m.month === month - 1)
+      if (slot >= 0) openMonthSlot(slot)
+      return
+    }
     if (mode === 'company') {
       if (!companyHolidaysEnabled) return
       await toggleCompanyHoliday(dateStr)
@@ -193,7 +208,7 @@ export function useMVacay() {
     }
     if (companyHolidaysEnabled && companyHolidaySet.has(dateStr)) return
     await toggleEntry(dateStr, selectedUserId || undefined, halfDay ? 0.5 : 1, compDay ? 'comp' : 'vacation')
-  }, [view, mode, halfDay, compDay, companyHolidaysEnabled, blockWeekends, weekendDays, companyHolidaySet, toggleEntry, toggleCompanyHoliday, selectedUserId, currentUser?.id, entryMap])
+  }, [view, months, openMonthSlot, mode, halfDay, compDay, companyHolidaysEnabled, blockWeekends, weekendDays, companyHolidaySet, toggleEntry, toggleCompanyHoliday, selectedUserId, currentUser?.id, entryMap])
 
   // Entitlement stepper: never below what is already used this year
   // (carried-over days cover the difference when used > entitlement).
@@ -243,7 +258,7 @@ export function useMVacay() {
     blockWeekends, companyHolidaysEnabled, holidaysEnabled, weekStart, weekendDays,
     dayCtx, monthNamesShort, monthNameLong,
     selectedUser, selectedColor, selectedStat, selectedUserId, selectPerson,
-    handleDayTap, allowInc, allowDec,
+    handleDayTap, openMonthSlot, allowInc, allowDec,
     prevYear, nextYear, prevMonth, nextMonth, toggleView, goBack,
   }
 }

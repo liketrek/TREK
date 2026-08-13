@@ -1,4 +1,4 @@
-// FE-MOB-MVAC-001 to FE-MOB-MVAC-025
+// FE-MOB-MVAC-001 to FE-MOB-MVAC-029
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
@@ -272,14 +272,19 @@ describe('useMVacay', () => {
     expect(result.current.mode).toBe('vacation');
   });
 
-  it('FE-MOB-MVAC-015: the year overview never logs a day', async () => {
+  it('FE-MOB-MVAC-015: the year overview never logs a day, it opens that month instead (#1811)', async () => {
     const toggleEntry = vi.fn(async (_date: string, _userId?: number, _fraction?: 0.5 | 1, _kind?: 'vacation' | 'comp') => {});
     act(() => { useVacayStore.setState({ toggleEntry }); });
     const { result } = await mount();
+    act(() => { result.current.setMonthSlot(0); });
 
     expect(result.current.view).toBe('grid');
     await act(async () => { await result.current.handleDayTap('2026-06-15'); });
+
     expect(toggleEntry).not.toHaveBeenCalled();
+    expect(result.current.view).toBe('edit');
+    expect(result.current.monthSlot).toBe(5);
+    expect(result.current.activeMonth).toEqual({ year: 2026, month: 5 });
   });
 
   it('FE-MOB-MVAC-016: logs the selected person with the half-day and comp modifiers', async () => {
@@ -441,5 +446,43 @@ describe('useMVacay', () => {
     // A weekend day nobody logged stays inert.
     await act(async () => { await result.current.handleDayTap('2026-06-14'); });
     expect(toggleEntry).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-MOB-MVAC-027: zooming out of the overview resolves the slot in the shifted window (#737)', async () => {
+    act(() => {
+      useVacayStore.setState({
+        yearSettings: { year_type: 'fiscal', year_start_month: 7, year_start_day: 1, hire_date: null },
+      });
+    });
+    const { result } = await mount();
+    act(() => { result.current.setMonthSlot(0); });
+
+    // Slot 6 of a July window is January of the following calendar year.
+    await act(async () => { await result.current.handleDayTap('2027-01-10'); });
+    expect(result.current.monthSlot).toBe(6);
+    expect(result.current.activeMonth).toEqual({ year: 2027, month: 0 });
+  });
+
+  it('FE-MOB-MVAC-028: a day outside the rendered window leaves the overview alone', async () => {
+    act(() => {
+      useVacayStore.setState({
+        yearSettings: { year_type: 'fiscal', year_start_month: 7, year_start_day: 1, hire_date: null },
+      });
+    });
+    const { result } = await mount();
+    act(() => { result.current.setMonthSlot(3); });
+
+    // Jan 2026 has no card in the Jul 2026 - Jun 2027 window.
+    await act(async () => { await result.current.handleDayTap('2026-01-10'); });
+    expect(result.current.view).toBe('grid');
+    expect(result.current.monthSlot).toBe(3);
+  });
+
+  it('FE-MOB-MVAC-029: the month chip opens its slot in the editor', async () => {
+    const { result } = await mount();
+
+    act(() => { result.current.openMonthSlot(9); });
+    expect(result.current.view).toBe('edit');
+    expect(result.current.monthSlot).toBe(9);
   });
 });

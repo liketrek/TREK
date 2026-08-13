@@ -21,7 +21,8 @@ const WEEKDAY_KEYS_SUNDAY = ['vacay.sun', 'vacay.mon', 'vacay.tue', 'vacay.wed',
  * Mobile Vacay screen: year pill header, person card with inline entitlement
  * stepper, member/legend chips and the 12-month grid — or, in edit mode, the
  * single-month editor with quick month nav and the person/company mode
- * switch. The dock FAB flips between the two views.
+ * switch. The grid navigates (month chip or day cell open that month's editor),
+ * the editor logs; the screen's own FAB in the dock centre flips back.
  */
 export default function MVacay() {
   const { t } = useTranslation()
@@ -29,7 +30,7 @@ export default function MVacay() {
 
   if (v.loading) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-dvh items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-[color:var(--m-ink)]" />
       </div>
     )
@@ -44,7 +45,8 @@ export default function MVacay() {
   const weekdayKeys = v.weekStart === 0 ? WEEKDAY_KEYS_SUNDAY : WEEKDAY_KEYS_MONDAY
 
   return (
-    <div className="relative h-full">
+    // h-dvh, not h-full: the shell stopped providing a definite height (#1809).
+    <div className="relative h-dvh">
       {/* Header */}
       <div className="absolute left-4 right-4 z-[5] flex items-center gap-2 top-[var(--m-safe-top,12px)]">
         <MIconBtn onClick={() => v.setSheet('invite')} ariaLabel={t('vacay.inviteUser')}>
@@ -172,7 +174,17 @@ export default function MVacay() {
                 year, Jul–Jun once the leave year is shifted. */}
             {v.months.map(({ year, month }, slot) => (
               <div key={`${year}-${month}`} className="rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-2">
-                <div className="mb-1 text-[0.75rem] font-extrabold capitalize">{v.monthNamesShort[slot]}</div>
+                {/* The month name is the comfortable way into the editor: the mini
+                    cells below it are ~21px on a phone, precise enough to navigate
+                    with but not to aim at (#1811). Same chip as the edit view's
+                    month nav, so it reads as tappable. */}
+                <button
+                  type="button"
+                  onClick={() => v.openMonthSlot(slot)}
+                  className="mb-[6px] w-full rounded-[11px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] py-[7px] text-center text-[0.75rem] font-extrabold capitalize"
+                >
+                  {v.monthNamesShort[slot]}
+                </button>
                 <MVacayMonth
                   year={year}
                   month={month}
@@ -305,7 +317,8 @@ export default function MVacay() {
         </div>
       )}
 
-      {/* View/edit FAB — replaces the dock "+" on this screen */}
+      {/* View/edit FAB. It sits in the dock's centre slot, which MBottomNav leaves
+          empty on /vacay so this stays the only action there (#1811). */}
       <button
         type="button"
         onClick={v.toggleView}

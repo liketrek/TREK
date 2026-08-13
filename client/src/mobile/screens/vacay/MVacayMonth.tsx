@@ -10,6 +10,7 @@ interface MVacayMonthProps {
   ctx: DayVisualContext
   tripDates: Set<string>
   tripDotColor: string
+  /** mini cells zoom into that month, full cells log the day (#1811). */
   onDayTap: (date: string) => void
 }
 

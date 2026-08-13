@@ -5,6 +5,8 @@ import { render, screen, fireEvent } from '../../helpers/render';
 import MBottomNav from '../../../src/mobile/components/MBottomNav';
 import { useAddonStore } from '../../../src/store/addonStore';
 import { usePluginStore } from '../../../src/store/pluginStore';
+import { useSettingsStore } from '../../../src/store/settingsStore';
+import { DEFAULT_APPEARANCE } from '@trek/shared';
 
 function LocationEcho() {
   const location = useLocation();
@@ -25,10 +27,31 @@ function seedAddons(ids: string[]) {
   });
 }
 
+type MobileNavCfg = { bar: string[]; more: string[] } | null;
+
+/** A dock split as the Appearance customizer persists it; null = un-customised. */
+function seedMobileNav(cfg: MobileNavCfg) {
+  const { settings } = useSettingsStore.getState();
+  useSettingsStore.setState({
+    settings: {
+      ...settings,
+      appearance: { ...DEFAULT_APPEARANCE, mobileNav: cfg ?? { bar: [], more: [] } },
+    },
+  });
+}
+
+/** [left group, centre slot, right group] of the dock, in DOM order. */
+function dockSlots(container: HTMLElement) {
+  const dock = container.querySelector('nav') as HTMLElement;
+  const [left, centre, right] = Array.from(dock.children) as HTMLElement[];
+  return { count: dock.children.length, left, centre, right };
+}
+
 describe('MBottomNav', () => {
   beforeEach(() => {
     useAddonStore.setState({ addons: [], loaded: true });
     usePluginStore.setState({ plugins: [], loaded: true });
+    seedMobileNav(null);
   });
 
   it('FE-MOB-NAV-001: renders the dashboard tab plus enabled global addons', () => {
@@ -179,5 +202,45 @@ describe('MBottomNav', () => {
     fireEvent.click(screen.getByRole('button', { name: /Collections/ }));
 
     expect(at()).toBe('/collections');
+  });
+
+  it('FE-MOB-NAV-018: vacay owns its centre slot, so the dock offers no create action (#1811)', () => {
+    seedAddons(['vacay', 'atlas']);
+    const { container } = render(<MBottomNav />, { initialEntries: ['/vacay'] });
+
+    expect(screen.queryByRole('button', { name: 'New Trip' })).not.toBeInTheDocument();
+    // Nothing tappable in the middle at all: the screen's own FAB covers it, and
+    // until it mounts an empty slot beats a wrong action.
+    expect(dockSlots(container).centre).toBeEmptyDOMElement();
+    expect(screen.getByRole('button', { name: 'Vacay' })).toHaveAttribute('aria-current', 'page');
+  });
+
+  const DOCK_CONFIGS: [string, MobileNavCfg][] = [
+    ['the built-in dock', null],
+    ['vacay pinned alone', { bar: ['vacay'], more: ['atlas', 'journey', 'collections'] }],
+    ['vacay demoted to More', { bar: ['journey', 'collections'], more: ['vacay', 'atlas'] }],
+  ];
+
+  it.each(DOCK_CONFIGS)('FE-MOB-NAV-019: the empty vacay slot keeps the FAB geometry (%s)', (_label, cfg) => {
+    seedAddons(['vacay', 'atlas', 'journey', 'collections']);
+    seedMobileNav(cfg);
+
+    const dashboard = render(<MBottomNav />, { initialEntries: ['/dashboard'] });
+    const withFab = dockSlots(dashboard.container);
+    const groups = [withFab.left.children.length, withFab.right.children.length];
+    const fabClasses = withFab.centre.className.split(' ');
+    const slots = withFab.count;
+    dashboard.unmount();
+
+    const vacay = render(<MBottomNav />, { initialEntries: ['/vacay'] });
+    const placeholder = dockSlots(vacay.container);
+
+    expect(placeholder.count).toBe(slots);
+    // Same 56px box as MFab, so both tab groups stay symmetric around the centre.
+    ['mx-2', 'h-14', 'w-14', 'flex-none'].forEach((cls) => {
+      expect(fabClasses).toContain(cls);
+      expect(placeholder.centre).toHaveClass(cls);
+    });
+    expect([placeholder.left.children.length, placeholder.right.children.length]).toEqual(groups);
   });
 });

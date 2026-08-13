@@ -1,4 +1,4 @@
-// FE-MOB-MVACSCR-001 to FE-MOB-MVACSCR-016
+// FE-MOB-MVACSCR-001 to FE-MOB-MVACSCR-021
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '../../../helpers/render';
@@ -99,6 +99,7 @@ function buildV(over: Record<string, unknown> = {}): Record<string, unknown> {
     selectedUserId: 1,
     selectPerson: vi.fn((_id: number) => undefined),
     handleDayTap: vi.fn(async (_date: string) => {}),
+    openMonthSlot: vi.fn((_slot: number) => undefined),
     allowInc: vi.fn(() => undefined),
     allowDec: vi.fn(() => undefined),
     prevYear: vi.fn(async () => {}),
@@ -274,6 +275,15 @@ describe('MVacay', () => {
     expect(mocks.v.handleDayTap).toHaveBeenCalledWith('2026-06-15');
   });
 
+  it('FE-MOB-MVACSCR-013b: the month chip in the year grid opens that month (#1811)', () => {
+    render(<MVacay />);
+
+    const chip = screen.getByRole('button', { name: 'Mar' });
+    fireEvent.click(chip);
+
+    expect(mocks.v.openMonthSlot).toHaveBeenCalledWith(2);
+  });
+
   it('FE-MOB-MVACSCR-014: edit view swaps in the month nav, weekday row and mode switch', () => {
     mocks.v = buildV({ view: 'edit' });
     render(<MVacay />);
@@ -366,5 +376,16 @@ describe('MVacay', () => {
     render(<MVacay />);
 
     expect(screen.queryByRole('dialog', { name: 'Fusion Request' })).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-MVACSCR-021: the screen measures itself, not the shell', () => {
+    // #1809: the shell scrolls with the document now and hands down no definite
+    // height, so a full-viewport screen has to set its own.
+    const { container, rerender } = render(<MVacay />);
+    expect(container.firstElementChild).toHaveClass('h-dvh');
+
+    mocks.v = buildV({ loading: true });
+    rerender(<MVacay />);
+    expect(container.firstElementChild).toHaveClass('h-dvh');
   });
 });
