@@ -97,7 +97,23 @@ translations are added to TREK.
 
 ---
 
-## HTTPS / Proxy
+## Outbound HTTP(S) Proxy
+
+TREK can route supported outbound HTTP(S) requests through a proxy by setting the standard variables below. Outbound
+proxying is disabled by default.
+
+| Variable      | Description                                                   | Default |
+|---------------|---------------------------------------------------------------|---------|
+| `HTTP_PROXY`  | Proxy URL for outbound HTTP requests                          | —       |
+| `HTTPS_PROXY` | Proxy URL for outbound HTTPS requests                         | —       |
+| `NO_PROXY`    | Comma-separated hosts or domains that should bypass the proxy | —       |
+
+> **Note:** Proxy environment variables apply to requests made through Node.js's default HTTP dispatcher. Requests
+> handled by TREK's SSRF protection use a dedicated dispatcher and do not use the environment proxy.
+
+---
+
+## HTTPS / Reverse Proxy
 
 These three variables work together behind a TLS-terminating reverse proxy. See [Reverse-Proxy](Reverse-Proxy) for the
 full explanation.

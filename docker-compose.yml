@@ -31,6 +31,9 @@ services:
 #      - COOKIE_SECURE=false # Escape hatch: force session cookies over plain HTTP even in production. Not recommended.
 #      - TRUST_PROXY=1 # Trusted proxy count for X-Forwarded-For / X-Forwarded-Proto. Required for FORCE_HTTPS to work.
 #      - ALLOW_INTERNAL_NETWORK=false # Set to true if Immich or other services are hosted on your local network (RFC-1918 IPs). Loopback and link-local addresses remain blocked regardless.
+#      - HTTP_PROXY=${HTTP_PROXY:-} # Optional. Proxy URL for outbound HTTP requests (e.g. http://192.168.1.10:7890)
+#      - HTTPS_PROXY=${HTTPS_PROXY:-} # Optional. Proxy URL for outbound HTTPS requests
+#      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1} # Optional. Comma-separated hosts and domains that bypass the outbound proxy
 #      - APP_URL=https://trek.example.com # Public base URL — required when OIDC is enabled (must match the redirect URI registered with your IdP); also used as base URL for links in email notifications
 #      - OIDC_ISSUER=https://auth.example.com # OpenID Connect provider URL
 #      - OIDC_CLIENT_ID=trek # OpenID Connect client ID
