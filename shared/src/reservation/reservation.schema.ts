@@ -74,6 +74,52 @@ export const reservationEndpointsInputSchema = z.array(
 export type ReservationEndpointsInput = z.infer<typeof reservationEndpointsInputSchema>;
 
 /**
+ * ONE SEGMENT of a multi-leg transport booking, as stored in
+ * `reservations.metadata.legs` (#1914).
+ *
+ * The model: the ordered `reservation_endpoints` rows are the geometry (which
+ * airports/stations, in which order), while the per-segment detail (each leg's
+ * own day + local time and its airline/train identity) lives in the legs. That
+ * split is why a stopover needs legs at all: its endpoint carries only the
+ * ONWARD departure time, so the arrival at the stop exists nowhere else.
+ *
+ * The shape mirrors 1:1 what the planner form (client TransportModal) and the
+ * importers (AirTrail, KItinerary) already write, including the `null`-for-unset
+ * convention on the day/time fields. One schema covers both kinds of booking:
+ * flights fill airline/flight_number, trains train_number/platform.
+ *
+ * `day_positions` is deliberately NOT part of the input: the day planner owns it
+ * per leg, so a writer preserves it rather than sets it.
+ */
+export const transportLegInputSchema = z.object({
+  /** Flights: IATA code of the departure airport. Trains: departure station label. */
+  from: z.string().min(1).nullable().optional(),
+  /** Flights: IATA code of the arrival airport. Trains: arrival station label. */
+  to: z.string().min(1).nullable().optional(),
+  airline: z.string().max(100).nullable().optional(),
+  flight_number: z.string().max(20).nullable().optional(),
+  train_number: z.string().max(20).nullable().optional(),
+  platform: z.string().max(20).nullable().optional(),
+  seat: z.string().max(20).nullable().optional(),
+  dep_day_id: z.number().int().positive().nullable().optional(),
+  /** Local departure time of this segment, 'HH:mm'. */
+  dep_time: z.string().max(10).nullable().optional(),
+  arr_day_id: z.number().int().positive().nullable().optional(),
+  /** Local arrival time of this segment, 'HH:mm'. */
+  arr_time: z.string().max(10).nullable().optional(),
+});
+export type TransportLegInput = z.infer<typeof transportLegInputSchema>;
+
+/**
+ * The legs of one booking. A leg list only makes sense with at least one
+ * stopover: a direct booking keeps the flat metadata it always had, and every
+ * reader (client flightLegs/dayMerge, calendar ICS, the AirTrail dedupe) treats
+ * `legs.length > 1` as the multi-segment marker.
+ */
+export const transportLegsInputSchema = z.array(transportLegInputSchema);
+export type TransportLegsInput = z.infer<typeof transportLegsInputSchema>;
+
+/**
  * Reservation entity as returned by the reservation list endpoint
  * (server/src/services/reservationService.ts -> listReservations). Columns of
  * the `reservations` table plus the joined day_number / place_name / linked

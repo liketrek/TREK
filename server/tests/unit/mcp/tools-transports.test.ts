@@ -38,7 +38,7 @@ vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
+import { createUser, createTrip, createDay } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
 
 beforeAll(() => {
@@ -65,6 +65,18 @@ const flightEndpoints = [
   { role: 'from', sequence: 0, name: 'Zurich', code: 'ZRH' },
   { role: 'to', sequence: 1, name: 'Paris CDG', code: 'CDG' },
 ];
+
+// The booking from the report (#1914): AMS → CDG → FCO with a stop in Paris.
+const stopoverEndpoints = [
+  { role: 'from', sequence: 0, name: 'Amsterdam (AMS)', code: 'AMS' },
+  { role: 'stop', sequence: 1, name: 'Paris (CDG)', code: 'CDG' },
+  { role: 'to', sequence: 2, name: 'Rome (FCO)', code: 'FCO' },
+];
+
+const errorText = (result: unknown) => (result as { content: { text: string }[] }).content[0].text;
+const storedMetadata = (reservationId: number) => JSON.parse(
+  (testDb.prepare('SELECT metadata FROM reservations WHERE id = ?').get(reservationId) as { metadata: string }).metadata
+);
 
 describe('Tool: create_transport', () => {
   it('backfills lat/lng/timezone for code-only flight endpoints', async () => {
@@ -424,6 +436,557 @@ describe('Tool: delete_transport', () => {
       });
       expect((result as { isError?: boolean }).isError).toBe(true);
       expect((result as { content: { text: string }[] }).content[0].text).toContain('Trip not found');
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Multi-leg bookings (#1914)
+//
+// The per-segment times of a stopover live in metadata.legs; the endpoints only
+// carry the onward departure. Before this the tools pinned metadata to string
+// values and had no legs parameter, so a stopover created over MCP showed the
+// stop's departure as its arrival too.
+// ---------------------------------------------------------------------------
+
+describe('Tool: create_transport (multi-leg)', () => {
+  it('stores the per-leg times of the reported AMS to CDG to FCO stopover', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id, { date: '2026-02-04' });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'flight', title: 'AMS to FCO',
+          endpoints: stopoverEndpoints,
+          legs: [
+            { from: 'AMS', to: 'CDG', dep_day_id: day.id, dep_time: '09:00', arr_time: '10:00' },
+            { from: 'CDG', to: 'FCO', dep_time: '11:00', arr_time: '12:00' },
+          ],
+        },
+      });
+      const data = parseToolResult(result) as any;
+      expect(storedMetadata(data.reservation.id).legs).toEqual([
+        { from: 'AMS', to: 'CDG', dep_day_id: day.id, dep_time: '09:00', arr_day_id: null, arr_time: '10:00' },
+        { from: 'CDG', to: 'FCO', dep_day_id: null, dep_time: '11:00', arr_day_id: null, arr_time: '12:00' },
+      ]);
+      // Blank endpoint times are filled the way the form writes them: the onward
+      // departure on every waypoint but the last, the arrival on the last.
+      expect(data.reservation.endpoints.map((e: any) => e.local_time)).toEqual(['09:00', '11:00', '12:00']);
+      expect(data.reservation.endpoints[0].local_date).toBe('2026-02-04');
+      // The span follows the first and last leg.
+      expect(data.reservation.day_id).toBe(day.id);
+      expect(data.reservation.reservation_time).toBe('2026-02-04T09:00');
+      expect(data.reservation.reservation_end_time).toBe('12:00');
+    });
+  });
+
+  it('mirrors the flat metadata keys off the first and last leg', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const data = parseToolResult(await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'flight', title: 'AMS to FCO',
+          endpoints: stopoverEndpoints,
+          legs: [
+            { from: 'AMS', to: 'CDG', airline: 'KLM', flight_number: 'KL1233', seat: '14A' },
+            { from: 'CDG', to: 'FCO', airline: 'Air France', flight_number: 'AF1204' },
+          ],
+        },
+      })) as any;
+      const meta = storedMetadata(data.reservation.id);
+      expect(meta.departure_airport).toBe('AMS');
+      expect(meta.arrival_airport).toBe('FCO');
+      expect(meta.airline).toBe('KLM');
+      expect(meta.flight_number).toBe('KL1233');
+      expect(meta.seat).toBe('14A');
+    });
+  });
+
+  it('never overwrites a flat key the caller set itself', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const data = parseToolResult(await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'flight', title: 'AMS to FCO',
+          metadata: { airline: 'KLM Cityhopper' },
+          endpoints: stopoverEndpoints,
+          legs: [
+            { from: 'AMS', to: 'CDG', airline: 'KLM' },
+            { from: 'CDG', to: 'FCO', airline: 'Air France' },
+          ],
+        },
+      })) as any;
+      const meta = storedMetadata(data.reservation.id);
+      expect(meta.airline).toBe('KLM Cityhopper');
+      expect(meta.legs[0].airline).toBe('KLM');
+    });
+  });
+
+  it('fills from/to from the endpoint codes when the leg omits them', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const data = parseToolResult(await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'flight', title: 'AMS to FCO',
+          endpoints: stopoverEndpoints,
+          legs: [{ dep_time: '09:00', arr_time: '10:00' }, { dep_time: '11:00', arr_time: '12:00' }],
+        },
+      })) as any;
+      const meta = storedMetadata(data.reservation.id);
+      expect(meta.legs.map((l: any) => [l.from, l.to])).toEqual([['AMS', 'CDG'], ['CDG', 'FCO']]);
+    });
+  });
+
+  it('accepts a multi-leg train and mirrors its flat keys', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const data = parseToolResult(await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'train', title: 'Basel to Milano',
+          endpoints: [
+            { role: 'from', sequence: 0, name: 'Basel SBB', lat: 47.5, lng: 7.6 },
+            { role: 'stop', sequence: 1, name: 'Lugano', lat: 46.0, lng: 8.9 },
+            { role: 'to', sequence: 2, name: 'Milano Centrale', lat: 45.5, lng: 9.2 },
+          ],
+          legs: [
+            { train_number: 'EC 57', platform: '8', dep_time: '08:33', arr_time: '11:20' },
+            { train_number: 'EC 317', platform: '3', dep_time: '11:40', arr_time: '12:55' },
+          ],
+        },
+      })) as any;
+      const meta = storedMetadata(data.reservation.id);
+      // Station endpoints carry no code, so the labels come from their names.
+      expect(meta.legs.map((l: any) => [l.from, l.to])).toEqual([
+        ['Basel SBB', 'Lugano'], ['Lugano', 'Milano Centrale'],
+      ]);
+      expect(meta.train_number).toBe('EC 57');
+      expect(meta.platform).toBe('8');
+      expect(data.reservation.endpoints.map((e: any) => e.local_time)).toEqual(['08:33', '11:40', '12:55']);
+    });
+  });
+
+  it('rejects a leg count that does not match the endpoints', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'flight', title: 'ZRH to CDG',
+          endpoints: flightEndpoints,
+          legs: [{ from: 'ZRH', to: 'CDG' }, { from: 'CDG', to: 'FCO' }],
+        },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect(errorText(result)).toBe('legs must contain exactly one entry fewer than endpoints (got 2 legs for 2 endpoints).');
+    });
+  });
+
+  it('rejects a single leg, which no reader would treat as multi-segment', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'flight', title: 'ZRH to CDG',
+          endpoints: flightEndpoints,
+          legs: [{ from: 'ZRH', to: 'CDG', dep_time: '09:00', arr_time: '10:00' }],
+        },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect(errorText(result)).toContain('at least 2 entries');
+    });
+  });
+
+  it('rejects legs on a transport type that has none', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'car', title: 'Rental',
+          legs: [{ from: 'A', to: 'B' }, { from: 'B', to: 'C' }],
+        },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect(errorText(result)).toBe('legs are only supported for flight and train bookings.');
+    });
+  });
+
+  it('rejects a leg day that belongs to another trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const otherTrip = createTrip(testDb, user.id);
+    const foreignDay = createDay(testDb, otherTrip.id, { date: '2026-02-04' });
+    await withHarness(user.id, async (h) => {
+      const depResult = await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'flight', title: 'AMS to FCO',
+          endpoints: stopoverEndpoints,
+          legs: [{ from: 'AMS', to: 'CDG', dep_day_id: foreignDay.id }, { from: 'CDG', to: 'FCO' }],
+        },
+      });
+      expect(errorText(depResult)).toBe('legs[0].dep_day_id does not belong to this trip.');
+
+      const arrResult = await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'flight', title: 'AMS to FCO',
+          endpoints: stopoverEndpoints,
+          legs: [{ from: 'AMS', to: 'CDG' }, { from: 'CDG', to: 'FCO', arr_day_id: foreignDay.id }],
+        },
+      });
+      expect(errorText(arrResult)).toBe('legs[1].arr_day_id does not belong to this trip.');
+    });
+  });
+
+  it('rejects a leg airport that contradicts its endpoint', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const wrongTo = await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'flight', title: 'AMS to FCO',
+          endpoints: stopoverEndpoints,
+          legs: [{ from: 'AMS', to: 'FCO' }, { from: 'CDG', to: 'FCO' }],
+        },
+      });
+      expect(errorText(wrongTo)).toBe('legs[0].to (FCO) does not match endpoints[1] (CDG).');
+
+      const wrongFrom = await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'flight', title: 'AMS to FCO',
+          endpoints: stopoverEndpoints,
+          legs: [{ from: 'AMS', to: 'CDG' }, { from: 'ORY', to: 'FCO' }],
+        },
+      });
+      expect(errorText(wrongFrom)).toBe('legs[1].from (ORY) does not match endpoints[1] (CDG).');
+    });
+  });
+
+  it('rejects a leg time that contradicts an endpoint time already set', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const withTimes = [
+      { ...stopoverEndpoints[0], local_time: '09:00' },
+      { ...stopoverEndpoints[1], local_time: '11:30' },
+      { ...stopoverEndpoints[2], local_time: '12:30' },
+    ];
+    await withHarness(user.id, async (h) => {
+      const depClash = await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'flight', title: 'AMS to FCO', endpoints: withTimes,
+          legs: [
+            { from: 'AMS', to: 'CDG', dep_time: '09:00', arr_time: '10:00' },
+            { from: 'CDG', to: 'FCO', dep_time: '11:00', arr_time: '12:30' },
+          ],
+        },
+      });
+      expect(errorText(depClash)).toContain('legs[1].dep_time (11:00) does not match endpoints[1].local_time (11:30)');
+
+      const arrClash = await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'flight', title: 'AMS to FCO', endpoints: withTimes,
+          legs: [
+            { from: 'AMS', to: 'CDG', dep_time: '09:00', arr_time: '10:00' },
+            { from: 'CDG', to: 'FCO', dep_time: '11:30', arr_time: '12:00' },
+          ],
+        },
+      });
+      expect(errorText(arrClash)).toContain('legs[1].arr_time (12:00) does not match endpoints[2].local_time (12:30)');
+    });
+  });
+
+  it('rejects a span that contradicts the first or last leg', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const dayOne = createDay(testDb, trip.id, { date: '2026-02-04' });
+    const dayTwo = createDay(testDb, trip.id, { date: '2026-02-05' });
+    await withHarness(user.id, async (h) => {
+      const startClash = await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'flight', title: 'AMS to FCO', start_day_id: dayOne.id,
+          endpoints: stopoverEndpoints,
+          legs: [{ from: 'AMS', to: 'CDG', dep_day_id: dayTwo.id }, { from: 'CDG', to: 'FCO' }],
+        },
+      });
+      expect(errorText(startClash)).toBe(`start_day_id (${dayOne.id}) does not match legs[0].dep_day_id (${dayTwo.id}).`);
+
+      const endClash = await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'flight', title: 'AMS to FCO', end_day_id: dayOne.id,
+          endpoints: stopoverEndpoints,
+          legs: [{ from: 'AMS', to: 'CDG' }, { from: 'CDG', to: 'FCO', arr_day_id: dayTwo.id }],
+        },
+      });
+      expect(errorText(endClash)).toBe(`end_day_id (${dayOne.id}) does not match legs[1].arr_day_id (${dayTwo.id}).`);
+    });
+  });
+
+  it('refuses segments smuggled through metadata.legs and names the legs parameter', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'flight', title: 'AMS to FCO',
+          endpoints: stopoverEndpoints,
+          metadata: { legs: '[{"from":"AMS","to":"CDG"}]' },
+        },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect(errorText(result)).toContain('in the legs parameter, not in metadata.legs');
+    });
+  });
+});
+
+describe('Tool: update_transport (multi-leg)', () => {
+  const seedStopover = async (h: McpHarness, tripId: number) => parseToolResult(await h.client.callTool({
+    name: 'create_transport',
+    arguments: {
+      tripId, type: 'flight', title: 'AMS to FCO',
+      endpoints: stopoverEndpoints,
+      legs: [
+        { from: 'AMS', to: 'CDG', dep_time: '09:00', arr_time: '10:00' },
+        { from: 'CDG', to: 'FCO', dep_time: '11:00', arr_time: '12:00' },
+      ],
+    },
+  })) as any;
+
+  it('keeps the stored metadata and the day-plan positions when only legs are sent', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const created = await seedStopover(h, trip.id);
+      // What an AirTrail import leaves behind: sync ids plus per-leg planner positions.
+      testDb.prepare('UPDATE reservations SET metadata = ? WHERE id = ?').run(JSON.stringify({
+        departure_airport: 'AMS', arrival_airport: 'FCO', airtrail_ids: ['17', '18'],
+        legs: [
+          { from: 'AMS', to: 'CDG', dep_time: '09:00', arr_time: '10:00', day_positions: { 5: 2 } },
+          { from: 'CDG', to: 'FCO', dep_time: '11:00', arr_time: '12:00' },
+        ],
+      }), created.reservation.id);
+
+      const result = await h.client.callTool({
+        name: 'update_transport',
+        arguments: {
+          tripId: trip.id, reservationId: created.reservation.id,
+          legs: [
+            { from: 'AMS', to: 'CDG', dep_time: '09:00', arr_time: '10:15' },
+            { from: 'CDG', to: 'FCO', dep_time: '11:00', arr_time: '12:00' },
+          ],
+        },
+      });
+      const meta = storedMetadata((parseToolResult(result) as any).reservation.id);
+      expect(meta.airtrail_ids).toEqual(['17', '18']);
+      expect(meta.departure_airport).toBe('AMS');
+      expect(meta.legs[0].arr_time).toBe('10:15');
+      expect(meta.legs[0].day_positions).toEqual({ 5: 2 });
+      expect(meta.legs[1].day_positions).toBeUndefined();
+    });
+  });
+
+  it('uses the supplied metadata as the base when both are sent', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const created = await seedStopover(h, trip.id);
+      const result = await h.client.callTool({
+        name: 'update_transport',
+        arguments: {
+          tripId: trip.id, reservationId: created.reservation.id,
+          metadata: { confirmation_source: 'email' },
+          legs: [
+            { from: 'AMS', to: 'CDG', dep_time: '09:00', arr_time: '10:00' },
+            { from: 'CDG', to: 'FCO', dep_time: '11:00', arr_time: '12:00' },
+          ],
+        },
+      });
+      const meta = storedMetadata((parseToolResult(result) as any).reservation.id);
+      expect(meta.confirmation_source).toBe('email');
+      expect(meta.legs).toHaveLength(2);
+      // departure_airport is mirrored back in because the supplied metadata dropped it.
+      expect(meta.departure_airport).toBe('AMS');
+    });
+  });
+
+  it('leaves the metadata alone when neither legs nor metadata are sent', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const created = await seedStopover(h, trip.id);
+      const before = storedMetadata(created.reservation.id);
+      await h.client.callTool({
+        name: 'update_transport',
+        arguments: { tripId: trip.id, reservationId: created.reservation.id, status: 'confirmed' },
+      });
+      expect(storedMetadata(created.reservation.id)).toEqual(before);
+    });
+  });
+
+  it('counts the stored endpoints when the caller does not replace them', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const created = parseToolResult(await h.client.callTool({
+        name: 'create_transport',
+        arguments: { tripId: trip.id, type: 'flight', title: 'ZRH to CDG', endpoints: flightEndpoints },
+      })) as any;
+      const result = await h.client.callTool({
+        name: 'update_transport',
+        arguments: {
+          tripId: trip.id, reservationId: created.reservation.id,
+          legs: [{ from: 'ZRH', to: 'CDG' }, { from: 'CDG', to: 'FCO' }],
+        },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect(errorText(result)).toBe('legs must contain exactly one entry fewer than endpoints (got 2 legs for 2 endpoints).');
+    });
+  });
+
+  it('leaves the endpoint rows untouched when the legs change nothing about them', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const created = await seedStopover(h, trip.id);
+      const idsBefore = (testDb.prepare('SELECT id FROM reservation_endpoints WHERE reservation_id = ? ORDER BY sequence')
+        .all(created.reservation.id) as any[]).map(r => r.id);
+      await h.client.callTool({
+        name: 'update_transport',
+        arguments: {
+          tripId: trip.id, reservationId: created.reservation.id,
+          legs: [
+            { from: 'AMS', to: 'CDG', dep_time: '09:00', arr_time: '10:30' },
+            { from: 'CDG', to: 'FCO', dep_time: '11:00', arr_time: '12:00' },
+          ],
+        },
+      });
+      const idsAfter = (testDb.prepare('SELECT id FROM reservation_endpoints WHERE reservation_id = ? ORDER BY sequence')
+        .all(created.reservation.id) as any[]).map(r => r.id);
+      expect(idsAfter).toEqual(idsBefore);
+    });
+  });
+
+  it('fills the endpoint times when the stored endpoints have none', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const created = parseToolResult(await h.client.callTool({
+        name: 'create_transport',
+        arguments: { tripId: trip.id, type: 'flight', title: 'AMS to FCO', endpoints: stopoverEndpoints },
+      })) as any;
+      const result = await h.client.callTool({
+        name: 'update_transport',
+        arguments: {
+          tripId: trip.id, reservationId: created.reservation.id,
+          legs: [
+            { from: 'AMS', to: 'CDG', dep_time: '09:00', arr_time: '10:00' },
+            { from: 'CDG', to: 'FCO', dep_time: '11:00', arr_time: '12:00' },
+          ],
+        },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.reservation.endpoints.map((e: any) => e.local_time)).toEqual(['09:00', '11:00', '12:00']);
+    });
+  });
+
+  it('survives a booking whose stored metadata is not valid JSON', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const created = await seedStopover(h, trip.id);
+      testDb.prepare('UPDATE reservations SET metadata = ? WHERE id = ?').run('not json at all', created.reservation.id);
+      const result = await h.client.callTool({
+        name: 'update_transport',
+        arguments: {
+          tripId: trip.id, reservationId: created.reservation.id,
+          legs: [
+            { from: 'AMS', to: 'CDG', dep_time: '09:00', arr_time: '10:00' },
+            { from: 'CDG', to: 'FCO', dep_time: '11:00', arr_time: '12:00' },
+          ],
+        },
+      });
+      expect((result as { isError?: boolean }).isError).toBeFalsy();
+      expect(storedMetadata((parseToolResult(result) as any).reservation.id).legs).toHaveLength(2);
+    });
+  });
+
+  it('recovers legs from double-encoded metadata instead of losing the positions', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const created = await seedStopover(h, trip.id);
+      testDb.prepare('UPDATE reservations SET metadata = ? WHERE id = ?').run(JSON.stringify(JSON.stringify({
+        legs: [{ from: 'AMS', to: 'CDG', day_positions: { 9: 1 } }, { from: 'CDG', to: 'FCO' }],
+      })), created.reservation.id);
+      const result = await h.client.callTool({
+        name: 'update_transport',
+        arguments: {
+          tripId: trip.id, reservationId: created.reservation.id,
+          legs: [
+            { from: 'AMS', to: 'CDG', dep_time: '09:00', arr_time: '10:00' },
+            { from: 'CDG', to: 'FCO', dep_time: '11:00', arr_time: '12:00' },
+          ],
+        },
+      });
+      expect(storedMetadata((parseToolResult(result) as any).reservation.id).legs[0].day_positions).toEqual({ 9: 1 });
+    });
+  });
+
+  it('rejects legs on a booking that is not a flight or train', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const created = parseToolResult(await h.client.callTool({
+        name: 'create_transport',
+        arguments: { tripId: trip.id, type: 'car', title: 'Rental' },
+      })) as any;
+      const result = await h.client.callTool({
+        name: 'update_transport',
+        arguments: {
+          tripId: trip.id, reservationId: created.reservation.id,
+          legs: [{ from: 'A', to: 'B' }, { from: 'B', to: 'C' }],
+        },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect(errorText(result)).toBe('legs are only supported for flight and train bookings.');
+    });
+  });
+
+  it('refuses segments smuggled through metadata.legs', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const created = await seedStopover(h, trip.id);
+      const result = await h.client.callTool({
+        name: 'update_transport',
+        arguments: {
+          tripId: trip.id, reservationId: created.reservation.id,
+          metadata: { legs: '[{"from":"AMS","to":"CDG"}]' },
+        },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect(errorText(result)).toContain('in the legs parameter, not in metadata.legs');
     });
   });
 });

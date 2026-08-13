@@ -13,8 +13,11 @@ import { DaysService } from '../days/days.service';
 import { findByIata } from '../airports/airports.data';
 import type { EndpointInput } from './reservations.service';
 import { AssignmentsService } from '../assignments/assignments.service';
+import { transportLegsInputSchema, type TransportLegInput } from '@trek/shared';
 
 const TRANSPORT_TYPES = ['flight', 'train', 'car', 'cruise'] as const;
+/** Only these two carry per-segment detail; a car or cruise has no legs. */
+const LEG_TRANSPORT_TYPES = ['flight', 'train'] as const;
 
 const endpointObjectSchema = z.object({
   role: z.enum(['from', 'to', 'stop']).describe('Endpoint role: "from" (origin), "to" (destination), or "stop" (intermediate)'),
@@ -71,6 +74,205 @@ function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
   return Number.isInteger(n) && n > 0 ? n : null;
 }
+
+// ---------------------------------------------------------------------------
+// Multi-leg bookings (#1914)
+//
+// A stopover booking splits over two stores: the endpoints hold the geometry,
+// `metadata.legs` holds each segment's own day, time and airline/train identity.
+// The endpoint of a stop carries the ONWARD DEPARTURE only (the planner form
+// writes `isLast ? arrTime : depTime`), so without legs the arrival at that stop
+// exists nowhere and every reader falls back to showing one time twice, which is
+// the symptom in the report. These helpers accept the same leg shape the form
+// and the importers write, and keep the two stores in step.
+// ---------------------------------------------------------------------------
+
+const legsSchema = transportLegsInputSchema.optional().describe(
+  'Per-segment detail of a stopover flight or train: one entry per segment, in route order, exactly ONE FEWER than endpoints[]. '
+  + 'Each leg carries its own departure and arrival day + local time (dep_day_id/dep_time, arr_day_id/arr_time) plus airline/flight_number (flights) or train_number/platform (trains). '
+  + "Required for a booking with stopovers: a stop's endpoint stores only the onward departure, so without legs that one time is shown as both the arrival and the departure. "
+  + 'Omit it for a direct booking. Blank endpoint times/dates, day_id/end_day_id and reservation_time are derived from the legs; a value that contradicts them is rejected.'
+);
+
+type MetaRecord = Record<string, unknown>;
+
+/**
+ * `reservations.metadata` as stored: a JSON string, or (from an old
+ * double-encoding bug the client readers still heal around) a JSON string of a
+ * JSON string. Reading it must never throw: a booking with unparseable metadata
+ * still has to accept a legs update.
+ */
+function parseStoredMetadata(raw: unknown): MetaRecord {
+  if (typeof raw !== 'string' || !raw) return {};
+  try {
+    let parsed: unknown = JSON.parse(raw);
+    if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+    return typeof parsed === 'object' && parsed !== null ? parsed as MetaRecord : {};
+  } catch {
+    return {};
+  }
+}
+
+interface LegPlan {
+  legs: TransportLegInput[];
+  type: string;
+  /** Resolved geometry the legs run over (one more entry than legs). */
+  endpoints: EndpointInput[];
+  baseMetadata: MetaRecord;
+  /** Stored legs of the same booking, for the day-planner positions. */
+  previousLegs: unknown[];
+  startDayId?: number;
+  endDayId?: number;
+  reservationTime?: string;
+  reservationEndTime?: string;
+  // A day row carries an optional date, so the caller cannot promise one. Every
+  // read below treats a dateless day as "no date known" rather than stamping undefined.
+  lookupDay: (id: number) => { date?: string | null } | undefined;
+}
+
+interface LegOutcome {
+  metadata: MetaRecord;
+  endpoints: EndpointInput[];
+  /** True when a blank endpoint time/date was filled in from the legs. */
+  endpointsChanged: boolean;
+  day_id?: number;
+  end_day_id?: number;
+  reservation_time?: string;
+  reservation_end_time?: string;
+}
+
+/**
+ * Validate the legs against the endpoints and fold them into the metadata.
+ * Returns the values the write should use, or the first error as text.
+ */
+function applyLegs(plan: LegPlan): LegOutcome | { error: string } {
+  const { legs, lookupDay } = plan;
+  const last = legs.length - 1;
+
+  if (!(LEG_TRANSPORT_TYPES as readonly string[]).includes(plan.type))
+    return { error: 'legs are only supported for flight and train bookings.' };
+  // Readers treat legs.length > 1 as the multi-segment marker and the form drops
+  // a single-leg list on the next save, so a 1-entry list would be inert.
+  if (legs.length < 2)
+    return { error: 'legs describes a booking with at least one stopover, so it needs at least 2 entries. Omit legs for a direct booking.' };
+  if (plan.endpoints.length !== legs.length + 1)
+    return { error: `legs must contain exactly one entry fewer than endpoints (got ${legs.length} legs for ${plan.endpoints.length} endpoints).` };
+
+  for (let i = 0; i < legs.length; i++) {
+    for (const field of ['dep_day_id', 'arr_day_id'] as const) {
+      const dayId = legs[i][field];
+      if (dayId != null && !lookupDay(dayId))
+        return { error: `legs[${i}].${field} does not belong to this trip.` };
+    }
+  }
+
+  const firstDepDay = legs[0].dep_day_id ?? null;
+  const lastArrDay = legs[last].arr_day_id ?? null;
+  if (plan.startDayId != null && firstDepDay != null && plan.startDayId !== firstDepDay)
+    return { error: `start_day_id (${plan.startDayId}) does not match legs[0].dep_day_id (${firstDepDay}).` };
+  if (plan.endDayId != null && lastArrDay != null && plan.endDayId !== lastArrDay)
+    return { error: `end_day_id (${plan.endDayId}) does not match legs[${last}].arr_day_id (${lastArrDay}).` };
+
+  const endpoints = plan.endpoints.map(e => ({ ...e }));
+  let endpointsChanged = false;
+  const syncEndpoint = (index: number, time: string | null | undefined, dayId: number | null | undefined, label: string): string | null => {
+    const ep = endpoints[index];
+    if (dayId != null && !ep.local_date) {
+      const day = lookupDay(dayId);
+      if (day?.date) { ep.local_date = day.date; endpointsChanged = true; }
+    }
+    if (!time) return null;
+    if (!ep.local_time) { ep.local_time = time; endpointsChanged = true; return null; }
+    if (ep.local_time !== time)
+      return `${label} (${time}) does not match endpoints[${index}].local_time (${ep.local_time}). A stop's endpoint carries the onward departure time; only the final endpoint carries an arrival time.`;
+    return null;
+  };
+
+  const merged: MetaRecord[] = [];
+  for (let i = 0; i < legs.length; i++) {
+    const leg = legs[i];
+    const depEp = endpoints[i];
+    const arrEp = endpoints[i + 1];
+    // Codes only: a train endpoint is a free-text station label, and comparing
+    // those would reject perfectly good input over a spelling difference.
+    if (leg.from && depEp.code && leg.from.toUpperCase() !== depEp.code.toUpperCase())
+      return { error: `legs[${i}].from (${leg.from}) does not match endpoints[${i}] (${depEp.code}).` };
+    if (leg.to && arrEp.code && leg.to.toUpperCase() !== arrEp.code.toUpperCase())
+      return { error: `legs[${i}].to (${leg.to}) does not match endpoints[${i + 1}] (${arrEp.code}).` };
+
+    const depConflict = syncEndpoint(i, leg.dep_time, leg.dep_day_id, `legs[${i}].dep_time`);
+    if (depConflict) return { error: depConflict };
+
+    const entry: MetaRecord = {
+      from: leg.from ?? depEp.code ?? depEp.name,
+      to: leg.to ?? arrEp.code ?? arrEp.name,
+    };
+    for (const key of ['airline', 'flight_number', 'train_number', 'platform', 'seat'] as const) {
+      const value = leg[key];
+      if (value) entry[key] = value;
+    }
+    entry.dep_day_id = leg.dep_day_id ?? null;
+    entry.dep_time = leg.dep_time ?? null;
+    entry.arr_day_id = leg.arr_day_id ?? null;
+    entry.arr_time = leg.arr_time ?? null;
+    // day_positions belongs to the day planner, not to this input, so carry the
+    // stored value at the same index over, exactly as a form re-save does.
+    const positions = (plan.previousLegs[i] as MetaRecord | undefined)?.day_positions;
+    if (positions) entry.day_positions = positions;
+    merged.push(entry);
+  }
+
+  const arrConflict = syncEndpoint(legs.length, legs[last].arr_time, lastArrDay, `legs[${last}].arr_time`);
+  if (arrConflict) return { error: arrConflict };
+
+  const metadata: MetaRecord = { ...plan.baseMetadata, legs: merged };
+  const first = merged[0];
+  const final = merged[last];
+  // Mirror the flat keys off the first/last leg the way the form and the
+  // importers do, so readers that never learned about legs keep working. Never
+  // overwrite what the caller set itself.
+  const mirror = (key: string, value: unknown) => {
+    if (value != null && metadata[key] == null) metadata[key] = value;
+  };
+  if (plan.type === 'flight') {
+    mirror('departure_airport', first.from);
+    mirror('arrival_airport', final.to);
+    mirror('airline', first.airline);
+    mirror('flight_number', first.flight_number);
+  } else {
+    mirror('train_number', first.train_number);
+    mirror('platform', first.platform);
+  }
+  mirror('seat', first.seat);
+
+  const dayId = plan.startDayId ?? firstDepDay ?? undefined;
+  const endDayId = plan.endDayId ?? lastArrDay ?? undefined;
+  // Same fallback as the form's buildTime: date the time when the day is known,
+  // otherwise keep the bare 'HH:mm' rather than dropping it.
+  const stamp = (day: number | undefined, time: string | null | undefined) => {
+    if (!time) return undefined;
+    const row = day === undefined ? undefined : lookupDay(day);
+    return row?.date ? `${row.date}T${time}` : time;
+  };
+
+  return {
+    metadata,
+    endpoints,
+    endpointsChanged,
+    day_id: dayId,
+    end_day_id: endDayId,
+    reservation_time: plan.reservationTime ?? stamp(dayId, legs[0].dep_time),
+    reservation_end_time: plan.reservationEndTime ?? stamp(endDayId, legs[last].arr_time),
+  };
+}
+
+/**
+ * `metadata` is a flat string map, so segments smuggled through it can only ever
+ * land as an inert JSON string that every reader skips (`Array.isArray` fails),
+ * the silent dead end reported in #1914. Refuse it and name the right parameter.
+ */
+const LEGS_IN_METADATA_ERROR =
+  'Pass the segments of a multi-leg booking in the legs parameter, not in metadata.legs. Metadata values are plain strings, so a JSON string there is stored but ignored by every reader.';
 
 /**
  * Reservations MCP surface — ported 1:1 from the legacy registrars: the five
@@ -361,7 +563,7 @@ export class ReservationsMcp {
 
   @Tool({
     name: 'create_transport',
-    description: 'Create a transport booking (flight, train, car, or cruise) for a trip. Use endpoints[] to record origin/destination and intermediate stops — for flights, set code to the IATA airport code (use search_airports first). Created as pending — confirm with update_transport. Set price to record the cost; it will appear on the booking and in the Budget tab.',
+    description: 'Create a transport booking (flight, train, car, or cruise) for a trip. Use endpoints[] to record origin/destination and intermediate stops — for flights, set code to the IATA airport code (use search_airports first). For a booking WITH STOPOVERS also pass legs[] (one entry per segment, one fewer than endpoints[]), otherwise every segment inherits the stop time as both its arrival and its departure. Created as pending — confirm with update_transport. Set price to record the cost; it will appear on the booking and in the Budget tab.',
     inputSchema: {
       tripId: z.number().int().positive(),
       type: z.enum(['flight', 'train', 'car', 'cruise']),
@@ -373,8 +575,9 @@ export class ReservationsMcp {
       reservation_end_time: z.string().optional().describe('ISO 8601 datetime or time string for arrival'),
       confirmation_number: z.string().max(100).optional(),
       notes: z.string().max(1000).optional(),
-      metadata: z.record(z.string(), z.string()).optional().describe('Type-specific metadata: flights → { airline, flight_number, departure_airport, arrival_airport }; trains → { train_number, platform, seat }'),
+      metadata: z.record(z.string(), z.string()).optional().describe('Type-specific metadata: flights → { airline, flight_number, departure_airport, arrival_airport }; trains → { train_number, platform, seat }. Values are plain strings, so per-segment detail belongs in legs[], not here.'),
       endpoints: endpointSchema,
+      legs: legsSchema,
       needs_review: z.boolean().optional(),
       price: z.number().nonnegative().optional().describe('Transport cost — shown on the booking and linked in the Budget tab'),
       budget_category: z.string().max(100).optional().describe('Budget category for the price entry (defaults to transport type)'),
@@ -383,11 +586,11 @@ export class ReservationsMcp {
     access: { group: 'reservations', mode: 'write' },
   })
   async createTransport(
-    { tripId, type, title, status, start_day_id, end_day_id, reservation_time, reservation_end_time, confirmation_number, notes, metadata, endpoints, needs_review, price, budget_category }: {
+    { tripId, type, title, status, start_day_id, end_day_id, reservation_time, reservation_end_time, confirmation_number, notes, metadata, endpoints, legs, needs_review, price, budget_category }: {
       tripId: number; type: 'flight' | 'train' | 'car' | 'cruise'; title: string;
       status?: 'pending' | 'confirmed' | 'cancelled'; start_day_id?: number; end_day_id?: number;
       reservation_time?: string; reservation_end_time?: string; confirmation_number?: string; notes?: string;
-      metadata?: Record<string, string>; endpoints?: TransportEndpoint[]; needs_review?: boolean;
+      metadata?: Record<string, string>; endpoints?: TransportEndpoint[]; legs?: TransportLegInput[]; needs_review?: boolean;
       price?: number; budget_category?: string;
     },
     ctx: McpContext,
@@ -395,6 +598,8 @@ export class ReservationsMcp {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
+
+    if (metadata && 'legs' in metadata) return errorResult(LEGS_IN_METADATA_ERROR);
 
     if (start_day_id && !this.days.getDay(start_day_id, tripId))
       return errorResult('start_day_id does not belong to this trip.');
@@ -404,22 +609,50 @@ export class ReservationsMcp {
     const resolved = resolveEndpointCoords(endpoints);
     if ('error' in resolved) return errorResult(resolved.error);
 
-    const meta: Record<string, string> = { ...(metadata ?? {}) };
+    const meta: Record<string, unknown> = { ...(metadata ?? {}) };
+    let transportEndpoints = resolved.endpoints;
+    let dayId = start_day_id;
+    let spanEndDayId = end_day_id;
+    let departureTime = reservation_time;
+    let arrivalTime = reservation_end_time;
+
+    if (legs !== undefined) {
+      const applied = applyLegs({
+        legs,
+        type,
+        endpoints: resolved.endpoints,
+        baseMetadata: meta,
+        previousLegs: [],
+        startDayId: start_day_id,
+        endDayId: end_day_id,
+        reservationTime: reservation_time,
+        reservationEndTime: reservation_end_time,
+        lookupDay: (id) => this.days.getDay(id, tripId),
+      });
+      if ('error' in applied) return errorResult(applied.error);
+      Object.assign(meta, applied.metadata);
+      transportEndpoints = applied.endpoints;
+      dayId = applied.day_id;
+      spanEndDayId = applied.end_day_id;
+      departureTime = applied.reservation_time;
+      arrivalTime = applied.reservation_end_time;
+    }
+
     if (price != null) meta.price = String(price);
 
     const { reservation } = this.reservations.create(tripId, {
       title,
       type,
-      reservation_time,
-      reservation_end_time,
+      reservation_time: departureTime,
+      reservation_end_time: arrivalTime,
       location: undefined,
       confirmation_number,
       notes,
-      day_id: start_day_id,
-      end_day_id: end_day_id ?? start_day_id,
+      day_id: dayId,
+      end_day_id: spanEndDayId ?? dayId,
       status: status ?? 'pending',
       metadata: Object.keys(meta).length > 0 ? meta : undefined,
-      endpoints: resolved.endpoints,
+      endpoints: transportEndpoints,
       needs_review,
     });
 
@@ -438,7 +671,7 @@ export class ReservationsMcp {
 
   @Tool({
     name: 'update_transport',
-    description: 'Update an existing transport booking. Pass endpoints[] to replace the full list of stops (origin, destination, intermediates). Use status "confirmed" to confirm.',
+    description: 'Update an existing transport booking. Pass endpoints[] to replace the full list of stops (origin, destination, intermediates), and legs[] to write the per-segment times of a stopover booking. Sending legs[] without metadata keeps the stored metadata (departure_airport, airtrail_ids, transit) and only replaces the segments. Use status "confirmed" to confirm.',
     inputSchema: {
       tripId: z.number().int().positive(),
       reservationId: z.number().int().positive(),
@@ -451,25 +684,28 @@ export class ReservationsMcp {
       reservation_end_time: z.string().optional().describe('ISO 8601 datetime or time string for arrival'),
       confirmation_number: z.string().max(100).optional(),
       notes: z.string().max(1000).optional(),
-      metadata: z.record(z.string(), z.string()).optional().describe('Type-specific metadata: flights → { airline, flight_number, departure_airport, arrival_airport }; trains → { train_number, platform, seat }'),
+      metadata: z.record(z.string(), z.string()).optional().describe('Type-specific metadata: flights → { airline, flight_number, departure_airport, arrival_airport }; trains → { train_number, platform, seat }. Replaces the stored metadata wholesale. Values are plain strings, so per-segment detail belongs in legs[], not here.'),
       endpoints: endpointSchema,
+      legs: legsSchema,
       needs_review: z.boolean().optional(),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'reservations', mode: 'write' },
   })
   async updateTransport(
-    { tripId, reservationId, type, title, status, start_day_id, end_day_id, reservation_time, reservation_end_time, confirmation_number, notes, metadata, endpoints, needs_review }: {
+    { tripId, reservationId, type, title, status, start_day_id, end_day_id, reservation_time, reservation_end_time, confirmation_number, notes, metadata, endpoints, legs, needs_review }: {
       tripId: number; reservationId: number; type?: 'flight' | 'train' | 'car' | 'cruise'; title?: string;
       status?: 'pending' | 'confirmed' | 'cancelled'; start_day_id?: number; end_day_id?: number;
       reservation_time?: string; reservation_end_time?: string; confirmation_number?: string; notes?: string;
-      metadata?: Record<string, string>; endpoints?: TransportEndpoint[]; needs_review?: boolean;
+      metadata?: Record<string, string>; endpoints?: TransportEndpoint[]; legs?: TransportLegInput[]; needs_review?: boolean;
     },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
+
+    if (metadata && 'legs' in metadata) return errorResult(LEGS_IN_METADATA_ERROR);
 
     const existing = this.reservations.getReservation(reservationId, tripId);
     if (!existing) return errorResult('Transport not found.');
@@ -491,17 +727,57 @@ export class ReservationsMcp {
       resolvedEndpoints = resolved.endpoints;
     }
 
+    let nextMetadata: unknown = metadata;
+    let dayId = start_day_id;
+    let spanEndDayId: number | undefined = end_day_id;
+    let departureTime = reservation_time;
+    let arrivalTime = reservation_end_time;
+
+    if (legs !== undefined) {
+      const stored = parseStoredMetadata(existing.metadata);
+      const applied = applyLegs({
+        legs,
+        type: resolvedType,
+        // Endpoints the caller did not replace stay the geometry the legs run
+        // over, so read them back (the row carries them) instead of guessing.
+        endpoints: resolvedEndpoints ?? (this.reservations.getReservationWithJoins(reservationId)?.endpoints ?? []).map(e => ({
+          role: e.role, sequence: e.sequence, name: e.name, code: e.code,
+          lat: e.lat, lng: e.lng, timezone: e.timezone,
+          local_time: e.local_time, local_date: e.local_date,
+        })),
+        // metadata keeps replacing wholesale when it is sent; a legs-only update
+        // must not drop departure_airport / airtrail_ids / transit, so it merges
+        // into what is stored instead.
+        baseMetadata: metadata !== undefined ? { ...metadata } : { ...stored },
+        previousLegs: Array.isArray(stored.legs) ? stored.legs as unknown[] : [],
+        startDayId: start_day_id,
+        endDayId: end_day_id,
+        reservationTime: reservation_time,
+        reservationEndTime: reservation_end_time,
+        lookupDay: (id) => this.days.getDay(id, tripId),
+      });
+      if ('error' in applied) return errorResult(applied.error);
+      nextMetadata = applied.metadata;
+      dayId = applied.day_id;
+      spanEndDayId = applied.end_day_id;
+      departureTime = applied.reservation_time;
+      arrivalTime = applied.reservation_end_time;
+      // Rewrite the endpoints only when the legs actually filled a blank time or
+      // date in; an unchanged list is left alone so its rows survive.
+      if (applied.endpointsChanged) resolvedEndpoints = applied.endpoints;
+    }
+
     const { reservation } = this.reservations.update(reservationId, tripId, {
       title,
       type,
-      reservation_time,
-      reservation_end_time,
+      reservation_time: departureTime,
+      reservation_end_time: arrivalTime,
       confirmation_number,
       notes,
-      day_id: start_day_id,
-      end_day_id,
+      day_id: dayId,
+      end_day_id: spanEndDayId,
       status,
-      metadata,
+      metadata: nextMetadata,
       endpoints: resolvedEndpoints,
       needs_review,
     }, existing);

@@ -3,6 +3,8 @@ import {
   reservationPositionsRequestSchema,
   accommodationCreateBodySchema,
   accommodationCreateRequestSchema,
+  transportLegInputSchema,
+  transportLegsInputSchema,
 } from './reservation.schema';
 
 import { describe, it, expect } from 'vitest';
@@ -52,5 +54,53 @@ describe('accommodationCreateRequestSchema', () => {
     // by the controller's bespoke 400 body — the pipe must not pre-empt it.
     expect(accommodationCreateBodySchema.safeParse({ place_id: 2 }).success).toBe(true);
     expect(accommodationCreateBodySchema.safeParse({ check_in: 5 }).success).toBe(false);
+  });
+});
+
+describe('transportLegInputSchema', () => {
+  it('accepts a flight leg exactly as the planner form writes it', () => {
+    expect(
+      transportLegInputSchema.safeParse({
+        from: 'AMS',
+        to: 'CDG',
+        airline: 'KLM',
+        flight_number: 'KL1233',
+        seat: '14A',
+        dep_day_id: 2029,
+        dep_time: '09:00',
+        // The form writes null, not undefined, for a waypoint day/time left blank.
+        arr_day_id: null,
+        arr_time: '10:00',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('accepts a train leg and a leg that carries times only', () => {
+    expect(
+      transportLegInputSchema.safeParse({
+        from: 'Basel SBB', to: 'Lugano', train_number: 'EC 57', platform: '8',
+        dep_day_id: null, dep_time: '08:33', arr_day_id: null, arr_time: '11:20',
+      }).success,
+    ).toBe(true);
+    // from/to may be omitted: a writer can fill them from the endpoint codes.
+    expect(transportLegInputSchema.safeParse({ dep_time: '09:00', arr_time: '10:00' }).success).toBe(true);
+    expect(transportLegInputSchema.safeParse({}).success).toBe(true);
+  });
+
+  it('rejects day ids that are not positive integers and blank labels', () => {
+    expect(transportLegInputSchema.safeParse({ dep_day_id: 'x' }).success).toBe(false);
+    expect(transportLegInputSchema.safeParse({ dep_day_id: 0 }).success).toBe(false);
+    expect(transportLegInputSchema.safeParse({ arr_day_id: 2.5 }).success).toBe(false);
+    expect(transportLegInputSchema.safeParse({ from: '' }).success).toBe(false);
+    expect(transportLegInputSchema.safeParse({ dep_time: 42 }).success).toBe(false);
+  });
+
+  it('parses a whole leg list', () => {
+    const parsed = transportLegsInputSchema.safeParse([
+      { from: 'AMS', to: 'CDG', dep_time: '09:00', arr_time: '10:00' },
+      { from: 'CDG', to: 'FCO', dep_time: '11:00', arr_time: '12:00' },
+    ]);
+    expect(parsed.success).toBe(true);
+    expect(transportLegsInputSchema.safeParse([{ dep_day_id: -1 }]).success).toBe(false);
   });
 });
