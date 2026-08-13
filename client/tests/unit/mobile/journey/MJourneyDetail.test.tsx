@@ -1,4 +1,4 @@
-// FE-MOB-JDET-001 to FE-MOB-JDET-031
+// FE-MOB-JDET-001 to FE-MOB-JDET-037
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '../../../helpers/render';
 import MJourneyDetail from '../../../../src/mobile/screens/journey/MJourneyDetail';
@@ -12,10 +12,15 @@ const mocks = vi.hoisted(() => ({
   focusMarker: vi.fn(),
   highlightMarker: vi.fn(),
   captured: {} as Record<string, Record<string, unknown>>,
+  downloadPdf: vi.fn(),
 }));
 
 vi.mock('../../../../src/pages/journeyDetail/useJourneyDetail', () => ({
   useJourneyDetail: () => mocks.detail,
+}));
+
+vi.mock('../../../../src/components/PDF/JourneyBookPDF', () => ({
+  downloadJourneyBookPDF: mocks.downloadPdf,
 }));
 
 vi.mock('../../../../src/components/Journey/JourneyMapAuto', async () => {
@@ -151,6 +156,7 @@ function buildHook(over: Record<string, unknown> = {}): Record<string, unknown> 
     navigate: vi.fn(),
     toast,
     t: (key: string) => key,
+    locale: 'en-US',
     current,
     loading: false,
     canEditEntries: true,
@@ -168,6 +174,7 @@ function buildHook(over: Record<string, unknown> = {}): Record<string, unknown> 
     showSettings: false,
     setShowSettings: vi.fn(),
     hideSkeletons: false,
+    setHideSkeletons: vi.fn(),
     sidebarMapItems: (current?.entries ?? []).map(e => ({ id: String(e.id), lat: 1, lng: 2, title: e.title ?? '' })),
     loadJourney: vi.fn(),
     updateEntry: vi.fn(async () => {}),
@@ -462,14 +469,16 @@ describe('MJourneyDetail', () => {
     expect(hook.loadJourney).toHaveBeenCalledWith(12);
   });
 
-  it('FE-MOB-JDET-026: the settings button is hidden for a non-owner and shown for the owner', () => {
+  it('FE-MOB-JDET-026: the overflow sheet opens the settings for an owner only', () => {
     const { hook, unmount } = setup();
-    fireEvent.click(screen.getByRole('button', { name: 'journey.settings.title' }));
+    fireEvent.click(screen.getByRole('button', { name: 'files.menu' }));
+    fireEvent.click(screen.getByText('journey.settings.title'));
     expect(hook.setShowSettings).toHaveBeenCalledWith(true);
     unmount();
 
     setup({ canEditJourney: false });
-    expect(screen.queryByRole('button', { name: 'journey.settings.title' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'files.menu' }));
+    expect(screen.queryByText('journey.settings.title')).not.toBeInTheDocument();
   });
 
   it('FE-MOB-JDET-027: the lightbox renders the mapped photos and closes back into the hook', () => {
@@ -555,5 +564,80 @@ describe('MJourneyDetail', () => {
 
     (mocks.captured.picker.onClose as () => void)();
     await waitFor(() => expect(screen.queryByTestId('provider-picker')).not.toBeInTheDocument());
+  });
+
+  // ── Book export + suggestions on the phone (#1848) ────────────────────────
+
+  it('FE-MOB-JDET-032: the overflow sheet exports the book in the app language', async () => {
+    const { hook } = setup();
+    fireEvent.click(screen.getByRole('button', { name: 'files.menu' }));
+    fireEvent.click(screen.getByText('journey.pdf.saveAsPdf'));
+
+    await waitFor(() => expect(mocks.downloadPdf).toHaveBeenCalledWith(
+      hook.current,
+      { t: expect.any(Function), locale: 'en-US' },
+    ));
+    await waitFor(() => expect(screen.queryByText('journey.pdf.saveAsPdf')).not.toBeInTheDocument());
+  });
+
+  it('FE-MOB-JDET-033: the suggestions switch flips hide_skeletons and persists it', async () => {
+    const update = vi.spyOn(journeyApi, 'updatePreferences').mockResolvedValue({});
+    const { hook } = setup();
+    fireEvent.click(screen.getByRole('button', { name: 'files.menu' }));
+
+    const toggle = screen.getByRole('switch', { name: 'journey.skeletons.hide' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(toggle);
+
+    expect(hook.setHideSkeletons).toHaveBeenCalledWith(true);
+    await waitFor(() => expect(update).toHaveBeenCalledWith(12, { hide_skeletons: true }));
+  });
+
+  it('FE-MOB-JDET-034: a failing preference write leaves the local flip standing', async () => {
+    vi.spyOn(journeyApi, 'updatePreferences').mockRejectedValue(new Error('offline'));
+    const { hook } = setup({ hideSkeletons: true });
+    fireEvent.click(screen.getByRole('button', { name: 'files.menu' }));
+
+    const toggle = screen.getByRole('switch', { name: 'journey.skeletons.hide' });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(toggle);
+
+    await waitFor(() => expect(hook.setHideSkeletons).toHaveBeenCalledWith(false));
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  // ── External photos in the phone entry editor (#1808) ─────────────────────
+
+  it('FE-MOB-JDET-035: the entry sheet gets the provider context and writes the picked photos', async () => {
+    const trips = [{ trip_id: 3, added_at: 0, title: 'Tokyo', start_date: '2026-05-01', end_date: '2026-05-04', cover_image: null, currency: 'EUR', place_count: 2 }];
+    const addProvider = vi.spyOn(journeyApi, 'addProviderPhotos').mockResolvedValue({ added: 1 });
+    setup({ current: buildDetail({ trips }), editingEntry: buildEntry({ id: 4 }) });
+
+    expect(mocks.captured.entrySheet.userId).toBe(5);
+    expect(mocks.captured.entrySheet.trips).toEqual(trips);
+
+    const onAdd = mocks.captured.entrySheet.onAddProviderPhotos as (id: number, g: Record<string, unknown>) => Promise<void>;
+    await onAdd(4, { provider: 'immich', assetIds: ['a1'], passphrase: 'pw', mediaTypes: ['image'] });
+    expect(addProvider).toHaveBeenCalledWith(4, 'immich', ['a1'], undefined, 'pw', ['image']);
+  });
+
+  it('FE-MOB-JDET-036: a retried save updates the entry that was already created', async () => {
+    const { hook } = setup({ editingEntry: buildEntry({ id: 0, title: null }) });
+    const onSave = mocks.captured.entrySheet.onSave as (d: Record<string, unknown>, id?: number) => Promise<number>;
+
+    await expect(onSave({ title: 'Fresh' })).resolves.toBe(77);
+    expect(createEntry).toHaveBeenCalledTimes(1);
+
+    // Second attempt hands back the id from the first one — no second create.
+    await expect(onSave({ title: 'Fresh' }, 77)).resolves.toBe(77);
+    expect(createEntry).toHaveBeenCalledTimes(1);
+    expect(hook.updateEntry).toHaveBeenCalledWith(77, { title: 'Fresh' });
+  });
+
+  it('FE-MOB-JDET-037: the screen measures itself, not the shell', () => {
+    // #1809: the shell scrolls with the document now and hands down no definite
+    // height. A map on a percentage of an auto-height parent collapses to zero.
+    const { container } = setup();
+    expect(container.firstElementChild).toHaveClass('h-dvh');
   });
 });

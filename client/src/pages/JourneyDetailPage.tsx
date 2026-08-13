@@ -78,6 +78,20 @@ function JourneyDetailPageDesktop() {
   const showMobileGallery = isMobile && view === 'gallery'
   const isMobileChromeless = showMobileCombined || showMobileGallery
 
+  // Below 1024px the hero is gone, so its two actions have to live in the
+  // floating bar instead — they were unreachable there until #1848. Only one of
+  // the two hosts is mounted at a time, so both can carry the same labels.
+  const openBookPdf = () => {
+    import('../components/PDF/JourneyBookPDF').then(m => m.downloadJourneyBookPDF(current, { t, locale }))
+  }
+  const toggleSkeletons = async () => {
+    const next = !hideSkeletons
+    setHideSkeletons(next)
+    await journeyApi.updatePreferences(current.id, { hide_skeletons: next })
+  }
+  const skeletonLabel = hideSkeletons ? t('journey.skeletons.show') : t('journey.skeletons.hide')
+  const barButton = 'w-10 h-10 flex-shrink-0 rounded-lg bg-surface-elevated backdrop-blur-lg border border-edge shadow-lg text-content-secondary flex items-center justify-center hover:bg-surface-hover active:scale-95 transition-transform'
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <Navbar />
@@ -109,7 +123,8 @@ function JourneyDetailPageDesktop() {
         />
       )}
 
-      {/* Floating top bar on mobile Journey + Gallery views: back | tabs+title | settings */}
+      {/* Floating top bar on mobile Journey + Gallery views:
+          back | tabs+title | book export, suggestions, settings */}
       {isMobileChromeless && (
         <div
           className="fixed left-0 right-0 z-30 flex items-start justify-between gap-2 px-4"
@@ -118,19 +133,19 @@ function JourneyDetailPageDesktop() {
           <button
             onClick={() => navigate('/journey')}
             aria-label={t('journey.detail.backToJourney')}
-            className="w-10 h-10 flex-shrink-0 rounded-lg bg-white/90 dark:bg-zinc-800/90 backdrop-blur-lg border border-zinc-200 dark:border-zinc-700 shadow-lg text-zinc-700 dark:text-zinc-200 flex items-center justify-center hover:bg-white dark:hover:bg-zinc-800 active:scale-95 transition-transform"
+            className={barButton}
           >
             <ArrowLeft size={16} />
           </button>
 
           <div className="flex-1 min-w-0 flex justify-center">
-            <div className="flex bg-white/90 dark:bg-zinc-800/90 backdrop-blur-lg border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden shadow-lg">
+            <div className="flex bg-surface-elevated backdrop-blur-lg border border-edge rounded-lg overflow-hidden shadow-lg">
               <button
                 onClick={() => setView('timeline')}
                 className={`flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-medium ${
                   view === 'timeline'
-                    ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
-                    : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+                    ? 'bg-inverse text-inverse-text'
+                    : 'text-content-muted hover:text-content-secondary'
                 }`}
               >
                 <MapPin size={13} />
@@ -140,8 +155,8 @@ function JourneyDetailPageDesktop() {
                 onClick={() => setView('gallery')}
                 className={`flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-medium ${
                   view === 'gallery'
-                    ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
-                    : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+                    ? 'bg-inverse text-inverse-text'
+                    : 'text-content-muted hover:text-content-secondary'
                 }`}
               >
                 <Grid size={13} />
@@ -150,17 +165,27 @@ function JourneyDetailPageDesktop() {
             </div>
           </div>
 
-          {canEditJourney ? (
-            <button
-              onClick={() => setShowSettings(true)}
-              aria-label={t('journey.settings.title')}
-              className="w-10 h-10 flex-shrink-0 rounded-lg bg-white/90 dark:bg-zinc-800/90 backdrop-blur-lg border border-zinc-200 dark:border-zinc-700 shadow-lg text-zinc-700 dark:text-zinc-200 flex items-center justify-center hover:bg-white dark:hover:bg-zinc-800 active:scale-95 transition-transform"
-            >
-              <MoreHorizontal size={16} />
+          <div className="flex items-center gap-1.5">
+            <button onClick={openBookPdf} aria-label={t('journey.pdf.saveAsPdf')} className={barButton}>
+              <Download size={16} />
             </button>
-          ) : (
-            <div className="w-10 h-10 flex-shrink-0" aria-hidden />
-          )}
+            <button
+              onClick={toggleSkeletons}
+              aria-label={skeletonLabel}
+              className={`${barButton} ${hideSkeletons ? 'bg-surface-selected' : ''}`}
+            >
+              {hideSkeletons ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+            {canEditJourney && (
+              <button
+                onClick={() => setShowSettings(true)}
+                aria-label={t('journey.settings.title')}
+                className={barButton}
+              >
+                <MoreHorizontal size={16} />
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -184,8 +209,11 @@ function JourneyDetailPageDesktop() {
           >
             <div className={isMobile ? '' : 'w-full px-8 py-6'}>
 
-          {/* Hero card — hidden on mobile gallery/journey views (floating top bar handles branding there) */}
-          <div className={`px-4 md:px-0 mb-6 ${isMobileChromeless ? 'hidden' : ''}`}>
+          {/* Hero card — dropped on mobile gallery/journey views (floating top bar
+              handles branding there). Unmounted rather than `hidden`, so its
+              actions don't sit in the DOM as a second, invisible copy (#1848). */}
+          {!isMobileChromeless && (
+          <div className="px-4 md:px-0 mb-6">
             <div className="rounded-none md:rounded-[28px] -mx-4 md:mx-0 overflow-hidden relative p-5 md:p-7" style={{ background: pickGradient(current.id), color: 'white' }}>
                 {current.cover_image && (
                   <>
@@ -223,24 +251,21 @@ function JourneyDetailPageDesktop() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <button onClick={() => { import('../components/PDF/JourneyBookPDF').then(m => m.downloadJourneyBookPDF(current)) }} className="w-[34px] h-[34px] rounded-full bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"><Download size={14} /></button>
+                    <button onClick={openBookPdf} aria-label={t('journey.pdf.saveAsPdf')} className="w-[34px] h-[34px] rounded-full bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"><Download size={14} /></button>
                     <div className="relative group">
                       <button
-                        onClick={async () => {
-                          const next = !hideSkeletons
-                          setHideSkeletons(next)
-                          await journeyApi.updatePreferences(current.id, { hide_skeletons: next })
-                        }}
+                        onClick={toggleSkeletons}
+                        aria-label={skeletonLabel}
                         className={`w-[34px] h-[34px] rounded-full backdrop-blur flex items-center justify-center ${hideSkeletons ? 'bg-white/30' : 'bg-white/15 hover:bg-white/25'}`}
                       >
                         {hideSkeletons ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
                       <span className="absolute top-full mt-2 right-0 px-2 py-1 rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-[11px] font-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity">
-                        {hideSkeletons ? t('journey.skeletons.show') : t('journey.skeletons.hide')}
+                        {skeletonLabel}
                       </span>
                     </div>
                     {canEditJourney && (
-                      <button onClick={() => setShowSettings(true)} className="w-[34px] h-[34px] rounded-full bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"><MoreHorizontal size={14} /></button>
+                      <button onClick={() => setShowSettings(true)} aria-label={t('journey.settings.title')} className="w-[34px] h-[34px] rounded-full bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"><MoreHorizontal size={14} /></button>
                     )}
                   </div>
                 </div>
@@ -267,6 +292,7 @@ function JourneyDetailPageDesktop() {
                 </div>
             </div>
           </div>
+          )}
 
           {/* Main content (was a 2-col grid with right-sidebar panels;
               now single column inside the left feed — right pane is a

@@ -1,7 +1,13 @@
 // Journey Photo Book PDF — Polarsteps-inspired, magazine-density
+import { createElement } from 'react'
+import type { LucideIcon } from 'lucide-react'
 import { marked } from 'marked'
 import { sanitizeRichTextHtml } from '@trek/shared'
 import type { JourneyDetail, JourneyEntry, JourneyPhoto } from '../../store/journeyStore'
+import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
+import { renderIconMarkup } from '../../utils/iconMarkup'
+
+type Translate = (key: string, params?: Record<string, string | number>) => string
 
 function esc(str: string | null | undefined): string {
   if (!str) return ''
@@ -25,13 +31,9 @@ function pSrc(p: JourneyPhoto): string {
   return abs(`/api/photos/${p.photo_id}/original`)
 }
 
-function fmtDate(d: string): string {
+function fmtDate(d: string, locale: string): string {
   const date = new Date(d + 'T00:00:00')
-  return date.toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
-}
-
-function fmtShort(d: string): string {
-  return new Date(d + 'T00:00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' })
+  return date.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
 }
 
 function groupByDate(entries: JourneyEntry[]): Map<string, JourneyEntry[]> {
@@ -44,7 +46,7 @@ function groupByDate(entries: JourneyEntry[]): Map<string, JourneyEntry[]> {
   return groups
 }
 
-function renderProscons(entry: JourneyEntry): string {
+function renderProscons(entry: JourneyEntry, tr: Translate): string {
   const pc = entry.pros_cons
   if (!pc) return ''
   const pros = pc.pros?.filter(p => p.trim()) || []
@@ -52,9 +54,29 @@ function renderProscons(entry: JourneyEntry): string {
   if (pros.length === 0 && cons.length === 0) return ''
 
   return `<div class="verdict-wrap"><div class="verdict-row">
-    ${pros.length > 0 ? `<div class="verdict-card pros"><div class="verdict-label">Loved it</div><ul>${pros.map(p => `<li>${esc(p)}</li>`).join('')}</ul></div>` : ''}
-    ${cons.length > 0 ? `<div class="verdict-card cons"><div class="verdict-label">Could be better</div><ul>${cons.map(c => `<li>${esc(c)}</li>`).join('')}</ul></div>` : ''}
+    ${pros.length > 0 ? `<div class="verdict-card pros"><div class="verdict-label">${esc(tr('journey.verdict.lovedIt'))}</div><ul>${pros.map(p => `<li>${esc(p)}</li>`).join('')}</ul></div>` : ''}
+    ${cons.length > 0 ? `<div class="verdict-card cons"><div class="verdict-label">${esc(tr('journey.verdict.couldBeBetter'))}</div><ul>${cons.map(c => `<li>${esc(c)}</li>`).join('')}</ul></div>` : ''}
   </div></div>`
+}
+
+function chip(icon: LucideIcon, label: string, bg: string, color: string): string {
+  const svg = renderIconMarkup(createElement(icon, { size: 12, strokeWidth: 2, color }))
+  return `<span class="chip" style="background:${bg};color:${color}">${svg}${esc(label)}</span>`
+}
+
+/**
+ * Mood and weather were on screen but never in the book (#1848). Unknown values
+ * (older entries, a provider-set category we don't render) drop out silently,
+ * the same way MoodChip/WeatherChip return null for them.
+ */
+function renderMoodWeather(entry: JourneyEntry, tr: Translate): string {
+  const chips: string[] = []
+  const mood = entry.mood ? MOOD_CONFIG[entry.mood] : undefined
+  if (mood) chips.push(chip(mood.icon, tr(mood.label), mood.bg, mood.text))
+  const weather = entry.weather ? WEATHER_CONFIG[entry.weather] : undefined
+  if (weather) chips.push(chip(weather.icon, tr(weather.label), '#f4f4f5', '#3f3f46'))
+  if (chips.length === 0) return ''
+  return `<div class="entry-chips">${chips.join('')}</div>`
 }
 
 function renderPhotoBlock(photos: JourneyPhoto[]): string {
@@ -75,7 +97,16 @@ function renderPhotoBlock(photos: JourneyPhoto[]): string {
   </div>`
 }
 
-export async function downloadJourneyBookPDF(journey: JourneyDetail) {
+/**
+ * `opts` stays optional so the signature is additive, but every caller passes
+ * the page's `t`/`locale` — without them the book falls back to raw keys (#1848).
+ */
+export async function downloadJourneyBookPDF(
+  journey: JourneyDetail,
+  opts: { t?: Translate; locale?: string } = {},
+) {
+  const tr: Translate = opts.t || (key => key)
+  const loc = opts.locale || 'en'
   const entries = (journey.entries || []).filter(e => e.type !== 'skeleton')
   const allPhotos = entries.flatMap(e => e.photos || [])
   const coverUrl = journey.cover_image ? abs(`/uploads/${journey.cover_image}`) : (allPhotos[0] ? pSrc(allPhotos[0]) : '')
@@ -96,14 +127,14 @@ export async function downloadJourneyBookPDF(journey: JourneyDetail) {
 
       // Day header (inline, only on first entry of day)
       const dayHeaderHtml = isFirstOfDay
-        ? `<div class="day-header">Day ${di + 1} · ${fmtDate(date)}</div>`
+        ? `<div class="day-header">${esc(tr('journey.detail.day', { number: di + 1 }))} · ${esc(fmtDate(date, loc))}</div>`
         : ''
 
       // Photo block
       const photoHtml = renderPhotoBlock(photos)
 
       // Pros/cons
-      const prosconsHtml = renderProscons(entry)
+      const prosconsHtml = renderProscons(entry, tr)
 
       // Story (markdown)
       const storyHtml = entry.story ? `<div class="entry-story">${md(entry.story)}</div>` : ''
@@ -114,6 +145,7 @@ export async function downloadJourneyBookPDF(journey: JourneyDetail) {
           ${photoHtml}
           <div class="entry-content">
             ${meta ? `<div class="entry-meta">${esc(meta)}</div>` : ''}
+            ${renderMoodWeather(entry, tr)}
             ${entry.title ? `<h2 class="entry-title">${esc(entry.title)}</h2>` : ''}
             ${storyHtml}
             ${prosconsHtml}
@@ -126,11 +158,11 @@ export async function downloadJourneyBookPDF(journey: JourneyDetail) {
   const totalPages = pageNum + 1 // +1 for closing page
 
   const html = `<!DOCTYPE html>
-<html>
+<html lang="${esc(loc.split('-')[0])}">
 <head>
 <meta charset="UTF-8">
 <base href="${window.location.origin}/">
-<title>${esc(journey.title)} — Journey Book</title>
+<title>${esc(journey.title)} — ${esc(tr('journey.pdf.journeyBook'))}</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -207,6 +239,9 @@ export async function downloadJourneyBookPDF(journey: JourneyDetail) {
   /* Entry content */
   .entry-content { flex: 1; }
   .entry-meta { font-size: 10pt; letter-spacing: 0.04em; text-transform: uppercase; color: #71717a; font-weight: 500; margin-bottom: 6pt; }
+  .entry-chips { display: flex; flex-wrap: wrap; gap: 5pt; margin-bottom: 8pt; }
+  .chip { display: inline-flex; align-items: center; gap: 3pt; padding: 2.5pt 7pt; border-radius: 999pt; font-size: 8.5pt; font-weight: 600; }
+  .chip svg { width: 9pt; height: 9pt; }
   h2.entry-title { font-size: 28pt; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin: 0 0 10pt; color: #0a0a0f; }
   .entry-story { font-size: 11pt; line-height: 1.65; color: #3f3f46; }
   .entry-story p { margin: 0 0 8pt; }
@@ -262,16 +297,16 @@ export async function downloadJourneyBookPDF(journey: JourneyDetail) {
     <div class="cover-dim"></div>
     <div class="cover-mesh"></div>
     <div class="cover-content">
-      <div class="cover-label">Journey Book</div>
+      <div class="cover-label">${esc(tr('journey.pdf.journeyBook'))}</div>
       <h1>${esc(journey.title)}</h1>
       ${journey.subtitle ? `<div class="sub">${esc(journey.subtitle)}</div>` : ''}
       <div class="cover-stats">
-        <div><div class="cover-stat-val">${dates.length}</div><div class="cover-stat-label">Days</div></div>
-        <div><div class="cover-stat-val">${entries.length}</div><div class="cover-stat-label">Entries</div></div>
-        <div><div class="cover-stat-val">${allPhotos.length}</div><div class="cover-stat-label">Photos</div></div>
+        <div><div class="cover-stat-val">${dates.length}</div><div class="cover-stat-label">${esc(tr('journey.stats.days'))}</div></div>
+        <div><div class="cover-stat-val">${entries.length}</div><div class="cover-stat-label">${esc(tr('journey.stats.entries'))}</div></div>
+        <div><div class="cover-stat-val">${allPhotos.length}</div><div class="cover-stat-label">${esc(tr('journey.stats.photos'))}</div></div>
       </div>
     </div>
-    <div class="cover-footer">Made with TREK</div>
+    <div class="cover-footer">${esc(tr('journey.pdf.madeWith'))}</div>
   </div>
 
   <!-- Entry Pages -->
@@ -280,8 +315,8 @@ export async function downloadJourneyBookPDF(journey: JourneyDetail) {
   <!-- Closing Page -->
   <div class="closing-page">
     <div>
-      <div class="closing-title">The End</div>
-      <div class="closing-sub">Made with TREK · ${new Date().getFullYear()}</div>
+      <div class="closing-title">${esc(tr('journey.pdf.theEnd'))}</div>
+      <div class="closing-sub">${esc(tr('journey.pdf.madeWith'))} · ${new Date().getFullYear()}</div>
     </div>
   </div>
 
@@ -302,10 +337,10 @@ export async function downloadJourneyBookPDF(journey: JourneyDetail) {
   const header = document.createElement('div')
   header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid #e4e4e7;flex-shrink:0;background:#0f172a;'
   header.innerHTML = `
-    <span style="font-size:12px;color:rgba(255,255,255,0.45);font-weight:500;letter-spacing:0.03em">${esc(journey.title)} &middot; ${totalPages} pages</span>
+    <span style="font-size:12px;color:rgba(255,255,255,0.45);font-weight:500;letter-spacing:0.03em">${esc(journey.title)} &middot; ${totalPages} ${esc(tr('journey.pdf.pages'))}</span>
     <div style="display:flex;align-items:center;gap:8px">
-      <button id="journey-pdf-save" style="min-height:44px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;border:none;background:#fff;color:#0f172a;">Save as PDF</button>
-      <button id="journey-pdf-close" style="min-height:44px;padding:10px 16px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);">Close</button>
+      <button id="journey-pdf-save" style="min-height:44px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;border:none;background:#fff;color:#0f172a;">${esc(tr('journey.pdf.saveAsPdf'))}</button>
+      <button id="journey-pdf-close" style="min-height:44px;padding:10px 16px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);">${esc(tr('common.close'))}</button>
     </div>
   `
 

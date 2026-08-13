@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, MapPin, Grid3x3, Upload, MoreHorizontal, Play, Image, Camera } from 'lucide-react'
+import { ChevronLeft, MapPin, Grid3x3, Upload, MoreHorizontal, Play, Image, Camera, Download, EyeOff, Settings2 } from 'lucide-react'
 import JourneyMap from '../../../components/Journey/JourneyMapAuto'
 import type { JourneyMapAutoHandle } from '../../../components/Journey/JourneyMapAuto'
 import PhotoLightbox from '../../../components/Journey/PhotoLightbox'
@@ -18,6 +18,7 @@ import { getApiErrorMessage } from '../../../types'
 import MSheet from '../../components/MSheet'
 import MDancingTrek from '../../components/MDancingTrek'
 import MListRow from '../../components/MListRow'
+import MToggle from '../../components/MToggle'
 import MJourneyEntryCard from './MJourneyEntryCard'
 import MJourneyEntrySheet from './MJourneyEntrySheet'
 import MJourneySettingsSheet from './MJourneySettingsSheet'
@@ -29,7 +30,7 @@ import MJourneySettingsSheet from './MJourneySettingsSheet'
  */
 export default function MJourneyDetail() {
   const {
-    id, navigate, toast, t,
+    id, navigate, toast, t, locale,
     current, loading,
     canEditEntries, canEditJourney,
     view, setView,
@@ -37,7 +38,7 @@ export default function MJourneyDetail() {
     lightbox, setLightbox, deleteTarget, setDeleteTarget,
     showInvite, setShowInvite,
     showSettings, setShowSettings,
-    hideSkeletons,
+    hideSkeletons, setHideSkeletons,
     sidebarMapItems, tracks,
     loadJourney, updateEntry, deleteEntry, uploadPhotos,
   } = useJourneyDetail()
@@ -129,6 +130,7 @@ export default function MJourneyDetail() {
   const galleryFileRef = useRef<HTMLInputElement>(null)
   const [availableProviders, setAvailableProviders] = useState<{ id: string; name: string }[]>([])
   const [showUploadMenu, setShowUploadMenu] = useState(false)
+  const [showActionMenu, setShowActionMenu] = useState(false)
   const [pickerProvider, setPickerProvider] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
 
@@ -192,7 +194,7 @@ export default function MJourneyDetail() {
 
   if (loading || !current) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-dvh items-center justify-center">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-m-ink" />
       </div>
     )
@@ -201,8 +203,27 @@ export default function MJourneyDetail() {
   const gallery = current.gallery || []
   const dark = document.documentElement.classList.contains('dark')
 
+  // The book export and the suggestions switch used to be desktop-only (#1848).
+  // They live in the header overflow sheet here, together with the settings
+  // entry, so the header keeps a single "more" affordance.
+  const exportBook = async () => {
+    setShowActionMenu(false)
+    const pdf = await import('../../../components/PDF/JourneyBookPDF')
+    await pdf.downloadJourneyBookPDF(current, { t, locale })
+  }
+  const toggleSkeletons = async (next: boolean) => {
+    setHideSkeletons(next)
+    try {
+      await journeyApi.updatePreferences(current.id, { hide_skeletons: next })
+    } catch {
+      /* cosmetic preference — the local flip stands until the next load */
+    }
+  }
+
   return (
-    <div className="relative h-full overflow-hidden">
+    // h-dvh, not h-full: the shell stopped providing a definite height (#1809)
+    // and a map on a percentage of an auto-height parent collapses to zero.
+    <div className="relative h-dvh overflow-hidden">
       {/* Integrated map — always mounted, the gallery overlays it */}
       <div className="absolute inset-0 z-0">
         <JourneyMap
@@ -255,7 +276,7 @@ export default function MJourneyDetail() {
         </div>
       )}
 
-      {/* Header: back — segment — upload/settings */}
+      {/* Header: back — segment — upload / overflow menu */}
       <div className="absolute left-4 right-4 top-[var(--m-safe-top,12px)] z-10 flex items-center justify-between gap-2">
         <button
           type="button"
@@ -303,16 +324,14 @@ export default function MJourneyDetail() {
               )}
             </button>
           )}
-          {view === 'timeline' && canEditJourney && (
-            <button
-              type="button"
-              onClick={() => setShowSettings(true)}
-              aria-label={t('journey.settings.title')}
-              className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-[color:var(--m-sheet)] text-m-ink shadow-[0_5px_14px_-6px_rgba(0,0,0,.3)]"
-            >
-              <MoreHorizontal size={17} strokeWidth={2} />
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setShowActionMenu(true)}
+            aria-label={t('files.menu')}
+            className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-[color:var(--m-sheet)] text-m-ink shadow-[0_5px_14px_-6px_rgba(0,0,0,.3)]"
+          >
+            <MoreHorizontal size={17} strokeWidth={2} />
+          </button>
         </span>
       </div>
 
@@ -356,6 +375,25 @@ export default function MJourneyDetail() {
         </div>
       </MSheet>
 
+      {/* Journey actions: book export, suggestions switch, settings */}
+      <MSheet open={showActionMenu} onClose={() => setShowActionMenu(false)} variant="bottom" ariaLabel={t('files.menu')}>
+        <div className="flex flex-col gap-1 p-[10px]">
+          <MListRow icon={Download} label={t('journey.pdf.saveAsPdf')} onClick={exportBook} />
+          <div className="flex items-center gap-[11px] px-[10px] py-[11px]">
+            <EyeOff size={16} strokeWidth={2} className="flex-none text-m-muted" />
+            <span className="min-w-0 flex-1 truncate text-[0.84375rem] font-semibold">{t('journey.skeletons.hide')}</span>
+            <MToggle checked={hideSkeletons} onChange={toggleSkeletons} ariaLabel={t('journey.skeletons.hide')} />
+          </div>
+          {canEditJourney && (
+            <MListRow
+              icon={Settings2}
+              label={t('journey.settings.title')}
+              onClick={() => { setShowActionMenu(false); setShowSettings(true) }}
+            />
+          )}
+        </div>
+      </MSheet>
+
       {/* Entry sheet (new / edit / read-only) */}
       {editingEntry && (
         <MJourneyEntrySheet
@@ -363,18 +401,26 @@ export default function MJourneyDetail() {
           galleryPhotos={gallery}
           quickCapture={editingEntry.id === 0}
           readOnly={!canEditEntries}
+          userId={useAuthStore.getState().user?.id || 0}
+          trips={current.trips}
           onClose={() => setEditingEntry(null)}
-          onSave={async data => {
-            let entryId = editingEntry.id
-            if (editingEntry.id === 0) {
+          onSave={async (data, existingEntryId) => {
+            // existingEntryId is what the sheet already persisted in an earlier
+            // save attempt — without it a retry would create a second entry.
+            const currentEntryId = existingEntryId ?? editingEntry.id
+            let entryId = currentEntryId
+            if (currentEntryId === 0) {
               const created = await useJourneyStore.getState().createEntry(current.id, data)
               entryId = created.id
             } else {
-              await updateEntry(editingEntry.id, data)
+              await updateEntry(currentEntryId, data)
             }
             return entryId
           }}
           onUploadPhotos={uploadPhotos}
+          onAddProviderPhotos={async (entryId, group) => {
+            await journeyApi.addProviderPhotos(entryId, group.provider, group.assetIds, undefined, group.passphrase, group.mediaTypes)
+          }}
           onDelete={editingEntry.id > 0 && canEditEntries
             ? () => { const target = editingEntry; setEditingEntry(null); setDeleteTarget(target) }
             : undefined}

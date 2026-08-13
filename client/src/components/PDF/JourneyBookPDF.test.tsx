@@ -1,10 +1,11 @@
-// FE-COMP-JOURNEYPDF-001 to FE-COMP-JOURNEYPDF-006
+// FE-COMP-JOURNEYPDF-001 to FE-COMP-JOURNEYPDF-012
 //
-// JourneyBookPDF.tsx exports an async function `downloadJourneyBookPDF(journey)`
-// that renders a PDF preview in an srcdoc iframe overlay (Safari-safe pattern).
-// Tests verify the overlay DOM structure and HTML content.
+// JourneyBookPDF.tsx exports an async function
+// `downloadJourneyBookPDF(journey, { t, locale })` that renders a PDF preview in
+// an srcdoc iframe overlay (Safari-safe pattern). Tests verify the overlay DOM
+// structure, the HTML content and that the book follows the app language.
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 
 // Mock `marked` so we don't need the real markdown parser
 vi.mock('marked', () => ({
@@ -87,6 +88,18 @@ function getIframe(): HTMLIFrameElement | null {
   return getOverlay()?.querySelector('iframe') ?? null;
 }
 
+// Echoes the key (plus any params) so the assertions read as "this string comes
+// from i18n" instead of pinning English copy.
+function t(key: string, params?: Record<string, string | number>): string {
+  if (!params) return key;
+  return `${key}(${Object.entries(params).map(([k, v]) => `${k}=${v}`).join(',')})`;
+}
+
+const longDate = (d: string, locale: string) =>
+  new Date(d + 'T00:00:00').toLocaleDateString(locale, {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+  });
+
 // ── Setup ────────────────────────────────────────────────────────────────────
 
 afterEach(() => {
@@ -142,9 +155,10 @@ describe('downloadJourneyBookPDF', () => {
     expect(getOverlay()).not.toBeNull();
     const html = getIframe()!.srcdoc;
     expect(html).toContain('Iceland Ring Road');
-    // No entry pages, but cover and closing page are still present
-    expect(html).toContain('Journey Book');
-    expect(html).toContain('The End');
+    // No entry pages, but cover and closing page are still present. Without a
+    // translator the chrome falls back to the raw keys instead of throwing.
+    expect(html).toContain('journey.pdf.journeyBook');
+    expect(html).toContain('journey.pdf.theEnd');
   });
 
   it('FE-COMP-JOURNEYPDF-007: sanitises HTML injected via an entry story and keeps the iframe script-free', async () => {
@@ -161,5 +175,73 @@ describe('downloadJourneyBookPDF', () => {
     // Benign prose survives.
     expect(html).toContain('Hello');
     expect(html).toContain('world');
+  });
+
+  it('FE-COMP-JOURNEYPDF-008: renders cover, day header and closing page through i18n', async () => {
+    await downloadJourneyBookPDF(buildJourney(), { t, locale: 'de-DE' });
+    const html = getIframe()!.srcdoc;
+
+    expect(html).toContain('<html lang="de">');
+    expect(html).toContain('journey.pdf.journeyBook');
+    expect(html).toContain('journey.stats.days');
+    expect(html).toContain('journey.stats.entries');
+    expect(html).toContain('journey.stats.photos');
+    expect(html).toContain('journey.pdf.madeWith');
+    expect(html).toContain('journey.pdf.theEnd');
+    // Day header is the parameterised key plus a date in the picked locale —
+    // the hardcoded 'en' formatting would not produce this string.
+    expect(html).toContain('journey.detail.day(number=1)');
+    expect(html).toContain(longDate('2026-07-01', 'de-DE'));
+    // Pros/cons headings too.
+    expect(html).toContain('journey.verdict.lovedIt');
+    expect(html).toContain('journey.verdict.couldBeBetter');
+  });
+
+  it('FE-COMP-JOURNEYPDF-009: translates the preview bar above the book', async () => {
+    await downloadJourneyBookPDF(buildJourney(), { t, locale: 'de-DE' });
+    const overlay = getOverlay()!;
+
+    // cover + one entry page + closing page
+    expect(overlay.textContent).toContain('3 journey.pdf.pages');
+    expect(overlay.querySelector('#journey-pdf-save')!.textContent).toBe('journey.pdf.saveAsPdf');
+    expect(overlay.querySelector('#journey-pdf-close')!.textContent).toBe('common.close');
+  });
+
+  it('FE-COMP-JOURNEYPDF-010: prints mood and weather next to the entry', async () => {
+    const journey = buildJourney();
+    journey.entries[0].mood = 'good';
+    journey.entries[0].weather = 'rainy';
+    await downloadJourneyBookPDF(journey, { t, locale: 'en-US' });
+    const html = getIframe()!.srcdoc;
+
+    expect(html).toContain('journey.mood.good');
+    expect(html).toContain('journey.weather.rainy');
+    // Icons come along as inline SVG inside the chips.
+    expect(html).toContain('class="entry-chips"');
+    expect(html).toContain('<svg');
+  });
+
+  it('FE-COMP-JOURNEYPDF-011: skips chips for values the app does not know', async () => {
+    // The fixture carries mood 'excited', which is not one of the four moods.
+    await downloadJourneyBookPDF(buildJourney(), { t, locale: 'en-US' });
+    const html = getIframe()!.srcdoc;
+    // Scoped to the chip row: the page elsewhere is free to carry whatever the
+    // fixture happens to leave undefined, and that is not what this asserts.
+    const chips = html.match(/<div class="entry-chips">[\s\S]*?<\/div>/)?.[0] ?? '';
+
+    expect(chips).not.toBe('');
+    expect(chips).not.toContain('undefined');
+    expect(chips).not.toContain('journey.mood.');
+    // The known weather value still gets its chip.
+    expect(chips).toContain('journey.weather.sunny');
+  });
+
+  it('FE-COMP-JOURNEYPDF-012: leaves out the chip row when an entry has neither', async () => {
+    const journey = buildJourney();
+    journey.entries[0].mood = null;
+    journey.entries[0].weather = null;
+    await downloadJourneyBookPDF(journey, { t, locale: 'en-US' });
+
+    expect(getIframe()!.srcdoc).not.toContain('class="entry-chips"');
   });
 });
