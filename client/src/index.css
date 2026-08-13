@@ -15,13 +15,18 @@ body { height: 100%; overflow: auto; overscroll-behavior: none; -webkit-overflow
    reloads the installed PWA. Desktop/tablet keep the rules above. */
 @media (max-width: 767px) {
   html { overflow: visible; overscroll-behavior: none; }
+  body { height: auto; overflow: visible; }
   /* Transparent so the shell's own background layer, which sits behind the page
      on a negative z-index, is not painted over: a negative layer goes above the
      canvas but below the background of ordinary blocks, and body is one. The
      alternative, lifting the layer into the positioned range, would have turned
      the content wrapper into a stacking context and trapped every fixed overlay
-     inside it (the vacay FAB ended up under the dock that way). */
-  body { height: auto; overflow: visible; background-color: transparent; }
+     inside it (the vacay FAB ended up under the dock that way).
+
+     `html body` and not `body`: a media query adds no specificity, and the
+     themed `body` rule further down this file would otherwise win on source
+     order alone and paint over the layer again. */
+  html body { background-color: transparent; }
 }
 
 
