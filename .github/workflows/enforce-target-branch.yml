@@ -68,6 +68,38 @@ jobs:
               return;
             }
 
+            // Dependabot cannot be pointed at dev. `target-branch` in dependabot.yml
+            // applies to version updates only; security updates always open against
+            // the default branch, and security updates are all this repository gets
+            // (there is no dependabot.yml). Labelling them meant close-stale-wrong-branch
+            // shut them 24 hours later, which is how 13 of them died. Retarget instead:
+            // a bot cannot click "Edit" the way the comment below asks a human to.
+            if (context.payload.pull_request.user.login === 'dependabot[bot]') {
+              try {
+                await github.rest.pulls.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: prNumber,
+                  base: 'dev',
+                });
+                if (labels.includes('wrong-base-branch')) {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: prNumber,
+                    name: 'wrong-base-branch',
+                  });
+                }
+                console.log('Retargeted the Dependabot PR onto dev.');
+                return;
+              } catch (err) {
+                // Retargeting can fail when the branch was cut from main and dev has
+                // moved on. Fall through to the normal path so a human sees it rather
+                // than the check passing on a PR that is still aimed at main.
+                console.log(`Could not retarget the Dependabot PR: ${err.message}`);
+              }
+            }
+
             // Base is main — check if this user is a maintainer
             let permission = 'none';
             try {
