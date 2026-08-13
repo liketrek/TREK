@@ -182,10 +182,15 @@ export class CalendarService {
         // Pad to 15 chars (YYYYMMDDTHHMMSS) — add missing seconds
         return raw.length === 13 ? raw + '00' : raw;
       }
-      // Time-only: combine with reference date
+      // Time-only: combine with reference date. Pad the same way the branch above
+      // does rather than unconditionally, because the value can already carry
+      // seconds ("10:00:00" is what the booking import stores). Appending
+      // regardless made it 17 characters, which fails dtLine's shape check, drops
+      // the TZID and leaves a floating time in the feed (#1453 again).
       if (refDate && d.match(/^\d{2}:\d{2}/)) {
         const datePart = refDate.split('T')[0];
-        return `${datePart}T${d.replace(/:/g, '')}00`.replace(/-/g, '');
+        const raw = `${datePart}T${d.replace(/:/g, '')}`.replace(/-/g, '');
+        return raw.length === 13 ? raw + '00' : raw;
       }
       return d.replace(/[-:]/g, '');
     };

@@ -1000,6 +1000,27 @@ describe('car rentals', () => {
     expect(ics).toContain('SUMMARY:Untimed Rental');
     expect(ics).toContain('DTSTART;VALUE=DATE:20260707');
   });
+
+  it('CAL-042: a clock that already carries seconds keeps its zone', () => {
+    // The booking import stores what KItinerary hands it, which is "10:00:00".
+    // fmtDateTime's time-only branch appended "00" regardless, so the value came
+    // out 17 characters long, dtLine refused to attach the TZID and the event
+    // went out floating — the #1453 regression by another route.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'Seconds Rental', type: 'car' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2026-07-07T09:00:00', '18:30:00', reservation.id);
+    insertEndpoint(reservation.id, 'from', 0, 'Paris Office', 48.8566, 2.3522, 'Europe/Paris', '09:00:00', '2026-07-07');
+    insertEndpoint(reservation.id, 'to', 1, 'Lyon Office', 45.764, 4.8357, 'Europe/Paris', '18:30:00', '2026-07-07');
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260707T090000');
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260707T183000');
+    // No 17-character value anywhere: that is what silently drops the zone.
+    expect(ics).not.toMatch(/DTSTART[^\r\n]*\d{8}T\d{8}/);
+  });
 });
 
 describe('folded quirk branches', () => {
