@@ -897,6 +897,111 @@ describe('accommodations', () => {
   });
 });
 
+// ── Car rental pickup/drop-off in the feed (#1721) ──────────────────────────
+
+describe('car rentals', () => {
+  const insertEndpoint = (
+    reservationId: number,
+    role: string,
+    sequence: number,
+    name: string,
+    lat: number,
+    lng: number,
+    timezone: string | null,
+    local_time: string | null,
+    local_date: string | null,
+  ) => {
+    testDb.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(reservationId, role, sequence, name, null, lat, lng, timezone, local_time, local_date);
+  };
+
+  it('CAL-037: a rental with from/to endpoints produces a pickup and a drop-off event at the right local times and zones', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'Hertz Rental', type: 'car' });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL, location=? WHERE id=?')
+      .run('Hertz Downtown', reservation.id);
+    insertEndpoint(reservation.id, 'from', 0, 'Paris Office', 48.8566, 2.3522, 'Europe/Paris', '09:00', '2026-07-07');
+    insertEndpoint(reservation.id, 'to', 1, 'Berlin Office', 52.5, 13.4, 'Europe/Berlin', '10:30', '2026-07-14');
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Pickup: Hertz Rental');
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260707T090000');
+    expect(ics).toContain('SUMMARY:Drop-off: Hertz Rental');
+    expect(ics).toContain('DTSTART;TZID=Europe/Berlin:20260714T103000');
+    expect(ics).toContain('LOCATION:Hertz Downtown');
+    expect(ics).toContain('BEGIN:VTIMEZONE\r\nTZID:Europe/Paris');
+    expect(ics).toContain('BEGIN:VTIMEZONE\r\nTZID:Europe/Berlin');
+  });
+
+  it('CAL-038: role-less endpoints fall back to first/last by sequence', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'Avis Rental', type: 'car' });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(reservation.id);
+    // Neither endpoint carries a from/to role — an older import shape.
+    insertEndpoint(reservation.id, 'stop', 0, 'Paris Office', 48.8566, 2.3522, 'Europe/Paris', '09:00', '2026-07-07');
+    insertEndpoint(reservation.id, 'stop', 1, 'Berlin Office', 52.5, 13.4, 'Europe/Berlin', '10:30', '2026-07-14');
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Pickup: Avis Rental');
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260707T090000');
+    expect(ics).toContain('SUMMARY:Drop-off: Avis Rental');
+    expect(ics).toContain('DTSTART;TZID=Europe/Berlin:20260714T103000');
+  });
+
+  it('CAL-039: a rental with only reservation_time/reservation_end_time still produces both events', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const place = createPlace(testDb, trip.id, { name: 'Rental Desk', lat: 48.8566, lng: 2.3522 });
+    const reservation = createReservation(testDb, trip.id, { title: 'Budget Rental', type: 'car' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=?, place_id=? WHERE id=?')
+      .run('2026-07-07T09:00', '2026-07-14T10:30', place.id, reservation.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Pickup: Budget Rental');
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260707T090000');
+    expect(ics).toContain('SUMMARY:Drop-off: Budget Rental');
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260714T103000');
+  });
+
+  it('CAL-040: a rental with a single endpoint does not emit a bogus second event', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'Sixt Rental', type: 'car' });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(reservation.id);
+    // Only the pickup was geocoded — the common shape for a partially-imported
+    // booking. The lone endpoint must not be reused as the drop-off too.
+    insertEndpoint(reservation.id, 'from', 0, 'Paris Office', 48.8566, 2.3522, 'Europe/Paris', '09:00', '2026-07-07');
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Pickup: Sixt Rental');
+    expect(ics).not.toContain('Drop-off');
+  });
+
+  it('CAL-041: a rental with no usable clock emits no window events and its existing behaviour is unchanged', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'Untimed Rental', type: 'car' });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(reservation.id);
+    // A date but no clock — the pre-existing "untimed transport" all-day
+    // fallback still applies and must be unaffected by the new marker events.
+    insertEndpoint(reservation.id, 'from', 0, 'Paris Office', 48.8566, 2.3522, 'Europe/Paris', null, '2026-07-07');
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).not.toContain('Pickup');
+    expect(ics).not.toContain('Drop-off');
+    expect(ics).toContain('SUMMARY:Untimed Rental');
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260707');
+  });
+});
+
 describe('folded quirk branches', () => {
   it('TRIP-SVC-048: exportICS renders untimed/notes all-day summaries, multi-leg routes, endpoint routes and train/location fields', () => {
     const { user } = createUser(testDb);

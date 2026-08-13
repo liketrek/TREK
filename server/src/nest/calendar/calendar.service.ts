@@ -483,6 +483,77 @@ export class CalendarService {
       }
     }
 
+    // Pickup and drop-off as their own timed events — the car-rental analogue
+    // of check-in/check-out above (last unported piece of #1721). Additive,
+    // same as the check-in/check-out markers are additive to the all-day stay
+    // range: the rental's existing single-block event (from the endpoint or
+    // reservation_time branch of buildReservationTimeLines, above) is untouched.
+    // "YYYY-MM-DD", full ISO, or a bare "HH:MM" → date/time parts. Endpoints
+    // already carry local_date/local_time separately; reservation_time and
+    // reservation_end_time (the last-resort fallback below) are combined
+    // strings, and reservation_end_time is frequently just a bare clock
+    // alongside the reservation's own date.
+    const dateOf = (s: string | null | undefined): string | null => {
+      if (!s) return null;
+      const d = s.includes('T') ? s.split('T')[0] : s;
+      return isDate(d) ? d : null;
+    };
+    const timeOf = (s: string | null | undefined): string | null => {
+      if (!s) return null;
+      const t = s.includes('T') ? s.split('T')[1] : s;
+      return t && isTime(t) ? t : null;
+    };
+
+    for (const r of reservations) {
+      if (r.type !== 'car') continue;
+
+      // Sides come from the endpoint role first: import can drop one endpoint
+      // (failed geocoding), and a surviving return endpoint must not masquerade
+      // as the pickup. Positional first/last by sequence is only a fallback
+      // when neither role is present at all, and only once there's more than
+      // one endpoint, so a lone endpoint is never treated as both sides.
+      const eps = endpointsMap.get(r.id);
+      const ordered = eps && eps.length > 0 ? [...eps].sort((a, b) => a.sequence - b.sequence) : [];
+      const roleFrom = ordered.find(e => e.role === 'from');
+      const roleTo = ordered.find(e => e.role === 'to');
+      const noRoles = !roleFrom && !roleTo;
+      const pickupEp = roleFrom ?? (noRoles && ordered.length > 1 ? ordered[0] : undefined);
+      const dropEp = roleTo ?? (noRoles && ordered.length > 1 ? ordered[ordered.length - 1] : undefined);
+
+      const carMarker = (kind: 'pickup' | 'dropoff', summary: string, date: string, time: string, zone: string | null) => {
+        let ev = `BEGIN:VEVENT\r\nUID:${uid(r.id, kind)}\r\nDTSTAMP:${now}\r\n`;
+        ev += dtLine('DTSTART', time, zone, `${date}T00:00`);
+        ev += `SUMMARY:${esc(summary)}\r\n`;
+        if (r.location) ev += `LOCATION:${esc(r.location)}\r\n`;
+        ev += `END:VEVENT\r\n`;
+        events.push(ev);
+      };
+
+      // Per side: the chosen endpoint when it has a usable date and clock,
+      // else reservation_time (pickup) / reservation_end_time (drop-off) —
+      // imports frequently carry only that window. A side with no usable date
+      // and clock from either source emits nothing.
+      const pickupUsable = pickupEp && isDate(pickupEp.local_date) && isTime(pickupEp.local_time);
+      const pickupDate = pickupUsable ? pickupEp!.local_date : dateOf(r.reservation_time);
+      const pickupTime = pickupUsable ? pickupEp!.local_time : timeOf(r.reservation_time);
+      if (isDate(pickupDate) && isTime(pickupTime)) {
+        const zone = pickupUsable
+          ? (pickupEp!.timezone || resolveTimeZone(pickupEp!.lat, pickupEp!.lng))
+          : resolveTimeZone(r.place_lat, r.place_lng);
+        carMarker('pickup', `Pickup: ${r.title}`, pickupDate!, pickupTime!, zone);
+      }
+
+      const dropUsable = dropEp && isDate(dropEp.local_date) && isTime(dropEp.local_time);
+      const dropDate = dropUsable ? dropEp!.local_date : (dateOf(r.reservation_end_time) || dateOf(r.reservation_time));
+      const dropTime = dropUsable ? dropEp!.local_time : timeOf(r.reservation_end_time);
+      if (isDate(dropDate) && isTime(dropTime)) {
+        const zone = dropUsable
+          ? (dropEp!.timezone || resolveTimeZone(dropEp!.lat, dropEp!.lng))
+          : resolveTimeZone(r.place_lat, r.place_lng);
+        carMarker('dropoff', `Drop-off: ${r.title}`, dropDate!, dropTime!, zone);
+      }
+    }
+
     // Every referenced zone gets a VTIMEZONE. They are emitted before the first
     // event so the TZID references resolve; keyed by TZID so a merged calendar
     // can define each one once.
