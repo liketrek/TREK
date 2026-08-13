@@ -226,4 +226,33 @@ describe('AnthropicClient', () => {
     const blocks = body.messages[0].content;
     expect(blocks.some((b: any) => b.type === 'document' && b.source.type === 'base64')).toBe(true);
   });
+
+  it('parses a stringified reservations array instead of dropping it to []', async () => {
+    // Observed in live use: despite the array-typed input_schema and a forced
+    // tool_choice, the model sometimes stringifies the field.
+    mockFetch(() =>
+      jsonResponse({
+        stop_reason: 'tool_use',
+        content: [{ type: 'tool_use', name: 'emit_reservations', input: { reservations: '[{"@type":"LodgingReservation"}]' } }],
+      }),
+    );
+    expect(await new AnthropicClient().extract(baseInput)).toEqual([{ '@type': 'LodgingReservation' }]);
+  });
+
+  it('parses a stringified, double-wrapped {reservations:[...]} object', async () => {
+    mockFetch(() =>
+      jsonResponse({
+        stop_reason: 'tool_use',
+        content: [{ type: 'tool_use', name: 'emit_reservations', input: { reservations: '{"reservations":[{"@type":"LodgingReservation"}]}' } }],
+      }),
+    );
+    expect(await new AnthropicClient().extract(baseInput)).toEqual([{ '@type': 'LodgingReservation' }]);
+  });
+
+  it('returns [] for an unparseable stringified reservations field', async () => {
+    mockFetch(() =>
+      jsonResponse({ stop_reason: 'tool_use', content: [{ type: 'tool_use', name: 'emit_reservations', input: { reservations: 'not json' } }] }),
+    );
+    expect(await new AnthropicClient().extract(baseInput)).toEqual([]);
+  });
 });

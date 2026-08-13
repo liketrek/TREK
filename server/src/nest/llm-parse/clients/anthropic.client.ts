@@ -80,7 +80,21 @@ export class AnthropicClient implements LlmExtractionClient {
     }
 
     const toolUse = data.content?.find(b => b.type === 'tool_use' && b.name === TOOL_NAME);
-    const reservations = toolUse?.input?.reservations;
+    let reservations = toolUse?.input?.reservations;
+    // The model is expected to fill `reservations` as a native array — that's what
+    // forcing tool_choice is for — but it occasionally stringifies the field instead,
+    // sometimes double-wrapped as `{"reservations": [...]}`. Parse defensively rather
+    // than letting the Array.isArray check below silently drop a good extraction to [].
+    if (typeof reservations === 'string') {
+      try {
+        const parsed: unknown = JSON.parse(reservations);
+        reservations = Array.isArray(parsed)
+          ? parsed
+          : (parsed as { reservations?: unknown } | null)?.reservations;
+      } catch {
+        reservations = undefined;
+      }
+    }
     return Array.isArray(reservations) ? (reservations as Record<string, unknown>[]) : [];
   }
 }
