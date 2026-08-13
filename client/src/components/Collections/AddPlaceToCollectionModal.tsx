@@ -42,6 +42,9 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<MapsPlace[]>([])
   const [searching, setSearching] = useState(false)
+  // A search that came back empty used to render nothing at all, which reads as
+  // "the dialog is dead". Say so instead (#1921).
+  const [noResults, setNoResults] = useState(false)
   // The picked location (address/coords/ids) plus the editable fields.
   const [picked, setPicked] = useState<MapsPlace | null>(null)
   const [name, setName] = useState('')
@@ -56,22 +59,28 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
   const [status, setStatus] = useState<CollectionStatus>('idea')
   const [saving, setSaving] = useState(false)
   const descRef = useRef<HTMLTextAreaElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
 
-  const reset = () => { setQuery(''); setResults([]); setPicked(null); setName(''); setAddress(''); setLat(''); setLng(''); setCategoryId(null); setDescription(''); setLinks([]); setStatus('idea') }
+  const reset = () => { setQuery(''); setResults([]); setNoResults(false); setPicked(null); setName(''); setAddress(''); setLat(''); setLng(''); setCategoryId(null); setDescription(''); setLinks([]); setStatus('idea') }
   useEffect(() => { if (!isOpen) reset() }, [isOpen])
 
   const search = async () => {
     if (!query.trim()) return
     setSearching(true)
+    setNoResults(false)
     try {
       const res = await mapsApi.search(query, language)
-      setResults((res.places as MapsPlace[]) || [])
+      const places = (res.places as MapsPlace[]) || []
+      setResults(places)
+      setNoResults(places.length === 0)
     } catch (err) {
       toast.error(getApiErrorMessage(err, t('places.mapsSearchError')))
     } finally {
       setSearching(false)
     }
   }
+
+  const dismissResults = () => { setResults([]); setNoResults(false) }
 
   const pick = (r: MapsPlace) => {
     setPicked(r)
@@ -80,7 +89,7 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
     const la = num(r.lat); const lo = num(r.lng)
     setLat(la != null ? String(la) : '')
     setLng(lo != null ? String(lo) : '')
-    setResults([]); setQuery(str(r.name) ?? query)
+    setResults([]); setNoResults(false); setQuery(str(r.name) ?? query)
   }
   const setLink = (i: number, patch: Partial<CollectionLink>) => setLinks(links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)))
 
@@ -112,6 +121,11 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
       if (res.duplicate) toast.info(t('collections.duplicateWarning'))
       else { toast.success(t('collections.addedToList', { name: collectionName })); onAdded() }
       reset()
+      // The dialog stays open for the next place, so hand the caret back to the
+      // search field. The add button the user just clicked goes disabled with the
+      // cleared name, which drops the focus to <body> and leaves the dialog dead
+      // to the keyboard (#1921).
+      searchRef.current?.focus()
     } catch (err) {
       toast.error(getApiErrorMessage(err, t('common.error')))
     } finally {
@@ -142,42 +156,51 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
       }
     >
       <div className="flex flex-col gap-4">
-        {/* Search — picking a result fills the location below */}
-        <div className="relative">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-content-faint" />
-              <input
-                autoFocus
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); search() } }}
-                placeholder={t('collections.addPlaceSearch')}
-                className="w-full pl-9 pr-3 py-2 rounded-lg border border-edge bg-surface-input text-content text-[14px] outline-none focus:border-accent"
-              />
-            </div>
-            <button type="button" onClick={search} disabled={!query.trim() || searching} className="px-4 py-2 rounded-lg bg-accent text-accent-text text-[13px] font-semibold disabled:opacity-50 inline-flex items-center gap-2">
-              {searching ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
-              {t('common.search')}
-            </button>
-          </div>
-          {results.length > 0 && (
-            <div className="absolute z-20 left-0 right-0 mt-1.5 max-h-[280px] overflow-y-auto rounded-xl border border-edge bg-surface-card shadow-lg p-1.5 flex flex-col gap-1">
-              <div className="flex items-center justify-between px-2 py-1">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-content-faint">{t('common.search')}</span>
-                <button type="button" onClick={() => setResults([])} className="p-1 rounded-md text-content-faint hover:text-content hover:bg-surface-hover" aria-label={t('common.close')}><X size={13} /></button>
+        {/* Search — picking a result fills the location below. Pinned to the top of
+            the scrolling dialog body: the dialog stays open after an add, and the
+            search row used to sit above the viewport once the form was scrolled,
+            so it looked like the button had vanished (#1921). The negative margins
+            let its background cover the body padding while it is stuck. */}
+        <div className="sticky top-0 z-20 -mx-6 -mt-6 -mb-4 px-6 pt-6 pb-4 bg-surface-card">
+          <div className="relative">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-content-faint" />
+                <input
+                  autoFocus
+                  ref={searchRef}
+                  value={query}
+                  onChange={e => { setQuery(e.target.value); setNoResults(false) }}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); search() } }}
+                  placeholder={t('collections.addPlaceSearch')}
+                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-edge bg-surface-input text-content text-[14px] outline-none focus:border-accent"
+                />
               </div>
-              {results.map((r, i) => (
-                <button key={i} type="button" onClick={() => pick(r)} className="flex items-center gap-3 px-2.5 py-2 rounded-lg text-left hover:bg-surface-hover transition-colors">
-                  <div className="w-8 h-8 min-w-[32px] rounded-lg bg-surface-secondary flex items-center justify-center text-content-faint shrink-0"><MapPin size={15} /></div>
-                  <div className="flex flex-col min-w-0 flex-1">
-                    <span className="text-[13px] font-semibold text-content truncate">{str(r.name)}</span>
-                    {str(r.address) && <span className="text-[11.5px] text-content-faint truncate">{str(r.address)}</span>}
-                  </div>
-                </button>
-              ))}
+              <button type="button" onClick={search} disabled={!query.trim() || searching} className="px-4 py-2 rounded-lg bg-accent text-accent-text text-[13px] font-semibold disabled:opacity-50 inline-flex items-center gap-2">
+                {searching ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
+                {t('common.search')}
+              </button>
             </div>
-          )}
+            {(results.length > 0 || noResults) && (
+              <div className="absolute z-20 left-0 right-0 mt-1.5 max-h-[280px] overflow-y-auto rounded-xl border border-edge bg-surface-card shadow-lg p-1.5 flex flex-col gap-1">
+                <div className="flex items-center justify-between px-2 py-1">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-content-faint">{t('common.search')}</span>
+                  <button type="button" onClick={dismissResults} className="p-1 rounded-md text-content-faint hover:text-content hover:bg-surface-hover" aria-label={t('common.close')}><X size={13} /></button>
+                </div>
+                {noResults ? (
+                  <div className="px-2.5 py-3 text-center text-[12.5px] text-content-faint">{t('planner.noPlacesFound')}</div>
+                ) : results.map((r, i) => (
+                  <button key={i} type="button" onClick={() => pick(r)} className="flex items-center gap-3 px-2.5 py-2 rounded-lg text-left hover:bg-surface-hover transition-colors">
+                    <div className="w-8 h-8 min-w-[32px] rounded-lg bg-surface-secondary flex items-center justify-center text-content-faint shrink-0"><MapPin size={15} /></div>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="text-[13px] font-semibold text-content truncate">{str(r.name)}</span>
+                      {str(r.address) && <span className="text-[11.5px] text-content-faint truncate">{str(r.address)}</span>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Name */}

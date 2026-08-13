@@ -1,4 +1,4 @@
-// FE-STORE-COLLECTION-001 to FE-STORE-COLLECTION-062
+// FE-STORE-COLLECTION-001 to FE-STORE-COLLECTION-063
 //
 // The store owns the optimistic updates (status, labels, reorder, bulk delete) and the
 // reload chains that follow every mutation, so the API layer is mocked here and the
@@ -227,11 +227,17 @@ describe('collectionStore — setActive', () => {
 
   it('FE-STORE-COLLECTION-010: setActive(id) delegates to loadCollection', async () => {
     vi.mocked(collectionsApi.get).mockResolvedValue(detail({ places: [buildPlace()] }))
+    useCollectionStore.setState({ selectMode: true, selectedIds: [10], selectedPlaceId: 10, labelFilter: [3] })
 
     await store().setActive(1)
 
     expect(collectionsApi.get).toHaveBeenCalledWith(1)
     expect(store().activeId).toBe(1)
+    // Switching lists still drops what belongs to the list we came from.
+    expect(store().selectMode).toBe(false)
+    expect(store().selectedIds).toEqual([])
+    expect(store().selectedPlaceId).toBeNull()
+    expect(store().labelFilter).toEqual([])
   })
 
   it('FE-STORE-COLLECTION-011: refreshActive() is a no-op without an active list', async () => {
@@ -241,12 +247,35 @@ describe('collectionStore — setActive', () => {
     expect(collectionsApi.list).not.toHaveBeenCalled()
   })
 
-  it('FE-STORE-COLLECTION-012: refreshActive() re-runs setActive for the current list', async () => {
+  it('FE-STORE-COLLECTION-012: refreshActive() re-reads the current list', async () => {
     useCollectionStore.setState({ activeId: 1 })
 
     await store().refreshActive()
 
     expect(collectionsApi.get).toHaveBeenCalledWith(1)
+  })
+
+  it('FE-STORE-COLLECTION-062: refreshActive() keeps the selection and the label filter', async () => {
+    vi.mocked(collectionsApi.get).mockResolvedValue(detail({ places: [buildPlace({ id: 10 }), buildPlace({ id: 11 })] }))
+    useCollectionStore.setState({ activeId: 1, selectMode: true, selectedIds: [10, 11], selectedPlaceId: 11, labelFilter: [3] })
+
+    await store().refreshActive()
+
+    expect(store().selectMode).toBe(true)
+    expect(store().selectedIds).toEqual([10, 11])
+    expect(store().selectedPlaceId).toBe(11)
+    expect(store().labelFilter).toEqual([3])
+  })
+
+  it('FE-STORE-COLLECTION-063: refreshActive() drops selected places the reload no longer has', async () => {
+    vi.mocked(collectionsApi.get).mockResolvedValue(detail({ places: [buildPlace({ id: 10 })] }))
+    useCollectionStore.setState({ activeId: 1, selectMode: true, selectedIds: [10, 11], selectedPlaceId: 11 })
+
+    await store().refreshActive()
+
+    expect(store().selectedIds).toEqual([10])
+    expect(store().selectedPlaceId).toBeNull()
+    expect(store().selectMode).toBe(true)
   })
 })
 

@@ -94,6 +94,49 @@ interface CollectionState {
   clearSelection: () => void
 }
 
+/**
+ * Load whatever `id` points at (a list, the "All saved" union, or nothing) into
+ * the store. Split out of setActive() because switching lists also has to drop
+ * the per-list UI state, while re-reading the list that is already open must not
+ * (#1921: every add from the still-open add-place dialog runs a refresh).
+ */
+async function loadActive(
+  set: (partial: Partial<CollectionState>) => void,
+  get: () => CollectionState,
+  id: ActiveCollectionId,
+): Promise<void> {
+  if (id === null) {
+    set({ activeId: null, places: [], members: [], labels: [] })
+    return
+  }
+  if (id === ALL_SAVED) {
+    set({ activeId: ALL_SAVED, members: [], labels: [], placesLoading: true })
+    try {
+      // Client-side union of every list the user owns or co-owns (no server change).
+      // On first load the lists may not be fetched yet (loadAll still in flight),
+      // which would union nothing — make sure they're loaded first.
+      let lists = get().collections
+      if (lists.length === 0) { await get().loadAll(); lists = get().collections }
+      const results = await Promise.all(lists.map(l => collectionsApi.get(l.id).catch(() => null)))
+      const seen = new Set<number>()
+      const merged: CollectionPlace[] = []
+      for (const res of results) {
+        if (!res) continue
+        for (const p of res.places) {
+          if (seen.has(p.id)) continue
+          seen.add(p.id)
+          merged.push(p)
+        }
+      }
+      set({ places: merged })
+    } finally {
+      set({ placesLoading: false })
+    }
+    return
+  }
+  await get().loadCollection(id)
+}
+
 export const useCollectionStore = create<CollectionState>((set, get) => ({
   collections: [],
   activeId: null,
@@ -148,42 +191,22 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
   setActive: async (id: ActiveCollectionId) => {
     // Labels are per-collection, so their filter can't carry across lists.
     set({ selectMode: false, selectedIds: [], selectedPlaceId: null, labelFilter: [] })
-    if (id === null) {
-      set({ activeId: null, places: [], members: [], labels: [] })
-      return
-    }
-    if (id === ALL_SAVED) {
-      set({ activeId: ALL_SAVED, members: [], labels: [], placesLoading: true })
-      try {
-        // Client-side union of every list the user owns or co-owns (no server change).
-        // On first load the lists may not be fetched yet (loadAll still in flight),
-        // which would union nothing — make sure they're loaded first.
-        let lists = get().collections
-        if (lists.length === 0) { await get().loadAll(); lists = get().collections }
-        const results = await Promise.all(lists.map(l => collectionsApi.get(l.id).catch(() => null)))
-        const seen = new Set<number>()
-        const merged: CollectionPlace[] = []
-        for (const res of results) {
-          if (!res) continue
-          for (const p of res.places) {
-            if (seen.has(p.id)) continue
-            seen.add(p.id)
-            merged.push(p)
-          }
-        }
-        set({ places: merged })
-      } finally {
-        set({ placesLoading: false })
-      }
-      return
-    }
-    await get().loadCollection(id)
+    await loadActive(set, get, id)
   },
 
   refreshActive: async () => {
     const { activeId } = get()
     if (activeId === null) return
-    await get().setActive(activeId)
+    // Same list, so select mode, the selection and the label filter stay put.
+    await loadActive(set, get, activeId)
+    // Only what the reload no longer contains can't stay selected.
+    const ids = new Set(get().places.map(p => p.id))
+    const { selectedIds, selectedPlaceId } = get()
+    const kept = selectedIds.filter(id => ids.has(id))
+    const keptPlaceId = selectedPlaceId != null && ids.has(selectedPlaceId) ? selectedPlaceId : null
+    if (kept.length !== selectedIds.length || keptPlaceId !== selectedPlaceId) {
+      set({ selectedIds: kept, selectedPlaceId: keptPlaceId })
+    }
   },
 
   createCollection: async (payload) => {

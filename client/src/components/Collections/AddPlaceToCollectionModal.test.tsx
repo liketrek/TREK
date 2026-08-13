@@ -1,4 +1,4 @@
-// FE-COMP-ADDPLACECOL-001 to FE-COMP-ADDPLACECOL-024
+// FE-COMP-ADDPLACECOL-001 to FE-COMP-ADDPLACECOL-028
 import React from 'react'
 import type { Mock } from 'vitest'
 import { http, HttpResponse } from 'msw'
@@ -163,13 +163,27 @@ describe('AddPlaceToCollectionModal', () => {
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Places API disabled', 'error', undefined))
   })
 
-  it('FE-COMP-ADDPLACECOL-009: a search response without places yields no dropdown', async () => {
+  it('FE-COMP-ADDPLACECOL-009: a search that finds nothing says so instead of staying silent', async () => {
     server.use(http.post('/api/maps/search', () => HttpResponse.json({ source: 'nominatim' })))
     setup()
     fireEvent.change(screen.getByPlaceholderText('Search for a place…'), { target: { value: 'kissa' } })
     fireEvent.click(screen.getByRole('button', { name: /Search/ }))
-    await waitFor(() => expect(screen.getByRole('button', { name: /Search/ })).not.toBeDisabled())
-    expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument()
+
+    expect(await screen.findByText('No places found')).toBeInTheDocument()
+    // Typing the next query clears it again.
+    fireEvent.change(screen.getByPlaceholderText('Search for a place…'), { target: { value: 'kissaten' } })
+    expect(screen.queryByText('No places found')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-ADDPLACECOL-009b: the empty search panel can be dismissed', async () => {
+    server.use(http.post('/api/maps/search', () => HttpResponse.json({ places: [], source: 'nominatim' })))
+    setup()
+    fireEvent.change(screen.getByPlaceholderText('Search for a place…'), { target: { value: 'kissa' } })
+    fireEvent.click(screen.getByRole('button', { name: /Search/ }))
+    await screen.findByText('No places found')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(screen.queryByText('No places found')).not.toBeInTheDocument()
   })
 
   it('FE-COMP-ADDPLACECOL-010: saving posts the manually typed place with nulls for what is empty', async () => {
@@ -359,5 +373,50 @@ describe('AddPlaceToCollectionModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(props.onClose).toHaveBeenCalledTimes(1)
     expect(savedBodies).toHaveLength(0)
+  })
+
+  it('FE-COMP-ADDPLACECOL-025: the caret goes back to the search field after an add', async () => {
+    setup()
+    const nameField = screen.getByPlaceholderText('Name')
+    typeName('Manual spot')
+    // Where the focus sits in the browser once the add button disables itself.
+    nameField.focus()
+    fireEvent.click(screen.getByRole('button', { name: /Add$/ }))
+
+    await waitFor(() => expect(nameField).toHaveValue(''))
+    expect(screen.getByPlaceholderText('Search for a place…')).toHaveFocus()
+  })
+
+  it('FE-COMP-ADDPLACECOL-026: the search still runs after a place was added', async () => {
+    mockSearch([mapsResult])
+    setup()
+    typeName('Manual spot')
+    fireEvent.click(screen.getByRole('button', { name: /Add$/ }))
+    await waitFor(() => expect(screen.getByPlaceholderText('Name')).toHaveValue(''))
+
+    const input = screen.getByPlaceholderText('Search for a place…')
+    expect(input).toHaveValue('')
+    fireEvent.change(input, { target: { value: 'kissa' } })
+    expect(screen.getByRole('button', { name: /Search/ })).not.toBeDisabled()
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(await screen.findByText('Kissa Sakaiki')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-ADDPLACECOL-027: the search row is pinned to the top of the scrolling body', () => {
+    setup()
+    // The dialog stays open after an add, so the row has to survive a scrolled form.
+    expect(screen.getByPlaceholderText('Search for a place…').closest('.sticky')).not.toBeNull()
+  })
+
+  it('FE-COMP-ADDPLACECOL-028: a failed save leaves the caret where the user had it', async () => {
+    server.use(http.post('/api/addons/collections/places', () => HttpResponse.json({ error: 'List is full' }, { status: 400 })))
+    setup()
+    const nameField = screen.getByPlaceholderText('Name')
+    typeName('Manual spot')
+    nameField.focus()
+    fireEvent.click(screen.getByRole('button', { name: /Add$/ }))
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('List is full', 'error', undefined))
+    expect(nameField).toHaveFocus()
   })
 })
