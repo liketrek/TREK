@@ -52,7 +52,12 @@ function build(opts: { canEdit?: boolean; cascade?: boolean; seenActions?: strin
     createAccommodation: vi.fn(() => ({ id: 60 })),
     getAccommodation: vi.fn((id: number) => (id === 11 ? { id: 11 } : undefined)),
     updateAccommodation: vi.fn(() => ({ id: 11 })),
-    deleteAccommodation: vi.fn(() => ({ linkedReservationId: opts.cascade ? 40 : null, deletedBudgetItemId: opts.cascade ? 7 : null })),
+    deleteAccommodation: vi.fn(() => ({
+      linkedReservationId: opts.cascade ? 40 : null,
+      deletedBudgetItemId: opts.cascade ? 7 : null,
+      linkedReservationIds: opts.cascade ? [40] : [],
+      deletedBudgetItemIds: opts.cascade ? [7] : [],
+    })),
   } as unknown as AccommodationsService & Record<string, ReturnType<typeof vi.fn>>;
   const guards = new PluginGuards(
     {
