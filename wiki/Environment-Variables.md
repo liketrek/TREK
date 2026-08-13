@@ -111,6 +111,13 @@ proxying is disabled by default.
 > **Note:** Proxy environment variables apply to requests made through Node.js's default HTTP dispatcher. Requests
 > handled by TREK's SSRF protection use a dedicated dispatcher and do not use the environment proxy.
 
+> **Container only.** Node ignores these variables unless it is started with `NODE_USE_ENV_PROXY=1`, and the official
+> image sets that for you. On a source or Proxmox install, and on Helm where the chart's ConfigMap only passes through
+> the keys it knows, set `NODE_USE_ENV_PROXY=1` alongside them or nothing will change.
+
+> **Set `NO_PROXY`.** Without it every request goes to the proxy, including the ones TREK makes to itself, such as the
+> container health check. `localhost,127.0.0.1` is a sensible minimum; add your own hosts as needed.
+
 ---
 
 ## HTTPS / Reverse Proxy
