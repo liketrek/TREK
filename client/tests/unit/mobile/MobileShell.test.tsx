@@ -88,12 +88,20 @@ describe('MobileShell', () => {
     expect(layer).toBeInTheDocument();
     expect(layer.className).toContain('fixed');
     expect(layer.className).toContain('inset-0');
-    expect(layer.className).toContain('-z-10');
     expect(layer.className).toContain('var(--m-scr)');
-    // The layer carries the background colour too: an opaque root would paint
-    // over a negative-z child.
     expect(layer.className).toContain('var(--m-bg)');
     expect(root.className).not.toContain('var(--m-bg)');
+
+    // Not a negative z-index: body carries an opaque background (index.css), and
+    // a negative layer paints below the backgrounds of ordinary blocks, so the
+    // gradient disappeared behind it and the translucent cards composited
+    // against one flat colour. The layer is positioned at 0 and the content
+    // above it at 10, which puts both over body's background.
+    expect(layer.className).not.toContain('-z-10');
+    expect(layer.className).toContain('z-0');
+    const content = screen.getByText('page body').parentElement as HTMLElement;
+    expect(content.className).toContain('relative');
+    expect(content.className).toContain('z-10');
   });
 
   it('FE-MOB-MSHELL-007: the desktop branch keeps its own scroller', () => {

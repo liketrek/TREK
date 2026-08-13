@@ -49,11 +49,15 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
       {/* Background and screen gradient live on their own viewport-sized layer.
           The shell root is as tall as the document now, and --m-scr is a radial
           gradient measured against its element box, so on it the light cone would
-          be stretched over the whole scroll length. The shell stays transparent
-          so this negative layer paints above the canvas and below every page,
-          without turning .m-root into a stacking context. */}
-      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)]" />
-      <div className="flex-1">{children}</div>
+          be stretched over the whole scroll length.
+
+          The layer is positioned with z-index 0 rather than a negative one, and
+          the content above it carries z-index 10. A negative layer paints below
+          the backgrounds of ordinary blocks, and body carries an opaque one
+          (index.css), which hid the gradient entirely and left the translucent
+          cards compositing against a single flat colour. */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)]" />
+      <div className="relative z-10 flex-1">{children}</div>
       {!inTripPlanner && <ErrorBoundary boundaryId="chrome:m-bottom-nav" fallback={null}><MBottomNav /></ErrorBoundary>}
       <ErrorBoundary boundaryId="chrome:m-toast" fallback={null}><MToastHost /></ErrorBoundary>
       <div id="m-sheet-root" />
