@@ -35,7 +35,7 @@ interface MCollPlaceSheetProps {
   labels: CollectionLabel[]
   onClose: () => void
   onSetStatus: (status: CollectionStatus) => void
-  onSave: (patch: { name?: string; description?: string | null; links?: CollectionLink[]; category_id?: number | null; label_ids?: number[]; image_url?: string | null }) => Promise<void>
+  onSave: (patch: { name?: string; description?: string | null; links?: CollectionLink[]; category_id?: number | null; label_ids?: number[]; image_url?: string | null; address?: string | null }) => Promise<void>
   onUploadImage?: (file: File) => Promise<void>
   onCopyToTrip: () => void
   onRemove: () => void
@@ -62,6 +62,7 @@ export default function MCollPlaceSheet({
 
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState('')
+  const [address, setAddress] = useState('')
   const [categoryId, setCategoryId] = useState<number | null>(null)
   const [description, setDescription] = useState('')
   const [links, setLinks] = useState<CollectionLink[]>([])
@@ -77,6 +78,7 @@ export default function MCollPlaceSheet({
     seededId.current = held.id
     setEditing(false)
     setName(held.name)
+    setAddress(held.address ?? '')
     setCategoryId(held.category_id ?? null)
     setDescription(held.description ?? '')
     setLinks(held.links ?? [])
@@ -97,7 +99,7 @@ export default function MCollPlaceSheet({
     const cleanLinks = links.map(l => ({ label: l.label?.trim() || undefined, url: normalizeLinkUrl(l.url) })).filter(l => l.url)
     setSaving(true)
     try {
-      await onSave({ name: name.trim() || held.name, description: description.trim() || null, links: cleanLinks, category_id: categoryId, label_ids: labelIds })
+      await onSave({ name: name.trim() || held.name, address: address.trim() || null, description: description.trim() || null, links: cleanLinks, category_id: categoryId, label_ids: labelIds })
       setEditing(false)
     } catch (err) {
       toast.error(getApiErrorMessage(err, t('common.error')))
@@ -110,6 +112,7 @@ export default function MCollPlaceSheet({
     if (!held) return
     setEditing(false)
     setName(held.name)
+    setAddress(held.address ?? '')
     setCategoryId(held.category_id ?? null)
     setDescription(held.description ?? '')
     setLinks(held.links ?? [])
@@ -245,6 +248,9 @@ export default function MCollPlaceSheet({
               <>
                 <Eyebrow className="mb-[6px] mt-4">{t('common.name').toUpperCase()}</Eyebrow>
                 <input value={name} onChange={e => setName(e.target.value)} className={INPUT_CLS} />
+                {/* Address (#1870): free text, same as the add sheet offers */}
+                <Eyebrow className="mb-[6px] mt-[14px]">{t('places.formAddress').toUpperCase()}</Eyebrow>
+                <input value={address} onChange={e => setAddress(e.target.value)} placeholder={t('places.formAddressPlaceholder')} className={INPUT_CLS} />
                 <Eyebrow className="mb-[6px] mt-[14px]">{t('collections.category').toUpperCase()}</Eyebrow>
                 <MCollCategoryPicker categories={categories} value={categoryId} onChange={setCategoryId} t={t} />
                 {labels.length > 0 && (

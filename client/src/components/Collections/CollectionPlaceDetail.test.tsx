@@ -1,4 +1,4 @@
-// FE-COMP-COLDETAIL-001 to FE-COMP-COLDETAIL-035
+// FE-COMP-COLDETAIL-001 to FE-COMP-COLDETAIL-043
 import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -335,6 +335,8 @@ describe('CollectionPlaceDetail', () => {
       links: [{ label: undefined, url: 'https://x.com' }],
       category_id: 2,
       label_ids: [1, 2],
+      // Untouched in this case, but the address rides along on every save (#1870).
+      address: 'Somewhere',
       lat: 52.5,
       lng: 13.4,
     });
@@ -545,5 +547,58 @@ describe('CollectionPlaceDetail — open in maps', () => {
     renderDetail({ place: { ...place, name: '', address: null } });
 
     expect(screen.queryByRole('button', { name: /navigation|google maps/i })).toBeNull();
+  });
+});
+
+// ── Editable address (#1870) ─────────────────────────────────────────────────
+
+describe('CollectionPlaceDetail: editable address', () => {
+  it('FE-COMP-COLDETAIL-040: edit mode offers an address field seeded from the place', async () => {
+    const user = userEvent.setup();
+    renderDetail({ canEdit: true });
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+
+    expect(screen.getByText('Address')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Street, City, Country')).toHaveValue('Somewhere');
+  });
+
+  it('FE-COMP-COLDETAIL-041: a corrected address is trimmed into the patch', async () => {
+    const user = userEvent.setup();
+    const props = renderDetail({ canEdit: true });
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+
+    const addressInput = screen.getByPlaceholderText('Street, City, Country');
+    await user.clear(addressInput);
+    await user.type(addressInput, '  Via Nuova 1  ');
+    await user.click(screen.getByRole('button', { name: /Save/ }));
+
+    await waitFor(() => expect(props.onSave).toHaveBeenCalled());
+    expect(props.onSave).toHaveBeenCalledWith(expect.objectContaining({ address: 'Via Nuova 1' }));
+  });
+
+  it('FE-COMP-COLDETAIL-042: an emptied address is sent as null', async () => {
+    const user = userEvent.setup();
+    const props = renderDetail({ canEdit: true });
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+
+    await user.clear(screen.getByPlaceholderText('Street, City, Country'));
+    await user.click(screen.getByRole('button', { name: /Save/ }));
+
+    await waitFor(() => expect(props.onSave).toHaveBeenCalled());
+    expect(props.onSave).toHaveBeenCalledWith(expect.objectContaining({ address: null }));
+  });
+
+  it('FE-COMP-COLDETAIL-043: Cancel restores the stored address', async () => {
+    const user = userEvent.setup();
+    const props = renderDetail({ canEdit: true });
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+
+    await user.type(screen.getByPlaceholderText('Street, City, Country'), ' 2');
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(props.onSave).not.toHaveBeenCalled();
+    expect(screen.getByText('Somewhere')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(screen.getByPlaceholderText('Street, City, Country')).toHaveValue('Somewhere');
   });
 });

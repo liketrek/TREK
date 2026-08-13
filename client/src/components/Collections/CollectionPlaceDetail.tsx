@@ -35,7 +35,7 @@ interface CollectionPlaceDetailProps {
   anchorRect?: { left: number; width: number } | null
   onClose: () => void
   onSetStatus: (status: CollectionStatus) => void
-  onSave: (patch: { name?: string; description?: string | null; links?: CollectionLink[]; category_id?: number | null; label_ids?: number[]; image_url?: string | null; lat?: number | null; lng?: number | null }) => Promise<void>
+  onSave: (patch: { name?: string; description?: string | null; links?: CollectionLink[]; category_id?: number | null; label_ids?: number[]; image_url?: string | null; lat?: number | null; lng?: number | null; address?: string | null }) => Promise<void>
   /** Upload a custom cover image (#1136); enables the cover change/remove controls. */
   onUploadImage?: (file: File) => Promise<void>
   onCopyToTrip: () => void
@@ -83,6 +83,7 @@ export default function CollectionPlaceDetail({
   const [description, setDescription] = useState(place.description ?? '')
   const [links, setLinks] = useState<CollectionLink[]>(place.links ?? [])
   const [labelIds, setLabelIds] = useState<number[]>(place.label_ids ?? [])
+  const [address, setAddress] = useState(place.address ?? '')
   const [lat, setLat] = useState(place.lat != null ? String(place.lat) : '')
   const [lng, setLng] = useState(place.lng != null ? String(place.lng) : '')
   const [saving, setSaving] = useState(false)
@@ -99,6 +100,7 @@ export default function CollectionPlaceDetail({
     setDescription(place.description ?? '')
     setLinks(place.links ?? [])
     setLabelIds(place.label_ids ?? [])
+    setAddress(place.address ?? '')
     setLat(place.lat != null ? String(place.lat) : '')
     setLng(place.lng != null ? String(place.lng) : '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -147,7 +149,7 @@ export default function CollectionPlaceDetail({
 
   const setLink = (i: number, patch: Partial<CollectionLink>) => setLinks(links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)))
   const toggleLabel = (id: number) => setLabelIds(labelIds.includes(id) ? labelIds.filter(x => x !== id) : [...labelIds, id])
-  const resetForm = () => { setEditing(false); setName(place.name); setCategoryId(place.category_id ?? null); setDescription(place.description ?? ''); setLinks(place.links ?? []); setLabelIds(place.label_ids ?? []); setLat(place.lat != null ? String(place.lat) : ''); setLng(place.lng != null ? String(place.lng) : '') }
+  const resetForm = () => { setEditing(false); setName(place.name); setCategoryId(place.category_id ?? null); setDescription(place.description ?? ''); setLinks(place.links ?? []); setLabelIds(place.label_ids ?? []); setAddress(place.address ?? ''); setLat(place.lat != null ? String(place.lat) : ''); setLng(place.lng != null ? String(place.lng) : '') }
   const coordPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     const text = e.clipboardData.getData('text').trim()
     const match = text.match(/^(-?\d+\.?\d*)\s*[,;\s]\s*(-?\d+\.?\d*)$/)
@@ -161,7 +163,7 @@ export default function CollectionPlaceDetail({
     const lngNum = lng.trim() ? Number(lng) : NaN
     setSaving(true)
     try {
-      await onSave({ name: name.trim() || place.name, description: description.trim() || null, links: cleanLinks, category_id: categoryId, label_ids: labelIds, lat: Number.isFinite(latNum) ? latNum : null, lng: Number.isFinite(lngNum) ? lngNum : null })
+      await onSave({ name: name.trim() || place.name, description: description.trim() || null, links: cleanLinks, category_id: categoryId, label_ids: labelIds, address: address.trim() || null, lat: Number.isFinite(latNum) ? latNum : null, lng: Number.isFinite(lngNum) ? lngNum : null })
       setEditing(false)
     } catch (err) {
       toast.error(getApiErrorMessage(err, t('common.error')))
@@ -279,6 +281,11 @@ export default function CollectionPlaceDetail({
                   )
                 })}
               </div>
+            </div>
+            {/* Address (#1870): free text, the coordinates stay separate */}
+            <div className="col-detail-field">
+              <div className="col-detail-label"><MapPin size={12} /> {t('places.formAddress')}</div>
+              <input value={address} onChange={e => setAddress(e.target.value)} placeholder={t('places.formAddressPlaceholder')} className="col-detail-input" />
             </div>
             {/* Coordinates */}
             <div className="col-detail-field">

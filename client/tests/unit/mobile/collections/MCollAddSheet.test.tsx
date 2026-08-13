@@ -1,4 +1,4 @@
-// FE-MOB-COLADD-001 to FE-MOB-COLADD-015
+// FE-MOB-COLADD-001 to FE-MOB-COLADD-017
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest'
 import { http, HttpResponse } from 'msw'
@@ -98,9 +98,10 @@ describe('MCollAddSheet', () => {
     await user.click(hitRow)
     expect(screen.getByPlaceholderText('common.name')).toHaveValue('Elbphilharmonie')
     expect(screen.getByPlaceholderText('collections.addPlaceSearch')).toHaveValue('Elbphilharmonie')
-    // The result list collapses once a hit is taken, the address stays as a hint.
+    // The result list collapses once a hit is taken; the address lands in the
+    // editable field instead of the old read-only hint (#1870).
     expect(screen.queryByText('COMMON.SEARCH')).not.toBeInTheDocument()
-    expect(screen.getByText('Platz der Deutschen Einheit 1')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('places.formAddressPlaceholder')).toHaveValue('Platz der Deutschen Einheit 1')
   })
 
   it('FE-MOB-COLADD-003: Enter in the search field runs the search and the panel can be dismissed', async () => {
@@ -321,5 +322,40 @@ describe('MCollAddSheet', () => {
 
     await waitFor(() => expect(seen.body).toBeDefined())
     expect(seen.body).toMatchObject({ collection_id: 1 })
+  })
+
+  // ── Typed address (#1870) ──────────────────────────────────────────────────
+
+  it('FE-MOB-COLADD-016: a hand-typed address is trimmed into the save request', async () => {
+    const user = userEvent.setup()
+    const seen = mockSave()
+    render(<MCollAddSheet {...baseProps()} />)
+
+    await user.type(screen.getByPlaceholderText('common.name'), 'Sternschanze')
+    await user.type(screen.getByPlaceholderText('places.formAddressPlaceholder'), '  Schanzenstr. 1  ')
+    await user.click(screen.getByRole('button', { name: /common.add/ }))
+
+    await waitFor(() => expect(seen.body).toBeDefined())
+    expect(seen.body).toMatchObject({ name: 'Sternschanze', address: 'Schanzenstr. 1' })
+  })
+
+  it('FE-MOB-COLADD-017: the address of a picked hit can be corrected before saving', async () => {
+    const user = userEvent.setup()
+    mockSearch()
+    const seen = mockSave()
+    render(<MCollAddSheet {...baseProps()} />)
+
+    await user.type(screen.getByPlaceholderText('collections.addPlaceSearch'), 'elbphil')
+    await user.click(screen.getByRole('button', { name: 'common.search' }))
+    await user.click(await screen.findByText('Elbphilharmonie'))
+
+    const addressInput = screen.getByPlaceholderText('places.formAddressPlaceholder')
+    await user.clear(addressInput)
+    await user.type(addressInput, 'Platz der Deutschen Einheit 4')
+    await user.click(screen.getByRole('button', { name: /common.add/ }))
+
+    await waitFor(() => expect(seen.body).toBeDefined())
+    // The corrected address is stored, the rest of the maps provenance survives.
+    expect(seen.body).toMatchObject({ address: 'Platz der Deutschen Einheit 4', google_place_id: 'gp-1' })
   })
 })

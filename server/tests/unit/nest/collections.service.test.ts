@@ -245,6 +245,25 @@ describe('status + updatePlace move', () => {
     const p = svc.savePlace(owner.id, { collection_id: a.id, name: 'X' }).place!;
     expect(() => svc.updatePlace(owner.id, p.id, { collection_id: b.id })).toThrow();
   });
+
+  // #1870: the address column was missing from the UPDATE set, so a typo or a
+  // moved restaurant could only be fixed by deleting and re-adding the place.
+  it('COLLECTIONS-SVC-019: updatePlace corrects the address and clears it with null', () => {
+    const u = createUser(testDb).user;
+    const col = svc.createCollection(u.id, { name: 'Rome' });
+    const p = svc.savePlace(u.id, { collection_id: col.id, name: 'Trattoria', address: 'Via Vechia 1' }).place!;
+
+    expect(svc.updatePlace(u.id, p.id, { address: 'Via Nuova 1' }).address).toBe('Via Nuova 1');
+    expect(svc.updatePlace(u.id, p.id, { address: null }).address).toBeNull();
+  });
+
+  it('COLLECTIONS-SVC-019b: an update without an address leaves the stored one alone', () => {
+    const u = createUser(testDb).user;
+    const col = svc.createCollection(u.id, { name: 'Rome' });
+    const p = svc.savePlace(u.id, { collection_id: col.id, name: 'Trattoria', address: 'Via Vechia 1' }).place!;
+
+    expect(svc.updatePlace(u.id, p.id, { name: 'Trattoria da Enzo' }).address).toBe('Via Vechia 1');
+  });
 });
 
 // ── copy to trip ─────────────────────────────────────────────────────────────

@@ -8,7 +8,7 @@ import type { Category } from '../../../../src/types'
 import { resetAllStores } from '../../../helpers/store'
 import { useTranslation } from '../../../../src/i18n'
 
-// FE-MOB-CPLSH-001 to FE-MOB-CPLSH-033
+// FE-MOB-CPLSH-001 to FE-MOB-CPLSH-037
 
 // react-markdown ships ESM-only chunks jsdom chokes on; the sheet only needs
 // the raw description text to reach the renderer.
@@ -177,8 +177,9 @@ describe('MCollPlaceSheet', () => {
     expect(screen.getByDisplayValue('https://narisawa.example/menu')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Must see' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Rainy day' })).toHaveAttribute('aria-pressed', 'false')
-    // The read-only address disappears while editing.
+    // The read-only address line gives way to the editable field (#1870).
     expect(screen.queryByText('2-6-15 Minami-Aoyama')).not.toBeInTheDocument()
+    expect(screen.getByDisplayValue('2-6-15 Minami-Aoyama')).toBeInTheDocument()
   })
 
   it('FE-MOB-CPLSH-013: saving sends the trimmed name, labels, category and normalised links', async () => {
@@ -191,6 +192,8 @@ describe('MCollPlaceSheet', () => {
 
     await waitFor(() => expect(onSave).toHaveBeenCalledWith({
       name: 'Narisawa Tokyo',
+      // Untouched here, but the address rides along on every save (#1870).
+      address: '2-6-15 Minami-Aoyama',
       description: 'Two stars, book early',
       links: [
         { label: 'Menu', url: 'https://narisawa.example/menu' },
@@ -377,5 +380,42 @@ describe('MCollPlaceSheet', () => {
     const { rerender, props } = setup()
     rerender(<Harness {...props} place={null} />)
     expect(screen.getByText('Narisawa')).toBeInTheDocument()
+  })
+
+  // ── Editable address (#1870) ───────────────────────────────────────────────
+
+  it('FE-MOB-CPLSH-034: the edit form seeds the address field from the place', () => {
+    setup()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    expect(screen.getByPlaceholderText('Street, City, Country')).toHaveValue('2-6-15 Minami-Aoyama')
+  })
+
+  it('FE-MOB-CPLSH-035: a corrected address is trimmed into the patch', async () => {
+    const { onSave } = setup()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.change(screen.getByPlaceholderText('Street, City, Country'), { target: { value: '  3-1-1 Kita-Aoyama ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ address: '3-1-1 Kita-Aoyama' })))
+  })
+
+  it('FE-MOB-CPLSH-036: an emptied address is sent as null', async () => {
+    const { onSave } = setup()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.change(screen.getByPlaceholderText('Street, City, Country'), { target: { value: '   ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ address: null })))
+  })
+
+  it('FE-MOB-CPLSH-037: cancel restores the stored address', () => {
+    setup()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.change(screen.getByPlaceholderText('Street, City, Country'), { target: { value: 'Elsewhere' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.getByText('2-6-15 Minami-Aoyama')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    expect(screen.getByPlaceholderText('Street, City, Country')).toHaveValue('2-6-15 Minami-Aoyama')
   })
 })

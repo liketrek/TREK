@@ -154,6 +154,34 @@ describe('Collections e2e (real auth guard + real service + temp SQLite)', () =>
     expect(db.prepare('SELECT status FROM collection_places WHERE id = ?').get(placeId)).toEqual({ status: 'want' });
   });
 
+  // #1870: the address was missing from the update contract, so the pipe stripped
+  // it and the column never moved. A saved address was effectively read-only.
+  it('COLLECTIONS-E2E-013: PATCH address corrects a saved place and survives the validation pipe', async () => {
+    const col = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Addresses' })).body;
+    const saved = await request(server).post('/api/addons/collections/places')
+      .set('Cookie', sessionCookie(ownerId)).send({ collection_id: col.id, name: 'Trattoria', address: 'Via Vechia 1' });
+    expect(saved.status).toBe(200);
+    const placeId = saved.body.place.id;
+
+    const patched = await request(server).patch(`/api/addons/collections/places/${placeId}`)
+      .set('Cookie', sessionCookie(ownerId)).send({ address: 'Via Nuova 1' });
+    expect(patched.status).toBe(200);
+    expect(patched.body.address).toBe('Via Nuova 1');
+    expect(db.prepare('SELECT address FROM collection_places WHERE id = ?').get(placeId)).toEqual({ address: 'Via Nuova 1' });
+
+    // A rename must not wipe the address that was just corrected.
+    const renamed = await request(server).patch(`/api/addons/collections/places/${placeId}`)
+      .set('Cookie', sessionCookie(ownerId)).send({ name: 'Trattoria da Enzo' });
+    expect(renamed.status).toBe(200);
+    expect(db.prepare('SELECT address FROM collection_places WHERE id = ?').get(placeId)).toEqual({ address: 'Via Nuova 1' });
+
+    // null clears it again.
+    const cleared = await request(server).patch(`/api/addons/collections/places/${placeId}`)
+      .set('Cookie', sessionCookie(ownerId)).send({ address: null });
+    expect(cleared.status).toBe(200);
+    expect(db.prepare('SELECT address FROM collection_places WHERE id = ?').get(placeId)).toEqual({ address: null });
+  });
+
   // ── Cross-user isolation ─────────────────────────────────────────────────
   it('COLLECTIONS-E2E-020: a stranger gets 404 on someone else’s collection', async () => {
     const col = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Private' })).body;

@@ -42,6 +42,7 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
   const [searching, setSearching] = useState(false)
   const [picked, setPicked] = useState<MapsPlace | null>(null)
   const [name, setName] = useState('')
+  const [address, setAddress] = useState('')
   const [categoryId, setCategoryId] = useState<number | null>(null)
   const [status, setStatus] = useState<CollectionStatus>('idea')
   const [description, setDescription] = useState('')
@@ -50,7 +51,7 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
 
   useEffect(() => {
     if (open) return
-    setQuery(''); setResults([]); setPicked(null); setName(''); setCategoryId(null); setStatus('idea'); setDescription('')
+    setQuery(''); setResults([]); setPicked(null); setName(''); setAddress(''); setCategoryId(null); setStatus('idea'); setDescription('')
     setTargetId(null)
   }, [open])
 
@@ -80,6 +81,7 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
   const pick = (r: MapsPlace) => {
     setPicked(r)
     setName(str(r.name) ?? '')
+    setAddress(str(r.address) ?? '')
     setResults([])
     setQuery(str(r.name) ?? query)
   }
@@ -92,7 +94,7 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
       const res = await collectionsApi.savePlace({
         collection_id: targetId,
         name: cleanName,
-        address: (picked && str(picked.address)) ?? null,
+        address: address.trim() || null,
         lat: (picked && num(picked.lat)) ?? null,
         lng: (picked && num(picked.lng)) ?? null,
         google_place_id: (picked && str(picked.google_place_id)) ?? null,
@@ -117,8 +119,6 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
       setSaving(false)
     }
   }
-
-  const address = picked ? str(picked.address) : undefined
 
   return (
     <MSheet open={open} onClose={onClose} material="opaque" ariaLabel={t('collections.addPlace')}>
@@ -197,11 +197,11 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
 
         <Eyebrow className="mb-[6px] mt-4">{t('common.name').toUpperCase()}</Eyebrow>
         <input value={name} onChange={e => setName(e.target.value)} placeholder={t('common.name')} className={INPUT_CLS} />
-        {address && (
-          <div className="mt-[6px] flex items-center gap-[5px] font-geist text-[0.6875rem] text-m-muted">
-            <MapPin size={11} strokeWidth={2.2} className="flex-none" /> <span className="truncate">{address}</span>
-          </div>
-        )}
+
+        {/* Address (#1870): a picked hit fills it, but it stays editable so a
+            hand-typed place can carry one too (the desktop dialog always could). */}
+        <Eyebrow className="mb-[6px] mt-[14px]">{t('places.formAddress').toUpperCase()}</Eyebrow>
+        <input value={address} onChange={e => setAddress(e.target.value)} placeholder={t('places.formAddressPlaceholder')} className={INPUT_CLS} />
 
         <Eyebrow className="mb-[6px] mt-[14px]">{t('collections.category').toUpperCase()}</Eyebrow>
         <MCollCategoryPicker categories={categories} value={categoryId} onChange={setCategoryId} t={t} />

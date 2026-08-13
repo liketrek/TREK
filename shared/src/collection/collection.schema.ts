@@ -188,6 +188,10 @@ export const collectionPlaceUpdateRequestSchema = z.object({
   // Editable coordinates so a place added by GPS can be corrected later (#1435).
   lat: z.number().nullable().optional(),
   lng: z.number().nullable().optional(),
+  // Free-text address, correctable after saving (#1870): the add dialog always
+  // offered it, the edit form did not. Deliberately uncapped, exactly like
+  // collectionSavePlaceRequestSchema.address, so save and update stay in step.
+  address: z.string().nullable().optional(),
   // .removeDefault() strips the inner .default('idea') so an ABSENT status parses to
   // undefined (left unchanged) instead of being injected as 'idea' (see #1437). The
   // .catch('idea') guard against invalid values is preserved.
