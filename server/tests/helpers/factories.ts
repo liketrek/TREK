@@ -99,7 +99,11 @@ export function createTrip(
     const end = new Date(overrides.end_date);
     const tripId = result.lastInsertRowid as number;
     let dayNumber = 1;
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    // Step in UTC. A date-only ISO string parses as UTC midnight, but setDate()
+    // advances local wall-clock time — 23h or 25h across a DST transition — so the
+    // instant drifts off midnight and toISOString() then reports the wrong day:
+    // one is dropped in autumn, one repeated in spring. CI runs UTC and never sees it.
+    for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
       const dateStr = d.toISOString().slice(0, 10);
       db.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (?, ?, ?)').run(tripId, dayNumber++, dateStr);
     }
