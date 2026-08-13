@@ -1124,7 +1124,7 @@ export default function SharedTripPage() {
               boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
             }}
           >
-            <img src="/icons/icon.svg" alt="TREK" width="18" height="18" style={{ borderRadius: 4 }} />
+            <img src="/icons/icon-polaroid-v1-192x192.png" alt="TREK" width="18" height="18" style={{ borderRadius: 4 }} />
             <span className="text-[#9ca3af]" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))' }}>
               {t('shared.sharedVia')} <strong className="text-[#6b7280]">TREK</strong>
             </span>
