@@ -91,17 +91,20 @@ describe('MobileShell', () => {
     expect(layer.className).toContain('var(--m-scr)');
     expect(layer.className).toContain('var(--m-bg)');
     expect(root.className).not.toContain('var(--m-bg)');
+    expect(layer.className).toContain('-z-10');
+  });
 
-    // Not a negative z-index: body carries an opaque background (index.css), and
-    // a negative layer paints below the backgrounds of ordinary blocks, so the
-    // gradient disappeared behind it and the translucent cards composited
-    // against one flat colour. The layer is positioned at 0 and the content
-    // above it at 10, which puts both over body's background.
-    expect(layer.className).not.toContain('-z-10');
-    expect(layer.className).toContain('z-0');
+  it('FE-MOB-MSHELL-006b: the content wrapper is not a stacking context', () => {
+    // A positioned wrapper with a z-index traps every fixed overlay a screen
+    // renders inside it: the vacay view/edit FAB (z-50) went underneath the dock
+    // (z-40) when this carried `relative z-10`. The screens rely on their own
+    // z-index competing with the chrome, so this has to stay unpositioned.
+    render(<MobileShell isPhone><p>page body</p></MobileShell>, { initialEntries: ['/dashboard'] });
+
     const content = screen.getByText('page body').parentElement as HTMLElement;
-    expect(content.className).toContain('relative');
-    expect(content.className).toContain('z-10');
+    expect(content.className).toContain('flex-1');
+    expect(content.className).not.toMatch(/(^|\s)(relative|absolute|fixed|sticky)(\s|$)/);
+    expect(content.className).not.toMatch(/z-\[?\d/);
   });
 
   it('FE-MOB-MSHELL-007: the desktop branch keeps its own scroller', () => {

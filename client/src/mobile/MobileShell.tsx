@@ -51,13 +51,15 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
           gradient measured against its element box, so on it the light cone would
           be stretched over the whole scroll length.
 
-          The layer is positioned with z-index 0 rather than a negative one, and
-          the content above it carries z-index 10. A negative layer paints below
-          the backgrounds of ordinary blocks, and body carries an opaque one
-          (index.css), which hid the gradient entirely and left the translucent
-          cards compositing against a single flat colour. */}
-      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)]" />
-      <div className="relative z-10 flex-1">{children}</div>
+          It stays on a NEGATIVE z-index, and the content wrapper stays unpositioned
+          on purpose. Lifting the layer into the positioned range means the content
+          has to be positioned too, which makes it a stacking context and clamps
+          every fixed overlay a screen renders inside it: the vacay view/edit FAB
+          (z-50) ended up underneath the dock (z-40) that way. For the negative
+          layer to be visible, body must not paint over it, which index.css handles
+          for this breakpoint. */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)]" />
+      <div className="flex-1">{children}</div>
       {!inTripPlanner && <ErrorBoundary boundaryId="chrome:m-bottom-nav" fallback={null}><MBottomNav /></ErrorBoundary>}
       <ErrorBoundary boundaryId="chrome:m-toast" fallback={null}><MToastHost /></ErrorBoundary>
       <div id="m-sheet-root" />
