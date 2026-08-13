@@ -182,3 +182,115 @@ describe('Tool: set_leg_transport_mode', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// set_day_default_transport_mode
+// ---------------------------------------------------------------------------
+
+describe('Tool: set_day_default_transport_mode', () => {
+  it('sets the day default transport mode', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'set_day_default_transport_mode',
+        arguments: { tripId: trip.id, dayId: day.id, transport_mode: 'driving' },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.day.default_transport_mode).toBe('driving');
+      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'day:updated', expect.any(Object));
+    });
+  });
+
+  it('clears the day default with null', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    testDb.prepare('UPDATE days SET default_transport_mode = ? WHERE id = ?').run('driving', day.id);
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'set_day_default_transport_mode',
+        arguments: { tripId: trip.id, dayId: day.id, transport_mode: null },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.day.default_transport_mode).toBeNull();
+    });
+  });
+
+  it('returns the day with its populated assignments array', async () => {
+    // setDefaultTransportMode returns { ...day, assignments }; exercise the non-empty case (panel item 4).
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    const assignment = createDayAssignment(testDb, day.id, place.id);
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'set_day_default_transport_mode',
+        arguments: { tripId: trip.id, dayId: day.id, transport_mode: 'driving' },
+      });
+      const data = parseToolResult(result) as any;
+      expect(Array.isArray(data.day.assignments)).toBe(true);
+      expect(data.day.assignments).toHaveLength(1);
+      expect(data.day.assignments[0].id).toBe(assignment.id);
+    });
+  });
+
+  it('rejects a day belonging to another trip (cross-trip join)', async () => {
+    const { user } = createUser(testDb);
+    const trip1 = createTrip(testDb, user.id);
+    const trip2 = createTrip(testDb, user.id);
+    const day2 = createDay(testDb, trip2.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'set_day_default_transport_mode',
+        arguments: { tripId: trip1.id, dayId: day2.id, transport_mode: 'walking' },
+      });
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  it('returns error when day not found', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'set_day_default_transport_mode',
+        arguments: { tripId: trip.id, dayId: 99999, transport_mode: 'walking' },
+      });
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  it('returns access denied for non-member', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const trip = createTrip(testDb, other.id);
+    const day = createDay(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'set_day_default_transport_mode',
+        arguments: { tripId: trip.id, dayId: day.id, transport_mode: 'walking' },
+      });
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  it('blocks demo user', async () => {
+    process.env.DEMO_MODE = 'true';
+    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'set_day_default_transport_mode',
+        arguments: { tripId: trip.id, dayId: day.id, transport_mode: 'walking' },
+      });
+      expect(result.isError).toBe(true);
+    });
+  });
+});

@@ -104,6 +104,30 @@ export class DaysMcp {
     return ok({ success: true });
   }
 
+  @Tool({
+    name: 'set_day_default_transport_mode',
+    description: 'Set the whole-day default travel mode for a day. transport_mode is a route profile key (e.g. "driving", "walking", "cycling", "transit"); null clears the default. Per-segment leg modes still override this.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      dayId: z.number().int().positive(),
+      transport_mode: z.string().nullable().optional().describe('Route profile key (e.g. "driving"), or null to clear the day default'),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    access: { group: 'trips', mode: 'write' },
+  })
+  async setDayDefaultTransportMode(
+    { tripId, dayId, transport_mode }: { tripId: number; dayId: number; transport_mode?: string | null },
+    ctx: McpContext,
+  ) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.days.verifyTripAccess(tripId, ctx.userId)) return noAccess();
+    if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!this.days.getDay(dayId, tripId)) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
+    const day = this.days.setDefaultTransportMode(dayId, transport_mode ?? null);
+    this.guards.safeBroadcast(tripId, 'day:updated', { day });
+    return ok({ day });
+  }
+
   @ResourceTemplate({
     name: 'trip-days',
     uriTemplate: 'trek://trips/{tripId}/days',
