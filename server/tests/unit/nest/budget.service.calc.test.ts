@@ -96,6 +96,13 @@ function makeSettlementRow(
   };
 }
 
+/**
+ * Add money the way the ledger does — in whole cents. Summing the returned
+ * two-decimal figures with `+` reintroduces exactly the binary dust the fix is
+ * about, so an "adds up to zero" assertion has to count cents to mean anything.
+ */
+const centSum = (values: number[]) => values.reduce((a, v) => a + Math.round(v * 100), 0);
+
 function setupDb(
   items: BudgetItem[],
   members: (BudgetItemMember & { budget_item_id: number })[],
@@ -193,8 +200,10 @@ describe('calculateSettlement', () => {
       [makePayer(1, 1, 20, 'alice'), makePayer(1, 2, 20, 'bob'), makePayer(1, 3, 20, 'carol')],
     );
     const result = budget.calculateSettlement(1);
+    // Exactly zero, not "within a cent": a tolerance here is what let #1382's
+    // stranded cents through unnoticed.
     for (const b of result.balances) {
-      expect(Math.abs(b.balance)).toBeLessThanOrEqual(0.01);
+      expect(b.balance).toBe(0);
     }
     expect(result.flows).toHaveLength(0);
   });
@@ -385,9 +394,8 @@ describe('calculateSettlement', () => {
       ],
     );
     const result = budget.calculateSettlement(1);
-    const sum = result.balances.reduce((a, b) => a + b.balance, 0);
 
-    expect(sum).toBeCloseTo(0, 2);
+    expect(centSum(result.balances.map(b => b.balance))).toBe(0);
   });
 
   it('3 payers on one bill: an odd total still splits to the cent', () => {
@@ -399,9 +407,111 @@ describe('calculateSettlement', () => {
       [makePayer(1, 1, 33.34, 'alice'), makePayer(1, 2, 33.34, 'bob'), makePayer(1, 3, 33.33, 'carol')],
     );
     const result = budget.calculateSettlement(1);
-    const sum = result.balances.reduce((a, b) => a + b.balance, 0);
 
-    expect(sum).toBeCloseTo(0, 2);
+    expect(centSum(result.balances.map(b => b.balance))).toBe(0);
+  });
+});
+
+// ── #1382: balances and flows have to tell the same story ────────────────────
+// The ledger is netted in whole cents of the trip currency, so a balance is only
+// ever a whole number of cents and every one of them can be settled. What used to
+// be smoothed over with a 0.01 tolerance is now exact.
+
+describe('calculateSettlement — cent-exact settle-up (#1382)', () => {
+  it('#1382 offers the last cent as a flow instead of stranding it', () => {
+    // 30.00 fronted by Alice, split three ways. Bob transfers 9.99 instead of his
+    // 10.00 and Carol pays exactly, so one cent is still open. The reporter's
+    // symptom was that the balances showed that cent while "Settle up" offered
+    // nothing to clear it: below 0.01 the old filter dropped the person entirely.
+    setupDb(
+      [makeItem(1, 30)],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol')],
+      [makePayer(1, 1, 30, 'alice')],
+      [makeSettlementRow(1, 2, 1, 9.99), makeSettlementRow(2, 3, 1, 10)],
+    );
+    const result = budget.calculateSettlement(1);
+    const balance = (uid: number) => result.balances.find(b => b.user_id === uid)!.balance;
+
+    expect(balance(1)).toBe(0.01);
+    expect(balance(2)).toBe(-0.01);
+    expect(balance(3)).toBe(0);
+    expect(result.flows).toEqual([
+      expect.objectContaining({ amount: 0.01, from: expect.objectContaining({ user_id: 2 }), to: expect.objectContaining({ user_id: 1 }) }),
+    ]);
+  });
+
+  it('#1382 booking every offered flow leaves all balances at exactly zero', () => {
+    // 10.00 three ways is 3.34/3.33/3.33 — the case where the old greedy walked
+    // away from the rounding remainder. Recording the flows it offers must square
+    // the trip up completely, or the leftover cent is there forever.
+    const items = [makeItem(1, 10)];
+    const members = [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol')];
+    const payers = [makePayer(1, 1, 10, 'alice')];
+    setupDb(items, members, payers);
+
+    const first = budget.calculateSettlement(1);
+    expect(first.flows.length).toBeGreaterThan(0);
+
+    const booked = first.flows.map((f, i) => makeSettlementRow(i + 1, f.from.user_id, f.to.user_id, f.amount));
+    setupDb(items, members, payers, booked);
+
+    const after = budget.calculateSettlement(1);
+    expect(after.balances.map(b => b.balance)).toEqual([0, 0, 0]);
+    expect(after.flows).toEqual([]);
+  });
+
+  it('#1382 a foreign-currency expense nets to exactly zero, not to a sub-cent residual', () => {
+    // 100 USD frozen at 1.1 is 90.909090… EUR: no split of it lands on whole cents.
+    // The equal split divides the credited cents rather than the foreign total, so
+    // the debits cancel the credits exactly instead of leaving dust behind.
+    setupDb(
+      [{ ...makeItem(1, 100), currency: 'USD', exchange_rate: 1.1 } as BudgetItem],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol')],
+      [makePayer(1, 1, 100, 'alice')],
+    );
+    const result = budget.calculateSettlement(1, { base: 'EUR', tripCurrency: 'EUR', rates: { EUR: 1, USD: 1.1 } });
+
+    expect(centSum(result.balances.map(b => b.balance))).toBe(0);
+    expect(centSum(result.flows.map(f => f.amount)))
+      .toBe(Math.round(result.balances.find(b => b.user_id === 1)!.balance * 100));
+  });
+
+  it('#1382 a display currency of its own neither invents nor loses a cent', () => {
+    // Nothing here is foreign: an all-EUR trip, but the viewer's preferred currency
+    // is USD. Rounding each balance into that currency on its own used to leave the
+    // set adding up to a cent that no flow could ever clear, and the drift moved
+    // with the live rate — money appearing without a single expense being touched.
+    setupDb(
+      [makeItem(1, 100)],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol')],
+      [makePayer(1, 1, 100, 'alice')],
+    );
+    for (const eurPerUsd of [0.855, 0.9312, 0.94]) {
+      const result = budget.calculateSettlement(1, { base: 'USD', tripCurrency: 'EUR', rates: { USD: 1, EUR: eurPerUsd } });
+
+      expect(centSum(result.balances.map(b => b.balance))).toBe(0);
+      for (const b of result.balances) {
+        // What settle-up would move for this person has to be their balance exactly.
+        const moved = centSum(result.flows.filter(f => f.to.user_id === b.user_id).map(f => f.amount))
+          - centSum(result.flows.filter(f => f.from.user_id === b.user_id).map(f => f.amount));
+        expect(moved).toBe(Math.round(b.balance * 100));
+      }
+    }
+  });
+
+  it('#1382 an unpaid bill still reads as money owed', () => {
+    // Nobody is down as a payer, so there is nothing to divide between the payers —
+    // the recorded total stands in, and the expense keeps showing up as outstanding
+    // rather than quietly netting to zero.
+    setupDb(
+      [makeItem(1, 90)],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol')],
+      [],
+    );
+    const result = budget.calculateSettlement(1);
+
+    expect(result.balances.map(b => b.balance)).toEqual([-30, -30, -30]);
+    expect(result.flows).toEqual([]);
   });
 });
 

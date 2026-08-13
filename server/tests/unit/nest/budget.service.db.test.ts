@@ -255,6 +255,51 @@ describe('calculateSettlement custom splits', () => {
   });
 });
 
+describe('calculateSettlement squares up to the cent (#1382)', () => {
+  it('BUDGET-SVC-DB-026: recording the offered flows clears the trip to exactly zero', () => {
+    const { user: alice } = createUser(testDb, { username: 'alice' });
+    const { user: bob } = createUser(testDb, { username: 'bob' });
+    const { user: carol } = createUser(testDb, { username: 'carol' });
+    const trip = createTrip(testDb, alice.id, { title: 'Trip' });
+    const members = [{ user_id: alice.id }, { user_id: bob.id }, { user_id: carol.id }];
+
+    // Totals that never divide by three, so every expense leaves a remainder cent
+    // somewhere: 10.00, 100.01 and 0.01 (the smallest debt there is).
+    budget.createBudgetItem(trip.id, { name: 'Coffee', payers: [{ user_id: alice.id, amount: 10 }], members });
+    budget.createBudgetItem(trip.id, { name: 'Dinner', payers: [{ user_id: bob.id, amount: 100.01 }], members });
+    budget.createBudgetItem(trip.id, { name: 'Stamp', payers: [{ user_id: carol.id, amount: 0.01 }], members });
+
+    const before = budget.calculateSettlement(trip.id);
+    expect(before.flows.length).toBeGreaterThan(0);
+    for (const f of before.flows) {
+      budget.insertSettlement(trip.id, { from_user_id: f.from.user_id, to_user_id: f.to.user_id, amount: f.amount }, f.from.user_id);
+    }
+
+    // Nothing left over, and nothing left to offer — the settle-up list and the
+    // balances agree instead of the balances holding a cent nobody can pay.
+    const after = budget.calculateSettlement(trip.id);
+    expect(after.balances.map(b => b.balance)).toEqual([0, 0, 0]);
+    expect(after.flows).toEqual([]);
+  });
+
+  it('BUDGET-SVC-DB-027: the balances hold still while the live rate moves under them', async () => {
+    const { trip, me, danil, serega } = seedIssue1543Trip('RUB');
+
+    // Nothing about the trip changes between the two reads; only the rate cache
+    // turned over. That was enough to shuffle cents between people (#1382).
+    const first = budget.calculateSettlement(trip.id, { base: 'RUB', tripCurrency: 'RUB', rates: RATES.RUB });
+    const second = budget.calculateSettlement(trip.id, {
+      base: 'RUB', tripCurrency: 'RUB',
+      rates: { RUB: 1, USD: 0.013042 * 1.03, EUR: 0.011412 * 0.97 },
+    });
+
+    for (const uid of [me.id, danil.id, serega.id]) {
+      expect(second.balances.find(b => b.user_id === uid)!.balance)
+        .toBe(first.balances.find(b => b.user_id === uid)!.balance);
+    }
+  });
+});
+
 /** The exact trip from #1543: RUB base, three members, one expense booked in USD. */
 function seedIssue1543Trip(tripCurrency: string) {
   const { user: me } = createUser(testDb, { username: 'me' });

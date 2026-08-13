@@ -135,24 +135,36 @@ export function readUserNote(item: { note?: string | null } | null | undefined):
   return note && !note.startsWith('TICKETJSON:') ? note : ''
 }
 
-/** Per-person totals for a receipt split line by line, plus the receipt total. */
+/**
+ * Per-person totals for a receipt split line by line, plus the receipt total.
+ *
+ * Every cent on the receipt lands on somebody: a line nobody was ticked for is
+ * carried by everyone who appears on the receipt, so the shares add back up to
+ * the total. They used to count toward the total only, which left the expense
+ * with member debits that could never cancel the payer's credit — a permanent
+ * difference the settle-up view showed as debt but had no flow to clear (#1382).
+ * A receipt with no participants at all splits nothing; it is not saveable
+ * anyway, since every line needs someone on it.
+ */
 export function calculateTicketShares(items: TicketItem[]): { shares: Record<number, number>; total: number } {
   const shares: Record<number, number> = {}
   let totalCents = 0
+
+  const everyone = [...new Set(items.flatMap(i => [...i.participants]))].sort((a, b) => a - b)
 
   for (const item of items) {
     const priceNum = parseFloat(item.price) || 0
     const priceCents = Math.round(priceNum * 100)
     totalCents += priceCents
 
-    const partIds = [...item.participants]
-    const n = partIds.length
+    const sortedPartIds = item.participants.size > 0
+      ? [...item.participants].sort((a, b) => a - b)
+      : everyone
+    const n = sortedPartIds.length
     if (n === 0) continue
 
     const baseCents = Math.floor(priceCents / n)
-    const remainder = priceCents % n
-
-    const sortedPartIds = [...partIds].sort((a, b) => a - b)
+    const remainder = priceCents - baseCents * n
 
     for (let i = 0; i < n; i++) {
       const id = sortedPartIds[i]

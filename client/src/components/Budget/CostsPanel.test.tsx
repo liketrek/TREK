@@ -1762,13 +1762,15 @@ describe('CostsPanel — split maths', () => {
     expect(splitEqualShares(10, [{ user_id: 1 }, { user_id: 2 }, { user_id: 3 }], 1)).toEqual({ 1: 3.33, 2: 3.34, 3: 3.33 })
   })
 
-  it('FE-W5COSTS-041: ticket items nobody is assigned to still count toward the total', () => {
+  it('FE-W5COSTS-041: a receipt line nobody is assigned to is carried by everyone on the receipt', () => {
     const items: TicketItem[] = [
       { id: 'a', name: 'Apples', price: '10', participants: new Set([1, 2]) },
       { id: 'b', name: 'Service', price: '5', participants: new Set() },
       { id: 'c', name: 'Cake', price: 'x', participants: new Set([2]) },
     ]
 
-    expect(calculateTicketShares(items)).toEqual({ shares: { 1: 5, 2: 5 }, total: 15 })
+    // The service line used to count toward the total without landing on anyone,
+    // so the shares stayed a permanent 5.00 short of it (#1382).
+    expect(calculateTicketShares(items)).toEqual({ shares: { 1: 7.5, 2: 7.5 }, total: 15 })
   })
 })

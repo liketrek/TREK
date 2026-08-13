@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { hasTicketSplit, payerSum, payersBalanced, readTicketItems, readUserNote, rebalancePayers, splitCents, writeTicketItems } from './CostsPanel.helpers'
+import { calculateTicketShares, hasTicketSplit, payerSum, payersBalanced, readTicketItems, readUserNote, rebalancePayers, splitCents, writeTicketItems, type TicketItem } from './CostsPanel.helpers'
 
 describe('splitCents', () => {
   it('splits evenly when it divides cleanly', () => {
@@ -130,5 +130,49 @@ describe('readUserNote', () => {
     expect(readUserNote({ note: 'TICKETJSON:{"items":[]}' })).toBe('')
     expect(readUserNote({ note: null })).toBe('')
     expect(readUserNote(null)).toBe('')
+  })
+})
+
+// ── Receipt splits have to reconcile (#1382) ─────────────────────────────────
+
+describe('calculateTicketShares', () => {
+  const line = (price: string, parts: number[]): TicketItem =>
+    ({ id: price + parts.join(), name: 'Line', price, participants: new Set(parts) })
+  const shareSum = (shares: Record<number, number>) =>
+    Object.values(shares).reduce((a, v) => a + Math.round(v * 100), 0)
+
+  it('splits each line among the people on it', () => {
+    const { shares, total } = calculateTicketShares([line('10', [1, 2]), line('6', [2])])
+    expect(shares).toEqual({ 1: 5, 2: 11 })
+    expect(total).toBe(16)
+  })
+
+  it('spreads a line nobody was ticked for across everyone on the receipt', () => {
+    // The service charge used to count toward the total and toward nobody's share,
+    // so the expense carried a permanent difference no settle-up could clear.
+    const { shares, total } = calculateTicketShares([
+      line('10', [1, 2]),
+      line('5', []),
+      line('x', [2]),
+    ])
+    expect(shares).toEqual({ 1: 7.5, 2: 7.5 })
+    expect(total).toBe(15)
+    expect(shareSum(shares)).toBe(Math.round(total * 100))
+  })
+
+  it('hands out the remainder cents so the shares add back up to the total', () => {
+    const { shares, total } = calculateTicketShares([line('10', [1, 2, 3]), line('0.01', [])])
+    expect(shareSum(shares)).toBe(Math.round(total * 100))
+    expect(total).toBe(10.01)
+  })
+
+  it('splits nothing when the receipt has no participants anywhere', () => {
+    const { shares, total } = calculateTicketShares([line('10', []), line('5', [])])
+    expect(shares).toEqual({})
+    expect(total).toBe(15)
+  })
+
+  it('is empty for an empty receipt', () => {
+    expect(calculateTicketShares([])).toEqual({ shares: {}, total: 0 })
   })
 })

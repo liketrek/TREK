@@ -41,6 +41,30 @@ export function splitLegacyTicketNote(
 }
 
 /**
+ * Re-denominate whole trip-currency cents into whole display-currency cents
+ * without losing or inventing one (#1382).
+ *
+ * Rounding every balance on its own lets the rounded set drift away from the sum
+ * it came from: a squared-up trip viewed in another currency then shows a cent
+ * that no payment flow can ever clear, and the drift moves whenever the live rate
+ * does — money appearing without a single expense being touched. Rounding down
+ * and handing the leftover to the largest fractions keeps Σ(converted) equal to
+ * converted(Σ). `factor === 1` (the display currency IS the trip currency, the
+ * common case) is the identity and never touches a float.
+ */
+function allocateDisplayCents(cents: number[], factor: number): number[] {
+  if (factor === 1) return [...cents];
+  const exact = cents.map(c => c * factor);
+  const out = exact.map(v => Math.floor(v));
+  const drift = Math.round(cents.reduce((a, c) => a + c, 0) * factor) - out.reduce((a, v) => a + v, 0);
+  const byFraction = exact
+    .map((v, i) => ({ i, frac: v - Math.floor(v) }))
+    .sort((a, b) => b.frac - a.frac || a.i - b.i);
+  for (let k = 0; k < drift && k < byFraction.length; k++) out[byFraction[k].i] += 1;
+  return out;
+}
+
+/**
  * Budget domain service — owns the budget SQL (moved from the legacy
  * services/budgetService.ts: identical statements, the `||` falsy-coercion
  * defaults, the COALESCE / CASE WHEN sentinel conventions on update and the
@@ -590,13 +614,21 @@ export class BudgetService {
     return summary.map(s => ({ ...s, avatar_url: avatarUrl(s) }));
   }
 
-  private splitEqualShares(total: number, members: { user_id: number }[], itemId: number): Record<number, number> {
+  /**
+   * Largest-remainder split of an expense across its participants. Takes and
+   * returns **whole cents**, so the shares add back up to the input exactly —
+   * the settlement ledger is netted in integer cents (#1382).
+   *
+   * The remainder cent rotates with the item id rather than always landing on the
+   * first member, so across several expenses the rounding evens out instead of
+   * always favouring the same person.
+   */
+  private splitEqualShares(totalCents: number, members: { user_id: number }[], itemId: number): Record<number, number> {
     const n = members.length;
     if (n === 0) return {};
 
-    const totalCents = Math.round(total * 100);
     const baseCents = Math.floor(totalCents / n);
-    const remainder = totalCents % n;
+    const remainder = totalCents - baseCents * n;
 
     const shares: Record<number, number> = {};
     const sortedMembers = [...members].sort((a, b) => a.user_id - b.user_id);
@@ -605,7 +637,7 @@ export class BudgetService {
     for (let i = 0; i < n; i++) {
       const member = sortedMembers[i];
       const hasExtraCent = ((i - startIndex + n) % n) < remainder;
-      shares[member.user_id] = (baseCents + (hasExtraCent ? 1 : 0)) / 100;
+      shares[member.user_id] = baseCents + (hasExtraCent ? 1 : 0);
     }
 
     return shares;
@@ -640,8 +672,12 @@ export class BudgetService {
       return amount;
     };
     // trip-currency → display currency, applied once to the final netted totals.
-    const toDisplay = (v: number): number =>
-      base === tripCurrency ? v : (rates && rates[tripCurrency] > 0 ? v / rates[tripCurrency] : v);
+    // Held as a plain factor so it is exactly linear: the balances are converted as
+    // one set (allocateDisplayCents) rather than one at a time, which is what keeps
+    // them adding up to zero in whatever currency the viewer picked (#1382).
+    const displayFactor = base === tripCurrency
+      ? 1
+      : (rates && rates[tripCurrency] > 0 ? 1 / rates[tripCurrency] : 1);
     // A recorded settle-up amount is entered in whatever display currency the payer
     // was viewing. New rows capture that currency and the rate frozen at settle time
     // (#1445), so a settled position stays balanced when live rates drift — mirroring
@@ -678,12 +714,16 @@ export class BudgetService {
     WHERE bp.budget_item_id IN (SELECT id FROM budget_items WHERE trip_id = ?)
   `, tripId);
 
-    // Net balance per user, in the requested base currency: positive = is owed
-    // money, negative = owes money. Each expense's amounts are converted from their
-    // own currency to the base with live rates, so mixed-currency trips net correctly.
-    const balances: Record<number, { user_id: number; username: string; avatar_url: string | null; balance: number }> = {};
+    // Net balance per user, in whole cents of the TRIP currency: positive = is owed
+    // money, negative = owes money. Every amount is converted out of its own currency
+    // and rounded to a cent once, at the boundary — from there on the ledger is
+    // integer arithmetic, so Σ(balances) is exactly 0 and no sub-cent residual can
+    // build up behind the two-decimal figures the user sees (#1382).
+    const toTripCents = (amount: number, itemCurrency: string | null | undefined, itemRate?: number | null): number =>
+      Math.round(toTrip(amount, itemCurrency, itemRate) * 100);
+    const balances: Record<number, { user_id: number; username: string; avatar_url: string | null; cents: number }> = {};
     const ensure = (id: number, src: { username?: string; avatar?: string | null }) => {
-      if (!balances[id]) balances[id] = { user_id: id, username: src.username || '', avatar_url: avatarUrl(src), balance: 0 };
+      if (!balances[id]) balances[id] = { user_id: id, username: src.username || '', avatar_url: avatarUrl(src), cents: 0 };
       return balances[id];
     };
 
@@ -694,16 +734,31 @@ export class BudgetService {
 
       // Payers are credited what they actually paid (converted to trip currency with
       // the item's stored exchange rate)…
-      for (const p of payers) ensure(p.user_id, p).balance += toTrip(p.amount > 0 ? p.amount : 0, item.currency, item.exchange_rate);
+      let creditCents = 0;
+      for (const p of payers) {
+        const paid = toTripCents(p.amount > 0 ? p.amount : 0, item.currency, item.exchange_rate);
+        ensure(p.user_id, p).cents += paid;
+        creditCents += paid;
+      }
       // …and each split participant owes their share — a custom per-member amount
-      // when one is set, otherwise an equal share of the expense total.
+      // when one is set, otherwise an equal share of the expense.
+      //
+      // The equal split divides what the payers were actually credited, not
+      // total_price: the two are the same figure (the write path derives the total
+      // from the payer sum), but converting the total separately would round to a
+      // different cent on a foreign-currency expense and leave the item off by one.
+      // With nobody down as a payer there is nothing to divide, so the recorded total
+      // stands in and an unpaid bill keeps reading as money owed.
       const hasCustomSplit = members.some(m => m.amount !== null && m.amount !== undefined);
-      const equalShares = !hasCustomSplit ? this.splitEqualShares(item.total_price, members, item.id) : {};
+      const splitCents = creditCents > 0
+        ? creditCents
+        : toTripCents(item.total_price, item.currency, item.exchange_rate);
+      const equalShares = !hasCustomSplit ? this.splitEqualShares(splitCents, members, item.id) : {};
       for (const m of members) {
         const memberShare = hasCustomSplit && m.amount !== null && m.amount !== undefined
-          ? toTrip(m.amount, item.currency, item.exchange_rate)
-          : toTrip(equalShares[m.user_id] || 0, item.currency, item.exchange_rate);
-        ensure(m.user_id, m).balance -= memberShare;
+          ? toTripCents(m.amount, item.currency, item.exchange_rate)
+          : (equalShares[m.user_id] || 0);
+        ensure(m.user_id, m).cents -= memberShare;
       }
     }
 
@@ -714,19 +769,29 @@ export class BudgetService {
     // surfaces as an amount still to square up instead of silently vanishing.
     const settlements = this.listSettlements(tripId);
     const ensureSettled = (id: number, username: string | undefined, avatar_url: string | null | undefined) => {
-      if (!balances[id]) balances[id] = { user_id: id, username: username || '', avatar_url: avatar_url ?? null, balance: 0 };
+      if (!balances[id]) balances[id] = { user_id: id, username: username || '', avatar_url: avatar_url ?? null, cents: 0 };
       return balances[id];
     };
     for (const s of settlements) {
-      const inTrip = settleToTrip(s.amount, s.currency, s.exchange_rate);
-      ensureSettled(s.from_user_id, s.from_username, s.from_avatar_url).balance += inTrip;
-      ensureSettled(s.to_user_id, s.to_username, s.to_avatar_url).balance -= inTrip;
+      // Rounded to a trip cent per transfer, so recording one in a display currency
+      // can't leave a sliver of a cent behind to accumulate over a trip's lifetime.
+      const inTrip = Math.round(settleToTrip(s.amount, s.currency, s.exchange_rate) * 100);
+      ensureSettled(s.from_user_id, s.from_username, s.from_avatar_url).cents += inTrip;
+      ensureSettled(s.to_user_id, s.to_username, s.to_avatar_url).cents -= inTrip;
     }
 
+    // Into the display currency as one set, then simplify — balances and flows are
+    // derived from the same integers, so what the balances say is owed is exactly
+    // what "Settle up" offers to move, down to the last cent (#1382).
+    const ledger = Object.values(balances);
+    const displayCents = allocateDisplayCents(ledger.map(b => b.cents), displayFactor);
+
     // Calculate optimized payment flows (greedy algorithm)
-    const people = Object.values(balances).filter(b => Math.abs(b.balance) > 0.01);
-    const debtors = people.filter(p => p.balance < -0.01).map(p => ({ ...p, amount: -p.balance }));
-    const creditors = people.filter(p => p.balance > 0.01).map(p => ({ ...p, amount: p.balance }));
+    const people = ledger
+      .map((b, i) => ({ user_id: b.user_id, username: b.username, avatar_url: b.avatar_url, cents: displayCents[i] }))
+      .filter(b => b.cents !== 0);
+    const debtors = people.filter(p => p.cents < 0).map(p => ({ ...p, amount: -p.cents }));
+    const creditors = people.filter(p => p.cents > 0).map(p => ({ ...p, amount: p.cents }));
 
     // Sort by amount descending for efficient matching
     debtors.sort((a, b) => b.amount - a.amount);
@@ -737,21 +802,22 @@ export class BudgetService {
     let di = 0, ci = 0;
     while (di < debtors.length && ci < creditors.length) {
       const transfer = Math.min(debtors[di].amount, creditors[ci].amount);
-      if (transfer > 0.01) {
-        flows.push({
-          from: { user_id: debtors[di].user_id, username: debtors[di].username, avatar_url: debtors[di].avatar_url },
-          to: { user_id: creditors[ci].user_id, username: creditors[ci].username, avatar_url: creditors[ci].avatar_url },
-          amount: Math.round(toDisplay(transfer) * 100) / 100,
-        });
-      }
+      flows.push({
+        from: { user_id: debtors[di].user_id, username: debtors[di].username, avatar_url: debtors[di].avatar_url },
+        to: { user_id: creditors[ci].user_id, username: creditors[ci].username, avatar_url: creditors[ci].avatar_url },
+        amount: transfer / 100,
+      });
       debtors[di].amount -= transfer;
       creditors[ci].amount -= transfer;
-      if (debtors[di].amount < 0.01) di++;
-      if (creditors[ci].amount < 0.01) ci++;
+      if (debtors[di].amount === 0) di++;
+      if (creditors[ci].amount === 0) ci++;
     }
 
     return {
-      balances: Object.values(balances).map(b => ({ ...b, balance: Math.round(toDisplay(b.balance) * 100) / 100 })),
+      balances: ledger.map((b, i) => ({
+        user_id: b.user_id, username: b.username, avatar_url: b.avatar_url,
+        balance: displayCents[i] / 100,
+      })),
       flows,
       settlements,
     };

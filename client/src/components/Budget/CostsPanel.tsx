@@ -1234,7 +1234,13 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
           .map(id => ({ user_id: id, amount: parseFloat(payerAmounts[id]) || 0 }))
           .filter(p => p.amount > 0)
       : payerId > 0 ? [{ user_id: payerId, amount: totalNum }] : []
-    const memberList = [...participants].map(id => ({
+    // A receipt line can name somebody who is not ticked as a participant. Sending
+    // only the ticked set would drop their share, leaving the member sum short of
+    // total_price and handing the settlement a difference it can never clear (#1382).
+    const memberIds = splitMode === 'ticket'
+      ? [...new Set([...participants, ...Object.keys(ticketInfo.shares).map(Number)])].sort((a, b) => a - b)
+      : [...participants]
+    const memberList = memberIds.map(id => ({
       user_id: id,
       amount: splitMode === 'custom'
         ? (parseFloat(customAmounts[id]) || 0)
@@ -1248,7 +1254,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
       currency,
       payers: payerList,
       members: memberList,
-      member_ids: [...participants],
+      member_ids: memberIds,
       expense_date: day || null,
       total_price: totalNum,
       note: note.trim() || null,
