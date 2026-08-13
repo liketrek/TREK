@@ -198,36 +198,59 @@ export class AccommodationsService {
       newPlaceId, newStartDayId, newEndDayId, newCheckIn, newCheckInEnd, newCheckOut, newConfirmation, newNotes, id
     );
 
-    // Sync check-in/out/confirmation to linked reservation
-    const linkedRes = this.db.get<{ id: number; metadata: string | null }>('SELECT id, metadata FROM reservations WHERE accommodation_id = ?', Number(id));
-    if (linkedRes) {
-      const meta = linkedRes.metadata ? JSON.parse(linkedRes.metadata) : {};
+    // Sync check-in/out/confirmation to every linked reservation. The booking form
+    // lets more than one hotel booking point at the same block and there is no
+    // unique constraint on reservations.accommodation_id, so a single .get() would
+    // silently leave the others on the old times.
+    const linkedRes = this.db.all<{ id: number; metadata: string | null }>('SELECT id, metadata FROM reservations WHERE accommodation_id = ?', Number(id));
+    for (const res of linkedRes) {
+      const meta = res.metadata ? JSON.parse(res.metadata) : {};
       if (newCheckIn) meta.check_in_time = newCheckIn;
       if (newCheckInEnd) meta.check_in_end_time = newCheckInEnd;
       if (newCheckOut) meta.check_out_time = newCheckOut;
       this.db.run('UPDATE reservations SET metadata = ?, confirmation_number = COALESCE(?, confirmation_number) WHERE id = ?',
-        JSON.stringify(meta), newConfirmation || null, linkedRes.id);
+        JSON.stringify(meta), newConfirmation || null, res.id);
     }
 
     return this.getAccommodationWithPlace(Number(id));
   }
 
-  /** Delete accommodation and its linked reservation (and any linked budget item), atomically. */
-  deleteAccommodation(id: string | number): { linkedReservationId: number | null; deletedBudgetItemId: number | null } {
+  /**
+   * Delete accommodation and its linked reservations (and any linked budget items),
+   * atomically.
+   *
+   * Takes ALL linked reservations, not just the first: reservations.accommodation_id
+   * carries no foreign key and no unique constraint, so a second booking pointed at
+   * the same block used to survive the delete as a row referencing an accommodation
+   * that no longer exists. `linkedReservationId` / `deletedBudgetItemId` stay on the
+   * result as the first of each, because the RPC, MCP and REST callers read them.
+   */
+  deleteAccommodation(id: string | number): {
+    linkedReservationId: number | null;
+    deletedBudgetItemId: number | null;
+    linkedReservationIds: number[];
+    deletedBudgetItemIds: number[];
+  } {
     return this.db.transaction(() => {
-      const linkedRes = this.db.get<{ id: number }>('SELECT id FROM reservations WHERE accommodation_id = ?', Number(id));
-      let deletedBudgetItemId: number | null = null;
-      if (linkedRes) {
-        const linkedBudget = this.db.get<{ id: number }>('SELECT id FROM budget_items WHERE reservation_id = ?', linkedRes.id);
+      const linkedRes = this.db.all<{ id: number }>('SELECT id FROM reservations WHERE accommodation_id = ?', Number(id));
+      const deletedBudgetItemIds: number[] = [];
+      for (const res of linkedRes) {
+        const linkedBudget = this.db.get<{ id: number }>('SELECT id FROM budget_items WHERE reservation_id = ?', res.id);
         if (linkedBudget) {
           this.db.run('DELETE FROM budget_items WHERE id = ?', linkedBudget.id);
-          deletedBudgetItemId = linkedBudget.id;
+          deletedBudgetItemIds.push(linkedBudget.id);
         }
-        this.db.run('DELETE FROM reservations WHERE id = ?', linkedRes.id);
+        this.db.run('DELETE FROM reservations WHERE id = ?', res.id);
       }
 
       this.db.run('DELETE FROM day_accommodations WHERE id = ?', id);
-      return { linkedReservationId: linkedRes ? linkedRes.id : null, deletedBudgetItemId };
+      const linkedReservationIds = linkedRes.map(r => r.id);
+      return {
+        linkedReservationId: linkedReservationIds[0] ?? null,
+        deletedBudgetItemId: deletedBudgetItemIds[0] ?? null,
+        linkedReservationIds,
+        deletedBudgetItemIds,
+      };
     });
   }
 }

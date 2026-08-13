@@ -179,9 +179,11 @@ export class AccommodationsMcp {
     if (!this.accommodations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     if (!this.accommodations.getAccommodation(accommodationId, tripId)) return { content: [{ type: 'text' as const, text: 'Accommodation not found.' }], isError: true };
-    const { linkedReservationId } = this.accommodations.deleteAccommodation(accommodationId);
-    this.guards.safeBroadcast(tripId, 'accommodation:deleted', { id: accommodationId, linkedReservationId });
-    return ok({ success: true, linkedReservationId });
+    // linkedReservationId stays the first one so the tool's answer keeps its shape;
+    // linkedReservationIds carries the rest for a block that had more than one booking.
+    const { linkedReservationId, linkedReservationIds } = this.accommodations.deleteAccommodation(accommodationId);
+    this.guards.safeBroadcast(tripId, 'accommodation:deleted', { id: accommodationId, linkedReservationId, linkedReservationIds });
+    return ok({ success: true, linkedReservationId, linkedReservationIds });
   }
 
   @ResourceTemplate({

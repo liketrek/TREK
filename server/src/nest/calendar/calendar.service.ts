@@ -313,7 +313,12 @@ export class CalendarService {
       // A stay wins over everything below: it is the only source that knows how
       // long the booking lasts. Emitted as an all-day range over every night, so
       // the hotel sits above the day in a subscribed calendar instead of
-      // appearing once on the arrival day (#1586). DTEND is exclusive, hence +1.
+      // appearing once on the arrival day (#1586).
+      // end_day_id is the CHECK-OUT day, and the block is meant to cover it too:
+      // a 26th-to-30th booking should read as a five-day block, not as the four
+      // nights it contains. DTEND is exclusive, so it is check-out plus one day.
+      // Dropping that +1 hides the departure day; it is not a stray off-by-one
+      // (#1869).
       if (isDate(r.stay_start_date)) {
         const lastDay = isDate(r.stay_end_date) && r.stay_end_date >= r.stay_start_date
           ? r.stay_end_date
@@ -361,6 +366,18 @@ export class CalendarService {
             if (endDt.length >= 15) out += dtLine('DTEND', r.reservation_end_time, zone, r.reservation_time);
           }
           return out;
+        }
+        // Date-only start. RFC 5545 makes a DATE event without DTEND exactly one
+        // day long, so a booking that does record an end date still collapsed
+        // onto its first day (#1869); an all-day multi-day event coming through
+        // the booking import (kitinerary-mapper passes date-only start/end
+        // straight through) is the common shape. Same rule as the stay branch:
+        // DTEND is exclusive, hence the end day plus one. Only the date part is
+        // used, because DTSTART;VALUE=DATE and a timed DTEND may not be mixed.
+        const endDatePart = r.reservation_end_time ? String(r.reservation_end_time).split('T')[0] : '';
+        if (isDate(endDatePart) && endDatePart >= r.reservation_time) {
+          return `DTSTART;VALUE=DATE:${fmtDate(r.reservation_time)}\r\n` +
+            `DTEND;VALUE=DATE:${fmtDate(addDays(endDatePart, 1))}\r\n`;
         }
         return `DTSTART;VALUE=DATE:${fmtDate(r.reservation_time)}\r\n`;
       }
@@ -414,16 +431,23 @@ export class CalendarService {
     // all-day event cannot carry a time, and "be there at 15:00" is the part a
     // subscriber actually wants a reminder for. Emitted per stay rather than per
     // reservation so a stay whose reservation was deleted still shows them.
+    // The reservation is read through a subquery rather than a LEFT JOIN: nothing
+    // stops two bookings from pointing at the same accommodation, and a join fans
+    // the stay out into one row per booking. Since the check-in/check-out UIDs are
+    // keyed by the stay, that emitted the same UID twice and clients then pick one
+    // of the duplicates at random (#1869). Lowest id wins so the title is stable
+    // across exports.
     const stays = this.db.prepare(`
       SELECT a.id, a.check_in, a.check_in_end, a.check_out,
              sd.date AS start_date, ed.date AS end_date,
              p.name AS place_name, p.address AS place_address, p.lat AS place_lat, p.lng AS place_lng,
-             r.title AS reservation_title
+             (SELECT r.title FROM reservations r
+               WHERE r.accommodation_id = a.id
+               ORDER BY r.id ASC LIMIT 1) AS reservation_title
       FROM day_accommodations a
       LEFT JOIN days sd ON a.start_day_id = sd.id
       LEFT JOIN days ed ON a.end_day_id = ed.id
       LEFT JOIN places p ON a.place_id = p.id
-      LEFT JOIN reservations r ON r.accommodation_id = a.id
       WHERE a.trip_id = ?
       ORDER BY a.id ASC
     `).all(tripId) as any[];

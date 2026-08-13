@@ -667,6 +667,71 @@ describe('exportICS', () => {
     expect(ics).toContain('DTSTART;TZID=Europe/Paris:20250602T090000');
     expect(ics).toContain('BEGIN:VTIMEZONE\r\nTZID:Europe/Paris');
   });
+
+  it('CAL-032: an all-day booking with an end date spans the whole range', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Festival Trip' });
+    const reservation = createReservation(testDb, trip.id, { title: 'Music Festival', type: 'event' });
+    // A date-only start/end pair is what the booking import writes for an all-day
+    // multi-day event. Without a DTEND the RFC reads the event as a single day, so
+    // the booking collapsed onto its first day (#1869).
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2026-08-26', '2026-08-30', reservation.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    // DTEND is exclusive, so the day after the last day of the booking.
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260826\r\nDTEND;VALUE=DATE:20260831');
+  });
+
+  it('CAL-033: a timed end time on an all-day booking still yields a VALUE=DATE DTEND', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Mixed Precision' });
+    const reservation = createReservation(testDb, trip.id, { title: 'Cottage', type: 'other' });
+    // Mixing DTSTART;VALUE=DATE with a date-time DTEND violates RFC 5545 §3.8.2.2
+    // (both ends must share a value type), so only the date part may be used.
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2026-08-26', '2026-08-30T11:00', reservation.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260826\r\nDTEND;VALUE=DATE:20260831');
+    expect(ics).not.toContain('DTEND:20260830T110000');
+  });
+
+  it('CAL-034: an end date before the start date emits no DTEND', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Backwards' });
+    const reservation = createReservation(testDb, trip.id, { title: 'Swapped Dates', type: 'event' });
+    // Clients either drop an event whose DTEND precedes its DTSTART or render it
+    // with zero duration; leaving the end out keeps the single-day fallback.
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2026-08-26', '2026-08-20', reservation.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260826');
+    expect(ics).not.toContain('DTEND');
+  });
+
+  it('CAL-035: a clock-only end time on an all-day booking emits no DTEND', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Half Timed' });
+    const reservation = createReservation(testDb, trip.id, { title: 'Workshop', type: 'other' });
+    // Relative "Day N" trips store a bare clock time; there is no date to anchor it
+    // to, so it cannot become the end of an all-day range.
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2026-08-26', '11:00', reservation.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260826');
+    expect(ics).not.toContain('DTEND');
+  });
 });
 
 // ── Accommodations in the feed (#1586) ───────────────────────────────────────
@@ -803,6 +868,32 @@ describe('accommodations', () => {
     expect(ics).not.toContain('Check-in');
     expect(ics).not.toContain('Check-out');
     expect(ics).not.toContain('DTSTART;VALUE=DATE:');
+  });
+
+  it('CAL-036: two bookings on one stay emit the check-in/check-out markers once', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris' });
+    const { stayId } = createStay(trip.id, {
+      start: '2026-07-07', end: '2026-07-12', check_in: '15:00', check_out: '11:00',
+    });
+    // Nothing stops a second booking from pointing at the same accommodation. The
+    // markers are keyed by the stay, so joining the reservations in fanned the stay
+    // out into two VEVENTs carrying the same UID, and clients then show whichever
+    // one they saw last (#1869).
+    testDb.prepare(`
+      INSERT INTO reservations (trip_id, title, reservation_time, status, type, accommodation_id)
+      VALUES (?, 'Bellevue second room', NULL, 'confirmed', 'hotel', ?)
+    `).run(trip.id, String(stayId));
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics.match(/UID:trek-checkin-\d+@trek/g)).toHaveLength(1);
+    expect(ics.match(/UID:trek-checkout-\d+@trek/g)).toHaveLength(1);
+    // The lowest booking id names the markers, so the title cannot flip between
+    // exports. The second booking keeps its own event (its UID is its own).
+    expect(ics).toContain('SUMMARY:Check-in: Hotel Bellevue\r\n');
+    expect(ics).not.toContain('Check-in: Bellevue second room');
+    expect(ics).toContain('SUMMARY:Bellevue second room');
   });
 });
 

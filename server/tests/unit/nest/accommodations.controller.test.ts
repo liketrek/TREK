@@ -81,13 +81,29 @@ describe('AccommodationsController (parity with the legacy accommodations sub-ro
 
     it('emits the linked reservation/budget cascade then accommodation:deleted', () => {
       const get = vi.fn().mockReturnValue({ id: 9 });
-      const remove = vi.fn().mockReturnValue({ linkedReservationId: 4, deletedBudgetItemId: 7 });
+      const remove = vi.fn().mockReturnValue({
+        linkedReservationId: 4, deletedBudgetItemId: 7,
+        linkedReservationIds: [4], deletedBudgetItemIds: [7],
+      });
       const broadcast = vi.fn();
       const svc = makeService({ get, remove, broadcast } as Partial<AccommodationsService>);
       expect(new AccommodationsController(svc).remove(user, '5', '9', 'sock')).toEqual({ success: true });
       expect(broadcast).toHaveBeenCalledWith('5', 'reservation:deleted', { reservationId: 4 }, 'sock');
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:deleted', { itemId: 7 }, 'sock');
       expect(broadcast).toHaveBeenCalledWith('5', 'accommodation:deleted', { accommodationId: 9 }, 'sock');
+    });
+
+    it('emits one event per booking when a stay carried more than one (#1869)', () => {
+      const get = vi.fn().mockReturnValue({ id: 9 });
+      const remove = vi.fn().mockReturnValue({
+        linkedReservationId: 4, deletedBudgetItemId: null,
+        linkedReservationIds: [4, 5], deletedBudgetItemIds: [],
+      });
+      const broadcast = vi.fn();
+      const svc = makeService({ get, remove, broadcast } as Partial<AccommodationsService>);
+      new AccommodationsController(svc).remove(user, '5', '9', 'sock');
+      expect(broadcast).toHaveBeenCalledWith('5', 'reservation:deleted', { reservationId: 4 }, 'sock');
+      expect(broadcast).toHaveBeenCalledWith('5', 'reservation:deleted', { reservationId: 5 }, 'sock');
     });
   });
 });

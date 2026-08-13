@@ -337,8 +337,59 @@ describe('deleteAccommodation', () => {
 
     const result = svc.deleteAccommodation(accom.id);
 
-    expect(result).toEqual({ linkedReservationId: reservation.id, deletedBudgetItemId: budgetItemId });
+    expect(result).toEqual({
+      linkedReservationId: reservation.id,
+      deletedBudgetItemId: budgetItemId,
+      linkedReservationIds: [reservation.id],
+      deletedBudgetItemIds: [budgetItemId],
+    });
     expect(testDb.prepare('SELECT id FROM budget_items WHERE id = ?').get(budgetItemId)).toBeUndefined();
+  });
+
+  it('ACC-010 — a second booking pointed at the same stay goes too, instead of being orphaned', () => {
+    // reservations.accommodation_id carries no foreign key and no unique constraint,
+    // and the booking form lets a hotel booking pick an existing stay. Deleting only
+    // the first left the second behind, referencing a stay that no longer exists.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id) as any;
+    const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
+    const accom = svc.createAccommodation(trip.id, {
+      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+    }) as any;
+
+    const first = testDb.prepare('SELECT id FROM reservations WHERE accommodation_id = ?').get(accom.id) as any;
+    const second = testDb.prepare(
+      'INSERT INTO reservations (trip_id, type, title, accommodation_id) VALUES (?, ?, ?, ?)'
+    ).run(trip.id, 'hotel', 'Second booking', accom.id).lastInsertRowid as number;
+
+    const result = svc.deleteAccommodation(accom.id);
+
+    expect(result.linkedReservationIds).toEqual([first.id, second]);
+    expect(result.linkedReservationId).toBe(first.id);
+    expect(testDb.prepare('SELECT COUNT(*) as n FROM reservations WHERE accommodation_id = ?').get(accom.id)).toMatchObject({ n: 0 });
+  });
+
+  it('ACC-011 — updating the stay syncs the times onto every linked booking', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id) as any;
+    const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
+    const accom = svc.createAccommodation(trip.id, {
+      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+    }) as any;
+    testDb.prepare(
+      'INSERT INTO reservations (trip_id, type, title, accommodation_id) VALUES (?, ?, ?, ?)'
+    ).run(trip.id, 'hotel', 'Second booking', accom.id);
+
+    const existing = testDb.prepare('SELECT * FROM day_accommodations WHERE id = ?').get(accom.id) as any;
+    svc.updateAccommodation(accom.id, existing, { check_in: '15:00', check_out: '11:00' });
+
+    const rows = testDb.prepare('SELECT metadata FROM reservations WHERE accommodation_id = ?').all(accom.id) as Array<{ metadata: string | null }>;
+    expect(rows).toHaveLength(2);
+    for (const row of rows) {
+      expect(JSON.parse(row.metadata || '{}')).toMatchObject({ check_in_time: '15:00', check_out_time: '11:00' });
+    }
   });
 });
 
@@ -446,7 +497,12 @@ describe('route-facing delegators', () => {
     const reservation = testDb.prepare('SELECT id FROM reservations WHERE accommodation_id = ?').get(accom.id) as any;
 
     // The controller broadcasts reservation:deleted off this return value.
-    expect(svc.remove(String(accom.id))).toEqual({ linkedReservationId: reservation.id, deletedBudgetItemId: null });
+    expect(svc.remove(String(accom.id))).toEqual({
+      linkedReservationId: reservation.id,
+      deletedBudgetItemId: null,
+      linkedReservationIds: [reservation.id],
+      deletedBudgetItemIds: [],
+    });
     expect(svc.get(accom.id, trip.id)).toBeUndefined();
   });
 });

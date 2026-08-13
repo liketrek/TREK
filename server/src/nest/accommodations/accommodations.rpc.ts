@@ -99,9 +99,9 @@ export class AccommodationsRpc {
       throw new ForbiddenResource(`no accommodation ${accommodationId} on trip ${tripId}`);
     }
     // Deleting a block can take its partner reservation and budget item with it.
-    const { linkedReservationId, deletedBudgetItemId } = this.days.deleteAccommodation(accommodationId);
-    if (linkedReservationId) this.realtime.broadcast(tripId, 'reservation:deleted', { reservationId: linkedReservationId });
-    if (deletedBudgetItemId) this.realtime.broadcast(tripId, 'budget:deleted', { itemId: deletedBudgetItemId });
+    const { linkedReservationIds, deletedBudgetItemIds } = this.days.deleteAccommodation(accommodationId);
+    for (const reservationId of linkedReservationIds) this.realtime.broadcast(tripId, 'reservation:deleted', { reservationId });
+    for (const itemId of deletedBudgetItemIds) this.realtime.broadcast(tripId, 'budget:deleted', { itemId });
     this.realtime.broadcast(tripId, 'accommodation:deleted', { accommodationId });
     return { deleted: true };
   }

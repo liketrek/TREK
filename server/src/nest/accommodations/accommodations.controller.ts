@@ -111,12 +111,12 @@ export class AccommodationsController {
     if (!this.accommodations.get(id, tripId)) {
       throw new HttpException({ error: 'Accommodation not found' }, 404);
     }
-    const { linkedReservationId, deletedBudgetItemId } = this.accommodations.remove(id);
-    if (linkedReservationId) {
-      this.accommodations.broadcast(tripId, 'reservation:deleted', { reservationId: linkedReservationId }, socketId);
+    const { linkedReservationIds, deletedBudgetItemIds } = this.accommodations.remove(id);
+    for (const reservationId of linkedReservationIds) {
+      this.accommodations.broadcast(tripId, 'reservation:deleted', { reservationId }, socketId);
     }
-    if (deletedBudgetItemId) {
-      this.accommodations.broadcast(tripId, 'budget:deleted', { itemId: deletedBudgetItemId }, socketId);
+    for (const itemId of deletedBudgetItemIds) {
+      this.accommodations.broadcast(tripId, 'budget:deleted', { itemId }, socketId);
     }
     this.accommodations.broadcast(tripId, 'accommodation:deleted', { accommodationId: Number(id) }, socketId);
     return { success: true };
