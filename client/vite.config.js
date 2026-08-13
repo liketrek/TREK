@@ -77,8 +77,36 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            // Mapbox GL style, glyphs, sprites and vector tiles. Best-effort
-            // offline only: opportunistically caches what the user has already
+            // The GL style DOCUMENT, for both providers. It has to be matched
+            // before the tile rules below, because Workbox takes the first route
+            // that matches and the broad tile patterns cover this URL too (#1924).
+            //
+            // A style is not a tile. It is one small document that changes the
+            // moment the user edits it in Mapbox Studio, and it decides how every
+            // tile is drawn — including which `name_*` field the labels read.
+            // Under StaleWhileRevalidate the map was built from the PREVIOUS
+            // revision on every load, with the refresh landing one load too late,
+            // so a style republished with different label languages kept rendering
+            // the old ones. The network tab showed a 200 throughout, because the
+            // service worker's own answer is a real 200.
+            //
+            // NetworkFirst rather than NetworkOnly: the map still has to open
+            // offline. Its own small cache rather than the tile cache: sharing
+            // an LRU with thousands of tiles made eviction, and therefore the
+            // staleness, look random.
+            urlPattern: /^https:\/\/(api\.mapbox\.com\/styles\/v1\/|tiles\.openfreemap\.org\/styles\/)/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'gl-map-styles',
+              networkTimeoutSeconds: 5,
+              expiration: { maxEntries: 20, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+          {
+            // Mapbox GL glyphs, sprites and vector tiles (the style itself is
+            // handled by the rule above). Best-effort offline only:
+            // opportunistically caches what the user has already
             // viewed online. Full pre-download offline maps require the Leaflet
             // renderer (raster prefetch in tilePrefetcher.ts) — the GL vector
             // pipeline is not prefetched. StaleWhileRevalidate keeps the basemap
@@ -93,7 +121,8 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            // OpenFreeMap MapLibre style, glyphs, sprites and vector tiles.
+            // OpenFreeMap MapLibre glyphs, sprites and vector tiles (the style
+            // itself is handled by the style rule above).
             // Same best-effort offline model as Mapbox GL: viewed resources are
             // reused from cache, but the vector tile pipeline is not prefetched.
             urlPattern: /^https:\/\/tiles\.openfreemap\.org\/.*/i,

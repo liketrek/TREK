@@ -477,3 +477,45 @@ describe('the map-tiles rule for OpenStreetMap (#1733)', () => {
     expect(pattern.test('https://tile.openstreetmap.de/13/4091/2722.png')).toBe(false);
   });
 });
+
+describe('the GL style document is not served stale (#1924)', () => {
+  const config = readFileSync(resolve(process.cwd(), 'vite.config.js'), 'utf8');
+
+  // Read the rules in file order and exercise them the way Workbox does: the
+  // first route whose pattern matches wins, so order is behaviour here, not style.
+  const rules = [...config.matchAll(/urlPattern:\s*(\/[^\n]*?\/i),\s*\n\s*handler:\s*'([A-Za-z]+)'/g)].map(m => ({
+    pattern: new RegExp(m[1].slice(1, m[1].lastIndexOf('/')), 'i'),
+    handler: m[2],
+  }));
+  const firstMatch = (url: string) => rules.find(r => r.pattern.test(url));
+
+  const MAPBOX_STYLE = 'https://api.mapbox.com/styles/v1/acme/ckabc123?sdk=js-3.25.0&access_token=pk.test';
+  const OPENFREEMAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
+  const MAPBOX_TILE = 'https://a.tiles.mapbox.com/v4/mapbox.mapbox-streets-v8/13/4091/2722.vector.pbf';
+  const MAPBOX_GLYPHS = 'https://api.mapbox.com/fonts/v1/mapbox/DIN%20Pro%20Regular/0-255.pbf';
+
+  it('finds the runtime caching rules at all (guards the parser above)', () => {
+    expect(rules.length).toBeGreaterThan(4);
+  });
+
+  it('takes the Mapbox style from the network first', () => {
+    // Under the tile rule's StaleWhileRevalidate the map was built from the
+    // previous revision on every load, so a style republished with different
+    // label languages kept rendering the old ones.
+    expect(firstMatch(MAPBOX_STYLE)?.handler).toBe('NetworkFirst');
+  });
+
+  it('takes the OpenFreeMap style from the network first too', () => {
+    expect(firstMatch(OPENFREEMAP_STYLE)?.handler).toBe('NetworkFirst');
+  });
+
+  it('leaves tiles, glyphs and sprites on the offline-friendly rule', () => {
+    // Those are safe to serve stale and are what makes the basemap work offline.
+    expect(firstMatch(MAPBOX_TILE)?.handler).toBe('StaleWhileRevalidate');
+    expect(firstMatch(MAPBOX_GLYPHS)?.handler).toBe('StaleWhileRevalidate');
+  });
+
+  it('keeps the style out of the tile cache, so tile eviction cannot reach it', () => {
+    expect(config).toMatch(/cacheName:\s*'gl-map-styles'/);
+  });
+});
