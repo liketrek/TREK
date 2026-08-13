@@ -1,4 +1,4 @@
-// FE-MOB-JLIST-001 to FE-MOB-JLIST-012
+// FE-MOB-JLIST-001 to FE-MOB-JLIST-013
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '../../../helpers/render';
 import MJourney from '../../../../src/mobile/screens/journey/MJourney';
@@ -148,5 +148,15 @@ describe('MJourney', () => {
     const cancels = screen.getAllByRole('button', { name: 'Cancel' });
     fireEvent.click(cancels[cancels.length - 1]);
     expect(hook.setShowCreate).toHaveBeenCalledWith(false);
+  });
+
+  it('FE-MOB-JLIST-013: the feed keeps its own scroller on a self-measured screen', () => {
+    // #1809: the shell hands down no definite height any more, so the screen
+    // sets one and the feed keeps scrolling inside it.
+    mocks.journey = buildHook();
+    const { container } = render(<MJourney />);
+
+    expect(container.firstElementChild).toHaveClass('h-dvh');
+    expect(container.querySelector('.overflow-y-auto')).toBeInTheDocument();
   });
 });

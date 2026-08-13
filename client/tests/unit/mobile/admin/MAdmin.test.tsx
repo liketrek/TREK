@@ -369,4 +369,15 @@ describe('MAdmin', () => {
     expect(screen.getByText('7')).toBeInTheDocument();
     expect(screen.getByText('0')).toBeInTheDocument();
   });
+
+  it('FE-MOB-ADMIN-018: the long admin flow scrolls with the document', async () => {
+    // #1809: no height and no scroller of its own, otherwise iOS Safari never
+    // sees the root scroller move and keeps its address bar at full height.
+    const { container } = render(<MAdmin />);
+    await waitFor(() => expect(screen.getByText('alice')).toBeInTheDocument());
+
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.className).not.toContain('h-full');
+    expect(root.className).not.toContain('overflow-y-auto');
+  });
 });

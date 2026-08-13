@@ -9,6 +9,7 @@ import { DAY_COLORS } from '../../components/Journey/dayColors'
 import type { JourneyMapAutoHandle as JourneyMapHandle } from '../../components/Journey/JourneyMapAuto'
 import { useToast } from '../../components/shared/Toast'
 import { useIsMobile } from '../../hooks/useIsMobile'
+import { lockBodyScroll } from '../../utils/bodyScrollLock'
 import type { JourneyEntry } from '../../store/journeyStore'
 import { createDraftJourneyEntry } from './JourneyDetailPage.helpers'
 
@@ -273,12 +274,11 @@ export function useJourneyDetail() {
   }, [view])
 
   // On desktop we run a two-pane layout where only the feed column scrolls;
-  // the body must not scroll underneath it. Restore on unmount.
+  // the body must not scroll underneath it. Goes through the shared counter so a
+  // modal opening on top of it cannot hand the page back early (#1809).
   useEffect(() => {
     if (isMobile) return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
+    return lockBodyScroll()
   }, [isMobile])
 
   // Map only shows real journal entries — skeletons are trip-derived

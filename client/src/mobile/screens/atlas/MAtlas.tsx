@@ -89,7 +89,7 @@ export default function MAtlas() {
 
   if (loading) {
     return (
-      <div className="relative h-full">
+      <div className="relative h-dvh">
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-m-ink" />
         </div>
@@ -98,7 +98,9 @@ export default function MAtlas() {
   }
 
   return (
-    <div className="relative h-full overflow-hidden">
+    // h-dvh, not h-full: the shell stopped providing a definite height (#1809)
+    // and a map on a percentage of an auto-height parent collapses to zero.
+    <div className="relative h-dvh overflow-hidden">
       <div ref={mapRef} className="absolute inset-0 z-[1] bg-[color:var(--m-mapb)] [&_.leaflet-control-zoom]:hidden" />
       {/* Region hover tooltip — positioned imperatively by useAtlas. */}
       <div

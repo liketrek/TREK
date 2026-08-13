@@ -214,8 +214,8 @@ export default function MDashboard(): React.ReactElement {
       <MGlassBar floating>
         <button
           type="button"
-          // Content scrolls in the shell's inner container, not the window.
-          onClick={e => { e.currentTarget.closest('.overflow-y-auto')?.scrollTo({ top: 0, behavior: 'smooth' }) }}
+          // The page itself is the scroller since #1809, no inner container to walk up to.
+          onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }) }}
           aria-label="TREK"
           className="flex flex-none items-center gap-[7px]"
         >

@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
+import { lockBodyScroll } from '../../utils/bodyScrollLock'
 
 const sizeClasses: Record<string, string> = {
   sm: 'max-w-sm',
@@ -39,15 +40,18 @@ export default function Modal({
   }, [onClose])
 
   useEffect(() => {
-    if (isOpen) {
-      document.addEventListener('keydown', handleEsc)
-      document.body.style.overflow = 'hidden'
-    }
-    return () => {
-      document.removeEventListener('keydown', handleEsc)
-      document.body.style.overflow = ''
-    }
+    if (!isOpen) return
+    document.addEventListener('keydown', handleEsc)
+    return () => document.removeEventListener('keydown', handleEsc)
   }, [isOpen, handleEsc])
+
+  // Separate from the key listener so a new onClose identity does not release
+  // and re-take the lock on every render. The shared lock is ref-counted: this
+  // modal must not clear a lock another overlay is still holding (#1809).
+  useEffect(() => {
+    if (!isOpen) return
+    return lockBodyScroll()
+  }, [isOpen])
 
   const mouseDownTarget = useRef<EventTarget | null>(null)
 

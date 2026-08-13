@@ -9,6 +9,7 @@ import { useSystemNoticeStore } from '../../store/systemNoticeStore.js';
 import type { SystemNoticeDTO } from '../../store/systemNoticeStore.js';
 import { useTranslation, isRtlLanguage } from '../../i18n/index.js';
 import { runNoticeAction } from './noticeActions.js';
+import { lockBodyScroll } from '../../utils/bodyScrollLock.js';
 
 const ReactMarkdown = React.lazy(() =>
   import('react-markdown').then(m => ({ default: m.default }))
@@ -504,15 +505,14 @@ function useSystemNoticeModal(notices: SystemNoticeDTO[]) {
     return () => document.removeEventListener('keydown', handler);
   }, [visible, idx, notices.length, canPage, language]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Body scroll lock
+  // Body scroll lock. Ref-counted and keyed on a boolean, not on the notice
+  // object: the old version cleared body.overflow on every run of this effect,
+  // which since #1809 would let the page scroll away behind an open sheet.
+  const locksScroll = visible && !!notice;
   useEffect(() => {
-    if (visible && notice) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => { document.body.style.overflow = ''; };
-  }, [visible, notice]);
+    if (!locksScroll) return;
+    return lockBodyScroll();
+  }, [locksScroll]);
 
   // Reset center slot scroll to top on navigation (keyboard / pager buttons).
   useEffect(() => {

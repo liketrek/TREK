@@ -5,6 +5,19 @@
 html { height: 100%; overflow: hidden; background-color: var(--bg-primary); }
 body { height: 100%; overflow: auto; overscroll-behavior: none; -webkit-overflow-scrolling: touch; }
 
+/* Phone (<768px): the document is the scroller, not body (#1809). iOS Safari
+   only minimises its address bar in reaction to the root scroller moving, so a
+   locked html keeps the bar at full height forever. `visible` on both, not
+   `auto`: only then does body's overflow propagate to the viewport, which is
+   what lets the shared body scroll lock stop the page behind an overlay.
+   overscroll-behavior has to sit on html, because the value on body is never
+   propagated to the viewport, and without it a pull at the top of the page
+   reloads the installed PWA. Desktop/tablet keep the rules above. */
+@media (max-width: 767px) {
+  html { overflow: visible; overscroll-behavior: none; }
+  body { height: auto; overflow: visible; }
+}
+
 
 /* Journey desktop feed: hide scrollbar (right column is a sticky map, a
    visible scrollbar on the left breaks the polarsteps-style reading feel). */

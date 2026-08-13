@@ -5,7 +5,7 @@ import type { AtlasController } from '../../../../src/mobile/screens/atlas/atlas
 import type { CountryDetail } from '../../../../src/pages/atlas/atlasModel';
 import MAtlas from '../../../../src/mobile/screens/atlas/MAtlas';
 
-// FE-MOB-ATLASSCR-001 to FE-MOB-ATLASSCR-019
+// FE-MOB-ATLASSCR-001 to FE-MOB-ATLASSCR-020
 
 const mocks = vi.hoisted(() => ({ atlas: {} as AtlasController }));
 
@@ -260,5 +260,16 @@ describe('MAtlas', () => {
     const rows = screen.getAllByRole('button').filter((b) => b.querySelector('img'));
     // Japan has the later date but is only planned, so France leads and keeps "Visited".
     expect(rows.map((r) => r.textContent)).toEqual(['FranceVisited', 'JapanPlanned']);
+  });
+
+  it('FE-MOB-ATLASSCR-020: the screen measures itself, not the shell', () => {
+    // #1809: the shell scrolls with the document now and hands down no definite
+    // height. A map on a percentage of an auto-height parent collapses to zero.
+    const { container, rerender } = render(<MAtlas />);
+    expect(container.firstElementChild).toHaveClass('h-dvh');
+
+    setAtlas({ loading: true });
+    rerender(<MAtlas />);
+    expect(container.firstElementChild).toHaveClass('h-dvh');
   });
 });

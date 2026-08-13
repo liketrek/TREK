@@ -1,5 +1,6 @@
 import React, { ReactNode, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { lockBodyScroll } from '../../utils/bodyScrollLock'
 
 export type MSheetVariant = 'card' | 'bottom' | 'drawer'
 export type MSheetMaterial = 'glass' | 'bar-glass' | 'opaque'
@@ -54,24 +55,6 @@ function sheetRoot(): HTMLElement {
   return document.getElementById('m-sheet-root') ?? document.body
 }
 
-// Body scroll lock shared across stacked sheets: only the first lock saves the
-// original overflow and only the last unlock restores it.
-let scrollLocks = 0
-let savedBodyOverflow = ''
-
-function lockBodyScroll() {
-  if (scrollLocks === 0) {
-    savedBodyOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-  }
-  scrollLocks++
-}
-
-function unlockBodyScroll() {
-  scrollLocks = Math.max(0, scrollLocks - 1)
-  if (scrollLocks === 0) document.body.style.overflow = savedBodyOverflow
-}
-
 /**
  * The one sheet primitive of the mobile design system. Handles portal,
  * scrim, ESC/backdrop dismissal, body scroll lock, focus trapping, 280ms
@@ -118,8 +101,7 @@ export default function MSheet({
 
   useEffect(() => {
     if (!open) return
-    lockBodyScroll()
-    return unlockBodyScroll
+    return lockBodyScroll()
   }, [open])
 
   // Move focus into the dialog on open, hand it back on close.

@@ -27,7 +27,10 @@ export default function MJourney() {
   const rest = list.filter(j => j.id !== hero?.id)
 
   return (
-    <div className="relative h-full">
+    // h-dvh, not h-full: the shell stopped providing a definite height (#1809).
+    // The feed below keeps its own scroller, so this screen does not move the
+    // document and Safari's address bar stays put here.
+    <div className="relative h-dvh">
       {/* Floating header: back + create pill */}
       <div className="fixed left-4 right-4 top-[var(--m-safe-top,12px)] z-30 flex items-center gap-[10px]">
         <button

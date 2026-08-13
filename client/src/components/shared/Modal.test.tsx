@@ -1,12 +1,14 @@
 import { render, screen, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import Modal from './Modal';
+import { lockBodyScroll, resetBodyScrollLock } from '../../utils/bodyScrollLock';
 
 describe('Modal', () => {
   const onClose = vi.fn();
 
   beforeEach(() => {
     onClose.mockClear();
+    resetBodyScrollLock();
     document.body.style.overflow = '';
   });
 
@@ -79,5 +81,19 @@ describe('Modal', () => {
   it('FE-COMP-MODAL-011: sets document.body overflow to hidden when open', () => {
     render(<Modal isOpen={true} onClose={onClose} />);
     expect(document.body.style.overflow).toBe('hidden');
+  });
+
+  // #1809: the document is the scroller on a phone, so closing this modal must
+  // not unlock the page while another overlay is still holding the lock.
+  it('FE-COMP-MODAL-012: unmounting keeps a lock another overlay still holds', () => {
+    const otherOverlay = lockBodyScroll();
+    const { unmount } = render(<Modal isOpen={true} onClose={onClose} />);
+    expect(document.body.style.overflow).toBe('hidden');
+
+    unmount();
+    expect(document.body.style.overflow).toBe('hidden');
+
+    otherOverlay();
+    expect(document.body.style.overflow).toBe('');
   });
 });

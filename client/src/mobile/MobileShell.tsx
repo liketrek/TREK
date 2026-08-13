@@ -18,9 +18,13 @@ interface MobileShellProps {
  * mobile toast presenter. From 768px up it renders the exact legacy wrapper
  * unchanged. Both branches share the div > div > children shape so pages keep
  * their state when the viewport crosses the breakpoint (rotation,
- * split-screen) instead of remounting. The content area keeps the exact
- * scroll semantics of the legacy ProtectedRoute wrapper, so not-yet-migrated
- * pages render unchanged inside.
+ * split-screen) instead of remounting.
+ *
+ * On the phone the shell deliberately owns no scroll container (#1809): the
+ * document is the scroller, because that is the only movement iOS Safari
+ * minimises its address bar for. Screens that want a full-viewport layout
+ * (map screens, the trip planner) set their own height instead of borrowing
+ * one from here.
  */
 export default function MobileShell({ isPhone, children }: MobileShellProps) {
   // The trip planner (/trips/:id) is a full-screen takeover that ships its own
@@ -39,8 +43,17 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
   }
 
   return (
-    <div className="m-root flex h-dvh min-h-dvh flex-col bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] text-m-ink">
-      <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+    // min-h-svh, not min-h-dvh: dvh grows while Safari's toolbar retracts, so a
+    // dvh page length would chase the animation it just triggered.
+    <div className="m-root flex min-h-svh flex-col text-m-ink">
+      {/* Background and screen gradient live on their own viewport-sized layer.
+          The shell root is as tall as the document now, and --m-scr is a radial
+          gradient measured against its element box, so on it the light cone would
+          be stretched over the whole scroll length. The shell stays transparent
+          so this negative layer paints above the canvas and below every page,
+          without turning .m-root into a stacking context. */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)]" />
+      <div className="flex-1">{children}</div>
       {!inTripPlanner && <ErrorBoundary boundaryId="chrome:m-bottom-nav" fallback={null}><MBottomNav /></ErrorBoundary>}
       <ErrorBoundary boundaryId="chrome:m-toast" fallback={null}><MToastHost /></ErrorBoundary>
       <div id="m-sheet-root" />

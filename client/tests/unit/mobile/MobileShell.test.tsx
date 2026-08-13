@@ -57,4 +57,53 @@ describe('MobileShell', () => {
 
     delete window.__addToast;
   });
+
+  // #1809: iOS Safari only minimises its address bar when the document scrolls,
+  // so the phone shell must not sit a scroll container between the two.
+  it('FE-MOB-MSHELL-005: the phone shell owns no scroll container and grows with the document', () => {
+    const { container } = render(
+      <MobileShell isPhone><p>page body</p></MobileShell>,
+      { initialEntries: ['/dashboard'] },
+    );
+
+    const root = container.querySelector('.m-root') as HTMLElement;
+    // svh, not dvh: dvh grows while the toolbar retracts.
+    expect(root.className).toContain('min-h-svh');
+    expect(root.className).not.toContain('h-dvh');
+    expect(root.querySelector(':scope > .overflow-y-auto')).toBeNull();
+
+    const content = screen.getByText('page body').parentElement as HTMLElement;
+    expect(content.className).toContain('flex-1');
+    expect(content.className).not.toContain('overflow');
+  });
+
+  it('FE-MOB-MSHELL-006: paints background and screen gradient on a viewport-sized layer', () => {
+    const { container } = render(
+      <MobileShell isPhone><p>page body</p></MobileShell>,
+      { initialEntries: ['/dashboard'] },
+    );
+
+    const root = container.querySelector('.m-root') as HTMLElement;
+    const layer = root.querySelector('[aria-hidden="true"]') as HTMLElement;
+    expect(layer).toBeInTheDocument();
+    expect(layer.className).toContain('fixed');
+    expect(layer.className).toContain('inset-0');
+    expect(layer.className).toContain('-z-10');
+    expect(layer.className).toContain('var(--m-scr)');
+    // The layer carries the background colour too: an opaque root would paint
+    // over a negative-z child.
+    expect(layer.className).toContain('var(--m-bg)');
+    expect(root.className).not.toContain('var(--m-bg)');
+  });
+
+  it('FE-MOB-MSHELL-007: the desktop branch keeps its own scroller', () => {
+    render(
+      <MobileShell isPhone={false}><p>page body</p></MobileShell>,
+      { initialEntries: ['/dashboard'] },
+    );
+
+    const content = screen.getByText('page body').parentElement as HTMLElement;
+    expect(content.className).toContain('overflow-y-auto');
+    expect(content.className).toContain('md:overflow-visible');
+  });
 });

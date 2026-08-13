@@ -105,7 +105,9 @@ export default function MAdmin() {
   }
 
   return (
-    <div className="h-full overflow-y-auto px-4 pb-[calc(var(--bottom-nav-h,84px)+16px)] pt-[var(--m-safe-top,12px)]">
+    // Flow screen: scrolls with the document (#1809), so no height and no
+    // scroll container of its own.
+    <div className="px-4 pb-[calc(var(--bottom-nav-h,84px)+16px)] pt-[var(--m-safe-top,12px)]">
       {/* Header: back · section switcher · create user */}
       <div className="mb-3 flex items-center gap-2">
         <button

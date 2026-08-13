@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, Download, ExternalLink, X } from 'lucide-react'
 import { getAuthUrl } from '../../../../api/authUrl'
 import { downloadFile, openFile } from '../../../../utils/fileDownload'
+import { lockBodyScroll } from '../../../../utils/bodyScrollLock'
 import { isVideo } from '../../../../components/Files/FileManager.helpers'
 import VideoPlayer from '../../../../components/Journey/VideoPlayerLazy'
 import type { TranslationFn, TripFile } from '../../../../types'
@@ -56,11 +57,7 @@ export default function MFileLightbox({ files, index, onIndexChange, onClose, t 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, files.length])
 
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prevOverflow }
-  }, [])
+  useEffect(() => lockBodyScroll(), [])
 
   if (!file) return null
 

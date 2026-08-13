@@ -443,19 +443,18 @@ describe('MDashboard', () => {
     expect(navigate).toHaveBeenNthCalledWith(2, '/trips/17');
   });
 
-  it('FE-MOB-DASH-031: the brand tile scrolls the shell content back to the top', () => {
-    // The screen scrolls inside the shell's container, not the window.
-    const scroller = document.createElement('div');
-    scroller.className = 'overflow-y-auto';
+  it('FE-MOB-DASH-031: the brand tile scrolls the page back to the top', () => {
+    // Since #1809 the document itself is the scroller on a phone, so there is no
+    // shell container left to walk up to.
     const scrollTo = vi.fn();
-    scroller.scrollTo = scrollTo;
-    document.body.appendChild(scroller);
-    render(<MDashboard />, { container: scroller });
+    const original = window.scrollTo;
+    window.scrollTo = scrollTo as unknown as typeof window.scrollTo;
+    render(<MDashboard />);
 
     fireEvent.click(screen.getByRole('button', { name: 'TREK' }));
 
     expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
-    scroller.remove();
+    window.scrollTo = original;
   });
 
   it('FE-MOB-DASH-032: the user menu backdrop closes it again', () => {
