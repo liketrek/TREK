@@ -114,6 +114,7 @@ RUN mkdir -p /app/data/logs /app/uploads/files /app/uploads/covers /app/uploads/
     chown -h node:node /app/server/uploads /app/server/data
 
 ENV NODE_ENV=production
+ENV NODE_USE_ENV_PROXY=1
 ENV PORT=3000
 ARG APP_VERSION=dev
 ENV APP_VERSION=${APP_VERSION}
