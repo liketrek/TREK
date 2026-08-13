@@ -52,7 +52,7 @@ const vacay: TranslationStrings = {
   'vacay.schoolHolidays': 'School Holidays',
   'vacay.schoolHolidaysHint': 'Mark school holidays as a visual calendar layer',
   'vacay.selectCountry': '국가 선택',
-  'vacay.selectRegion': '지역 선택 (선택)',
+  'vacay.selectRegion': '지역 선택 (필수)',
   'vacay.addCalendar': '캘린더 추가',
   'vacay.calendarLabel': '레이블 (선택)',
   'vacay.calendarColor': '색상',

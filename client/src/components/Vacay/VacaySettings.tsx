@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { type LucideIcon, CalendarOff, AlertCircle, Building2, Unlink, ArrowRightLeft, Globe, Plus, Trash2, CalendarDays, CalendarRange, GraduationCap } from 'lucide-react'
+import { type LucideIcon, CalendarOff, AlertCircle, Building2, Unlink, ArrowRightLeft, Globe, Loader2, Plus, Trash2, CalendarDays, CalendarRange, GraduationCap } from 'lucide-react'
 import { useVacayStore } from '../../store/vacayStore'
 import { getIntlLanguage, useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
@@ -434,6 +434,30 @@ function SettingToggle({ icon: Icon, label, hint, value, onChange }: SettingTogg
   )
 }
 
+/**
+ * Region options for a holiday-calendar country.
+ *
+ * The loaded list is tagged with the country it belongs to, so switching country
+ * drops the previous list in the same render instead of leaving it selectable while
+ * the next request is still running (#1813: picking a German region for the
+ * Netherlands was possible that way). `loadingRegions` tells "not answered yet"
+ * apart from "this country has no regions"; on the list alone both are empty.
+ */
+function useRegionOptions(country: string, calendarType: 'public_holiday' | 'school_holiday') {
+  const [loaded, setLoaded] = useState<{ country: string; options: { value: string; label: string }[] }>({ country: '', options: [] })
+
+  useEffect(() => {
+    if (!country) return
+    const load = calendarType === 'school_holiday' ? fetchSchoolHolidayRegionOptions : fetchRegionOptions
+    let stale = false
+    load(country).then(options => { if (!stale) setLoaded({ country, options }) })
+    return () => { stale = true }
+  }, [calendarType, country])
+
+  const ready = loaded.country === country
+  return { regions: ready ? loaded.options : [], loadingRegions: Boolean(country) && !ready }
+}
+
 // ── Existing calendar row (inline edit) ──────────────────────────────────────
 function CalendarRow({ cal, countries, calendarType, onUpdate, onDelete }: {
   cal: VacayHolidayCalendar
@@ -446,20 +470,14 @@ function CalendarRow({ cal, countries, calendarType, onUpdate, onDelete }: {
   const { t } = useTranslation()
   const [localColor, setLocalColor] = useState(cal.color)
   const [localLabel, setLocalLabel] = useState(cal.label || '')
-  const [regions, setRegions] = useState<{ value: string; label: string }[]>([])
 
   const [baseRegion] = cal.region.split('|')
   const selectedCountry = baseRegion.split('-')[0]
   const selectedRegion = cal.region.includes('|group:') || baseRegion.includes('-') ? cal.region : ''
+  const { regions } = useRegionOptions(selectedCountry, calendarType)
 
   useEffect(() => { setLocalColor(cal.color) }, [cal.color])
   useEffect(() => { setLocalLabel(cal.label || '') }, [cal.label])
-
-  useEffect(() => {
-    if (!selectedCountry) { setRegions([]); return }
-    const load = calendarType === 'school_holiday' ? fetchSchoolHolidayRegionOptions : fetchRegionOptions
-    load(selectedCountry).then(setRegions)
-  }, [calendarType, selectedCountry])
 
   const PRESET_COLORS = ['#fecaca', '#fed7aa', '#fde68a', '#bbf7d0', '#a5f3fc', '#c7d2fe', '#e9d5ff', '#fda4af', '#6366f1', '#ef4444', '#22c55e', '#3b82f6']
   const [showColorPicker, setShowColorPicker] = useState(false)
@@ -533,21 +551,16 @@ function AddCalendarForm({ countries, calendarType, onAdd, onCancel, defaultColo
   const [region, setRegion] = useState('')
   const [color, setColor] = useState(defaultColor)
   const [label, setLabel] = useState('')
-  const [regions, setRegions] = useState<{ value: string; label: string }[]>([])
-  const [loadingRegions, setLoadingRegions] = useState(false)
 
   const [baseRegion] = region.split('|')
   const selectedCountry = baseRegion.split('-')[0] || ''
   const selectedRegion = region.includes('|group:') || baseRegion.includes('-') ? region : ''
+  const { regions, loadingRegions } = useRegionOptions(selectedCountry, calendarType)
 
-  useEffect(() => {
-    if (!selectedCountry) { setRegions([]); return }
-    setLoadingRegions(true)
-    const load = calendarType === 'school_holiday' ? fetchSchoolHolidayRegionOptions : fetchRegionOptions
-    load(selectedCountry).then(list => { setRegions(list) }).finally(() => setLoadingRegions(false))
-  }, [calendarType, selectedCountry])
-
-  const canAdd = selectedCountry && (regions.length === 0 || selectedRegion !== '')
+  // Adding is blocked while the region list is on its way: an empty list would
+  // otherwise pass as "this country needs no region" and create a calendar that
+  // draws nothing (#1813). The button shows a spinner so the wait is visible.
+  const canAdd = Boolean(selectedCountry) && !loadingRegions && (regions.length === 0 || selectedRegion !== '')
 
   const PRESET_COLORS = ['#fecaca', '#fed7aa', '#fde68a', '#bbf7d0', '#a5f3fc', '#c7d2fe', '#e9d5ff', '#fda4af', '#6366f1', '#ef4444', '#22c55e', '#3b82f6']
   const [showColorPicker, setShowColorPicker] = useState(false)
@@ -579,7 +592,7 @@ function AddCalendarForm({ countries, calendarType, onAdd, onCancel, defaultColo
         />
         <CustomSelect
           value={selectedCountry}
-          onChange={v => { setRegion(String(v)); setRegions([]) }}
+          onChange={v => setRegion(String(v))}
           options={countries}
           placeholder={t('vacay.selectCountry')}
           searchable
@@ -596,9 +609,11 @@ function AddCalendarForm({ countries, calendarType, onAdd, onCancel, defaultColo
         <div className="flex gap-1.5 pt-0.5">
           <button
             disabled={!canAdd}
+            aria-busy={loadingRegions}
             onClick={() => onAdd({ region: region || selectedCountry, color, label: label.trim() || null })}
-            className="flex-1 text-xs px-2 py-1.5 rounded-md font-medium transition-colors disabled:opacity-40 bg-content text-surface-card"
+            className="flex-1 flex items-center justify-center gap-1.5 text-xs px-2 py-1.5 rounded-md font-medium transition-colors disabled:opacity-40 bg-content text-surface-card"
           >
+            {loadingRegions && <Loader2 size={12} className="animate-spin" />}
             {t('vacay.add')}
           </button>
           <button

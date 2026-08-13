@@ -1,4 +1,4 @@
-// FE-COMP-VCYSET-001 to FE-COMP-VCYSET-014
+// FE-COMP-VCYSET-001 to FE-COMP-VCYSET-016
 // Covers the calendar editor / draft rows and the leave-year block of VacaySettings,
 // which VacaySettings.test.tsx only reaches at the surface.
 import React from 'react'
@@ -144,7 +144,7 @@ describe('VacaySettings calendars', () => {
     expect(updateHolidayCalendar).toHaveBeenLastCalledWith(3, { region: 'NL' })
 
     // The region list is only offered because the holiday data is county-split.
-    await pickLoadedOption('Select region (optional)', 'Nordrhein-Westfalen')
+    await pickLoadedOption('Select region (required)', 'Nordrhein-Westfalen')
     expect(updateHolidayCalendar).toHaveBeenLastCalledWith(3, { region: 'DE-NW' })
   })
 
@@ -159,7 +159,7 @@ describe('VacaySettings calendars', () => {
     })
     const { container } = render(<VacaySettings onClose={vi.fn()} />)
 
-    expect(screen.queryByRole('button', { name: 'Select region (optional)' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Select region (required)' })).not.toBeInTheDocument()
 
     const trash = trashButtons(container)[0]
     fireEvent.mouseEnter(trash)
@@ -186,6 +186,9 @@ describe('VacaySettings calendars', () => {
 
     fireEvent.change(screen.getByPlaceholderText('Label (optional)'), { target: { value: ' Feiertage ' } })
     await pickLoadedOption('Select country', 'Germany')
+    // Germany has no regional holidays here, but the draft only unlocks once that
+    // answer is in (see FE-COMP-VCYSET-015).
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add' })).toBeEnabled())
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     await waitFor(() => expect(addHolidayCalendar).toHaveBeenCalledWith(expect.objectContaining({
@@ -203,10 +206,10 @@ describe('VacaySettings calendars', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add calendar' }))
     await pickLoadedOption('Select country', 'Germany')
 
-    await screen.findByRole('button', { name: 'Select region (optional)' })
+    await screen.findByRole('button', { name: 'Select region (required)' })
     expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
 
-    await pickLoadedOption('Select region (optional)', 'Bayern')
+    await pickLoadedOption('Select region (required)', 'Bayern')
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     await waitFor(() => expect(addHolidayCalendar).toHaveBeenCalledWith(expect.objectContaining({ region: 'DE-BY' })))
@@ -232,7 +235,7 @@ describe('VacaySettings calendars', () => {
     expect(screen.queryByRole('button', { name: 'United States' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Netherlands' }))
 
-    await pickLoadedOption('Select region (optional)', 'Northern Region')
+    await pickLoadedOption('Select region (required)', 'Northern Region')
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     await waitFor(() => expect(addHolidayCalendar).toHaveBeenCalledWith(expect.objectContaining({
@@ -320,5 +323,72 @@ describe('VacaySettings calendars', () => {
     expect(updateYearSettings).toHaveBeenLastCalledWith({
       year_type: 'anniversary', year_start_month: 1, year_start_day: 1, hire_date: null,
     })
+  })
+
+  it('FE-COMP-VCYSET-015: the draft stays blocked while the region list is still loading', async () => {
+    let release: (() => void) | undefined
+    server.use(http.get('/api/addons/vacay/holidays/:year/:country', async () => {
+      await new Promise<void>(resolve => { release = resolve })
+      return HttpResponse.json([
+        { date: '2026-11-01', name: 'All Saints', localName: 'Allerheiligen', global: false, counties: ['DE-BY', 'DE-NW'] },
+      ])
+    }))
+    useVacayStore.setState({ plan: buildPlan({ holidays_enabled: true }), addHolidayCalendar: vi.fn(async () => {}) })
+    render(<VacaySettings onClose={vi.fn()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add calendar' }))
+    await pickLoadedOption('Select country', 'Germany')
+
+    // An empty list means "no answer yet", not "this country needs no region" (#1813).
+    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Add' })).toHaveAttribute('aria-busy', 'true')
+
+    await waitFor(() => expect(release).toBeDefined())
+    release?.()
+
+    await screen.findByRole('button', { name: 'Select region (required)' })
+    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Add' })).toHaveAttribute('aria-busy', 'false')
+
+    await pickLoadedOption('Select region (required)', 'Bayern')
+    expect(screen.getByRole('button', { name: 'Add' })).toBeEnabled()
+  })
+
+  it('FE-COMP-VCYSET-016: switching a calendar country drops the old region list at once', async () => {
+    let releaseNl: (() => void) | undefined
+    server.use(http.get('/api/addons/vacay/holidays/:year/:country', async ({ params }) => {
+      if (params.country === 'NL') await new Promise<void>(resolve => { releaseNl = resolve })
+      return HttpResponse.json([{
+        date: '2026-11-01', name: 'All Saints', localName: 'Allerheiligen', global: false,
+        counties: params.country === 'NL' ? ['NL-NH'] : ['DE-BY', 'DE-NW'],
+      }])
+    }))
+    const updateHolidayCalendar = vi.fn(async (id: number, data: { region?: string }) => {
+      const plan = useVacayStore.getState().plan
+      if (!plan) return
+      useVacayStore.setState({
+        plan: { ...plan, holiday_calendars: (plan.holiday_calendars ?? []).map(c => (c.id === id ? { ...c, ...data } : c)) },
+      })
+    })
+    useVacayStore.setState({
+      plan: buildPlan({
+        holidays_enabled: true,
+        holiday_calendars: [{ id: 3, plan_id: 1, region: 'DE', label: null, color: '#fecaca', sort_order: 0 }],
+      }),
+      updateHolidayCalendar,
+    })
+    render(<VacaySettings onClose={vi.fn()} />)
+
+    await screen.findByRole('button', { name: 'Select region (required)' })
+    await pickLoadedOption('Germany', 'Netherlands')
+    expect(updateHolidayCalendar).toHaveBeenLastCalledWith(3, { region: 'NL' })
+
+    // The Dutch list is still on its way, so the German regions must be gone:
+    // otherwise DE-BY can be saved for the Netherlands (#1813).
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Select region (required)' })).not.toBeInTheDocument())
+
+    await waitFor(() => expect(releaseNl).toBeDefined())
+    releaseNl?.()
+    await screen.findByRole('button', { name: 'Select region (required)' })
   })
 })

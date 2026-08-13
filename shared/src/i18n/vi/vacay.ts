@@ -52,7 +52,7 @@ const vacay: TranslationStrings = {
   'vacay.schoolHolidays': 'School Holidays',
   'vacay.schoolHolidaysHint': 'Mark school holidays as a visual calendar layer',
   'vacay.selectCountry': 'Chọn quốc gia',
-  'vacay.selectRegion': 'Chọn khu vực (tùy chọn)',
+  'vacay.selectRegion': 'Chọn khu vực (bắt buộc)',
   'vacay.addCalendar': 'Thêm lịch',
   'vacay.calendarLabel': 'Nhãn (tùy chọn)',
   'vacay.calendarColor': 'Màu sắc',

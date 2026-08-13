@@ -1,4 +1,4 @@
-// FE-MOB-MVACSET-001 to FE-MOB-MVACSET-024
+// FE-MOB-MVACSET-001 to FE-MOB-MVACSET-030
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
@@ -335,7 +335,7 @@ describe('MVacaySettingsSheet', () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'Select country' }), { target: { value: 'NL' } });
     expect(updateHolidayCalendar).toHaveBeenCalledWith(3, { region: 'NL' });
 
-    const region = await screen.findByRole('combobox', { name: 'Select region (optional)' });
+    const region = await screen.findByRole('combobox', { name: 'Select region (required)' });
     fireEvent.change(region, { target: { value: 'DE-BY' } });
     expect(updateHolidayCalendar).toHaveBeenLastCalledWith(3, { region: 'DE-BY' });
   });
@@ -370,6 +370,9 @@ describe('MVacaySettingsSheet', () => {
     await waitForCountries();
     fireEvent.change(screen.getByPlaceholderText('Label (optional)'), { target: { value: ' Feiertage ' } });
     fireEvent.change(screen.getByRole('combobox', { name: 'Select country' }), { target: { value: 'DE' } });
+    // Germany has no regional holidays here, but the draft only unlocks once that
+    // answer is in (see FE-MOB-MVACSET-029).
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
 
     await waitFor(() => expect(addHolidayCalendar).toHaveBeenCalledWith({
@@ -388,7 +391,7 @@ describe('MVacaySettingsSheet', () => {
     await waitForCountries();
     fireEvent.change(screen.getByRole('combobox', { name: 'Select country' }), { target: { value: 'DE' } });
 
-    const region = await screen.findByRole('combobox', { name: 'Select region (optional)' });
+    const region = await screen.findByRole('combobox', { name: 'Select region (required)' });
     expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
 
     fireEvent.change(region, { target: { value: 'DE-NW' } });
@@ -413,7 +416,7 @@ describe('MVacaySettingsSheet', () => {
     expect(within(country).queryByRole('option', { name: 'United States' })).not.toBeInTheDocument();
 
     fireEvent.change(country, { target: { value: 'NL' } });
-    const region = await screen.findByRole('combobox', { name: 'Select region (optional)' });
+    const region = await screen.findByRole('combobox', { name: 'Select region (required)' });
     fireEvent.change(region, { target: { value: 'NL|group:NL-NO' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
 
@@ -446,7 +449,7 @@ describe('MVacaySettingsSheet', () => {
     renderSheet();
 
     expect(screen.getAllByPlaceholderText('Label (optional)')).toHaveLength(2);
-    const region = await screen.findByRole('combobox', { name: 'Select region (optional)' });
+    const region = await screen.findByRole('combobox', { name: 'Select region (required)' });
     fireEvent.change(region, { target: { value: 'DE-NW' } });
     expect(updateHolidayCalendar).toHaveBeenCalledWith(5, { region: 'DE-NW' });
 
@@ -471,7 +474,7 @@ describe('MVacaySettingsSheet', () => {
     // The `|group:` suffix must not leak into the country, or the lookup comes back empty.
     const country = screen.getByRole('combobox', { name: 'Select country' });
     expect(country).toHaveValue('NL');
-    const region = await screen.findByRole('combobox', { name: 'Select region (optional)' });
+    const region = await screen.findByRole('combobox', { name: 'Select region (required)' });
     expect(region).toHaveValue('NL|group:NL-NO');
 
     fireEvent.change(region, { target: { value: 'NL|group:NL-ZU' } });
@@ -534,5 +537,74 @@ describe('MVacaySettingsSheet', () => {
     await waitFor(() => expect(within(country).getAllByRole('option')).toHaveLength(1));
     // Only the disabled placeholder option survives — the label falls back to it too.
     expect(screen.getAllByText('Select country')).toHaveLength(2);
+  });
+
+  it('FE-MOB-MVACSET-029: the draft stays blocked while the region list is still loading', async () => {
+    let release: (() => void) | undefined;
+    server.use(http.get('/api/addons/vacay/holidays/:year/:country', async () => {
+      await new Promise<void>(resolve => { release = resolve; });
+      return HttpResponse.json([
+        { date: '2026-11-01', name: 'All Saints', localName: 'Allerheiligen', global: false, counties: ['DE-BY', 'DE-NW'] },
+      ]);
+    }));
+    seedPlan(buildPlan({ holidays_enabled: true }), { addHolidayCalendar: vi.fn(async () => {}) });
+    renderSheet();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add calendar' }));
+    await waitForCountries();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Select country' }), { target: { value: 'DE' } });
+
+    // An empty list means "no answer yet", not "this country needs no region" (#1813).
+    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add' })).toHaveAttribute('aria-busy', 'true');
+
+    await waitFor(() => expect(release).toBeDefined());
+    release?.();
+
+    const region = await screen.findByRole('combobox', { name: 'Select region (required)' });
+    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add' })).toHaveAttribute('aria-busy', 'false');
+
+    fireEvent.change(region, { target: { value: 'DE-NW' } });
+    expect(screen.getByRole('button', { name: 'Add' })).toBeEnabled();
+  });
+
+  it('FE-MOB-MVACSET-030: switching a calendar country drops the old region list at once', async () => {
+    let releaseNl: (() => void) | undefined;
+    server.use(http.get('/api/addons/vacay/holidays/:year/:country', async ({ params }) => {
+      if (params.country === 'NL') await new Promise<void>(resolve => { releaseNl = resolve; });
+      return HttpResponse.json([{
+        date: '2026-11-01', name: 'All Saints', localName: 'Allerheiligen', global: false,
+        counties: params.country === 'NL' ? ['NL-NH'] : ['DE-BY', 'DE-NW'],
+      }]);
+    }));
+    const updateHolidayCalendar = vi.fn(async (id: number, data: { region?: string }) => {
+      const plan = useVacayStore.getState().plan;
+      if (!plan) return;
+      useVacayStore.setState({
+        plan: { ...plan, holiday_calendars: (plan.holiday_calendars ?? []).map(c => (c.id === id ? { ...c, ...data } : c)) },
+      });
+    });
+    seedPlan(
+      buildPlan({
+        holidays_enabled: true,
+        holiday_calendars: [{ id: 3, plan_id: 1, region: 'DE', label: null, color: '#fecaca', sort_order: 0 }],
+      }),
+      { updateHolidayCalendar },
+    );
+    renderSheet();
+    await waitForCountries();
+
+    await screen.findByRole('combobox', { name: 'Select region (required)' });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Select country' }), { target: { value: 'NL' } });
+    expect(updateHolidayCalendar).toHaveBeenCalledWith(3, { region: 'NL' });
+
+    // The Dutch list is still on its way, so the German regions must be gone:
+    // otherwise DE-BY can be saved for the Netherlands (#1813).
+    await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Select region (required)' })).not.toBeInTheDocument());
+
+    await waitFor(() => expect(releaseNl).toBeDefined());
+    releaseNl?.();
+    await screen.findByRole('combobox', { name: 'Select region (required)' });
   });
 });

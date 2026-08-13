@@ -52,7 +52,7 @@ const vacay: TranslationStrings = {
   'vacay.schoolHolidays': 'School Holidays',
   'vacay.schoolHolidaysHint': 'Mark school holidays as a visual calendar layer',
   'vacay.selectCountry': 'Wybierz kraj',
-  'vacay.selectRegion': 'Wybierz region (opcjonalnie)',
+  'vacay.selectRegion': 'Wybierz region (wymagane)',
   'vacay.addCalendar': 'Dodaj kalendarz',
   'vacay.calendarLabel': 'Etykieta (opcjonalnie)',
   'vacay.calendarColor': 'Kolor',

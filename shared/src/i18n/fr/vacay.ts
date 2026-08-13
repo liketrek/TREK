@@ -54,7 +54,7 @@ const vacay: TranslationStrings = {
   'vacay.schoolHolidays': 'School Holidays',
   'vacay.schoolHolidaysHint': 'Mark school holidays as a visual calendar layer',
   'vacay.selectCountry': 'Sélectionner un pays',
-  'vacay.selectRegion': 'Sélectionner une région (facultatif)',
+  'vacay.selectRegion': 'Sélectionner une région (obligatoire)',
   'vacay.companyHolidays': "Jours fériés d'entreprise",
   'vacay.companyHolidaysHint': "Autoriser le marquage des jours fériés d'entreprise",
   'vacay.companyHolidaysNoDeduct': "Les jours fériés d'entreprise ne sont pas déduits des jours de vacances.",

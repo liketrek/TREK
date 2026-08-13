@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowRightLeft, Building2, Calendar, CalendarRange, CalendarX, ChevronDown, Globe, GraduationCap, Plus, Trash2, Unlink, X } from 'lucide-react'
+import { ArrowRightLeft, Building2, Calendar, CalendarRange, CalendarX, ChevronDown, Globe, GraduationCap, Loader2, Plus, Trash2, Unlink, X } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import MToggle from '../../components/MToggle'
@@ -442,6 +442,30 @@ function ColorSwatch({ color, onPick }: { color: string; onPick: (color: string)
   )
 }
 
+/**
+ * Region options for a holiday-calendar country.
+ *
+ * The loaded list is tagged with the country it belongs to, so switching country
+ * drops the previous list in the same render instead of leaving it selectable while
+ * the next request is still running (#1813: picking a German region for the
+ * Netherlands was possible that way). `loadingRegions` tells "not answered yet"
+ * apart from "this country has no regions"; on the list alone both are empty.
+ */
+function useRegionOptions(country: string, calendarType: 'public_holiday' | 'school_holiday') {
+  const [loaded, setLoaded] = useState<{ country: string; options: Option[] }>({ country: '', options: [] })
+
+  useEffect(() => {
+    if (!country) return
+    const load = calendarType === 'school_holiday' ? fetchSchoolHolidayRegionOptions : fetchRegionOptions
+    let stale = false
+    load(country).then(options => { if (!stale) setLoaded({ country, options }) })
+    return () => { stale = true }
+  }, [country, calendarType])
+
+  const ready = loaded.country === country
+  return { regions: ready ? loaded.options : [], loadingRegions: Boolean(country) && !ready }
+}
+
 function CalendarEditor({ cal, countries, calendarType = 'public_holiday', onUpdate, onDelete }: {
   cal: VacayHolidayCalendar
   countries: Option[]
@@ -451,19 +475,14 @@ function CalendarEditor({ cal, countries, calendarType = 'public_holiday', onUpd
 }) {
   const { t } = useTranslation()
   const [label, setLabel] = useState(cal.label || '')
-  const [regions, setRegions] = useState<Option[]>([])
   // A school-holiday group carries a `|group:…` suffix — strip it before the
   // country is read off, otherwise the region lookup finds nothing.
   const [baseRegion] = cal.region.split('|')
   const country = baseRegion.split('-')[0]
   const region = cal.region.includes('|group:') || baseRegion.includes('-') ? cal.region : ''
+  const { regions } = useRegionOptions(country, calendarType)
 
   useEffect(() => { setLabel(cal.label || '') }, [cal.label])
-  useEffect(() => {
-    if (!country) { setRegions([]); return }
-    const load = calendarType === 'school_holiday' ? fetchSchoolHolidayRegionOptions : fetchRegionOptions
-    load(country).then(setRegions)
-  }, [country, calendarType])
 
   return (
     <div className="mt-2 rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3">
@@ -499,19 +518,16 @@ function AddCalendarDraft({ countries, calendarType = 'public_holiday', onAdd, o
   const [region, setRegion] = useState('')
   const [color, setColor] = useState(CALENDAR_COLORS[0])
   const [label, setLabel] = useState('')
-  const [regions, setRegions] = useState<Option[]>([])
 
   const [baseRegion] = region.split('|')
   const country = baseRegion.split('-')[0] || ''
   const selectedRegion = region.includes('|group:') || baseRegion.includes('-') ? region : ''
+  const { regions, loadingRegions } = useRegionOptions(country, calendarType)
 
-  useEffect(() => {
-    if (!country) { setRegions([]); return }
-    const load = calendarType === 'school_holiday' ? fetchSchoolHolidayRegionOptions : fetchRegionOptions
-    load(country).then(setRegions)
-  }, [country, calendarType])
-
-  const canAdd = Boolean(country) && (regions.length === 0 || selectedRegion !== '')
+  // Adding is blocked while the region list is on its way: an empty list would
+  // otherwise pass as "this country needs no region" and create a calendar that
+  // draws nothing (#1813). The button shows a spinner so the wait is visible.
+  const canAdd = Boolean(country) && !loadingRegions && (regions.length === 0 || selectedRegion !== '')
 
   return (
     <div className="mt-2 rounded-[14px] border-[1.5px] border-dashed border-[color:var(--m-rowbr)] p-3">
@@ -534,9 +550,11 @@ function AddCalendarDraft({ countries, calendarType = 'public_holiday', onAdd, o
       <button
         type="button"
         disabled={!canAdd}
+        aria-busy={loadingRegions}
         onClick={() => onAdd({ region: region || country, color, label: label.trim() || null })}
-        className="mt-[7px] w-full rounded-[10px] bg-m-act p-[9px] text-center text-[0.78125rem] font-semibold text-m-actfg disabled:opacity-40"
+        className="mt-[7px] flex w-full items-center justify-center gap-[6px] rounded-[10px] bg-m-act p-[9px] text-[0.78125rem] font-semibold text-m-actfg disabled:opacity-40"
       >
+        {loadingRegions && <Loader2 size={13} strokeWidth={2} className="animate-spin" />}
         {t('vacay.add')}
       </button>
     </div>

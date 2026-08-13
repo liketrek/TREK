@@ -44,7 +44,7 @@ const vacay: TranslationStrings = {
   'vacay.schoolHolidays': 'School Holidays',
   'vacay.schoolHolidaysHint': 'Mark school holidays as a visual calendar layer',
   'vacay.selectCountry': 'Ország kiválasztása',
-  'vacay.selectRegion': 'Régió kiválasztása (opcionális)',
+  'vacay.selectRegion': 'Régió kiválasztása (kötelező)',
   'vacay.addCalendar': 'Naptár hozzáadása',
   'vacay.calendarLabel': 'Címke (opcionális)',
   'vacay.calendarColor': 'Szín',

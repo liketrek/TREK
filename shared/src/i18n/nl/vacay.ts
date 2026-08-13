@@ -53,7 +53,7 @@ const vacay: TranslationStrings = {
   'vacay.schoolHolidays': 'School Holidays',
   'vacay.schoolHolidaysHint': 'Mark school holidays as a visual calendar layer',
   'vacay.selectCountry': 'Selecteer land',
-  'vacay.selectRegion': 'Selecteer regio (optioneel)',
+  'vacay.selectRegion': 'Selecteer regio (verplicht)',
   'vacay.companyHolidays': 'Bedrijfsvakanties',
   'vacay.companyHolidaysHint': 'Sta het markeren van bedrijfsbrede vakantiedagen toe',
   'vacay.companyHolidaysNoDeduct': 'Bedrijfsvakanties worden niet afgetrokken van vakantiedagen.',

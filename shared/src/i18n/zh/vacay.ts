@@ -53,7 +53,7 @@ const vacay: TranslationStrings = {
   'vacay.schoolHolidays': 'School Holidays',
   'vacay.schoolHolidaysHint': 'Mark school holidays as a visual calendar layer',
   'vacay.selectCountry': '选择国家',
-  'vacay.selectRegion': '选择地区（可选）',
+  'vacay.selectRegion': '选择地区（必填）',
   'vacay.companyHolidays': '公司假日',
   'vacay.companyHolidaysHint': '允许标记公司统一休假日',
   'vacay.companyHolidaysNoDeduct': '公司假日不计入年假天数。',
