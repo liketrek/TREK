@@ -345,7 +345,7 @@ const settings: TranslationStrings = {
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.localAdminOnly':
-    '로컬 (Ollama) 엔드포인트는 관리자만 설정할 수 있습니다. 본인의 OpenAI 또는 Anthropic 키는 계속 사용할 수 있습니다.',
+    '로컬 (Ollama) 엔드포인트는 관리자 설정에서 인스턴스 전체에 대해 한 번만 설정합니다. 본인의 OpenAI 또는 Anthropic 키는 여기서 계속 사용할 수 있습니다.',
   'settings.aiParsing.model': '모델',
   'settings.aiParsing.baseUrl': '기본 URL',
   'settings.aiParsing.baseUrlHint': '모델이 실행되는 위치 — 로컬 Ollama 서버 또는 OpenAI 호환 엔드포인트입니다.',

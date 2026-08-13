@@ -1,4 +1,4 @@
-// FE-COMP-LLM-001 to FE-COMP-LLM-017
+// FE-COMP-LLM-001 to FE-COMP-LLM-016
 import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
@@ -22,8 +22,6 @@ function seedLlm(over: Partial<Settings> = {}, updateSettings = vi.fn().mockReso
   return updateSettings;
 }
 
-// The free-form endpoint is admin-only (#1772), so every case has to say which
-// role it is looking at.
 function seedRole(role: 'user' | 'admin') {
   seedStore(useAuthStore, {
     user: role === 'admin' ? buildAdmin() : buildUser(),
@@ -54,32 +52,30 @@ async function pickProvider(user: ReturnType<typeof userEvent.setup>, current: R
 beforeEach(() => {
   resetAllStores();
   vi.clearAllMocks();
-  seedRole('admin');
+  seedRole('user');
   seedLlm();
 });
 
 describe('LlmConnectionSection', () => {
-  it('FE-COMP-LLM-001: an admin defaults to the local provider with a base URL and without a key field', () => {
+  it('FE-COMP-LLM-001: defaults to OpenAI with a key field and no endpoint of its own', () => {
     renderSection();
 
     expect(screen.getByText('AI parsing')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Local \(Ollama\)/ })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('http://localhost:11434')).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText('API key')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /OpenAI/ })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('API key')).toBeInTheDocument();
+    // The endpoint is instance configuration since #1772, so it has no field here.
+    expect(screen.queryByPlaceholderText('http://localhost:11434')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('A self-hosted (Ollama) endpoint is set up once for the whole instance in the admin settings. You can still use your own OpenAI or Anthropic key here.'),
+    ).toBeInTheDocument();
   });
 
-  it('FE-COMP-LLM-002: hydrates provider, model, base URL and the multimodal toggle', () => {
-    seedLlm({
-      llm_provider: 'openai',
-      llm_model: 'gpt-4o-mini',
-      llm_base_url: 'https://api.openai.com/v1',
-      llm_multimodal: true,
-    });
+  it('FE-COMP-LLM-002: hydrates provider, model and the multimodal toggle', () => {
+    seedLlm({ llm_provider: 'openai', llm_model: 'gpt-4o-mini', llm_multimodal: true });
     renderSection();
 
     expect(screen.getByRole('button', { name: /OpenAI/ })).toBeInTheDocument();
     expect(screen.getByDisplayValue('gpt-4o-mini')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('https://api.openai.com/v1')).toBeInTheDocument();
     expect(multimodalToggle()).toHaveAttribute('aria-pressed', 'true');
   });
 
@@ -90,7 +86,7 @@ describe('LlmConnectionSection', () => {
     });
     renderSection();
 
-    expect(screen.getByRole('button', { name: /Local \(Ollama\)/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /OpenAI/ })).toBeInTheDocument();
     expect(screen.queryByDisplayValue('claude-sonnet')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Save$/ })).toBeDisabled();
   });
@@ -100,7 +96,6 @@ describe('LlmConnectionSection', () => {
     renderSection();
 
     expect(screen.getByPlaceholderText('••••••••')).toHaveValue('');
-    expect(screen.queryByPlaceholderText('http://localhost:11434')).not.toBeInTheDocument();
   });
 
   it('FE-COMP-LLM-005: without a stored key the field falls back to the plain label placeholder', () => {
@@ -110,39 +105,38 @@ describe('LlmConnectionSection', () => {
     expect(screen.getByPlaceholderText('API key')).toHaveValue('');
   });
 
-  it('FE-COMP-LLM-006: picking Anthropic hides the base URL and reveals the key field', async () => {
+  it('FE-COMP-LLM-006: the key field stays through a provider change, since both are hosted', async () => {
     const user = userEvent.setup();
     renderSection();
 
-    await pickProvider(user, /Local \(Ollama\)/, 'Anthropic');
+    await pickProvider(user, /OpenAI/, 'Anthropic');
 
-    expect(screen.queryByPlaceholderText('http://localhost:11434')).not.toBeInTheDocument();
     expect(screen.getByText('Stored encrypted. Leave blank to keep the current key.')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('http://localhost:11434')).not.toBeInTheDocument();
   });
 
-  it('FE-COMP-LLM-007: picking OpenAI keeps the base URL and adds the key field', async () => {
+  it('FE-COMP-LLM-007: the provider list is exactly the two hosted ones', async () => {
     const user = userEvent.setup();
     renderSection();
 
-    await pickProvider(user, /Local \(Ollama\)/, 'OpenAI');
+    await user.click(screen.getByRole('button', { name: /OpenAI/ }));
 
-    expect(screen.getByPlaceholderText('http://localhost:11434')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('API key')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Anthropic' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Local \(Ollama\)/ })).not.toBeInTheDocument();
   });
 
   it('FE-COMP-LLM-008: saving trims the inputs and omits the key when none was typed', async () => {
     const user = userEvent.setup();
-    const updateSettings = seedLlm({ llm_model: '', llm_base_url: '' });
+    const updateSettings = seedLlm({ llm_model: '' });
     renderSection();
 
-    await user.type(screen.getByPlaceholderText('qwen3:8b'), '  qwen3:8b  ');
-    await user.type(screen.getByPlaceholderText('http://localhost:11434'), ' http://ollama.local ');
+    await user.type(screen.getByPlaceholderText('qwen3:8b'), '  gpt-4o-mini  ');
     await user.click(screen.getByRole('button', { name: /^Save$/ }));
 
     expect(updateSettings).toHaveBeenCalledWith({
-      llm_provider: 'local',
-      llm_model: 'qwen3:8b',
-      llm_base_url: 'http://ollama.local',
+      llm_provider: 'openai',
+      llm_model: 'gpt-4o-mini',
+      llm_base_url: '',
       llm_multimodal: false,
     });
     await screen.findByText('AI settings saved');
@@ -160,14 +154,13 @@ describe('LlmConnectionSection', () => {
     await waitFor(() => expect(screen.getByPlaceholderText('••••••••')).toHaveValue(''));
   });
 
-  it('FE-COMP-LLM-010: a non-local provider never persists a base URL', async () => {
-    const user = userEvent.setup();
-    const updateSettings = seedLlm({ llm_provider: 'anthropic', llm_base_url: 'http://leftover' });
+  it('FE-COMP-LLM-010: a stored local provider falls back to OpenAI without saving anything', () => {
+    const updateSettings = seedLlm({ llm_provider: 'local', llm_model: 'nuextract', llm_base_url: 'http://192.168.1.5:11434' });
     renderSection();
 
-    await user.click(screen.getByRole('button', { name: /^Save$/ }));
-
-    expect(updateSettings).toHaveBeenCalledWith(expect.objectContaining({ llm_base_url: '' }));
+    expect(screen.getByRole('button', { name: /OpenAI/ })).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('http://192.168.1.5:11434')).not.toBeInTheDocument();
+    expect(updateSettings).not.toHaveBeenCalled();
   });
 
   it('FE-COMP-LLM-011: the multimodal toggle is part of the saved payload', async () => {
@@ -210,58 +203,44 @@ describe('LlmConnectionSection', () => {
     await waitFor(() => expect(saveBtn).toBeEnabled());
   });
 
-  // #1772: a free-form endpoint may only come from an admin.
-  describe('non-admin', () => {
-    beforeEach(() => seedRole('user'));
+  it('FE-COMP-LLM-014: saving clears a leftover base URL instead of resending it', async () => {
+    const user = userEvent.setup();
+    const updateSettings = seedLlm({ llm_provider: 'local', llm_model: 'nuextract', llm_base_url: 'http://192.168.1.5:11434' });
+    renderSection();
 
-    it('FE-COMP-LLM-014: starts on OpenAI, offers no local option and no base URL field', async () => {
-      const user = userEvent.setup();
-      renderSection();
+    await user.click(screen.getByRole('button', { name: /^Save$/ }));
 
-      expect(screen.getByRole('button', { name: /OpenAI/ })).toBeInTheDocument();
-      expect(screen.queryByPlaceholderText('http://localhost:11434')).not.toBeInTheDocument();
-      expect(
-        screen.getByText('A self-hosted (Ollama) endpoint can only be set up by an administrator. You can still use your own OpenAI or Anthropic key.'),
-      ).toBeInTheDocument();
-
-      await user.click(screen.getByRole('button', { name: /OpenAI/ }));
-      expect(await screen.findByRole('button', { name: 'Anthropic' })).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /Local \(Ollama\)/ })).not.toBeInTheDocument();
+    expect(updateSettings).toHaveBeenCalledWith({
+      llm_provider: 'openai',
+      llm_model: 'nuextract',
+      llm_base_url: '',
+      llm_multimodal: false,
     });
+  });
 
-    it('FE-COMP-LLM-015: a stored local provider falls back to OpenAI without saving anything', () => {
-      const updateSettings = seedLlm({ llm_provider: 'local', llm_model: 'nuextract', llm_base_url: 'http://192.168.1.5:11434' });
-      renderSection();
+  it('FE-COMP-LLM-015: a refused save pulls the stored settings back in', async () => {
+    const user = userEvent.setup();
+    seedLlm({ llm_provider: 'anthropic' }, vi.fn().mockRejectedValue(new Error('Admin access required')));
+    renderSection();
 
-      expect(screen.getByRole('button', { name: /OpenAI/ })).toBeInTheDocument();
-      expect(screen.queryByDisplayValue('http://192.168.1.5:11434')).not.toBeInTheDocument();
-      expect(updateSettings).not.toHaveBeenCalled();
-    });
+    await user.click(screen.getByRole('button', { name: /^Save$/ }));
 
-    it('FE-COMP-LLM-016: saving clears the leftover base URL instead of resending it', async () => {
-      const user = userEvent.setup();
-      const updateSettings = seedLlm({ llm_provider: 'local', llm_model: 'nuextract', llm_base_url: 'http://192.168.1.5:11434' });
-      renderSection();
+    await screen.findByText('Could not save AI settings');
+    expect(loadSettings).toHaveBeenCalled();
+  });
 
-      await user.click(screen.getByRole('button', { name: /^Save$/ }));
+  // The point of #1772: an instance has one endpoint, so this surface is the same
+  // for the person who runs it. The admin sets it on the addon, not here.
+  it('FE-COMP-LLM-016: an admin sees the same two providers and no endpoint field', async () => {
+    const user = userEvent.setup();
+    seedRole('admin');
+    seedLlm({ llm_provider: 'local', llm_model: 'qwen3:8b', llm_base_url: 'http://localhost:11434' });
+    renderSection();
 
-      expect(updateSettings).toHaveBeenCalledWith({
-        llm_provider: 'openai',
-        llm_model: 'nuextract',
-        llm_base_url: '',
-        llm_multimodal: false,
-      });
-    });
+    expect(screen.getByRole('button', { name: /OpenAI/ })).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('http://localhost:11434')).not.toBeInTheDocument();
 
-    it('FE-COMP-LLM-017: a refused save pulls the stored settings back in', async () => {
-      const user = userEvent.setup();
-      seedLlm({ llm_provider: 'anthropic' }, vi.fn().mockRejectedValue(new Error('Admin access required')));
-      renderSection();
-
-      await user.click(screen.getByRole('button', { name: /^Save$/ }));
-
-      await screen.findByText('Could not save AI settings');
-      expect(loadSettings).toHaveBeenCalled();
-    });
+    await user.click(screen.getByRole('button', { name: /OpenAI/ }));
+    expect(screen.queryByRole('button', { name: /Local \(Ollama\)/ })).not.toBeInTheDocument();
   });
 });

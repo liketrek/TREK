@@ -171,12 +171,23 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
       expect(res.body).toEqual({ success: true, updated: 3 });
     });
 
-    it('POST /bulk 200 for an admin with the same local payload', async () => {
+    it('POST /bulk 403 for an admin too, since this is not where the endpoint lives', async () => {
+      // An instance has one endpoint and it is set on the addon, or through
+      // PUT /api/admin/default-user-settings. A personal row would be a second,
+      // invisible place for the same value, so the route refuses it for everyone.
       const res = await request(server).post('/api/settings/bulk').set('Cookie', sessionCookie(2))
         .send({ settings: { llm_provider: 'local', llm_base_url: 'http://192.168.1.5:11434' } });
+      expect(res.status).toBe(403);
+      expect(res.body).toEqual({ error: 'Admin access required' });
+      expect(countRows()).toBe(0);
+    });
+
+    it('POST /bulk 200 for an admin bringing their own hosted key', async () => {
+      const res = await request(server).post('/api/settings/bulk').set('Cookie', sessionCookie(2))
+        .send({ settings: { llm_provider: 'openai', llm_base_url: '', llm_model: 'gpt-4o-mini' } });
       expect(res.status).toBe(200);
-      expect(db.prepare("SELECT value FROM settings WHERE user_id = 2 AND key = 'llm_base_url'").get())
-        .toEqual({ value: 'http://192.168.1.5:11434' });
+      expect(db.prepare("SELECT value FROM settings WHERE user_id = 2 AND key = 'llm_provider'").get())
+        .toEqual({ value: 'openai' });
     });
   });
 });

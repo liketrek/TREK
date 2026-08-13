@@ -63,15 +63,16 @@ export class LlmConfigResolver {
     const model = typeof settings.llm_model === 'string' ? settings.llm_model.trim() : '';
     if (!provider || !model) return null;
 
-    // #1772: only an admin may aim this server at an address of their choosing.
-    // The request leaves OUR network and safeFetchLlm deliberately allows
-    // loopback/LAN so a self-hosted Ollama keeps working, which is a reasonable
-    // trade for whoever runs the instance and a network probe for anyone else.
-    // So for a non-admin the endpoint may only come from the admin-set
-    // instance-wide defaults, never from their own settings row. This is the
-    // choke point every consumer passes (booking import and the plugin RPC
-    // surface), and the only place that also catches values already in the db.
-    const endpoints = this.isAdmin(userId) ? settings : this.settings.getAdminUserDefaults();
+    // #1772: the address this server calls is instance configuration, never a
+    // personal preference. The request leaves OUR network and safeFetchLlm
+    // deliberately allows loopback/LAN so a self-hosted Ollama keeps working,
+    // which is a reasonable trade for whoever runs the instance and a network
+    // probe for anyone else. An instance has exactly one such address, so it
+    // comes from the admin-set instance-wide defaults for EVERY user, including
+    // an admin's own row. This is the choke point every consumer passes
+    // (booking import and the plugin RPC surface), and the only place that also
+    // catches values already sitting in the db.
+    const endpoints = this.settings.getAdminUserDefaults();
     // 'local' is an endpoint choice too ("some address I name"), so without an
     // admin-set local endpoint there is no config at all, never a silent
     // redirect to a different provider.
@@ -89,9 +90,5 @@ export class LlmConfigResolver {
       apiKey,
       multimodal: settings.llm_multimodal === true,
     };
-  }
-
-  private isAdmin(userId: number): boolean {
-    return this.dbService.get<{ role?: string }>('SELECT role FROM users WHERE id = ?', userId)?.role === 'admin';
   }
 }

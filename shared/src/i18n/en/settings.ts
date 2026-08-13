@@ -359,7 +359,7 @@ const settings: TranslationStrings = {
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.localAdminOnly':
-    'A self-hosted (Ollama) endpoint can only be set up by an administrator. You can still use your own OpenAI or Anthropic key.',
+    'A self-hosted (Ollama) endpoint is set up once for the whole instance in the admin settings. You can still use your own OpenAI or Anthropic key here.',
   'settings.aiParsing.model': 'Model',
   'settings.aiParsing.baseUrl': 'Base URL',
   'settings.aiParsing.baseUrlHint': 'Where the model runs — a local Ollama server or an OpenAI-compatible endpoint.',

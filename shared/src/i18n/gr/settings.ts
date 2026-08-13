@@ -366,7 +366,7 @@ const settings: TranslationStrings = {
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.localAdminOnly':
-    'Μόνο ένας διαχειριστής μπορεί να ρυθμίσει ένα τοπικό τελικό σημείο (Ollama). Μπορείτε να συνεχίσετε να χρησιμοποιείτε το δικό σας κλειδί OpenAI ή Anthropic.',
+    'Ένα τοπικό τελικό σημείο (Ollama) ρυθμίζεται μία φορά για ολόκληρη την εγκατάσταση στις ρυθμίσεις διαχειριστή. Μπορείτε να συνεχίσετε να χρησιμοποιείτε εδώ το δικό σας κλειδί OpenAI ή Anthropic.',
   'settings.aiParsing.model': 'Μοντέλο',
   'settings.aiParsing.baseUrl': 'Βασικό URL',
   'settings.aiParsing.baseUrlHint':

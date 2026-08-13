@@ -356,7 +356,7 @@ const settings: TranslationStrings = {
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.localAdminOnly':
-    'Endast en administratör kan ställa in en lokal slutpunkt (Ollama). Du kan fortfarande använda din egen OpenAI- eller Anthropic-nyckel.',
+    'En lokal slutpunkt (Ollama) ställs in en gång för hela instansen i administratörsinställningarna. Du kan fortfarande använda din egen OpenAI- eller Anthropic-nyckel här.',
   'settings.aiParsing.model': 'Modell',
   'settings.aiParsing.baseUrl': 'Bas-URL',
   'settings.aiParsing.baseUrlHint': 'Var modellen körs — en lokal Ollama-server eller en OpenAI-kompatibel slutpunkt.',

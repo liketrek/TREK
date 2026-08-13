@@ -359,7 +359,7 @@ const settings: TranslationStrings = {
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.localAdminOnly':
-    'Einen lokalen Endpunkt (Ollama) kann nur ein Administrator einrichten. Deinen eigenen OpenAI- oder Anthropic-Schlüssel kannst du weiterhin nutzen.',
+    'Einen lokalen Endpunkt (Ollama) richtet ein Administrator einmal für die ganze Instanz in den Admin-Einstellungen ein. Deinen eigenen OpenAI- oder Anthropic-Schlüssel kannst du hier weiterhin nutzen.',
   'settings.aiParsing.model': 'Modell',
   'settings.aiParsing.baseUrl': 'Basis-URL',
   'settings.aiParsing.baseUrlHint':

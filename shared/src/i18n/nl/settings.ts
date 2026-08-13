@@ -357,7 +357,7 @@ const settings: TranslationStrings = {
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.localAdminOnly':
-    'Alleen een beheerder kan een lokaal endpoint (Ollama) instellen. Je kunt nog steeds je eigen OpenAI- of Anthropic-sleutel gebruiken.',
+    'Een lokaal endpoint (Ollama) wordt eenmalig voor de hele instantie ingesteld in de beheerinstellingen. Je kunt hier nog steeds je eigen OpenAI- of Anthropic-sleutel gebruiken.',
   'settings.aiParsing.model': 'Model',
   'settings.aiParsing.baseUrl': 'Basis-URL',
   'settings.aiParsing.baseUrlHint':

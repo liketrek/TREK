@@ -331,7 +331,7 @@ const settings: TranslationStrings = {
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.localAdminOnly':
-    '本地 (Ollama) 接口只能由管理员配置。你仍然可以使用自己的 OpenAI 或 Anthropic 密钥。',
+    '本地 (Ollama) 接口在管理员设置中为整个实例配置一次。你仍然可以在这里使用自己的 OpenAI 或 Anthropic 密钥。',
   'settings.aiParsing.model': '模型',
   'settings.aiParsing.baseUrl': '基础 URL',
   'settings.aiParsing.baseUrlHint': '模型运行的位置——本地 Ollama 服务器或兼容 OpenAI 的接口。',

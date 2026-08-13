@@ -334,7 +334,7 @@ const settings: TranslationStrings = {
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.localAdminOnly':
-    '本機 (Ollama) 端點只能由管理員設定。你仍然可以使用自己的 OpenAI 或 Anthropic 金鑰。',
+    '本機 (Ollama) 端點在管理員設定中為整個執行個體設定一次。你仍然可以在這裡使用自己的 OpenAI 或 Anthropic 金鑰。',
   'settings.aiParsing.model': '模型',
   'settings.aiParsing.baseUrl': '基礎網址',
   'settings.aiParsing.baseUrlHint': '模型執行的位置 — 本機 Ollama 伺服器，或相容於 OpenAI 的端點。',

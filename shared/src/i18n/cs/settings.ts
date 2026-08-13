@@ -350,7 +350,7 @@ const settings: TranslationStrings = {
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.localAdminOnly':
-    'Místní koncový bod (Ollama) může nastavit jen správce. Vlastní klíč OpenAI nebo Anthropic můžete používat i nadále.',
+    'Místní koncový bod (Ollama) se nastavuje jednou pro celou instanci ve správcovském nastavení. Vlastní klíč OpenAI nebo Anthropic tu můžete používat i nadále.',
   'settings.aiParsing.model': 'Model',
   'settings.aiParsing.baseUrl': 'Základní URL',
   'settings.aiParsing.baseUrlHint': 'Kde model běží — místní server Ollama nebo koncový bod kompatibilní s OpenAI.',

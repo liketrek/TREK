@@ -356,7 +356,7 @@ const settings: TranslationStrings = {
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.localAdminOnly':
-    'Локальну кінцеву точку (Ollama) може налаштувати лише адміністратор. Власний ключ OpenAI або Anthropic ви можете використовувати й надалі.',
+    'Локальна кінцева точка (Ollama) налаштовується один раз для всього екземпляра в налаштуваннях адміністратора. Власний ключ OpenAI або Anthropic ви можете використовувати тут і надалі.',
   'settings.aiParsing.model': 'Модель',
   'settings.aiParsing.baseUrl': 'Базова URL-адреса',
   'settings.aiParsing.baseUrlHint': 'Де працює модель — локальний сервер Ollama або сумісна з OpenAI кінцева точка.',
