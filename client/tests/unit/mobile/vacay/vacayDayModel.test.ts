@@ -16,6 +16,50 @@ function ctx(overrides: Partial<DayVisualContext> = {}): DayVisualContext {
 }
 
 describe('vacayDayModel', () => {
+  describe('today is a ring, not a state', () => {
+    const entry = { date: '2026-07-15', user_id: 1, person_color: '#EC4899' };
+
+    it('FE-MOB-VACAY-020: a vacation day logged for today keeps its person fill', () => {
+      const visual = dayVisual('2026-07-15', 3, ctx({ entryMap: { '2026-07-15': [entry] } }));
+
+      expect(visual.background).toBe(personTint('#EC4899'));
+      expect(visual.segments).toHaveLength(1);
+      expect(visual.numColor).toBe('#101013');
+      expect(visual.boxShadow).toBe('inset 0 0 0 1.5px var(--m-ink)');
+    });
+
+    it('FE-MOB-VACAY-021: a company holiday on today keeps its fill and its own ink', () => {
+      const visual = dayVisual('2026-07-15', 3, ctx({ companyHolidaySet: new Set(['2026-07-15']) }));
+
+      expect(visual.background).toBe('#F5D9A6');
+      // Not --m-ink: that is light in dark mode and would vanish on the pastel.
+      expect(visual.numColor).toBe('#8A5A00');
+      expect(visual.boxShadow).toBe('inset 0 0 0 1.5px var(--m-ink)');
+    });
+
+    it('FE-MOB-VACAY-022: a plain today still gets the emphasis it always had', () => {
+      expect(dayVisual('2026-07-15', 3, ctx())).toEqual({
+        background: 'transparent',
+        numColor: 'var(--m-ink)',
+        boxShadow: 'inset 0 0 0 1.5px var(--m-ink)',
+      });
+    });
+
+    it('FE-MOB-VACAY-023: a weekend today reads as a weekend and keeps the ring', () => {
+      const visual = dayVisual('2026-07-15', 0, ctx());
+
+      expect(visual.background).toBe('var(--m-ic)');
+      expect(visual.numColor).toBe('var(--m-ink)');
+      expect(visual.boxShadow).toBe('inset 0 0 0 1.5px var(--m-ink)');
+    });
+
+    it('FE-MOB-VACAY-024: shared-calendar rings still nest inside the today ring', () => {
+      const visual = dayVisual('2026-07-15', 3, ctx({ sharedMap: { '2026-07-15': [{ color: '#22c55e' }] } }));
+
+      expect(visual.boxShadow).toBe('inset 0 0 0 1.5px var(--m-ink), inset 0 0 0 3px #22c55e');
+    });
+  });
+
   it('FE-MOB-VACAY-001: applies the day-cell matrix in priority order', () => {
     const entry = { date: '2026-07-15', user_id: 1, person_color: '#EC4899' };
     const holiday = { name: 'Holiday', localName: 'Feiertag', color: '#fecaca', label: null };
@@ -25,10 +69,12 @@ describe('vacayDayModel', () => {
       holidays: { '2026-07-15': holiday },
     });
 
-    // Today wins over everything: ring, no fill.
+    // Today does not win, it annotates: the day keeps the fill it would have had
+    // and gets the ring on top. Deciding it as its own visual meant anything
+    // logged for today was counted but drawn as an empty cell.
     expect(dayVisual('2026-07-15', 3, full)).toEqual({
-      background: 'transparent',
-      numColor: 'var(--m-ink)',
+      background: '#F5D9A6',
+      numColor: '#8A5A00',
       boxShadow: 'inset 0 0 0 1.5px var(--m-ink)',
     });
 

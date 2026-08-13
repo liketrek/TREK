@@ -99,9 +99,10 @@ function baseDayVisual(dateStr: string, dayOfWeek: number, ctx: DayVisualContext
   // onto whatever visual this day resolves to rather than picking a single winner.
   const withSchool = (v: DayVisual): DayVisual => (schoolColors.length > 0 ? { ...v, school: schoolColors } : v)
 
-  if (dateStr === ctx.todayStr) {
-    return withSchool({ background: 'transparent', numColor: 'var(--m-ink)', boxShadow: 'inset 0 0 0 1.5px var(--m-ink)' })
-  }
+  // Today is deliberately NOT decided here: it is a ring around whatever the day
+  // already is, applied in dayVisual. Resolving it as its own visual meant a
+  // vacation day or company holiday logged for today was stored and counted but
+  // drawn as an empty cell.
   if (ctx.companyHolidaysEnabled && ctx.companyHolidaySet.has(dateStr)) {
     return withSchool({ background: '#F5D9A6', numColor: '#8A5A00' })
   }
@@ -139,6 +140,18 @@ function baseDayVisual(dateStr: string, dayOfWeek: number, ctx: DayVisualContext
 
 export function dayVisual(dateStr: string, dayOfWeek: number, ctx: DayVisualContext): DayVisual {
   const visual = baseDayVisual(dateStr, dayOfWeek, ctx)
+  // Today rings whatever the day resolved to, so a vacation day or company
+  // holiday logged for today keeps its fill and is visible.
+  if (dateStr === ctx.todayStr) {
+    const ring = 'inset 0 0 0 1.5px var(--m-ink)'
+    visual.boxShadow = visual.boxShadow ? `${ring}, ${visual.boxShadow}` : ring
+    // The strong ink only where the cell has nothing of its own to say. On a
+    // pastel fill the fill's own ink is the readable one, and in dark mode
+    // --m-ink is light and would vanish on it.
+    if (!visual.segments && (visual.background === 'transparent' || visual.background === 'var(--m-ic)')) {
+      visual.numColor = 'var(--m-ink)'
+    }
+  }
   // Shared calendars (#444/#667) draw inset rings over the base cell — capped at
   // two so tiny mini-grid cells stay readable. Nested inside the today ring.
   const rings = [...new Set((ctx.sharedMap?.[dateStr] || []).map(m => m.color))].slice(0, 2)
