@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import userEvent from '@testing-library/user-event';
 import { mapsApi, weatherApi } from '../../../../src/api/client';
+import { useAddonStore } from '../../../../src/store/addonStore';
 import MJourneyEntrySheet from '../../../../src/mobile/screens/journey/MJourneyEntrySheet';
 import type { GalleryPhoto, JourneyEntry, JourneyPhoto } from '../../../../src/store/journeyStore';
 import type { ResilientResult, UploadProgress } from '../../../../src/utils/uploadQueue';
@@ -71,7 +72,9 @@ describe('MJourneyEntrySheet quick capture', () => {
           location_lat: 1.3521,
           location_lng: 103.8198,
           weather: 'rainy',
-        })
+        }),
+        // A new entry has nothing persisted yet, so no id to retry against (#1808).
+        undefined,
       )
     );
     expect(props.onDone).toHaveBeenCalled();
@@ -133,7 +136,8 @@ describe('MJourneyEntrySheet quick capture', () => {
           entry_time: '09:07',
           location_lat: null,
           location_lng: null,
-        })
+        }),
+        undefined,
       )
     );
     expect(props.onDone).toHaveBeenCalled();
@@ -220,6 +224,7 @@ interface MountOptions {
   quickCapture?: boolean;
   readOnly?: boolean;
   withDelete?: boolean;
+  withProviderHook?: boolean;
   upload?: UploadFn;
 }
 
@@ -232,22 +237,26 @@ function mountSheet(sheetEntry: JourneyEntry, opts: MountOptions = {}) {
   const onClose = vi.fn();
   const onDone = vi.fn();
   const onDelete = vi.fn();
-  const onSave = vi.fn(async (_data: Record<string, unknown>) => 42);
+  const onSave = vi.fn(async (_data: Record<string, unknown>, _existingEntryId?: number) => 42);
   const onUploadPhotos = vi.fn(opts.upload ?? defaultUpload);
+  const onAddProviderPhotos = vi.fn(async (_entryId: number, _group: Record<string, unknown>) => {});
   const view = render(
     <MJourneyEntrySheet
       entry={sheetEntry}
       galleryPhotos={opts.galleryPhotos ?? []}
       quickCapture={opts.quickCapture ?? false}
       readOnly={opts.readOnly ?? false}
+      userId={42}
+      trips={[]}
       onClose={onClose}
       onSave={onSave}
       onUploadPhotos={onUploadPhotos}
+      onAddProviderPhotos={opts.withProviderHook === false ? undefined : onAddProviderPhotos}
       onDelete={opts.withDelete ? onDelete : undefined}
       onDone={onDone}
     />
   );
-  return { ...view, onClose, onDone, onDelete, onSave, onUploadPhotos };
+  return { ...view, onClose, onDone, onDelete, onSave, onUploadPhotos, onAddProviderPhotos };
 }
 
 const multiFileInput = () => document.querySelector('input[type="file"][multiple]') as HTMLInputElement;
@@ -362,7 +371,7 @@ describe('MJourneyEntrySheet full editor', () => {
       tags: ['food', 'city'],
       pros_cons: { pros: ['Gelato'], cons: ['Crowds'] },
       type: undefined,
-    });
+    }, undefined);
   });
 
   it('FE-MOB-JENTRY-006: removes a pro and a con row again', async () => {
@@ -985,5 +994,155 @@ describe('MJourneyEntrySheet quick capture edge cases', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Use my current location' }));
 
     expect(await screen.findByText('Location access was denied. Allow it in your browser settings and try again.')).toBeInTheDocument();
+  });
+});
+
+// FE-MOB-JENTRY-041 to FE-MOB-JENTRY-047 — external photo providers in the phone
+// editor (#1808), mirroring the desktop EntryEditor mechanics.
+
+const immichAddon = { id: 'immich', name: 'Immich', type: 'photo_provider', icon: 'camera', enabled: true };
+
+function seedAddons(addons: Array<Record<string, unknown>>) {
+  useAddonStore.setState({ addons: addons as never, loaded: true });
+}
+
+function useConnectedImmich() {
+  server.use(
+    http.get('/api/integrations/memories/immich/status', () => HttpResponse.json({ connected: true })),
+    http.post('/api/integrations/memories/immich/search', () => HttpResponse.json({
+      assets: [{ id: 'asset-1', takenAt: '2026-03-15T09:00:00.000Z', mediaType: 'image' }],
+      hasMore: false,
+    })),
+  );
+}
+
+describe('MJourneyEntrySheet external photos', () => {
+  beforeEach(() => {
+    toastSpy.mockClear();
+    window.__addToast = toastSpy;
+  });
+
+  afterEach(() => {
+    delete window.__addToast;
+    useAddonStore.setState({ addons: [], loaded: false });
+  });
+
+  it('FE-MOB-JENTRY-041: hides the button while no provider is connected', async () => {
+    let probes = 0;
+    seedAddons([immichAddon]);
+    server.use(http.get('/api/integrations/memories/immich/status', () => {
+      probes += 1;
+      return HttpResponse.json({ connected: false });
+    }));
+    mountSheet(buildEntry({ id: 5 }));
+
+    await waitFor(() => expect(probes).toBe(1));
+    expect(screen.queryByRole('button', { name: 'External photos' })).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-042: opens the embedded picker for a connected provider', async () => {
+    seedAddons([immichAddon, { id: 'budget', name: 'Budget', type: 'feature', icon: 'wallet', enabled: true }]);
+    useConnectedImmich();
+    const user = userEvent.setup();
+    mountSheet(buildEntry({ id: 5, location_lat: 41.9, location_lng: 12.5, location_name: 'Rome' }));
+
+    await user.click(await screen.findByRole('button', { name: 'External photos' }));
+
+    expect(await screen.findByTestId('journey-provider-picker-embedded')).toBeInTheDocument();
+    expect(screen.getByText('Nearby photos first · Rome')).toBeInTheDocument();
+    // A single provider needs no chip row.
+    expect(screen.queryByTestId('journey-external-provider-immich')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-043: stays out of the quick capture sheet', async () => {
+    seedAddons([immichAddon]);
+    useConnectedImmich();
+    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: undefined });
+    mountSheet(buildEntry(), { quickCapture: true });
+
+    expect(await screen.findByRole('button', { name: 'Gallery' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'External photos' })).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-JENTRY-044: queues a picked photo and sends it after the save', async () => {
+    seedAddons([immichAddon]);
+    useConnectedImmich();
+    const user = userEvent.setup();
+    const { onSave, onAddProviderPhotos, onDone } = mountSheet(buildEntry({ id: 5 }));
+
+    await user.click(await screen.findByRole('button', { name: 'External photos' }));
+    await user.click(await screen.findByAltText(''));
+    await user.click(screen.getByRole('button', { name: 'Add (1)' }));
+
+    const queued = await screen.findByRole('button', { name: /1 queued · Clear/ });
+    expect(queued).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onAddProviderPhotos).toHaveBeenCalledWith(
+      42,
+      expect.objectContaining({ provider: 'immich', assetIds: ['asset-1'] }),
+    ));
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-MOB-JENTRY-045: drops the queue again from the panel header', async () => {
+    seedAddons([immichAddon]);
+    useConnectedImmich();
+    const user = userEvent.setup();
+    const { onAddProviderPhotos } = mountSheet(buildEntry({ id: 5 }));
+
+    await user.click(await screen.findByRole('button', { name: 'External photos' }));
+    await user.click(await screen.findByAltText(''));
+    await user.click(screen.getByRole('button', { name: 'Add (1)' }));
+    await user.click(await screen.findByRole('button', { name: /1 queued · Clear/ }));
+
+    expect(screen.queryByRole('button', { name: /queued/ })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onAddProviderPhotos).not.toHaveBeenCalled());
+  });
+
+  it('FE-MOB-JENTRY-046: a failed provider add keeps the queue and does not create a second entry', async () => {
+    seedAddons([immichAddon]);
+    useConnectedImmich();
+    const user = userEvent.setup();
+    // A brand new entry: the first save creates it, the provider write then fails.
+    const { onSave, onAddProviderPhotos, onDone } = mountSheet(buildEntry());
+    onAddProviderPhotos.mockRejectedValueOnce(new Error('immich down'));
+
+    await user.click(await screen.findByRole('button', { name: 'External photos' }));
+    await user.click(await screen.findByAltText(''));
+    await user.click(screen.getByRole('button', { name: 'Add (1)' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() =>
+      expect(toastSpy).toHaveBeenCalledWith('1 photo groups failed — save again to retry', 'error', undefined)
+    );
+    expect(onDone).not.toHaveBeenCalled();
+    expect(onSave.mock.calls[0][1]).toBeUndefined();
+
+    // Retry: the sheet hands back the id it already persisted, so the caller
+    // updates that entry instead of creating a second one.
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+    expect(onSave).toHaveBeenCalledTimes(2);
+    expect(onSave.mock.calls[1][1]).toBe(42);
+    expect(onAddProviderPhotos).toHaveBeenCalledTimes(2);
+  });
+
+  it('FE-MOB-JENTRY-047: a skeleton with only provider photos is promoted to an entry', async () => {
+    seedAddons([immichAddon]);
+    useConnectedImmich();
+    const user = userEvent.setup();
+    const { onSave } = mountSheet(buildEntry({ id: 9, type: 'skeleton', title: 'Venice' }));
+
+    await user.click(await screen.findByRole('button', { name: 'External photos' }));
+    await user.click(await screen.findByAltText(''));
+    await user.click(screen.getByRole('button', { name: 'Add (1)' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0]).toMatchObject({ type: 'entry' });
   });
 });

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { Camera, Plus, Image, X, MapPin, Locate, Trash2, CheckCircle2, MinusCircle } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Camera, Plus, Image, Images, X, MapPin, Locate, Trash2, CheckCircle2, MinusCircle } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import { useTranslation } from '../../../i18n'
@@ -9,9 +9,11 @@ import { getApiErrorMessage } from '../../../types'
 import { normalizeImageFiles } from '../../../utils/convertHeic'
 import { getCurrentPositionOnce } from '../../../hooks/useGeolocation'
 import type { ResilientResult, UploadProgress } from '../../../utils/uploadQueue'
-import type { JourneyEntry, JourneyPhoto, GalleryPhoto } from '../../../store/journeyStore'
-import { photoUrl, geoOnceErrorKey } from '../../../pages/journeyDetail/JourneyDetailPage.helpers'
+import type { JourneyEntry, JourneyPhoto, GalleryPhoto, JourneyTrip } from '../../../store/journeyStore'
+import { useAddonStore } from '../../../store/addonStore'
+import { photoUrl, geoOnceErrorKey, isValidGeoPoint } from '../../../pages/journeyDetail/JourneyDetailPage.helpers'
 import JournalBody from '../../../components/Journey/JournalBody'
+import { ProviderPicker, type ProviderPhotoGroup } from '../../../components/Journey/JourneyDetailPageProviderPicker'
 import { journeyWeatherCategory, MOBILE_MOODS, MOBILE_WEATHERS } from './mobileJourneyMeta'
 
 const PRO_COLOR = '#2FA37A'
@@ -24,25 +26,31 @@ interface LocationResult {
   lng: number
 }
 
+type PendingProviderGroup = ProviderPhotoGroup & { provider: string }
+
 interface MJourneyEntrySheetProps {
   entry: JourneyEntry
   galleryPhotos: GalleryPhoto[]
   quickCapture?: boolean
   readOnly?: boolean
+  userId?: number
+  trips?: JourneyTrip[]
   onClose: () => void
-  onSave: (data: Record<string, unknown>) => Promise<number>
+  onSave: (data: Record<string, unknown>, existingEntryId?: number) => Promise<number>
   onUploadPhotos: (entryId: number, files: File[], cbs?: { onProgress?: (p: UploadProgress) => void }) => Promise<ResilientResult<JourneyPhoto>>
+  onAddProviderPhotos?: (entryId: number, group: PendingProviderGroup) => Promise<void>
   onDelete?: () => void
   onDone: () => void
 }
 
 /**
- * shJEntry — the journey entry sheet: title, photos (upload / from gallery),
- * markdown story, pros & cons, date + time, location search, mood (4),
- * weather (6) and tags. Read-only for viewer contributors.
+ * shJEntry — the journey entry sheet: title, photos (upload / from gallery /
+ * connected provider), markdown story, pros & cons, date + time, location
+ * search, mood (4), weather (6) and tags. Read-only for viewer contributors.
  */
 export default function MJourneyEntrySheet({
-  entry, galleryPhotos, quickCapture = false, readOnly = false, onClose, onSave, onUploadPhotos, onDelete, onDone,
+  entry, galleryPhotos, quickCapture = false, readOnly = false, userId = 0, trips = [],
+  onClose, onSave, onUploadPhotos, onAddProviderPhotos, onDelete, onDone,
 }: MJourneyEntrySheetProps) {
   const { t, language } = useTranslation()
   const toast = useToast()
@@ -67,7 +75,11 @@ export default function MJourneyEntrySheet({
   const [photos, setPhotos] = useState<(JourneyPhoto | GalleryPhoto)[]>(entry.photos || [])
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [pendingLinkIds, setPendingLinkIds] = useState<number[]>([])
+  const [pendingProviderGroups, setPendingProviderGroups] = useState<PendingProviderGroup[]>([])
   const [showGalleryPick, setShowGalleryPick] = useState(false)
+  const [showExternal, setShowExternal] = useState(false)
+  const [externalProvider, setExternalProvider] = useState<string | null>(null)
+  const [providers, setProviders] = useState<{ id: string; name: string }[]>([])
   const [saving, setSaving] = useState(false)
   const [captureOnly, setCaptureOnly] = useState(quickCapture)
   const [locating, setLocating] = useState(false)
@@ -75,6 +87,55 @@ export default function MJourneyEntrySheet({
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
+  // A save that creates the entry and then fails on the provider photos keeps
+  // the sheet open; without the id of what was just created, the retry would
+  // create a second entry (#1808).
+  const persistedEntryIdRef = useRef<number | null>(entry.id > 0 ? entry.id : null)
+
+  // The addon list is already in the store — this only probes which of the
+  // photo providers is actually connected for this user.
+  const addons = useAddonStore(s => s.addons)
+  const addonsLoaded = useAddonStore(s => s.loaded)
+  const photoProviders = useMemo(
+    () => addons.filter(a => a.type === 'photo_provider' && a.enabled).map(a => ({ id: a.id, name: a.name })),
+    [addons],
+  )
+
+  useEffect(() => {
+    if (readOnly) return
+    // App.tsx loads the addon list on boot, so this only reacts to it. Kicking off
+    // a second load from here would race the other consumers, and loadAddons
+    // overwrites the list unconditionally when it lands.
+    if (!addonsLoaded) return
+    if (photoProviders.length === 0) { setProviders([]); return }
+    let active = true
+    ;(async () => {
+      const connected: { id: string; name: string }[] = []
+      for (const provider of photoProviders) {
+        try {
+          const res = await fetch(`/api/integrations/memories/${provider.id}/status`, { credentials: 'include' })
+          if (res.ok && (await res.json()).connected) connected.push(provider)
+        } catch { /* provider stays hidden */ }
+      }
+      if (active) setProviders(connected)
+    })()
+    return () => { active = false }
+  }, [readOnly, addonsLoaded, photoProviders])
+
+  const activeProvider = externalProvider || providers[0]?.id || null
+  const queuedProviderPhotos = pendingProviderGroups.reduce((sum, group) => sum + group.assetIds.length, 0)
+  const providerExistingAssetIds = new Set<string>()
+  if (activeProvider) {
+    photos.forEach(photo => {
+      if (photo.provider === activeProvider && photo.asset_id) providerExistingAssetIds.add(photo.asset_id)
+    })
+    pendingProviderGroups.forEach(group => {
+      if (group.provider === activeProvider) group.assetIds.forEach(assetId => providerExistingAssetIds.add(assetId))
+    })
+  }
+  const contextLocation = isValidGeoPoint({ lat: locationLat ?? NaN, lng: locationLng ?? NaN })
+    ? { lat: locationLat!, lng: locationLng!, name: locationName || undefined }
+    : null
 
   useEffect(() => {
     if (!quickCapture || readOnly || entry.location_lat != null || entry.location_lng != null) return
@@ -120,7 +181,8 @@ export default function MJourneyEntrySheet({
     cons.filter(c => c.trim()).join('\n') !== (entry.pros_cons?.cons ?? []).join('\n') ||
     tags.join('\n') !== (entry.tags ?? []).join('\n') ||
     pendingFiles.length > 0 ||
-    pendingLinkIds.length > 0
+    pendingLinkIds.length > 0 ||
+    pendingProviderGroups.length > 0
 
   const handleClose = () => {
     if (!captureOnly && !readOnly && isDirty && !window.confirm(t('journey.editor.discardChangesConfirm'))) return
@@ -142,10 +204,12 @@ export default function MJourneyEntrySheet({
         weather: weather || null,
         tags: tags.filter(tag => tag.trim()),
         pros_cons: { pros: pros.filter(p => p.trim()), cons: cons.filter(c => c.trim()) },
-        type: entry.type === 'skeleton' && (story.trim() || pendingFiles.length > 0 || pendingLinkIds.length > 0)
+        type: entry.type === 'skeleton'
+          && (story.trim() || pendingFiles.length > 0 || pendingLinkIds.length > 0 || pendingProviderGroups.length > 0)
           ? 'entry'
           : undefined,
-      })
+      }, persistedEntryIdRef.current ?? undefined)
+      if (entryId > 0) persistedEntryIdRef.current = entryId
       if (pendingFiles.length > 0 && entryId) {
         const toUpload = pendingFiles
         setUploadProgress({ done: 0, total: toUpload.length })
@@ -167,6 +231,20 @@ export default function MJourneyEntrySheet({
         for (const photoId of pendingLinkIds) {
           try { await journeyApi.linkPhoto(entryId, photoId) } catch { /* linked photo stays in gallery */ }
         }
+      }
+      if (pendingProviderGroups.length > 0 && entryId && onAddProviderPhotos) {
+        const failed: PendingProviderGroup[] = []
+        for (const group of pendingProviderGroups) {
+          try { await onAddProviderPhotos(entryId, group) } catch { failed.push(group) }
+        }
+        if (failed.length > 0) {
+          // Keep the sheet open with the failed groups queued so the next save
+          // retries them instead of losing the selection.
+          setPendingProviderGroups(failed)
+          toast.error(t('journey.editor.externalPhotosPartialFailed', { failed: String(failed.length), total: String(pendingProviderGroups.length) }))
+          return
+        }
+        setPendingProviderGroups([])
       }
       onDone()
     } finally {
@@ -281,7 +359,7 @@ export default function MJourneyEntrySheet({
                 type="button"
                 onClick={() => (captureOnly ? cameraRef : fileRef).current?.click()}
                 disabled={saving}
-                className="flex flex-1 items-center justify-center gap-[6px] rounded-[14px] border-[1.5px] border-dashed border-[color:var(--m-rowbr)] p-3 text-[0.75rem] font-semibold text-m-muted disabled:opacity-50"
+                className="flex min-w-0 flex-1 items-center justify-center gap-[6px] rounded-[14px] border-[1.5px] border-dashed border-[color:var(--m-rowbr)] p-3 text-center text-[0.75rem] font-semibold text-m-muted disabled:opacity-50"
               >
                 {uploadProgress ? (
                   <>
@@ -297,9 +375,13 @@ export default function MJourneyEntrySheet({
               </button>
               <button
                 type="button"
-                onClick={() => captureOnly ? fileRef.current?.click() : setShowGalleryPick(v => !v)}
+                onClick={() => {
+                  if (captureOnly) { fileRef.current?.click(); return }
+                  setShowGalleryPick(v => !v)
+                  setShowExternal(false)
+                }}
                 disabled={!captureOnly && galleryPhotos.length === 0}
-                className={`flex flex-1 items-center justify-center gap-[6px] rounded-[14px] border-[1.5px] p-3 text-[0.75rem] font-semibold disabled:opacity-40 ${
+                className={`flex min-w-0 flex-1 items-center justify-center gap-[6px] rounded-[14px] border-[1.5px] p-3 text-center text-[0.75rem] font-semibold disabled:opacity-40 ${
                   !captureOnly && showGalleryPick
                     ? 'border-[color:var(--m-act)] text-m-ink'
                     : 'border-dashed border-[color:var(--m-rowbr)] text-m-muted'
@@ -308,7 +390,108 @@ export default function MJourneyEntrySheet({
                 <Image size={14} strokeWidth={2} />
                 {captureOnly ? t('journey.share.gallery') : t('journey.editor.fromGallery')}
               </button>
+              {/* Immich/Synology, the same source the desktop editor offers (#1808).
+                  Only shown once a provider is actually connected — on a phone a
+                  button that can only say "nothing connected" is not worth its width. */}
+              {!captureOnly && providers.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => { setShowExternal(v => !v); setShowGalleryPick(false) }}
+                  disabled={saving}
+                  className={`flex min-w-0 flex-1 items-center justify-center gap-[6px] rounded-[14px] border-[1.5px] p-3 text-center text-[0.75rem] font-semibold disabled:opacity-50 ${
+                    showExternal
+                      ? 'border-[color:var(--m-act)] text-m-ink'
+                      : 'border-dashed border-[color:var(--m-rowbr)] text-m-muted'
+                  }`}
+                >
+                  <Images size={14} strokeWidth={2} />
+                  {t('journey.editor.externalPhotos')}
+                </button>
+              )}
             </div>
+
+            {/* Outside the panel: picking collapses it again, and the queue has
+                to stay visible until the save actually writes it. */}
+            {!captureOnly && queuedProviderPhotos > 0 && (
+              <button
+                type="button"
+                onClick={() => setPendingProviderGroups([])}
+                className="mt-2 rounded-full border border-[color:var(--m-rowbr)] px-3 py-[5px] font-geist text-[0.65625rem] font-semibold text-m-muted"
+              >
+                {queuedProviderPhotos} {t('journey.editor.externalPhotosQueued')} · {t('common.clear')}
+              </button>
+            )}
+
+            {!captureOnly && showExternal && activeProvider && (
+              <div
+                className="mt-2 flex flex-col overflow-hidden rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)]"
+                style={{ height: 'min(46vh, 420px)' }}
+              >
+                <div className="flex flex-none items-center gap-2 border-b border-[color:var(--m-rowbr)] px-3 py-2">
+                  <span className="min-w-0 flex-1 truncate font-geist text-[0.6875rem] font-semibold text-m-muted">
+                    {contextLocation?.name
+                      ? `${t('journey.editor.externalPhotosNearby')} · ${contextLocation.name}`
+                      : t('journey.editor.externalPhotosNoLocation')}
+                  </span>
+                </div>
+                {providers.length > 1 && (
+                  <div className="flex flex-none gap-1 overflow-x-auto border-b border-[color:var(--m-rowbr)] px-3 py-2">
+                    {providers.map(provider => (
+                      <button
+                        key={provider.id}
+                        type="button"
+                        data-testid={`journey-external-provider-${provider.id}`}
+                        onClick={() => setExternalProvider(provider.id)}
+                        className={`whitespace-nowrap rounded-full px-[10px] py-[4px] text-[0.6875rem] font-bold ${
+                          activeProvider === provider.id ? 'bg-m-act text-m-actfg' : 'text-m-muted'
+                        }`}
+                      >
+                        {provider.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {/* `embedded` is load-bearing: the standalone picker is
+                    position:fixed, which the transformed MSheet panel would
+                    anchor to itself and then clip. */}
+                <div className="min-h-0 flex-1">
+                  <ProviderPicker
+                    key={`${activeProvider}-${entryDate}`}
+                    provider={activeProvider}
+                    userId={userId}
+                    entries={[entry]}
+                    trips={trips}
+                    existingAssetIds={providerExistingAssetIds}
+                    initialDate={entryDate}
+                    contextLocation={contextLocation}
+                    initialEntryId={entry.id || null}
+                    embedded
+                    onClose={() => setShowExternal(false)}
+                    onAdd={async groups => {
+                      setPendingProviderGroups(previous => {
+                        const next = [...previous]
+                        for (const group of groups) {
+                          const existing = next.find(item => item.provider === activeProvider && item.passphrase === group.passphrase)
+                          if (existing) {
+                            const seen = new Set(existing.assetIds)
+                            group.assetIds.forEach((assetId, index) => {
+                              if (seen.has(assetId)) return
+                              seen.add(assetId)
+                              existing.assetIds.push(assetId)
+                              existing.mediaTypes?.push(group.mediaTypes?.[index] || 'image')
+                            })
+                          } else {
+                            next.push({ ...group, provider: activeProvider })
+                          }
+                        }
+                        return next
+                      })
+                      setShowExternal(false)
+                    }}
+                  />
+                </div>
+              </div>
+            )}
 
             {!captureOnly && showGalleryPick && (
               <div className="mt-2 max-h-[160px] overflow-y-auto rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-2">
