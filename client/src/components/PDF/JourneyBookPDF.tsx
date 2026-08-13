@@ -161,6 +161,12 @@ export async function downloadJourneyBookPDF(
 <html lang="${esc(loc.split('-')[0])}">
 <head>
 <meta charset="UTF-8">
+<!-- The page is A4 landscape and laid out in pt, so it is about 1123px wide. Without
+     this, a phone lays the preview out at its default 980px and the document spills
+     out of the frame, which reads as being zoomed far in. Declaring the real width
+     makes the browser scale the whole page to fit instead. Printing is unaffected,
+     it goes by @page. -->
+<meta name="viewport" content="width=1123">
 <base href="${window.location.origin}/">
 <title>${esc(journey.title)} — ${esc(tr('journey.pdf.journeyBook'))}</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -331,16 +337,39 @@ export async function downloadJourneyBookPDF(
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:8px;'
   overlay.onclick = (e) => { if (e.target === overlay) overlay.remove() }
 
+  // The chrome needs a stylesheet rather than inline styles: on a phone the title
+  // and the two labels do not fit on one row, and translated labels are longer
+  // than the English ones. Below 640px the card goes full-bleed, the decorative
+  // title steps aside and the two actions share the width (#1848).
+  const style = document.createElement('style')
+  style.textContent = `
+    #journey-pdf-overlay .jp-card { width:100%;max-width:1100px;height:95vh;background:#fff;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.35); }
+    #journey-pdf-overlay .jp-head { display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 16px;border-bottom:1px solid #e4e4e7;flex-shrink:0;background:#0f172a; }
+    #journey-pdf-overlay .jp-title { min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:rgba(255,255,255,0.45);font-weight:500;letter-spacing:0.03em; }
+    #journey-pdf-overlay .jp-actions { display:flex;align-items:center;gap:8px;flex:none; }
+    #journey-pdf-overlay .jp-btn { min-height:44px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap; }
+    #journey-pdf-overlay .jp-save { border:none;background:#fff;color:#0f172a; }
+    #journey-pdf-overlay .jp-close { border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7); }
+    @media (max-width: 640px) {
+      #journey-pdf-overlay { padding:0; }
+      #journey-pdf-overlay .jp-card { height:100dvh;max-width:none;border-radius:0; }
+      #journey-pdf-overlay .jp-head { padding:8px 10px; }
+      #journey-pdf-overlay .jp-title { display:none; }
+      #journey-pdf-overlay .jp-actions { flex:1; }
+      #journey-pdf-overlay .jp-btn { flex:1;padding:10px 12px;font-size:13px; }
+    }
+  `
+
   const card = document.createElement('div')
-  card.style.cssText = 'width:100%;max-width:1100px;height:95vh;background:#fff;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.35);'
+  card.className = 'jp-card'
 
   const header = document.createElement('div')
-  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid #e4e4e7;flex-shrink:0;background:#0f172a;'
+  header.className = 'jp-head'
   header.innerHTML = `
-    <span style="font-size:12px;color:rgba(255,255,255,0.45);font-weight:500;letter-spacing:0.03em">${esc(journey.title)} &middot; ${totalPages} ${esc(tr('journey.pdf.pages'))}</span>
-    <div style="display:flex;align-items:center;gap:8px">
-      <button id="journey-pdf-save" style="min-height:44px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;border:none;background:#fff;color:#0f172a;">${esc(tr('journey.pdf.saveAsPdf'))}</button>
-      <button id="journey-pdf-close" style="min-height:44px;padding:10px 16px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);">${esc(tr('common.close'))}</button>
+    <span class="jp-title">${esc(journey.title)} &middot; ${totalPages} ${esc(tr('journey.pdf.pages'))}</span>
+    <div class="jp-actions">
+      <button id="journey-pdf-save" class="jp-btn jp-save">${esc(tr('journey.pdf.saveAsPdf'))}</button>
+      <button id="journey-pdf-close" class="jp-btn jp-close">${esc(tr('common.close'))}</button>
     </div>
   `
 
@@ -353,6 +382,7 @@ export async function downloadJourneyBookPDF(
 
   card.appendChild(header)
   card.appendChild(iframe)
+  overlay.appendChild(style)
   overlay.appendChild(card)
   document.body.appendChild(overlay)
 
