@@ -23,6 +23,7 @@ const atlas: TranslationStrings = {
   'atlas.removeFromBucket': 'Yapılacaklar listesinden kaldır',
   'atlas.removeFromBucketHint': 'Bu ülkeyi yapılacaklar listenizden çıkarın',
   'atlas.bucketWhen': 'Ne zaman ziyaret etmeyi planlıyorsunuz?',
+  'atlas.bucketDuplicate': 'Zaten yapılacaklar listenizde',
   'atlas.statsTab': 'İstatistikler',
   'atlas.bucketTab': 'Yapılacaklar Listesi',
   'atlas.addBucket': 'Yapılacaklar listesine ekle',

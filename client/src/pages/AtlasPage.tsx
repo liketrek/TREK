@@ -7,7 +7,7 @@ import CustomSelect from '../components/shared/CustomSelect'
 import EmptyState from '../components/shared/EmptyState'
 import { Globe, MapPin, Briefcase, Calendar, Flag, PanelLeftOpen, PanelLeftClose, X, Star, Plus, Trash2, Search } from 'lucide-react'
 import type { TranslationFn } from '../types'
-import { A2_TO_A3, countryCodeToFlag, withCountryMarkedVisited, type AtlasCountry, type AtlasStats, type AtlasData, type CountryDetail } from './atlas/atlasModel'
+import { A2_TO_A3, countryCodeToFlag, findBucketDuplicate, isBucketDuplicateError, withCountryMarkedVisited, type AtlasCountry, type AtlasStats, type AtlasData, type CountryDetail } from './atlas/atlasModel'
 import { continentForCountry } from '@trek/shared'
 import { useAtlas } from './atlas/useAtlas'
 import AtlasCountrySearch from './atlas/AtlasCountrySearch'
@@ -393,10 +393,20 @@ function AtlasPageDesktop(): React.ReactElement {
                   </button>
                   <button onClick={async () => {
                     const targetDate = bucketMonth > 0 && bucketYear > 0 ? `${bucketYear}-${String(bucketMonth).padStart(2, '0')}` : null
+                    // #1898: one entry per target date. The dialog stays open on a
+                    // duplicate so another month can be picked right away.
+                    if (findBucketDuplicate(bucketList, { name: confirmAction.name, country_code: confirmAction.code, target_date: targetDate, lat: null, lng: null })) {
+                      toast.error(t('atlas.bucketDuplicate'))
+                      return
+                    }
                     try {
                       const r = await apiClient.post('/addons/atlas/bucket-list', { name: confirmAction.name, country_code: confirmAction.code, target_date: targetDate })
                       setBucketList(prev => [r.data.item, ...prev])
                     } catch (err) {
+                      if (isBucketDuplicateError(err)) {
+                        toast.error(t('atlas.bucketDuplicate'))
+                        return
+                      }
                       toast.error(getApiErrorMessage(err, t('common.error')))
                     }
                     setBucketMonth(0); setBucketYear(0)

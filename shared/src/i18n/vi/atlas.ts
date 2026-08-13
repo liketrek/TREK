@@ -23,6 +23,7 @@ const atlas: TranslationStrings = {
   'atlas.removeFromBucket': 'Xóa khỏi danh sách nhóm',
   'atlas.removeFromBucketHint': 'Bỏ quốc gia này khỏi danh sách nhóm của bạn',
   'atlas.bucketWhen': 'Khi nào bạn có kế hoạch đến thăm?',
+  'atlas.bucketDuplicate': 'Đã có trong danh sách nhóm của bạn',
   'atlas.statsTab': 'Thống kê',
   'atlas.bucketTab': 'Danh sách nhóm',
   'atlas.addBucket': 'Thêm vào danh sách nhóm',

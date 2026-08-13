@@ -23,6 +23,7 @@ const atlas: TranslationStrings = {
   'atlas.removeFromBucket': 'إزالة من قائمة الأمنيات',
   'atlas.removeFromBucketHint': 'إزالة هذا البلد من قائمة أمنياتك',
   'atlas.bucketWhen': 'متى تخطط للزيارة؟',
+  'atlas.bucketDuplicate': 'موجود بالفعل في قائمة الأمنيات',
   'atlas.statsTab': 'الإحصائيات',
   'atlas.bucketTab': 'قائمة الأمنيات',
   'atlas.addBucket': 'إضافة إلى قائمة الأمنيات',

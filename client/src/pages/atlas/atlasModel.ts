@@ -121,6 +121,44 @@ export function normalizeRegionName(name: string): string {
     .trim()
 }
 
+// SQLite's lower() folds ASCII only, and the server's duplicate check runs the
+// name through it — folding more here would block names the server accepts.
+function foldBucketName(name: string): string {
+  return name.trim().replace(/[A-Z]/g, c => c.toLowerCase())
+}
+
+/**
+ * The entry this wish would duplicate, if any (#1898). Identity mirrors the
+ * server: name (trimmed, ASCII case-insensitive), country, target date and
+ * coordinates — so a different target date stays a separate, allowed entry.
+ * Empty string and null both mean "not set" because the forms send ''.
+ * The server answers 409 either way; this is what lets the UI say so up front,
+ * in the user's language and without losing what they typed.
+ */
+export function findBucketDuplicate(
+  items: BucketItem[],
+  candidate: Pick<BucketItem, 'name' | 'country_code' | 'target_date' | 'lat' | 'lng'>,
+): BucketItem | undefined {
+  const name = foldBucketName(candidate.name)
+  const country = candidate.country_code || null
+  const targetDate = candidate.target_date || null
+  const lat = candidate.lat ?? null
+  const lng = candidate.lng ?? null
+  return items.find(
+    item =>
+      foldBucketName(item.name) === name &&
+      (item.country_code || null) === country &&
+      (item.target_date || null) === targetDate &&
+      (item.lat ?? null) === lat &&
+      (item.lng ?? null) === lng,
+  )
+}
+
+/** A bucket-list write the server refused as a duplicate (#1898). */
+export function isBucketDuplicateError(err: unknown): boolean {
+  return (err as { response?: { status?: number } } | null)?.response?.status === 409
+}
+
 // Alpha-3 codes for bucket-list countries that aren't visited yet — the Atlas
 // map renders these with a hatched fill so they read as "on the wishlist"
 // instead of blending into the flat unvisited gray.

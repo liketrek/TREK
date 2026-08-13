@@ -3,7 +3,7 @@ import { ChevronRight, MapPin, Star, Trash2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import apiClient from '../../../api/client'
 import { continentForCountry } from '@trek/shared'
-import { withCountryMarkedVisited } from '../../../pages/atlas/atlasModel'
+import { findBucketDuplicate, isBucketDuplicateError, withCountryMarkedVisited } from '../../../pages/atlas/atlasModel'
 import { getApiErrorMessage } from '../../../types'
 import { useToast } from '../../../components/shared/Toast'
 import MSheet from '../../components/MSheet'
@@ -145,21 +145,33 @@ export default function MAtlasCountryPopup({ atlas }: MAtlasCountryPopupProps) {
 
   const addBucket = async (): Promise<void> => {
     if (!confirmAction) return
+    const targetDate = bucketDate || null
+    // #1898: one entry per target date. The sheet stays open on a duplicate so
+    // another month can be picked right away.
+    if (findBucketDuplicate(bucketList, { name: confirmAction.name, country_code: confirmAction.code, target_date: targetDate, lat: null, lng: null })) {
+      toast.error(t('atlas.bucketDuplicate'))
+      return
+    }
     try {
       const r = await apiClient.post('/addons/atlas/bucket-list', {
         name: confirmAction.name,
         country_code: confirmAction.code,
-        target_date: bucketDate || null,
+        target_date: targetDate,
       })
       setBucketList((prev) => [r.data.item, ...prev])
     } catch (err) {
+      if (isBucketDuplicateError(err)) {
+        toast.error(t('atlas.bucketDuplicate'))
+        return
+      }
       toast.error(getApiErrorMessage(err, t('common.error')))
     }
     setConfirmAction(null)
   }
 
-  // A country can sit on the bucket list more than once (one entry per place),
-  // so taking it off the wishlist means dropping every entry for that code.
+  // A country can sit on the bucket list more than once (one entry per place and
+  // target date), so taking it off the wishlist means dropping every entry for
+  // that code.
   const removeBucket = async (): Promise<void> => {
     if (!confirmAction) return
     const wishlistItems = bucketList.filter((b) => b.country_code === confirmAction.code)

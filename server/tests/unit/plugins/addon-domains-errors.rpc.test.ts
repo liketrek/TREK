@@ -12,6 +12,7 @@ import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit
 import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
 import { CollabRpc } from '../../../src/nest/collab/collab.rpc';
 import { AtlasRpc } from '../../../src/nest/atlas/atlas.rpc';
+import { BucketItemExistsError } from '../../../src/nest/atlas/atlas.service';
 import { VacayRpc } from '../../../src/nest/vacay/vacay.rpc';
 import { JournalRpc } from '../../../src/nest/journey/journal.rpc';
 import { CollectionsRpc } from '../../../src/nest/collections/collections.rpc';
@@ -131,6 +132,14 @@ describe('addon-gated domains validate their input', () => {
   it('ADDONERR-004 a missing bucket item is refused, naming it', async () => {
     const host = build({ atlas: { deleteBucketItem: vi.fn(() => false) } });
     expect(err(await host.dispatch(req('atlas.deleteBucketItem', { itemId: 404 }), 42)).message).toBe('no bucket item 404 for this user');
+  });
+
+  it('ADDONERR-004b a duplicate bucket item is the caller\'s mistake, not an internal error (#1898)', async () => {
+    const host = build({
+      atlas: { createBucketItem: vi.fn(() => { throw new BucketItemExistsError(); }) },
+    });
+    expect(err(await host.dispatch(req('atlas.createBucketItem', { input: { name: 'Kyoto' } }), 42)))
+      .toMatchObject({ code: 'BAD_PARAMS', message: 'bucket item already exists' });
   });
 
   it('ADDONERR-005 vacay insists on an ISO date', async () => {

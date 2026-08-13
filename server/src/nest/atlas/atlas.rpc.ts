@@ -4,7 +4,7 @@ import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
 import { asPayload, num } from '../plugins/host/rpc-params';
 import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
 import { ADDON_IDS } from '../../addons';
-import { AtlasService } from './atlas.service';
+import { AtlasService, BucketItemExistsError } from './atlas.service';
 
 /**
  * The atlas surface a plugin may reach (#plugins): visited countries and regions plus
@@ -86,7 +86,14 @@ export class AtlasRpc {
     const input = asPayload(params.input);
     if (typeof input.name !== 'string' || input.name.trim() === '') throw new BadParams('bucket item name is required');
     this.requireAtlasAddon();
-    return this.atlas.createBucketItem(userId, input as never);
+    try {
+      return this.atlas.createBucketItem(userId, input as never);
+    } catch (err) {
+      // #1898: a repeated wish is the caller's mistake, not ours. Without this the
+      // plugin sees a generic internal error and cannot tell the two apart.
+      if (err instanceof BucketItemExistsError) throw new BadParams('bucket item already exists');
+      throw err;
+    }
   }
 
   @PluginMethod('atlas.deleteBucketItem', { permission: 'db:write:atlas' })

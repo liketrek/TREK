@@ -5,8 +5,10 @@ import { useSettingsStore } from '../../store/settingsStore'
 import apiClient, { mapsApi, pluginsApi, type PluginAtlasLayer } from '../../api/client'
 import L from 'leaflet'
 import type { GeoJsonFeatureCollection } from '../../types'
-import { A2_TO_A3, countryStatus, isCountryVisible, normalizeRegionName, withCountryMarkedVisited, wishlistA3Codes, countryColor, type AtlasData, type AtlasPlaceHit, type CountryDetail, type BucketItem } from './atlasModel'
+import { A2_TO_A3, countryStatus, findBucketDuplicate, isBucketDuplicateError, isCountryVisible, normalizeRegionName, withCountryMarkedVisited, wishlistA3Codes, countryColor, type AtlasData, type AtlasPlaceHit, type CountryDetail, type BucketItem } from './atlasModel'
 import { continentForCountry, type VisitStatus } from '@trek/shared'
+import { useToast } from '../../components/shared/Toast'
+import { getApiErrorMessage } from '../../types'
 
 const PLANNED_KEY = 'trek_atlas_show_planned'
 
@@ -73,6 +75,7 @@ export function useAtlas() {
   const { t, language } = useTranslation()
   const { settings } = useSettingsStore()
   const navigate = useNavigate()
+  const toast = useToast()
   const resolveName = useCountryNames(language)
   const dm = settings.dark_mode
   const dark = dm === true || dm === 'dark' || (dm === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
@@ -867,18 +870,31 @@ export function useAtlas() {
 
   const handleAddBucketItem = async (): Promise<void> => {
     if (!bucketForm.name.trim()) return
+    const hasCoords = !!(bucketForm.lat && bucketForm.lng)
+    const lat = hasCoords ? parseFloat(bucketForm.lat) : null
+    const lng = hasCoords ? parseFloat(bucketForm.lng) : null
+    const targetDate = bucketForm.target_date || (bucketPoiMonth > 0 && bucketPoiYear > 0 ? `${bucketPoiYear}-${String(bucketPoiMonth).padStart(2, '0')}` : null)
+    // #1898: this form never sends a country code, so the entry it would create
+    // is identified by name, date and coordinates alone. Keep the form filled so
+    // the user can just pick another date.
+    if (findBucketDuplicate(bucketList, { name: bucketForm.name, country_code: null, target_date: targetDate, lat, lng })) {
+      toast.error(t('atlas.bucketDuplicate'))
+      return
+    }
     try {
       const data: Record<string, unknown> = { name: bucketForm.name.trim() }
       if (bucketForm.notes.trim()) data.notes = bucketForm.notes.trim()
-      if (bucketForm.lat && bucketForm.lng) { data.lat = parseFloat(bucketForm.lat); data.lng = parseFloat(bucketForm.lng) }
-      const targetDate = bucketForm.target_date || (bucketPoiMonth > 0 && bucketPoiYear > 0 ? `${bucketPoiYear}-${String(bucketPoiMonth).padStart(2, '0')}` : null)
+      if (hasCoords) { data.lat = lat; data.lng = lng }
       if (targetDate) data.target_date = targetDate
       const r = await apiClient.post('/addons/atlas/bucket-list', data)
       setBucketList(prev => [r.data.item, ...prev])
       setBucketForm({ name: '', notes: '', lat: '', lng: '', target_date: '' })
       setBucketSearch(''); setBucketSearchResults([]); setBucketPoiMonth(0); setBucketPoiYear(0)
       setShowBucketAdd(false)
-    } catch { /* */ }
+    } catch (err) {
+      // The 409 used to vanish into a silent catch, leaving the button looking broken.
+      toast.error(isBucketDuplicateError(err) ? t('atlas.bucketDuplicate') : getApiErrorMessage(err, t('common.error')))
+    }
   }
 
   const handleDeleteBucketItem = async (id: number): Promise<void> => {

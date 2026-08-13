@@ -201,6 +201,50 @@ describe('Bucket list', () => {
     expect(res.status).toBe(400);
   });
 
+  it('ATLAS-005 — POST the same item twice returns 409 and keeps one row (#1898)', async () => {
+    const { user } = createUser(testDb);
+    const body = { name: 'Japan', country_code: 'JP' };
+
+    const first = await request(app)
+      .post('/api/addons/atlas/bucket-list')
+      .set('Cookie', authCookie(user.id))
+      .send(body);
+    expect(first.status).toBe(201);
+
+    const second = await request(app)
+      .post('/api/addons/atlas/bucket-list')
+      .set('Cookie', authCookie(user.id))
+      .send(body);
+    expect(second.status).toBe(409);
+    expect(second.body).toEqual({ error: 'Already on your bucket list' });
+
+    const list = await request(app)
+      .get('/api/addons/atlas/bucket-list')
+      .set('Cookie', authCookie(user.id));
+    expect(list.body.items).toHaveLength(1);
+  });
+
+  it('ATLAS-005 — POST the same item for another target date is allowed (#1898)', async () => {
+    const { user } = createUser(testDb);
+
+    const undated = await request(app)
+      .post('/api/addons/atlas/bucket-list')
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Japan', country_code: 'JP', target_date: null });
+    expect(undated.status).toBe(201);
+
+    const dated = await request(app)
+      .post('/api/addons/atlas/bucket-list')
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Japan', country_code: 'JP', target_date: '2027-05' });
+    expect(dated.status).toBe(201);
+
+    const list = await request(app)
+      .get('/api/addons/atlas/bucket-list')
+      .set('Cookie', authCookie(user.id));
+    expect(list.body.items).toHaveLength(2);
+  });
+
   it('ATLAS-006 — GET /bucket-list returns items', async () => {
     const { user } = createUser(testDb);
 
@@ -231,6 +275,30 @@ describe('Bucket list', () => {
       .send({ name: 'New Name', notes: 'Updated' });
     expect(res.status).toBe(200);
     expect(res.body.item.name).toBe('New Name');
+  });
+
+  it('ATLAS-007 — PUT onto an existing wish returns 409 and leaves the row alone (#1898)', async () => {
+    const { user } = createUser(testDb);
+    await request(app)
+      .post('/api/addons/atlas/bucket-list')
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Japan', country_code: 'JP', target_date: '2027-05' });
+    const second = await request(app)
+      .post('/api/addons/atlas/bucket-list')
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Japan', country_code: 'JP', target_date: '2028-09' });
+
+    const res = await request(app)
+      .put(`/api/addons/atlas/bucket-list/${second.body.item.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ target_date: '2027-05' });
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'Already on your bucket list' });
+
+    const list = await request(app)
+      .get('/api/addons/atlas/bucket-list')
+      .set('Cookie', authCookie(user.id));
+    expect(list.body.items.map((i: { target_date: string }) => i.target_date).sort()).toEqual(['2027-05', '2028-09']);
   });
 
   it('ATLAS-008 — DELETE /bucket-list/:id removes item', async () => {

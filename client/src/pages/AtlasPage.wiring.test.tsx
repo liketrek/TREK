@@ -378,6 +378,26 @@ describe('AtlasPage wiring', () => {
       await waitFor(() => expect(body).toEqual({ name: 'Bretagne', country_code: 'FR', target_date: null }));
     });
 
+    it('FE-PAGE-ATLASW-018b: a country already wishlisted for that date is not posted again (#1898)', async () => {
+      const post = vi.fn();
+      server.use(http.post('/api/addons/atlas/bucket-list', () => {
+        post();
+        return HttpResponse.json({ item: buildBucketItem({ id: 99, name: 'Germany', country_code: 'DE' }) });
+      }));
+      const atlas = setAtlas({
+        confirmAction: { type: 'bucket', code: 'DE', name: 'Germany' },
+        bucketList: [buildBucketItem({ id: 7, name: 'Germany', country_code: 'DE' })],
+      });
+      render(<AtlasPage />);
+
+      fireEvent.click(screen.getByText('atlas.addToBucket'));
+
+      await waitFor(() => expect(toast).toHaveBeenCalledWith('atlas.bucketDuplicate', 'error', undefined));
+      expect(post).not.toHaveBeenCalled();
+      // The popup stays open on the date step so another month can be picked.
+      expect(atlas.setConfirmAction).not.toHaveBeenCalled();
+    });
+
     it('FE-PAGE-ATLASW-018: a failing bucket post shows the error toast', async () => {
       server.use(
         http.post('/api/addons/atlas/bucket-list', () => HttpResponse.json({ error: 'Full' }, { status: 400 })),

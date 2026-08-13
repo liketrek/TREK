@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   A2_TO_A3,
   countryStatus,
+  findBucketDuplicate,
+  isBucketDuplicateError,
   isCountryVisible,
   normalizeRegionName,
   withCountryMarkedVisited,
@@ -208,5 +210,61 @@ describe('wishlistA3Codes', () => {
       new Set(),
     );
     expect(result).toEqual(new Set(['JPN']));
+  });
+});
+
+// The client half of #1898 — the same identity the server enforces, checked
+// before the request so the refusal arrives translated and instantly.
+describe('findBucketDuplicate (#1898)', () => {
+  const candidate = { name: 'Japan', country_code: 'JP', target_date: null, lat: null, lng: null };
+
+  it('finds an entry with the same name, country and target date', () => {
+    const existing = bucketItem({ id: 5, name: 'Japan', country_code: 'JP' });
+    expect(findBucketDuplicate([existing], candidate)).toBe(existing);
+  });
+
+  it('lets the same place through for a different target date', () => {
+    const existing = bucketItem({ name: 'Japan', country_code: 'JP', target_date: '2027-05' });
+    expect(findBucketDuplicate([existing], candidate)).toBeUndefined();
+    expect(findBucketDuplicate([existing], { ...candidate, target_date: '2028-09' })).toBeUndefined();
+    expect(findBucketDuplicate([existing], { ...candidate, target_date: '2027-05' })).toBe(existing);
+  });
+
+  it('treats an empty string and null as the same "not set"', () => {
+    const undated = bucketItem({ name: 'Japan', country_code: 'JP', target_date: null });
+    expect(findBucketDuplicate([undated], { ...candidate, target_date: '' })).toBe(undated);
+    const blankCountry = bucketItem({ name: 'Japan', country_code: '' });
+    expect(findBucketDuplicate([blankCountry], { ...candidate, country_code: null })).toBe(blankCountry);
+  });
+
+  it('ignores surrounding whitespace and ASCII case in the name', () => {
+    const existing = bucketItem({ name: 'Kyoto', country_code: 'JP' });
+    expect(findBucketDuplicate([existing], { ...candidate, name: '  kyoto ' })).toBe(existing);
+  });
+
+  it('keeps non-ASCII case apart, matching SQLite lower()', () => {
+    // The server folds ASCII only, so folding more here would block a name the
+    // server would have accepted.
+    const existing = bucketItem({ name: 'Ísland', country_code: 'IS' });
+    expect(findBucketDuplicate([existing], { ...candidate, name: 'ísland', country_code: 'IS' })).toBeUndefined();
+  });
+
+  it('separates the same name in another country or at other coordinates', () => {
+    const existing = bucketItem({ name: 'Altstadt', country_code: 'DE', lat: 48.13, lng: 11.57 });
+    expect(findBucketDuplicate([existing], { ...candidate, name: 'Altstadt', country_code: 'AT', lat: 48.13, lng: 11.57 }))
+      .toBeUndefined();
+    expect(findBucketDuplicate([existing], { ...candidate, name: 'Altstadt', country_code: 'DE', lat: 50.94, lng: 6.96 }))
+      .toBeUndefined();
+    expect(findBucketDuplicate([existing], { ...candidate, name: 'Altstadt', country_code: 'DE', lat: 48.13, lng: 11.57 }))
+      .toBe(existing);
+  });
+});
+
+describe('isBucketDuplicateError (#1898)', () => {
+  it('recognises the 409 and nothing else', () => {
+    expect(isBucketDuplicateError({ response: { status: 409 } })).toBe(true);
+    expect(isBucketDuplicateError({ response: { status: 500 } })).toBe(false);
+    expect(isBucketDuplicateError(new Error('offline'))).toBe(false);
+    expect(isBucketDuplicateError(null)).toBe(false);
   });
 });

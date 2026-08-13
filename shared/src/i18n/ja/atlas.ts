@@ -23,6 +23,7 @@ const atlas: TranslationStrings = {
   'atlas.removeFromBucket': '行きたいリストから削除',
   'atlas.removeFromBucketHint': 'この国を行きたいリストから外します',
   'atlas.bucketWhen': '訪問予定はいつですか？',
+  'atlas.bucketDuplicate': 'すでに行きたいリストにあります',
   'atlas.statsTab': '統計',
   'atlas.bucketTab': '行きたいリスト',
   'atlas.addBucket': '行きたいリストに追加',

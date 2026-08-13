@@ -6,7 +6,7 @@ import {
 } from '@trek/nest-mcp';
 import { z } from 'zod';
 import { ADDON_IDS } from '../../addons';
-import { AtlasService } from './atlas.service';
+import { AtlasService, BucketItemExistsError } from './atlas.service';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { AuthService } from '../auth/auth.service';
@@ -15,6 +15,11 @@ import { AuthService } from '../auth/auth.service';
  *  the atlas addon — unlike the REST controller, which is deliberately ungated
  *  (see atlas.controller.ts). */
 const atlasAddonOn = addonGate(ADDON_IDS.ATLAS);
+
+/** The MCP echo of the REST 409 (#1898) — same wording, tool-shaped. */
+function bucketDuplicateResult() {
+  return { content: [{ type: 'text' as const, text: 'That is already on your bucket list.' }], isError: true };
+}
 
 function jsonContent(uri: string, data: unknown) {
   return {
@@ -37,7 +42,8 @@ function jsonContent(uri: string, data: unknown) {
  * checks and no broadcasts; writes deny demo users, reads do not. The legacy
  * registrar's casing divergence from REST (mark_region_visited /
  * get_country_atlas_places passed codes through un-uppercased) was fixed in
- * the trailing quirk commit — both sides now uppercase.
+ * the trailing quirk commit — both sides now uppercase. The one input schema
+ * that grew since is create_bucket_list_item's target_date (#1898).
  */
 @McpController()
 export class AtlasMcp {
@@ -58,18 +64,28 @@ export class AtlasMcp {
       lng: z.number().optional(),
       country_code: z.string().length(2).toUpperCase().optional().describe('ISO 3166-1 alpha-2 country code'),
       notes: z.string().max(1000).optional(),
+      // #1898 made the target date part of an item's identity, so without this
+      // parameter MCP could only ever create one entry per destination — the
+      // "same place, different date" case the report calls for was unreachable.
+      // update_bucket_list_item has had the field all along.
+      target_date: z.string().nullable().optional().describe('When you plan to go, e.g. "2027-05"'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: atlasAddonOn,
     access: { group: 'atlas', mode: 'write' },
   })
   async createBucketListItem(
-    { name, lat, lng, country_code, notes }: { name: string; lat?: number; lng?: number; country_code?: string; notes?: string },
+    { name, lat, lng, country_code, notes, target_date }: { name: string; lat?: number; lng?: number; country_code?: string; notes?: string; target_date?: string | null },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    const item = this.atlas.createBucketItem(ctx.userId, { name, lat, lng, country_code, notes });
-    return ok({ item });
+    try {
+      const item = this.atlas.createBucketItem(ctx.userId, { name, lat, lng, country_code, notes, target_date });
+      return ok({ item });
+    } catch (err) {
+      if (err instanceof BucketItemExistsError) return bucketDuplicateResult();
+      throw err;
+    }
   }
 
   @Tool({
@@ -244,7 +260,13 @@ export class AtlasMcp {
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    const item = this.atlas.updateBucketItem(ctx.userId, itemId, { name, notes, lat, lng, country_code, target_date });
+    let item: unknown;
+    try {
+      item = this.atlas.updateBucketItem(ctx.userId, itemId, { name, notes, lat, lng, country_code, target_date });
+    } catch (err) {
+      if (err instanceof BucketItemExistsError) return bucketDuplicateResult();
+      throw err;
+    }
     if (!item) return { content: [{ type: 'text' as const, text: 'Bucket list item not found.' }], isError: true };
     return ok({ item });
   }

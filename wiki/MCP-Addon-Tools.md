@@ -56,7 +56,7 @@ Requires `atlas:read` or `atlas:write` scope.
 | `mark_region_visited` | Mark a sub-country region as visited (e.g. `"US-CA"`). |
 | `unmark_region_visited` | Remove a region from the visited list. |
 | `get_country_atlas_places` | Get places saved in the user's atlas for a specific country. |
-| `create_bucket_list_item` | Add a destination to your personal bucket list with optional coordinates and country code. |
+| `create_bucket_list_item` | Add a destination to your personal bucket list with optional coordinates, country code and target date. The same destination for the same target date is rejected as a duplicate. |
 | `update_bucket_list_item` | Update a bucket list item (name, notes, coordinates, target date). |
 | `delete_bucket_list_item` | Remove an item from your bucket list. |
 

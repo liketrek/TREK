@@ -162,6 +162,36 @@ describe('Tool: create_bucket_list_item', () => {
     });
   });
 
+  it('takes a target date, so the same place can be planned for several dates (#1898)', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const first = await h.client.callTool({
+        name: 'create_bucket_list_item',
+        arguments: { name: 'Japan', country_code: 'JP', target_date: '2027-05' },
+      });
+      expect((parseToolResult(first) as any).item.target_date).toBe('2027-05');
+
+      const second = await h.client.callTool({
+        name: 'create_bucket_list_item',
+        arguments: { name: 'Japan', country_code: 'JP', target_date: '2028-09' },
+      });
+      expect((parseToolResult(second) as any).item.target_date).toBe('2028-09');
+    });
+  });
+
+  it('reports the duplicate instead of appending a second row (#1898)', async () => {
+    const { user } = createUser(testDb);
+    createBucketListItem(testDb, user.id, { name: 'Japan', country_code: 'JP' });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_bucket_list_item',
+        arguments: { name: 'Japan', country_code: 'JP' },
+      });
+      expect(result.isError).toBe(true);
+      expect((testDb.prepare('SELECT COUNT(*) AS n FROM bucket_list WHERE user_id = ?').get(user.id) as { n: number }).n).toBe(1);
+    });
+  });
+
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
     const { user } = createUser(testDb, { email: 'demo@nomad.app' });

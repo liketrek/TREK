@@ -16,7 +16,7 @@ import {
 import type { Response } from 'express';
 import type { AtlasLocateResponse, RegionGeo } from '@trek/shared';
 import type { User } from '../../types';
-import { AtlasService } from './atlas.service';
+import { AtlasService, BucketItemExistsError } from './atlas.service';
 import { AtlasMarkRegionDto, AtlasCreateBucketItemDto, AtlasUpdateBucketItemDto } from './atlas.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -33,7 +33,9 @@ import { CurrentUser } from '../auth/current-user.decorator';
  * hand-rolled 'name and country_code are required' — the todo/places trade);
  * the whitespace-only bucket name keeps its legacy 'Name is required' 400.
  * No addon gate — the legacy route has none, so adding one would break
- * clients when the addon is off.
+ * clients when the addon is off. The one status the legacy route never sent is
+ * the bucket-list 409: adding the same wish twice used to append a second row
+ * (#1898).
  */
 @Controller('api/addons/atlas')
 @UseGuards(JwtAuthGuard)
@@ -151,7 +153,16 @@ export class AtlasController {
       throw new HttpException({ error: 'Name is required' }, 400);
     }
     const { name, lat, lng, country_code, notes, target_date } = body;
-    return { item: this.atlas.createBucketItem(user.id, { name, lat, lng, country_code, notes, target_date }) };
+    try {
+      return { item: this.atlas.createBucketItem(user.id, { name, lat, lng, country_code, notes, target_date }) };
+    } catch (err) {
+      // #1898: the same wish twice is a conflict, not a server error. Bespoke
+      // { error } body like the neighbouring 400/404s.
+      if (err instanceof BucketItemExistsError) {
+        throw new HttpException({ error: 'Already on your bucket list' }, 409);
+      }
+      throw err;
+    }
   }
 
   @Put('bucket-list/:id')
@@ -161,7 +172,17 @@ export class AtlasController {
     @Body() body: AtlasUpdateBucketItemDto,
   ): { item: unknown } {
     const { name, notes, lat, lng, country_code, target_date } = body;
-    const item = this.atlas.updateBucketItem(user.id, id, { name, notes, lat, lng, country_code, target_date });
+    let item: unknown;
+    try {
+      item = this.atlas.updateBucketItem(user.id, id, { name, notes, lat, lng, country_code, target_date });
+    } catch (err) {
+      // #1898: editing a wish onto an existing one conflicts the same way a
+      // duplicate create does.
+      if (err instanceof BucketItemExistsError) {
+        throw new HttpException({ error: 'Already on your bucket list' }, 409);
+      }
+      throw err;
+    }
     if (!item) {
       throw new HttpException({ error: 'Item not found' }, 404);
     }

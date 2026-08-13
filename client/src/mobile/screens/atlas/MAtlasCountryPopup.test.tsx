@@ -1,7 +1,9 @@
-// FE-COMP-MATLASPOPUP-001 to FE-COMP-MATLASPOPUP-004
+// FE-COMP-MATLASPOPUP-001 to FE-COMP-MATLASPOPUP-006
 import React from 'react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { http, HttpResponse } from 'msw'
 import { render, screen, fireEvent, waitFor } from '../../../../tests/helpers/render'
+import { server } from '../../../../tests/helpers/msw/server'
 import MAtlasCountryPopup from './MAtlasCountryPopup'
 import type { AtlasController } from './atlasController'
 
@@ -26,6 +28,10 @@ function makeAtlas(overrides: Record<string, unknown> = {}): AtlasController {
     ...overrides,
   } as unknown as AtlasController
 }
+
+afterEach(() => {
+  delete window.__addToast
+})
 
 describe('MAtlasCountryPopup', () => {
   it('FE-COMP-MATLASPOPUP-001: offers the wishlist removal for a country on the bucket list', () => {
@@ -72,5 +78,54 @@ describe('MAtlasCountryPopup', () => {
 
     expect(screen.getByText('atlas.markVisited')).toBeInTheDocument()
     expect(screen.queryByText('atlas.removeFromBucket')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-MATLASPOPUP-005: adding a country that is already wishlisted for that date posts nothing (#1898)', async () => {
+    const post = vi.fn()
+    server.use(http.post('/api/addons/atlas/bucket-list', () => { post(); return HttpResponse.json({ item: { id: 9 } }) }))
+    const addToast = vi.fn()
+    window.__addToast = addToast as unknown as typeof window.__addToast
+    const setBucketList = vi.fn()
+    const setConfirmAction = vi.fn()
+    const atlas = makeAtlas({
+      confirmAction: { code: 'FR', name: 'France', type: 'bucket' },
+      bucketList: [bucketItem(42, 'France', 'FR')],
+      setBucketList,
+      setConfirmAction,
+    })
+    render(<MAtlasCountryPopup atlas={atlas} />)
+
+    fireEvent.click(screen.getByText('atlas.addToBucket'))
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('atlas.bucketDuplicate', 'error', undefined))
+    expect(post).not.toHaveBeenCalled()
+    expect(setBucketList).not.toHaveBeenCalled()
+    // The sheet stays open so a target month can be picked instead.
+    expect(setConfirmAction).not.toHaveBeenCalled()
+  })
+
+  it('FE-COMP-MATLASPOPUP-006: the same country for another target date still goes out (#1898)', async () => {
+    let body: unknown = null
+    server.use(http.post('/api/addons/atlas/bucket-list', async ({ request }) => {
+      body = await request.json()
+      return HttpResponse.json({ item: { id: 9 } })
+    }))
+    const setBucketList = vi.fn()
+    const setConfirmAction = vi.fn()
+    const atlas = makeAtlas({
+      confirmAction: { code: 'FR', name: 'France', type: 'bucket' },
+      bucketList: [bucketItem(42, 'France', 'FR')],
+      setBucketList,
+      setConfirmAction,
+    })
+    render(<MAtlasCountryPopup atlas={atlas} />)
+
+    const monthInput = document.querySelector('input[type="month"]') as HTMLInputElement
+    fireEvent.change(monthInput, { target: { value: '2027-05' } })
+    fireEvent.click(screen.getByText('atlas.addToBucket'))
+
+    await waitFor(() => expect(setConfirmAction).toHaveBeenCalledWith(null))
+    expect(body).toEqual({ name: 'France', country_code: 'FR', target_date: '2027-05' })
+    expect(setBucketList).toHaveBeenCalled()
   })
 })

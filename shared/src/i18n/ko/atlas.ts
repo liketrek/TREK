@@ -23,6 +23,7 @@ const atlas: TranslationStrings = {
   'atlas.removeFromBucket': '버킷 리스트에서 제거',
   'atlas.removeFromBucketHint': '이 나라를 버킷 리스트에서 뺍니다',
   'atlas.bucketWhen': '방문 예정 시기는 언제인가요?',
+  'atlas.bucketDuplicate': '이미 버킷 리스트에 있습니다',
   'atlas.statsTab': '통계',
   'atlas.bucketTab': '버킷 리스트',
   'atlas.addBucket': '버킷 리스트에 추가',

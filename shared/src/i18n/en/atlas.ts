@@ -23,6 +23,7 @@ const atlas: TranslationStrings = {
   'atlas.removeFromBucket': 'Remove from wishlist',
   'atlas.removeFromBucketHint': 'Take this country off your bucket list',
   'atlas.bucketWhen': 'When do you plan to visit?',
+  'atlas.bucketDuplicate': 'Already on your bucket list',
   'atlas.statsTab': 'Stats',
   'atlas.bucketTab': 'Bucket List',
   'atlas.addBucket': 'Add to bucket list',

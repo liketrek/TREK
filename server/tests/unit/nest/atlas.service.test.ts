@@ -42,7 +42,7 @@ import { createUser, createTrip, createReservation } from '../../helpers/factori
 import { getCountryFromCoords, getCountryFromAddress, isPointInCountryBox, reverseGeocodeCountry, getRegionGeo, getCountryGeo } from '../../../src/nest/atlas/atlas-geo';
 import { cacheKeyFor, getCached, setCached } from '../../../src/nest/geo/nominatim.client';
 import { DatabaseService } from '../../../src/nest/database/database.service';
-import { AtlasService } from '../../../src/nest/atlas/atlas.service';
+import { AtlasService, BucketItemExistsError } from '../../../src/nest/atlas/atlas.service';
 
 // Direct construction over the shared test connection — no TestingModule (repo
 // convention for DI-native service unit tests).
@@ -1169,6 +1169,123 @@ describe('atlas quirk fixes', () => {
       .prepare('SELECT 1 FROM visited_countries WHERE user_id = ? AND country_code = ?')
       .get(user.id, 'DE');
     expect(row).toBeUndefined();
+  });
+});
+
+// ── #1898: one bucket-list entry per wish ────────────────────────────────────
+//
+// Clicking "add to bucket list" twice used to append a second identical row. The
+// identity a row is checked against is (user, name, country, target date,
+// coordinates) — a different target date is a different wish and stays allowed,
+// which is exactly what the report asks for.
+
+describe('bucket-list duplicates (#1898)', () => {
+  const countRows = (userId: number): number =>
+    (testDb.prepare('SELECT COUNT(*) AS n FROM bucket_list WHERE user_id = ?').get(userId) as { n: number }).n;
+
+  it('ATLAS-SVC-037: adding the same wish twice is refused and writes no second row', () => {
+    const { user } = createUser(testDb);
+    atlas.createBucketItem(user.id, { name: 'Japan', country_code: 'JP' });
+
+    expect(() => atlas.createBucketItem(user.id, { name: 'Japan', country_code: 'JP' })).toThrow(BucketItemExistsError);
+    expect(countRows(user.id)).toBe(1);
+  });
+
+  it('ATLAS-SVC-038: the same place with another target date is a separate entry', () => {
+    const { user } = createUser(testDb);
+    atlas.createBucketItem(user.id, { name: 'Japan', country_code: 'JP' });
+
+    atlas.createBucketItem(user.id, { name: 'Japan', country_code: 'JP', target_date: '2027-05' });
+    atlas.createBucketItem(user.id, { name: 'Japan', country_code: 'JP', target_date: '2028-09' });
+
+    expect(countRows(user.id)).toBe(3);
+    // ...but each of those dates only once.
+    expect(() => atlas.createBucketItem(user.id, { name: 'Japan', country_code: 'JP', target_date: '2027-05' })).toThrow(
+      BucketItemExistsError,
+    );
+  });
+
+  it('ATLAS-SVC-039: the name matches case- and whitespace-insensitively', () => {
+    const { user } = createUser(testDb);
+    atlas.createBucketItem(user.id, { name: 'Kyoto' });
+
+    expect(() => atlas.createBucketItem(user.id, { name: '  kyoto  ' })).toThrow(BucketItemExistsError);
+    expect(countRows(user.id)).toBe(1);
+  });
+
+  it('ATLAS-SVC-040: an empty string and NULL are the same "not set"', () => {
+    const { user } = createUser(testDb);
+    atlas.createBucketItem(user.id, { name: 'Lisbon', country_code: '', target_date: '' });
+
+    // The forms send '' where the map dialogs send null — both must land on the
+    // same identity, and the row itself is stored normalised.
+    const row = testDb.prepare('SELECT country_code, target_date FROM bucket_list WHERE user_id = ?').get(user.id);
+    expect(row).toEqual({ country_code: null, target_date: null });
+    expect(() => atlas.createBucketItem(user.id, { name: 'Lisbon', country_code: null, target_date: null })).toThrow(
+      BucketItemExistsError,
+    );
+  });
+
+  it('ATLAS-SVC-041: the same name in another country, at other coordinates or for another user still goes through', () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    atlas.createBucketItem(user.id, { name: 'Altstadt', country_code: 'DE', lat: 48.13, lng: 11.57 });
+
+    atlas.createBucketItem(user.id, { name: 'Altstadt', country_code: 'AT', lat: 48.13, lng: 11.57 });
+    atlas.createBucketItem(user.id, { name: 'Altstadt', country_code: 'DE', lat: 50.94, lng: 6.96 });
+    atlas.createBucketItem(other.id, { name: 'Altstadt', country_code: 'DE', lat: 48.13, lng: 11.57 });
+
+    expect(countRows(user.id)).toBe(3);
+    expect(countRows(other.id)).toBe(1);
+  });
+
+  it('ATLAS-SVC-042: a coordinate-less wish does not collide with the same name pinned to a place', () => {
+    const { user } = createUser(testDb);
+    atlas.createBucketItem(user.id, { name: 'Kyoto', country_code: 'JP' });
+
+    atlas.createBucketItem(user.id, { name: 'Kyoto', country_code: 'JP', lat: 35.01, lng: 135.76 });
+
+    expect(countRows(user.id)).toBe(2);
+  });
+
+  it('ATLAS-SVC-043: an update may not move a row onto another wish', () => {
+    const { user } = createUser(testDb);
+    atlas.createBucketItem(user.id, { name: 'Japan', country_code: 'JP', target_date: '2027-05' });
+    const second = atlas.createBucketItem(user.id, { name: 'Japan', country_code: 'JP', target_date: '2028-09' }) as {
+      id: number;
+      target_date: string;
+    };
+
+    expect(() => atlas.updateBucketItem(user.id, second.id, { target_date: '2027-05' })).toThrow(BucketItemExistsError);
+    const row = testDb.prepare('SELECT target_date FROM bucket_list WHERE id = ?').get(second.id) as {
+      target_date: string;
+    };
+    expect(row.target_date).toBe('2028-09');
+  });
+
+  it('ATLAS-SVC-044: an update of a row against itself is not a collision', () => {
+    const { user } = createUser(testDb);
+    const item = atlas.createBucketItem(user.id, { name: 'Kyoto', country_code: 'JP', target_date: '2027-05' }) as {
+      id: number;
+    };
+
+    // Same values again, plus a notes-only edit: neither may trip the guard.
+    expect(atlas.updateBucketItem(user.id, item.id, { name: 'Kyoto', target_date: '2027-05' })).toBeTruthy();
+    const updated = atlas.updateBucketItem(user.id, item.id, { notes: 'temples' }) as { notes: string };
+    expect(updated.notes).toBe('temples');
+  });
+
+  it('ATLAS-SVC-045: a legacy duplicate already in the table stays readable and deletable', () => {
+    const { user } = createUser(testDb);
+    // Rows written before the guard existed are left alone on purpose — no
+    // migration deletes user data for this.
+    const insert = testDb.prepare('INSERT INTO bucket_list (user_id, name, country_code) VALUES (?, ?, ?)');
+    insert.run(user.id, 'Japan', 'JP');
+    const legacy = insert.run(user.id, 'Japan', 'JP');
+
+    expect(atlas.bucketList(user.id)).toHaveLength(2);
+    expect(atlas.deleteBucketItem(user.id, Number(legacy.lastInsertRowid))).toBe(true);
+    expect(countRows(user.id)).toBe(1);
   });
 });
 

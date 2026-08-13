@@ -22,6 +22,7 @@ const atlas: TranslationStrings = {
   'atlas.removeFromBucket': 'Eltávolítás a bakancslistáról',
   'atlas.removeFromBucketHint': 'Vedd le ezt az országot a bakancslistádról',
   'atlas.bucketWhen': 'Mikor tervezed meglátogatni?',
+  'atlas.bucketDuplicate': 'Már szerepel a bakancslistádon',
   'atlas.statsTab': 'Statisztikák',
   'atlas.bucketTab': 'Bakancslista',
   'atlas.addBucket': 'Hozzáadás a bakancslistához',

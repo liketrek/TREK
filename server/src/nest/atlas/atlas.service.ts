@@ -34,12 +34,41 @@ export type UpdateBucketData = {
   target_date?: string | null;
 };
 
+/** The columns that decide whether two bucket-list rows are the same wish (#1898). */
+type BucketIdentity = {
+  name: string;
+  lat: number | null;
+  lng: number | null;
+  country_code: string | null;
+  target_date: string | null;
+};
+
 // Bundled/geocoded region codes are always "<countryCode>-<rest>" (ISO 3166-2 format, and
 // buildRegionInfo's synthesized fallback follows the same convention) — used to recover a
 // region's country when there's no visited_regions row to read it from (a place-derived
 // region was never inserted there).
 function countryCodeFromRegionCode(regionCode: string): string {
   return (regionCode.split('-')[0] || '').toUpperCase();
+}
+
+/**
+ * The same bucket-list wish, added twice (#1898). Deliberately a plain Error and
+ * not an HttpException: the service is shared with the MCP tools and the plugin
+ * RPC host, which shape their own errors — only atlas.controller.ts turns this
+ * into the 409.
+ */
+export class BucketItemExistsError extends Error {
+  constructor() {
+    super('Already on your bucket list');
+    this.name = 'BucketItemExistsError';
+  }
+}
+
+// An empty string and NULL are the same "not set" for a bucket item's country and
+// target date, so they must not produce two different identities (#1898) — the
+// bucket forms send '' where the map dialogs send null.
+function blankToNull(value: string | null | undefined): string | null {
+  return value === undefined || value === null || value === '' ? null : value;
 }
 
 /**
@@ -742,26 +771,77 @@ export class AtlasService {
     return this.db.prepare('SELECT * FROM bucket_list WHERE user_id = ? ORDER BY created_at DESC').all(userId);
   }
 
+  /**
+   * What makes two bucket-list rows the same wish (#1898): the same user, the
+   * same name (trimmed, case-insensitive) and the same country, target date and
+   * coordinates. The coordinates are part of it so two genuinely different
+   * places that share a name ("Altstadt") can sit side by side, and the target
+   * date is part of it because one entry per planned date is exactly what the
+   * report asks for. `IS` compares NULLs as equal, so "no coordinates" matches
+   * "no coordinates" instead of the NULL-is-never-equal SQLite default.
+   * `lower()` is ASCII-only in SQLite, which is what the client mirrors.
+   */
+  private findDuplicateBucketItem(userId: number, key: BucketIdentity, excludeId?: number): { id: number } | undefined {
+    return this.db
+      .prepare(
+        `SELECT id FROM bucket_list
+     WHERE user_id = ?
+       AND lower(trim(name)) = lower(trim(?))
+       AND country_code IS ?
+       AND target_date IS ?
+       AND lat IS ?
+       AND lng IS ?
+       AND id IS NOT ?
+     LIMIT 1`,
+      )
+      .get(userId, key.name, key.country_code, key.target_date, key.lat, key.lng, excludeId ?? null) as
+      | { id: number }
+      | undefined;
+  }
+
   createBucketItem(userId: number, data: CreateBucketData) {
+    const identity: BucketIdentity = {
+      name: data.name.trim(),
+      lat: data.lat ?? null,
+      lng: data.lng ?? null,
+      country_code: blankToNull(data.country_code),
+      target_date: blankToNull(data.target_date),
+    };
+    // #1898: the same wish must not stack up. A different target date (or a
+    // different place under the same name) is a different wish and still lands.
+    if (this.findDuplicateBucketItem(userId, identity)) throw new BucketItemExistsError();
     const result = this.db
       .prepare(
         'INSERT INTO bucket_list (user_id, name, lat, lng, country_code, notes, target_date) VALUES (?, ?, ?, ?, ?, ?, ?)',
       )
       .run(
         userId,
-        data.name.trim(),
-        data.lat ?? null,
-        data.lng ?? null,
-        data.country_code ?? null,
+        identity.name,
+        identity.lat,
+        identity.lng,
+        identity.country_code,
         data.notes ?? null,
-        data.target_date ?? null,
+        identity.target_date,
       );
     return this.db.prepare('SELECT * FROM bucket_list WHERE id = ?').get(result.lastInsertRowid);
   }
 
   updateBucketItem(userId: number, itemId: string | number, data: UpdateBucketData) {
-    const item = this.db.prepare('SELECT * FROM bucket_list WHERE id = ? AND user_id = ?').get(itemId, userId);
+    const item = this.db.prepare('SELECT * FROM bucket_list WHERE id = ? AND user_id = ?').get(itemId, userId) as
+      | (BucketIdentity & { id: number })
+      | undefined;
     if (!item) return null;
+    // #1898: an edit must not land on top of another wish either — same guard as
+    // create, over the values the row will have once the UPDATE below ran. The
+    // row itself is excluded, so re-saving it unchanged stays a no-op.
+    const next: BucketIdentity = {
+      name: data.name?.trim() || item.name,
+      lat: data.lat !== undefined ? (data.lat ?? null) : item.lat,
+      lng: data.lng !== undefined ? (data.lng ?? null) : item.lng,
+      country_code: data.country_code !== undefined ? blankToNull(data.country_code) : blankToNull(item.country_code),
+      target_date: data.target_date !== undefined ? blankToNull(data.target_date) : blankToNull(item.target_date),
+    };
+    if (this.findDuplicateBucketItem(userId, next, item.id)) throw new BucketItemExistsError();
     // Post-fold quirk fixes: the value bindings use `?? null` (the legacy
     // `|| null` wrote NULL for lat/lng 0 and empty-string notes), and the
     // UPDATE + re-select are user-scoped (defense-in-depth; the ownership
@@ -787,9 +867,9 @@ export class AtlasService {
         data.lng !== undefined ? 1 : 0,
         data.lng !== undefined ? (data.lng ?? null) : null,
         data.country_code !== undefined ? 1 : 0,
-        data.country_code !== undefined ? (data.country_code ?? null) : null,
+        data.country_code !== undefined ? next.country_code : null,
         data.target_date !== undefined ? 1 : 0,
-        data.target_date !== undefined ? (data.target_date ?? null) : null,
+        data.target_date !== undefined ? next.target_date : null,
         itemId,
         userId,
       );

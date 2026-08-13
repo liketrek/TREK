@@ -4,6 +4,7 @@ import type { Response } from 'express';
 import { AtlasController } from '../../../src/nest/atlas/atlas.controller';
 import { TravelStatsController } from '../../../src/nest/atlas/travel-stats.controller';
 import { JwtAuthGuard } from '../../../src/nest/auth/jwt-auth.guard';
+import { BucketItemExistsError } from '../../../src/nest/atlas/atlas.service';
 import type { AtlasService } from '../../../src/nest/atlas/atlas.service';
 import type { User } from '../../../src/types';
 
@@ -137,6 +138,26 @@ describe('AtlasController (parity with the legacy /api/addons/atlas route)', () 
       const updateBucketItem = vi.fn().mockReturnValue({ id: 1, name: 'Kyoto' });
       expect(makeController({ updateBucketItem }).updateBucketItem(user, '1', { name: 'Kyoto' }))
         .toEqual({ item: { id: 1, name: 'Kyoto' } });
+    });
+
+    it('409 when the service refuses a duplicate create (#1898)', () => {
+      const createBucketItem = vi.fn(() => { throw new BucketItemExistsError(); });
+      return thrown(() => makeController({ createBucketItem }).createBucketItem(user, { name: 'Japan' })).then((r) =>
+        expect(r).toEqual({ status: 409, body: { error: 'Already on your bucket list' } }));
+    });
+
+    it('409 when the service refuses a duplicate update (#1898)', () => {
+      const updateBucketItem = vi.fn(() => { throw new BucketItemExistsError(); });
+      return thrown(() => makeController({ updateBucketItem }).updateBucketItem(user, '1', { target_date: '2027-05' })).then((r) =>
+        expect(r).toEqual({ status: 409, body: { error: 'Already on your bucket list' } }));
+    });
+
+    it('lets any other create/update failure through untouched', () => {
+      const boom = new Error('disk on fire');
+      const createBucketItem = vi.fn(() => { throw boom; });
+      expect(() => makeController({ createBucketItem }).createBucketItem(user, { name: 'Japan' })).toThrow(boom);
+      const updateBucketItem = vi.fn(() => { throw boom; });
+      expect(() => makeController({ updateBucketItem }).updateBucketItem(user, '1', { name: 'Japan' })).toThrow(boom);
     });
 
     it('404 on delete of a missing item', () => {

@@ -55,6 +55,7 @@ const atlas: TranslationStrings = {
   'atlas.removeFromBucket': 'Retirer de la bucket list',
   'atlas.removeFromBucketHint': 'Enlever ce pays de votre bucket list',
   'atlas.bucketWhen': "Quand prévoyez-vous d'y aller ?",
+  'atlas.bucketDuplicate': 'Déjà dans votre bucket list',
   'atlas.planned': 'Prévu',
   'atlas.showPlanned': 'Afficher les pays prévus',
   'atlas.plannedFor': 'Prévu pour',

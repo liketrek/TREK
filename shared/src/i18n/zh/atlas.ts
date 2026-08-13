@@ -55,6 +55,7 @@ const atlas: TranslationStrings = {
   'atlas.removeFromBucket': '从心愿单移除',
   'atlas.removeFromBucketHint': '将此国家从心愿单中移除',
   'atlas.bucketWhen': '你计划什么时候去？',
+  'atlas.bucketDuplicate': '已经在你的心愿单中',
   'atlas.planned': '计划中',
   'atlas.showPlanned': '显示计划中的国家',
   'atlas.plannedFor': '计划于',

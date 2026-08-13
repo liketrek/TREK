@@ -211,6 +211,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  delete window.__addToast;
 });
 
 describe('useAtlas', () => {
@@ -458,6 +459,42 @@ describe('useAtlas', () => {
 
       expect(atlas.bucketList).toHaveLength(0);
       expect(atlas.bucketForm.name).toBe('Lisbon');
+    });
+
+    it('FE-HOOK-ATLAS-036: an entry already on the list is not posted again (#1898)', async () => {
+      await mountAtlas({ bucket: [{ id: 3, name: 'Kyoto', lat: null, lng: null, country_code: null, notes: null, target_date: null }] });
+      const post = vi.fn();
+      server.use(http.post('/api/addons/atlas/bucket-list', () => { post(); return HttpResponse.json({ item: { id: 4 } }); }));
+      const addToast = vi.fn();
+      window.__addToast = addToast as unknown as typeof window.__addToast;
+
+      act(() => atlas.setBucketForm({ name: '  kyoto ', notes: '', lat: '', lng: '', target_date: '' }));
+      await act(async () => { await atlas.handleAddBucketItem(); });
+
+      expect(post).not.toHaveBeenCalled();
+      expect(atlas.bucketList).toHaveLength(1);
+      // The form keeps what was typed so another date can be picked right away.
+      expect(atlas.bucketForm.name).toBe('  kyoto ');
+      expect(addToast).toHaveBeenCalledWith(expect.any(String), 'error', undefined);
+
+      // The same place for another date is a different wish and does go out.
+      act(() => atlas.setBucketForm({ name: 'Kyoto', notes: '', lat: '', lng: '', target_date: '2027-05' }));
+      await act(async () => { await atlas.handleAddBucketItem(); });
+      expect(post).toHaveBeenCalledTimes(1);
+    });
+
+    it('FE-HOOK-ATLAS-037: a 409 from the server surfaces as a toast instead of silence (#1898)', async () => {
+      await mountAtlas();
+      server.use(http.post('/api/addons/atlas/bucket-list', () => HttpResponse.json({ error: 'Already on your bucket list' }, { status: 409 })));
+      const addToast = vi.fn();
+      window.__addToast = addToast as unknown as typeof window.__addToast;
+
+      act(() => atlas.setBucketForm({ name: 'Lisbon', notes: '', lat: '', lng: '', target_date: '' }));
+      await act(async () => { await atlas.handleAddBucketItem(); });
+
+      expect(atlas.bucketList).toHaveLength(0);
+      expect(atlas.bucketForm.name).toBe('Lisbon');
+      expect(addToast).toHaveBeenCalledWith(expect.any(String), 'error', undefined);
     });
 
     it('FE-HOOK-ATLAS-017: deleting drops the item, a failure keeps it', async () => {

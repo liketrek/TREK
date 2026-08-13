@@ -295,6 +295,22 @@ describe('Tool: update_bucket_list_item', () => {
     });
   });
 
+  it('returns isError when the edit would land on another wish (#1898)', async () => {
+    const { user } = createUser(testDb);
+    const insert = testDb.prepare('INSERT INTO bucket_list (user_id, name, target_date) VALUES (?, ?, ?)');
+    insert.run(user.id, 'Japan', '2027-05');
+    const itemId = insert.run(user.id, 'Japan', '2028-09').lastInsertRowid as number;
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_bucket_list_item',
+        arguments: { itemId, target_date: '2027-05' },
+      });
+      expect(result.isError).toBe(true);
+      const row = testDb.prepare('SELECT target_date FROM bucket_list WHERE id = ?').get(itemId) as { target_date: string };
+      expect(row.target_date).toBe('2028-09');
+    });
+  });
+
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
     const { user } = createUser(testDb, { email: 'demo@nomad.app' });
