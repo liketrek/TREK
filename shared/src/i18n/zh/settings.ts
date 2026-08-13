@@ -325,12 +325,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.success': '已连接——找到 {count} 个航班',
   'settings.airtrail.test.failed': '连接失败',
   'settings.aiParsing.title': 'AI 解析',
-  'settings.aiParsing.hint':
-    '使用你自己的 AI 模型从上传的文件中提取预订信息。仅当管理员未为整个实例配置模型时才会生效。',
+  'settings.aiParsing.hint': '选择用于从上传的文件中提取预订信息的 AI 模型。仅当管理员未为整个实例配置模型时才会生效。',
   'settings.aiParsing.provider': '服务商',
   'settings.aiParsing.providerLocal': '本地 (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    '本地 (Ollama) 接口只能由管理员配置。你仍然可以使用自己的 OpenAI 或 Anthropic 密钥。',
   'settings.aiParsing.model': '模型',
   'settings.aiParsing.baseUrl': '基础 URL',
   'settings.aiParsing.baseUrlHint': '模型运行的位置——本地 Ollama 服务器或兼容 OpenAI 的接口。',

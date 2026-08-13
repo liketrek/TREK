@@ -337,11 +337,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.failed': 'فشل الاتصال',
   'settings.aiParsing.title': 'التحليل بالذكاء الاصطناعي',
   'settings.aiParsing.hint':
-    'استخدم نموذج الذكاء الاصطناعي الخاص بك لاستخراج الحجوزات من الملفات المرفوعة. لا يسري هذا إلا عندما لا يكون المسؤول قد أعدّ نموذجًا للنظام بأكمله.',
+    'اختر نموذج الذكاء الاصطناعي المستخدم لاستخراج الحجوزات من الملفات المرفوعة. لا يسري هذا إلا عندما لا يكون المسؤول قد أعدّ نموذجًا للنظام بأكمله.',
   'settings.aiParsing.provider': 'المزوّد',
   'settings.aiParsing.providerLocal': 'محلي (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    'لا يمكن إعداد نقطة نهاية محلية (Ollama) إلا بواسطة المسؤول. ولا يزال بإمكانك استخدام مفتاح OpenAI أو Anthropic الخاص بك.',
   'settings.aiParsing.model': 'النموذج',
   'settings.aiParsing.baseUrl': 'عنوان URL الأساسي',
   'settings.aiParsing.baseUrlHint': 'المكان الذي يعمل فيه النموذج — خادم Ollama محلي أو نقطة نهاية متوافقة مع OpenAI.',

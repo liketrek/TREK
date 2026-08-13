@@ -25,7 +25,8 @@ export class LlmConfigResolver {
   /**
    * Resolve the effective LLM config for a user, gated by the addon.
    * Order: addon disabled → null; admin instance config wins; else per-user config;
-   * else null. This is the single place the API key is decrypted.
+   * else null. This is the single place the API key is decrypted, and the single
+   * place that decides which endpoint the server is allowed to call (#1772).
    */
   resolve(userId: number): ResolvedLlmConfig | null {
     if (!this.addons.isAddonEnabled(ADDON_IDS.LLM_PARSING)) return null;
@@ -61,16 +62,36 @@ export class LlmConfigResolver {
     const provider = asProvider(settings.llm_provider);
     const model = typeof settings.llm_model === 'string' ? settings.llm_model.trim() : '';
     if (!provider || !model) return null;
+
+    // #1772: only an admin may aim this server at an address of their choosing.
+    // The request leaves OUR network and safeFetchLlm deliberately allows
+    // loopback/LAN so a self-hosted Ollama keeps working, which is a reasonable
+    // trade for whoever runs the instance and a network probe for anyone else.
+    // So for a non-admin the endpoint may only come from the admin-set
+    // instance-wide defaults, never from their own settings row. This is the
+    // choke point every consumer passes (booking import and the plugin RPC
+    // surface), and the only place that also catches values already in the db.
+    const endpoints = this.isAdmin(userId) ? settings : this.settings.getAdminUserDefaults();
+    // 'local' is an endpoint choice too ("some address I name"), so without an
+    // admin-set local endpoint there is no config at all, never a silent
+    // redirect to a different provider.
+    if (provider === 'local' && asProvider(endpoints.llm_provider) !== 'local') return null;
+    const baseUrl =
+      typeof endpoints.llm_base_url === 'string' && endpoints.llm_base_url.trim()
+        ? endpoints.llm_base_url.trim()
+        : undefined;
+
     const apiKey = this.settings.getDecryptedUserSetting(userId, 'llm_api_key') ?? undefined;
     return {
       provider,
       model,
-      baseUrl:
-        typeof settings.llm_base_url === 'string' && settings.llm_base_url.trim()
-          ? settings.llm_base_url.trim()
-          : undefined,
+      baseUrl,
       apiKey,
       multimodal: settings.llm_multimodal === true,
     };
+  }
+
+  private isAdmin(userId: number): boolean {
+    return this.dbService.get<{ role?: string }>('SELECT role FROM users WHERE id = ?', userId)?.role === 'admin';
   }
 }

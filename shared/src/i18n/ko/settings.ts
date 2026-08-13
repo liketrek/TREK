@@ -339,11 +339,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.failed': '연결에 실패했습니다',
   'settings.aiParsing.title': 'AI 분석',
   'settings.aiParsing.hint':
-    '업로드한 파일에서 예약 정보를 추출할 때 직접 지정한 AI 모델을 사용하세요. 이 설정은 관리자가 인스턴스 전체에 모델을 설정하지 않은 경우에만 적용됩니다.',
+    '업로드한 파일에서 예약 정보를 추출할 AI 모델을 선택하세요. 이 설정은 관리자가 인스턴스 전체에 모델을 설정하지 않은 경우에만 적용됩니다.',
   'settings.aiParsing.provider': '제공자',
   'settings.aiParsing.providerLocal': '로컬 (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    '로컬 (Ollama) 엔드포인트는 관리자만 설정할 수 있습니다. 본인의 OpenAI 또는 Anthropic 키는 계속 사용할 수 있습니다.',
   'settings.aiParsing.model': '모델',
   'settings.aiParsing.baseUrl': '기본 URL',
   'settings.aiParsing.baseUrlHint': '모델이 실행되는 위치 — 로컬 Ollama 서버 또는 OpenAI 호환 엔드포인트입니다.',

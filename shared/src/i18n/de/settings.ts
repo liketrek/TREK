@@ -353,11 +353,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.failed': 'Verbindung fehlgeschlagen',
   'settings.aiParsing.title': 'KI-Verarbeitung',
   'settings.aiParsing.hint':
-    'Nutze dein eigenes KI-Modell, um Buchungen aus hochgeladenen Dateien auszulesen. Greift nur, wenn dein Administrator kein Modell für die gesamte Instanz konfiguriert hat.',
+    'Wähle das KI-Modell, mit dem Buchungen aus hochgeladenen Dateien ausgelesen werden. Greift nur, wenn dein Administrator kein Modell für die gesamte Instanz konfiguriert hat.',
   'settings.aiParsing.provider': 'Anbieter',
   'settings.aiParsing.providerLocal': 'Lokal (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    'Einen lokalen Endpunkt (Ollama) kann nur ein Administrator einrichten. Deinen eigenen OpenAI- oder Anthropic-Schlüssel kannst du weiterhin nutzen.',
   'settings.aiParsing.model': 'Modell',
   'settings.aiParsing.baseUrl': 'Basis-URL',
   'settings.aiParsing.baseUrlHint':

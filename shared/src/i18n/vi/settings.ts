@@ -353,11 +353,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.failed': 'Kết nối không thành công',
   'settings.aiParsing.title': 'Phân tích bằng AI',
   'settings.aiParsing.hint':
-    'Sử dụng mô hình AI của riêng bạn để trích xuất đặt chỗ từ các tệp đã tải lên. Tùy chọn này chỉ áp dụng khi quản trị viên chưa cấu hình mô hình cho toàn bộ phiên bản.',
+    'Chọn mô hình AI dùng để trích xuất đặt chỗ từ các tệp đã tải lên. Tùy chọn này chỉ áp dụng khi quản trị viên chưa cấu hình mô hình cho toàn bộ phiên bản.',
   'settings.aiParsing.provider': 'Nhà cung cấp',
   'settings.aiParsing.providerLocal': 'Cục bộ (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    'Chỉ quản trị viên mới có thể thiết lập endpoint cục bộ (Ollama). Bạn vẫn có thể dùng khóa OpenAI hoặc Anthropic của riêng mình.',
   'settings.aiParsing.model': 'Mô hình',
   'settings.aiParsing.baseUrl': 'URL cơ sở',
   'settings.aiParsing.baseUrlHint': 'Nơi mô hình chạy — máy chủ Ollama cục bộ hoặc endpoint tương thích với OpenAI.',

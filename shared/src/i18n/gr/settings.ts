@@ -360,11 +360,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.failed': 'Η σύνδεση απέτυχε',
   'settings.aiParsing.title': 'Ανάλυση με AI',
   'settings.aiParsing.hint':
-    'Χρησιμοποιήστε το δικό σας μοντέλο AI για την εξαγωγή κρατήσεων από τα αρχεία που ανεβάζετε. Ισχύει μόνο όταν ο διαχειριστής σας δεν έχει ρυθμίσει μοντέλο για ολόκληρη την εγκατάσταση.',
+    'Επιλέξτε το μοντέλο AI που χρησιμοποιείται για την εξαγωγή κρατήσεων από τα αρχεία που ανεβάζετε. Ισχύει μόνο όταν ο διαχειριστής σας δεν έχει ρυθμίσει μοντέλο για ολόκληρη την εγκατάσταση.',
   'settings.aiParsing.provider': 'Πάροχος',
   'settings.aiParsing.providerLocal': 'Τοπικό (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    'Μόνο ένας διαχειριστής μπορεί να ρυθμίσει ένα τοπικό τελικό σημείο (Ollama). Μπορείτε να συνεχίσετε να χρησιμοποιείτε το δικό σας κλειδί OpenAI ή Anthropic.',
   'settings.aiParsing.model': 'Μοντέλο',
   'settings.aiParsing.baseUrl': 'Βασικό URL',
   'settings.aiParsing.baseUrlHint':

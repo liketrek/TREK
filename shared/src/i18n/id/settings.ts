@@ -348,11 +348,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.failed': 'Koneksi gagal',
   'settings.aiParsing.title': 'Penguraian AI',
   'settings.aiParsing.hint':
-    'Gunakan model AI milikmu sendiri untuk mengekstrak pemesanan dari file yang diunggah. Ini hanya berlaku jika administrator belum mengonfigurasi model untuk seluruh instance.',
+    'Pilih model AI yang dipakai untuk mengekstrak pemesanan dari file yang diunggah. Ini hanya berlaku jika administrator belum mengonfigurasi model untuk seluruh instance.',
   'settings.aiParsing.provider': 'Penyedia',
   'settings.aiParsing.providerLocal': 'Lokal (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    'Hanya administrator yang dapat menyiapkan endpoint lokal (Ollama). Kamu tetap bisa memakai kunci OpenAI atau Anthropic milikmu sendiri.',
   'settings.aiParsing.model': 'Model',
   'settings.aiParsing.baseUrl': 'URL Dasar',
   'settings.aiParsing.baseUrlHint':

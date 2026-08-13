@@ -325,11 +325,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.failed': '接続に失敗しました',
   'settings.aiParsing.title': 'AI解析',
   'settings.aiParsing.hint':
-    'アップロードしたファイルから予約情報を抽出するために、自分のAIモデルを使用します。これは、管理者がインスタンス全体のモデルを設定していない場合にのみ適用されます。',
+    'アップロードしたファイルから予約情報を抽出するAIモデルを選びます。これは、管理者がインスタンス全体のモデルを設定していない場合にのみ適用されます。',
   'settings.aiParsing.provider': 'プロバイダー',
   'settings.aiParsing.providerLocal': 'ローカル (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    'ローカル (Ollama) のエンドポイントは管理者のみが設定できます。自分の OpenAI または Anthropic のキーは引き続き使えます。',
   'settings.aiParsing.model': 'モデル',
   'settings.aiParsing.baseUrl': 'ベースURL',
   'settings.aiParsing.baseUrlHint': 'モデルの実行場所 — ローカルのOllamaサーバー、またはOpenAI互換のエンドポイント。',

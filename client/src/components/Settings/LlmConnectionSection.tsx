@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Sparkles, Save } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useAuthStore } from '../../store/authStore'
 import type { Settings } from '../../types'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
@@ -16,6 +17,12 @@ type Provider = NonNullable<Settings['llm_provider']>
  * instance-wide model on the addon — the server resolves the admin config first.
  * The API key is stored encrypted and never prefilled: a blank field keeps the
  * stored key (mirrors the AirTrail connection layout).
+ *
+ * A free-form endpoint is admin-only (#1772): the request goes out from the
+ * server, so only whoever runs the instance may name its target. Everyone else
+ * gets the two hosted providers, which go to a fixed address with the user's own
+ * key. The server enforces this on both the read and the write path, so this is
+ * only the matching surface.
  */
 export default function LlmConnectionSection(): React.ReactElement {
   const { t } = useTranslation()
@@ -23,8 +30,15 @@ export default function LlmConnectionSection(): React.ReactElement {
   const settings = useSettingsStore(s => s.settings)
   const isLoaded = useSettingsStore(s => s.isLoaded)
   const updateSettings = useSettingsStore(s => s.updateSettings)
+  const loadSettings = useSettingsStore(s => s.loadSettings)
+  const isAdmin = useAuthStore(s => s.user?.role === 'admin')
 
-  const [provider, setProvider] = useState<Provider>('local')
+  // Non-admins have no 'local' option, so it can be neither the initial value nor
+  // the hydration fallback, otherwise a fresh account saves a provider the
+  // server refuses.
+  const defaultProvider: Provider = isAdmin ? 'local' : 'openai'
+
+  const [provider, setProvider] = useState<Provider>(defaultProvider)
   const [model, setModel] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
   const [apiKey, setApiKey] = useState('')
@@ -33,18 +47,30 @@ export default function LlmConnectionSection(): React.ReactElement {
   const [saving, setSaving] = useState(false)
 
   // Hydrate from the loaded settings. llm_api_key arrives masked, so we only use
-  // its presence to drive the placeholder — never the value itself.
+  // its presence to drive the placeholder — never the value itself. A stored
+  // 'local' from before #1772 is shown as OpenAI for a non-admin (local state
+  // only, nothing is saved until they press Save).
   useEffect(() => {
     if (!isLoaded) return
-    setProvider(settings.llm_provider || 'local')
+    const stored = settings.llm_provider || defaultProvider
+    setProvider(stored === 'local' && !isAdmin ? 'openai' : stored)
     setModel(settings.llm_model || '')
     setBaseUrl(settings.llm_base_url || '')
     setMultimodal(settings.llm_multimodal === true)
     setHasStoredKey(!!settings.llm_api_key)
-  }, [isLoaded, settings.llm_provider, settings.llm_model, settings.llm_base_url, settings.llm_multimodal, settings.llm_api_key])
+  }, [isLoaded, isAdmin, defaultProvider, settings.llm_provider, settings.llm_model, settings.llm_base_url, settings.llm_multimodal, settings.llm_api_key])
 
   const needsKey = provider !== 'local'
-  const showBaseUrl = provider === 'local' || provider === 'openai'
+  const showBaseUrl = isAdmin && (provider === 'local' || provider === 'openai')
+
+  const providerOptions = useMemo(
+    () => [
+      ...(isAdmin ? [{ value: 'local', label: t('settings.aiParsing.providerLocal') }] : []),
+      { value: 'openai', label: t('settings.aiParsing.providerOpenai') },
+      { value: 'anthropic', label: t('settings.aiParsing.providerAnthropic') },
+    ],
+    [isAdmin, t],
+  )
 
   const handleSave = async () => {
     setSaving(true)
@@ -64,6 +90,11 @@ export default function LlmConnectionSection(): React.ReactElement {
       if (key) setHasStoredKey(true)
       toast.success(t('settings.aiParsing.toast.saved'))
     } catch {
+      // updateSettings patches the store before the request and keeps the patch
+      // when the request fails, so a refused save (the 403 from #1772, or any
+      // other error) would leave the form showing a value the server never
+      // stored. Pull the stored settings back in so what is on screen is real.
+      await loadSettings()
       toast.error(t('settings.aiParsing.toast.saveError'))
     } finally {
       setSaving(false)
@@ -80,12 +111,9 @@ export default function LlmConnectionSection(): React.ReactElement {
           <CustomSelect
             value={provider}
             onChange={v => setProvider(v as Provider)}
-            options={[
-              { value: 'local', label: t('settings.aiParsing.providerLocal') },
-              { value: 'openai', label: t('settings.aiParsing.providerOpenai') },
-              { value: 'anthropic', label: t('settings.aiParsing.providerAnthropic') },
-            ]}
+            options={providerOptions}
           />
+          {!isAdmin && <p className="mt-1 text-xs text-content-faint">{t('settings.aiParsing.localAdminOnly')}</p>}
         </div>
 
         <div>

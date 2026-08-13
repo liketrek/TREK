@@ -353,11 +353,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.failed': 'Connection failed',
   'settings.aiParsing.title': 'AI parsing',
   'settings.aiParsing.hint':
-    'Use your own AI model to extract bookings from uploaded files. This applies only when your administrator has not configured a model for the whole instance.',
+    'Choose the AI model used to extract bookings from uploaded files. This applies only when your administrator has not configured a model for the whole instance.',
   'settings.aiParsing.provider': 'Provider',
   'settings.aiParsing.providerLocal': 'Local (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    'A self-hosted (Ollama) endpoint can only be set up by an administrator. You can still use your own OpenAI or Anthropic key.',
   'settings.aiParsing.model': 'Model',
   'settings.aiParsing.baseUrl': 'Base URL',
   'settings.aiParsing.baseUrlHint': 'Where the model runs — a local Ollama server or an OpenAI-compatible endpoint.',

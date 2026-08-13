@@ -50,6 +50,23 @@ const VALID_VALUES: Partial<Record<DefaultableKey, unknown[]>> = {
 
 const BOOLEAN_KEYS = new Set<DefaultableKey>(['blur_booking_codes', 'mapbox_3d_enabled', 'mapbox_quality_mode', 'llm_multimodal']);
 
+/**
+ * #1772: per-user LLM settings a non-admin must not write. Both of them pick
+ * the address this server sends its own LLM requests to (provider 'local' means
+ * nothing but "an endpoint I name"), and the SSRF guard in front of those
+ * requests allows loopback/LAN on purpose so a self-hosted Ollama works. Only
+ * whoever runs the instance can judge what is reachable from it.
+ *
+ * Clearing stays open to everyone: both Settings sections always send
+ * `llm_base_url: ''` while the field is hidden, so a row written before this
+ * rule cleans itself up on the next save instead of blocking it.
+ */
+export function isAdminOnlyLlmSetting(key: string, value: unknown): boolean {
+  if (key === 'llm_base_url') return typeof value === 'string' && value.trim() !== '';
+  if (key === 'llm_provider') return value === 'local';
+  return false;
+}
+
 function parseValue(raw: string): unknown {
   try { return JSON.parse(raw); } catch { return raw; }
 }

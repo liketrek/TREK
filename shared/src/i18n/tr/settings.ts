@@ -347,11 +347,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.failed': 'Bağlantı başarısız',
   'settings.aiParsing.title': 'Yapay zekâ ayrıştırma',
   'settings.aiParsing.hint':
-    'Yüklenen dosyalardan rezervasyonları çıkarmak için kendi yapay zekâ modelini kullan. Bu yalnızca yöneticin tüm uygulama geneli için bir model yapılandırmadığında geçerlidir.',
+    'Yüklenen dosyalardan rezervasyonları çıkarmak için kullanılacak yapay zekâ modelini seç. Bu yalnızca yöneticin tüm uygulama geneli için bir model yapılandırmadığında geçerlidir.',
   'settings.aiParsing.provider': 'Sağlayıcı',
   'settings.aiParsing.providerLocal': 'Yerel (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    'Yerel (Ollama) uç noktasını yalnızca bir yönetici ayarlayabilir. Kendi OpenAI veya Anthropic anahtarını kullanmaya devam edebilirsin.',
   'settings.aiParsing.model': 'Model',
   'settings.aiParsing.baseUrl': 'Temel URL',
   'settings.aiParsing.baseUrlHint':

@@ -350,11 +350,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.failed': 'Не вдалося підключитися',
   'settings.aiParsing.title': 'Розпізнавання ШІ',
   'settings.aiParsing.hint':
-    'Використовуйте власну модель ШІ для вилучення бронювань із завантажених файлів. Це діє лише тоді, коли адміністратор не налаштував модель для всього екземпляра.',
+    'Виберіть модель ШІ для вилучення бронювань із завантажених файлів. Це діє лише тоді, коли адміністратор не налаштував модель для всього екземпляра.',
   'settings.aiParsing.provider': 'Постачальник',
   'settings.aiParsing.providerLocal': 'Локальний (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    'Локальну кінцеву точку (Ollama) може налаштувати лише адміністратор. Власний ключ OpenAI або Anthropic ви можете використовувати й надалі.',
   'settings.aiParsing.model': 'Модель',
   'settings.aiParsing.baseUrl': 'Базова URL-адреса',
   'settings.aiParsing.baseUrlHint': 'Де працює модель — локальний сервер Ollama або сумісна з OpenAI кінцева точка.',

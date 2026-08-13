@@ -352,11 +352,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.failed': 'Error de conexión',
   'settings.aiParsing.title': 'Análisis con IA',
   'settings.aiParsing.hint':
-    'Usa tu propio modelo de IA para extraer reservas de los archivos subidos. Esto solo se aplica cuando tu administrador no ha configurado un modelo para toda la instancia.',
+    'Elige el modelo de IA que se usa para extraer reservas de los archivos subidos. Esto solo se aplica cuando tu administrador no ha configurado un modelo para toda la instancia.',
   'settings.aiParsing.provider': 'Proveedor',
   'settings.aiParsing.providerLocal': 'Local (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    'Solo un administrador puede configurar un endpoint local (Ollama). Puedes seguir usando tu propia clave de OpenAI o Anthropic.',
   'settings.aiParsing.model': 'Modelo',
   'settings.aiParsing.baseUrl': 'URL base',
   'settings.aiParsing.baseUrlHint':

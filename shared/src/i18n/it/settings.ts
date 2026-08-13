@@ -350,11 +350,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.failed': 'Connessione fallita',
   'settings.aiParsing.title': 'Analisi AI',
   'settings.aiParsing.hint':
-    "Usa il tuo modello AI per estrarre le prenotazioni dai file caricati. Vale solo se l'amministratore non ha configurato un modello per l'intera istanza.",
+    "Scegli il modello AI usato per estrarre le prenotazioni dai file caricati. Vale solo se l'amministratore non ha configurato un modello per l'intera istanza.",
   'settings.aiParsing.provider': 'Provider',
   'settings.aiParsing.providerLocal': 'Locale (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    'Solo un amministratore può configurare un endpoint locale (Ollama). Puoi comunque usare la tua chiave OpenAI o Anthropic.',
   'settings.aiParsing.model': 'Modello',
   'settings.aiParsing.baseUrl': 'URL di base',
   'settings.aiParsing.baseUrlHint':

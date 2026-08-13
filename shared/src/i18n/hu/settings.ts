@@ -351,11 +351,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.failed': 'A kapcsolat sikertelen',
   'settings.aiParsing.title': 'AI-feldolgozás',
   'settings.aiParsing.hint':
-    'Használd a saját AI-modelledet a foglalások kinyeréséhez a feltöltött fájlokból. Ez csak akkor érvényes, ha a rendszergazda nem állított be modellt az egész példányhoz.',
+    'Válaszd ki azt az AI-modellt, amely a foglalásokat kinyeri a feltöltött fájlokból. Ez csak akkor érvényes, ha a rendszergazda nem állított be modellt az egész példányhoz.',
   'settings.aiParsing.provider': 'Szolgáltató',
   'settings.aiParsing.providerLocal': 'Helyi (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    'Helyi végpontot (Ollama) csak rendszergazda állíthat be. A saját OpenAI- vagy Anthropic-kulcsodat továbbra is használhatod.',
   'settings.aiParsing.model': 'Modell',
   'settings.aiParsing.baseUrl': 'Alap-URL',
   'settings.aiParsing.baseUrlHint': 'Ahol a modell fut — helyi Ollama-kiszolgáló vagy OpenAI-kompatibilis végpont.',

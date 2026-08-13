@@ -3,19 +3,34 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { render, screen, waitFor } from '../../../helpers/render';
 import { resetAllStores, seedStore } from '../../../helpers/store';
-import { buildSettings } from '../../../helpers/factories';
+import { buildAdmin, buildSettings, buildUser } from '../../../helpers/factories';
 import { useSettingsStore } from '../../../../src/store/settingsStore';
+import { useAuthStore } from '../../../../src/store/authStore';
 import { ToastContainer } from '../../../../src/components/shared/Toast';
 import type { Settings } from '../../../../src/types';
 import MLlmConnectionSection from '../../../../src/mobile/screens/settings/MLlmConnectionSection';
 
+let loadSettings = vi.fn().mockResolvedValue(undefined);
+
 function seedLlm(over: Partial<Settings> = {}, updateSettings = vi.fn().mockResolvedValue(undefined)) {
+  loadSettings = vi.fn().mockResolvedValue(undefined);
   seedStore(useSettingsStore, {
     settings: buildSettings({ language: 'en', ...over }),
     isLoaded: true,
     updateSettings,
+    loadSettings,
   });
   return updateSettings;
+}
+
+// The free-form endpoint is admin-only (#1772), so every case has to say which
+// role it is looking at.
+function seedRole(role: 'user' | 'admin') {
+  seedStore(useAuthStore, {
+    user: role === 'admin' ? buildAdmin() : buildUser(),
+    isAuthenticated: true,
+    isLoading: false,
+  });
 }
 
 function renderSection() {
@@ -30,10 +45,11 @@ function renderSection() {
 describe('MLlmConnectionSection', () => {
   beforeEach(() => {
     resetAllStores();
+    seedRole('admin');
     seedLlm();
   });
 
-  it('FE-MOB-SETLLM-001: defaults to the local provider with a base URL and no key field', () => {
+  it('FE-MOB-SETLLM-001: an admin defaults to the local provider with a base URL and no key field', () => {
     renderSection();
 
     expect(screen.getByText('AI parsing')).toBeInTheDocument();
@@ -161,5 +177,60 @@ describe('MLlmConnectionSection', () => {
 
     await user.click(screen.getByRole('button', { name: /Save/ }));
     await screen.findByText('Could not save AI settings');
+  });
+
+  // #1772: a free-form endpoint may only come from an admin.
+  describe('non-admin', () => {
+    beforeEach(() => seedRole('user'));
+
+    it('FE-MOB-SETLLM-013: starts on OpenAI, offers no local option and no base URL row', async () => {
+      const user = userEvent.setup();
+      renderSection();
+
+      expect(screen.getByRole('button', { name: /OpenAI/ })).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('http://localhost:11434')).not.toBeInTheDocument();
+      expect(
+        screen.getByText('A self-hosted (Ollama) endpoint can only be set up by an administrator. You can still use your own OpenAI or Anthropic key.'),
+      ).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: /OpenAI/ }));
+      expect(await screen.findByRole('button', { name: 'Anthropic' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Local \(Ollama\)/ })).not.toBeInTheDocument();
+    });
+
+    it('FE-MOB-SETLLM-014: a stored local provider falls back to OpenAI without saving anything', () => {
+      const updateSettings = seedLlm({ llm_provider: 'local', llm_model: 'nuextract', llm_base_url: 'http://192.168.1.5:11434' });
+      renderSection();
+
+      expect(screen.getByRole('button', { name: /OpenAI/ })).toBeInTheDocument();
+      expect(screen.queryByDisplayValue('http://192.168.1.5:11434')).not.toBeInTheDocument();
+      expect(updateSettings).not.toHaveBeenCalled();
+    });
+
+    it('FE-MOB-SETLLM-015: saving clears the leftover base URL instead of resending it', async () => {
+      const user = userEvent.setup();
+      const updateSettings = seedLlm({ llm_provider: 'local', llm_model: 'nuextract', llm_base_url: 'http://192.168.1.5:11434' });
+      renderSection();
+
+      await user.click(screen.getByRole('button', { name: /Save/ }));
+
+      expect(updateSettings).toHaveBeenCalledWith({
+        llm_provider: 'openai',
+        llm_model: 'nuextract',
+        llm_base_url: '',
+        llm_multimodal: false,
+      });
+    });
+
+    it('FE-MOB-SETLLM-016: a refused save pulls the stored settings back in', async () => {
+      const user = userEvent.setup();
+      seedLlm({ llm_provider: 'anthropic' }, vi.fn().mockRejectedValue(new Error('Admin access required')));
+      renderSection();
+
+      await user.click(screen.getByRole('button', { name: /Save/ }));
+
+      await screen.findByText('Could not save AI settings');
+      expect(loadSettings).toHaveBeenCalled();
+    });
   });
 });

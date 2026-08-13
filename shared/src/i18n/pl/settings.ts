@@ -350,11 +350,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.failed': 'Połączenie nieudane',
   'settings.aiParsing.title': 'Analiza AI',
   'settings.aiParsing.hint':
-    'Użyj własnego modelu AI, aby wyodrębniać rezerwacje z przesłanych plików. Ma to zastosowanie tylko wtedy, gdy administrator nie skonfigurował modelu dla całej instancji.',
+    'Wybierz model AI, który wyodrębnia rezerwacje z przesłanych plików. Ma to zastosowanie tylko wtedy, gdy administrator nie skonfigurował modelu dla całej instancji.',
   'settings.aiParsing.provider': 'Dostawca',
   'settings.aiParsing.providerLocal': 'Lokalny (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    'Lokalny punkt końcowy (Ollama) może skonfigurować tylko administrator. Nadal możesz używać własnego klucza OpenAI lub Anthropic.',
   'settings.aiParsing.model': 'Model',
   'settings.aiParsing.baseUrl': 'Bazowy adres URL',
   'settings.aiParsing.baseUrlHint':

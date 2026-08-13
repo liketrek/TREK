@@ -351,11 +351,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.failed': 'Verbinding mislukt',
   'settings.aiParsing.title': 'AI-verwerking',
   'settings.aiParsing.hint':
-    'Gebruik je eigen AI-model om boekingen uit geüploade bestanden te halen. Dit geldt alleen als je beheerder geen model voor de hele instantie heeft ingesteld.',
+    'Kies het AI-model waarmee boekingen uit geüploade bestanden worden gehaald. Dit geldt alleen als je beheerder geen model voor de hele instantie heeft ingesteld.',
   'settings.aiParsing.provider': 'Provider',
   'settings.aiParsing.providerLocal': 'Lokaal (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    'Alleen een beheerder kan een lokaal endpoint (Ollama) instellen. Je kunt nog steeds je eigen OpenAI- of Anthropic-sleutel gebruiken.',
   'settings.aiParsing.model': 'Model',
   'settings.aiParsing.baseUrl': 'Basis-URL',
   'settings.aiParsing.baseUrlHint':

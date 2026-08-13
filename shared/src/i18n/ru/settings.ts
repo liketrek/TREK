@@ -350,11 +350,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.failed': 'Не удалось подключиться',
   'settings.aiParsing.title': 'Распознавание с помощью ИИ',
   'settings.aiParsing.hint':
-    'Используйте собственную модель ИИ для извлечения бронирований из загруженных файлов. Это работает только в том случае, если администратор не настроил модель для всего экземпляра.',
+    'Выберите модель ИИ для извлечения бронирований из загруженных файлов. Это работает только в том случае, если администратор не настроил модель для всего экземпляра.',
   'settings.aiParsing.provider': 'Провайдер',
   'settings.aiParsing.providerLocal': 'Локально (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    'Локальную конечную точку (Ollama) может настроить только администратор. Свой ключ OpenAI или Anthropic вы по-прежнему можете использовать.',
   'settings.aiParsing.model': 'Модель',
   'settings.aiParsing.baseUrl': 'Базовый URL',
   'settings.aiParsing.baseUrlHint':

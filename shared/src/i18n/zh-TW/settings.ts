@@ -328,11 +328,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.failed': '連接失敗',
   'settings.aiParsing.title': 'AI 解析',
   'settings.aiParsing.hint':
-    '使用你自己的 AI 模型，從上傳的檔案中擷取預訂資訊。此設定僅在管理員尚未為整個執行個體設定模型時才會生效。',
+    '選擇用於從上傳的檔案中擷取預訂資訊的 AI 模型。此設定僅在管理員尚未為整個執行個體設定模型時才會生效。',
   'settings.aiParsing.provider': '供應商',
   'settings.aiParsing.providerLocal': '本機 (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    '本機 (Ollama) 端點只能由管理員設定。你仍然可以使用自己的 OpenAI 或 Anthropic 金鑰。',
   'settings.aiParsing.model': '模型',
   'settings.aiParsing.baseUrl': '基礎網址',
   'settings.aiParsing.baseUrlHint': '模型執行的位置 — 本機 Ollama 伺服器，或相容於 OpenAI 的端點。',

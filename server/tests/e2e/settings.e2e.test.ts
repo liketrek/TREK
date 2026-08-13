@@ -48,6 +48,7 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
 
   beforeAll(async () => {
     seedUser(db as never, { id: 1 });
+    seedUser(db as never, { id: 2, role: 'admin', email: 'e2e-admin@example.test' });
     app = await build();
     server = app.getHttpServer();
   });
@@ -118,5 +119,64 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true, updated: 1 });
     expect(db.prepare("SELECT value FROM settings WHERE user_id = 1 AND key = 'ntfy_token'").get()).toEqual({ value: 'tok-real' });
+  });
+
+  // #1772: a free-form LLM endpoint is admin-only. The resolver ignores such a
+  // row for a non-admin either way; these routes refuse it so the user is told.
+  describe('LLM endpoint settings are admin-only (#1772)', () => {
+    const countRows = () => (db.prepare('SELECT COUNT(*) AS n FROM settings').get() as { n: number }).n;
+
+    it('PUT 403 for a non-admin naming a base URL', async () => {
+      const res = await request(server).put('/api/settings').set('Cookie', sessionCookie(1))
+        .send({ key: 'llm_base_url', value: 'http://192.168.1.5:11434' });
+      expect(res.status).toBe(403);
+      expect(res.body).toEqual({ error: 'Admin access required' });
+      expect(countRows()).toBe(0);
+    });
+
+    it('PUT 403 for a non-admin picking the local provider', async () => {
+      const res = await request(server).put('/api/settings').set('Cookie', sessionCookie(1))
+        .send({ key: 'llm_provider', value: 'local' });
+      expect(res.status).toBe(403);
+      expect(countRows()).toBe(0);
+    });
+
+    it('PUT lets a non-admin clear the base URL and pick a hosted provider', async () => {
+      expect((await request(server).put('/api/settings').set('Cookie', sessionCookie(1))
+        .send({ key: 'llm_base_url', value: '  ' })).status).toBe(200);
+      expect((await request(server).put('/api/settings').set('Cookie', sessionCookie(1))
+        .send({ key: 'llm_provider', value: 'anthropic' })).status).toBe(200);
+      expect(db.prepare("SELECT value FROM settings WHERE user_id = 1 AND key = 'llm_provider'").get())
+        .toEqual({ value: 'anthropic' });
+    });
+
+    it('PUT is unaffected for a non-LLM key with the same value', async () => {
+      const res = await request(server).put('/api/settings').set('Cookie', sessionCookie(1))
+        .send({ key: 'start_page', value: 'local' });
+      expect(res.status).toBe(200);
+    });
+
+    it('POST /bulk 403 for a non-admin, and nothing in the payload is written', async () => {
+      const res = await request(server).post('/api/settings/bulk').set('Cookie', sessionCookie(1))
+        .send({ settings: { llm_provider: 'local', llm_base_url: 'http://192.168.1.5:11434', llm_model: 'nuextract' } });
+      expect(res.status).toBe(403);
+      expect(res.body).toEqual({ error: 'Admin access required' });
+      expect(countRows()).toBe(0);
+    });
+
+    it('POST /bulk 200 for a non-admin bringing their own hosted key', async () => {
+      const res = await request(server).post('/api/settings/bulk').set('Cookie', sessionCookie(1))
+        .send({ settings: { llm_provider: 'anthropic', llm_base_url: '', llm_model: 'claude-sonnet' } });
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ success: true, updated: 3 });
+    });
+
+    it('POST /bulk 200 for an admin with the same local payload', async () => {
+      const res = await request(server).post('/api/settings/bulk').set('Cookie', sessionCookie(2))
+        .send({ settings: { llm_provider: 'local', llm_base_url: 'http://192.168.1.5:11434' } });
+      expect(res.status).toBe(200);
+      expect(db.prepare("SELECT value FROM settings WHERE user_id = 2 AND key = 'llm_base_url'").get())
+        .toEqual({ value: 'http://192.168.1.5:11434' });
+    });
   });
 });

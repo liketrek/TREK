@@ -344,11 +344,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.failed': 'Připojení selhalo',
   'settings.aiParsing.title': 'Zpracování pomocí AI',
   'settings.aiParsing.hint':
-    'Použijte vlastní model AI k získání rezervací z nahraných souborů. Platí pouze tehdy, když správce nenastavil model pro celou instanci.',
+    'Vyberte model AI pro získání rezervací z nahraných souborů. Platí pouze tehdy, když správce nenastavil model pro celou instanci.',
   'settings.aiParsing.provider': 'Poskytovatel',
   'settings.aiParsing.providerLocal': 'Místní (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    'Místní koncový bod (Ollama) může nastavit jen správce. Vlastní klíč OpenAI nebo Anthropic můžete používat i nadále.',
   'settings.aiParsing.model': 'Model',
   'settings.aiParsing.baseUrl': 'Základní URL',
   'settings.aiParsing.baseUrlHint': 'Kde model běží — místní server Ollama nebo koncový bod kompatibilní s OpenAI.',

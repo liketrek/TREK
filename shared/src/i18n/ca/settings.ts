@@ -337,6 +337,8 @@ const settings: TranslationStrings = {
   'settings.aiParsing.providerLocal': 'Local (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    "Només un administrador pot configurar un punt final local (Ollama). Encara pots fer servir la teva pròpia clau d'OpenAI o d'Anthropic.",
   'settings.aiParsing.model': 'Model',
   'settings.aiParsing.baseUrl': 'URL base',
   'settings.aiParsing.baseUrlHint':

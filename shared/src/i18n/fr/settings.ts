@@ -357,11 +357,13 @@ const settings: TranslationStrings = {
   'settings.airtrail.test.failed': 'Échec de la connexion',
   'settings.aiParsing.title': 'Analyse par IA',
   'settings.aiParsing.hint':
-    "Utilisez votre propre modèle d'IA pour extraire les réservations des fichiers importés. Cela ne s'applique que si votre administrateur n'a pas configuré de modèle pour l'ensemble de l'instance.",
+    "Choisissez le modèle d'IA utilisé pour extraire les réservations des fichiers importés. Cela ne s'applique que si votre administrateur n'a pas configuré de modèle pour l'ensemble de l'instance.",
   'settings.aiParsing.provider': 'Fournisseur',
   'settings.aiParsing.providerLocal': 'Local (Ollama)',
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
+  'settings.aiParsing.localAdminOnly':
+    'Seul un administrateur peut configurer un point de terminaison local (Ollama). Vous pouvez toujours utiliser votre propre clé OpenAI ou Anthropic.',
   'settings.aiParsing.model': 'Modèle',
   'settings.aiParsing.baseUrl': 'URL de base',
   'settings.aiParsing.baseUrlHint':
