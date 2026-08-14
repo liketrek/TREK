@@ -1515,8 +1515,19 @@ describe('getPlaceDetails (fetch stubbed)', () => {
     expect((result.place as any).website).toBeNull();
   });
 
-  it('MAPS-041: throws 400 when Google placeId given but no API key', async () => {
-    await expect(svc.getPlaceDetails(999, 'ChIJNotAnOsmId')).rejects.toMatchObject({ status: 400 });
+  // A Google id has no OpenStreetMap equivalent, so without a key there is
+  // nothing to look up. That is an empty result, not a client error: search and
+  // autocomplete already answer their keyless case with the OSM stack, and this
+  // used to be the one path that threw, so an instance without a key produced a
+  // 400 every time an older Google place was opened.
+  it('MAPS-041: answers with an empty place when a Google id has no API key', async () => {
+    mockDbGet.mockReturnValue(undefined);
+    await expect(svc.getPlaceDetails(999, 'ChIJNotAnOsmId')).resolves.toEqual({ place: null });
+  });
+
+  it('MAPS-041g: the expanded lookup degrades the same way', async () => {
+    mockDbGet.mockReturnValue(undefined);
+    await expect(svc.getPlaceDetailsExpanded(999, 'ChIJNotAnOsmId', 'en', false)).resolves.toEqual({ place: null });
   });
 
   it('MAPS-041b: returns full Google place details on happy path', async () => {

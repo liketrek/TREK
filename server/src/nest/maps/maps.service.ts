@@ -1545,7 +1545,7 @@ export class MapsService {
     placeId: string,
     lang?: string,
     sessionToken?: string,
-  ): Promise<{ place: Record<string, unknown> }> {
+  ): Promise<{ place: Record<string, unknown> | null }> {
     // OSM details: placeId is "node:123456" or "way:123456" etc.
     if (placeId.includes(':')) {
       const [osmType, osmId] = placeId.split(':');
@@ -1584,9 +1584,13 @@ export class MapsService {
     // cache rows keyed 'de' for lang-less callers go cold once — 7-day TTL).
     const langKey = toApiLang(lang);
     const apiKey = this.getMapsKey(userId);
-    if (!apiKey) {
-      throw Object.assign(new Error('Google Maps API key not configured'), { status: 400 });
-    }
+    // No key means no way to resolve a Google id: they have no OpenStreetMap
+    // equivalent to fall back to. That is an empty result, not a client error.
+    // Search and autocomplete already answer their keyless case with the OSM
+    // stack; this used to be the one place that threw instead, which turned an
+    // instance without a key into a stream of 400s whenever an older Google
+    // place was opened. Callers already treat a null place as a miss.
+    if (!apiKey) return { place: null };
 
     // Check DB cache first (lean mask, expanded=0) — 7-day TTL
     const DETAILS_TTL = 7 * 24 * 60 * 60 * 1000;
@@ -1681,7 +1685,8 @@ export class MapsService {
 
     const langKey = toApiLang(lang); // 'en' default — see getPlaceDetails
     const apiKey = this.getMapsKey(userId);
-    if (!apiKey) throw Object.assign(new Error('Google Maps API key not configured'), { status: 400 });
+    // Same as the lean lookup above: an empty result, not a client error.
+    if (!apiKey) return { place: null };
 
     // Check DB cache for expanded result
     if (!refresh) {
