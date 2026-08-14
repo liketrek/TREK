@@ -492,12 +492,12 @@ export class MapsService {
     return this.searchPlaces(userId, query, lang, locationBias) as Promise<MapsSearchResult>;
   }
 
-  autocomplete(userId: number, input: string, lang?: string, locationBias?: LocationBias): Promise<MapsAutocompleteResult> {
-    return this.autocompletePlaces(userId, input, lang, locationBias) as Promise<MapsAutocompleteResult>;
+  autocomplete(userId: number, input: string, lang?: string, locationBias?: LocationBias, sessionToken?: string): Promise<MapsAutocompleteResult> {
+    return this.autocompletePlaces(userId, input, lang, locationBias, sessionToken) as Promise<MapsAutocompleteResult>;
   }
 
-  details(userId: number, placeId: string, lang?: string): Promise<MapsPlaceDetailsResult> {
-    return this.getPlaceDetails(userId, placeId, lang) as Promise<MapsPlaceDetailsResult>;
+  details(userId: number, placeId: string, lang?: string, sessionToken?: string): Promise<MapsPlaceDetailsResult> {
+    return this.getPlaceDetails(userId, placeId, lang, sessionToken) as Promise<MapsPlaceDetailsResult>;
   }
 
   detailsExpanded(userId: number, placeId: string, lang: string | undefined, refresh: boolean): Promise<MapsPlaceDetailsResult> {
@@ -1457,6 +1457,7 @@ export class MapsService {
     input: string,
     lang?: string,
     locationBias?: { low: { lat: number; lng: number }; high: { lat: number; lng: number } },
+    sessionToken?: string,
   ): Promise<{ suggestions: { placeId: string; mainText: string; secondaryText: string }[]; source: string }> {
     const apiKey = this.getMapsKey(userId);
 
@@ -1468,6 +1469,10 @@ export class MapsService {
       input,
       languageCode: toApiLang(lang),
     };
+    // With a session token Google bills the whole search as one autocomplete
+    // session instead of charging each keystroke; the details call that closes
+    // the session carries the same token.
+    if (sessionToken) body.sessionToken = sessionToken;
     if (locationBias) {
       body.locationBias = {
         rectangle: {
@@ -1539,6 +1544,7 @@ export class MapsService {
     userId: number,
     placeId: string,
     lang?: string,
+    sessionToken?: string,
   ): Promise<{ place: Record<string, unknown> }> {
     // OSM details: placeId is "node:123456" or "way:123456" etc.
     if (placeId.includes(':')) {
@@ -1591,8 +1597,13 @@ export class MapsService {
     );
     if (cached && Date.now() - cached.fetched_at < DETAILS_TTL) return { place: JSON.parse(cached.payload_json) };
 
+    // Closes the autocomplete session this lookup belongs to, so Google bills
+    // the search once instead of per keystroke. A cache hit above never reaches
+    // here, which is billing-neutral: an unclosed session is charged as a plain
+    // autocomplete session.
+    const sessionParam = sessionToken ? `&sessionToken=${encodeURIComponent(sessionToken)}` : '';
     const response = await googleFetch(
-      `https://places.googleapis.com/v1/places/${placeId}?languageCode=${langKey}`,
+      `https://places.googleapis.com/v1/places/${placeId}?languageCode=${langKey}${sessionParam}`,
       `getPlaceDetails(${placeId})`,
       {
         method: 'GET',

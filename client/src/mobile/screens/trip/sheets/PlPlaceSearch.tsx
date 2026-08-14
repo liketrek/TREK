@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Loader2, Search } from 'lucide-react'
 import { mapsApi } from '../../../../api/client'
+import { PlacesSession } from '../../../../utils/placesSession'
 import { isGoogleMapsUrl } from '../../../../components/Planner/PlaceFormModal.helpers'
 import { getApiErrorMessage } from '../../../../utils/apiError'
 import { FIELD_CLS } from './PlSheetChrome'
@@ -67,6 +68,8 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
   const [searching, setSearching] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  // One Google billing session per search (see utils/placesSession).
+  const placesSessionRef = useRef(new PlacesSession())
 
   const setResolving = useCallback(
     (v: boolean) => {
@@ -82,7 +85,7 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
       const controller = new AbortController()
       abortRef.current = controller
       try {
-        const result = await mapsApi.autocomplete(input, language, locationBias, controller.signal)
+        const result = await mapsApi.autocomplete(input, language, locationBias, controller.signal, placesSessionRef.current.current())
         setSuggestions(result.suggestions || [])
       } catch (err: unknown) {
         // Superseded request — axios rejects an aborted call with CanceledError.
@@ -150,6 +153,7 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
       toast.error(getApiErrorMessage(err, t('places.mapsSearchError')))
     } finally {
       setResolving(false)
+      placesSessionRef.current.end()
     }
   }
 
@@ -164,7 +168,8 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
       // back to the text-search path so suggestions never dead-end. (#1192)
       let place: MapsPlace | null = null
       try {
-        const result = await mapsApi.details(suggestion.placeId, language)
+        // Spends the session the suggestions opened.
+        const result = await mapsApi.details(suggestion.placeId, language, placesSessionRef.current.peek())
         if (result.place && result.place.lat != null && result.place.lng != null) place = result.place
       } catch {
         // fall through to text search
@@ -185,6 +190,7 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
       toast.error(getApiErrorMessage(err, t('places.mapsSearchError')))
     } finally {
       setResolving(false)
+      placesSessionRef.current.end()
     }
   }
 

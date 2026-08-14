@@ -33,6 +33,13 @@ export const mapsAutocompleteRequestSchema = z.object({
   input: z.string().min(1).max(200),
   lang: z.string().optional(),
   locationBias: z.object({ low: latLng, high: latLng }).optional(),
+  /**
+   * Ties the keystrokes of one search, and the details call that ends it, into a
+   * single Google billing session. Google caps it at 36 URL-safe ASCII
+   * characters; anything else is dropped rather than forwarded, so a bad token
+   * degrades to per-request billing instead of failing the search.
+   */
+  sessionToken: z.string().regex(/^[A-Za-z0-9_-]{1,36}$/).optional(),
 });
 export type MapsAutocompleteRequest = z.infer<typeof mapsAutocompleteRequestSchema>;
 

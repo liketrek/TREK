@@ -115,7 +115,16 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
       const autocomplete = vi.fn().mockResolvedValue({ suggestions: [], source: 'osm' });
       const bias = { low: { lat: 1, lng: 2 }, high: { lat: 3, lng: 4 } };
       await makeController({ autocompleteDisabled: () => false, autocomplete }).autocomplete(user, { input: 'be', lang: 'en', locationBias: bias });
-      expect(autocomplete).toHaveBeenCalledWith(3, 'be', 'en', bias);
+      expect(autocomplete).toHaveBeenCalledWith(3, 'be', 'en', bias, undefined);
+    });
+
+    // Session tokens tie a search's keystrokes and its details lookup into one
+    // Google billing session instead of charging each request.
+    it('passes a session token through to the service', async () => {
+      const autocomplete = vi.fn().mockResolvedValue({ suggestions: [], source: 'google' });
+      await makeController({ autocompleteDisabled: () => false, autocomplete })
+        .autocomplete(user, { input: 'be', sessionToken: 'abc123' });
+      expect(autocomplete).toHaveBeenCalledWith(3, 'be', undefined, undefined, 'abc123');
     });
 
     it('maps a service error', async () => {
@@ -145,7 +154,23 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
     it('uses the plain lookup without expand', async () => {
       const details = vi.fn().mockResolvedValue({ place: { id: 'p1' } });
       await makeController({ detailsDisabled: () => false, details }).details(user, 'p1', undefined, 'de');
-      expect(details).toHaveBeenCalledWith(3, 'p1', 'de');
+      expect(details).toHaveBeenCalledWith(3, 'p1', 'de', undefined);
+    });
+
+    // The details query is not Zod-validated, so the token is shape-checked here
+    // and a junk value degrades to per-request billing instead of reaching Google.
+    it('forwards a well-formed session token and drops a malformed one', async () => {
+      const details = vi.fn().mockResolvedValue({ place: { id: 'p1' } });
+      const c = makeController({ detailsDisabled: () => false, details });
+
+      await c.details(user, 'p1', undefined, 'de', undefined, 'a-b_C9');
+      expect(details).toHaveBeenLastCalledWith(3, 'p1', 'de', 'a-b_C9');
+
+      await c.details(user, 'p1', undefined, 'de', undefined, 'has spaces & symbols!');
+      expect(details).toHaveBeenLastCalledWith(3, 'p1', 'de', undefined);
+
+      await c.details(user, 'p1', undefined, 'de', undefined, 'x'.repeat(37));
+      expect(details).toHaveBeenLastCalledWith(3, 'p1', 'de', undefined);
     });
 
     it('maps a service error', async () => {

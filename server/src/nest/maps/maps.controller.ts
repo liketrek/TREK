@@ -26,6 +26,11 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { MapsSearchDto, MapsAutocompleteDto, MapsResolveUrlDto } from './maps.dto';
 
+/** Google's session-token shape: URL-safe ASCII, at most 36 characters. The
+ *  autocomplete body is validated by the Zod pipe; the details query is not,
+ *  so it is checked here rather than forwarded blindly. */
+const SESSION_TOKEN = /^[A-Za-z0-9_-]{1,36}$/;
+
 /** Maps a thrown service error to the same status + { error } body Express sent. */
 function toHttpException(err: unknown, fallbackMessage: string, defaultStatus: number): HttpException {
   const status = (err as { status?: number }).status || defaultStatus;
@@ -104,7 +109,7 @@ export class MapsController {
       return { suggestions: [], source: 'disabled' };
     }
     try {
-      return await this.maps.autocomplete(user.id, body.input, body.lang, body.locationBias);
+      return await this.maps.autocomplete(user.id, body.input, body.lang, body.locationBias, body.sessionToken);
     } catch (err: unknown) {
       console.error('Maps autocomplete error:', err);
       throw toHttpException(err, 'Autocomplete error', 500);
@@ -118,6 +123,10 @@ export class MapsController {
     @Query('expand') expand?: string,
     @Query('lang') lang?: string,
     @Query('refresh') refresh?: string,
+    // Closes the autocomplete session this lookup came from. Only forwarded when
+    // it matches Google's shape, so a junk value bills per request instead of
+    // breaking the lookup.
+    @Query('sessionToken') sessionToken?: string,
   ): Promise<MapsPlaceDetailsResult> {
     if (this.maps.detailsDisabled()) {
       return { place: null, disabled: true };
@@ -125,7 +134,7 @@ export class MapsController {
     try {
       return expand
         ? await this.maps.detailsExpanded(user.id, placeId, lang, refresh === '1')
-        : await this.maps.details(user.id, placeId, lang);
+        : await this.maps.details(user.id, placeId, lang, SESSION_TOKEN.test(sessionToken ?? '') ? sessionToken : undefined);
     } catch (err: unknown) {
       console.error('Maps details error:', err);
       throw toHttpException(err, 'Error fetching place details', 500);

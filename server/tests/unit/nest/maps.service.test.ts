@@ -1084,6 +1084,33 @@ describe('searchPlaces (fetch stubbed)', () => {
     expect(Array.isArray(result.places)).toBe(true);
   });
 
+  // Session tokens: the keystrokes of one search and the details lookup that
+  // ends it must reach Google under the same token, or every request is billed
+  // on its own. The body field and the query parameter are what Google's
+  // reference specifies for each half.
+  it('MAPS-039f: sends the session token in the autocomplete body', async () => {
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'ENCRYPTED' }).mockReturnValueOnce(null);
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ suggestions: [] }) });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await svc.autocompletePlaces(1, 'eiff', 'en', undefined, 'sess-123');
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain('places:autocomplete');
+    expect(JSON.parse((init as { body: string }).body).sessionToken).toBe('sess-123');
+  });
+
+  it('MAPS-039g: omits the field entirely when there is no session token', async () => {
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'ENCRYPTED' }).mockReturnValueOnce(null);
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ suggestions: [] }) });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await svc.autocompletePlaces(1, 'eiff', 'en');
+
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as { body: string }).body);
+    expect(body).not.toHaveProperty('sessionToken');
+  });
+
   it('MAPS-039: uses Google when user has an API key', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'ENCRYPTED' }).mockReturnValueOnce(null);
     vi.stubGlobal(
@@ -2323,10 +2350,10 @@ describe('controller-facing wrappers delegate to the folded methods', () => {
 
       const rectBias = { low: { lat: 1, lng: 2 }, high: { lat: 3, lng: 4 } };
       await svc.autocomplete(3, 'be', 'en', rectBias);
-      expect(spies.autocompletePlaces).toHaveBeenCalledWith(3, 'be', 'en', rectBias);
+      expect(spies.autocompletePlaces).toHaveBeenCalledWith(3, 'be', 'en', rectBias, undefined);
 
       await svc.details(3, 'p1', 'de');
-      expect(spies.getPlaceDetails).toHaveBeenCalledWith(3, 'p1', 'de');
+      expect(spies.getPlaceDetails).toHaveBeenCalledWith(3, 'p1', 'de', undefined);
 
       await svc.detailsExpanded(3, 'p1', 'de', true);
       expect(spies.getPlaceDetailsExpanded).toHaveBeenCalledWith(3, 'p1', 'de', true);

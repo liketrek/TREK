@@ -930,9 +930,9 @@ export const journeyApi = {
 
 export const mapsApi = {
   search: (query: string, lang?: string) => apiClient.post(`/maps/search?lang=${lang || 'en'}`, { query }).then(r => checkInDev(mapsSearchResultSchema, r.data, 'maps.search')),
-  autocomplete: (input: string, lang?: string, locationBias?: { low: { lat: number; lng: number }; high: { lat: number; lng: number } }, signal?: AbortSignal) =>
-      apiClient.post('/maps/autocomplete', { input, lang, locationBias }, { signal }).then(r => checkInDev(mapsAutocompleteResultSchema, r.data, 'maps.autocomplete')),
-  details: (placeId: string, lang?: string) => apiClient.get(`/maps/details/${encodeURIComponent(placeId)}`, { params: { lang } }).then(r => checkInDev(mapsPlaceDetailsResultSchema, r.data, 'maps.details')),
+  autocomplete: (input: string, lang?: string, locationBias?: { low: { lat: number; lng: number }; high: { lat: number; lng: number } }, signal?: AbortSignal, sessionToken?: string) =>
+      apiClient.post('/maps/autocomplete', { input, lang, locationBias, sessionToken }, { signal }).then(r => checkInDev(mapsAutocompleteResultSchema, r.data, 'maps.autocomplete')),
+  details: (placeId: string, lang?: string, sessionToken?: string) => apiClient.get(`/maps/details/${encodeURIComponent(placeId)}`, { params: { lang, sessionToken } }).then(r => checkInDev(mapsPlaceDetailsResultSchema, r.data, 'maps.details')),
   // Pictures and a description for a place that is being looked at but not yet
   // saved. Fans out to several providers server-side, so it takes a signal and
   // the caller is expected to abort it when the selection changes, and a longer

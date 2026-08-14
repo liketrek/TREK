@@ -20,6 +20,7 @@ import { BookingCostsSection } from './BookingCostsSection'
 import type { BookingExpenseRequest } from './BookingCostsSection.types'
 import type { Place, Category, Assignment, BudgetItem } from '../../types'
 import { NumericInput } from '../shared/NumericInput'
+import { PlacesSession } from '../../utils/placesSession'
 
 // The submit payload mirrors the form, but lat/lng are parsed to numbers and
 // category_id is normalised, plus any files chosen before the place existed.
@@ -106,6 +107,9 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const [acHighlight, setAcHighlight] = useState(-1)
   const acDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const acAbortRef = useRef<AbortController | null>(null)
+  // Ties one search's keystrokes and its details lookup into a single Google
+  // billing session (see utils/placesSession).
+  const placesSessionRef = useRef(new PlacesSession())
   const toast = useToast()
   const { t, language, locale } = useTranslation()
   const { hasMapsKey, placesEnrichEnabled } = useAuthStore()
@@ -244,7 +248,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     const controller = new AbortController()
     acAbortRef.current = controller
     try {
-      const result = await mapsApi.autocomplete(query, language, locationBias, controller.signal)
+      const result = await mapsApi.autocomplete(query, language, locationBias, controller.signal, placesSessionRef.current.current())
       setAcSuggestions(result.suggestions || [])
       setAcHighlight(-1)
     } catch (err: unknown) {
@@ -263,6 +267,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     if (trimmed.length < 2 || isGoogleMapsUrl(trimmed)) {
       setAcSuggestions([])
       setAcHighlight(-1)
+      placesSessionRef.current.end()
       return
     }
 
@@ -349,7 +354,9 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
       // clickable instead of dead-ending on "Place search failed". (#1192)
       let place: Record<string, unknown> | null = null
       try {
-        const result = await mapsApi.details(suggestion.placeId, language)
+        // Spends the session the suggestions opened, so Google bills the search
+        // once rather than per keystroke.
+        const result = await mapsApi.details(suggestion.placeId, language, placesSessionRef.current.peek())
         if (result.place && result.place.lat != null && result.place.lng != null) {
           place = result.place
         }
@@ -373,6 +380,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
       toast.error(getApiErrorMessage(err, t('places.mapsSearchError')))
     } finally {
       setIsSearchingMaps(false)
+      placesSessionRef.current.end()
     }
   }
 
