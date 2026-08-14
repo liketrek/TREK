@@ -67,6 +67,11 @@ const dayplan: TranslationStrings = {
   'dayplan.pdfError': 'فشل تصدير PDF',
   'dayplan.expandAll': 'Expand all days', // en-fallback
   'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.export': 'تصدير',
+  'dayplan.exportIntro': 'خذ خطتك معك: كمستند أو في تقويمك أو على جهاز GPS.',
+  'dayplan.exportDocument': 'مستند',
+  'dayplan.exportCalendar': 'التقويم',
+  'dayplan.exportMaps': 'الخرائط وGPS',
   'dayplan.pdf': 'PDF', // en-fallback
   'dayplan.mobile.addPlace': 'Add Place', // en-fallback
   'dayplan.mobile.searchPlaces': 'Search places...', // en-fallback

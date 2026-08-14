@@ -1,15 +1,15 @@
-// FE-PLANNER-DPTOOLBAR-001 to FE-PLANNER-DPTOOLBAR-022
+// FE-PLANNER-DPTOOLBAR-001 to FE-PLANNER-DPTOOLBAR-023
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
 import { downloadTripPDF } from '../PDF/TripPDF'
-import { buildDay, buildDayNote, buildReservation, buildTrip } from '../../../tests/helpers/factories'
+import { buildDay, buildReservation, buildTrip } from '../../../tests/helpers/factories'
 import { DayPlanSidebarToolbar } from './DayPlanSidebarToolbar'
 import type { Reservation } from '../../types'
 
 vi.mock('../PDF/TripPDF', () => ({ downloadTripPDF: vi.fn().mockResolvedValue(undefined) }))
 
 // The subscribe dialog fetches its feed token on mount; it is exercised in its
-// own test, here we only care that opening the menu entry mounts it.
+// own test, and TripExportModal covers the entry that opens it.
 vi.mock('./IcsSubscribeModal', () => ({
   IcsSubscribeModal: ({ title, onClose }: { title: string; onClose: () => void }) => (
     <div data-testid="ics-subscribe-modal">
@@ -46,8 +46,6 @@ function makeProps(overrides: Partial<React.ComponentProps<typeof DayPlanSidebar
     t,
     locale: 'en-US',
     toast: makeToast(),
-    icsHover: false,
-    setIcsHover: vi.fn((_v: boolean) => {}),
     expandedDays: new Set<number>(),
     setExpandedDays: vi.fn((_v: Set<number>) => {}),
     canUndo: false,
@@ -72,37 +70,42 @@ beforeEach(() => {
 })
 
 describe('DayPlanSidebarToolbar', () => {
-  // ── PDF export ────────────────────────────────────────────────────────────
+  // ── Export ─────────────────────────────────────────────────────
+  // PDF, ICS and GPX each used to be their own button with its own hover menu.
+  // The mechanics now live in TripExportModal and are tested there; what is left
+  // here is the single button that opens it.
 
-  it('FE-PLANNER-DPTOOLBAR-001: the PDF button exports the trip with the day notes flattened', async () => {
-    const user = userEvent.setup()
-    const days = [buildDay({ id: 10, title: 'Day 1' })]
-    const dayNotes = { '10': [buildDayNote({ id: 1, text: 'Bring cash' })] }
-    render(<DayPlanSidebarToolbar {...makeProps({ days, dayNotes })} />)
-    await user.click(screen.getByText('dayplan.pdf'))
-    await waitFor(() => expect(downloadTripPDF).toHaveBeenCalledTimes(1))
-    expect(vi.mocked(downloadTripPDF).mock.calls[0][0]).toMatchObject({
-      trip, days, dayNotes: [expect.objectContaining({ id: 1, text: 'Bring cash', day_id: 10 })],
-    })
+  it('FE-PLANNER-DPTOOLBAR-001: the toolbar carries one export button, not three', () => {
+    render(<DayPlanSidebarToolbar {...makeProps()} />)
+    expect(screen.getByRole('button', { name: 'dayplan.export' })).toBeInTheDocument()
+    expect(screen.queryByText('ICS')).not.toBeInTheDocument()
+    expect(screen.queryByText('GPX')).not.toBeInTheDocument()
+    expect(screen.queryByText('dayplan.pdf')).not.toBeInTheDocument()
   })
 
-  it('FE-PLANNER-DPTOOLBAR-002: a failing PDF export surfaces the error via the toast', async () => {
-    const user = userEvent.setup()
-    vi.mocked(downloadTripPDF).mockRejectedValueOnce(new Error('font missing'))
-    const toast = makeToast()
-    render(<DayPlanSidebarToolbar {...makeProps({ toast })} />)
-    await user.click(screen.getByText('dayplan.pdf'))
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('dayplan.pdfError: font missing'))
-  })
-
-  it('FE-PLANNER-DPTOOLBAR-003: hovering the PDF button shows the export tooltip', async () => {
+  it('FE-PLANNER-DPTOOLBAR-002: the export button opens the dialog and closes again', async () => {
     const user = userEvent.setup()
     render(<DayPlanSidebarToolbar {...makeProps()} />)
-    expect(screen.queryByText('dayplan.pdfTooltip')).not.toBeInTheDocument()
-    await user.hover(screen.getByText('dayplan.pdf'))
-    await waitFor(() => expect(screen.getByText('dayplan.pdfTooltip')).toBeInTheDocument())
-    await user.unhover(screen.getByText('dayplan.pdf'))
-    await waitFor(() => expect(screen.queryByText('dayplan.pdfTooltip')).not.toBeInTheDocument())
+    const btn = screen.getByRole('button', { name: 'dayplan.export' })
+    expect(btn).toHaveAttribute('aria-expanded', 'false')
+    await user.click(btn)
+    expect(btn).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText('dayplan.exportDocument')).toBeInTheDocument()
+    expect(screen.getByText('dayplan.exportCalendar')).toBeInTheDocument()
+    await user.click(screen.getByText('dayplan.pdf'))
+    await waitFor(() => expect(downloadTripPDF).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.queryByText('dayplan.exportDocument')).not.toBeInTheDocument())
+  })
+
+  it('FE-PLANNER-DPTOOLBAR-003: hovering the export button shows its tooltip', async () => {
+    const user = userEvent.setup()
+    render(<DayPlanSidebarToolbar {...makeProps()} />)
+    expect(screen.queryByText('dayplan.exportIntro')).not.toBeInTheDocument()
+    const btn = screen.getByRole('button', { name: 'dayplan.export' })
+    await user.hover(btn)
+    await waitFor(() => expect(screen.getByText('dayplan.exportIntro')).toBeInTheDocument())
+    await user.unhover(btn)
+    await waitFor(() => expect(screen.queryByText('dayplan.exportIntro')).not.toBeInTheDocument())
   })
 
   // The button sits at the right edge of the leftmost pane. Its own tooltip was
@@ -111,8 +114,8 @@ describe('DayPlanSidebarToolbar', () => {
   it('FE-PLANNER-DPTOOLBAR-004: the export tooltip stays inside the window', async () => {
     const user = userEvent.setup()
     render(<DayPlanSidebarToolbar {...makeProps()} />)
-    await user.hover(screen.getByText('dayplan.pdf'))
-    const tip = await screen.findByText('dayplan.pdfTooltip')
+    await user.hover(screen.getByRole('button', { name: 'dayplan.export' }))
+    const tip = await screen.findByText('dayplan.exportIntro')
     expect(tip.closest('[role="tooltip"]')).not.toBeNull()
     expect(tip.parentElement).toBe(document.body)
     expect(tip.style.position).toBe('fixed')
@@ -120,94 +123,12 @@ describe('DayPlanSidebarToolbar', () => {
     await waitFor(() => expect(parseFloat(tip.style.left)).toBeGreaterThanOrEqual(0))
   })
 
-  // ── ICS menu ──────────────────────────────────────────────────────────────
-
-  it('FE-PLANNER-DPTOOLBAR-005: hovering ICS opens the download/subscribe menu', async () => {
-    const user = userEvent.setup()
-    const setIcsHover = vi.fn((_v: boolean) => {})
-    render(<DayPlanSidebarToolbar {...makeProps({ setIcsHover })} />)
-    expect(screen.queryByText('Download ICS')).not.toBeInTheDocument()
-    await user.hover(screen.getByText('ICS'))
-    expect(screen.getByText('Download ICS')).toBeInTheDocument()
-    expect(screen.getByText('Subscribe to calendar')).toBeInTheDocument()
-    expect(setIcsHover).toHaveBeenCalledWith(true)
-  })
-
-  it('FE-PLANNER-DPTOOLBAR-005b: without share_manage the menu offers the download but not the subscription', async () => {
-    // The subscription mints a link that reads the trip without an account, so
-    // it needs share_manage; the one-off download is a file this member may
-    // already read. Leaving the entry visible would only produce a dialog whose
-    // enable button the server refuses.
+  it('FE-PLANNER-DPTOOLBAR-005: the dialog inherits the share permission from the toolbar', async () => {
     const user = userEvent.setup()
     render(<DayPlanSidebarToolbar {...makeProps({ canManageShare: false })} />)
-    await user.hover(screen.getByText('ICS'))
-    expect(screen.getByText('Download ICS')).toBeInTheDocument()
-    expect(screen.queryByText('Subscribe to calendar')).not.toBeInTheDocument()
-  })
-
-  it('FE-PLANNER-DPTOOLBAR-006: leaving the ICS area closes the menu after the grace period', async () => {
-    const user = userEvent.setup()
-    const setIcsHover = vi.fn((_v: boolean) => {})
-    render(<DayPlanSidebarToolbar {...makeProps({ setIcsHover })} />)
-    const icsButton = screen.getByText('ICS')
-    await user.hover(icsButton)
-    expect(screen.getByText('Download ICS')).toBeInTheDocument()
-    await user.unhover(icsButton)
-    await waitFor(() => expect(screen.queryByText('Download ICS')).not.toBeInTheDocument())
-    expect(setIcsHover).toHaveBeenLastCalledWith(false)
-  })
-
-  it('FE-PLANNER-DPTOOLBAR-007: re-entering the ICS area cancels the pending close', async () => {
-    const user = userEvent.setup()
-    render(<DayPlanSidebarToolbar {...makeProps()} />)
-    const icsButton = screen.getByText('ICS')
-    await user.hover(icsButton)
-    await user.unhover(icsButton)
-    await user.hover(icsButton)
-    // The close is scheduled 120ms out; coming back in has to cancel it.
-    await new Promise(r => setTimeout(r, 200))
-    expect(screen.getByText('Download ICS')).toBeInTheDocument()
-  })
-
-  it('FE-PLANNER-DPTOOLBAR-008: "Download ICS" fetches the export and hands it to a download link', async () => {
-    const user = userEvent.setup()
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-      ok: true,
-      blob: () => Promise.resolve(new Blob(['BEGIN:VCALENDAR'], { type: 'text/calendar' })),
-    } as unknown as Response)
-    const createObjURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock')
-    const revokeObjURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
-    render(<DayPlanSidebarToolbar {...makeProps()} />)
-    await user.hover(screen.getByText('ICS'))
-    await user.click(screen.getByText('Download ICS'))
-    await waitFor(() => expect(fetchSpy).toHaveBeenCalledWith('/api/trips/1/export.ics', { credentials: 'include' }))
-    await waitFor(() => expect(clickSpy).toHaveBeenCalled())
-    expect(revokeObjURL).toHaveBeenCalledWith('blob:mock')
-    // The menu closes itself once the download starts.
-    expect(screen.queryByText('Download ICS')).not.toBeInTheDocument()
-    fetchSpy.mockRestore(); createObjURL.mockRestore(); revokeObjURL.mockRestore(); clickSpy.mockRestore()
-  })
-
-  it('FE-PLANNER-DPTOOLBAR-009: a rejected ICS export shows the failure toast', async () => {
-    const user = userEvent.setup()
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: false } as unknown as Response)
-    const toast = makeToast()
-    render(<DayPlanSidebarToolbar {...makeProps({ toast })} />)
-    await user.hover(screen.getByText('ICS'))
-    await user.click(screen.getByText('Download ICS'))
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('planner.icsExportFailed'))
-    fetchSpy.mockRestore()
-  })
-
-  it('FE-PLANNER-DPTOOLBAR-010: "Subscribe to calendar" opens the subscribe dialog and closes again', async () => {
-    const user = userEvent.setup()
-    render(<DayPlanSidebarToolbar {...makeProps()} />)
-    await user.hover(screen.getByText('ICS'))
-    await user.click(screen.getByText('Subscribe to calendar'))
-    expect(screen.getByTestId('ics-subscribe-modal')).toBeInTheDocument()
-    await user.click(screen.getByText('close-subscribe'))
-    expect(screen.queryByTestId('ics-subscribe-modal')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'dayplan.export' }))
+    expect(screen.getByText('mobileTrip.icsDownload')).toBeInTheDocument()
+    expect(screen.queryByText('mobileTrip.icsSubscribe')).not.toBeInTheDocument()
   })
 
   // ── Expand / collapse all ────────────────────────────────────────────────
@@ -350,105 +271,6 @@ describe('DayPlanSidebarToolbar', () => {
     expect(routeBtn.style.background).toBe('var(--bg-hover)')
     await user.unhover(routeBtn)
     expect(routeBtn.style.background).toBe('transparent')
-
-    await user.hover(screen.getByText('ICS'))
-    const download = screen.getByText('Download ICS')
-    const subscribe = screen.getByText('Subscribe to calendar')
-    await user.hover(download)
-    expect(download.style.background).toContain('var(--bg-hover')
-    // Sliding down to the next entry has to clear the one we left.
-    await user.hover(subscribe)
-    expect(download.style.background).toBe('transparent')
-    expect(subscribe.style.background).toContain('var(--bg-hover')
-    await user.unhover(subscribe)
-    expect(subscribe.style.background).toBe('transparent')
   })
 
-  it('FE-PLANNER-DPTOOLBAR-024: an aborted PDF export without an Error still reaches the toast', async () => {
-    const user = userEvent.setup()
-    vi.mocked(downloadTripPDF).mockRejectedValueOnce('boom')
-    const toast = makeToast()
-    render(<DayPlanSidebarToolbar {...makeProps({ toast })} />)
-    await user.click(screen.getByText('dayplan.pdf'))
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('dayplan.pdfError: boom'))
-  })
-
-  // ── GPX export (#1442) ────────────────────────────────────────────────────
-  describe('GPX menu', () => {
-    let clickedHref: string | null
-
-    beforeEach(() => {
-      clickedHref = null
-      // jsdom has neither of these, and an anchor click would navigate.
-      globalThis.URL.createObjectURL = vi.fn(() => 'blob:gpx')
-      globalThis.URL.revokeObjectURL = vi.fn()
-      vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
-        clickedHref = this.href
-      })
-    })
-
-    afterEach(() => vi.restoreAllMocks())
-
-    const okResponse = () => ({ ok: true, status: 200, blob: async () => new Blob(['<gpx/>']) }) as unknown as Response
-
-    it('FE-PLANNER-DPTOOLBAR-025: the menu offers the three scopes on hover', async () => {
-      const user = userEvent.setup()
-      render(<DayPlanSidebarToolbar {...makeProps()} />)
-      expect(screen.queryByText('dayplan.gpxAll')).not.toBeInTheDocument()
-      await user.hover(screen.getByText('GPX'))
-      expect(screen.getByText('dayplan.gpxAll')).toBeInTheDocument()
-      expect(screen.getByText('dayplan.gpxPlaces')).toBeInTheDocument()
-      expect(screen.getByText('dayplan.gpxDays')).toBeInTheDocument()
-    })
-
-    it('FE-PLANNER-DPTOOLBAR-026: each scope asks the server for exactly its own selection', async () => {
-      const user = userEvent.setup()
-      const fetchMock = vi.fn(async () => okResponse())
-      vi.stubGlobal('fetch', fetchMock)
-      render(<DayPlanSidebarToolbar {...makeProps()} />)
-
-      for (const [label, expected] of [
-        ['dayplan.gpxAll', '/api/trips/1/places/export.gpx'],
-        ['dayplan.gpxPlaces', '/api/trips/1/places/export.gpx?dayRoutes=false'],
-        ['dayplan.gpxDays', '/api/trips/1/places/export.gpx?waypoints=false&tracks=false'],
-      ] as const) {
-        await user.hover(screen.getByText('GPX'))
-        await user.click(screen.getByText(label))
-        await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(expected, { credentials: 'include' }))
-        fetchMock.mockClear()
-      }
-    })
-
-    it('FE-PLANNER-DPTOOLBAR-027: a download names the file after the trip', async () => {
-      const user = userEvent.setup()
-      vi.stubGlobal('fetch', vi.fn(async () => okResponse()))
-      render(<DayPlanSidebarToolbar {...makeProps()} />)
-      await user.hover(screen.getByText('GPX'))
-      await user.click(screen.getByText('dayplan.gpxAll'))
-      await waitFor(() => expect(clickedHref).toBe('blob:gpx'))
-      expect(globalThis.URL.revokeObjectURL).toHaveBeenCalled()
-    })
-
-    it('FE-PLANNER-DPTOOLBAR-028: an empty trip says so instead of reporting a failure', async () => {
-      const user = userEvent.setup()
-      const toast = makeToast()
-      vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 404 }) as unknown as Response))
-      render(<DayPlanSidebarToolbar {...makeProps({ toast })} />)
-      await user.hover(screen.getByText('GPX'))
-      await user.click(screen.getByText('dayplan.gpxAll'))
-      await waitFor(() => expect(toast.info).toHaveBeenCalledWith('dayplan.gpxEmpty'))
-      expect(toast.error).not.toHaveBeenCalled()
-      expect(clickedHref).toBeNull()
-    })
-
-    it('FE-PLANNER-DPTOOLBAR-029: a real failure toasts the error', async () => {
-      const user = userEvent.setup()
-      const toast = makeToast()
-      vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500 }) as unknown as Response))
-      render(<DayPlanSidebarToolbar {...makeProps({ toast })} />)
-      await user.hover(screen.getByText('GPX'))
-      await user.click(screen.getByText('dayplan.gpxAll'))
-      await waitFor(() => expect(toast.error).toHaveBeenCalledWith('dayplan.gpxFailed'))
-    })
-  })
 })
