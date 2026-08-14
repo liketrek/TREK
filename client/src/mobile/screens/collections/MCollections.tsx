@@ -27,8 +27,13 @@ import { CancelPill, PrimaryPill } from './MCollSheetKit'
 const HEADER_CIRCLE =
   'flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] text-m-ink shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]'
 
+// min-w-0 is what lets the truncate on the chip labels engage: a flex item keeps
+// min-width:auto by default, so the row grew past the panel instead of shrinking
+// its chips. The labels are short enough to fit in every locale now, but a long
+// label name in the filter chip, or a bumped-up text size, still has to ellipsise
+// inside the panel rather than spill out of it.
 const FILTER_CHIP =
-  'flex flex-1 items-center justify-center gap-[5px] rounded-full py-2 text-[0.75rem] font-semibold'
+  'flex min-w-0 flex-1 items-center justify-center gap-[5px] rounded-full py-2 text-[0.75rem] font-semibold'
 
 const CHIP_IDLE = 'border border-[color:var(--m-rowbr)] bg-m-sheetop text-m-ink'
 const CHIP_ON = 'border border-transparent bg-m-act text-m-actfg'
@@ -273,7 +278,7 @@ export default function MCollections() {
                 {canManageLabels && (
                   <button type="button" onClick={() => c.setShowLabelManager(true)} className={`${FILTER_CHIP} ${CHIP_IDLE}`}>
                     <Plus size={12} strokeWidth={2.2} className="flex-none" />
-                    <span className="truncate">{t('collections.linkLabel')}</span>
+                    <span className="truncate">{t('collections.labels.title')}</span>
                   </button>
                 )}
                 {showSelect && (

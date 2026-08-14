@@ -239,7 +239,7 @@ describe('MCollections', () => {
     expect(screen.queryByRole('button', { name: 'collections.editListTitle' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'collections.share.title' })).not.toBeInTheDocument()
     // No per-list labels on the union.
-    expect(screen.queryByRole('button', { name: /collections.linkLabel/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /collections.labels.title/ })).not.toBeInTheDocument()
   })
 
   it('FE-MOB-COLSCR-005: without an active list the generic page title is used', () => {
@@ -365,7 +365,7 @@ describe('MCollections', () => {
     fireEvent.click(chips[1])
     expect(screen.getByText('collections.labels.empty')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /collections.linkLabel/ }))
+    fireEvent.click(screen.getByRole('button', { name: /collections.labels.title/ }))
     expect(fn('setShowLabelManager')).toHaveBeenCalledWith(true)
   })
 

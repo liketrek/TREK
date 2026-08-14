@@ -10,7 +10,7 @@ const collection: TranslationStrings = {
   'collections.role.editor': 'Bewerker',
   'collections.role.admin': 'Beheerder',
   'collections.picker.allLists': 'Alle lijsten',
-  'collections.select': 'Selecteren',
+  'collections.select': 'Kiezen',
   'collections.selectAll': 'Alles selecteren',
   'collections.deselectAll': 'Selectie opheffen',
   'collections.moveToList': 'Naar lijst verplaatsen',

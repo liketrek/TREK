@@ -10,7 +10,7 @@ const collection: TranslationStrings = {
   'collections.role.editor': 'Szerkesztő',
   'collections.role.admin': 'Adminisztrátor',
   'collections.picker.allLists': 'Összes lista',
-  'collections.select': 'Kijelölés',
+  'collections.select': 'Jelölés',
   'collections.selectAll': 'Összes kijelölése',
   'collections.deselectAll': 'Kijelölés megszüntetése',
   'collections.moveToList': 'Áthelyezés listába',
