@@ -474,11 +474,11 @@ describe('private items (#858)', () => {
     const trip = createTrip(testDb, user.id);
     const item = svc.createItem(trip.id, { name: 'Private', is_private: true }, user.id) as any;
 
-    const deleted = svc.deleteItem(trip.id, item.id) as any;
+    const deleted = svc.deleteItem(trip.id, item.id, user.id) as any;
     expect(deleted).not.toBeNull();
     expect(deleted.is_private).toBe(1);
     expect(deleted.owner_id).toBe(user.id);
-    expect(svc.deleteItem(trip.id, item.id)).toBeNull();
+    expect(svc.deleteItem(trip.id, item.id, user.id)).toBeNull();
   });
 
   it('PACK-SVC-018: bulkImport stamps the owner on every item', () => {
@@ -541,8 +541,9 @@ describe('three-tier packing sharing (#858)', () => {
     const trip = createTrip(testDb, owner.id);
     const item = svc.createItem(trip.id, { name: 'First aid', visibility: 'personal' }, owner.id) as any;
 
-    // A non-owner is rejected.
-    expect((svc.setItemSharing(trip.id, item.id, friend.id, 'shared', [friend.id]) as any).forbidden).toBe(true);
+    // A non-owner who cannot see the item at all gets the missing-item answer, so
+    // the route cannot be used to confirm that the id exists (GHSA-vh2h-288v-ggch).
+    expect(svc.setItemSharing(trip.id, item.id, friend.id, 'shared', [friend.id])).toBeNull();
 
     const updated = svc.setItemSharing(trip.id, item.id, owner.id, 'shared', [friend.id]) as any;
     expect(updated.recipients.map((r: any) => r.user_id)).toEqual([friend.id]);
@@ -675,10 +676,10 @@ describe('legacy-quirk fixes', () => {
     const trip = createTrip(testDb, user.id);
     const item = svc.createItem(trip.id, { name: 'Socks', quantity: 5 }, user.id) as any;
 
-    expect((svc.updateItem(trip.id, item.id, { quantity: 0 }, ['quantity']) as any).quantity).toBe(1);
-    expect((svc.updateItem(trip.id, item.id, { quantity: 9999 }, ['quantity']) as any).quantity).toBe(999);
+    expect((svc.updateItem(trip.id, item.id, { quantity: 0 }, ['quantity'], undefined, user.id) as any).quantity).toBe(1);
+    expect((svc.updateItem(trip.id, item.id, { quantity: 9999 }, ['quantity'], undefined, user.id) as any).quantity).toBe(999);
     // Omitted key leaves the quantity unchanged.
-    expect((svc.updateItem(trip.id, item.id, { name: 'Wool socks' }, ['name']) as any).quantity).toBe(999);
+    expect((svc.updateItem(trip.id, item.id, { name: 'Wool socks' }, ['name'], undefined, user.id) as any).quantity).toBe(999);
   });
 });
 
@@ -989,5 +990,86 @@ describe('Template item scoping (post-fold quirk fix)', () => {
     expect((svc.updateTemplateItem(String(tplA.template.id), String(item.item.id), { name: 'Tarp' }) as any).item.name)
       .toBe('Tarp');
     expect(svc.deleteTemplateItem(String(tplA.template.id), String(item.item.id)) as any).toEqual({});
+  });
+});
+
+/**
+ * Object-level authorization on a single packing item (GHSA-vh2h-288v-ggch).
+ *
+ * listItems() always filtered by the three-tier rule, but every single-item path
+ * resolved the row by trip id alone, so any member holding packing_edit could
+ * reach another member's Personal or Shared item by id. The update response even
+ * handed the enriched row back, which made the write a read as well.
+ */
+describe('packing item object-level authorization', () => {
+  const restrictedTrip = () => {
+    const { user: owner } = createUser(testDb);
+    const { user: intruder } = createUser(testDb);
+    const { user: friend } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    const personal = svc.createItem(trip.id, { name: 'Diary', visibility: 'personal' }, owner.id) as any;
+    const shared = svc.createItem(trip.id, { name: 'Power bank', visibility: 'shared', recipient_ids: [friend.id] }, owner.id) as any;
+    const common = svc.createItem(trip.id, { name: 'Tent', visibility: 'common' }, owner.id) as any;
+    return { owner, intruder, friend, trip, personal, shared, common };
+  };
+
+  it('PACK-SVC-101: a non-viewer cannot update someone else\'s Personal item', () => {
+    const { trip, personal, intruder } = restrictedTrip();
+    expect(svc.updateItem(trip.id, personal.id, { name: 'pwned' }, ['name'], undefined, intruder.id)).toBeNull();
+    expect(testDb.prepare('SELECT name FROM packing_items WHERE id = ?').get(personal.id)).toEqual({ name: 'Diary' });
+  });
+
+  it('PACK-SVC-102: a non-recipient cannot update a Shared item', () => {
+    const { trip, shared, intruder } = restrictedTrip();
+    expect(svc.updateItem(trip.id, shared.id, { name: 'pwned' }, ['name'], undefined, intruder.id)).toBeNull();
+  });
+
+  it('PACK-SVC-103: a non-viewer cannot delete a restricted item', () => {
+    const { trip, personal, intruder } = restrictedTrip();
+    expect(svc.deleteItem(trip.id, personal.id, intruder.id)).toBeNull();
+    expect(testDb.prepare('SELECT COUNT(*) AS n FROM packing_items WHERE id = ?').get(personal.id)).toEqual({ n: 1 });
+  });
+
+  it('PACK-SVC-104: a non-viewer cannot clone a restricted item into their own list', () => {
+    const { trip, personal, intruder } = restrictedTrip();
+    expect(svc.cloneItem(trip.id, personal.id, intruder.id)).toBeNull();
+  });
+
+  it('PACK-SVC-105b: a visible item the caller does not own still reports forbidden, not missing', () => {
+    const { trip, common, intruder } = restrictedTrip();
+    expect((svc.setItemSharing(trip.id, common.id, intruder.id, 'personal', []) as any).forbidden).toBe(true);
+  });
+
+  it('PACK-SVC-105: a non-owner cannot re-share a restricted item they cannot see', () => {
+    const { trip, personal, intruder } = restrictedTrip();
+    expect(svc.setItemSharing(trip.id, personal.id, intruder.id, 'common', [])).toBeNull();
+    expect(testDb.prepare('SELECT is_private FROM packing_items WHERE id = ?').get(personal.id)).toEqual({ is_private: 1 });
+  });
+
+  // Missing actor must deny rather than fall through unfiltered.
+  it('PACK-SVC-106: an update with no actor at all is refused', () => {
+    const { trip, personal } = restrictedTrip();
+    expect(svc.updateItem(trip.id, personal.id, { name: 'pwned' }, ['name'])).toBeNull();
+    expect(svc.deleteItem(trip.id, personal.id)).toBeNull();
+  });
+
+  it('PACK-SVC-107: the owner and the recipients keep working', () => {
+    const { trip, personal, shared, common, owner, friend, intruder } = restrictedTrip();
+    expect(svc.updateItem(trip.id, personal.id, { name: 'Diary v2' }, ['name'], undefined, owner.id)).toBeTruthy();
+    expect(svc.updateItem(trip.id, shared.id, { checked: 1 }, ['checked'], undefined, friend.id)).toBeTruthy();
+    expect(svc.updateItem(trip.id, common.id, { checked: 1 }, ['checked'], undefined, intruder.id)).toBeTruthy();
+    expect(svc.cloneItem(trip.id, common.id, intruder.id)).toBeTruthy();
+    expect(svc.deleteItem(trip.id, personal.id, owner.id)).toBeTruthy();
+  });
+
+  it('PACK-SVC-108: a template captures only the Common list and the actor\'s own items', () => {
+    const { trip, intruder } = restrictedTrip();
+    const templateId = (svc.saveAsTemplate(trip.id, intruder.id, 'Snapshot') as { id: number }).id;
+    const rows = testDb.prepare(`
+      SELECT i.name FROM packing_template_items i
+      JOIN packing_template_categories c ON c.id = i.category_id
+      WHERE c.template_id = ?
+    `).all(templateId) as { name: string }[];
+    expect(rows.map(r => r.name).sort()).toEqual(['Tent']);
   });
 });

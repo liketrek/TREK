@@ -257,7 +257,14 @@ describe('Three-tier packing sharing (#858)', () => {
     addTripMember(testDb, trip.id, member.id);
     const created = await request(app).post(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(owner.id)).send({ name: 'Tent', visibility: 'personal' });
 
-    const denied = await request(app).put(`/api/trips/${trip.id}/packing/${created.body.item.id}/sharing`).set('Cookie', authCookie(member.id)).send({ visibility: 'common' });
+    // A member who cannot see the item at all gets 404, not 403: answering 403
+    // would confirm that the id exists (GHSA-vh2h-288v-ggch).
+    const hidden = await request(app).put(`/api/trips/${trip.id}/packing/${created.body.item.id}/sharing`).set('Cookie', authCookie(member.id)).send({ visibility: 'common' });
+    expect(hidden.status).toBe(404);
+
+    // An item the member CAN see but does not own still answers 403.
+    const shared = await request(app).post(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(owner.id)).send({ name: 'Stove', visibility: 'common' });
+    const denied = await request(app).put(`/api/trips/${trip.id}/packing/${shared.body.item.id}/sharing`).set('Cookie', authCookie(member.id)).send({ visibility: 'personal' });
     expect(denied.status).toBe(403);
   });
 });

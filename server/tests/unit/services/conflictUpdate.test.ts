@@ -147,12 +147,12 @@ describe('updateItem (packing) — optimistic concurrency', () => {
   it('returns a conflict when the packing token is stale', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const item = packing.createItem(trip.id, { name: 'Socks' }) as { id: number; updated_at: string };
+    const item = packing.createItem(trip.id, { name: 'Socks' }, user.id) as { id: number; updated_at: string };
 
-    const stale = packing.updateItem(trip.id, item.id, { name: 'Mine' }, ['name'], '1999-01-01 00:00:00');
+    const stale = packing.updateItem(trip.id, item.id, { name: 'Mine' }, ['name'], '1999-01-01 00:00:00', user.id);
     expect(isUpdateConflict(stale)).toBe(true);
 
-    const fresh = packing.updateItem(trip.id, item.id, { name: 'Edited' }, ['name'], item.updated_at);
+    const fresh = packing.updateItem(trip.id, item.id, { name: 'Edited' }, ['name'], item.updated_at, user.id);
     expect(isUpdateConflict(fresh)).toBe(false);
     expect((fresh as { name: string }).name).toBe('Edited');
   });

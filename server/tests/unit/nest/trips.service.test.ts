@@ -747,6 +747,31 @@ describe('folded trip CRUD', () => {
     expect((testDb.prepare('SELECT title FROM trips WHERE id = ?').get(secondCopy) as any).title).toBe('Origin');
   });
 
+  /**
+   * Copying a trip used to take every packing row and re-insert it without
+   * is_private/owner_id, so both fell back to the column defaults and another
+   * member's Personal or Shared item reappeared in the copy as a Common item
+   * that everyone on the new trip could read (GHSA-vh2h-288v-ggch).
+   */
+  it("TRIP-SVC-046b: copy leaves other members' restricted packing items behind", () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id, { title: 'Origin', start_date: '2025-06-01', end_date: '2025-06-02' });
+    const ins = testDb.prepare('INSERT INTO packing_items (trip_id, name, checked, is_private, owner_id) VALUES (?, ?, 0, ?, ?)');
+    ins.run(trip.id, 'Shared tent', 0, null);            // Common
+    ins.run(trip.id, "Owner's diary", 1, owner.id);      // the owner's Personal
+    ins.run(trip.id, "Member's meds", 1, member.id);     // the copier's own Personal
+
+    const newTripId = svc.copy(trip.id, member.id, 'Copy');
+    const rows = testDb.prepare('SELECT name, is_private, owner_id FROM packing_items WHERE trip_id = ? ORDER BY name').all(newTripId) as any[];
+
+    // The owner's private row is gone, not relabelled as Common.
+    expect(rows.map(r => r.name)).toEqual(["Member's meds", 'Shared tent']);
+    expect(rows.find(r => r.name === 'Shared tent')).toMatchObject({ is_private: 0, owner_id: null });
+    // The copier's own item stays restricted and belongs to them in the copy.
+    expect(rows.find(r => r.name === "Member's meds")).toMatchObject({ is_private: 1, owner_id: member.id });
+  });
+
   it('TRIP-SVC-059: copy remaps cross-links and carries splits/participants (smoke-test I-01)', () => {
     const { user: owner } = createUser(testDb);
     const { user: friend } = createUser(testDb);

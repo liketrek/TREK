@@ -689,14 +689,24 @@ export class TripsService {
         bagMap.set(bag.id, r.lastInsertRowid);
       }
 
-      const oldPacking = this.db.prepare('SELECT * FROM packing_items WHERE trip_id = ?').all(sourceTripId) as any[];
+      // Only what the copier may carry over: the Common list plus their own items.
+      // This used to take every row and re-insert it without is_private/owner_id,
+      // so both fell back to the column defaults and another member's Personal or
+      // Shared item reappeared in the copy as a Common item visible to everyone.
+      // A restricted item stays restricted, and it stays owned by the copier —
+      // recipient rows are not carried over, and the copy has its own roster.
+      const oldPacking = this.db.prepare(
+        'SELECT * FROM packing_items WHERE trip_id = ? AND (is_private = 0 OR owner_id = ?)'
+      ).all(sourceTripId, newOwnerId) as any[];
       const insertPacking = this.db.prepare(`
-        INSERT INTO packing_items (trip_id, name, checked, category, sort_order, weight_grams, bag_id, updated_at)
-        VALUES (?, ?, 0, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO packing_items (trip_id, name, checked, category, sort_order, weight_grams, bag_id, is_private, owner_id, updated_at)
+        VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `);
       for (const p of oldPacking) {
+        const isPrivate = p.is_private ? 1 : 0;
         insertPacking.run(newTripId, p.name, p.category, p.sort_order, p.weight_grams,
-          p.bag_id ? (bagMap.get(p.bag_id) ?? null) : null);
+          p.bag_id ? (bagMap.get(p.bag_id) ?? null) : null,
+          isPrivate, isPrivate ? newOwnerId : null);
       }
 
       const oldNotes = this.db.prepare('SELECT * FROM day_notes WHERE trip_id = ?').all(sourceTripId) as any[];

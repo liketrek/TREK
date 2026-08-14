@@ -81,7 +81,7 @@ export class PackingMcp {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.packing.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
-    const item = this.packing.updateItem(tripId, itemId, { checked: checked ? 1 : 0 }, ['checked']);
+    const item = this.packing.updateItem(tripId, itemId, { checked: checked ? 1 : 0 }, ['checked'], undefined, ctx.userId);
     if (!item) return errorResult('Packing item not found.');
     this.guards.safeBroadcast(tripId, 'packing:updated', { item });
     return ok({ item });
@@ -102,7 +102,7 @@ export class PackingMcp {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.packing.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
-    const deleted = this.packing.deleteItem(tripId, itemId);
+    const deleted = this.packing.deleteItem(tripId, itemId, ctx.userId);
     if (!deleted) return errorResult('Packing item not found.');
     this.guards.safeBroadcast(tripId, 'packing:deleted', { itemId });
     return ok({ success: true });
@@ -128,7 +128,7 @@ export class PackingMcp {
     if (!this.packing.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
     const bodyKeys = ['name', 'category'].filter(k => k === 'name' ? name !== undefined : category !== undefined);
-    const item = this.packing.updateItem(tripId, itemId, { name, category }, bodyKeys);
+    const item = this.packing.updateItem(tripId, itemId, { name, category }, bodyKeys, undefined, ctx.userId);
     if (!item) return errorResult('Packing item not found.');
     this.guards.safeBroadcast(tripId, 'packing:updated', { item });
     return ok({ item });

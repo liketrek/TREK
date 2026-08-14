@@ -247,7 +247,9 @@ export class PackingService {
     ifMatch?: string,
     actingUserId?: number,
   ): unknown | UpdateConflict | null {
-    const item = this.db.get<{ updated_at?: string | null; owner_id?: number | null }>('SELECT * FROM packing_items WHERE id = ? AND trip_id = ?', id, tripId);
+    // Was a trip-scoped lookup, which let any member with packing_edit write to
+    // another member's restricted item (and read it back off the response).
+    const item = this.getItemInTrip(tripId, id, actingUserId);
     if (!item) return null;
 
     // Optimistic concurrency (#1135): reject a stale offline overwrite. Absent
@@ -295,10 +297,33 @@ export class PackingService {
 
   // ── Three-tier sharing (#858): recipients, contributors, clone ───────────────
 
-  /** Loads an item scoped to its trip (the trip-access check happens in the controller). */
-  private getItemInTrip(tripId: string | number, id: string | number) {
-    return this.db.get<{ id: number; owner_id: number | null; is_private: number; name: string; category: string | null; quantity: number; weight_grams: number | null; bag_id: number | null }>(
-      'SELECT * FROM packing_items WHERE id = ? AND trip_id = ?', id, tripId
+  /**
+   * The one visibility rule (#858), as a SQL fragment: Common belongs to the whole
+   * trip, a restricted item belongs to its owner and to the people it was shared
+   * with. Binds the actor id twice.
+   */
+  private static readonly VISIBLE_TO_ACTOR = `(
+    is_private = 0
+    OR owner_id = ?
+    OR EXISTS (SELECT 1 FROM packing_item_recipients r WHERE r.item_id = packing_items.id AND r.user_id = ?)
+  )`;
+
+  /**
+   * Loads an item scoped to its trip AND to what the actor may see.
+   *
+   * Trip membership used to be the whole check here, so any member holding
+   * packing_edit could reach another member's Personal or Shared item by id
+   * through update, delete, clone or the contributor routes. It resolves through
+   * the visibility rule now, and an item the actor may not see comes back
+   * undefined — deliberately indistinguishable from one that does not exist, so
+   * these routes cannot be used to probe for ids. A missing actor denies too,
+   * rather than falling through unfiltered.
+   */
+  private getItemInTrip(tripId: string | number, id: string | number, actorId: number | undefined) {
+    if (actorId == null) return undefined;
+    return this.db.get<{ id: number; owner_id: number | null; is_private: number; name: string; category: string | null; quantity: number; weight_grams: number | null; bag_id: number | null; updated_at?: string | null }>(
+      `SELECT * FROM packing_items WHERE id = ? AND trip_id = ? AND ${PackingService.VISIBLE_TO_ACTOR}`,
+      id, tripId, actorId, actorId,
     );
   }
 
@@ -313,7 +338,7 @@ export class PackingService {
     visibility: PackingVisibility,
     recipientIds: number[],
   ) {
-    const item = this.getItemInTrip(tripId, id);
+    const item = this.getItemInTrip(tripId, id, actingUserId);
     if (!item) return null;
     // The owner controls sharing; an unowned legacy item is claimed by the actor.
     if (item.owner_id != null && item.owner_id !== actingUserId) return { forbidden: true as const };
@@ -335,7 +360,7 @@ export class PackingService {
 
   /** "I can bring that too" — adds the user as a co-contributor on a Common item. */
   addContributor(tripId: string | number, id: string | number, userId: number) {
-    const item = this.getItemInTrip(tripId, id);
+    const item = this.getItemInTrip(tripId, id, userId);
     if (!item || item.is_private !== 0) return null; // co-contribution is a Common-list concept
     if (item.owner_id === userId) return null; // the bringer is already covering it
     this.db.run("INSERT OR IGNORE INTO packing_item_contributors (item_id, user_id, status) VALUES (?, ?, 'accepted')", id, userId);
@@ -343,7 +368,7 @@ export class PackingService {
   }
 
   removeContributor(tripId: string | number, id: string | number, userId: number) {
-    const item = this.getItemInTrip(tripId, id);
+    const item = this.getItemInTrip(tripId, id, userId);
     if (!item) return null;
     this.db.run('DELETE FROM packing_item_contributors WHERE item_id = ? AND user_id = ?', id, userId);
     return this.enrichItems([this.db.get('SELECT * FROM packing_items WHERE id = ?', id)])[0];
@@ -370,7 +395,7 @@ export class PackingService {
    * every traveller was the whole complaint in #207.
    */
   cloneItem(tripId: string | number, id: string | number, userId: number) {
-    const item = this.getItemInTrip(tripId, id);
+    const item = this.getItemInTrip(tripId, id, userId);
     if (!item) return null;
     return this.createItem(tripId, {
       name: item.name,
@@ -382,10 +407,12 @@ export class PackingService {
     }, userId);
   }
 
-  deleteItem(tripId: string | number, id: string | number) {
+  deleteItem(tripId: string | number, id: string | number, actingUserId?: number) {
     // Return the deleted row (not just a boolean) so callers can target the
     // delete broadcast at the owner when the item was private (#858).
-    const item = this.db.get<{ is_private?: number; owner_id?: number | null }>('SELECT * FROM packing_items WHERE id = ? AND trip_id = ?', id, tripId);
+    // Scoped to what the actor may see: trip membership alone used to be enough
+    // to delete another member's restricted item.
+    const item = this.getItemInTrip(tripId, id, actingUserId);
     if (!item) return null;
 
     this.db.run('DELETE FROM packing_items WHERE id = ?', id);
@@ -577,8 +604,12 @@ export class PackingService {
   // ── Save as Template ──────────────────────────────────────────────────────
 
   saveAsTemplate(tripId: string | number, userId: number, templateName: string) {
+    // A template is a durable, shareable artifact, so it may only capture what is
+    // the actor's to publish: the Common list plus their own items. It used to
+    // take every row in the trip, restricted ones included.
     const items = this.db.all<{ name: string; category: string }>(
-      'SELECT name, category FROM packing_items WHERE trip_id = ? ORDER BY sort_order ASC', tripId
+      'SELECT name, category FROM packing_items WHERE trip_id = ? AND (is_private = 0 OR owner_id = ?) ORDER BY sort_order ASC',
+      tripId, userId,
     );
 
     if (items.length === 0) return null;

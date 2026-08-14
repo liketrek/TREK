@@ -76,7 +76,7 @@ export class PackingRpc {
     const itemId = num(params.itemId, 'itemId');
     const actor = this.guards.requireActor(ctx, 'packing item');
     this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION);
-    const deleted = this.packing.deleteItem(String(tripId), String(itemId)) as PrivacyItem | null;
+    const deleted = this.packing.deleteItem(String(tripId), String(itemId), actor) as PrivacyItem | null;
     if (!deleted) throw new ForbiddenResource(`no packing item ${itemId} on trip ${tripId}`);
     this.packing.emitToViewers(String(tripId), 'packing:deleted', { itemId }, deleted, undefined);
     return { deleted: true };

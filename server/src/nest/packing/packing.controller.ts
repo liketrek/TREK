@@ -151,7 +151,7 @@ export class PackingController {
     @Param('id') id: string,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const deleted = this.packing.deleteItem(tripId, id);
+    const deleted = this.packing.deleteItem(tripId, id, user.id);
     if (!deleted) {
       throw new HttpException({ error: 'Item not found' }, 404);
     }
