@@ -29,8 +29,8 @@ const planner: TranslationStrings = {
   'planner.noEntries': 'Tidak ada entri untuk hari ini',
   'planner.addPlace': 'Tambah tempat/aktivitas',
   'planner.addPlaceShort': '+ Tambah tempat/aktivitas',
-  'planner.resPending': 'Reservasi tertunda · ',
-  'planner.resConfirmed': 'Reservasi dikonfirmasi · ',
+  'planner.resPending': 'Reservasi tertunda',
+  'planner.resConfirmed': 'Reservasi dikonfirmasi',
   'planner.notePlaceholder': 'Catatan…',
   'planner.noteTimePlaceholder': 'Waktu (opsional)',
   'planner.noteExamplePlaceholder':

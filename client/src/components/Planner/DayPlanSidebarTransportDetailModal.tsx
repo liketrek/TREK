@@ -90,7 +90,7 @@ export function DayPlanSidebarTransportDetailModal({
                 <div className={res.status === 'confirmed' ? 'bg-[rgba(22,163,74,0.1)] text-[#16a34a]' : 'bg-[rgba(217,119,6,0.1)] text-[#d97706]'} style={{
                   padding: '3px 8px', borderRadius: 6, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600,
                 }}>
-                  {(res.status === 'confirmed' ? t('planner.resConfirmed') : t('planner.resPending')).replace(/\s*·\s*$/, '')}
+                  {res.status === 'confirmed' ? t('planner.resConfirmed') : t('planner.resPending')}
                 </div>
               </div>
 

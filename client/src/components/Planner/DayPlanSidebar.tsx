@@ -1955,33 +1955,38 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                 const confirmed = res.status === 'confirmed'
                                 const hasEndpoints = onToggleConnection && (res.endpoints || []).length >= 2
                                 const active = hasEndpoints ? visibleConnectionIds.includes(res.id) : false
+                                // The status, the time and the flight/train number used to sit in one
+                                // pill strung together on a middle dot, which read as one run-on
+                                // sentence. They are separate chips now: same tint so they still
+                                // belong together, own outline so the eye can take them one at a time.
+                                const RI = RES_ICONS[res.type] || Ticket
+                                const tint = confirmed ? 'bg-[rgba(22,163,74,0.1)] text-[#16a34a]' : 'bg-[rgba(217,119,6,0.1)] text-[#d97706]'
+                                const chip: React.CSSProperties = {
+                                  display: 'inline-flex', alignItems: 'center', gap: 3,
+                                  padding: '1px 6px', borderRadius: 5,
+                                  fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600,
+                                  whiteSpace: 'nowrap',
+                                }
+                                const { time: st } = splitReservationDateTime(res.reservation_time)
+                                const { time: et } = splitReservationDateTime(res.reservation_end_time)
+                                const timeLabel = st || et
+                                  ? `${st ? formatTime(st, locale, timeFormat) : ''}${et ? ` – ${formatTime(et, locale, timeFormat)}` : ''}`
+                                  : ''
+                                let meta: any = {}
+                                try { meta = typeof res.metadata === 'string' ? JSON.parse(res.metadata || '{}') : (res.metadata || {}) } catch { meta = {} }
+                                const carrierLabel = meta
+                                  ? (meta.airline && meta.flight_number ? `${meta.airline} ${meta.flight_number}` : meta.flight_number || meta.train_number || '')
+                                  : ''
                                 return (
-                                  <div style={{ marginTop: 3, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                    <div className={confirmed ? 'bg-[rgba(22,163,74,0.1)] text-[#16a34a]' : 'bg-[rgba(217,119,6,0.1)] text-[#d97706]'} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 5, fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600,
-                                    }}>
-                                      {(() => { const RI = RES_ICONS[res.type] || Ticket; return <RI size={8} /> })()}
+                                  // No wrapping: the time belongs to the status it qualifies, so the
+                                  // chips stay on one line even when the row gets narrow.
+                                  <div style={{ marginTop: 3, display: 'inline-flex', alignItems: 'center', gap: 3, flexWrap: 'nowrap' }}>
+                                    <div className={tint} style={chip}>
+                                      <RI size={8} />
                                       <span className="hidden sm:inline">{confirmed ? t('planner.resConfirmed') : t('planner.resPending')}</span>
-                                      {(() => {
-                                        const { time: st } = splitReservationDateTime(res.reservation_time)
-                                        const { time: et } = splitReservationDateTime(res.reservation_end_time)
-                                        if (!st && !et) return null
-                                        return (
-                                          <span style={{ fontWeight: 400 }}>
-                                            {st ? formatTime(st, locale, timeFormat) : ''}
-                                            {et ? ` – ${formatTime(et, locale, timeFormat)}` : ''}
-                                          </span>
-                                        )
-                                      })()}
-                                      {(() => {
-                                        let meta: any = {}
-                                        try { meta = typeof res.metadata === 'string' ? JSON.parse(res.metadata || '{}') : (res.metadata || {}) } catch { meta = {} }
-                                        if (!meta) return null
-                                        if (meta.airline && meta.flight_number) return <span style={{ fontWeight: 400 }}>{meta.airline} {meta.flight_number}</span>
-                                        if (meta.flight_number) return <span style={{ fontWeight: 400 }}>{meta.flight_number}</span>
-                                        if (meta.train_number) return <span style={{ fontWeight: 400 }}>{meta.train_number}</span>
-                                        return null
-                                      })()}
                                     </div>
+                                    {timeLabel && <span className={tint} style={{ ...chip, fontWeight: 500 }}>{timeLabel}</span>}
+                                    {carrierLabel && <span className={tint} style={{ ...chip, fontWeight: 500 }}>{carrierLabel}</span>}
                                     {hasEndpoints && (
                                       <button
                                         type="button"

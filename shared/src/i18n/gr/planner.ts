@@ -29,8 +29,8 @@ const planner: TranslationStrings = {
   'planner.noEntries': 'Καμία καταχώρηση για αυτή την ημέρα',
   'planner.addPlace': 'Προσθήκη τοποθεσίας/δραστηριότητας',
   'planner.addPlaceShort': '+ Προσθήκη τοποθεσίας/δραστηριότητας',
-  'planner.resPending': 'Κράτηση σε εκκρεμότητα · ',
-  'planner.resConfirmed': 'Κράτηση επιβεβαιωμένη · ',
+  'planner.resPending': 'Κράτηση σε εκκρεμότητα',
+  'planner.resConfirmed': 'Κράτηση επιβεβαιωμένη',
   'planner.notePlaceholder': 'Σημείωση\u2026',
   'planner.noteTimePlaceholder': 'Ώρα (προαιρετικό)',
   'planner.noteExamplePlaceholder':

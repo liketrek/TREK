@@ -29,8 +29,8 @@ const planner: TranslationStrings = {
   'planner.noEntries': 'No hi ha entrades per a aquest dia',
   'planner.addPlace': 'Afegeix un lloc / activitat',
   'planner.addPlaceShort': '+ Afegeix un lloc / activitat',
-  'planner.resPending': 'Reserva pendent · ',
-  'planner.resConfirmed': 'Reserva confirmada · ',
+  'planner.resPending': 'Reserva pendent',
+  'planner.resConfirmed': 'Reserva confirmada',
   'planner.notePlaceholder': 'Nota…',
   'planner.noteTimePlaceholder': 'Hora (opcional)',
   'planner.noteExamplePlaceholder':
