@@ -13,7 +13,10 @@ export function ChatMessages(props: any) {
     <>
       {/* Messages */}
       {messages.length === 0 ? (
-        <EmptyState scene="chat" title={t('collab.chat.empty')} />
+        // flex-1, like the message list it stands in for: without it the empty
+        // state was only as tall as its own content and the composer rode up to
+        // sit right under the mascot, with the rest of the panel left blank.
+        <EmptyState scene="chat" title={t('collab.chat.empty')} className="min-h-0 flex-1" />
       ) : (
         <div ref={scrollRef} onScroll={checkAtBottom} className="chat-scroll" style={{
           flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '8px 14px 4px', WebkitOverflowScrolling: 'touch',
