@@ -309,3 +309,68 @@ describe('airtrailMapper.mapFlightsToMultiLegReservation (#1535)', () => {
     expect(mapFlightsToMultiLegReservation([flight()])).toEqual(mapFlightToReservation(flight()));
   });
 });
+
+// AirTrail 3.12.0 renamed the passenger list from `seats` to `passengers` and
+// moved flightReason from the flight onto each passenger, with no alias either
+// way (#1931). The shapes below are the ones a real 3.12.0 and a real 3.11.1
+// return: each sends its own key and null for the other.
+describe('airtrailMapper — AirTrail 3.12.0 passengers', () => {
+  const newShape = (over: Partial<AirtrailFlightRaw> = {}) =>
+    flight({
+      seats: null as never,
+      flightReason: null,
+      passengers: [{ userId: 'u1', guestName: null, seat: 'window', seatNumber: '12A', seatClass: 'economy', flightReason: 'business' }],
+      ...over,
+    });
+
+  it('reads the seat off passengers', () => {
+    expect(mapFlightToReservation(newShape()).metadata.seat).toBe('12A');
+  });
+
+  it('reads the seat class off passengers', () => {
+    expect(normalizeFlight(newShape()).seatClass).toBe('economy');
+  });
+
+  it('takes the flight reason off the passenger now that the flight has none', () => {
+    expect(mapFlightToReservation(newShape()).metadata.flight_reason).toBe('business');
+  });
+
+  it('prefers the entry belonging to the key owner over a co-passenger', () => {
+    const m = mapFlightToReservation(newShape({
+      passengers: [
+        { userId: null, guestName: 'Plus One', seat: null, seatNumber: '30C', seatClass: null },
+        { userId: 'u1', guestName: null, seat: 'window', seatNumber: '12A', seatClass: 'economy' },
+      ],
+    }));
+    expect(m.metadata.seat).toBe('12A');
+  });
+
+  it('still reads the old shape, so an older instance keeps working', () => {
+    const m = mapFlightToReservation(flight());
+    expect(m.metadata.seat).toBe('12A');
+    expect(m.metadata.flight_reason).toBe('leisure');
+  });
+
+  it('carries the per-leg seat through the multi-leg mapping', () => {
+    const legs = mapFlightsToMultiLegReservation([
+      newShape({ id: 1 }),
+      newShape({ id: 2, passengers: [{ userId: 'u1', guestName: null, seat: null, seatNumber: '3F', seatClass: null }] }),
+    ]).metadata.legs as any[];
+    expect(legs.map(l => l.seat)).toEqual(['12A', '3F']);
+  });
+
+  // The snapshot hash decides whether a pull re-imports a flight. Feeding it from
+  // either shape under the same key keeps an unchanged old-shape flight hashing
+  // exactly as before, so upgrading TREK must not re-sync every flight.
+  it('leaves the hash of an unchanged old-shape flight alone', () => {
+    // Pinned to what the pre-#1931 snapshot produced for this fixture. If this
+    // ever has to be re-pinned, every existing AirTrail flight re-syncs once.
+    expect(canonicalHash(flight())).toBe('81d00fb3b22dffa5575221f73c959f5762e50e20e9c5cf7ecc5a485a1845b358');
+  });
+
+  it('hashes the new shape as the same flight as the old one', () => {
+    const asOld = flight({ flightReason: 'business' });
+    const asNew = newShape();
+    expect(canonicalHash(asNew)).toBe(canonicalHash(asOld));
+  });
+});

@@ -1,4 +1,5 @@
 import { localParts } from '../common/timezoneService';
+import { flightPassengers, ownPassenger } from './airtrail.client';
 import type { AirtrailAirport, AirtrailFlightRaw, AirtrailNamedCode } from './airtrail.client';
 import type { AirtrailFlight } from '@trek/shared';
 
@@ -40,7 +41,7 @@ export function normalizeFlight(raw: AirtrailFlightRaw): AirtrailFlight {
     airline: entityName(raw.airline),
     flightNumber: raw.flightNumber ?? null,
     aircraft: entityCode(raw.aircraft),
-    seatClass: (raw.seats?.find((s) => s.userId) ?? raw.seats?.[0])?.seatClass ?? null,
+    seatClass: ownPassenger(raw)?.seatClass ?? null,
   };
 }
 
@@ -124,7 +125,7 @@ export function mapFlightToReservation(raw: AirtrailFlightRaw): MappedReservatio
     needsReview = 1;
   }
 
-  const seat = raw.seats?.find((s) => s.userId) ?? raw.seats?.[0];
+  const seat = ownPassenger(raw);
   const airlineName = entityName(raw.airline);
   const airlineCode = entityCode(raw.airline);
   const aircraftCode = entityCode(raw.aircraft);
@@ -136,7 +137,9 @@ export function mapFlightToReservation(raw: AirtrailFlightRaw): MappedReservatio
   if (raw.flightNumber) metadata.flight_number = raw.flightNumber;
   if (aircraftCode) metadata.aircraft = aircraftCode;
   if (raw.aircraftReg) metadata.aircraft_reg = raw.aircraftReg;
-  if (raw.flightReason) metadata.flight_reason = raw.flightReason;
+  // 3.12.0 moved the reason onto the passenger; older instances keep it on the flight.
+  const flightReason = raw.flightReason ?? seat?.flightReason ?? null;
+  if (flightReason) metadata.flight_reason = flightReason;
   if (seat?.seatNumber) metadata.seat = seat.seatNumber;
 
   // The flight number already carries the airline prefix (e.g. "SAS983"), so it
@@ -227,7 +230,7 @@ export function mapFlightsToMultiLegReservation(
       needsReview = 1;
     }
 
-    const seat = f.seats?.find((s) => s.userId) ?? f.seats?.[0];
+    const seat = ownPassenger(f);
     const airline = entityName(f.airline);
     legs.push({
       from: airportCode(f.from),
@@ -304,9 +307,9 @@ export function canonicalHash(raw: AirtrailFlightRaw): string {
     flightNumber: raw.flightNumber ?? null,
     aircraft: entityCode(raw.aircraft),
     aircraftReg: raw.aircraftReg ?? null,
-    flightReason: raw.flightReason ?? null,
+    flightReason: raw.flightReason ?? ownPassenger(raw)?.flightReason ?? null,
     note: raw.note ?? null,
-    seats: (raw.seats ?? [])
+    seats: flightPassengers(raw)
       .map((s) => ({
         userId: s.userId ?? null,
         guestName: s.guestName ?? null,

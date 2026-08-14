@@ -11,9 +11,15 @@ import { safeFetch } from '../../utils/ssrfGuard';
  *    param so the key only ever returns its owner's own flights (isolation
  *    holds even if an admin key is pasted).
  *  - GET  /api/flight/get/{id}
- *  - POST /api/flight/save   — `id` present => update, else create. seats[] is
- *    required (>=1). A seat with userId '<USER_ID>' is attributed to the key
- *    owner server-side, so we never need the caller's AirTrail user id.
+ *  - POST /api/flight/save   — `id` present => update, else create. The
+ *    passenger list is required (>=1). An entry with userId '<USER_ID>' is
+ *    attributed to the key owner server-side, so we never need the caller's
+ *    AirTrail user id.
+ *  - AirTrail 3.12.0 renamed that list from `seats` to `passengers` and moved
+ *    flightReason from the flight onto each passenger, with no alias on either
+ *    side (verified against running 3.11.1 and 3.12.0 instances: each returns
+ *    its own key and null for the other). TREK reads and writes both shapes so
+ *    one build works against either version.
  *  - There is no webhook and no updated_at on a flight, so change detection is
  *    snapshot-hash based (see airtrailSync).
  */
@@ -60,6 +66,8 @@ export interface AirtrailSeat {
   seat: string | null;
   seatNumber: string | null;
   seatClass: string | null;
+  /** Per-passenger since 3.12.0; absent on older instances. */
+  flightReason?: string | null;
 }
 
 /** Airline/aircraft come back as joined objects (not bare codes) on a flight. */
@@ -85,9 +93,26 @@ export interface AirtrailFlightRaw {
   flightNumber: string | null;
   aircraft: AirtrailNamedCode | null;
   aircraftReg: string | null;
-  flightReason: string | null;
+  /** Flight-level up to 3.11.x; gone in 3.12.0, where it sits on the passenger. */
+  flightReason?: string | null;
   note: string | null;
-  seats: AirtrailSeat[];
+  /** 3.11.x and older. */
+  seats?: AirtrailSeat[];
+  /** 3.12.0 and newer. */
+  passengers?: AirtrailSeat[];
+}
+
+/**
+ * The passenger list under whichever name this instance uses, and the entry
+ * belonging to the key owner (the one carrying a userId).
+ */
+export function flightPassengers(raw: Pick<AirtrailFlightRaw, 'seats' | 'passengers'>): AirtrailSeat[] {
+  return raw.passengers ?? raw.seats ?? [];
+}
+
+export function ownPassenger(raw: Pick<AirtrailFlightRaw, 'seats' | 'passengers'>): AirtrailSeat | undefined {
+  const people = flightPassengers(raw);
+  return people.find((s) => s.userId) ?? people[0];
 }
 
 /** Write shape accepted by POST /flight/save (airports/airline/aircraft as codes). */
@@ -110,13 +135,21 @@ export interface AirtrailSavePayload {
   aircraftReg?: string | null;
   flightReason?: string | null;
   note?: string | null;
-  seats: Array<{
-    userId: string | null;
-    guestName: string | null;
-    seat: string | null;
-    seatNumber: string | null;
-    seatClass: string | null;
-  }>;
+  /**
+   * Sent under both names on purpose. Neither schema is strict, so each version
+   * validates the key it knows and strips the other one.
+   */
+  seats: AirtrailPassengerWrite[];
+  passengers: AirtrailPassengerWrite[];
+}
+
+export interface AirtrailPassengerWrite {
+  userId: string | null;
+  guestName: string | null;
+  seat: string | null;
+  seatNumber: string | null;
+  seatClass: string | null;
+  flightReason?: string | null;
 }
 
 function apiBase(baseUrl: string): string {

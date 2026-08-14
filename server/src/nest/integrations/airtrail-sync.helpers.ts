@@ -1,5 +1,6 @@
 import { entityCode } from './airtrail.mapper';
-import type { AirtrailFlightRaw, AirtrailSavePayload } from './airtrail.client';
+import { flightPassengers, ownPassenger } from './airtrail.client';
+import type { AirtrailFlightRaw, AirtrailPassengerWrite, AirtrailSavePayload } from './airtrail.client';
 
 /**
  * The pure half of the AirTrail push: turning a TREK reservation plus the flight
@@ -43,26 +44,37 @@ export function buildSavePayload(reservation: any, existing: AirtrailFlightRaw):
   const arr = splitLocal(reservation.reservation_end_time);
   if (!dep.date) return null;
 
-  // Preserve the existing seat manifest (an update replaces all seats); fall back
-  // to the key-owner placeholder so AirTrail attributes it to the connecting user.
-  const seats = (existing.seats ?? []).map((s) => ({
+  // Preserve the existing passenger manifest (an update replaces all of them);
+  // fall back to the key-owner placeholder so AirTrail attributes it to the
+  // connecting user. 3.12.0 renamed the list from seats to passengers, so read
+  // whichever one this instance sent.
+  const seats: AirtrailPassengerWrite[] = flightPassengers(existing).map((s) => ({
     userId: s.userId,
     guestName: s.guestName,
     seat: s.seat,
     seatNumber: s.seatNumber,
     seatClass: s.seatClass,
+    ...(s.flightReason !== undefined ? { flightReason: s.flightReason } : {}),
   }));
   if (seats.length === 0) {
     seats.push({ userId: '<USER_ID>', guestName: null, seat: null, seatNumber: null, seatClass: null });
   }
 
-  // Push the seat the user set in TREK onto their own AirTrail seat (the one with
-  // a userId), leaving any co-passenger seats untouched.
+  // Push the seat the user set in TREK onto their own AirTrail entry (the one
+  // with a userId), leaving any co-passenger seats untouched.
   const seatNumber = typeof meta.seat === 'string' && meta.seat.trim() ? meta.seat.trim() : null;
-  if (seatNumber) {
-    const ownSeat = seats.find((s) => s.userId) ?? seats[0];
-    if (ownSeat) ownSeat.seatNumber = seatNumber;
-  }
+  const ownSeat = seats.find((s) => s.userId) ?? seats[0];
+  if (seatNumber && ownSeat) ownSeat.seatNumber = seatNumber;
+
+  // The reason lives on the flight up to 3.11.x and on the passenger from 3.12.0.
+  // Resolve it once from whichever place this instance kept it, then write it to
+  // both — the version that does not know a key drops it.
+  const reason =
+    (meta.flight_reason as string | undefined) ??
+    existing.flightReason ??
+    ownPassenger(existing)?.flightReason ??
+    null;
+  if (ownSeat) ownSeat.flightReason = reason;
 
   // Spread the existing flight first to preserve every AirTrail-owned field, then
   // overwrite only what TREK manages. `from`/`to`/`airline`/`aircraft` come back
@@ -95,8 +107,11 @@ export function buildSavePayload(reservation: any, existing: AirtrailFlightRaw):
     flightNumber: meta.flight_number ?? existing.flightNumber ?? null,
     aircraft: meta.aircraft ?? entityCode(existing.aircraft) ?? null,
     aircraftReg: meta.aircraft_reg ?? existing.aircraftReg ?? null,
-    flightReason: meta.flight_reason ?? existing.flightReason ?? null,
+    // Flight-level up to 3.11.x, per-passenger from 3.12.0. Write both; each
+    // version keeps the one it knows and strips the other.
+    flightReason: reason,
     note: reservation.notes ?? existing.note ?? null,
     seats,
+    passengers: seats,
   } as AirtrailSavePayload;
 }
