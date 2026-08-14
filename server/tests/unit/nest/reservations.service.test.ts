@@ -301,6 +301,39 @@ describe('ReservationsService (DI-native, real SQL)', () => {
       const rows = svc.listUpcoming(user.id) as { title: string }[];
       expect(rows.map(r => r.title)).toEqual(['Future']);
     });
+
+    // #1934 — a stay covers a range, so it would hold a widget slot for its
+    // whole span. Both ways a hotel can be dated are kept out.
+    it('RESV-SVC-017b: leaves out a hotel dated through its own reservation_time', () => {
+      const { user, trip } = ownerTrip();
+      const hotel = createReservation(testDb, trip.id, { title: 'Hotel', type: 'hotel' });
+      testDb.prepare('UPDATE reservations SET reservation_time = ? WHERE id = ?').run('2999-01-01T10:00:00', hotel.id);
+      const flight = createReservation(testDb, trip.id, { title: 'Flight' });
+      testDb.prepare('UPDATE reservations SET reservation_time = ? WHERE id = ?').run('2999-01-02T10:00:00', flight.id);
+
+      const rows = svc.listUpcoming(user.id) as { title: string }[];
+      expect(rows.map(r => r.title)).toEqual(['Flight']);
+    });
+
+    it('RESV-SVC-017c: leaves out a hotel dated through its day', () => {
+      const { user, trip } = ownerTrip();
+      const day = createDay(testDb, trip.id, { date: '2999-06-01' });
+      createReservation(testDb, trip.id, { title: 'Hotel', type: 'hotel', day_id: day.id });
+
+      const rows = svc.listUpcoming(user.id) as { title: string }[];
+      expect(rows.map(r => r.title)).toEqual([]);
+    });
+
+    // The type column defaults to 'other' but nothing stops a NULL, and a
+    // NULL-unsafe `type != 'hotel'` would silently drop those rows.
+    it('RESV-SVC-017d: a reservation with no type at all still shows', () => {
+      const { user, trip } = ownerTrip();
+      const res = createReservation(testDb, trip.id, { title: 'Untyped' });
+      testDb.prepare('UPDATE reservations SET type = NULL, reservation_time = ? WHERE id = ?').run('2999-01-01T10:00:00', res.id);
+
+      const rows = svc.listUpcoming(user.id) as { title: string }[];
+      expect(rows.map(r => r.title)).toEqual(['Untyped']);
+    });
   });
 
   describe('resyncReservationDays', () => {

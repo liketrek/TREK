@@ -112,11 +112,14 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
     expect((await request(server).get('/api/reservations/upcoming')).status).toBe(401);
   });
 
-  it('200 cross-trip upcoming reservations feed', async () => {
+  it('200 cross-trip upcoming reservations feed, without the hotels (#1934)', async () => {
     db.prepare("INSERT INTO reservations (trip_id, title, type, reservation_time) VALUES (?, 'Flight', 'flight', '2999-01-01T10:00:00')").run(tripId);
+    db.prepare("INSERT INTO reservations (trip_id, title, type, reservation_time) VALUES (?, 'Stay', 'hotel', '2999-01-01T09:00:00')").run(tripId);
     const res = await request(server).get('/api/reservations/upcoming').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
-    expect(res.body.reservations.map((r: { title: string }) => r.title)).toContain('Flight');
+    const titles = res.body.reservations.map((r: { title: string }) => r.title);
+    expect(titles).toContain('Flight');
+    expect(titles).not.toContain('Stay');
   });
 
   it('404 when trip not accessible (reservations)', async () => {

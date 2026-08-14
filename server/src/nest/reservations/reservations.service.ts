@@ -384,6 +384,20 @@ export class ReservationsService {
    * as upcoming when its own time is in the future, or — for timeless entries —
    * when its day falls on or after today. Cancelled bookings are skipped.
    * The default limit (6) matches the legacy inline handler.
+   *
+   * Hotels are left out on purpose (#1934). A stay covers a range rather than a
+   * moment, so a week in one hotel would hold a slot in a six-entry widget for
+   * the whole week and push out the bookings that actually happen on a day. The
+   * accommodation belongs to the day plan, which shows it across its span.
+   *
+   * They also never worked here. A hotel keeps its dates on the linked stay, not
+   * on the reservation: the booking form writes reservation_time = NULL and no
+   * day_id, so a form-created hotel matched neither arm of the date test and was
+   * invisible. The one path that did produce a visible row, the accommodation
+   * panel's auto-created booking, stamps the start day into reservation_time
+   * once and never restamps it, so moving the stay left the widget showing the
+   * old date. Both halves of the report come from reading a hotel's date off
+   * fields hotels do not use.
    */
   listUpcoming(userId: number, limit = 6) {
     const today = new Date().toISOString().slice(0, 10);
@@ -402,6 +416,7 @@ export class ReservationsService {
     WHERE (t.user_id = ? OR tm.user_id IS NOT NULL)
       AND t.is_archived = 0
       AND r.status != 'cancelled'
+      AND COALESCE(r.type, '') != 'hotel'
       AND (
         (r.reservation_time IS NOT NULL AND r.reservation_time >= ?)
         OR (r.reservation_time IS NULL AND d.date IS NOT NULL AND d.date >= ?)
