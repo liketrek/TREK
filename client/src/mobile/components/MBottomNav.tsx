@@ -26,6 +26,7 @@ function useCreateAction(): { label: string; run: () => void } {
   const onJourneyList = useMatch('/journey')
   const onAtlas = useMatch('/atlas')
   const onCollections = useMatch('/collections')
+  const inCollection = useMatch('/collections/:id')
 
   if (inTrip) {
     // The "+" is context-aware per active tab: Bookings → reservation,
@@ -47,8 +48,14 @@ function useCreateAction(): { label: string; run: () => void } {
   if (onAtlas) {
     return { label: t('atlas.searchCountry'), run: () => navigate('/atlas?search=1') }
   }
-  if (onCollections) {
-    return { label: t('collections.addPlace'), run: () => navigate('/collections?create=place') }
+  if (onCollections || inCollection) {
+    // Picking a list moves the route to /collections/:id, so the exact match
+    // alone dropped the "+" through to creating a trip — the one state the
+    // screen is normally used in (#1930). The handoff keeps the id, otherwise
+    // adding would land on "All saved" and the sheet would ask for the list the
+    // user is already looking at.
+    const path = inCollection ? `/collections/${inCollection.params.id}` : '/collections'
+    return { label: t('collections.addPlace'), run: () => navigate(`${path}?create=place`) }
   }
   return { label: t('dashboard.newTrip'), run: () => navigate('/dashboard?create=1') }
 }
