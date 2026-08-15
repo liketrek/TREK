@@ -479,7 +479,7 @@ export default function App() {
             <Route
               key={r.path}
               path={r.path}
-              element={<ProtectedRoute>{r.element}</ProtectedRoute>}
+              element={<ProtectedRoute adminRequired={r.adminOnly}>{r.element}</ProtectedRoute>}
             />
           ))}
           <Route

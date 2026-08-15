@@ -29,6 +29,15 @@ export interface ManagedRoute {
   path: string
   /** Rendered inside the app's ProtectedRoute wrapper, like every other screen. */
   element: ReactElement
+  /**
+   * Refuse the route to anyone but an admin, the same way /admin does.
+   *
+   * Hiding the nav entry is not access control — the path is still typeable, and
+   * a screen about how the install is run should not open for a traveller who
+   * was invited to one trip. Set this alongside `adminOnly` on the matching nav
+   * entry; the two answer different questions.
+   */
+  adminOnly?: boolean
 }
 
 export interface ManagedNavItem {
