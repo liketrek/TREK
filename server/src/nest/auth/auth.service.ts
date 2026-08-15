@@ -231,7 +231,13 @@ export class AuthService {
     // One directory deeper than the legacy src/services location — the extra
     // '../' keeps resolving to the workspace package.json.
     const version: string = readEnv().app.appVersion ?? require('../../../package.json').version;
-    const hasGoogleKey = !!this.db.get("SELECT maps_api_key FROM users WHERE role = 'admin' AND maps_api_key IS NOT NULL AND maps_api_key != '' LIMIT 1");
+    // The operator's key counts too. getMapsKey prefers it over anything in the
+    // users table, so asking the table alone would report "no key" on an install
+    // where every lookup works, and the client would hide the Google features it
+    // is actually able to use.
+    const hasGoogleKey =
+      !!readEnv().maps.placesApiKey ||
+      !!this.db.get("SELECT maps_api_key FROM users WHERE role = 'admin' AND maps_api_key IS NOT NULL AND maps_api_key != '' LIMIT 1");
     const oidcDisplayName = readEnv().oidc.displayName ||
       this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'oidc_display_name'")?.value || null;
     const oidcConfigured = !!(
