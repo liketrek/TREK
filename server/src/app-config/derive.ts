@@ -102,6 +102,24 @@ export function deriveSession(raw: RawEnv) {
   };
 }
 
+/**
+ * Whether this instance is centrally administered: somebody other than its
+ * admin user owns the configuration, the credentials and the upgrade schedule.
+ *
+ * Only a boolean, on purpose. It answers "who configures this install", and the
+ * surfaces that care read it themselves rather than being listed here, so adding
+ * one never touches this file.
+ *
+ * `=== true` so an unset, empty or unparseable value means off. A managed
+ * install sets it deliberately; nothing should be able to switch it on by
+ * accident, and a typo must not silently take settings away from an admin.
+ */
+export function deriveManaged(raw: RawEnv) {
+  return {
+    enabled: parseBool(raw.TREK_MANAGED) === true,
+  };
+}
+
 export function deriveDemo(raw: RawEnv) {
   return {
     enabled: parseBool(raw.DEMO_MODE) === true,
@@ -236,6 +254,7 @@ export function deriveAll(raw: RawEnv) {
     app: deriveApp(raw),
     http: deriveHttp(raw),
     session: deriveSession(raw),
+    managed: deriveManaged(raw),
     demo: deriveDemo(raw),
     adminBootstrap: deriveAdminBootstrap(raw),
     oidc: deriveOidc(raw),

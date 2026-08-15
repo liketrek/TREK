@@ -9,6 +9,7 @@ import { PlatformModule } from './platform/platform.module';
 import { McpTransportModule } from './mcp-transport/mcp-transport.module';
 import { GlobalAuthGuard } from './auth/global-auth.guard';
 import { MfaPolicyGuard } from './auth/mfa-policy.guard';
+import { ManagedGuard } from './common/managed.guard';
 import { WeatherModule } from './weather/weather.module';
 import { HelpModule } from './help/help.module';
 import { AirportsModule } from './airports/airports.module';
@@ -81,6 +82,10 @@ import { RealtimeGatewayModule } from './realtime/realtime-gateway.module';
     // instead of verifying the token a second time, which is what the Express
     // middleware it replaces did on every /api request.
     { provide: APP_GUARD, useClass: MfaPolicyGuard },
+    // Third, and only third: a stranger gets the 401 the two above would have
+    // given them rather than a 403 that confirms the route exists. Inert unless
+    // the instance is centrally administered AND the route carries the marker.
+    { provide: APP_GUARD, useClass: ManagedGuard },
     // Global error-envelope normaliser (DI-registered so it also catches
     // framework-level exceptions like the not-found handler).
     { provide: APP_FILTER, useClass: TrekExceptionFilter },

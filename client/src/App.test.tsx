@@ -387,6 +387,30 @@ describe('App — on-mount effects', () => {
     await waitFor(() => expect(setDemoMode).toHaveBeenCalledWith(true))
   })
 
+  it('FE-COMP-APP-018b: setManaged mirrors the config flag, and defaults to false when it is absent', async () => {
+    server.use(
+      http.get('/api/auth/app-config', () => HttpResponse.json({ managed: true }))
+    )
+    const setManaged = vi.fn()
+    useAuthStore.setState({
+      isLoading: false,
+      isAuthenticated: false,
+      loadUser: vi.fn().mockResolvedValue(undefined),
+      setManaged,
+    })
+    renderApp('/')
+    await waitFor(() => expect(setManaged).toHaveBeenCalledWith(true))
+
+    // An older server that does not send the field must not leave the flag
+    // stuck on from a previous install in the same browser profile.
+    setManaged.mockClear()
+    server.use(
+      http.get('/api/auth/app-config', () => HttpResponse.json({}))
+    )
+    renderApp('/')
+    await waitFor(() => expect(setManaged).toHaveBeenCalledWith(false))
+  })
+
   it('FE-COMP-APP-019: loadSettings is called once the user is authenticated', async () => {
     const loadSettings = vi.fn().mockResolvedValue(undefined)
     seedAuth({ isAuthenticated: true, user: buildUser() })

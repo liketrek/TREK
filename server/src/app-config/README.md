@@ -69,7 +69,7 @@ override these set them at file top, before the SUT import.)
 
 **Runtime-toggled** (read live on every access via `readEnv()` /
 `RuntimeEnvService`; tests mutate these mid-lifetime):
-DEMO_MODE, NODE_ENV, APP_VERSION, APP_URL, TREK_API_DOCS_ENABLED,
+TREK_MANAGED, DEMO_MODE, NODE_ENV, APP_VERSION, APP_URL, TREK_API_DOCS_ENABLED,
 TREK_PLUGINS_ENABLED / _DEV_LINK / _DIR / _DATA_DIR / TREK_PLUGIN_PERMISSIONS,
 OIDC_*, SMTP_*, FORCE_HTTPS, COOKIE_SECURE, HSTS_INCLUDE_SUBDOMAINS,
 ALLOWED_ORIGINS, UNSPLASH_ACCESS_KEY, WEBAUTHN_*, TZ, ADMIN_EMAIL,

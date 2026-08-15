@@ -280,6 +280,11 @@ export class AuthService {
       oidc_display_name: oidcConfigured ? (oidcDisplayName || 'SSO') : undefined,
       require_mfa: requireMfaRow?.value === 'true',
       allowed_file_types: this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'allowed_file_types'")?.value || 'jpg,jpeg,png,gif,webp,heic,pdf,doc,docx,xls,xlsx,txt,csv',
+      // Whether the configuration belongs to whoever operates this install
+      // rather than to its admin. The client uses it to stop offering settings
+      // the server would refuse anyway — it is an honesty flag for the UI, never
+      // the boundary itself, which is the guard and the operator's network.
+      managed: readEnv().managed.enabled,
       demo_mode: isDemo,
       demo_email: isDemo ? DEMO_EMAIL_PRIMARY : undefined,
       demo_password: isDemo ? 'demo12345' : undefined,

@@ -130,6 +130,7 @@ export const envSchema = z.object({
   // Admin / demo
   ADMIN_EMAIL: anyString,
   ADMIN_PASSWORD: anyString,
+  TREK_MANAGED: boolStr,
   DEMO_MODE: boolStr,
   DEMO_ADMIN_USER: anyString,
   DEMO_ADMIN_EMAIL: anyString,

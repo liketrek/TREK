@@ -21,6 +21,14 @@ export class RuntimeEnvService {
     return readEnv().demo.enabled;
   }
 
+  /**
+   * True when somebody other than this instance's admin owns its configuration.
+   * Runtime-toggled like DEMO_MODE, so never cache the result in a field.
+   */
+  isManaged(): boolean {
+    return readEnv().managed.enabled;
+  }
+
   /** True only under exactly NODE_ENV='test' (case-sensitive, like the :memory: DB pick). */
   isTest(): boolean {
     return readEnv().app.isTest;

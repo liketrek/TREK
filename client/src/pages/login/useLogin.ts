@@ -12,6 +12,7 @@ interface AppConfig {
   has_users: boolean
   allow_registration: boolean
   setup_complete: boolean
+  managed?: boolean
   demo_mode: boolean
   oidc_configured: boolean
   oidc_display_name?: string

@@ -244,6 +244,8 @@ export interface GeoJsonFeatureCollection {
 export interface AppConfig {
   has_users: boolean
   allow_registration: boolean
+  /** True when the operator of this install owns its configuration, not the admin */
+  managed?: boolean
   demo_mode: boolean
   oidc_configured: boolean
   oidc_display_name?: string

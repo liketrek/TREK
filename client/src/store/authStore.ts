@@ -38,6 +38,8 @@ interface AuthState {
    *  ?redirect= pointing back at the page they just left. Transient. */
   loggingOut: boolean
   error: string | null
+  /** The operator of this install owns its configuration, not the admin. */
+  managed: boolean
   demoMode: boolean
   devMode: boolean
   isPrerelease: boolean
@@ -63,6 +65,7 @@ interface AuthState {
   updateProfile: (profileData: Partial<User>) => Promise<void>
   uploadAvatar: (file: File) => Promise<AvatarResponse>
   deleteAvatar: () => Promise<void>
+  setManaged: (val: boolean) => void
   setDemoMode: (val: boolean) => void
   setDevMode: (val: boolean) => void
   setIsPrerelease: (val: boolean) => void
@@ -103,6 +106,7 @@ export const useAuthStore = create<AuthState>()(
   authCheckFailed: false,
   loggingOut: false,
   error: null,
+  managed: false,
   demoMode: localStorage.getItem('demo_mode') === 'true',
   devMode: false,
   isPrerelease: false,
@@ -326,6 +330,12 @@ export const useAuthStore = create<AuthState>()(
     await authApi.deleteAvatar()
     set((state) => ({ user: state.user ? { ...state.user, avatar_url: null } : null }))
   },
+
+  // Not persisted, unlike demoMode above: two installs can share a browser
+  // profile, and a stale 'this one is managed' would then take settings away
+  // from an admin on an install that never set the flag. Re-read on every boot
+  // from app-config, which is one request the app makes anyway.
+  setManaged: (val: boolean) => set({ managed: val }),
 
   setDemoMode: (val: boolean) => {
     if (val) localStorage.setItem('demo_mode', 'true')

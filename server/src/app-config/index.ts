@@ -6,6 +6,7 @@ export {
   deriveApp,
   deriveHttp,
   deriveSession,
+  deriveManaged,
   deriveDemo,
   deriveAdminBootstrap,
   deriveOidc,

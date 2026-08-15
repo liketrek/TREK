@@ -571,6 +571,23 @@ describe('getAppConfig', () => {
     expect(cfg.demo_password).toBe('demo12345');
     vi.unstubAllEnvs();
   });
+
+  it('AUTH-DB-052b: managed is false unless the install says otherwise', () => {
+    createUser(testDb);
+    expect(svc.getAppConfig(null).managed).toBe(false);
+  });
+
+  it('AUTH-DB-052c: managed reaches the client, so the UI can stop offering what the server refuses', () => {
+    vi.stubEnv('TREK_MANAGED', 'true');
+    createUser(testDb);
+    const cfg = svc.getAppConfig(null);
+    expect(cfg.managed).toBe(true);
+    // Additive only: the flag says who owns the configuration and changes
+    // nothing else about the instance.
+    expect(cfg.demo_mode).toBe(false);
+    expect(cfg.password_registration).toBe(true);
+    vi.unstubAllEnvs();
+  });
 });
 
 describe('demoLogin', () => {
