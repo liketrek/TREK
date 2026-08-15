@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useCallback, useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router'
 import apiClient, { adminApi, authApi } from '../../api/client'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -24,7 +24,23 @@ export function useAdmin() {
   const devMode = useAuthStore(s => s.devMode)
   const managed = useAuthStore(s => s.managed)
 
-  const [activeTab, setActiveTab] = useState<string>('users')
+  // ?tab= makes a section linkable: a support reply, an onboarding mail or a
+  // bookmark can point at the one panel it is about instead of at the top of a
+  // page with eleven of them. Read once for the initial value and written back
+  // on every change, so the address bar keeps saying where the reader is.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [activeTab, setActiveTabState] = useState<string>(() => searchParams.get('tab') || 'users')
+  const setActiveTab = useCallback((tab: string) => {
+    setActiveTabState(tab)
+    // replace, not push: eleven tabs would otherwise fill the back button with
+    // a history of a single page.
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      if (tab === 'users') next.delete('tab')
+      else next.set('tab', tab)
+      return next
+    }, { replace: true })
+  }, [setSearchParams])
   const [users, setUsers] = useState<AdminUser[]>([])
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
