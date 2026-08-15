@@ -307,7 +307,22 @@ describe('PlaceDetailsColumn — hours and rating', () => {
     })
   }
 
+  // The collapsed row shows the CURRENT day in the place's timezone, so a test
+  // that names a specific line has to say which day it is standing on. Without
+  // this the suite passed Monday to Friday and failed every weekend, which reads
+  // as a broken build rather than a test that forgot to pin its clock.
+  // SELECTION is in Cologne, so midday UTC is safely the same date in Berlin.
+  const pinDay = (iso: string) => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(new Date(iso))
+  }
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('FE-PDC-019: shows only today collapsed, not the whole week', async () => {
+    pinDay('2026-08-12T12:00:00Z') // Wednesday
     withHours()
     renderColumn()
 
@@ -316,6 +331,19 @@ describe('PlaceDetailsColumn — hours and rating', () => {
     await screen.findByText('inspector.openingHours')
     expect(screen.queryAllByText('09:00-18:00')).toHaveLength(1)
     expect(screen.queryByText('10:00-14:00')).not.toBeInTheDocument()
+  })
+
+  it('FE-PDC-019b: the collapsed row follows the day, it is not just the first line', async () => {
+    // The case that used to take the suite down every Saturday. Worth keeping as
+    // a test rather than only pinning 019: it is the assertion that the day
+    // lookup happens at all.
+    pinDay('2026-08-15T12:00:00Z') // Saturday
+    withHours()
+    renderColumn()
+
+    await screen.findByText('inspector.openingHours')
+    expect(screen.queryAllByText('10:00-14:00')).toHaveLength(1)
+    expect(screen.queryByText('09:00-18:00')).not.toBeInTheDocument()
   })
 
   it('FE-PDC-020: opens the full week on click', async () => {
