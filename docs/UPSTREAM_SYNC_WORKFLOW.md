@@ -109,6 +109,9 @@ Record the following in the session or release report:
 
 For UI/data changes, manually verify login, persisted data/uploads, Vacay,
 Obsidian synchronization, and the PWA update path on the private production URL.
+Vacay verification must include a future `PTO` row and a `公共假期` row from
+the read-only `请假计划.md` table, plus a negative check that an unrelated
+Yearly Glance custom event (for example a flight) is not imported as PTO.
 
 ## Lessons from the v3.4.1 integration
 
@@ -120,4 +123,3 @@ Obsidian synchronization, and the PWA update path on the private production URL.
   performed by an authorized GitHub user.
 - A successful deployment is not complete until the exact image digest and
   private production health response are recorded.
-

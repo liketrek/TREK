@@ -258,12 +258,13 @@ export async function updatePlan(planId: number, body: UpdatePlanBody, socketId:
       for (const u of users) {
         const used = (db.prepare("SELECT COUNT(*) as count FROM vacay_entries WHERE user_id = ? AND plan_id = ? AND date LIKE ?").get(u.id, planId, `${yr}-%`) as { count: number }).count;
         const config = db.prepare('SELECT * FROM vacay_user_years WHERE user_id = ? AND plan_id = ? AND year = ?').get(u.id, planId, yr) as VacayUserYear | undefined;
-        const total = (config ? config.vacation_days : 30) + (config ? config.carried_over : 0);
+        const vacationDays = config ? config.vacation_days : 30;
+        const total = vacationDays + (config ? config.carried_over : 0);
         const carry = Math.max(0, total - used);
         db.prepare(`
-          INSERT INTO vacay_user_years (user_id, plan_id, year, vacation_days, carried_over) VALUES (?, ?, ?, 30, ?)
+          INSERT INTO vacay_user_years (user_id, plan_id, year, vacation_days, carried_over) VALUES (?, ?, ?, ?, ?)
           ON CONFLICT(user_id, plan_id, year) DO UPDATE SET carried_over = ?
-        `).run(u.id, planId, nextYr, carry, carry);
+        `).run(u.id, planId, nextYr, vacationDays, carry, carry);
       }
     }
   }
@@ -507,15 +508,17 @@ export function addYear(planId: number, year: number, socketId: string | undefin
     const users = getPlanUsers(planId);
     for (const u of users) {
       let carriedOver = 0;
+      let vacationDays = 30;
+      const prevConfig = db.prepare('SELECT * FROM vacay_user_years WHERE user_id = ? AND plan_id = ? AND year = ?').get(u.id, planId, year - 1) as VacayUserYear | undefined;
+      if (prevConfig) vacationDays = prevConfig.vacation_days;
       if (carryOverEnabled) {
-        const prevConfig = db.prepare('SELECT * FROM vacay_user_years WHERE user_id = ? AND plan_id = ? AND year = ?').get(u.id, planId, year - 1) as VacayUserYear | undefined;
         if (prevConfig) {
           const used = (db.prepare("SELECT COUNT(*) as count FROM vacay_entries WHERE user_id = ? AND plan_id = ? AND date LIKE ?").get(u.id, planId, `${year - 1}-%`) as { count: number }).count;
           const total = prevConfig.vacation_days + prevConfig.carried_over;
           carriedOver = Math.max(0, total - used);
         }
       }
-      db.prepare('INSERT OR IGNORE INTO vacay_user_years (user_id, plan_id, year, vacation_days, carried_over) VALUES (?, ?, ?, 30, ?)').run(u.id, planId, year, carriedOver);
+      db.prepare('INSERT OR IGNORE INTO vacay_user_years (user_id, plan_id, year, vacation_days, carried_over) VALUES (?, ?, ?, ?, ?)').run(u.id, planId, year, vacationDays, carriedOver);
     }
   } catch { /* year already exists */ }
   notifyPlanUsers(planId, socketId, 'vacay:settings');
@@ -632,15 +635,16 @@ export function getStats(planId: number, year: number) {
   const plan = db.prepare('SELECT * FROM vacay_plans WHERE id = ?').get(planId) as VacayPlan | undefined;
   const carryOverEnabled = plan ? !!plan.carry_over_enabled : true;
   const users = getPlanUsers(planId);
-  const obsidianNotes = getObsidianHolidayNotes();
   const obsidianHolidayCount = (db.prepare(
     `SELECT COUNT(*) as count FROM vacay_company_holidays
-      WHERE plan_id = ? AND date LIKE ? AND note IN (${obsidianNotes.map(() => '?').join(', ')})`,
-  ).get(planId, `${year}-%`, ...obsidianNotes) as { count: number }).count;
+      WHERE plan_id = ? AND date LIKE ? AND note IN (?, ?)`,
+  ).get(planId, `${year}-%`, 'Obsidian PTO', 'Obsidian 公共假期') as { count: number }).count;
 
   return users.map(u => {
     const usedEntries = (db.prepare("SELECT COUNT(*) as count FROM vacay_entries WHERE user_id = ? AND plan_id = ? AND date LIKE ?").get(u.id, planId, `${year}-%`) as { count: number }).count;
-    const used = usedEntries + obsidianHolidayCount;
+    // The mounted Obsidian vault belongs to the plan owner. Imported leave is
+    // visible to plan members, but must never consume another member's quota.
+    const used = usedEntries + (u.id === plan?.owner_id ? obsidianHolidayCount : 0);
     const config = db.prepare('SELECT * FROM vacay_user_years WHERE user_id = ? AND plan_id = ? AND year = ?').get(u.id, planId, year) as VacayUserYear | undefined;
     const vacationDays = config ? config.vacation_days : 30;
     const carriedOver = carryOverEnabled ? (config ? config.carried_over : 0) : 0;
@@ -652,9 +656,9 @@ export function getStats(planId: number, year: number) {
     if (nextYearExists && carryOverEnabled) {
       const carry = Math.max(0, remaining);
       db.prepare(`
-        INSERT INTO vacay_user_years (user_id, plan_id, year, vacation_days, carried_over) VALUES (?, ?, ?, 30, ?)
+        INSERT INTO vacay_user_years (user_id, plan_id, year, vacation_days, carried_over) VALUES (?, ?, ?, ?, ?)
         ON CONFLICT(user_id, plan_id, year) DO UPDATE SET carried_over = ?
-      `).run(u.id, planId, year + 1, carry, carry);
+      `).run(u.id, planId, year + 1, vacationDays, carry, carry);
     }
 
     return {
