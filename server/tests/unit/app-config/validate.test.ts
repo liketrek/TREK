@@ -111,6 +111,51 @@ describe('validateEnvAtBoot', () => {
   });
 });
 
+describe('validateEnvAtBoot — centrally administered preconditions', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('MANAGED-BOOT-001: refuses TREK_MANAGED without ENCRYPTION_KEY', () => {
+    // The combination boots fine and is wrong: the at-rest key falls back to a
+    // file in the data volume, and backupService puts that file in every archive
+    // an instance admin can download.
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(() => validateEnvAtBoot({ TREK_MANAGED: '1' })).toThrow(/1 problem/);
+  });
+
+  it('MANAGED-BOOT-002: names the variable, so the fix does not need the source', () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(() => validateEnvAtBoot({ TREK_MANAGED: 'true' })).toThrow();
+    expect(err.mock.calls[0][0]).toMatch(/ENCRYPTION_KEY/);
+  });
+
+  it('MANAGED-BOOT-003: passes once the key is supplied', () => {
+    expect(() =>
+      validateEnvAtBoot({ TREK_MANAGED: '1', ENCRYPTION_KEY: 'a'.repeat(64) }),
+    ).not.toThrow();
+  });
+
+  it('MANAGED-BOOT-004: inert without the switch — a self-hoster keeps the file-based key', () => {
+    // The whole point of the check is that it cannot reach anyone who did not
+    // ask to be centrally administered.
+    expect(() => validateEnvAtBoot({})).not.toThrow();
+    expect(() => validateEnvAtBoot({ TREK_MANAGED: 'off' })).not.toThrow();
+    expect(() => validateEnvAtBoot({ TREK_MANAGED: 'false' })).not.toThrow();
+  });
+
+  it('MANAGED-BOOT-005: reports alongside schema problems rather than instead of them', () => {
+    // Both kinds land in one report: fixing the env should take one pass, not a
+    // restart per problem.
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(() => validateEnvAtBoot({ TREK_MANAGED: '1', PORT: 'not-a-port' })).toThrow(
+      /2 problems/,
+    );
+    expect(err.mock.calls[0][0]).toMatch(/PORT/);
+    expect(err.mock.calls[0][0]).toMatch(/ENCRYPTION_KEY/);
+  });
+});
+
 describe('readEnv', () => {
   it('reads process.env live — a runtime mutation is visible on the next call', () => {
     const before = process.env.DEMO_MODE;
