@@ -28,6 +28,7 @@ import OfflineBanner from './components/Layout/OfflineBanner'
 import { SystemNoticeHost } from './components/SystemNotices/SystemNoticeHost.js'
 // Notice action registrations (side-effect imports):
 import './pages/Trips/noticeActions.js'
+import { managedRoutes } from './managed'
 
 // Every page below loads on demand. The entry chunk used to carry all twenty of
 // them eagerly, so opening /dashboard also paid for the planner, the journal, the
@@ -472,6 +473,15 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          {/* Empty in this repository, and read unconditionally so the public
+              build walks the same path as any other. See client/src/managed. */}
+          {managedRoutes.map(r => (
+            <Route
+              key={r.path}
+              path={r.path}
+              element={<ProtectedRoute>{r.element}</ProtectedRoute>}
+            />
+          ))}
           <Route
             path="/vacay"
             element={

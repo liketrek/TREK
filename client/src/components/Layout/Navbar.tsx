@@ -10,6 +10,7 @@ import { Plane, LogOut, Settings, ChevronDown, Shield, ArrowLeft, Users, Moon, S
 import type { LucideIcon } from 'lucide-react'
 import InAppNotificationBell from './InAppNotificationBell.tsx'
 import { resolvePluginIcon } from '../shared/PluginIcon'
+import { managedNavItems } from '../../managed'
 
 const ADDON_ICONS: Record<string, LucideIcon> = { CalendarDays, Briefcase, Globe, Compass, Bookmark }
 
@@ -151,7 +152,9 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
         >
           {[{ id: '__trips', path: '/dashboard', label: t('nav.myTrips'), Icon: Briefcase },
             ...globalAddons.map(a => ({ id: a.id, path: `/${a.id}`, label: getAddonName(a), Icon: ADDON_ICONS[a.icon] || CalendarDays })),
-            ...pagePlugins.map(p => ({ id: `plugin:${p.id}`, path: `/plugins/${p.id}`, label: p.name, Icon: resolvePluginIcon(p.icon) }))
+            ...pagePlugins.map(p => ({ id: `plugin:${p.id}`, path: `/plugins/${p.id}`, label: p.name, Icon: resolvePluginIcon(p.icon) })),
+            // Empty in this repository — see client/src/managed.
+            ...managedNavItems.map(m => ({ id: `managed:${m.id}`, path: m.path, label: m.label, Icon: m.Icon }))
           ].map(tab => {
             const isActive = location.pathname === tab.path
             return (

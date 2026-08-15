@@ -6,6 +6,7 @@ import { useTranslation } from '../../i18n'
 import { LayoutGrid, CalendarDays, Globe, Compass, Bookmark, Plus } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { resolvePluginIcon } from '../shared/PluginIcon'
+import { managedNavItems } from '../../managed'
 
 const ADDON_NAV: Record<string, { icon: LucideIcon; labelKey: string }> = {
   vacay:       { icon: CalendarDays, labelKey: 'admin.addons.catalog.vacay.name' },
@@ -67,6 +68,8 @@ export default function BottomNav() {
       return nav ? [{ to: `/${addon.id}`, label: t(nav.labelKey), icon: nav.icon }] : []
     }),
     ...pagePlugins.map(p => ({ to: `/plugins/${p.id}`, label: p.name, icon: resolvePluginIcon(p.icon) })),
+    // Empty in this repository — see client/src/managed.
+    ...managedNavItems.map(m => ({ to: m.path, label: m.label, icon: m.Icon })),
   ]
   // Split the items so the raised "+" sits dead centre.
   const splitAt = Math.ceil(items.length / 2)
