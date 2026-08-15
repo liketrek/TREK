@@ -38,6 +38,21 @@ export interface ManagedNavItem {
   label: string
   /** lucide-react, like every other icon in the app — see the theme README. */
   Icon: LucideIcon
+  /**
+   * Hide the entry from everyone but an admin.
+   *
+   * Not cosmetic. What attaches here is the operator's side of the install, and
+   * a trip's other travellers are on this instance as guests of the person who
+   * runs it — showing them an entry about how it is run is noise at best and
+   * confusing at worst. The route behind it still checks for itself; this only
+   * decides who is offered the door.
+   */
+  adminOnly?: boolean
+}
+
+/** Filter for the two nav bars. Exported so both apply the same rule. */
+export function visibleManagedNavItems(isAdmin: boolean): ManagedNavItem[] {
+  return managedNavItems.filter((item) => !item.adminOnly || isAdmin)
 }
 
 /** Extra protected routes. Spread into the router next to the built-in ones. */
