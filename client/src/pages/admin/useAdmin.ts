@@ -121,7 +121,11 @@ export function useAdmin() {
     loadData()
     loadAppConfig()
     loadApiKeys()
-    adminApi.getOidc().then(setOidcConfig).catch(() => {})
+    // Skipped rather than caught when the route is closed to us: the request
+    // still reaches the network, still answers 403, and still prints a red line
+    // in the console of every admin who opens this page. Swallowing the promise
+    // hides it from the code, not from the reader.
+    if (!managed) adminApi.getOidc().then(setOidcConfig).catch(() => {})
     // The operator decides when this instance upgrades, so there is nothing to
     // check and nothing the admin could act on.
     if (managed) return
