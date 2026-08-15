@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { MASKED_SETTING_VALUE, normalizeAppearance } from '@trek/shared';
+import { readEnv } from '../../app-config';
 
 const ENCRYPTED_SETTING_KEYS = new Set(['webhook_url', 'ntfy_token', 'mapbox_access_token', 'llm_api_key']);
 // Encrypted keys that are masked (••••••••) when returned to the client.
@@ -202,6 +203,20 @@ export class SettingsService {
       }
       merged[key] = value;
     }
+
+    // On a centrally administered install the map credential comes with the
+    // instance, so it is injected here rather than stored per user: the token is
+    // the operator's, it is a public pk.* that has to reach the browser anyway,
+    // and nobody should be able to save a different one over it. GL is the
+    // default there too, since a token is always present.
+    const managedMaps = readEnv().maps;
+    if (readEnv().managed.enabled && managedMaps.mapboxToken) {
+      merged.mapbox_access_token = managedMaps.mapboxToken;
+      if (!merged.map_provider || merged.map_provider === 'leaflet') {
+        merged.map_provider = 'mapbox-gl';
+      }
+    }
+
     return merged;
   }
 

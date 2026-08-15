@@ -132,6 +132,8 @@ export function deriveMaps(raw: RawEnv) {
   return {
     placesApiBase: raw.PLACES_API_BASE || undefined,
     placesApiKey: raw.PLACES_API_KEY || undefined,
+    /** Public pk.* token shipped with a managed instance; reaches the browser by design. */
+    mapboxToken: raw.MAPBOX_ACCESS_TOKEN || undefined,
   };
 }
 

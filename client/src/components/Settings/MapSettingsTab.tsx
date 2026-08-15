@@ -20,6 +20,7 @@ import {
   normalizeStyleForProvider,
   type GlMapProvider,
 } from '../Map/glProviders'
+import { useAuthStore } from '../../store/authStore'
 
 interface MapPreset {
   name: string
@@ -161,6 +162,7 @@ export default function MapSettingsTab(): React.ReactElement {
   const [saving, setSaving] = useState(false)
   const [provider, setProvider] = useState<Provider>(initialProvider)
   const [mapTileUrl, setMapTileUrl] = useState<string>(settings.map_tile_url || '')
+  const managed = useAuthStore((s) => s.managed)
   const [mapboxToken, setMapboxToken] = useState<string>(settings.mapbox_access_token || '')
   const [mapboxStyle, setMapboxStyle] = useState<string>(styleForProvider(initialProvider, slotStyle(initialProvider, settings)))
   const [mapbox3d, setMapbox3d] = useState<boolean>(settings.mapbox_3d_enabled !== false)
@@ -322,7 +324,9 @@ export default function MapSettingsTab(): React.ReactElement {
       {/* GL settings */}
       {provider !== 'leaflet' && (
         <div className="space-y-3">
-          {provider === 'mapbox-gl' && (
+          {/* The token comes with the instance on a managed install, injected when the
+              settings are read. A field here would only let somebody save a worse one. */}
+          {provider === 'mapbox-gl' && !managed && (
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.mapMapboxToken')}</label>
             <input

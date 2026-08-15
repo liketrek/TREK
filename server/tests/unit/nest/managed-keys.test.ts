@@ -56,6 +56,7 @@ describe('managed key assignment', () => {
       'llm_model',
       'llm_multimodal',
       'llm_provider',
+      'mapbox_access_token',
       'maps_api_key',
       'oidc_login',
       'oidc_registration',
@@ -72,11 +73,12 @@ describe('managed key assignment', () => {
     ]);
   });
 
-  it('MANAGED-KEYS-006: mapbox_access_token stays with the customer', () => {
-    // It reads like an operator credential and is not one: the customer pays for
-    // their own Mapbox. Pinned because the next reader will want to move it.
-    expect(isManagedLockedKey('mapbox_access_token')).toBe(false);
-    expect(customer.has('mapbox_access_token')).toBe(true);
+  it("MANAGED-KEYS-006: mapbox_access_token is the operator's, and reaches the browser by design", () => {
+    // The one locked key whose value is meant to be public: a managed instance
+    // ships the operator's pk.* token, injected when settings are read. Locked so
+    // a per-user save cannot land on top of it and break that user's map.
+    expect(isManagedLockedKey('mapbox_access_token')).toBe(true);
+    expect(customer.has('mapbox_access_token')).toBe(false);
   });
 });
 

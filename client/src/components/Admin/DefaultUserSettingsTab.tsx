@@ -18,6 +18,7 @@ import {
   styleSettingKey,
   type GlMapProvider,
 } from '../Map/glProviders'
+import { useAuthStore } from '../../store/authStore'
 
 const MAP_PRESETS = [
   { name: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' },
@@ -108,6 +109,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
   const [defaults, setDefaults] = useState<Defaults>({})
   const [loaded, setLoaded] = useState(false)
   const [mapTileUrl, setMapTileUrl] = useState('')
+  const managed = useAuthStore((s) => s.managed)
   const [mapboxToken, setMapboxToken] = useState('')
   const [mapboxStyle, setMapboxStyle] = useState('')
 
@@ -379,7 +381,9 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
 
         {mapProvider !== 'leaflet' && (
           <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {mapProvider === 'mapbox-gl' && (
+            {/* The token comes with the instance on a managed install, injected when the
+              settings are read. A field here would only let somebody save a worse one. */}
+            {mapProvider === 'mapbox-gl' && !managed && (
             <div>
               <label className="block text-sm font-medium mb-1.5 text-content-secondary">
                 {t('admin.defaultSettings.mapboxToken')}

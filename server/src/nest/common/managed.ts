@@ -65,9 +65,10 @@ export function isManagedBlocked(env: RuntimeEnvService): boolean {
  * but the filter matches on name and they are the same kind of value, so
  * splitting them into a second mechanism would only mean two things to forget.
  *
- * Note what is deliberately absent: mapbox_access_token looks like an operator
- * credential and is not one. The customer pays for their own Mapbox, so the map
- * tab stays theirs.
+ * mapbox_access_token is in here for the same reason as the rest, though it is
+ * the one that reaches the browser: a managed instance ships with the operator's
+ * public pk.* token, injected when the settings are read, and a per-user value
+ * saved over it would only break the map for that user.
  */
 export const MANAGED_LOCKED_SETTING_KEYS = [
   'llm_api_key',
@@ -75,6 +76,7 @@ export const MANAGED_LOCKED_SETTING_KEYS = [
   'llm_model',
   'llm_multimodal',
   'llm_provider',
+  'mapbox_access_token',
   'maps_api_key',
   'oidc_login',
   'oidc_registration',
@@ -123,7 +125,6 @@ export const MANAGED_CUSTOMER_KEYS = [
   'map_provider',
   'map_tile_url',
   'mapbox_3d_enabled',
-  'mapbox_access_token',
   'mapbox_quality_mode',
   'mapbox_style',
   'maplibre_style',
