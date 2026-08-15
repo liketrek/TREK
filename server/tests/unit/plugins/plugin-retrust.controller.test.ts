@@ -20,7 +20,7 @@ import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.s
 import { PluginRegistryService, RegistryError } from '../../../src/nest/plugins/registry/registry.service';
 import { PluginsService } from '../../../src/nest/plugins/plugins.service';
 import { TrekExceptionFilter } from '../../../src/nest/common/trek-exception.filter';
-import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 
 const ADMIN = { id: 1 } as { id: number };
 const REQ = { headers: {}, socket: {} } as never;

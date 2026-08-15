@@ -28,6 +28,9 @@ const baseCtx = {
   // Threaded in by the caller since the addons.bridge import left this module;
   // false keeps every case below reading as it did.
   addonEnabled: () => false,
+  // The ordinary install, so every case below is unaffected by the flag; the
+  // managed condition itself is exercised in its own describe block at the end.
+  managed: false,
 };
 
 describe('firstLogin', () => {
@@ -110,5 +113,20 @@ describe('addonEnabled', () => {
     expect(evaluate(notice, { ...baseCtx, addonEnabled: (id) => id === 'journey' })).toBe(true);
     expect(evaluate(notice, { ...baseCtx, addonEnabled: (id) => id === 'vacay' })).toBe(false);
     expect(evaluate(notice, baseCtx)).toBe(false);
+  });
+});
+
+describe('managed', () => {
+  it('matches on the value asked for, in both directions', () => {
+    // Both directions on purpose: the registry uses `is: false` to keep a notice
+    // away from a centrally administered install, and a notice that only ever
+    // shows there would use `is: true`.
+    const wantsSelfRun = noticeWith({ kind: 'managed', is: false });
+    const wantsManaged = noticeWith({ kind: 'managed', is: true });
+
+    expect(evaluate(wantsSelfRun, { ...baseCtx, managed: false })).toBe(true);
+    expect(evaluate(wantsSelfRun, { ...baseCtx, managed: true })).toBe(false);
+    expect(evaluate(wantsManaged, { ...baseCtx, managed: true })).toBe(true);
+    expect(evaluate(wantsManaged, { ...baseCtx, managed: false })).toBe(false);
   });
 });

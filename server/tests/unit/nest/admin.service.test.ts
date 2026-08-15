@@ -76,6 +76,7 @@ import { NotificationsService } from '../../../src/nest/notifications/notificati
 import { AdminService } from '../../../src/nest/admin/admin.service';
 import { VersionCheckJob } from '../../../src/nest/admin/version-check.job';
 import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { __clearVersionCacheForTests } from '../../../src/nest/admin/admin.helpers';
 import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
 import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
@@ -485,6 +486,7 @@ describe('updateAddon', () => {
 
 describe('version-check job', () => {
   const registrarStub = { isEnabled: () => true, register: vi.fn(() => true), unregister: vi.fn() } as unknown as CronRegistrarService;
+  const envStub = { isManaged: () => false } as unknown as RuntimeEnvService;
 
   it('VCJOB-001 — the cron tick notifies and shares the module-scoped version cache with the route', async () => {
     createAdmin(testDb);
@@ -496,7 +498,7 @@ describe('version-check job', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    await new VersionCheckJob(svc, registrarStub).tick();
+    await new VersionCheckJob(svc, registrarStub, envStub).tick();
 
     const notified = testDb
       .prepare('SELECT value FROM app_settings WHERE key = ?')

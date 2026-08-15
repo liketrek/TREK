@@ -44,7 +44,11 @@ describe('VersionCheckJob', () => {
 
   it('AJOB-003 — a throwing check is contained to the Version check log line', async () => {
     const admin = { checkAndNotifyVersion: vi.fn().mockRejectedValue(new Error('github down')) } as unknown as AdminService;
-    const job = new VersionCheckJob(admin, registrarStub() as unknown as CronRegistrarService);
+    const job = new VersionCheckJob(
+      admin,
+      registrarStub() as unknown as CronRegistrarService,
+      { isManaged: () => false } as unknown as RuntimeEnvService,
+    );
     await expect(job.tick()).resolves.toBeUndefined();
     expect(logMock.logError).toHaveBeenCalledWith('Version check: github down');
   });

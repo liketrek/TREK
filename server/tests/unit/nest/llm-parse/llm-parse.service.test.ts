@@ -24,7 +24,7 @@ vi.mock('../../../../src/nest/llm-parse/router/extraction-router', () => ({ rout
 
 import { LlmParseService } from '../../../../src/nest/llm-parse/llm-parse.service';
 import type { LlmConfigResolver } from '../../../../src/nest/llm-parse/llm-config.resolver';
-import type { RuntimeEnvService } from '../../../../../src/nest/app-config/runtime-env.service';
+import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
 
 const cfg = (over: Record<string, unknown> = {}) => ({ provider: 'openai', model: 'm', multimodal: false, ...over });
 const llmConfigStub = { resolve: resolveLlmConfig } as unknown as LlmConfigResolver;

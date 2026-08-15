@@ -29,7 +29,7 @@ import type { AutoBackupJob } from '../../../src/nest/backup/auto-backup.job';
 import type { AuditService } from '../../../src/nest/audit/audit.service';
 import * as backupSvc from '../../../src/nest/backup/backup.impl';
 import type { User } from '../../../src/types';
-import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 
 const user = { id: 1, role: 'admin', email: 'a@example.test' } as User;
 const req = { ip: '1.2.3.4', headers: {} } as Request;

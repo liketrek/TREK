@@ -16,7 +16,7 @@ vi.mock('../../../src/systemNotices/service', () => ({
 
 import { SystemNoticesService } from '../../../src/nest/system-notices/system-notices.service';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 
 const isAddonEnabled = vi.fn((id: string) => id === 'journey');
 const svc = new SystemNoticesService({ isAddonEnabled } as unknown as AddonsService, { isManaged: () => false } as unknown as RuntimeEnvService);

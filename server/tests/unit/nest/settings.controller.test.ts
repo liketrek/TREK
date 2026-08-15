@@ -4,7 +4,7 @@ import { HttpException } from '@nestjs/common';
 import { SettingsController } from '../../../src/nest/settings/settings.controller';
 import type { SettingsService } from '../../../src/nest/settings/settings.service';
 import type { User } from '../../../src/types';
-import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 
 const user = { id: 1, role: 'user', email: 'u@example.test' } as User;
 

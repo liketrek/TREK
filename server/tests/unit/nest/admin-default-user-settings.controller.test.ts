@@ -11,7 +11,7 @@ import type { SettingsService } from '../../../src/nest/settings/settings.servic
 import type { AuditService } from '../../../src/nest/audit/audit.service';
 import type { User } from '../../../src/types';
 import { expectRegisteredController } from '../../helpers/module-providers';
-import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 
 const user = { id: 1, role: 'admin' } as User;
 const req = { headers: {}, socket: {} } as never;

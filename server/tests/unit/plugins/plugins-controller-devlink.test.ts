@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import { PluginsController } from '../../../src/nest/plugins/plugins.controller';
 import { PluginConsentRequired } from '../../../src/nest/plugins/plugin-runtime.service';
-import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ctrl = (runtime: any) => new PluginsController({} as any, runtime, {} as any, { isManaged: () => false } as unknown as RuntimeEnvService);
