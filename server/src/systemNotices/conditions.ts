@@ -10,6 +10,8 @@ interface ConditionContext {
    * its injected AddonsService) so this plain module carries no bridge import.
    */
   addonEnabled: (addonId: string) => boolean;
+  /** True when somebody other than this install's admin owns its configuration. */
+  managed: boolean;
 }
 
 // Custom predicate registry — extensible without modifying this file
@@ -53,6 +55,9 @@ function evaluateOne(condition: NoticeCondition, ctx: ConditionContext): boolean
 
     case 'addonEnabled':
       return ctx.addonEnabled(condition.addonId);
+
+    case 'managed':
+      return ctx.managed === condition.is;
 
     case 'custom': {
       const fn = customPredicates.get(condition.id);

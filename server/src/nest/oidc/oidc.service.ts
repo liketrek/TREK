@@ -13,6 +13,7 @@ import { TripMembershipService } from '../trip-membership/trip-membership.servic
 import { setAuthCookie } from '../common/cookie';
 import { AuthService } from '../auth/auth.service';
 import { DatabaseService } from '../database/database.service';
+import { safeFetchAdminConfigured } from '../../utils/ssrfGuard';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -271,7 +272,7 @@ export class OidcService implements OnModuleDestroy {
     if (cached && Date.now() - cached.fetchedAt < DISCOVERY_TTL) {
       return cached.doc;
     }
-    const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    const res = await safeFetchAdminConfigured(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (!res.ok) throw new Error('Failed to fetch OIDC discovery document');
     assertResponseSize(res);
     const parsed: unknown = await res.json();
@@ -355,12 +356,14 @@ export class OidcService implements OnModuleDestroy {
       client_secret: clientSecret,
     });
     if (codeVerifier) body.set('code_verifier', codeVerifier);
-    const tokenRes = await fetch(doc.token_endpoint, {
+    // maxRedirects 0: following one would hand client_secret to a second host,
+    // and the platform default of 'follow' does exactly that today.
+    const tokenRes = await safeFetchAdminConfigured(doc.token_endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body,
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    });
+    }, 0);
     assertResponseSize(tokenRes);
     // Error responses are still parsed on purpose — callers branch on _ok/_status.
     const parsed: unknown = await tokenRes.json();
@@ -375,7 +378,7 @@ export class OidcService implements OnModuleDestroy {
   // -------------------------------------------------------------------------
 
   async getUserInfo(userinfoEndpoint: string, accessToken: string): Promise<OidcUserInfo> {
-    const res = await fetch(userinfoEndpoint, {
+    const res = await safeFetchAdminConfigured(userinfoEndpoint, {
       headers: { Authorization: `Bearer ${accessToken}` },
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
@@ -393,7 +396,7 @@ export class OidcService implements OnModuleDestroy {
   private async fetchJwks(jwksUri: string): Promise<Array<Record<string, unknown>>> {
     const cached = this.jwksCache.get(jwksUri);
     if (cached && Date.now() - cached.fetchedAt < JWKS_TTL_MS) return cached.keys;
-    const res = await fetch(jwksUri, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    const res = await safeFetchAdminConfigured(jwksUri, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`JWKS fetch failed: HTTP ${res.status}`);
     assertResponseSize(res);
     const json: unknown = await res.json();

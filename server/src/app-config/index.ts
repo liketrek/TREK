@@ -7,6 +7,7 @@ export {
   deriveHttp,
   deriveSession,
   deriveManaged,
+  deriveMaps,
   deriveDemo,
   deriveAdminBootstrap,
   deriveOidc,

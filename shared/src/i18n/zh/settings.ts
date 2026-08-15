@@ -171,6 +171,10 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': '功能建议',
   'settings.about.featureRequestHint': '建议一个新功能',
   'settings.about.wikiHint': '文档和指南',
+  'settings.about.descriptionManaged':
+    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+  'settings.about.sourceTitle': 'Source code',
+  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': '月度支持者',
   'settings.about.supporters.title': '与 TREK 同行的伙伴',
   'settings.about.supporters.subtitle':

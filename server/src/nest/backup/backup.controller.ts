@@ -28,6 +28,8 @@ import { AutoBackupSettingsDto } from './backup.dto';
 import { getClientIp } from '../audit/client-ip';
 import { AuditService } from '../audit/audit.service';
 import { getUploadTmpDir, MAX_BACKUP_UPLOAD_SIZE } from './backup.impl';
+import { ManagedForbidden, isManagedBlocked, MANAGED_FORBIDDEN_ERROR } from '../common/managed';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
 
 const UPLOAD = {
   dest: getUploadTmpDir(),
@@ -54,6 +56,7 @@ export class BackupController {
     private readonly backup: BackupService,
     private readonly audit: AuditService,
     private readonly autoBackup: AutoBackupJob,
+    private readonly env: RuntimeEnvService,
   ) {}
 
   @Get('list')
@@ -91,6 +94,7 @@ export class BackupController {
     res.download(this.backup.backupFilePath(filename), filename);
   }
 
+  @ManagedForbidden('a restore replaces database and uploads, and the operator owns the recovery point')
   @Post('restore/:filename')
   @HttpCode(200) // Express answers restore with res.json (200).
   async restore(@CurrentUser() user: User, @Param('filename') filename: string, @Req() req: Request) {
@@ -113,10 +117,21 @@ export class BackupController {
     }
   }
 
+  @ManagedForbidden(
+    'restoring from an uploaded archive replaces the database and the encryption key',
+    { enforcedInHandler: true },
+  )
   @Post('upload-restore')
   @HttpCode(200) // Express answers upload-restore with res.json (200).
   @UseInterceptors(FileInterceptor('backup', UPLOAD))
   async uploadRestore(@CurrentUser() user: User, @UploadedFile() file: Express.Multer.File | undefined, @Req() req: Request) {
+    // Checked here rather than in the guard: a guard runs before the multipart
+    // parser, so throwing there leaves the body unread and the client sees an
+    // ECONNRESET instead of this 403 (PROFILE-015). The marker above still puts
+    // the route in the boot-gate inventory.
+    if (isManagedBlocked(this.env)) {
+      throw new HttpException(MANAGED_FORBIDDEN_ERROR, 403);
+    }
     if (!file) {
       throw new HttpException({ error: 'No file uploaded' }, 400);
     }
@@ -147,6 +162,7 @@ export class BackupController {
     }
   }
 
+  @ManagedForbidden('the operator schedules backups off-volume; a second schedule inside it is not one')
   @Put('auto-settings')
   updateAutoSettings(@CurrentUser() user: User, @Body() body: AutoBackupSettingsDto, @Req() req: Request) {
     try {

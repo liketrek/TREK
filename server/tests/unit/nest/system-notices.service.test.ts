@@ -16,9 +16,10 @@ vi.mock('../../../src/systemNotices/service', () => ({
 
 import { SystemNoticesService } from '../../../src/nest/system-notices/system-notices.service';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
 
 const isAddonEnabled = vi.fn((id: string) => id === 'journey');
-const svc = new SystemNoticesService({ isAddonEnabled } as unknown as AddonsService);
+const svc = new SystemNoticesService({ isAddonEnabled } as unknown as AddonsService, { isManaged: () => false } as unknown as RuntimeEnvService);
 
 beforeEach(() => {
   mockGetActive.mockReset();
@@ -30,7 +31,7 @@ describe('SystemNoticesService', () => {
   it('getActiveFor threads a live addonEnabled check over the injected AddonsService', () => {
     mockGetActive.mockReturnValue([]);
     svc.getActiveFor(7);
-    expect(mockGetActive).toHaveBeenCalledWith(7, expect.any(Function));
+    expect(mockGetActive).toHaveBeenCalledWith(7, expect.any(Function), false);
     const addonEnabled = mockGetActive.mock.calls[0][1] as (id: string) => boolean;
     expect(addonEnabled('journey')).toBe(true);
     expect(addonEnabled('vacay')).toBe(false);
@@ -51,10 +52,10 @@ describe('SystemNoticesService', () => {
     vi.resetModules();
     vi.doMock('../../../src/nest/addons/addons.service', () => ({ AddonsService: undefined }));
     const { SystemNoticesService: Reloaded } = await import('../../../src/nest/system-notices/system-notices.service');
-    const inst = new Reloaded({ isAddonEnabled } as unknown as AddonsService);
+    const inst = new Reloaded({ isAddonEnabled } as unknown as AddonsService, { isManaged: () => false } as unknown as RuntimeEnvService);
     mockGetActive.mockReturnValue([]);
     inst.getActiveFor(1);
-    expect(mockGetActive).toHaveBeenCalledWith(1, expect.any(Function));
+    expect(mockGetActive).toHaveBeenCalledWith(1, expect.any(Function), false);
     vi.doUnmock('../../../src/nest/addons/addons.service');
   });
 });

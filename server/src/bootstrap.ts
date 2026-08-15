@@ -14,6 +14,7 @@ import { setupApiDocs } from './nest/platform/api-docs';
 import { MCP_METADATA_MIDDLEWARE } from './nest/platform/mcp-metadata.middleware';
 import { validateBodyContracts } from './nest/common/validate-body-contracts';
 import { validateRouteGuards } from './nest/common/validate-route-guards';
+import { validateManagedRoutes } from './nest/common/validate-managed-routes';
 import { TrekWsAdapter } from './nest/realtime/trek-ws.adapter';
 
 /**
@@ -129,5 +130,10 @@ export async function buildApp(): Promise<INestApplication> {
   // session must carry @Public() with a reason AND be on the reviewed list.
   // Default-deny protects what exists; this is what keeps the exemptions honest.
   validateRouteGuards(app);
+  // And on the other direction of the same question: a route that a centrally
+  // administered install withholds from its own admin must say why, and be on a
+  // list somebody reviewed. Runs in every e2e harness because they share this
+  // builder, so a forgotten marker fails in CI rather than at a customer.
+  validateManagedRoutes(app);
   return app;
 }

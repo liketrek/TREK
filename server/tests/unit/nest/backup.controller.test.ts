@@ -29,6 +29,7 @@ import type { AutoBackupJob } from '../../../src/nest/backup/auto-backup.job';
 import type { AuditService } from '../../../src/nest/audit/audit.service';
 import * as backupSvc from '../../../src/nest/backup/backup.impl';
 import type { User } from '../../../src/types';
+import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
 
 const user = { id: 1, role: 'admin', email: 'a@example.test' } as User;
 const req = { ip: '1.2.3.4', headers: {} } as Request;
@@ -42,7 +43,7 @@ const audit = { writeAudit } as unknown as AuditService;
 function job(o: Partial<AutoBackupJob> = {}): AutoBackupJob {
   return { getAutoSettings: vi.fn(), updateAutoSettings: vi.fn(), start: vi.fn(), ...o } as unknown as AutoBackupJob;
 }
-const bc = (s: BackupService, j: AutoBackupJob = job()) => new BackupController(s, audit, j);
+const bc = (s: BackupService, j: AutoBackupJob = job()) => new BackupController(s, audit, j, { isManaged: () => false } as unknown as RuntimeEnvService);
 
 function svc(o: Partial<BackupService> = {}): BackupService {
   return {

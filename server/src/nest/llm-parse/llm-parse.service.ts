@@ -7,6 +7,7 @@ import { isPdf, extractText } from './text-extract';
 import { routeExtraction, detectFlightNumbers } from './router/extraction-router';
 import { Injectable } from '@nestjs/common';
 import { kiReservationSchema } from '@trek/shared';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
 
 const MIME_BY_EXT: Record<string, string> = {
   '.pdf': 'application/pdf',
@@ -26,7 +27,10 @@ export interface LlmParseResult {
  */
 @Injectable()
 export class LlmParseService {
-  constructor(private readonly llmConfig: LlmConfigResolver) {}
+  constructor(
+    private readonly llmConfig: LlmConfigResolver,
+    private readonly env: RuntimeEnvService,
+  ) {}
 
   /** True when the addon is enabled AND a usable config resolves for this user. */
   isAvailable(userId: number): boolean {
@@ -64,7 +68,14 @@ export class LlmParseService {
         const MAX_EXTRACT_CHARS =
           config.provider !== 'local' ? 4000 : detectFlightNumbers(input.text).length > 0 ? 16000 : 6000;
         if (input.text.length > MAX_EXTRACT_CHARS) input.text = input.text.slice(0, MAX_EXTRACT_CHARS);
-        console.debug(`[DEBUG] Extracted text from ${file.originalName} (${input.text.length} chars):\n`, input.text);
+        // The extracted text IS the booking: traveller name, address, booking
+        // reference. On a centrally administered install that would land in the
+        // operator's log, which is a processing nobody asked for and nobody needs.
+        if (this.env.isManaged()) {
+          console.debug(`[DEBUG] Extracted text from ${file.originalName} (${input.text.length} chars)`);
+        } else {
+          console.debug(`[DEBUG] Extracted text from ${file.originalName} (${input.text.length} chars):\n`, input.text);
+        }
         if (!input.text.trim()) {
           return {
             kiItems: [],
@@ -104,7 +115,9 @@ export class LlmParseService {
     let raw: Record<string, unknown>[];
     try {
       raw = await createLlmClient(config).extract(input);
-      console.debug('[DEBUG] Raw LLM Response: ', raw);
+      // Same reason: the model answers with the fields it read out of the document.
+      if (this.env.isManaged()) console.debug(`[DEBUG] LLM response: ${raw.length} item(s)`);
+      else console.debug('[DEBUG] Raw LLM Response: ', raw);
     } catch (err) {
       console.error(`[llm-parse] AI parsing failed for "${file.originalName}" (provider=${config.provider}):`, err instanceof Error ? err.message : err);
       return {

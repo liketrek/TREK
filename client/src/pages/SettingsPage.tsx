@@ -24,7 +24,7 @@ export default function SettingsPage(): React.ReactElement {
 function SettingsPageDesktop(): React.ReactElement {
   const { t } = useTranslation()
   // Page = wiring container: addon/version loading + active-tab state in the hook.
-  const { hasIntegrations, appVersion, activeTab, setActiveTab } = useSettings()
+  const { hasIntegrations, appVersion, activeTab, setActiveTab, managed } = useSettings()
   const hasPlugins = usePluginStore(s => s.plugins.length > 0)
 
   const tabs: PageSidebarTab[] = [
@@ -65,7 +65,7 @@ function SettingsPageDesktop(): React.ReactElement {
             tabs={tabs}
             activeTab={activeTab}
             onTabChange={setActiveTab}
-            footer={appVersion ? `v${appVersion} · self-hosted` : 'self-hosted'}
+            footer={managed ? (appVersion ? `v${appVersion}` : '') : (appVersion ? `v${appVersion} · self-hosted` : 'self-hosted')}
           >
             {activeTab === 'display' && <DisplaySettingsTab />}
             {activeTab === 'appearance' && <AppearanceSettingsTab />}

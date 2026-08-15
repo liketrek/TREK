@@ -56,7 +56,7 @@ vi.mock('../../../src/demo/demo-reset', () => ({
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createAdmin, createInviteToken } from '../../helpers/factories';
+import { createUser, createUserWithMfa, createAdmin, createInviteToken } from '../../helpers/factories';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { AddonsService } from '../../../src/nest/addons/addons.service';
@@ -526,4 +526,111 @@ describe('admin quirk fixes (post-fold)', () => {
   });
 
 
+});
+
+// ── What an admin password reset ends, and what an ordinary edit must not ─────
+
+const pv = (id: number): number =>
+  (testDb.prepare('SELECT password_version FROM users WHERE id = ?').get(id) as { password_version: number | null })
+    ?.password_version ?? 0;
+
+const mcpTokenCount = (id: number): number =>
+  (testDb.prepare('SELECT COUNT(*) AS n FROM mcp_tokens WHERE user_id = ?').get(id) as { n: number }).n;
+
+describe('admin password reset revokes what an intruder already holds', () => {
+  it('ADMIN-SVC-080 — setting a password bumps password_version, so existing cookies stop working', () => {
+    // An admin sets somebody else's password for one reason: the account is
+    // believed compromised. Without the bump, verifyJwtAndLoadUser keeps
+    // accepting every cookie the intruder holds, and the one action taken to
+    // lock them out is the one action that did not.
+    const { user } = createUser(testDb);
+    const before = pv(user.id);
+
+    updateUser(String(user.id), { password: 'ANewStrongPass123!' });
+
+    expect(pv(user.id)).toBe(before + 1);
+  });
+
+  it('ADMIN-SVC-081 — and clears the MCP tokens, which the version bump does not reach', () => {
+    const { user } = createUser(testDb);
+    testDb.prepare("INSERT INTO mcp_tokens (user_id, token_hash, token_prefix, name) VALUES (?, 'hash', 'trek_ab', 'cli')").run(user.id);
+
+    updateUser(String(user.id), { password: 'ANewStrongPass123!' });
+
+    expect(mcpTokenCount(user.id)).toBe(0);
+  });
+
+  it('ADMIN-SVC-082 — renaming a user touches neither, so an ordinary edit stays ordinary', () => {
+    const { user } = createUser(testDb);
+    const before = pv(user.id);
+    testDb.prepare("INSERT INTO mcp_tokens (user_id, token_hash, token_prefix, name) VALUES (?, 'hash', 'trek_ab', 'cli')").run(user.id);
+
+    updateUser(String(user.id), { username: 'renamed' });
+
+    expect(pv(user.id)).toBe(before);
+    expect(mcpTokenCount(user.id)).toBe(1);
+  });
+});
+
+describe('resetUserMfa', () => {
+  it('ADMIN-SVC-083 — clears the three columns disableMfa clears, so both paths leave one state', () => {
+    // The passkey half has existed since passkeys landed; TOTP never had an
+    // answer, which left "somebody on the trip lost their phone" with no way out
+    // short of an operator reaching into the database.
+    const admin = createAdmin(testDb);
+    const { user } = createUserWithMfa(testDb);
+
+    const result = svc.resetUserMfa(String(user.id), admin.user.id) as { success?: boolean; email?: string };
+
+    expect(result.success).toBe(true);
+    expect(result.email).toBe(user.email);
+    const row = testDb
+      .prepare('SELECT mfa_enabled, mfa_secret, mfa_backup_codes FROM users WHERE id = ?')
+      .get(user.id) as { mfa_enabled: number; mfa_secret: string | null; mfa_backup_codes: string | null };
+    expect(row.mfa_enabled).toBe(0);
+    expect(row.mfa_secret).toBeNull();
+    expect(row.mfa_backup_codes).toBeNull();
+  });
+
+  it('ADMIN-SVC-084 — refuses to strip the callers own second factor', () => {
+    // Reachable from a stolen admin session otherwise, and it would take the
+    // second factor off the very account that session came from. The
+    // self-service path in Settings asks for the current password.
+    const admin = createAdmin(testDb);
+
+    const result = svc.resetUserMfa(String(admin.user.id), admin.user.id) as { error?: string; status?: number };
+
+    expect(result.status).toBe(400);
+    expect(result.error).toMatch(/your own/i);
+  });
+
+  it('ADMIN-SVC-085 — 404 for a user that is not there', () => {
+    const admin = createAdmin(testDb);
+
+    expect(svc.resetUserMfa('99999', admin.user.id) as { status?: number }).toMatchObject({ status: 404 });
+  });
+});
+
+describe('checkVersion on a centrally administered install', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    __clearVersionCacheForTests();
+  });
+
+  it('ADMIN-SVC-086 — answers "up to date" without asking GitHub', () => {
+    // Answered rather than refused: the admin page calls this on open, and a 403
+    // would put an error where a quiet surface belongs. The operator decides when
+    // this instance upgrades, so from inside it there is nothing available.
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+    vi.stubEnv('TREK_MANAGED', 'true');
+    vi.stubEnv('APP_VERSION', '3.4.1');
+
+    return checkVersion().then((info) => {
+      expect(info.update_available).toBe(false);
+      expect(info.latest).toBe('3.4.1');
+      expect(info.current).toBe('3.4.1');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+  });
 });

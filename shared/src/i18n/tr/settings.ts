@@ -211,6 +211,10 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': 'Özellik İsteği',
   'settings.about.featureRequestHint': 'Yeni bir özellik önerin',
   'settings.about.wikiHint': 'Belgeler ve kılavuzlar',
+  'settings.about.descriptionManaged':
+    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+  'settings.about.sourceTitle': 'Source code',
+  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': 'Aylık Destekçiler',
   'settings.about.supporters.title': 'TREK için seyahat Arkadaşları',
   'settings.about.supporters.subtitle':

@@ -68,7 +68,7 @@ export default function MAdmin() {
   const { t, locale } = useTranslation()
   const admin = useAdmin()
   const {
-    demoMode, mcpEnabled, devMode, toast, navigate,
+    demoMode, mcpEnabled, devMode, managed, toast, navigate,
     activeTab, setActiveTab, stats, serverTimezone,
     bagTrackingEnabled, setBagTrackingEnabled,
     collabFeatures, setCollabFeatures,
@@ -88,8 +88,10 @@ export default function MAdmin() {
     { id: 'plugins', label: t('admin.tabs.plugins'), icon: Puzzle },
     { id: 'notifications', label: t('admin.tabs.notifications'), icon: Bell },
     ...(mcpEnabled ? [{ id: 'mcp-tokens', label: t('admin.tabs.mcpTokens'), icon: Plug }] : []),
-    { id: 'github', label: t('admin.tabs.github'), icon: Github },
-    { id: 'backup', label: t('admin.tabs.backup'), icon: Database },
+    // Same two the desktop list drops: releases and backup schedule belong to
+    // whoever operates the install.
+    ...(managed ? [] : [{ id: 'github', label: t('admin.tabs.github'), icon: Github }]),
+    ...(managed ? [] : [{ id: 'backup', label: t('admin.tabs.backup'), icon: Database }]),
     { id: 'audit', label: t('admin.tabs.audit'), icon: ScrollText },
     ...(devMode ? [{ id: 'dev-notifications', label: 'Dev: Notifications', icon: Bug }] : []),
   ]

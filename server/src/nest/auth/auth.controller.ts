@@ -44,6 +44,7 @@ import { getClientIp } from '../audit/client-ip';
 import { AuditService } from '../audit/audit.service';
 import type { User } from '../../types';
 import { MfaExempt } from './mfa-policy.guard';
+import { ManagedForbidden } from '../common/managed';
 
 const WINDOW = 15 * 60 * 1000;
 const ALLOWED_AVATAR_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
@@ -168,6 +169,7 @@ export class AuthController {
     return { users: this.profile.listUsers(user.id) };
   }
 
+  @ManagedForbidden('validating a key spends the operator quota on a test click')
   @Get('validate-keys')
   async validateKeys(@CurrentUser() user: User) {
     const result = await this.profile.validateKeys(user.id);
@@ -195,7 +197,9 @@ export class AuthController {
       throw new HttpException({ error: result.error }, result.status!);
     }
     this.audit.writeAudit({ userId: user.id, action: 'settings.app_update', ip: getClientIp(req), details: result.auditSummary, debugDetails: result.auditDebugDetails });
-    return { success: true };
+    // Named so the settings tab can say which fields the operator holds rather
+    // than showing a saved value that silently did not save.
+    return { success: true, ...(result.managedKeys?.length ? { managed_keys: result.managedKeys } : {}) };
   }
 
   // GET travel-stats moved to atlas/travel-stats.controller.ts. Same path, same
@@ -249,6 +253,7 @@ export class AuthController {
     return { tokens: this.tokens.listMcpTokens(user.id) };
   }
 
+  @ManagedForbidden('a static token never expires and carries every scope; OAuth covers the same ground')
   @Post('mcp-tokens')
   @HttpCode(201)
   createMcpToken(@CurrentUser() user: User, @Body() body: McpTokenCreateDto, @Req() req: Request) {

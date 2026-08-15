@@ -26,6 +26,7 @@ import { AdminGuard } from '../auth/admin.guard';
 import { NotificationPreferencesService } from './notification-preferences.service';
 import { AdminNotificationPreferencesDto } from '../admin/admin.dto';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { ManagedForbidden } from '../common/managed';
 
 // The masked placeholder the client sends instead of a stored secret (8× U+2022).
 const MASKED = '••••••••';
@@ -62,6 +63,7 @@ export class NotificationsController {
     return this.notifications.getPreferences(user.id, user.role);
   }
 
+  @ManagedForbidden('the relay is the operator credential; a test send would use their reputation')
   @Post('test-smtp')
   @HttpCode(200)
   async testSmtp(@CurrentUser() user: User, @Body() body: TestSmtpDto): Promise<ChannelTestResult> {

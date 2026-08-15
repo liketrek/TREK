@@ -11,6 +11,7 @@ import { AuditService } from '../audit/audit.service';
 import { getClientIp } from '../audit/client-ip';
 import { AdminOidcUpdateDto } from '../admin/admin.dto';
 import { Public } from '../auth/public.decorator';
+import { ManagedForbidden } from '../common/managed';
 
 const OIDC_STATE_COOKIE = 'trek_oidc_state';
 
@@ -193,11 +194,16 @@ export class AdminOidcController {
     private readonly audit: AuditService,
   ) {}
 
+  // Both halves, not just the write: reading back the issuer, client id and the
+  // discovery URL tells a caller how the identity of this install is wired, and
+  // on a managed install that wiring is not theirs.
+  @ManagedForbidden('the identity provider is part of what the operator runs')
   @Get()
   get() {
     return this.oidc.getOidcSettings();
   }
 
+  @ManagedForbidden('an instance-supplied issuer could assert any address as verified')
   @Put()
   update(@CurrentUser() user: User, @Body() body: AdminOidcUpdateDto, @Req() req: Request) {
     const result = this.oidc.updateOidcSettings(body);

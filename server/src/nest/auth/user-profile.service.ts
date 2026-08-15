@@ -6,6 +6,7 @@ import { DatabaseService } from '../database/database.service';
 import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { avatarUrl } from '../common/avatarUrl';
 import { EMAIL_REGEX, avatarDir, mask_stored_api_key } from './auth.helpers';
+import { splitManagedKeys, MANAGED_LOCKED_PROFILE_KEYS } from '../common/managed';
 import { User } from '../../types';
 
 /**
@@ -26,8 +27,25 @@ import { User } from '../../types';
 export class UserProfileService {
   constructor(private readonly db: DatabaseService) {}
 
+  /**
+   * On a centrally administered install the three key columns belong to the
+   * operator, and there are four ways to reach them: this method, updateApiKeys,
+   * updateSettings and the read in getSettings. Sealing one route would leave
+   * the other three open, so all four ask here.
+   *
+   * Read live rather than injected: the unit tests construct this service by
+   * hand with a single argument, and tests/ sits outside the tsconfig, so a new
+   * constructor parameter would only surface at runtime.
+   */
+  private get managed(): boolean {
+    return readEnv().managed.enabled;
+  }
+
   updateMapsKey(userId: number, key: unknown) {
     const maps_api_key = key as string | null | undefined;
+    if (this.managed) {
+      return { success: true, maps_api_key: null, managed_keys: ['maps_api_key'] };
+    }
     this.db.run(
       'UPDATE users SET maps_api_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
       maybe_encrypt_api_key(maps_api_key), userId
@@ -37,6 +55,8 @@ export class UserProfileService {
 
   updateApiKeys(userId: number, rawBody: unknown) {
     const body = rawBody as { maps_api_key?: string; openweather_api_key?: string; unsplash_api_key?: string };
+    const { blocked } = splitManagedKeys(body, this.managed);
+    for (const key of blocked) delete body[key as keyof typeof body];
     const current = this.db.get<Pick<User, 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key'>>('SELECT maps_api_key, openweather_api_key, unsplash_api_key FROM users WHERE id = ?', userId);
 
     // `?? null` instead of the former non-null assertions: a user row deleted
@@ -57,6 +77,7 @@ export class UserProfileService {
     const u = updated ? { ...updated, mfa_enabled: !!(updated.mfa_enabled === 1 || updated.mfa_enabled === true) } : undefined;
     return {
       success: true,
+      ...(blocked.length ? { managed_keys: blocked } : {}),
       user: { ...u, maps_api_key: mask_stored_api_key(u?.maps_api_key), openweather_api_key: mask_stored_api_key(u?.openweather_api_key), unsplash_api_key: mask_stored_api_key(u?.unsplash_api_key), avatar_url: avatarUrl(updated || {}) },
     };
   }
@@ -92,9 +113,14 @@ export class UserProfileService {
     const updates: string[] = [];
     const params: (string | number | null)[] = [];
 
-    if (maps_api_key !== undefined) { updates.push('maps_api_key = ?'); params.push(maybe_encrypt_api_key(maps_api_key)); }
-    if (openweather_api_key !== undefined) { updates.push('openweather_api_key = ?'); params.push(maybe_encrypt_api_key(openweather_api_key)); }
-    if (unsplash_api_key !== undefined) { updates.push('unsplash_api_key = ?'); params.push(maybe_encrypt_api_key(unsplash_api_key)); }
+    // The name and email half of this body stays the user's own in every mode;
+    // only the three key columns answer to the operator.
+    const { blocked } = splitManagedKeys(body, this.managed);
+    const keyLocked = blocked.length > 0;
+
+    if (maps_api_key !== undefined && !keyLocked) { updates.push('maps_api_key = ?'); params.push(maybe_encrypt_api_key(maps_api_key)); }
+    if (openweather_api_key !== undefined && !keyLocked) { updates.push('openweather_api_key = ?'); params.push(maybe_encrypt_api_key(openweather_api_key)); }
+    if (unsplash_api_key !== undefined && !keyLocked) { updates.push('unsplash_api_key = ?'); params.push(maybe_encrypt_api_key(unsplash_api_key)); }
     if (username !== undefined) { updates.push('username = ?'); params.push(username.trim()); }
     if (email !== undefined) { updates.push('email = ?'); params.push(email.trim()); }
 
@@ -112,6 +138,7 @@ export class UserProfileService {
     const u = updated ? { ...updated, mfa_enabled: !!(updated.mfa_enabled === 1 || updated.mfa_enabled === true) } : undefined;
     return {
       success: true,
+      ...(blocked.length ? { managed_keys: blocked } : {}),
       user: { ...u, maps_api_key: mask_stored_api_key(u?.maps_api_key), openweather_api_key: mask_stored_api_key(u?.openweather_api_key), unsplash_api_key: mask_stored_api_key(u?.unsplash_api_key), avatar_url: avatarUrl(updated || {}) },
     };
   }
@@ -122,6 +149,22 @@ export class UserProfileService {
       userId
     );
     if (user?.role !== 'admin') return { error: 'Admin access required', status: 403 };
+
+    // The one endpoint in the codebase that hands back a stored key in the
+    // clear. That is fine when the admin pasted it in themselves and wrong when
+    // the operator supplied it, so a managed install answers with the shape and
+    // not the values. Keys kept, values null, because the client reads them as
+    // `settings?.maps_api_key || ''`.
+    if (this.managed) {
+      return {
+        settings: {
+          maps_api_key: null,
+          openweather_api_key: null,
+          unsplash_api_key: null,
+          managed_keys: [...MANAGED_LOCKED_PROFILE_KEYS],
+        },
+      };
+    }
 
     return {
       settings: {

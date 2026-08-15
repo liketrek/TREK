@@ -216,6 +216,10 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': 'Permintaan Fitur',
   'settings.about.featureRequestHint': 'Sarankan fitur baru',
   'settings.about.wikiHint': 'Dokumentasi & panduan',
+  'settings.about.descriptionManaged':
+    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+  'settings.about.sourceTitle': 'Source code',
+  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': 'Pendukung Bulanan',
   'settings.about.supporters.title': 'Rekan perjalanan untuk TREK',
   'settings.about.supporters.subtitle':

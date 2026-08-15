@@ -39,7 +39,28 @@ import {
 
 let googleApiCallCount = 0;
 
-function googleFetch(endpoint: string, label: string, init?: RequestInit): Promise<Response> {
+/** The upstream every Places call is written against. */
+const PLACES_UPSTREAM = 'https://places.googleapis.com';
+
+/**
+ * Sends the call somewhere else when PLACES_API_BASE is set.
+ *
+ * The nine Places endpoints below all spell out the upstream host, so an install
+ * that wants these calls to leave through something of its own — an egress proxy,
+ * a cache, a gateway holding the key — has no way to say so today. One variable,
+ * substituted at the one place every call funnels through.
+ *
+ * Path and query are untouched, so the replacement has to speak the same API.
+ * Unset, which is every install today, the string is returned as it came in.
+ */
+function placesEndpoint(endpoint: string): string {
+  const base = readEnv().maps.placesApiBase;
+  if (!base || !endpoint.startsWith(PLACES_UPSTREAM)) return endpoint;
+  return base.replace(/\/+$/, '') + endpoint.slice(PLACES_UPSTREAM.length);
+}
+
+function googleFetch(rawEndpoint: string, label: string, init?: RequestInit): Promise<Response> {
+  const endpoint = placesEndpoint(rawEndpoint);
   googleApiCallCount++;
   console.debug(`[Google API] #${googleApiCallCount} ${label} → ${endpoint}`);
   const referer = readEnv().app.appUrl ? getAppUrl() : undefined;
@@ -528,6 +549,14 @@ export class MapsService {
   // ── API key retrieval ──────────────────────────────────────────────────────
 
   getMapsKey(userId: number): string | null {
+    // When the operator supplies the credential, the database is not asked at
+    // all. Two reasons, and the second is the load-bearing one: a per-user key
+    // would route around whatever the operator's endpoint counts, and the key
+    // columns are readable by any admin of this instance, so a shared key stored
+    // there would be a key handed out. Unset, this branch never runs.
+    const operatorKey = readEnv().maps.placesApiKey;
+    if (operatorKey) return operatorKey;
+
     const user = this.database.get<{ maps_api_key: string | null }>(
       'SELECT maps_api_key FROM users WHERE id = ?',
       userId,

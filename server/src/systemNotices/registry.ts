@@ -61,7 +61,11 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
     dismissible: true,
     // Desktop-only: the support modal is suppressed on small/mobile viewports.
     desktopOnly: true,
-    conditions: [],
+    // Not on a centrally administered install. The body thanks the reader for
+    // installing TREK and asks them to fund it, and there the reader installed
+    // nothing and already pays whoever runs it. Gated rather than reworded: the
+    // text is right for everyone it was written for.
+    conditions: [{ kind: 'managed', is: false }],
     publishedAt: '2026-06-27T00:00:00Z',
     priority: 100,
     recurring: 'per-version',
@@ -82,6 +86,9 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
       { kind: 'existingUserBeforeVersion', version: '3.0.14' },
       { kind: 'role', roles: ['admin'] },
       { kind: 'custom', id: 'whitespace-collision-detected' },
+      // The body says to check the server logs. On a managed install the reader
+      // has none, and the operator sees the same collision in theirs.
+      { kind: 'managed', is: false },
     ],
     publishedAt: '2026-05-03T00:00:00Z',
     priority: 85,

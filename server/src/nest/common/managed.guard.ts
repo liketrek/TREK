@@ -31,11 +31,17 @@ export class ManagedGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     if (!this.env.isManaged()) return true;
 
-    const marked = this.reflector.getAllAndOverride(MANAGED_FORBIDDEN, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const marked = this.reflector.getAllAndOverride<{ enforcedInHandler?: boolean } | undefined>(
+      MANAGED_FORBIDDEN,
+      [context.getHandler(), context.getClass()],
+    );
     if (!marked) return true;
+
+    // A multipart handler checks for itself, after the interceptor has drained
+    // the upload. Throwing here would leave the body unread and the client would
+    // see an ECONNRESET rather than the 403 (PROFILE-015). The marker still sits
+    // on the route so the boot gate can inventory it.
+    if (marked.enforcedInHandler) return true;
 
     throw new HttpException(MANAGED_FORBIDDEN_ERROR, 403);
   }

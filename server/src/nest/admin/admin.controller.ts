@@ -29,6 +29,7 @@ import { logInfo } from '../audit/audit-log.logger';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import type { User } from '../../types';
+import { ManagedForbidden } from '../common/managed';
 
 /** Throw the legacy {error,status} envelope when a service call reports failure. */
 function ok<T>(result: T): Exclude<T, { error: string }> {
@@ -102,6 +103,13 @@ export class AdminController {
     const result = ok(this.admin.resetUserPasskeys(id));
     this.audit.writeAudit({ userId: user.id, action: 'admin.user_passkeys_reset', resource: String(id), ip: getClientIp(req), details: { targetUser: result.email, deleted: result.deleted } });
     return { success: true, deleted: result.deleted };
+  }
+
+  @Delete('users/:id/mfa')
+  resetUserMfa(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
+    const result = ok(this.admin.resetUserMfa(id, user.id));
+    this.audit.writeAudit({ userId: user.id, action: 'admin.user_mfa_reset', resource: String(id), ip: getClientIp(req), details: { targetUser: result.email } });
+    return { success: true };
   }
 
   // ── Stats / permissions / audit ──
@@ -254,7 +262,7 @@ export class AdminController {
     if (result.addon && result.addon.enabled === false && (body as { enabled?: boolean })?.enabled === false) {
       await this.pluginRuntime.deactivateForDisabledAddon(id);
     }
-    return { addon: result.addon };
+    return { addon: result.addon, ...(result.managedKeys?.length ? { managed_keys: result.managedKeys } : {}) };
   }
 
   // ── MCP tokens / OAuth sessions ──
@@ -279,6 +287,7 @@ export class AdminController {
   }
 
   // ── JWT rotation ──
+  @ManagedForbidden('rotating the secret signs every user out and fixes nothing the admin can reach')
   @Post('rotate-jwt-secret')
   @HttpCode(200)
   rotateJwtSecret(@CurrentUser() user: User, @Req() req: Request) {

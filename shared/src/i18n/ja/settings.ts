@@ -197,6 +197,10 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': '機能リクエスト',
   'settings.about.featureRequestHint': '新機能を提案',
   'settings.about.wikiHint': 'ドキュメント・ガイド',
+  'settings.about.descriptionManaged':
+    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+  'settings.about.sourceTitle': 'Source code',
+  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': '月額サポーター',
   'settings.about.supporters.title': 'TREKの旅仲間',
   'settings.about.supporters.subtitle': '皆さんの支援がTREKの未来を支えています。',

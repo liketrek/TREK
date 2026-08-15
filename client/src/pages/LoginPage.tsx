@@ -570,7 +570,7 @@ export default function LoginPage(): React.ReactElement {
                     </div>
                   )}
 
-                  {insecureCookie && (
+                  {insecureCookie && !appConfig?.managed && (
                     <div
                       style={{
                         padding: '12px 14px',

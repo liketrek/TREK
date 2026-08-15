@@ -227,6 +227,10 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': 'Αίτημα Λειτουργίας',
   'settings.about.featureRequestHint': 'Προτείνετε ένα νέο χαρακτηριστικό',
   'settings.about.wikiHint': 'Τεκμηρίωση & οδηγοί',
+  'settings.about.descriptionManaged':
+    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+  'settings.about.sourceTitle': 'Source code',
+  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': 'Μηνιαίοι Υποστηρικτές',
   'settings.about.supporters.title': 'Συνταξιδιώτες για το TREK',
   'settings.about.supporters.subtitle':

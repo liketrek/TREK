@@ -56,7 +56,7 @@ describe('MLlmConnectionSection', () => {
     // The endpoint is instance configuration since #1772, so it has no row here.
     expect(screen.queryByPlaceholderText('http://localhost:11434')).not.toBeInTheDocument();
     expect(
-      screen.getByText('A self-hosted (Ollama) endpoint is set up once for the whole instance in the admin settings. You can still use your own OpenAI or Anthropic key here.'),
+      screen.getByText('A local (Ollama) endpoint is set up once for the whole instance in the admin settings. You can still use your own OpenAI or Anthropic key here.'),
     ).toBeInTheDocument();
   });
 

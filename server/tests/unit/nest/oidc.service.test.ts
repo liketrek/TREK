@@ -63,6 +63,18 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
 }));
 vi.mock('../../../src/nest/auth/ephemeral-tokens', () => ({ createEphemeralToken: vi.fn() }));
 vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() }));
+// The four provider calls go through the SSRF guard now (link-local and the
+// cloud-metadata range are refused, every redirect hop re-checked). These tests
+// exercise OIDC logic, not the guard, so the guard delegates to whatever fetch
+// the case stubbed — and OIDC-SVC-SSRF-001 below pins that it is really there.
+vi.mock('../../../src/utils/ssrfGuard', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../src/utils/ssrfGuard')>();
+  return {
+    ...actual,
+    safeFetchAdminConfigured: vi.fn((url: string, init?: RequestInit) => fetch(url, init)),
+  };
+});
+
 
 const { getAppUrlMock } = vi.hoisted(() => ({ getAppUrlMock: vi.fn() }));
 vi.mock('../../../src/app-config', async (importOriginal) => {

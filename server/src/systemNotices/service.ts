@@ -38,7 +38,8 @@ function severityWeight(s: string): number {
 
 export function getActiveNoticesFor(
   userId: number,
-  addonEnabled: (addonId: string) => boolean
+  addonEnabled: (addonId: string) => boolean,
+  managed = false
 ): SystemNoticeDTO[] {
   const user = db.prepare(
     'SELECT login_count, first_seen_version, role FROM users WHERE id = ?'
@@ -59,7 +60,7 @@ export function getActiveNoticesFor(
 
   const now = new Date();
   const currentAppVersion = getCurrentAppVersion();
-  const ctx = { user: { ...user, noTrips: tripCount }, currentAppVersion, now, addonEnabled };
+  const ctx = { user: { ...user, noTrips: tripCount }, currentAppVersion, now, addonEnabled, managed };
   const appVer = semver.coerce(currentAppVersion)?.version ?? '0.0.0';
 
   const isStillDismissed = (n: SystemNotice): boolean => {

@@ -2,6 +2,7 @@ import { BookOpen, Bug, Coffee, ExternalLink, Heart, Info, Lightbulb } from 'luc
 import React from 'react';
 import { useTranslation } from '../../i18n';
 import Section from './Section';
+import { useAuthStore } from '../../store/authStore';
 
 interface Props {
   appVersion: string;
@@ -9,6 +10,7 @@ interface Props {
 
 export default function AboutTab({ appVersion }: Props): React.ReactElement {
   const { t, locale } = useTranslation();
+  const managed = useAuthStore((s) => s.managed);
 
   return (
     <Section title={t('settings.about')} icon={Info}>
@@ -22,7 +24,11 @@ export default function AboutTab({ appVersion }: Props): React.ReactElement {
         className="text-content-secondary"
         style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', lineHeight: 1.6, marginBottom: 6, marginTop: -4 }}
       >
-        {t('settings.about.description')}
+        {/* The stock line calls TREK self-hosted and points at 'your own server'.
+            Both are true for the reader who set it up and neither is for a customer
+            of a hosted instance, so the mode picks the sentence rather than the
+            wording being watered down for everybody. */}
+        {t(managed ? 'settings.about.descriptionManaged' : 'settings.about.description')}
       </p>
       <p
         className="text-content-faint"
@@ -52,6 +58,14 @@ export default function AboutTab({ appVersion }: Props): React.ReactElement {
         </span>
       </p>
 
+      {/* Ko-fi, Buy Me a Coffee, Discord, and the issue/discussion links assume
+          the reader runs this install and can act on it. On a centrally
+          administered one they support somebody they are not the customer of,
+          and file bugs against an instance they do not operate. The version and
+          the source link below stay in both modes: AGPL §13 wants the source
+          offered prominently to the people using it over a network, and that is
+          not the part being trimmed here. */}
+      {!managed && (<>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <a
           href="https://ko-fi.com/mauriceboe"
@@ -263,6 +277,26 @@ export default function AboutTab({ appVersion }: Props): React.ReactElement {
           <ExternalLink size={14} className="ml-auto flex-shrink-0 text-content-faint" />
         </a>
       </div>
+      </>)}
+
+      {/* What replaces the grids above. AGPL §13 asks for the source to be
+          offered prominently to whoever uses the software over a network, and a
+          customer of a hosted instance is exactly that reader. The support and
+          bug-report links go; this does not. */}
+      {managed && (
+        <a
+          href="https://github.com/liketrek/TREK"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-4 overflow-hidden rounded-xl border border-edge bg-surface-card px-5 py-4 no-underline"
+        >
+          <div>
+            <div className="text-sm font-semibold text-content">{t('settings.about.sourceTitle')}</div>
+            <div className="text-xs text-content-faint">{t('settings.about.sourceHint')}</div>
+          </div>
+          <ExternalLink size={14} className="ml-auto flex-shrink-0 text-content-faint" />
+        </a>
+      )}
     </Section>
   );
 }

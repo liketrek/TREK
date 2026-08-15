@@ -24,6 +24,7 @@ import { AddonsService } from '../../../src/nest/addons/addons.service';
 import { PluginsService } from '../../../src/nest/plugins/plugins.service';
 import { PluginsController } from '../../../src/nest/plugins/plugins.controller';
 import { PluginsFeedController } from '../../../src/nest/plugins/plugins-feed.controller';
+import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
 
 beforeEach(() => {
   testDb.exec('DELETE FROM plugins');
@@ -130,7 +131,7 @@ describe('PluginsService.list', () => {
   it('controller delegates to the service', () => {
     const svc = { list: vi.fn(() => ({ enabled: false, plugins: [] })) } as unknown as PluginsService;
     const runtime = {} as unknown as import('../../../src/nest/plugins/plugin-runtime.service').PluginRuntimeService;
-    const res = new PluginsController(svc, runtime, {} as never).list();
+    const res = new PluginsController(svc, runtime, {} as never, { isManaged: () => false } as unknown as RuntimeEnvService).list();
     expect(svc.list).toHaveBeenCalled();
     expect(res).toEqual({ enabled: false, plugins: [] });
   });

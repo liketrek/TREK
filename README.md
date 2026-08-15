@@ -463,6 +463,8 @@ Caddy handles TLS and WebSockets automatically.
 | `ADMIN_PASSWORD` | Password for the first admin on initial boot. Pairs with `ADMIN_EMAIL`. | random |
 | **Other** | | |
 | `TREK_MANAGED` | Marks the install as centrally administered: the operator owns the configuration, credentials and upgrades, so the instance admin is not offered settings the operator sets. Leave unset when you run TREK yourself. | `false` |
+| `PLACES_API_KEY` | Places credential supplied by whoever operates the install. When set, it is used for every lookup and the per-user keys in Admin > Settings are ignored. Leave unset to keep the stored keys. | — |
+| `PLACES_API_BASE` | Send the Places calls to this origin instead of `https://places.googleapis.com` (an egress proxy, a cache, a gateway holding the key). Path and query are unchanged, so it has to speak the same API. | — |
 | `DEMO_MODE` | Enable demo mode (hourly data resets) | `false` |
 | `UNSPLASH_ACCESS_KEY` | Optional Unsplash Access Key for trip-cover and place-image search. Without one, TREK uses Unsplash's unauthenticated endpoint, which some datacenter/VPS IPs are blocked from. Get a free key at [unsplash.com/developers](https://unsplash.com/developers). Overrides any per-admin key set in Admin > Settings (where it can also be configured instead). | — |
 | `MCP_RATE_LIMIT` | Max MCP API requests per user per minute | `300` |

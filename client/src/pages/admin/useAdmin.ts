@@ -22,6 +22,7 @@ export function useAdmin() {
   const hour12 = useSettingsStore(s => s.settings.time_format) === '12h'
   const mcpEnabled = useAddonStore(s => s.isEnabled('mcp'))
   const devMode = useAuthStore(s => s.devMode)
+  const managed = useAuthStore(s => s.managed)
 
   const [activeTab, setActiveTab] = useState<string>('users')
   const [users, setUsers] = useState<AdminUser[]>([])
@@ -121,6 +122,9 @@ export function useAdmin() {
     loadAppConfig()
     loadApiKeys()
     adminApi.getOidc().then(setOidcConfig).catch(() => {})
+    // The operator decides when this instance upgrades, so there is nothing to
+    // check and nothing the admin could act on.
+    if (managed) return
     adminApi.checkVersion().then(data => {
       if (data.update_available) setUpdateInfo(data)
     }).catch(() => {})
@@ -361,7 +365,7 @@ export function useAdmin() {
 
   return {
     // store-derived
-    demoMode, serverTimezone, hour12, mcpEnabled, devMode, currentUser,
+    demoMode, serverTimezone, hour12, mcpEnabled, devMode, managed, currentUser,
     updateApiKeys, setAppRequireMfa, setTripRemindersEnabled,
     setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, setPlacesEnrichEnabled, logout,
     navigate, toast,

@@ -182,6 +182,10 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': 'Funkció javaslat',
   'settings.about.featureRequestHint': 'Javasolj egy új funkciót',
   'settings.about.wikiHint': 'Dokumentáció és útmutatók',
+  'settings.about.descriptionManaged':
+    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+  'settings.about.sourceTitle': 'Source code',
+  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': 'Havi támogatók',
   'settings.about.supporters.title': 'Útitársak a TREK mellett',
   'settings.about.supporters.subtitle':

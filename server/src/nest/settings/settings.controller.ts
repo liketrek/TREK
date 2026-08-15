@@ -10,6 +10,8 @@ import { AdminGuard } from '../auth/admin.guard';
 import { AuditService } from '../audit/audit.service';
 import { getClientIp } from '../audit/client-ip';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { isManagedLockedKey, splitManagedKeys } from '../common/managed';
 
 /**
  * /api/settings — per-user key/value preferences: get-all, single upsert
@@ -26,7 +28,10 @@ import { CurrentUser } from '../auth/current-user.decorator';
 @Controller('api/settings')
 @UseGuards(JwtAuthGuard)
 export class SettingsController {
-  constructor(private readonly settings: SettingsService) {}
+  constructor(
+    private readonly settings: SettingsService,
+    private readonly env: RuntimeEnvService,
+  ) {}
 
   /**
    * #1772: the write half of the rule that the endpoint is instance
@@ -57,6 +62,12 @@ export class SettingsController {
   @Put()
   upsert(@CurrentUser() user: User, @Body() body: SettingUpsertDto) {
     this.assertMayWriteLlmEndpoint({ [body.key]: body.value });
+    // assertMayWriteLlmEndpoint only covers llm_base_url and provider 'local'.
+    // llm_api_key and llm_model are writable by every user, and on a managed
+    // install both cost the operator money, so the key list decides here.
+    if (isManagedLockedKey(body.key) && this.env.isManaged()) {
+      return { success: true, key: body.key, managed: true };
+    }
     // The client echoes a redacted secret back unchanged — treat as a no-op.
     if (body.value === MASKED_SETTING_VALUE) {
       return { success: true, key: body.key, unchanged: true };
@@ -69,9 +80,10 @@ export class SettingsController {
   @HttpCode(200) // Express answers bulk with res.json (200), not the POST-default 201.
   bulk(@CurrentUser() user: User, @Body() body: SettingsBulkDto) {
     this.assertMayWriteLlmEndpoint(body.settings);
+    const { allowed, blocked } = splitManagedKeys(body.settings, this.env.isManaged());
     try {
-      const updated = this.settings.bulkUpsertSettings(user.id, body.settings);
-      return { success: true, updated };
+      const updated = this.settings.bulkUpsertSettings(user.id, allowed);
+      return { success: true, updated, ...(blocked.length ? { managed_keys: blocked } : {}) };
     } catch (err) {
       console.error('Error saving settings:', err);
       throw new HttpException({ error: 'Error saving settings' }, 500);
@@ -92,6 +104,7 @@ export class AdminDefaultUserSettingsController {
   constructor(
     private readonly settings: SettingsService,
     private readonly audit: AuditService,
+    private readonly env: RuntimeEnvService,
   ) {}
 
   @Get()
@@ -102,7 +115,15 @@ export class AdminDefaultUserSettingsController {
   @Put()
   update(@CurrentUser() user: User, @Body() body: AdminDefaultUserSettingsDto, @Req() req: Request) {
     try {
-      this.settings.setAdminUserDefaults(body as unknown as Record<string, unknown>);
+      // Deliberately no managed_keys in the response here: the route answers
+      // with the raw defaults map the admin panel renders from, so an extra
+      // field would sit inside the key namespace. The audit row below and the
+      // client's capability filter carry the message instead.
+      const { allowed } = splitManagedKeys(
+        body as unknown as Record<string, unknown>,
+        this.env.isManaged(),
+      );
+      this.settings.setAdminUserDefaults(allowed);
       this.audit.writeAudit({
         userId: user.id,
         action: 'admin.default_user_settings_update',

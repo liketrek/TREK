@@ -20,6 +20,7 @@ import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.s
 import { PluginRegistryService, RegistryError } from '../../../src/nest/plugins/registry/registry.service';
 import { PluginsService } from '../../../src/nest/plugins/plugins.service';
 import { TrekExceptionFilter } from '../../../src/nest/common/trek-exception.filter';
+import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
 
 const ADMIN = { id: 1 } as { id: number };
 const REQ = { headers: {}, socket: {} } as never;
@@ -52,7 +53,7 @@ beforeEach(() => {
   process.env.TREK_PLUGINS_ENABLED = 'true';
   runtime = { update: vi.fn(), retrust: vi.fn() } as unknown as PluginRuntimeService;
   registry = { install: vi.fn() } as unknown as PluginRegistryService;
-  controller = new PluginsController({} as PluginsService, runtime, registry);
+  controller = new PluginsController({} as PluginsService, runtime, registry, { isManaged: () => false } as unknown as RuntimeEnvService);
 });
 
 describe('signature refusal codes survive to the client', () => {

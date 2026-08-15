@@ -21,9 +21,10 @@ import { PackingModule } from '../packing/packing.module';
 // PermissionsModule exports PermissionsService for the permission matrix — it is
 // not @Global, so the import must be explicit.
 import { PermissionsModule } from '../permissions/permissions.module';
+import { AppConfigModule } from '../app-config/app-config.module';
 
 @Module({
-  imports: [PluginsRuntimeModule, SettingsModule, AuditModule, AddonsModule, AuthModule, NotificationsModule, PackingModule, PermissionsModule, TokensModule, OauthModule, SchedulingModule],
+  imports: [AppConfigModule, PluginsRuntimeModule, SettingsModule, AuditModule, AddonsModule, AuthModule, NotificationsModule, PackingModule, PermissionsModule, TokensModule, OauthModule, SchedulingModule],
   controllers: [AdminController],
   providers: [AdminService, VersionCheckJob, DemoResetJob],
 })

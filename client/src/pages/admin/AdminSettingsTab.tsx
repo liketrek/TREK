@@ -29,6 +29,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
     webauthnRpId, setWebauthnRpId, webauthnOrigins, setWebauthnOrigins, savingWebauthn, handleSaveWebauthn,
     allowedFileTypes, setAllowedFileTypes, savingFileTypes, setSavingFileTypes,
     mapsKey, setMapsKey, unsplashKey, setUnsplashKey, showKeys, savingKeys, validating, validation,
+    managed,
     setShowRotateJwtModal,
     handleToggleAuthSetting, handleToggleRequireMfa,
     toggleKey, handleSaveApiKeys, handleValidateKey,
@@ -253,6 +254,10 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
           <p className="text-xs text-slate-400 mt-1">{t('admin.apiKeysHint')}</p>
         </div>
         <div className="p-6 space-y-4">
+          {/* The two key fields, not the toggles below them: on a centrally
+              administered install the operator supplies the keys, while whether
+              photos and lookups are offered at all stays the admin’s call. */}
+          {!managed && (<>
           {/* Google Maps Key */}
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-1.5">
@@ -329,6 +334,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
             </div>
             <p className="text-xs text-slate-400 mt-1">{t('admin.unsplashKeyHint')}</p>
           </div>
+          </>)}
 
           {/* Place Photos Toggle */}
           <div className="flex items-center justify-between gap-4 py-3 border-t border-slate-100">

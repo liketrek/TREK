@@ -34,7 +34,7 @@ function AdminPageDesktop(): React.ReactElement {
   // each tab/section renders from a dedicated sub-component.
   const admin = useAdmin()
   const {
-    demoMode, mcpEnabled, devMode, toast,
+    demoMode, mcpEnabled, devMode, managed, toast,
     activeTab, setActiveTab, stats,
     bagTrackingEnabled, setBagTrackingEnabled,
     collabFeatures, setCollabFeatures,
@@ -55,8 +55,11 @@ function AdminPageDesktop(): React.ReactElement {
     { id: 'plugins', label: t('admin.tabs.plugins'), icon: Blocks, group: gConfig },
     { id: 'notifications', label: t('admin.tabs.notifications'), icon: Bell, group: gIntegration },
     ...(mcpEnabled ? [{ id: 'mcp-tokens', label: t('admin.tabs.mcpTokens'), icon: KeyRound, group: gIntegration }] : []),
-    { id: 'github', label: t('admin.tabs.github'), icon: GitBranch, group: gIntegration },
-    { id: 'backup', label: t('admin.tabs.backup'), icon: Database, group: gMaintenance },
+    // Releases and update cadence belong to whoever operates the install.
+    ...(managed ? [] : [{ id: 'github', label: t('admin.tabs.github'), icon: GitBranch, group: gIntegration }]),
+    // Backups run off-volume on a managed install; the tab would offer a
+    // schedule that competes with the real one.
+    ...(managed ? [] : [{ id: 'backup', label: t('admin.tabs.backup'), icon: Database, group: gMaintenance }]),
     { id: 'audit', label: t('admin.tabs.audit'), icon: ScrollText, group: gMaintenance },
     ...(devMode ? [{ id: 'dev-notifications', label: 'Dev: Notifications', icon: Bug, group: gMaintenance }] : []),
   ]
@@ -123,7 +126,7 @@ function AdminPageDesktop(): React.ReactElement {
             tabs={TABS}
             activeTab={activeTab}
             onTabChange={setActiveTab}
-            footer="admin · self-hosted"
+            footer={managed ? 'admin' : 'admin · self-hosted'}
           >
             {/* Tab content */}
           {activeTab === 'users' && (

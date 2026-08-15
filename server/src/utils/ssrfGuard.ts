@@ -151,7 +151,7 @@ function isLinkLocal(ip: string): boolean {
  * and re-pinned. An http→https upgrade or a proxy redirect between LAN hosts still
  * works because the check re-runs per hop rather than locking to the first IP.
  */
-export async function safeFetchLlm(url: string, init?: RequestInit, maxRedirects = 5): Promise<Response> {
+export async function safeFetchAdminConfigured(url: string, init?: RequestInit, maxRedirects = 5): Promise<Response> {
   let currentUrl = url;
 
   for (let hop = 0; ; hop++) {
@@ -200,6 +200,14 @@ export async function safeFetchLlm(url: string, init?: RequestInit, maxRedirects
     currentUrl = nextUrl;
   }
 }
+
+/**
+ * The original name. Kept so no LLM call site has to change, and because the
+ * shape of the problem is identical: an endpoint an admin configured, which may
+ * legitimately live on loopback or the LAN, and must still never reach
+ * link-local or a cloud metadata service.
+ */
+export const safeFetchLlm = safeFetchAdminConfigured;
 
 /**
  * Thrown by safeFetch() when the URL is blocked by the SSRF guard.

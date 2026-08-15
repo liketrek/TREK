@@ -16,9 +16,11 @@ import { ManagedGuard } from '../../../src/nest/common/managed.guard';
 import { MANAGED_FORBIDDEN, MANAGED_FORBIDDEN_ERROR } from '../../../src/nest/common/managed';
 import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 
-function makeGuard(managed: boolean, marked: boolean) {
+function makeGuard(managed: boolean, marked: boolean, enforcedInHandler = false) {
   const getAllAndOverride = vi.fn((key: string) =>
-    key === MANAGED_FORBIDDEN && marked ? { reason: 'the operator holds this' } : undefined,
+    key === MANAGED_FORBIDDEN && marked
+      ? { reason: 'the operator holds this', enforcedInHandler }
+      : undefined,
   );
   const guard = new ManagedGuard(
     { isManaged: () => managed } as unknown as RuntimeEnvService,
@@ -68,6 +70,15 @@ describe('ManagedGuard', () => {
     guard.canActivate(ctx);
 
     expect(getAllAndOverride).not.toHaveBeenCalled();
+  });
+
+  it('MANAGED-GUARD-006: lets a handler-enforced marking through, so multipart still parses', () => {
+    // The route is marked and the mode is on, and it still passes: a guard that
+    // threw here would leave the upload body unread and the client would see an
+    // ECONNRESET instead of the 403 (PROFILE-015). The handler does the refusing.
+    const { guard } = makeGuard(true, true, true);
+
+    expect(guard.canActivate(ctx)).toBe(true);
   });
 
   it('MANAGED-GUARD-005: asks for the decorator on handler and controller, not for a path', () => {

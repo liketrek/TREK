@@ -209,6 +209,10 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': '기능 요청',
   'settings.about.featureRequestHint': '새로운 기능을 제안하세요',
   'settings.about.wikiHint': '문서 및 가이드',
+  'settings.about.descriptionManaged':
+    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+  'settings.about.sourceTitle': 'Source code',
+  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': '월간 후원자',
   'settings.about.supporters.title': 'TREK의 여행 동반자',
   'settings.about.supporters.subtitle':

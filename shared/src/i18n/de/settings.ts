@@ -184,6 +184,10 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': 'Feature vorschlagen',
   'settings.about.featureRequestHint': 'Schlage ein neues Feature vor',
   'settings.about.wikiHint': 'Dokumentation & Anleitungen',
+  'settings.about.descriptionManaged':
+    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+  'settings.about.sourceTitle': 'Source code',
+  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': 'Monatliche Unterstützer',
   'settings.about.supporters.title': 'Reisebegleitung für TREK',
   'settings.about.supporters.subtitle':

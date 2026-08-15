@@ -8,6 +8,7 @@ import { PluginUserSettingsController } from './plugin-user-settings.controller'
 import { PluginsRuntimeModule } from './plugins-runtime.module';
 import { PluginOAuthModule } from './oauth/plugin-oauth.module';
 import { PluginContributionsModule } from './contributions/plugin-contributions.module';
+import { AppConfigModule } from '../app-config/app-config.module';
 
 /**
  * Plugin system (#plugins), composition root.
@@ -27,7 +28,7 @@ import { PluginContributionsModule } from './contributions/plugin-contributions.
  * that serves page and widget assets.
  */
 @Module({
-  imports: [PluginsRuntimeModule, PluginOAuthModule, PluginContributionsModule],
+  imports: [AppConfigModule, PluginsRuntimeModule, PluginOAuthModule, PluginContributionsModule],
   controllers: [
     PluginsController,
     PluginsFeedController,

@@ -9,6 +9,10 @@ export type NoticeCondition =
   | { kind: 'dateWindow'; startsAt: string; endsAt?: string }
   | { kind: 'role'; roles: Array<'admin' | 'user'> }
   | { kind: 'addonEnabled'; addonId: string }
+  // Whether the operator of this install owns its configuration. A notice that
+  // asks the reader to update, to check a log or to fund the project assumes
+  // they run it themselves.
+  | { kind: 'managed'; is: boolean }
   | { kind: 'custom'; id: string };
 
 export interface NoticeMedia {

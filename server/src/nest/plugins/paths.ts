@@ -114,6 +114,17 @@ export function serverCodeRoot(): string {
 let warnedPermissionsOff = false;
 export function pluginPermissionArgs(pluginId: string): string[] {
   if (readEnv().plugins.permissionsOff) {
+    // Refuse outright when somebody other than this install's admin runs it. A
+    // warning is the right answer for a machine its owner chose to trust; here
+    // the person who set the flag and the people whose data is in the database
+    // are not the same person, and "fail closed" is the repo rule for exactly
+    // that case. Nothing spawns rather than spawning without the jail.
+    if (readEnv().managed.enabled) {
+      throw new Error(
+        'TREK_PLUGIN_PERMISSIONS=off is refused on a centrally administered install: ' +
+          'the OS permission jail is what keeps an installed plugin out of trek.db and the secret files.',
+      );
+    }
     // The OS permission jail is the boundary that stops an installed plugin from
     // reading trek.db / the secret files / shelling out. Turning it off makes plugin
     // isolation crash-only — surface that loudly once so an operator can't leave it

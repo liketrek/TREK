@@ -81,6 +81,18 @@ describe('ManagedForbidden', () => {
     }
 
     const meta = Reflect.getMetadata(MANAGED_FORBIDDEN, Controller.prototype.handler);
-    expect(meta).toEqual({ reason: 'the operator holds this credential' });
+    expect(meta).toEqual({ reason: 'the operator holds this credential', enforcedInHandler: false });
+  });
+
+  it('MANAGED-009: a multipart route stays in the inventory while refusing in its handler', () => {
+    class Controller {
+      @ManagedForbidden('restoring a backup replaces state the operator owns', { enforcedInHandler: true })
+      upload() {}
+    }
+
+    const meta = Reflect.getMetadata(MANAGED_FORBIDDEN, Controller.prototype.upload);
+    expect(meta.enforcedInHandler).toBe(true);
+    // The reason is still mandatory: the boot gate refuses an empty one.
+    expect(meta.reason).not.toBe('');
   });
 });

@@ -28,8 +28,15 @@ export const MANAGED_FORBIDDEN_ERROR = {
  * client: it records why this particular surface cannot be left to the instance
  * admin. Without it the marks turn into a list nobody can audit, which is how
  * the path lists this codebase has already replaced once went stale.
+ *
+ * `enforcedInHandler` is for multipart routes. A guard throws before the parser
+ * has drained the body and the client gets an ECONNRESET instead of the 403
+ * (PROFILE-015), so those handlers call `isManagedBlocked` themselves. They
+ * still carry the marker, because the boot gate inventories markers and a route
+ * missing from that inventory is exactly what nobody notices.
  */
-export const ManagedForbidden = (reason: string) => SetMetadata(MANAGED_FORBIDDEN, { reason });
+export const ManagedForbidden = (reason: string, opts?: { enforcedInHandler?: true }) =>
+  SetMetadata(MANAGED_FORBIDDEN, { reason, enforcedInHandler: opts?.enforcedInHandler === true });
 
 /**
  * The handler-side flavour of the guard below.
@@ -41,4 +48,122 @@ export const ManagedForbidden = (reason: string) => SetMetadata(MANAGED_FORBIDDE
  */
 export function isManagedBlocked(env: RuntimeEnvService): boolean {
   return env.isManaged();
+}
+
+/**
+ * The settings a centrally administered install does not hand to its admin,
+ * because the value belongs to whoever operates it.
+ *
+ * One list rather than a condition repeated at each write path. Several of
+ * these are reachable through more than one route — the SMTP block and the
+ * WebAuthn pair share a handler with keys the admin does own, and the llm_*
+ * family is writable through per-user settings, the instance defaults and the
+ * addon config alike — so a route-level refusal would be both too coarse and
+ * incomplete.
+ *
+ * The three users-table columns are in here too. They are not settings keys,
+ * but the filter matches on name and they are the same kind of value, so
+ * splitting them into a second mechanism would only mean two things to forget.
+ *
+ * Note what is deliberately absent: mapbox_access_token looks like an operator
+ * credential and is not one. The customer pays for their own Mapbox, so the map
+ * tab stays theirs.
+ */
+export const MANAGED_LOCKED_SETTING_KEYS = [
+  'llm_api_key',
+  'llm_base_url',
+  'llm_model',
+  'llm_multimodal',
+  'llm_provider',
+  'maps_api_key',
+  'oidc_login',
+  'oidc_registration',
+  'openweather_api_key',
+  'smtp_from',
+  'smtp_host',
+  'smtp_pass',
+  'smtp_port',
+  'smtp_skip_tls_verify',
+  'smtp_user',
+  'unsplash_api_key',
+  'webauthn_origins',
+  'webauthn_rp_id',
+] as const;
+
+/**
+ * The locked names that are columns on `users` rather than settings keys, so
+ * the assignment test can tell "deliberately outside both source lists" from
+ * "somebody removed a key and left the assignment behind".
+ */
+export const MANAGED_LOCKED_PROFILE_KEYS = [
+  'maps_api_key',
+  'openweather_api_key',
+  'unsplash_api_key',
+] as const;
+
+/**
+ * The settings that stay with the instance admin in every mode.
+ *
+ * Listed explicitly rather than derived as "everything not locked", so that a
+ * key added to either source list belongs to neither set until somebody
+ * decides. That is what MANAGED-KEYS-001 checks, and it is the only mechanism
+ * here that still works a year from now.
+ */
+export const MANAGED_CUSTOMER_KEYS = [
+  'admin_ntfy_server',
+  'admin_ntfy_token',
+  'admin_ntfy_topic',
+  'admin_webhook_url',
+  'allow_registration',
+  'allowed_file_types',
+  'blur_booking_codes',
+  'dark_mode',
+  'default_currency',
+  'distance_unit',
+  'map_provider',
+  'map_tile_url',
+  'mapbox_3d_enabled',
+  'mapbox_access_token',
+  'mapbox_quality_mode',
+  'mapbox_style',
+  'maplibre_style',
+  'notification_channels',
+  'notify_trip_reminder',
+  'passkey_login',
+  'password_login',
+  'password_registration',
+  'require_mfa',
+  'temperature_unit',
+  'time_format',
+] as const;
+
+const LOCKED = new Set<string>(MANAGED_LOCKED_SETTING_KEYS);
+
+/** Whether this single key is the operator's to set. */
+export function isManagedLockedKey(key: string): boolean {
+  return LOCKED.has(key);
+}
+
+/**
+ * Splits a write body into what the caller may set and what the operator owns.
+ *
+ * Reports the blocked names instead of throwing, and that is the whole point:
+ * the admin settings tab saves SMTP and the registration toggles in one
+ * request, so refusing the request would take the toggles away with the SMTP
+ * block. The caller keeps working, the locked values keep their stored value,
+ * and the response says which names were skipped.
+ */
+export function splitManagedKeys<T extends Record<string, unknown>>(
+  body: T,
+  managed: boolean,
+): { allowed: Partial<T>; blocked: string[] } {
+  if (!managed) return { allowed: body, blocked: [] };
+
+  const allowed: Partial<T> = {};
+  const blocked: string[] = [];
+  for (const [key, value] of Object.entries(body)) {
+    if (LOCKED.has(key)) blocked.push(key);
+    else (allowed as Record<string, unknown>)[key] = value;
+  }
+  return { allowed, blocked: blocked.sort() };
 }

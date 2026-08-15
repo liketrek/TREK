@@ -225,6 +225,10 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': 'Yêu cầu tính năng',
   'settings.about.featureRequestHint': 'Đề xuất tính năng mới',
   'settings.about.wikiHint': 'Tài liệu & hướng dẫn',
+  'settings.about.descriptionManaged':
+    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+  'settings.about.sourceTitle': 'Source code',
+  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': 'Người ủng hộ hàng tháng',
   'settings.about.supporters.title': 'Bạn đồng hành cho TREK',
   'settings.about.supporters.subtitle':

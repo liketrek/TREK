@@ -120,6 +120,21 @@ export function deriveManaged(raw: RawEnv) {
   };
 }
 
+/**
+ * Where the Places calls go and which credential they carry.
+ *
+ * Both unset on a self-hosted install, which is the path the code has always
+ * taken: the endpoints stay Google's and the key comes from the users table.
+ * Set them and the calls leave through something the operator runs, with a
+ * credential no instance admin can read back.
+ */
+export function deriveMaps(raw: RawEnv) {
+  return {
+    placesApiBase: raw.PLACES_API_BASE || undefined,
+    placesApiKey: raw.PLACES_API_KEY || undefined,
+  };
+}
+
 export function deriveDemo(raw: RawEnv) {
   return {
     enabled: parseBool(raw.DEMO_MODE) === true,
@@ -255,6 +270,7 @@ export function deriveAll(raw: RawEnv) {
     http: deriveHttp(raw),
     session: deriveSession(raw),
     managed: deriveManaged(raw),
+    maps: deriveMaps(raw),
     demo: deriveDemo(raw),
     adminBootstrap: deriveAdminBootstrap(raw),
     oidc: deriveOidc(raw),

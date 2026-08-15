@@ -4,9 +4,10 @@ import { BackupService } from './backup.service';
 import { AutoBackupJob } from './auto-backup.job';
 import { AuditModule } from '../audit/audit.module';
 import { SchedulingModule } from '../scheduling/scheduling.module';
+import { AppConfigModule } from '../app-config/app-config.module';
 
 @Module({
-  imports: [AuditModule, SchedulingModule],
+  imports: [AppConfigModule, AuditModule, SchedulingModule],
   controllers: [BackupController],
   providers: [BackupService, AutoBackupJob],
 })

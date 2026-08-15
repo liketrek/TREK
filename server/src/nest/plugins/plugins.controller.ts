@@ -12,6 +12,8 @@ import { getClientIp } from '../audit/client-ip';
 import { pluginsEnabled } from './kill-switch';
 import { devLinkEnabled } from './dev-link';
 import { PluginActivateDto, PluginConfigDto, PluginEgressHostsDto, PluginInstallDto, PluginLinkDto, PluginRetrustDto, PluginUninstallDto } from './plugins.dto';
+import { ManagedForbidden, isManagedBlocked, MANAGED_FORBIDDEN_ERROR } from '../common/managed';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
 
 /**
  * Flatten a registry/install failure into the error envelope — CARRYING THE CODE.
@@ -48,6 +50,7 @@ export class PluginsController {
     private readonly plugins: PluginsService,
     private readonly runtime: PluginRuntimeService,
     private readonly registry: PluginRegistryService,
+    private readonly env: RuntimeEnvService,
   ) {}
 
   @Get()
@@ -86,10 +89,19 @@ export class PluginsController {
   }
 
   /** Sideload a plugin from an uploaded .zip/.tar.gz (registers INACTIVE). */
+  @ManagedForbidden(
+    'a sideloaded archive skips the signature check every registry install performs',
+    { enforcedInHandler: true },
+  )
   @Post('upload')
   @HttpCode(200)
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024 + 4096 } }))
   async upload(@UploadedFile() file?: Express.Multer.File) {
+    // In the handler, not the guard: guards run before the multipart parser and
+    // the client would get an ECONNRESET rather than this 403 (PROFILE-015).
+    if (isManagedBlocked(this.env)) {
+      throw new HttpException(MANAGED_FORBIDDEN_ERROR, 403);
+    }
     if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
     if (!file?.buffer?.length) throw new HttpException({ error: 'no file uploaded' }, 400);
     try {
@@ -103,6 +115,7 @@ export class PluginsController {
    * DEV-ONLY: register a plugin from a LOCAL built directory and hot-reload it
    * against real data. Gated by TREK_PLUGINS_DEV_LINK on top of admin + kill-switch.
    */
+  @ManagedForbidden('a linked directory skips the signature check the registry install performs')
   @Post('link')
   @HttpCode(200)
   async link(@Body() body: PluginLinkDto) {
@@ -184,6 +197,7 @@ export class PluginsController {
   }
 
   /** DEV-ONLY: re-fork a dev-linked plugin so it picks up rebuilt code. */
+  @ManagedForbidden('reloading from disk reintroduces whatever a sideload put there')
   @Post(':id/reload')
   @HttpCode(200)
   async reload(@Param('id') id: string) {

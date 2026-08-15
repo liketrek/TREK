@@ -227,6 +227,10 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': 'Feature Request',
   'settings.about.featureRequestHint': 'Suggest a new feature',
   'settings.about.wikiHint': 'Documentation & guides',
+  'settings.about.descriptionManaged':
+    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+  'settings.about.sourceTitle': 'Source code',
+  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': 'Monthly Supporters',
   'settings.about.supporters.title': 'Travel companions for TREK',
   'settings.about.supporters.subtitle':
@@ -334,7 +338,7 @@ const settings: TranslationStrings = {
   'settings.passkey.neverUsed': 'Never used',
   'settings.airtrail.title': 'AirTrail',
   'settings.airtrail.hint':
-    'Connect your self-hosted AirTrail to import and sync flights. Create an API key in AirTrail under Settings → Security.',
+    'Connect your AirTrail instance to import and sync flights. Create an API key in AirTrail under Settings → Security.',
   'settings.airtrail.url': 'Instance URL',
   'settings.airtrail.apiKey': 'API key',
   'settings.airtrail.apiKeyPlaceholder': 'Bearer API key',
@@ -359,7 +363,7 @@ const settings: TranslationStrings = {
   'settings.aiParsing.providerOpenai': 'OpenAI',
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.localAdminOnly':
-    'A self-hosted (Ollama) endpoint is set up once for the whole instance in the admin settings. You can still use your own OpenAI or Anthropic key here.',
+    'A local (Ollama) endpoint is set up once for the whole instance in the admin settings. You can still use your own OpenAI or Anthropic key here.',
   'settings.aiParsing.model': 'Model',
   'settings.aiParsing.baseUrl': 'Base URL',
   'settings.aiParsing.baseUrlHint': 'Where the model runs — a local Ollama server or an OpenAI-compatible endpoint.',
