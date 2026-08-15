@@ -10,6 +10,7 @@ import AirTrailConnectionSection from './AirTrailConnectionSection'
 import LlmConnectionSection from './LlmConnectionSection'
 import { ALL_SCOPES } from '../../api/oauthScopes'
 import ScopeGroupPicker from '../OAuth/ScopeGroupPicker'
+import { useAuthStore } from '../../store/authStore'
 
 interface OAuthPreset {
   id: string
@@ -96,11 +97,18 @@ interface McpToken {
 
 export default function IntegrationsTab(): React.ReactElement {
   const S = useIntegrations()
+  const managed = useAuthStore((s) => s.managed)
   return (
     <>
-      <PhotoProvidersSection />
-      {S.airtrailEnabled && <AirTrailConnectionSection />}
-      {S.llmEnabled && <LlmConnectionSection />}
+      {/* Immich, Synology Photos and AirTrail all connect to a server the reader
+          runs themselves. On a managed install there is none, and every one of
+          these would ask for an address that cannot be reached from here. */}
+      {!managed && <PhotoProvidersSection />}
+      {S.airtrailEnabled && !managed && <AirTrailConnectionSection />}
+      {/* Which model reads a booking, and what that costs, comes with the instance on
+       a managed install. The per-user fallback exists for people who supply their
+       own key, and there nobody does. */}
+      {S.llmEnabled && !managed && <LlmConnectionSection />}
       {S.mcpEnabled && <IntegrationsMcpSection {...S} />}
       <McpTokenModals {...S} />
       <OAuthClientModals {...S} />

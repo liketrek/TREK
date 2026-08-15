@@ -14,7 +14,7 @@ interface AdminNotificationsTabProps {
 // trip reminders, admin webhook + ntfy targets, and the per-event preference matrix.
 // Derives channel state from smtpValues exactly as the original inline IIFE did.
 export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTabProps): React.ReactElement {
-  const { toast, smtpValues, setSmtpValues, smtpLoaded, setTripRemindersEnabled } = admin
+  const { toast, smtpValues, setSmtpValues, smtpLoaded, setTripRemindersEnabled, managed } = admin
 
   // Derive active channels from smtpValues.notification_channels (plural)
   // with fallback to notification_channel (singular) for existing installs
@@ -58,6 +58,10 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
 
   return (<>
     <div className="space-y-4">
+      {/* The relay is the operator's: their host, their credential, their sending
+          reputation. An instance that could point it elsewhere would send under a
+          domain it does not own. */}
+      {!managed && (<>
       {/* Email Panel */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
@@ -132,6 +136,7 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
         </div>
       </div>
 
+      </>)}
       {/* Webhook Panel */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="px-6 py-4 flex items-center justify-between">
@@ -211,6 +216,9 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
         </div>
       </div>
 
+      {/* Admin alerts are about running the instance (version notices, and what else
+          lands there later). On a managed install those go to whoever runs it. */}
+      {!managed && (<>
       {/* Admin Webhook Panel */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100">
@@ -262,7 +270,8 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
         </div>
       </div>
 
-      {/* Admin Ntfy Panel */}
+      {/* Admin Ntfy Panel — same audience as the webhook above, and inside the
+          same wrapper. */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100">
           <h2 className="font-semibold text-slate-900">{t('admin.notifications.adminNtfyPanel.title')}</h2>
@@ -361,6 +370,7 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
           </button>
         </div>
       </div>
+      </>)}
 
     </div>
     <div className="mt-6">

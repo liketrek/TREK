@@ -126,7 +126,7 @@ function AdminPageDesktop(): React.ReactElement {
             tabs={TABS}
             activeTab={activeTab}
             onTabChange={setActiveTab}
-            footer={managed ? 'admin' : 'admin · self-hosted'}
+            footer=""
           >
             {/* Tab content */}
           {activeTab === 'users' && (

@@ -17,6 +17,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { useSettings } from '../../../pages/settings/useSettings'
+import { useAuthStore } from '../../../store/authStore'
 import { usePluginStore } from '../../../store/pluginStore'
 import MSettingsPlugins from './MSettingsPlugins'
 import MSettingsOffline from './MSettingsOffline'
@@ -44,6 +45,7 @@ export default function MSettings() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { hasIntegrations, appVersion, activeTab, setActiveTab } = useSettings()
+  const managed = useAuthStore((s) => s.managed)
   const hasPlugins = usePluginStore((s) => s.plugins.length > 0)
   const [dropOpen, setDropOpen] = useState(false)
 
@@ -56,7 +58,12 @@ export default function MSettings() {
     ...(hasPlugins ? [{ id: 'plugins', label: t('settings.tabs.plugins'), icon: Puzzle }] : []),
     { id: 'offline', label: t('settings.tabs.offline'), icon: CloudOff },
     { id: 'account', label: t('settings.tabs.account'), icon: User },
-    ...(appVersion ? [{ id: 'about', label: t('settings.tabs.about'), icon: Info }] : []),
+    // Same call as the desktop page: About is about the project — what TREK is,
+    // where to file a bug, where to support it — and a customer of a hosted
+    // instance is the audience for none of it. The version and the source link
+    // move to the footer below, because AGPL §13 wants those offered wherever
+    // people reach the software over a network.
+    ...(appVersion && !managed ? [{ id: 'about', label: t('settings.tabs.about'), icon: Info }] : []),
   ]
 
   const active = tabs.find((tab) => tab.id === activeTab) || tabs[0]
@@ -117,6 +124,19 @@ export default function MSettings() {
       {active.id === 'offline' && <MSettingsOffline />}
       {active.id === 'account' && <MSettingsAccount />}
       {active.id === 'about' && appVersion && <MSettingsAbout appVersion={appVersion} />}
+
+      {managed && appVersion && (
+        <p className="mt-8 text-center text-caption text-m-muted">
+          <a
+            href="https://github.com/liketrek/TREK"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="no-underline"
+          >
+            v{appVersion}
+          </a>
+        </p>
+      )}
     </div>
   )
 }

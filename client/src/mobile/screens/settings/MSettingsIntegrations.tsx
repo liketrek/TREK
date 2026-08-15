@@ -4,6 +4,7 @@ import MPhotoProvidersSection from './MPhotoProvidersSection'
 import MAirTrailConnectionSection from './MAirTrailConnectionSection'
 import MLlmConnectionSection from './MLlmConnectionSection'
 import MSettingsMcp from './MSettingsMcp'
+import { useAuthStore } from '../../../store/authStore'
 
 /**
  * "Integrations" section. The photo-provider / AirTrail / LLM connection forms
@@ -16,6 +17,7 @@ export default function MSettingsIntegrations() {
   const mcpEnabled = addonEnabled('mcp')
   const airtrailEnabled = addonEnabled('airtrail')
   const llmEnabled = addonEnabled('llm_parsing')
+  const managed = useAuthStore((s) => s.managed)
 
   useEffect(() => {
     loadAddons()
@@ -25,7 +27,10 @@ export default function MSettingsIntegrations() {
     <>
       <MPhotoProvidersSection />
       {airtrailEnabled && <MAirTrailConnectionSection />}
-      {llmEnabled && <MLlmConnectionSection />}
+      {/* Which model reads a booking, and what that costs, comes with the instance on
+       a managed install. The per-user fallback exists for people who supply their
+       own key, and there nobody does. */}
+      {llmEnabled && !managed && <MLlmConnectionSection />}
       {mcpEnabled && <MSettingsMcp />}
     </>
   )

@@ -38,6 +38,7 @@ import {
   writeVersionCache,
   type VersionInfo,
 } from './admin.helpers';
+import { MANAGED_FORBIDDEN_ERROR } from '../common/managed';
 
 /** Outbound GitHub calls: hard timeout and response-size cap (server/CLAUDE.md). */
 const GITHUB_TIMEOUT_MS = 10_000;
@@ -535,7 +536,24 @@ export class AdminService {
   // ── Addons ─────────────────────────────────────────────────────────────────
 
   listAddons() {
-    const addons = this.db.all<Addon>('SELECT * FROM addons ORDER BY sort_order, id');
+    const addons = this.db
+      .all<Addon>('SELECT * FROM addons ORDER BY sort_order, id')
+      // Hidden rather than shown-and-refused, because a toggle that answers 403
+      // is worse than no toggle.
+      //
+      // AI parsing: the endpoint, the model and what a document costs all belong
+      // to the operator, so there is no instance decision left to make — not even
+      // whether it runs.
+      //
+      // AirTrail: the addon exists to reach a server the admin runs themselves,
+      // and a managed instance has no route to one.
+      .filter(
+        (a) =>
+          !(
+            readEnv().managed.enabled &&
+            (a.id === ADDON_IDS.LLM_PARSING || a.id === ADDON_IDS.AIRTRAIL)
+          ),
+      );
     const providers = this.db.all<{
       id: string;
       name: string;
@@ -547,7 +565,11 @@ export class AdminService {
     SELECT id, name, description, icon, enabled, sort_order
     FROM photo_providers
     ORDER BY sort_order, id
-  `);
+  `)
+      // Immich and Synology Photos are servers the admin runs at home. A managed
+      // instance cannot reach one (its egress does not go there, and it should
+      // not), so offering the connection would only produce a timeout.
+      .filter(() => !readEnv().managed.enabled);
     const fields = this.db.all<{
       provider_id: string;
       field_key: string;
@@ -610,13 +632,13 @@ export class AdminService {
     const provider = this.db.get<ProviderRow>('SELECT * FROM photo_providers WHERE id = ?', id);
     if (!addon && !provider) return { error: 'Addon not found', status: 404 };
 
-    // Turning the AI-parsing addon on and off stays with the admin; pointing it
-    // at an endpoint does not. safeFetchLlm allows loopback and LAN on purpose,
-    // so a freely settable baseUrl would make a customer instance a probe into
-    // the operator's network.
-    const configLocked =
-      readEnv().managed.enabled && id === ADDON_IDS.LLM_PARSING && data.config !== undefined;
-    if (configLocked) delete data.config;
+    // The whole addon, not just its config: on a centrally administered install
+    // the operator owns the endpoint, the model and the per-document cost, so
+    // there is nothing here for an instance admin to set — including whether it
+    // runs at all. listAddons hides the row; this closes the route behind it.
+    if (readEnv().managed.enabled && id === ADDON_IDS.LLM_PARSING) {
+      return { error: MANAGED_FORBIDDEN_ERROR.error, status: 403 };
+    }
 
     this.db.transaction(() => {
     if (addon) {
@@ -679,7 +701,6 @@ export class AdminService {
     return {
       addon: updated,
       mcpAffected: enabledChanged && MCP_RELEVANT_ADDONS.has(id),
-      ...(configLocked ? { managedKeys: ['config'] } : {}),
       auditDetails: {
         enabled: data.enabled !== undefined ? !!data.enabled : undefined,
         config_changed: data.config !== undefined,

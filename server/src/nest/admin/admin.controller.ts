@@ -262,7 +262,7 @@ export class AdminController {
     if (result.addon && result.addon.enabled === false && (body as { enabled?: boolean })?.enabled === false) {
       await this.pluginRuntime.deactivateForDisabledAddon(id);
     }
-    return { addon: result.addon, ...(result.managedKeys?.length ? { managed_keys: result.managedKeys } : {}) };
+    return { addon: result.addon };
   }
 
   // ── MCP tokens / OAuth sessions ──
