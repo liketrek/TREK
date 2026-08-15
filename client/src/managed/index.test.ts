@@ -8,12 +8,19 @@
  */
 import { describe, it, expect } from 'vitest'
 import { Briefcase } from 'lucide-react'
-import { managedNavItems, managedRoutes, visibleManagedNavItems, type ManagedNavItem } from './index'
+import {
+  managedAdminTabs,
+  managedNavItems,
+  managedRoutes,
+  visibleManagedNavItems,
+  type ManagedNavItem,
+} from './index'
 
 describe('managed attachment point', () => {
   it('FE-MANAGED-001: ships empty, so the public build registers nothing', () => {
     expect(managedRoutes).toEqual([])
     expect(managedNavItems).toEqual([])
+    expect(managedAdminTabs).toEqual([])
   })
 
   it('FE-MANAGED-002: an empty list stays empty for either kind of user', () => {

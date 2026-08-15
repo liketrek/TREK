@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { Fragment } from 'react'
 import { adminApi } from '../api/client'
 import DevNotificationsPanel from '../components/Admin/DevNotificationsPanel'
 import DefaultUserSettingsTab from '../components/Admin/DefaultUserSettingsTab'
@@ -21,6 +21,7 @@ import AdminUsersTab from './admin/AdminUsersTab'
 import AdminSettingsTab from './admin/AdminSettingsTab'
 import AdminNotificationsTab from './admin/AdminNotificationsTab'
 import AdminUserModals from './admin/AdminUserModals'
+import { managedAdminTabs } from '../managed'
 
 export default function AdminPage(): React.ReactElement {
   // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
@@ -46,6 +47,7 @@ function AdminPageDesktop(): React.ReactElement {
   const gConfig = t('admin.group.config')
   const gIntegration = t('admin.group.integration')
   const gMaintenance = t('admin.group.maintenance')
+  const GROUP_LABELS = { users: gUsers, config: gConfig, integration: gIntegration, maintenance: gMaintenance }
   const TABS: PageSidebarTab[] = [
     { id: 'users', label: t('admin.tabs.users'), icon: Users, group: gUsers },
     { id: 'defaults', label: t('admin.tabs.defaults'), icon: UserCog, group: gUsers },
@@ -62,6 +64,14 @@ function AdminPageDesktop(): React.ReactElement {
     ...(managed ? [] : [{ id: 'backup', label: t('admin.tabs.backup'), icon: Database, group: gMaintenance }]),
     { id: 'audit', label: t('admin.tabs.audit'), icon: ScrollText, group: gMaintenance },
     ...(devMode ? [{ id: 'dev-notifications', label: 'Dev: Notifications', icon: Bug, group: gMaintenance }] : []),
+    // Empty in this repository — see client/src/managed. Appended per group
+    // rather than inserted, because the sidebar needs a group's tabs contiguous.
+    ...managedAdminTabs.map(tab => ({
+      id: tab.id,
+      label: tab.label,
+      icon: tab.Icon,
+      group: GROUP_LABELS[tab.group ?? 'config'],
+    })),
   ]
 
   return (
@@ -175,6 +185,11 @@ function AdminPageDesktop(): React.ReactElement {
           {activeTab === 'defaults' && <DefaultUserSettingsTab />}
 
           {activeTab === 'dev-notifications' && <DevNotificationsPanel />}
+
+          {/* Empty in this repository — see client/src/managed. */}
+          {managedAdminTabs.map(tab => (
+            activeTab === tab.id ? <Fragment key={tab.id}>{tab.element}</Fragment> : null
+          ))}
           </PageSidebar>
         </div>
 

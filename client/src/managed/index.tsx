@@ -64,8 +64,35 @@ export function visibleManagedNavItems(isAdmin: boolean): ManagedNavItem[] {
   return managedNavItems.filter((item) => !item.adminOnly || isAdmin)
 }
 
+export interface ManagedAdminTab {
+  /** Tab id, also the deep-link value of ?tab= on /admin. Keep it bare. */
+  id: string
+  label: string
+  /** lucide-react, like every other icon in the app. */
+  Icon: LucideIcon
+  /**
+   * Which group heading the tab sits under. The admin sidebar groups tabs and
+   * requires a group's tabs to be contiguous, so this is appended to the end of
+   * whichever group it names rather than inserted mid-list.
+   */
+  group?: 'users' | 'config' | 'integration' | 'maintenance'
+  /** Rendered in the tab body. /admin already requires an admin to get here. */
+  element: ReactElement
+}
+
 /** Extra protected routes. Spread into the router next to the built-in ones. */
 export const managedRoutes: ManagedRoute[] = []
+
+/**
+ * Extra tabs in Admin → the left sidebar.
+ *
+ * This is where a surface belongs when it is about the install rather than about
+ * a trip: /admin is already behind an admin check, already grouped, and already
+ * the place somebody looks when they want to change how their instance works.
+ * A top-level nav entry would put it next to My Trips for a screen opened once
+ * a month by one person.
+ */
+export const managedAdminTabs: ManagedAdminTab[] = []
 
 /** Extra entries for the desktop navbar and the mobile tab bar. */
 export const managedNavItems: ManagedNavItem[] = []
