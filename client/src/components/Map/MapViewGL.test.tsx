@@ -851,6 +851,23 @@ describe('MapViewGL', () => {
     expect(glMarkers.created[1].lngLat).toEqual([2.12, 48.12])
   })
 
+  // The Leaflet twin of this is FE-COMP-MAPVIEW-074. Both renderers build their
+  // marker as an HTML string, so both need the escape pinned — otherwise it can
+  // be dropped from one of them without a single test going red.
+  it('FE-COMP-MAPVIEWGL-023b: an image_url that passes the prefix check is still escaped', async () => {
+    loadOnAttach()
+    render(<MapViewGL places={[buildMapPlace({
+      id: 13, lat: 48.13, lng: 2.13, image_url: '/uploads/x" onerror="alert(1)" y="',
+    })]} fitKey={1} />)
+    await act(async () => {})
+
+    const marker = glMarkers.created[0].element
+    expect(marker.innerHTML).not.toContain('onerror="alert(1)"')
+    expect(marker.innerHTML).toContain('&quot;')
+    // The escape must not break the ordinary case: the src still resolves.
+    expect(marker.querySelector('img')?.getAttribute('src')).toBe('/uploads/x" onerror="alert(1)" y="')
+  })
+
   it('FE-COMP-MAPVIEWGL-024: the hover card shows name, category and address and follows the cursor', async () => {
     loadOnAttach()
     const places = [buildMapPlace({

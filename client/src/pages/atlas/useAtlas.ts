@@ -6,7 +6,7 @@ import apiClient, { mapsApi, pluginsApi, type PluginAtlasLayer } from '../../api
 import L from 'leaflet'
 import type { GeoJsonFeatureCollection } from '../../types'
 import { A2_TO_A3, countryStatus, findBucketDuplicate, isBucketDuplicateError, isCountryVisible, normalizeRegionName, withCountryMarkedVisited, wishlistA3Codes, countryColor, type AtlasData, type AtlasPlaceHit, type CountryDetail, type BucketItem } from './atlasModel'
-import { continentForCountry, type VisitStatus } from '@trek/shared'
+import { continentForCountry, escapeHtml, type VisitStatus } from '@trek/shared'
 import { useToast } from '../../components/shared/Toast'
 import { getApiErrorMessage } from '../../types'
 
@@ -941,7 +941,7 @@ export function useAtlas() {
         iconAnchor: [14, 14],
       })
       return L.marker([b.lat!, b.lng!], { icon }).bindTooltip(
-        `<div style="font-size:12px;font-weight:600">${b.name}</div>${b.notes ? `<div style="font-size:10px;opacity:0.7;margin-top:2px">${b.notes}</div>` : ''}`,
+        `<div style="font-size:12px;font-weight:600">${escapeHtml(b.name)}</div>${b.notes ? `<div style="font-size:10px;opacity:0.7;margin-top:2px">${escapeHtml(b.notes)}</div>` : ''}`,
         { className: 'atlas-tooltip', direction: 'top', offset: [0, -14] }
       )
     })

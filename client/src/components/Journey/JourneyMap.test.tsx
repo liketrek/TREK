@@ -550,4 +550,30 @@ describe('JourneyMap', () => {
     expect(colors).not.toContain('#ff0000');
     expect(colors).not.toContain('#ffffff');
   });
+
+  // A string handed to bindTooltip becomes innerHTML. A track name is a place
+  // name off a shared trip and an entry label is a journey title, so both are
+  // written by someone who is not necessarily the person reading the map — and
+  // this component is what the public journey page renders.
+  it('FE-COMP-JOURNEYMAP-044: escapes a track name before it becomes tooltip markup', () => {
+    vi.mocked(L.polyline).mockClear();
+    render(<JourneyMap checkins={[]} entries={entriesWithCoords} tracks={[track({ name: '<img src=x onerror="alert(1)">' })]} />);
+
+    const line = vi.mocked(L.polyline).mock.results
+      .map(r => r.value as any)
+      .find(v => v.bindTooltip.mock.calls.length > 0);
+    const [label] = line.bindTooltip.mock.calls[0];
+    expect(label).not.toContain('<img');
+    expect(label).not.toContain('onerror="');
+    expect(label).toBe('&lt;img src=x onerror=&quot;alert(1)&quot;&gt;');
+  });
+
+  it('FE-COMP-JOURNEYMAP-045: escapes an entry title before it becomes tooltip markup', () => {
+    const hostile = [{ id: 'e9', lat: 48.1, lng: 2.1, title: '<img src=x onerror="alert(1)">', mood: null, entry_date: '2025-06-04' }];
+    render(<JourneyMap checkins={[]} entries={hostile} />);
+
+    const labels = vi.mocked(mockedMarker().bindTooltip).mock.calls.map(c => c[0]);
+    expect(labels.some(l => typeof l === 'string' && l.includes('<img'))).toBe(false);
+    expect(labels).toContain('&lt;img src=x onerror=&quot;alert(1)&quot;&gt;');
+  });
 });

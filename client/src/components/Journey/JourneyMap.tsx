@@ -1,7 +1,7 @@
 import { useEffect, useRef, useImperativeHandle, useCallback, type Ref } from 'react'
 import L from 'leaflet'
 import { useSettingsStore } from '../../store/settingsStore'
-import type { JourneyTrack } from '@trek/shared'
+import { escapeHtml, type JourneyTrack } from '@trek/shared'
 
 export interface MapMarkerItem {
   id: string
@@ -212,8 +212,9 @@ function JourneyMap(
       const line = L.polyline(coords, { color, weight: 3.5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
       // Same tooltip the markers on this map use, rather than Leaflet's default box:
       // it follows the appearance tokens, so it lands right in dark mode and with
-      // transparency switched off.
-      if (track.name) line.bindTooltip(track.name, { sticky: true, direction: 'top', className: 'map-tooltip' })
+      // transparency switched off. Escaped because a string handed to bindTooltip
+      // becomes innerHTML, and a track name is a place name off a shared trip.
+      if (track.name) line.bindTooltip(escapeHtml(track.name), { sticky: true, direction: 'top', className: 'map-tooltip' })
       line.addTo(map)
       coords.forEach(c => allCoords.push(c))
     }
@@ -243,7 +244,9 @@ function JourneyMap(
       })
 
       const marker = L.marker(pos, { icon }).addTo(map)
-      marker.bindTooltip(item.label, {
+      // Escaped for the same reason as the track tooltip above: the label is an
+      // entry title, and this map is what the public journey page renders.
+      marker.bindTooltip(escapeHtml(item.label), {
         direction: 'top',
         offset: [0, -MARKER_H],
         className: 'map-tooltip',
