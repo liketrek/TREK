@@ -64,7 +64,7 @@ const photoCacheStub = { removeIfUnreferenced: removeIfUnreferencedSpy } as unkn
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createPlace, createCategory, createTag } from '../../helpers/factories';
+import { createUser, createTrip, createPlace, createCategory, createTag, addTripMember } from '../../helpers/factories';
 import path from 'path';
 import fs from 'fs';
 import { DatabaseService } from '../../../src/nest/database/database.service';
@@ -199,6 +199,33 @@ describe('create', () => {
     const place = svc.create(String(trip.id), { name: 'Tagged Place', tags: [tag.id] }) as any;
     expect(place.tags).toHaveLength(1);
     expect(place.tags[0].id).toBe(tag.id);
+  });
+
+  // A tag belongs to a user, not a trip, and the place body is an open record, so
+  // an id from someone outside the trip could be attached and then read straight
+  // back — the tag projection carries the owner's user_id with it.
+  it('PLACE-SVC-008a — drops a tag owned by someone outside the trip', () => {
+    const { user } = createUser(testDb);
+    const { user: outsider } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const mine = createTag(testDb, user.id, { name: 'Mine' }) as any;
+    const theirs = createTag(testDb, outsider.id, { name: 'Theirs' }) as any;
+
+    const place = svc.create(String(trip.id), { name: 'Tagged Place', tags: [mine.id, theirs.id] }) as any;
+
+    expect(place.tags.map((t: any) => t.id)).toEqual([mine.id]);
+  });
+
+  it('PLACE-SVC-008b — keeps a co-traveller tag, so a shared place survives a foreign re-save', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+    const theirTag = createTag(testDb, member.id, { name: 'Theirs' }) as any;
+
+    const place = svc.create(String(trip.id), { name: 'Shared Place', tags: [theirTag.id] }) as any;
+
+    expect(place.tags.map((t: any) => t.id)).toEqual([theirTag.id]);
   });
 
   it('PLACE-SVC-009 — place is associated with correct trip', () => {

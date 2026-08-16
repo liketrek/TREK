@@ -441,10 +441,23 @@ export class CollectionsService {
   // Saved places CRUD
   // -------------------------------------------------------------------------
 
+  /**
+   * A tag has no list of its own, only a `user_id`, so "belongs here" resolves
+   * through the people on the list — the same shape places.service uses against
+   * a trip roster. Off-list tag ids drop silently rather than being stored and
+   * read straight back out: the tag read-back ships `tags.user_id`, so an
+   * unfiltered id answers who owns a tag the caller cannot otherwise see.
+   */
   private attachTags(collectionPlaceId: number, tagIds: number[] | undefined): void {
     if (!tagIds || tagIds.length === 0) return;
+    const unique = [...new Set(tagIds)];
+    const eligible = this.collectionMemberIds(this.collectionIdOfPlace(collectionPlaceId));
+    const owned = this.db.all<{ id: number; user_id: number }>(
+      `SELECT id, user_id FROM tags WHERE id IN (${unique.map(() => '?').join(',')})`,
+      ...unique,
+    );
     const stmt = this.db.prepare('INSERT OR IGNORE INTO collection_place_tags (collection_place_id, tag_id) VALUES (?, ?)');
-    for (const tid of tagIds) stmt.run(collectionPlaceId, tid);
+    for (const t of owned) if (eligible.has(t.user_id)) stmt.run(collectionPlaceId, t.id);
   }
 
   /** Owner + accepted members — the users whose votes may live in this list. */

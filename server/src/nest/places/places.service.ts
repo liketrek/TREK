@@ -122,6 +122,29 @@ export class PlacesService {
     return this.permissions.checkPermission('place_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
+  /**
+   * The subset of `tagIds` that someone on this trip owns. A tag has no trip of
+   * its own, only a `user_id`, so "belongs to this trip" resolves through the
+   * roster — which keeps the shared case working: a member tags a place, another
+   * member re-saves it and sends the id back, and the tag survives because its
+   * owner is still on the trip. Scoping to the caller instead would quietly strip
+   * a co-traveller's tag on every foreign edit.
+   *
+   * Off-roster ids drop silently. The place body is an open record, so an id can
+   * arrive from an older client that had no business knowing it existed, and the
+   * read-back join hands `tags.user_id` straight to the caller.
+   */
+  private tagsOnTrip(tripId: string | number, tagIds: number[]): number[] {
+    const unique = [...new Set(tagIds)];
+    if (unique.length === 0) return [];
+    const roster = this.dbs.rosterUserIds(tripId);
+    const owned = this.dbs.all<{ id: number; user_id: number }>(
+      `SELECT id, user_id FROM tags WHERE id IN (${unique.map(() => '?').join(',')})`,
+      ...unique,
+    );
+    return owned.filter(t => roster.has(t.user_id)).map(t => t.id);
+  }
+
   broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
@@ -223,7 +246,7 @@ export class PlacesService {
 
     if (tags && tags.length > 0) {
       const insertTag = this.dbs.prepare('INSERT OR IGNORE INTO place_tags (place_id, tag_id) VALUES (?, ?)');
-      for (const tagId of tags) {
+      for (const tagId of this.tagsOnTrip(tripId, tags)) {
         insertTag.run(placeId, tagId);
       }
     }
@@ -324,7 +347,7 @@ export class PlacesService {
       this.dbs.run('DELETE FROM place_tags WHERE place_id = ?', placeId);
       if (tags.length > 0) {
         const insertTag = this.dbs.prepare('INSERT OR IGNORE INTO place_tags (place_id, tag_id) VALUES (?, ?)');
-        for (const tagId of tags) {
+        for (const tagId of this.tagsOnTrip(tripId, tags)) {
           insertTag.run(placeId, tagId);
         }
       }
