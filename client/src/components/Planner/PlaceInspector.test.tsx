@@ -953,7 +953,7 @@ describe('PlaceInspector', () => {
 
     fireEvent.click(screen.getByText('Open Website').closest('button')!);
     expect(open).toHaveBeenCalledTimes(2);
-    expect(open.mock.calls[1]).toEqual(['https://example.org', '_blank']);
+    expect(open.mock.calls[1]).toEqual(['https://example.org', '_blank', 'noopener,noreferrer']);
     vi.unstubAllGlobals();
   });
 

@@ -643,7 +643,7 @@ describe('usePlacesSidebar context menu', () => {
 
     fireEvent.contextMenu(screen.getByTestId('row-3'));
     await user.click(screen.getByRole('button', { name: 'Open Website' }));
-    expect(open).toHaveBeenCalledWith('https://cafe.example', '_blank');
+    expect(open).toHaveBeenCalledWith('https://cafe.example', '_blank', 'noopener,noreferrer');
 
     fireEvent.contextMenu(screen.getByTestId('row-3'));
     await user.click(screen.getByRole('button', { name: 'Google Maps' }));

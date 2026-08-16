@@ -5,6 +5,7 @@ import {
   demoDenied, ok,
 } from '@trek/nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
+import { placeWebsiteSchema } from '@trek/shared';
 import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
 import { AssignmentsService } from '../assignments/assignments.service';
@@ -63,7 +64,7 @@ export class PlacesMcp {
       google_ftid: z.string().optional().describe('Google Maps feature ID from search_place — enables direct Google Maps links'),
       osm_id: z.string().optional().describe('OpenStreetMap ID from search_place (e.g. "way:12345") — enables opening hours if no Google ID'),
       notes: z.string().max(2000).optional(),
-      website: z.string().max(500).optional(),
+      website: placeWebsiteSchema.optional(),
       phone: z.string().max(50).optional(),
       price: z.number().nonnegative().optional().describe('Cost of this place/activity (e.g. ticket price, entry fee)'),
       currency: z.string().length(3).optional().describe('ISO 4217 currency code (e.g. "EUR", "USD")'),
@@ -103,7 +104,7 @@ export class PlacesMcp {
       google_ftid: z.string().optional().describe('Google Maps feature ID from search_place — enables direct Google Maps links'),
       osm_id: z.string().optional().describe('OpenStreetMap ID from search_place (e.g. "way:12345")'),
       place_notes: z.string().max(2000).optional().describe('Notes for the place'),
-      website: z.string().max(500).optional(),
+      website: placeWebsiteSchema.optional(),
       phone: z.string().max(50).optional(),
       assignment_notes: z.string().max(500).optional().describe('Notes for this day assignment'),
       price: z.number().nonnegative().optional().describe('Cost of this place/activity (e.g. ticket price, entry fee)'),
@@ -158,7 +159,7 @@ export class PlacesMcp {
       end_time: z.string().max(50).optional().describe('End time (e.g. "11:00")'),
       duration_minutes: z.number().int().positive().optional(),
       notes: z.string().max(2000).optional(),
-      website: z.string().max(500).optional(),
+      website: placeWebsiteSchema.optional(),
       phone: z.string().max(50).optional(),
       transport_mode: z.enum(['walking', 'driving', 'cycling', 'transit', 'flight']).optional(),
       osm_id: z.string().optional().describe('OpenStreetMap ID (e.g. "way:12345")'),
@@ -366,7 +367,7 @@ export class PlacesMcp {
       end_time: z.string().max(50).optional().describe('End time (e.g. "11:00")'),
       duration_minutes: z.number().int().positive().optional(),
       notes: z.string().max(2000).optional(),
-      website: z.string().max(500).optional(),
+      website: placeWebsiteSchema.optional(),
       phone: z.string().max(50).optional(),
       description: z.string().max(2000).optional(),
     },

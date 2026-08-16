@@ -301,6 +301,59 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     });
   });
 
+  // image_url and website leave the database for something that treats them as a
+  // URL — the thumbnail into hand-built marker HTML, the homepage into
+  // window.open. The write body is an open record, so the Zod pipe never sees
+  // either one; they are checked here for the same reason route_color is.
+  describe('image_url and website', () => {
+    const imageErr = { status: 400, body: { error: 'image_url must be an uploaded path, a photo-proxy path, an inline image or an https URL' } };
+    const siteErr = { status: 400, body: { error: 'website must be an http or https URL' } };
+    const ctl = (over: Partial<PlacesService> = {}) => new PlacesController(svc(over), new RuntimeEnvService());
+
+    it('400s an image_url the marker builders were never meant to receive, before the permission check', () => {
+      const canEdit = vi.fn().mockReturnValue(false); // would 403 if it got that far
+      for (const image_url of [
+        'javascript:alert(1)',
+        'data:text/html,<script>alert(1)</script>',
+        'http://insecure.example/p.png',
+        '//evil.example/p.png',
+        123,
+      ]) {
+        expect(thrown(() => ctl({ canEdit }).update(user, '5', '9', { image_url }))).toEqual(imageErr);
+      }
+      expect(thrown(() => ctl({ canEdit }).create(user, '5', { name: 'T', image_url: 'javascript:alert(1)' }))).toEqual(imageErr);
+      expect(canEdit).not.toHaveBeenCalled();
+    });
+
+    it('keeps accepting every shape the app actually stores', () => {
+      const update = vi.fn().mockReturnValue({ id: 9 });
+      for (const image_url of [
+        '/uploads/places/eiffel.jpg',
+        '/api/maps/place-photo/abc123',
+        'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
+        'https://images.example/photo.jpg',
+        null,
+      ]) {
+        expect(ctl({ update } as Partial<PlacesService>).update(user, '5', '9', { image_url })).toEqual({ place: { id: 9 } });
+      }
+    });
+
+    it('400s a website that window.open would not treat as a page', () => {
+      const canEdit = vi.fn().mockReturnValue(false);
+      for (const website of ['javascript:fetch("/api/trips")', 'data:text/html,x', 'louvre.fr', 42]) {
+        expect(thrown(() => ctl({ canEdit }).update(user, '5', '9', { website }))).toEqual(siteErr);
+      }
+      expect(canEdit).not.toHaveBeenCalled();
+    });
+
+    it('accepts http and https, and treats the empty string as clearing the field', () => {
+      const update = vi.fn().mockReturnValue({ id: 9 });
+      for (const website of ['https://louvre.fr', 'http://pension.at', '', null]) {
+        expect(ctl({ update } as Partial<PlacesService>).update(user, '5', '9', { website })).toEqual({ place: { id: 9 } });
+      }
+    });
+  });
+
   it('PUT /:id forwards the base-version token and 409s on a conflict (#1135)', () => {
     const update = vi.fn().mockReturnValue({ conflict: true, server: { id: 9, name: 'Theirs' } });
     const onUpdated = vi.fn(); const broadcast = vi.fn();

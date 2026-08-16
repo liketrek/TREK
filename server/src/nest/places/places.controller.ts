@@ -20,7 +20,7 @@ import type { Response } from 'express';
 import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { memoryStorage } from 'multer';
-import { hexColorSchema } from '@trek/shared';
+import { hexColorSchema, placeImageUrlSchema, placeWebsiteSchema } from '@trek/shared';
 import type { User } from '../../types';
 import { PlacesService } from './places.service';
 import { isUpdateConflict } from '../common/conflictResult';
@@ -60,6 +60,25 @@ function validateRouteColor(body: Record<string, unknown>): void {
   if (value === undefined || value === null) return;
   if (typeof value !== 'string' || !hexColorSchema.safeParse(value).success) {
     throw new HttpException({ error: 'route_color must be a hex colour like #4f46e5' }, 400);
+  }
+}
+
+// Same reason as route_color: these two leave the database for a renderer that
+// treats them as a URL — the thumbnail into marker HTML, the homepage into
+// window.open — and the open record means the pipe never sees them.
+function validateUrlFields(body: Record<string, unknown>): void {
+  const image = body.image_url;
+  if (image !== undefined && image !== null) {
+    if (typeof image !== 'string' || !placeImageUrlSchema.safeParse(image).success) {
+      throw new HttpException({ error: 'image_url must be an uploaded path, a photo-proxy path, an inline image or an https URL' }, 400);
+    }
+  }
+  const website = body.website;
+  // '' is how the UI clears the field; treat it like an absent value.
+  if (website !== undefined && website !== null && website !== '') {
+    if (typeof website !== 'string' || !placeWebsiteSchema.safeParse(website).success) {
+      throw new HttpException({ error: 'website must be an http or https URL' }, 400);
+    }
   }
 }
 
@@ -131,6 +150,7 @@ export class PlacesController {
     const trip = this.requireTrip(tripId, user);
     validateLengths(body);
     validateRouteColor(body);
+    validateUrlFields(body);
     this.requireEdit(trip, user);
     const place = this.places.create(tripId, body as never);
     this.places.broadcast(tripId, 'place:created', { place }, socketId);
@@ -428,6 +448,7 @@ export class PlacesController {
     const trip = this.requireTrip(tripId, user);
     validateLengths(body);
     validateRouteColor(body);
+    validateUrlFields(body);
     this.requireEdit(trip, user);
     const result = this.places.update(tripId, id, body as never, ifMatch);
     if (!result) {

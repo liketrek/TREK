@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { avatarSrc } from '../../utils/avatarSrc'
+import { safeHttpUrl } from '../../utils/safeUrl'
 import { openFile } from '../../utils/fileDownload'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -318,6 +319,10 @@ export default function PlaceInspector({
     detailLng,
     googleDetails?.open_now,
   )
+  // Allow-listed rather than passed straight through: window.open runs a
+  // javascript: URL in this origin, and the stored value predates the check the
+  // server does on the way in now.
+  const websiteUrl = safeHttpUrl(place.website) ?? safeHttpUrl(googleDetails?.website)
   // Prefer the place's stored ftid; if it has none yet, use the one just fetched from Google.
   const navigationTargets = getNavigationTargets(
     place ? { ...place, google_ftid: place.google_ftid || googleDetails?.google_ftid || null } : null,
@@ -513,8 +518,8 @@ export default function PlaceInspector({
               )}
             </>
           )}
-          {(place.website || googleDetails?.website) && (
-            <ActionButton onClick={() => window.open(place.website || googleDetails?.website, '_blank')} variant="ghost" icon={<ExternalLink size={13} />}
+          {websiteUrl && (
+            <ActionButton onClick={() => window.open(websiteUrl, '_blank', 'noopener,noreferrer')} variant="ghost" icon={<ExternalLink size={13} />}
               label={<span className="hidden sm:inline">{t('inspector.website')}</span>} />
           )}
           <div style={{ flex: 1 }} />

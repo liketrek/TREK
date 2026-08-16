@@ -1,4 +1,4 @@
-import { placeCategorySchema, placeRatingVoteSchema } from '../place/place.schema';
+import { placeCategorySchema, placeImageUrlSchema, placeRatingVoteSchema, placeWebsiteSchema } from '../place/place.schema';
 import { tagSchema } from '../tag/tag.schema';
 
 import { z } from 'zod';
@@ -53,6 +53,9 @@ export const collectionPlaceSchema = z.object({
   price: z.number().nullable().optional(),
   currency: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  // Deliberately open on the way out, pinned on the way in (see the save/update
+  // request schemas below): rows written before the request-side check existed
+  // still have to round-trip.
   image_url: z.string().nullable().optional(),
   google_place_id: z.string().nullable().optional(),
   google_ftid: z.string().nullable().optional(),
@@ -150,11 +153,11 @@ export const collectionSavePlaceRequestSchema = z.object({
   price: z.number().nullable().optional(),
   currency: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
-  image_url: z.string().nullable().optional(),
+  image_url: placeImageUrlSchema.nullable().optional(),
   google_place_id: z.string().nullable().optional(),
   google_ftid: z.string().nullable().optional(),
   osm_id: z.string().nullable().optional(),
-  website: z.string().nullable().optional(),
+  website: placeWebsiteSchema.nullable().optional(),
   phone: z.string().nullable().optional(),
   status: collectionStatusSchema.optional(),
   links: collectionLinksSchema.optional(),
@@ -203,7 +206,7 @@ export const collectionPlaceUpdateRequestSchema = z.object({
   // Replace the place's per-collection label assignments (omit to leave unchanged).
   label_ids: z.array(z.number()).optional(),
   // Custom thumbnail (#1136): null clears it (falls back to the auto-fetched photo).
-  image_url: z.string().nullable().optional(),
+  image_url: placeImageUrlSchema.nullable().optional(),
 });
 export type CollectionPlaceUpdateRequest = z.infer<typeof collectionPlaceUpdateRequestSchema>;
 

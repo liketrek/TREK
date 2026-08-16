@@ -17,6 +17,7 @@ import PlaceRating from '../../../../components/shared/StarRating'
 import TrackColorPicker from '../../../../components/shared/TrackColorPicker'
 import { resolveTrackColor, inheritedTrackColor } from '../../../../components/Map/trackColors'
 import { avatarSrc } from '../../../../utils/avatarSrc'
+import { safeHttpUrl } from '../../../../utils/safeUrl'
 import { openFile } from '../../../../utils/fileDownload'
 import { getNavigationTargets, openNavigationTarget } from '../../../../components/Planner/placeNavigation'
 import { NavigationMenu } from '../../../../components/shared/NavigationMenu'
@@ -527,9 +528,9 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                   <MapIcon size={15} strokeWidth={2} />
                 </ActionCircle>
               )}
-              {place.website && (
+              {safeHttpUrl(place.website) && (
                 <ActionCircle
-                  onClick={() => window.open(place.website!, '_blank', 'noopener,noreferrer')}
+                  onClick={() => window.open(safeHttpUrl(place.website)!, '_blank', 'noopener,noreferrer')}
                   label={t('inspector.website')}
                 >
                   <ExternalLink size={15} strokeWidth={2} />

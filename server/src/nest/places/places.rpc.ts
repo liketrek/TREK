@@ -1,4 +1,4 @@
-import { placeCreateRequestSchema, placeUpdateRequestSchema } from '@trek/shared';
+import { placeCreateRequestSchema, placeImageUrlSchema, placeUpdateRequestSchema, placeWebsiteSchema } from '@trek/shared';
 import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
 import { PluginGuards } from '../plugins/host/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
@@ -17,6 +17,23 @@ const PLACE_EDIT_ACTION = 'place_edit';
  * field the web app refuses with a 400, e.g. a 100k-character place name.
  */
 const PLACE_STR_LIMITS: Record<string, number> = { name: 200, description: 2000, address: 500, notes: 2000 };
+
+/**
+ * The two URL fields the REST controller pins in validateUrlFields. Same reason
+ * they are checked there rather than in the contract: the write schemas are open
+ * records, so a plugin could otherwise store a thumbnail or a homepage the web
+ * app refuses — and both end up somewhere that treats them as a URL.
+ */
+function capUrls(input: Record<string, unknown>): void {
+  const image = input.image_url;
+  if (image !== undefined && image !== null && !placeImageUrlSchema.safeParse(image).success) {
+    throw new BadParams('invalid place: image_url must be an uploaded path, a photo-proxy path, an inline image or an https URL');
+  }
+  const website = input.website;
+  if (website !== undefined && website !== null && website !== '' && !placeWebsiteSchema.safeParse(website).success) {
+    throw new BadParams('invalid place: website must be an http or https URL');
+  }
+}
 
 /**
  * The place surface a plugin may reach (#plugins).
@@ -41,6 +58,7 @@ export class PlacesRpc {
     const parsed = placeCreateRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid place: ${schemaMessage(parsed.error)}`);
     this.guards.capStrings(parsed.data as Record<string, unknown>, PLACE_STR_LIMITS);
+    capUrls(parsed.data as Record<string, unknown>);
     this.guards.requireTripEdit(tripId, actor, PLACE_EDIT_ACTION);
     const place = this.places.create(String(tripId), parsed.data as unknown as PlaceCreateInput);
     this.realtime.broadcast(tripId, 'place:created', { place });
@@ -56,6 +74,7 @@ export class PlacesRpc {
     const parsed = placeUpdateRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid place: ${schemaMessage(parsed.error)}`);
     this.guards.capStrings(parsed.data as Record<string, unknown>, PLACE_STR_LIMITS);
+    capUrls(parsed.data as Record<string, unknown>);
     this.guards.requireTripEdit(tripId, actor, PLACE_EDIT_ACTION);
     const place = this.places.update(String(tripId), String(placeId), parsed.data as PlaceUpdateInput);
     if (place === null) throw new ForbiddenResource(`no place ${placeId} on trip ${tripId}`);

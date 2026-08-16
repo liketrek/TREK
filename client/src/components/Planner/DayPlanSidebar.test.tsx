@@ -3332,7 +3332,7 @@ describe('DayPlanSidebar', () => {
     render(<DayPlanSidebar {...makeDefaultProps({ days: [day], places: [place], assignments: { '10': [a] } })} />)
     fireEvent.contextMenu(dragRow(screen.getByText('Louvre')))
     await user.click(screen.getByRole('button', { name: 'Open Website' }))
-    expect(openSpy).toHaveBeenCalledWith('https://louvre.fr', '_blank')
+    expect(openSpy).toHaveBeenCalledWith('https://louvre.fr', '_blank', 'noopener,noreferrer')
 
     fireEvent.contextMenu(dragRow(screen.getByText('Louvre')))
     await user.click(screen.getByRole('button', { name: 'Google Maps' }))

@@ -20,6 +20,34 @@ const open = z.record(z.string(), z.unknown());
 export const hexColorSchema = z.string().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
 
 /**
+ * The four shapes a place thumbnail is ever allowed to take: a file we stored, a
+ * photo-proxy path, an inline thumbnail, or a remote https image.
+ *
+ * The map markers build their HTML as a string, so what lands here is one input
+ * away from a renderer that forgets to escape. Pinning the scheme on the way in
+ * means a stored value cannot carry anything a future consumer has to defend
+ * against — the escaping in the marker builders stops being the only thing
+ * standing between the database and the DOM.
+ */
+export const placeImageUrlSchema = z.string().max(2048).refine(
+  v =>
+    v.startsWith('/uploads/')
+    || v.startsWith('/api/maps/place-photo/')
+    || /^data:image\/(png|jpe?g|webp|gif|avif);base64,/i.test(v)
+    || /^https:\/\//i.test(v),
+  { message: 'must be an uploaded path, a photo-proxy path, an inline image or an https URL' },
+);
+
+/**
+ * A place's homepage. It reaches window.open() on the client, where a
+ * javascript: value would run in this origin rather than opening a page.
+ */
+export const placeWebsiteSchema = z.string().max(500).refine(
+  v => /^https?:\/\//i.test(v),
+  { message: 'must be an http or https URL' },
+);
+
+/**
  * Embedded category as returned on a place — a trimmed projection of the
  * categories row (id/name/color/icon), built inline by placeService and
  * getPlaceWithTags. `null` when the place has no category_id.
