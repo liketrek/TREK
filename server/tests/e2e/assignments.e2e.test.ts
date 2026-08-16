@@ -194,4 +194,92 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
     expect(res.status).toBe(200);
     expect(res.body.assignment).toMatchObject({ id, day_id: 4, order_index: 0 });
   });
+
+  // The per-assignment controller declared @RequirePermission but not the guard
+  // that reads it, so the decorators were inert metadata and :tripId was never
+  // checked against the caller at all. The handlers that ask
+  // getAssignmentForTrip(id, tripId) were happy as long as the assignment sat on
+  // the trip in the URL — which is true for the owner's trip too.
+  describe('a trip the caller cannot see', () => {
+    const FOREIGN_TRIP = 9;
+
+    beforeEach(() => {
+      canAccessTrip.mockImplementation((tripId: unknown) => (Number(tripId) === 5 ? { id: 5, user_id: 1 } : undefined));
+      db.prepare('INSERT OR IGNORE INTO days (id, trip_id) VALUES (30, ?), (31, ?)').run(FOREIGN_TRIP, FOREIGN_TRIP);
+      db.prepare('INSERT OR IGNORE INTO places (id, trip_id, name) VALUES (20, ?, ?)').run(FOREIGN_TRIP, 'Their hotel');
+    });
+
+    const seedForeignAssignment = () =>
+      Number(db.prepare('INSERT INTO day_assignments (day_id, place_id, order_index) VALUES (30, 20, 0)').run().lastInsertRowid);
+
+    it('404s a move instead of reordering their itinerary', async () => {
+      const id = seedForeignAssignment();
+      const res = await request(server)
+        .put(`/api/trips/${FOREIGN_TRIP}/assignments/${id}/move`)
+        .set('Cookie', sessionCookie(1))
+        .send({ new_day_id: 31, order_index: 0 });
+      expect(res.status).toBe(404);
+      expect(db.prepare('SELECT day_id FROM day_assignments WHERE id = ?').get(id)).toEqual({ day_id: 30 });
+    });
+
+    it('404s a time change instead of rewriting their schedule', async () => {
+      const id = seedForeignAssignment();
+      const res = await request(server)
+        .put(`/api/trips/${FOREIGN_TRIP}/assignments/${id}/time`)
+        .set('Cookie', sessionCookie(1))
+        .send({ place_time: '23:00', end_time: null });
+      expect(res.status).toBe(404);
+      expect(db.prepare('SELECT assignment_time FROM day_assignments WHERE id = ?').get(id)).toEqual({ assignment_time: null });
+    });
+
+    it('404s a transport change', async () => {
+      const id = seedForeignAssignment();
+      const res = await request(server)
+        .put(`/api/trips/${FOREIGN_TRIP}/assignments/${id}/transport`)
+        .set('Cookie', sessionCookie(1))
+        .send({ transport_mode: 'driving' });
+      expect(res.status).toBe(404);
+    });
+
+    it('404s setting participants instead of writing to their assignment', async () => {
+      const id = seedForeignAssignment();
+      const res = await request(server)
+        .put(`/api/trips/${FOREIGN_TRIP}/assignments/${id}/participants`)
+        .set('Cookie', sessionCookie(1))
+        .send({ user_ids: [1] });
+      expect(res.status).toBe(404);
+      expect(db.prepare('SELECT COUNT(*) AS n FROM assignment_participants WHERE assignment_id = ?').get(id)).toEqual({ n: 0 });
+    });
+
+    it('404s reading participants instead of disclosing who is on it', async () => {
+      const id = seedForeignAssignment();
+      db.prepare('INSERT INTO assignment_participants (assignment_id, user_id) VALUES (?, 2)').run(id);
+      const res = await request(server)
+        .get(`/api/trips/${FOREIGN_TRIP}/assignments/${id}/participants`)
+        .set('Cookie', sessionCookie(1));
+      expect(res.status).toBe(404);
+    });
+
+    // The guard has to reject an assignment borrowed from elsewhere even when the
+    // caller is legitimately on the trip named in the URL.
+    it('404s an assignment that belongs to another trip than the URL says', async () => {
+      const id = seedForeignAssignment();
+      const res = await request(server)
+        .put(`/api/trips/5/assignments/${id}/participants`)
+        .set('Cookie', sessionCookie(1))
+        .send({ user_ids: [1] });
+      expect(res.status).toBe(404);
+      expect(db.prepare('SELECT COUNT(*) AS n FROM assignment_participants WHERE assignment_id = ?').get(id)).toEqual({ n: 0 });
+    });
+
+    it('403s when the caller is on the trip but lacks day_edit', async () => {
+      const id = seedAssignment();
+      checkPermission.mockReturnValue(false);
+      const res = await request(server)
+        .put(`/api/trips/5/assignments/${id}/time`)
+        .set('Cookie', sessionCookie(1))
+        .send({ place_time: '09:00', end_time: null });
+      expect(res.status).toBe(403);
+    });
+  });
 });

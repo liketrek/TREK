@@ -78,8 +78,10 @@ describe('AssignmentOpsController (parity with the per-assignment op routes)', (
     expect(reconcile).toHaveBeenCalledWith('5', 'sock');
   });
 
-  it('GET /:id/participants returns participants (access-only)', () => {
-    const s = svc({ getParticipants: vi.fn().mockReturnValue([{ user_id: 2 }]) } as Partial<AssignmentsService>);
+  it('GET /:id/participants 404 when the assignment is on another trip, else returns participants (access-only)', () => {
+    expect(thrown(() => new AssignmentOpsController(svc({ getAssignmentForTrip: vi.fn().mockReturnValue(undefined) } as Partial<AssignmentsService>)).participants(user, '5', '9')))
+      .toEqual({ status: 404, body: { error: 'Assignment not found' } });
+    const s = svc({ getAssignmentForTrip: vi.fn().mockReturnValue({ id: 9 }), getParticipants: vi.fn().mockReturnValue([{ user_id: 2 }]) } as Partial<AssignmentsService>);
     expect(new AssignmentOpsController(s).participants(user, '5', '9')).toEqual({ participants: [{ user_id: 2 }] });
   });
 
@@ -92,9 +94,13 @@ describe('AssignmentOpsController (parity with the per-assignment op routes)', (
     expect(reconcile).toHaveBeenCalledWith('5', 'sock');
   });
 
-  it('PUT /:id/participants sets + broadcasts (non-array bodies are the Zod pipe\'s 400, covered in e2e)', () => {
+  it('PUT /:id/participants 404 on a foreign assignment, else sets + broadcasts (non-array bodies are the Zod pipe\'s 400, covered in e2e)', () => {
     const setParticipants = vi.fn().mockReturnValue([{ user_id: 2 }]); const broadcast = vi.fn();
-    expect(new AssignmentOpsController(svc({ setParticipants, broadcast } as Partial<AssignmentsService>)).setParticipants(user, '5', '9', { user_ids: [2] }, 'sock')).toEqual({ participants: [{ user_id: 2 }] });
+    expect(thrown(() => new AssignmentOpsController(svc({ getAssignmentForTrip: vi.fn().mockReturnValue(undefined), setParticipants } as Partial<AssignmentsService>)).setParticipants(user, '5', '9', { user_ids: [2] })))
+      .toEqual({ status: 404, body: { error: 'Assignment not found' } });
+    expect(setParticipants).not.toHaveBeenCalled();
+    const s = svc({ getAssignmentForTrip: vi.fn().mockReturnValue({ id: 9 }), setParticipants, broadcast } as Partial<AssignmentsService>);
+    expect(new AssignmentOpsController(s).setParticipants(user, '5', '9', { user_ids: [2] }, 'sock')).toEqual({ participants: [{ user_id: 2 }] });
     expect(setParticipants).toHaveBeenCalledWith('9', [2]);
     expect(broadcast).toHaveBeenCalledWith('5', 'assignment:participants', { assignmentId: 9, participants: [{ user_id: 2 }] }, 'sock');
   });

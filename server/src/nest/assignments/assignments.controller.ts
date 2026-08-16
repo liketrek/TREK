@@ -113,9 +113,14 @@ export class DayAssignmentsController {
 /**
  * /api/trips/:tripId/assignments/:id/* — per-assignment ops (move, time,
  * participants), independent of the day path. Same parity rules as above.
+ *
+ * Same guard pair as the day controller, and for the same reason: TripAccessGuard
+ * is what resolves :tripId and what reads @RequirePermission. The per-handler
+ * getAssignmentForTrip calls answer a different question — whether the assignment
+ * sits on the trip in the URL, not whether the caller may be on that trip.
  */
 @Controller('api/trips/:tripId/assignments')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, TripAccessGuard)
 export class AssignmentOpsController {
   constructor(private readonly assignments: AssignmentsService) {}
 
@@ -142,6 +147,9 @@ export class AssignmentOpsController {
 
   @Get(':id/participants')
   participants(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string) {
+    if (!this.assignments.getAssignmentForTrip(id, tripId)) {
+      throw new HttpException({ error: 'Assignment not found' }, 404);
+    }
     return { participants: this.assignments.getParticipants(id) };
   }
 
@@ -191,6 +199,9 @@ export class AssignmentOpsController {
     @Body() body: AssignmentParticipantsDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
+    if (!this.assignments.getAssignmentForTrip(id, tripId)) {
+      throw new HttpException({ error: 'Assignment not found' }, 404);
+    }
     const participants = this.assignments.setParticipants(id, body.user_ids);
     this.assignments.broadcast(tripId, 'assignment:participants', { assignmentId: Number(id), participants }, socketId);
     return { participants };
