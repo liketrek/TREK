@@ -55,7 +55,7 @@ vi.mock('../../../src/nest/budget/exchange-rates.service', () => ({
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
+import { createUser, createTrip, addTripMember } from '../../helpers/factories';
 import { BudgetService } from '../../../src/nest/budget/budget.service';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
@@ -230,6 +230,7 @@ describe('calculateSettlement custom splits', () => {
     const { user: alice } = createUser(testDb, { username: 'alice' });
     const { user: bob } = createUser(testDb, { username: 'bob' });
     const trip = createTrip(testDb, alice.id, { title: 'Trip' });
+    addTripMember(testDb, trip.id, bob.id);
 
     // 100 total, custom split: Alice owes 90, Bob owes 10. Alice paid the whole bill.
     budget.createBudgetItem(trip.id, {
@@ -261,6 +262,8 @@ describe('calculateSettlement squares up to the cent (#1382)', () => {
     const { user: bob } = createUser(testDb, { username: 'bob' });
     const { user: carol } = createUser(testDb, { username: 'carol' });
     const trip = createTrip(testDb, alice.id, { title: 'Trip' });
+    addTripMember(testDb, trip.id, bob.id);
+    addTripMember(testDb, trip.id, carol.id);
     const members = [{ user_id: alice.id }, { user_id: bob.id }, { user_id: carol.id }];
 
     // Totals that never divide by three, so every expense leaves a remainder cent
@@ -306,6 +309,8 @@ function seedIssue1543Trip(tripCurrency: string) {
   const { user: danil } = createUser(testDb, { username: 'danil' });
   const { user: serega } = createUser(testDb, { username: 'serega' });
   const trip = createTrip(testDb, me.id, { title: 'Trip' });
+  addTripMember(testDb, trip.id, danil.id);
+  addTripMember(testDb, trip.id, serega.id);
   testDb.prepare('UPDATE trips SET currency = ? WHERE id = ?').run(tripCurrency, trip.id);
   const members = [{ user_id: me.id }, { user_id: danil.id }, { user_id: serega.id }];
 
@@ -384,6 +389,7 @@ describe('rebaseTripCurrency', () => {
     const { user: alice } = createUser(testDb, { username: 'alice' });
     const { user: bob } = createUser(testDb, { username: 'bob' });
     const trip = createTrip(testDb, alice.id, { title: 'Trip' });
+    addTripMember(testDb, trip.id, bob.id);
     testDb.prepare("UPDATE trips SET currency = 'EUR' WHERE id = ?").run(trip.id);
     const members = [{ user_id: alice.id }, { user_id: bob.id }];
 
@@ -521,6 +527,57 @@ describe('composite service paths (ex budget.bridge delegation)', () => {
 
     expect(item.place_id).toBeNull();
     expect(item.reservation_id).toBeNull();
+  });
+});
+
+// A settlement names two parties and both columns are NOT NULL, so an id that is
+// not on the trip cannot simply be dropped the way a split member can — the whole
+// write is refused. Refusing also means the endpoint stops answering "does this
+// user id exist", which it used to do by 500ing on the foreign key.
+describe('settlement parties are confined to the trip', () => {
+  it('BUDGET-SVC-DB-028: refuses a payer who is not on the trip', async () => {
+    const { user: alice } = createUser(testDb, { username: 'alice' });
+    const { user: outsider } = createUser(testDb, { username: 'outsider' });
+    const trip = createTrip(testDb, alice.id);
+
+    const created = await budget.createSettlement(trip.id, { from_user_id: outsider.id, to_user_id: alice.id, amount: 10 }, alice.id);
+
+    expect(created).toBeNull();
+    expect(budget.listSettlements(trip.id)).toEqual([]);
+  });
+
+  it('BUDGET-SVC-DB-029: answers a nonexistent user the same way, without throwing', async () => {
+    const { user: alice } = createUser(testDb, { username: 'alice' });
+    const trip = createTrip(testDb, alice.id);
+
+    await expect(budget.createSettlement(trip.id, { from_user_id: 999999, to_user_id: alice.id, amount: 10 }, alice.id))
+      .resolves.toBeNull();
+  });
+
+  it('BUDGET-SVC-DB-030: still records a settlement between the owner and a member', async () => {
+    const { user: alice } = createUser(testDb, { username: 'alice' });
+    const { user: bob } = createUser(testDb, { username: 'bob' });
+    const trip = createTrip(testDb, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+
+    const created = await budget.createSettlement(trip.id, { from_user_id: bob.id, to_user_id: alice.id, amount: 10 }, alice.id);
+
+    expect(created).toMatchObject({ from_user_id: bob.id, to_user_id: alice.id });
+  });
+
+  it('BUDGET-SVC-DB-031: drops an off-trip payer from an item instead of refusing it', () => {
+    const { user: alice } = createUser(testDb, { username: 'alice' });
+    const { user: outsider } = createUser(testDb, { username: 'outsider' });
+    const trip = createTrip(testDb, alice.id);
+
+    const item = budget.createBudgetItem(trip.id, {
+      name: 'Dinner',
+      payers: [{ user_id: alice.id, amount: 40 }, { user_id: outsider.id, amount: 60 }],
+    }) as { payers: { user_id: number }[]; total_price: number };
+
+    expect(item.payers.map(p => p.user_id)).toEqual([alice.id]);
+    // total_price is the sum of the payers that actually landed.
+    expect(item.total_price).toBe(40);
   });
 });
 

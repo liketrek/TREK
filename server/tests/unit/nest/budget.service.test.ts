@@ -139,8 +139,14 @@ describe('BudgetService', () => {
   });
 
   describe('settlement ledger wrappers (#1445 freeze-then-write)', () => {
+    // Both wrappers refuse a party who is not on the trip before they freeze
+    // anything, so the roster lookup has to answer for these to reach the write
+    // at all. Users 1 and 2 are the two parties every case here settles between.
+    const rosterHas = (...userIds: number[]) => dbMock._stmt.all.mockReturnValue(userIds.map(user_id => ({ user_id })));
+
     it('createSettlement freezes the FX rate (await) before the raw insert', async () => {
       const s = svc();
+      rosterHas(1, 2);
       const freezeSpy = vi.spyOn(s, 'freezeForeignRate').mockResolvedValue();
       const insertSpy = vi.spyOn(s, 'insertSettlement').mockReturnValue({ id: 7 } as never);
       await s.createSettlement('5', { from_user_id: 1, to_user_id: 2, amount: 10 }, 3);
@@ -150,6 +156,7 @@ describe('BudgetService', () => {
 
     it('updateSettlement threads the stored currency through the freeze', async () => {
       const s = svc();
+      rosterHas(1, 2);
       const freezeSpy = vi.spyOn(s, 'freezeForeignRate').mockResolvedValue();
       // Quirk fix: the stored-currency lookup is a targeted getSettlement, not
       // a full listSettlements scan.
@@ -160,6 +167,18 @@ describe('BudgetService', () => {
       expect(getSpy).toHaveBeenCalledWith('7', '5');
       expect(freezeSpy).toHaveBeenCalledWith('5', { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' }, undefined, 'USD');
       expect(applySpy).toHaveBeenCalledWith('7', '5', { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' });
+    });
+
+    it('refuses a party who is not on the trip, before freezing or writing', async () => {
+      const s = svc();
+      rosterHas(1); // user 2 is not on this trip
+      const freezeSpy = vi.spyOn(s, 'freezeForeignRate').mockResolvedValue();
+      const insertSpy = vi.spyOn(s, 'insertSettlement').mockReturnValue({ id: 7 } as never);
+
+      await expect(s.createSettlement('5', { from_user_id: 1, to_user_id: 2, amount: 10 }, 3)).resolves.toBeNull();
+
+      expect(freezeSpy).not.toHaveBeenCalled();
+      expect(insertSpy).not.toHaveBeenCalled();
     });
   });
 

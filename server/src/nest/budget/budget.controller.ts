@@ -94,6 +94,11 @@ export class BudgetController {
       { from_user_id: body.from_user_id, to_user_id: body.to_user_id, amount: body.amount, currency: body.currency },
       user.id,
     );
+    // A party who is not on this trip gets the same answer as a settlement that
+    // does not exist, so the endpoint cannot be used to probe for user ids.
+    if (!settlement) {
+      throw new HttpException({ error: 'Settlement not found' }, 404);
+    }
     this.budget.broadcast(tripId, 'budget:settlement-created', { settlement }, socketId);
     return { settlement };
   }

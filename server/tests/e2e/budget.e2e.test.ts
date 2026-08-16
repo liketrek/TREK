@@ -73,6 +73,9 @@ describe('Budget e2e (real auth guard + temp SQLite, real budget SQL)', () => {
       "INSERT INTO users (id, username, email, password_hash, role, password_version) VALUES (2, 'e2e-peer', 'peer@example.test', 'x', 'user', 0)",
     ).run();
     tripId = Number(db.prepare("INSERT INTO trips (user_id, title, currency) VALUES (1, 'E2E Trip', 'EUR')").run().lastInsertRowid);
+    // The peer settles up with the owner below, so they have to be on the trip:
+    // a settlement between people who do not share one is refused.
+    db.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, 2)').run(tripId);
     app = await build();
     checkPermission = vi.spyOn(app.get(PermissionsService), 'checkPermission');
     server = app.getHttpServer();

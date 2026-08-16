@@ -126,21 +126,25 @@ export class BudgetService {
     return rows.map(p => ({ ...p, avatar_url: avatarUrl(p) }));
   }
 
-  private knownUserIds(userIds: number[]): Set<number> {
-    const unique = [...new Set(userIds)];
-    if (unique.length === 0) return new Set();
-    const rows = this.db.all<{ id: number }>(
-      `SELECT id FROM users WHERE id IN (${unique.map(() => '?').join(',')})`,
-      ...unique,
-    );
-    return new Set(rows.map(r => r.id));
+  /**
+   * The subset of `userIds` that is actually on this trip. Used to be a plain
+   * existence check against `users`, which let any id on the instance become a
+   * payer or a split member and come back out through the read-back join with a
+   * name and an avatar attached. Off-roster ids drop silently, the way the
+   * packing and reservations assignee paths handle them.
+   */
+  private rosterMemberIds(tripId: string | number, userIds: number[]): Set<number> {
+    const unique = new Set(userIds);
+    if (unique.size === 0) return new Set();
+    const roster = this.db.rosterUserIds(tripId);
+    return new Set([...unique].filter(id => roster.has(id)));
   }
 
   /** Replace the payer rows of an item and keep total_price = sum of payer amounts. */
-  private writeItemPayers(itemId: number | string, payers: { user_id: number; amount: number }[]) {
+  private writeItemPayers(itemId: number | string, tripId: string | number, payers: { user_id: number; amount: number }[]) {
     this.db.run('DELETE FROM budget_item_payers WHERE budget_item_id = ?', itemId);
     const insert = this.db.prepare('INSERT OR IGNORE INTO budget_item_payers (budget_item_id, user_id, amount) VALUES (?, ?, ?)');
-    const known = this.knownUserIds(payers.map(p => p.user_id));
+    const known = this.rosterMemberIds(tripId, payers.map(p => p.user_id));
     let total = 0;
     for (const p of payers) {
       if (!(p.amount > 0) || !known.has(p.user_id)) continue;
@@ -347,9 +351,9 @@ export class BudgetService {
       const payerTotal = (data.payers || []).reduce((a, p) => a + (p.amount > 0 ? p.amount : 0), 0);
       const total = data.payers && data.payers.length > 0 ? payerTotal : (data.total_price || 0);
 
-      const knownMembers = data.members ? this.knownUserIds(data.members.map(m => m.user_id)) : null;
+      const knownMembers = data.members ? this.rosterMemberIds(tripId, data.members.map(m => m.user_id)) : null;
       const members = data.members && knownMembers ? data.members.filter(m => knownMembers.has(m.user_id)) : undefined;
-      const knownIds = data.member_ids ? this.knownUserIds(data.member_ids) : null;
+      const knownIds = data.member_ids ? this.rosterMemberIds(tripId, data.member_ids) : null;
       const memberIds = data.member_ids && knownIds ? data.member_ids.filter(uid => knownIds.has(uid)) : undefined;
 
       const { note, ticket } = splitLegacyTicketNote(data.note, data.ticket_json);
@@ -373,7 +377,7 @@ export class BudgetService {
       );
 
       const itemId = result.lastInsertRowid as number;
-      if (data.payers && data.payers.length > 0) this.writeItemPayers(itemId, data.payers);
+      if (data.payers && data.payers.length > 0) this.writeItemPayers(itemId, tripId, data.payers);
       if (members && members.length > 0) {
         const insert = this.db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid, amount) VALUES (?, ?, 0, ?)');
         for (const m of members) insert.run(itemId, m.user_id, m.amount !== undefined && m.amount !== null ? m.amount : null);
@@ -461,7 +465,7 @@ export class BudgetService {
 
       // Optional inline payer/member replacement (the edit modal saves all at once).
       if (data.payers !== undefined) {
-        this.writeItemPayers(id, data.payers);
+        this.writeItemPayers(id, tripId, data.payers);
         // writeItemPayers derives total_price from the payer sum (0 for no payers).
         // A "recorded total, nobody assigned" expense clears payers but still carries
         // an explicit total_price — re-apply it so it isn't clobbered to 0.
@@ -470,14 +474,14 @@ export class BudgetService {
         }
       }
       if (data.members !== undefined) {
-        const known = this.knownUserIds(data.members.map(m => m.user_id));
+        const known = this.rosterMemberIds(tripId, data.members.map(m => m.user_id));
         const members = data.members.filter(m => known.has(m.user_id));
         this.db.run('DELETE FROM budget_item_members WHERE budget_item_id = ?', id);
         const insert = this.db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid, amount) VALUES (?, ?, 0, ?)');
         for (const m of members) insert.run(id, m.user_id, m.amount !== undefined && m.amount !== null ? m.amount : null);
         this.db.run('UPDATE budget_items SET persons = ? WHERE id = ?', members.length || null, id);
       } else if (data.member_ids !== undefined) {
-        const known = this.knownUserIds(data.member_ids);
+        const known = this.rosterMemberIds(tripId, data.member_ids);
         const memberIds = data.member_ids.filter(uid => known.has(uid));
         this.db.run('DELETE FROM budget_item_members WHERE budget_item_id = ?', id);
         const insert = this.db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid, amount) VALUES (?, ?, 0, NULL)');
@@ -510,7 +514,7 @@ export class BudgetService {
     return this.db.transaction(() => {
       const item = this.db.get('SELECT id FROM budget_items WHERE id = ? AND trip_id = ?', id, tripId);
       if (!item) return null;
-      this.writeItemPayers(id, payers);
+      this.writeItemPayers(id, tripId, payers);
       const updated = this.db.get<BudgetItem>('SELECT * FROM budget_items WHERE id = ?', id)!;
       updated.members = this.loadItemMembers(id);
       updated.payers = this.loadItemPayers(id);
@@ -540,7 +544,7 @@ export class BudgetService {
 
       this.db.run('DELETE FROM budget_item_members WHERE budget_item_id = ?', id);
 
-      const known = this.knownUserIds(userIds);
+      const known = this.rosterMemberIds(tripId, userIds);
       const memberIds = userIds.filter(uid => known.has(uid));
       if (memberIds.length > 0) {
         const insert = this.db.prepare('INSERT OR IGNORE INTO budget_item_members (budget_item_id, user_id, paid) VALUES (?, ?, ?)');
@@ -949,7 +953,21 @@ export class BudgetService {
     return this.setItemPayers(id, tripId, payers);
   }
 
+  /**
+   * Unlike a split member, a settlement cannot drop an off-roster id: it has
+   * exactly two named parties and both columns are NOT NULL, so a stranger in
+   * either slot makes the row meaningless rather than merely wider. Refuse the
+   * whole write. Returning null lands on the caller's existing "Settlement not
+   * found" 404, which is also what keeps the endpoint from confirming whether
+   * an id it rejected exists at all.
+   */
+  private settlementPartiesOnTrip(tripId: string | number, data: { from_user_id: number; to_user_id: number }): boolean {
+    const roster = this.db.rosterUserIds(tripId);
+    return roster.has(data.from_user_id) && roster.has(data.to_user_id);
+  }
+
   async createSettlement(tripId: string | number, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null }, userId: number) {
+    if (!this.settlementPartiesOnTrip(tripId, data)) return null;
     // Freeze the FX rate for the display currency the amount was entered in so the
     // transfer keeps cancelling its expense when live rates drift (#1445).
     await this.freezeForeignRate(tripId, data);
@@ -960,6 +978,7 @@ export class BudgetService {
     // Pass the settlement's stored currency so an edit that doesn't change it keeps
     // the already-frozen rate (#1445) — otherwise a live-rate drift would re-open a
     // settled position on an unrelated edit.
+    if (!this.settlementPartiesOnTrip(tripId, data)) return null;
     const existing = this.getSettlement(id, tripId);
     await this.freezeForeignRate(tripId, data, undefined, existing?.currency ?? null);
     return this.applySettlementUpdate(id, tripId, data);

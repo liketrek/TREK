@@ -330,6 +330,7 @@ export class BudgetMcp {
     // Freeze-then-write composite, same as the REST path (no-op while the
     // schema has no currency input — see the #1445 note in the class doc).
     const settlement = await this.budget.createSettlement(tripId, { from_user_id, to_user_id, amount }, ctx.userId);
+    if (!settlement) return errorResult('Settlement not found.');
     this.guards.safeBroadcast(tripId, 'budget:settlement-created', { settlement });
     return ok({ settlement });
   }
