@@ -270,6 +270,35 @@ describe('getCategoryAssignees / updateCategoryAssignees', () => {
     expect(assignees['Logistics']).toHaveLength(1);
   });
 
+  // Holding todo_edit says you may edit this trip's list, not that any user id
+  // you name belongs to it. The read-back joins users and hands the caller a
+  // display name and an avatar, so an unfiltered id turns the endpoint into a
+  // lookup for every account on the instance.
+  it('TODO-SVC-017a: drops a user who is not on the trip, and says nothing about them', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+
+    const rows = svc.updateCategoryAssignees(trip.id, 'Packing', [owner.id, stranger.id, member.id]) as { user_id: number }[];
+
+    expect(rows.map(r => r.user_id).sort()).toEqual([owner.id, member.id].sort());
+    expect(JSON.stringify(rows)).not.toContain(stranger.username);
+    expect(testDb.prepare('SELECT COUNT(*) AS n FROM todo_category_assignees WHERE user_id = ?').get(stranger.id)).toEqual({ n: 0 });
+  });
+
+  it('TODO-SVC-017b: keeps a guest, who is a trip member like any other', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: guest } = createUser(testDb);
+    testDb.prepare('UPDATE users SET is_guest = 1 WHERE id = ?').run(guest.id);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, guest.id);
+
+    const rows = svc.updateCategoryAssignees(trip.id, 'Packing', [guest.id]) as { user_id: number }[];
+    expect(rows.map(r => r.user_id)).toEqual([guest.id]);
+  });
+
   it('TODO-SVC-020: updateCategoryAssignees replaces existing assignees (not append)', () => {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);

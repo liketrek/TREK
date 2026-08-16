@@ -56,6 +56,25 @@ export class DatabaseService {
     return isOwner(tripId, userId);
   }
 
+  /**
+   * The user ids a trip may refer to: its members plus the owner. Guests count —
+   * a guest is a credential-less users row joined into trip_members, and #1362
+   * makes it assignable everywhere a real member is.
+   *
+   * This is canAccessTrip's question asked as a set rather than a predicate, so
+   * it lives beside it. Domains that accept user ids in a write body intersect
+   * against it: holding the permission says you may edit the trip, not that any
+   * id you name belongs to it. Runs on the connection rather than delegating to
+   * db/database, because it has no legacy export to stay parity with.
+   */
+  rosterUserIds(tripId: number | string): Set<number> {
+    const rows = this.all<{ user_id: number }>(
+      'SELECT user_id FROM trip_members WHERE trip_id = ? UNION SELECT user_id FROM trips WHERE id = ?',
+      tripId, tripId,
+    );
+    return new Set(rows.map(r => r.user_id));
+  }
+
   getPlaceWithTags(placeId: number | string): PlaceWithTags | null {
     return getPlaceWithTags(placeId);
   }

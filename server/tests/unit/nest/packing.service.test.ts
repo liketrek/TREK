@@ -515,6 +515,7 @@ describe('three-tier packing sharing (#858)', () => {
     const { user: friend } = createUser(testDb);
     const { user: stranger } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, friend.id);
 
     const item = svc.createItem(trip.id, { name: 'Power bank', visibility: 'shared', recipient_ids: [friend.id] }, owner.id) as any;
     expect(item.is_private).toBe(1);
@@ -539,6 +540,7 @@ describe('three-tier packing sharing (#858)', () => {
     const { user: owner } = createUser(testDb);
     const { user: friend } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, friend.id);
     const item = svc.createItem(trip.id, { name: 'First aid', visibility: 'personal' }, owner.id) as any;
 
     // A non-owner who cannot see the item at all gets the missing-item answer, so
@@ -1007,6 +1009,8 @@ describe('packing item object-level authorization', () => {
     const { user: intruder } = createUser(testDb);
     const { user: friend } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
+    // The recipient is a fellow traveller; the intruder stays off the trip on purpose.
+    addTripMember(testDb, trip.id, friend.id);
     const personal = svc.createItem(trip.id, { name: 'Diary', visibility: 'personal' }, owner.id) as any;
     const shared = svc.createItem(trip.id, { name: 'Power bank', visibility: 'shared', recipient_ids: [friend.id] }, owner.id) as any;
     const common = svc.createItem(trip.id, { name: 'Tent', visibility: 'common' }, owner.id) as any;

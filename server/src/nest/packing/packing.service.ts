@@ -231,7 +231,8 @@ export class PackingService {
       // "Shared with specific people" — record the recipients it covers.
       if (data.visibility === 'shared' && Array.isArray(data.recipient_ids)) {
         const ins = this.db.prepare('INSERT OR IGNORE INTO packing_item_recipients (item_id, user_id) VALUES (?, ?)');
-        for (const uid of data.recipient_ids) if (uid !== ownerId) ins.run(id, uid);
+        const roster = this.tripRosterIds(tripId);
+        for (const uid of data.recipient_ids) if (uid !== ownerId && roster.has(uid)) ins.run(id, uid);
       }
       return id;
     });
@@ -350,7 +351,8 @@ export class PackingService {
       if (visibility === 'shared') {
         const ins = this.db.prepare('INSERT OR IGNORE INTO packing_item_recipients (item_id, user_id) VALUES (?, ?)');
         const owner = item.owner_id ?? actingUserId;
-        for (const uid of recipientIds) if (uid !== owner) ins.run(id, uid);
+        const roster = this.tripRosterIds(tripId);
+        for (const uid of recipientIds) if (uid !== owner && roster.has(uid)) ins.run(id, uid);
       }
       // Leaving the Common tier drops any co-contributors (they only apply to Common).
       if (visibility !== 'common') this.db.run('DELETE FROM packing_item_contributors WHERE item_id = ?', id);
@@ -479,10 +481,14 @@ export class PackingService {
     }));
   }
 
-  /** Owner + collaborators of a trip — the only user ids that may be assigned to a bag. */
+  /**
+   * Owner + collaborators of a trip, guests included — the only user ids
+   * assignable anywhere on it, not just to a bag. The wording used to say
+   * "assigned to a bag", which is why the category and recipient writes below
+   * grew up without it.
+   */
   private tripRosterIds(tripId: string | number): Set<number> {
-    const rows = this.db.all<{ user_id: number }>('SELECT user_id FROM trip_members WHERE trip_id = ? UNION SELECT user_id FROM trips WHERE id = ?', tripId, tripId);
-    return new Set(rows.map(r => r.user_id));
+    return this.db.rosterUserIds(tripId);
   }
 
   setBagMembers(tripId: string | number, bagId: string | number, userIds: number[]) {
@@ -665,7 +671,9 @@ export class PackingService {
 
       if (Array.isArray(userIds) && userIds.length > 0) {
         const insert = this.db.prepare('INSERT OR IGNORE INTO packing_category_assignees (trip_id, category_name, user_id) VALUES (?, ?, ?)');
-        for (const uid of userIds) insert.run(tripId, categoryName, uid);
+        // Same rule as setBagMembers: only people on this trip may be assigned.
+        const roster = this.tripRosterIds(tripId);
+        for (const uid of userIds) if (roster.has(uid)) insert.run(tripId, categoryName, uid);
       }
     });
 

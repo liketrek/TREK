@@ -136,7 +136,12 @@ export class TodoService {
 
       if (Array.isArray(userIds) && userIds.length > 0) {
         const insert = this.db.prepare('INSERT OR IGNORE INTO todo_category_assignees (trip_id, category_name, user_id) VALUES (?, ?, ?)');
-        for (const uid of userIds) insert.run(tripId, categoryName, uid);
+        // Only people on this trip may be assigned, the way packing filters bag
+        // members and reservations filter travellers. Dropped rather than
+        // rejected: a copied trip carries assignee ids across before its members
+        // exist, and a 400 would make the picker unusable there.
+        const roster = this.db.rosterUserIds(tripId);
+        for (const uid of userIds) if (roster.has(uid)) insert.run(tripId, categoryName, uid);
       }
     });
 
