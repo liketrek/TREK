@@ -187,7 +187,7 @@ export class AssignmentsMcp {
     if (!this.assignments.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
     if (!this.assignments.getAssignmentForTrip(assignmentId, tripId)) return errorResult('Assignment not found.');
-    const participants = this.assignments.setParticipants(assignmentId, userIds);
+    const participants = this.assignments.setParticipants(assignmentId, userIds, tripId);
     this.guards.safeBroadcast(tripId, 'assignment:participants', { assignmentId, participants });
     return ok({ participants });
   }

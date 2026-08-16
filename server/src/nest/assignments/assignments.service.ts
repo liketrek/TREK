@@ -283,12 +283,21 @@ export class AssignmentsService {
     return this.getAssignmentWithPlace(Number(id));
   }
 
-  setParticipants(assignmentId: string | number, userIds: number[]) {
+  /**
+   * Both callers have already proven the assignment sits on `tripId`; this
+   * settles the other half, that the ids in the body do too. Off-roster ids drop
+   * silently rather than 400, matching bag members and reservation travellers —
+   * the participants box sends the whole list back on every edit, so rejecting
+   * the request would strand a trip whose membership changed underneath it.
+   */
+  setParticipants(assignmentId: string | number, userIds: number[], tripId: string | number) {
+    const roster = this.dbs.rosterUserIds(tripId);
+    const scoped = userIds.filter(id => roster.has(id));
     this.dbs.transaction(() => {
       this.dbs.run('DELETE FROM assignment_participants WHERE assignment_id = ?', assignmentId);
-      if (userIds.length > 0) {
+      if (scoped.length > 0) {
         const insert = this.dbs.prepare('INSERT OR IGNORE INTO assignment_participants (assignment_id, user_id) VALUES (?, ?)');
-        for (const userId of userIds) insert.run(assignmentId, userId);
+        for (const userId of scoped) insert.run(assignmentId, userId);
       }
     });
 

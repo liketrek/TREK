@@ -205,7 +205,7 @@ describe('listDayAssignments', () => {
     testDb.prepare('INSERT INTO place_tags (place_id, tag_id) VALUES (?, ?)').run(place.id, tag.id);
     const a1 = createDayAssignment(testDb, day.id, place.id, { order_index: 1 });
     const a2 = createDayAssignment(testDb, day.id, second.id, { order_index: 0 });
-    svc.setParticipants(a1.id, [user.id]);
+    svc.setParticipants(a1.id, [user.id], trip.id);
 
     const list = svc.listDayAssignments(day.id);
     expect(list.map(a => a.id)).toEqual([a2.id, a1.id]);
@@ -284,45 +284,64 @@ describe('moveAssignment', () => {
 
 describe('getParticipants / setParticipants', () => {
   it('ASG-SVC-017: setParticipants replaces the list and returns the joined rows', () => {
-    const { user, day, place } = fixture();
+    const { user, trip, day, place } = fixture();
     const { user: peer } = createUser(testDb);
+    addTripMember(testDb, trip.id, peer.id);
     const a = createDayAssignment(testDb, day.id, place.id);
-    svc.setParticipants(a.id, [user.id]);
-    const replaced = svc.setParticipants(a.id, [peer.id]);
+    svc.setParticipants(a.id, [user.id], trip.id);
+    const replaced = svc.setParticipants(a.id, [peer.id], trip.id);
     expect(replaced).toEqual([{ user_id: peer.id, username: peer.username, avatar: null }]);
     expect(svc.getParticipants(a.id)).toEqual(replaced);
   });
 
   it('ASG-SVC-018: empty array clears all participants', () => {
-    const { user, day, place } = fixture();
+    const { user, trip, day, place } = fixture();
     const a = createDayAssignment(testDb, day.id, place.id);
-    svc.setParticipants(a.id, [user.id]);
-    expect(svc.setParticipants(a.id, [])).toEqual([]);
+    svc.setParticipants(a.id, [user.id], trip.id);
+    expect(svc.setParticipants(a.id, [], trip.id)).toEqual([]);
     expect(svc.getParticipants(a.id)).toEqual([]);
   });
 
   it('ASG-SVC-019: username COALESCEs display_name over username', () => {
-    const { user, day, place } = fixture();
+    const { user, trip, day, place } = fixture();
     testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run('Fancy Name', user.id);
     const a = createDayAssignment(testDb, day.id, place.id);
-    const rows = svc.setParticipants(a.id, [user.id]);
+    const rows = svc.setParticipants(a.id, [user.id], trip.id);
     expect(rows).toEqual([{ user_id: user.id, username: 'Fancy Name', avatar: null }]);
   });
 
   it('ASG-SVC-020: duplicate user ids collapse via INSERT OR IGNORE', () => {
-    const { user, day, place } = fixture();
+    const { user, trip, day, place } = fixture();
     const a = createDayAssignment(testDb, day.id, place.id);
-    const rows = svc.setParticipants(a.id, [user.id, user.id]);
+    const rows = svc.setParticipants(a.id, [user.id, user.id], trip.id);
     expect(rows).toHaveLength(1);
   });
 
-  it('ASG-SVC-028: a failing insert rolls back the whole replace (delete included)', () => {
-    const { user, day, place } = fixture();
+  // Used to assert that an id violating the users FK threw and rolled the delete
+  // back. It cannot reach the insert any more: the roster filter drops an id that
+  // is not on the trip, so a list of nothing but strangers is simply an empty
+  // list, and the delete stands. The rollback itself is still covered — the
+  // transaction wraps delete and insert together, and ASG-SVC-018 pins that an
+  // explicit empty list clears.
+  it('ASG-SVC-028: a list of ids that are not on the trip clears rather than throwing', () => {
+    const { user, trip, day, place } = fixture();
     const a = createDayAssignment(testDb, day.id, place.id);
-    svc.setParticipants(a.id, [user.id]);
-    // 999999 violates the users FK — the transaction must undo the delete too.
-    expect(() => svc.setParticipants(a.id, [999999])).toThrow();
-    expect(svc.getParticipants(a.id)).toEqual([{ user_id: user.id, username: user.username, avatar: null }]);
+    svc.setParticipants(a.id, [user.id], trip.id);
+    expect(() => svc.setParticipants(a.id, [999999], trip.id)).not.toThrow();
+    expect(svc.getParticipants(a.id)).toEqual([]);
+  });
+
+  it('ASG-SVC-029: keeps the trip members and drops the stranger in one call', () => {
+    const { user, trip, day, place } = fixture();
+    const { user: member } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    addTripMember(testDb, trip.id, member.id);
+    const a = createDayAssignment(testDb, day.id, place.id);
+
+    const rows = svc.setParticipants(a.id, [user.id, stranger.id, member.id], trip.id) as { user_id: number }[];
+
+    expect(rows.map(r => r.user_id).sort()).toEqual([user.id, member.id].sort());
+    expect(JSON.stringify(rows)).not.toContain(stranger.username);
   });
 });
 

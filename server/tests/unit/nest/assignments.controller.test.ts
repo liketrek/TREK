@@ -101,7 +101,8 @@ describe('AssignmentOpsController (parity with the per-assignment op routes)', (
     expect(setParticipants).not.toHaveBeenCalled();
     const s = svc({ getAssignmentForTrip: vi.fn().mockReturnValue({ id: 9 }), setParticipants, broadcast } as Partial<AssignmentsService>);
     expect(new AssignmentOpsController(s).setParticipants(user, '5', '9', { user_ids: [2] }, 'sock')).toEqual({ participants: [{ user_id: 2 }] });
-    expect(setParticipants).toHaveBeenCalledWith('9', [2]);
+    // The trip comes along so the service can confine the ids to its roster.
+    expect(setParticipants).toHaveBeenCalledWith('9', [2], '5');
     expect(broadcast).toHaveBeenCalledWith('5', 'assignment:participants', { assignmentId: 9, participants: [{ user_id: 2 }] }, 'sock');
   });
 });
