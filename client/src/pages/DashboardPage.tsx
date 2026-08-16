@@ -15,7 +15,7 @@ import {
   MS_PER_DAY, daysUntil, getTripStatus,
 } from './dashboard/dashboardModel'
 import {
-  Plus, Edit2, Trash2, Archive, Copy, ArrowRight, MapPin,
+  Plus, Edit2, Trash2, Archive, ArchiveRestore, Copy, ArrowRight, MapPin,
   Plane, Hotel, Utensils, Clock, RefreshCw, ArrowRightLeft, Calendar,
   LayoutGrid, List, Ticket, X, CalendarPlus, ParkingSquare,
 } from 'lucide-react'
@@ -304,6 +304,7 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
   const heroPlugins = usePluginStore(s => s.plugins).filter(p => p.type === 'widget' && p.slot === 'hero')
   const stop = (e: React.MouseEvent, fn: () => void) => { e.stopPropagation(); fn() }
   const status = getTripStatus(trip)
+  const archiveLabel = trip.is_archived ? t('dashboard.restore') : t('dashboard.archive')
   const start = splitDate(trip.start_date, locale)
   const end = splitDate(trip.end_date, locale)
 
@@ -404,10 +405,10 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
             {badge}
           </div>
           <div className="hero-tools">
-            <button className="hero-tool" aria-label={t('common.edit')} onClick={(e) => stop(e, onEdit)}><Edit2 size={16} /></button>
-            <button className="hero-tool" aria-label={t('dashboard.aria.duplicate')} onClick={(e) => stop(e, onCopy)}><Copy size={16} /></button>
-            <button className="hero-tool" aria-label={trip.is_archived ? t('dashboard.restore') : t('dashboard.archive')} onClick={(e) => stop(e, onArchive)}><Archive size={16} /></button>
-            <button className="hero-tool" aria-label={t('common.delete')} onClick={(e) => stop(e, onDelete)}><Trash2 size={16} /></button>
+            <button className="hero-tool" aria-label={t('common.edit')} title={t('common.edit')} onClick={(e) => stop(e, onEdit)}><Edit2 size={17} strokeWidth={2.2} /></button>
+            <button className="hero-tool" aria-label={t('dashboard.aria.duplicate')} title={t('dashboard.aria.duplicate')} onClick={(e) => stop(e, onCopy)}><Copy size={17} strokeWidth={2.2} /></button>
+            <button className="hero-tool" aria-label={archiveLabel} title={archiveLabel} onClick={(e) => stop(e, onArchive)}>{trip.is_archived ? <ArchiveRestore size={17} strokeWidth={2.2} /> : <Archive size={17} strokeWidth={2.2} />}</button>
+            <button className="hero-tool" aria-label={t('common.delete')} title={t('common.delete')} onClick={(e) => stop(e, onDelete)}><Trash2 size={17} strokeWidth={2.2} /></button>
           </div>
         </div>
 
@@ -535,6 +536,7 @@ function TripCard({ trip, locale, badges, onOpen, onEdit, onCopy, onArchive, onD
 }): React.ReactElement {
   const { t } = useTranslation()
   const status = getTripStatus(trip)
+  const archiveLabel = trip.is_archived ? t('dashboard.restore') : t('dashboard.archive')
   const start = splitDate(trip.start_date, locale)
   const end = splitDate(trip.end_date, locale)
   const until = daysUntil(trip.start_date)
@@ -557,10 +559,10 @@ function TripCard({ trip, locale, badges, onOpen, onEdit, onCopy, onArchive, onD
           : <div style={{ width: '100%', height: '100%', background: tripGradient(trip.id) }} />}
         <div className={`trip-status ${statusClass}`}><span className="indicator" /> {statusLabel}</div>
         <div className="trip-actions">
-          <button className="trip-action-btn" aria-label={t('common.edit')} onClick={(e) => stop(e, onEdit)}><Edit2 size={16} /></button>
-          <button className="trip-action-btn" aria-label={t('dashboard.aria.duplicate')} onClick={(e) => stop(e, onCopy)}><Copy size={16} /></button>
-          <button className="trip-action-btn" aria-label={trip.is_archived ? t('dashboard.restore') : t('dashboard.archive')} onClick={(e) => stop(e, onArchive)}><Archive size={16} /></button>
-          <button className="trip-action-btn" aria-label={t('common.delete')} onClick={(e) => stop(e, onDelete)}><Trash2 size={16} /></button>
+          <button className="trip-action-btn" aria-label={t('common.edit')} title={t('common.edit')} onClick={(e) => stop(e, onEdit)}><Edit2 size={17} strokeWidth={2.2} /></button>
+          <button className="trip-action-btn" aria-label={t('dashboard.aria.duplicate')} title={t('dashboard.aria.duplicate')} onClick={(e) => stop(e, onCopy)}><Copy size={17} strokeWidth={2.2} /></button>
+          <button className="trip-action-btn" aria-label={archiveLabel} title={archiveLabel} onClick={(e) => stop(e, onArchive)}>{trip.is_archived ? <ArchiveRestore size={17} strokeWidth={2.2} /> : <Archive size={17} strokeWidth={2.2} />}</button>
+          <button className="trip-action-btn" aria-label={t('common.delete')} title={t('common.delete')} onClick={(e) => stop(e, onDelete)}><Trash2 size={17} strokeWidth={2.2} /></button>
         </div>
         <div className="trip-cover-content">
           <h3 className="trip-name">{trip.title}</h3>

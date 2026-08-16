@@ -191,11 +191,12 @@
 .trek-dash .hero-top { display: flex; justify-content: space-between; align-items: start; }
 .trek-dash .hero-badge {
   display: inline-flex; align-items: center; gap: 8px;
-  background: oklch(1 0 0 / .14);
+  background: oklch(0.22 0.01 260 / .5);
   backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
-  border: 1px solid oklch(1 0 0 / .2); padding: 8px 14px 8px 12px;
+  border: 1px solid oklch(1 0 0 / .32); padding: 8px 14px 8px 12px;
   border-radius: 999px; font-size: 12px; font-weight: 500;
   letter-spacing: 0.06em; text-transform: uppercase;
+  box-shadow: 0 2px 8px oklch(0 0 0 / .26);
 }
 .trek-dash .hero-badge .pulse {
   width: 7px; height: 7px; border-radius: 50%;
@@ -208,15 +209,18 @@
   100% { box-shadow: 0 0 0 0 oklch(0.84 0.18 85 / 0); }
 }
 .trek-dash .hero-tools { display: flex; gap: 8px; }
+/* Same story as .trip-action-btn: a dark scrim instead of a white .14 fill, so
+   the tools read against a bright hero photo too. */
 .trek-dash .hero-tool {
-  width: 38px; height: 38px; border-radius: 50%;
-  background: oklch(1 0 0 / .14);
+  width: 40px; height: 40px; border-radius: 50%;
+  background: oklch(0.22 0.01 260 / .5);
   backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
-  border: 1px solid oklch(1 0 0 / .2); color: #fff;
+  border: 1px solid oklch(1 0 0 / .32); color: #fff;
+  box-shadow: 0 2px 8px oklch(0 0 0 / .26);
   display: grid; place-items: center; transition: background .15s, transform .12s;
 }
-.trek-dash .hero-tool:hover { background: oklch(1 0 0 / .26); transform: scale(1.05); }
-.trek-dash .hero-tool svg { width: 16px; height: 16px; }
+.trek-dash .hero-tool:hover { background: oklch(0.22 0.01 260 / .78); transform: scale(1.05); }
+.trek-dash .hero-tool svg { width: 17px; height: 17px; }
 .trek-dash .hero-title-block { align-self: end; padding-bottom: 24px; }
 .trek-dash .hero-eyebrow {
   display: inline-flex; align-items: center; gap: 10px;
@@ -435,26 +439,36 @@
 .trek-dash .trip-cover img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s cubic-bezier(.2,.7,.2,1); }
 .trek-dash .trip-card:hover .trip-cover img { transform: scale(1.04); }
 .trek-dash .trip-cover::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, oklch(0 0 0 / 0) 40%, oklch(0 0 0 / .55) 100%); }
+/* Shares the dark scrim of .trip-action-btn so both overlays on the cover read
+   as one set, and the label survives a bright photo behind it. */
 .trek-dash .trip-status {
   position: absolute; top: 16px; left: 16px; z-index: 1;
   display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px 6px 9px;
   border-radius: 999px; font-size: 11.5px; font-weight: 500; letter-spacing: 0.02em;
-  background: oklch(1 0 0 / .18); backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
-  border: 1px solid oklch(1 0 0 / .22); color: #fff; text-transform: uppercase;
+  background: oklch(0.22 0.01 260 / .58); backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid oklch(1 0 0 / .34); color: #fff; text-transform: uppercase;
+  box-shadow: 0 2px 8px oklch(0 0 0 / .28);
 }
 .trek-dash .trip-status .indicator { width: 6px; height: 6px; border-radius: 50%; background: oklch(0.84 0.16 145); }
 .trek-dash .trip-status.completed .indicator { background: oklch(0.75 0.02 220); }
 .trek-dash .trip-status.upcoming .indicator { background: oklch(0.84 0.18 85); }
 .trek-dash .trip-status.idea .indicator { background: oklch(0.78 0.14 280); }
-.trek-dash .trip-actions { position: absolute; top: 14px; right: 14px; z-index: 1; display: flex; gap: 6px; opacity: 0; transition: opacity .2s; }
+/* The actions used to sit at opacity 0 until the card was hovered, over a white
+   .18 glass fill. Two people in a row reported they never found the archive and
+   rename buttons — invisible at rest, and on a light cover the white-on-white
+   fill hid them even while hovering. They stay on the card now, and the fill is
+   a dark scrim so the white icons carry against any photo. */
+.trek-dash .trip-actions { position: absolute; top: 14px; right: 14px; z-index: 1; display: flex; gap: 6px; opacity: .92; transition: opacity .2s; }
 .trek-dash .trip-card:hover .trip-actions { opacity: 1; }
 .trek-dash .trip-action-btn {
-  width: 36px; height: 36px; border-radius: 50%;
-  background: oklch(1 0 0 / .18); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-  border: 1px solid oklch(1 0 0 / .22); color: #fff; display: grid; place-items: center; transition: background .15s;
+  width: 38px; height: 38px; border-radius: 50%;
+  background: oklch(0.22 0.01 260 / .58); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid oklch(1 0 0 / .34); color: #fff; display: grid; place-items: center;
+  box-shadow: 0 2px 8px oklch(0 0 0 / .28);
+  transition: background .15s, transform .12s;
 }
-.trek-dash .trip-action-btn:hover { background: oklch(1 0 0 / .3); }
-.trek-dash .trip-action-btn svg { width: 16px; height: 16px; }
+.trek-dash .trip-action-btn:hover { background: oklch(0.22 0.01 260 / .82); transform: scale(1.06); }
+.trek-dash .trip-action-btn svg { width: 17px; height: 17px; }
 .trek-dash .trip-cover-content { position: absolute; left: 18px; right: 18px; bottom: 16px; z-index: 1; color: #fff; }
 .trek-dash .trip-name { font-size: 26px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.05; margin: 0; text-shadow: 0 1px 7px oklch(0 0 0 / .3), 0 1px 2px oklch(0 0 0 / .38); }
 .trek-dash .trip-where { margin-top: 4px; font-size: 13px; opacity: .85; display: flex; align-items: center; gap: 6px; }
@@ -686,8 +700,8 @@
   .trek-dash .trips { grid-template-columns: 1fr; gap: 16px; margin-bottom: 28px; }
   .trek-dash .add-trip-card { min-height: 180px; }
 
-  /* Touch devices have no hover — keep the edit/copy/archive/delete actions
-     visible at all times instead of revealing them on hover. */
+  /* Touch devices have no hover state to lift the actions to full strength, so
+     skip the resting dim entirely. */
   .trek-dash .trip-actions { opacity: 1; }
 
   /* Compact list row on mobile — keeps the list view distinct from the grid. The

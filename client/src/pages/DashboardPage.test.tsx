@@ -1000,4 +1000,59 @@ describe('DashboardPage', () => {
       expect(within(grid()).queryByText('Paris Adventure')).not.toBeInTheDocument();
     });
   });
+
+  // Two people reported in a row that they could not find how to unarchive or
+  // rename a trip. The controls sat at opacity 0 until the card was hovered, and
+  // the archive button carried the same icon whether it would archive or restore.
+  describe('FE-PAGE-DASH-036: the cover controls are findable', () => {
+    const activeOnly = (trips: unknown[]) =>
+      server.use(
+        http.get('/api/trips', ({ request }) => {
+          const url = new URL(request.url);
+          if (url.searchParams.get('archived')) return HttpResponse.json({ trips: [] });
+          return HttpResponse.json({ trips });
+        }),
+      );
+
+    it('names every action on the card, so none of them is icon-only guesswork', async () => {
+      activeOnly([buildTrip({ title: 'Lisbon 2025', start_date: '2025-05-01', end_date: '2025-05-08' })]);
+      const user = userEvent.setup();
+      render(<DashboardPage />);
+
+      await waitFor(() => expect(screen.getAllByText('Lisbon 2025').length).toBeGreaterThan(0));
+      await user.click(screen.getByText('Completed'));
+      const card = (await screen.findAllByText('Lisbon 2025'))
+        .map(n => n.closest('.trip-card'))
+        .find(Boolean) as HTMLElement;
+      for (const label of ['Edit', 'Duplicate', 'Archive', 'Delete']) {
+        const button = card.querySelector(`[aria-label="${label}"]`) as HTMLElement;
+        expect(button).toBeTruthy();
+        // A tooltip as well as the screen-reader label — the icons alone did not read.
+        expect(button.getAttribute('title')).toBe(label);
+      }
+    });
+
+    it('swaps the archive icon for a restore one once the trip is archived', async () => {
+      const archived = buildTrip({ title: 'Old Rome Trip', start_date: '2024-01-01', end_date: '2024-01-07', is_archived: 1 });
+      server.use(
+        http.get('/api/trips', ({ request }) => {
+          const url = new URL(request.url);
+          return HttpResponse.json({ trips: url.searchParams.get('archived') ? [archived] : [] });
+        }),
+      );
+      const user = userEvent.setup();
+      render(<DashboardPage />);
+
+      await user.click(screen.getByText('Archived'));
+      await waitFor(() => expect(screen.getByText('Old Rome Trip')).toBeInTheDocument());
+
+      const card = screen.getByText('Old Rome Trip').closest('.trip-card') as HTMLElement;
+      const restore = card.querySelector('[aria-label="Restore"]') as HTMLElement;
+      expect(restore).toBeTruthy();
+      // lucide stamps the icon name on the svg, which is how the archive and the
+      // restore variant tell themselves apart.
+      expect(restore.querySelector('svg')?.getAttribute('class')).toContain('archive-restore');
+      expect(card.querySelector('[aria-label="Archive"]')).toBeNull();
+    });
+  });
 });
