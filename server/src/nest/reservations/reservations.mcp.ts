@@ -468,6 +468,13 @@ export class ReservationsMcp {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
+
+    // The service scopes the write to the trip on its own, so a foreign id is
+    // already harmless — say so rather than reporting a success that moved
+    // nothing, the way the sibling tools above do.
+    if (dayId && !this.days.getDay(dayId, tripId))
+      return errorResult('dayId does not belong to this trip.');
+
     this.reservations.updatePositions(tripId, positions, dayId);
     this.guards.safeBroadcast(tripId, 'reservation:positions', { positions, dayId });
     return ok({ success: true });

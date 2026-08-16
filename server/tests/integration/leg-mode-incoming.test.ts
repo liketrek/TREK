@@ -41,24 +41,34 @@ describe('incoming_leg_transport_mode migration', () => {
     // skipped on every one of them. Undoing what the LAST migration did and
     // rewinding one version is the only way to prove it still runs.
     //
-    // >>> Appending a migration? Re-point the DROP below at the column yours
-    // >>> adds. That is the whole maintenance cost of this guard.
-    const TRAILING_TABLE = 'budget_items';
-    const TRAILING_COLUMN = 'place_id';
-
+    // >>> Appending a migration? Re-point the "undo" below at whatever yours
+    // >>> does. That is the whole maintenance cost of this guard. The current
+    // >>> trailing slot deletes reservation_day_positions rows whose reservation
+    // >>> and day sit on different trips, so undoing it means putting one back.
     const upgraded = new Database(':memory:');
     upgraded.exec('PRAGMA foreign_keys = ON');
     createTables(upgraded);
     runMigrations(upgraded);
 
     const { version } = upgraded.prepare('SELECT version FROM schema_version').get() as { version: number };
-    upgraded.exec(`ALTER TABLE ${TRAILING_TABLE} DROP COLUMN ${TRAILING_COLUMN}`);
+
+    upgraded.prepare("INSERT INTO users (id, username, email, password_hash) VALUES (1, 'a', 'a@test.local', 'x')").run();
+    upgraded.prepare("INSERT INTO users (id, username, email, password_hash) VALUES (2, 'b', 'b@test.local', 'x')").run();
+    const tripA = upgraded.prepare("INSERT INTO trips (user_id, title) VALUES (1, 'A')").run().lastInsertRowid;
+    const tripB = upgraded.prepare("INSERT INTO trips (user_id, title) VALUES (2, 'B')").run().lastInsertRowid;
+    const reservationOnA = upgraded.prepare("INSERT INTO reservations (trip_id, title, type) VALUES (?, 'r', 'other')").run(tripA).lastInsertRowid;
+    const dayOnA = upgraded.prepare("INSERT INTO days (trip_id, day_number, date) VALUES (?, 1, '2026-01-01')").run(tripA).lastInsertRowid;
+    const dayOnB = upgraded.prepare("INSERT INTO days (trip_id, day_number, date) VALUES (?, 1, '2026-01-01')").run(tripB).lastInsertRowid;
+    const insertPosition = upgraded.prepare('INSERT INTO reservation_day_positions (reservation_id, day_id, position) VALUES (?, ?, ?)');
+    insertPosition.run(reservationOnA, dayOnB, 1); // the mismatched pair the migration clears
+    insertPosition.run(reservationOnA, dayOnA, 2); // a legitimate one it must leave alone
+
     upgraded.prepare('UPDATE schema_version SET version = ?').run(version - 1);
 
     runMigrations(upgraded);
 
-    const cols = upgraded.prepare(`PRAGMA table_info(${TRAILING_TABLE})`).all() as { name: string }[];
-    expect(cols.map(c => c.name)).toContain(TRAILING_COLUMN);
+    const rows = upgraded.prepare('SELECT day_id FROM reservation_day_positions ORDER BY day_id').all() as { day_id: number }[];
+    expect(rows).toEqual([{ day_id: Number(dayOnA) }]);
     expect(upgraded.prepare('SELECT version FROM schema_version').get()).toEqual({ version });
     upgraded.close();
   });

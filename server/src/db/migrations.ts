@@ -3891,6 +3891,24 @@ function runMigrations(db: Database.Database): void {
         db.exec('ALTER TABLE budget_items ADD COLUMN place_id INTEGER REFERENCES places(id) ON DELETE SET NULL DEFAULT NULL');
       }
     },
+    // A reservation_day_positions row only makes sense when its reservation and
+    // its day are on the same trip. The table carries no trip_id and its two
+    // foreign keys only ask that the ids exist, so pairs that never belonged
+    // together could accumulate; the writer refuses them now, and this clears
+    // whatever an older build let through. Appended LAST — the array is
+    // index-addressed against schema_version.
+    () => {
+      db.exec(`
+        DELETE FROM reservation_day_positions
+         WHERE rowid IN (
+           SELECT rdp.rowid
+             FROM reservation_day_positions rdp
+             JOIN reservations r ON r.id = rdp.reservation_id
+             JOIN days d ON d.id = rdp.day_id
+            WHERE d.trip_id <> r.trip_id
+         )
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

@@ -185,4 +185,92 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'place_id, start_day_id, and end_day_id are required' });
   });
+
+  // The per-day branch of updatePositions used to bind the caller's ids straight
+  // into reservation_day_positions without ever looking at the tripId it was
+  // handed, so a request authorised on your own trip could rewrite the ordering
+  // of someone else's. The legacy branch three lines below it always scoped by
+  // trip_id — these pin that the two behave the same way now.
+  describe('positions are confined to the trip in the URL', () => {
+    let foreignTripId: number;
+    let foreignReservationId: number;
+    let foreignDayId: number;
+    let ownDayId: number;
+    // Days are unique per (trip_id, day_number) and this block seeds a fresh pair
+    // for every case, so the numbers have to keep climbing.
+    let dayNumber = 100;
+
+    beforeEach(() => {
+      db.prepare(
+        "INSERT OR IGNORE INTO users (id, username, email, password_hash, role, password_version) VALUES (2, 'victim', 'victim@example.test', 'x', 'user', 0)",
+      ).run();
+      foreignTripId = Number(db.prepare("INSERT INTO trips (user_id, title) VALUES (2, 'Someone else')").run().lastInsertRowid);
+      foreignReservationId = Number(db.prepare("INSERT INTO reservations (trip_id, title, type) VALUES (?, 'Secret', 'other')").run(foreignTripId).lastInsertRowid);
+      dayNumber += 1;
+      foreignDayId = Number(db.prepare("INSERT INTO days (trip_id, day_number, date) VALUES (?, ?, '2026-05-01')").run(foreignTripId, dayNumber).lastInsertRowid);
+      ownDayId = Number(db.prepare("INSERT INTO days (trip_id, day_number, date) VALUES (?, ?, '2026-05-01')").run(tripId, dayNumber).lastInsertRowid);
+    });
+
+    function positionRow(reservationId: number, dayId: number) {
+      return db.prepare('SELECT position FROM reservation_day_positions WHERE reservation_id = ? AND day_id = ?').get(reservationId, dayId);
+    }
+
+    it('writes nothing when both ids belong to another trip', async () => {
+      const res = await request(server)
+        .put(`/api/trips/${tripId}/reservations/positions`)
+        .set('Cookie', sessionCookie(1))
+        .send({ positions: [{ id: foreignReservationId, day_plan_position: 999 }], day_id: foreignDayId });
+      expect(res.status).toBe(200);
+      expect(positionRow(foreignReservationId, foreignDayId)).toBeUndefined();
+    });
+
+    it('writes nothing when only the reservation is foreign', async () => {
+      const res = await request(server)
+        .put(`/api/trips/${tripId}/reservations/positions`)
+        .set('Cookie', sessionCookie(1))
+        .send({ positions: [{ id: foreignReservationId, day_plan_position: 5 }], day_id: ownDayId });
+      expect(res.status).toBe(200);
+      expect(positionRow(foreignReservationId, ownDayId)).toBeUndefined();
+    });
+
+    it('writes nothing when only the day is foreign', async () => {
+      const ownReservationId = Number(db.prepare("INSERT INTO reservations (trip_id, title, type) VALUES (?, 'Mine', 'other')").run(tripId).lastInsertRowid);
+      const res = await request(server)
+        .put(`/api/trips/${tripId}/reservations/positions`)
+        .set('Cookie', sessionCookie(1))
+        .send({ positions: [{ id: ownReservationId, day_plan_position: 5 }], day_id: foreignDayId });
+      expect(res.status).toBe(200);
+      expect(positionRow(ownReservationId, foreignDayId)).toBeUndefined();
+    });
+
+    it('still stores a position when both ids are on the trip', async () => {
+      const ownReservationId = Number(db.prepare("INSERT INTO reservations (trip_id, title, type) VALUES (?, 'Mine', 'other')").run(tripId).lastInsertRowid);
+      const res = await request(server)
+        .put(`/api/trips/${tripId}/reservations/positions`)
+        .set('Cookie', sessionCookie(1))
+        .send({ positions: [{ id: ownReservationId, day_plan_position: 3 }], day_id: ownDayId });
+      expect(res.status).toBe(200);
+      expect(positionRow(ownReservationId, ownDayId)).toEqual({ position: 3 });
+    });
+
+    // An id that exists nowhere used to raise a foreign-key error, which the
+    // exception filter turned into a 500 — telling the caller apart from the
+    // 200 a real id returns, for any id on the instance.
+    it('answers a nonexistent reservation the same way it answers a foreign one', async () => {
+      const res = await request(server)
+        .put(`/api/trips/${tripId}/reservations/positions`)
+        .set('Cookie', sessionCookie(1))
+        .send({ positions: [{ id: 999999, day_plan_position: 1 }], day_id: ownDayId });
+      expect(res.status).toBe(200);
+    });
+
+    it('does not fall over when day_plan_position is omitted', async () => {
+      const ownReservationId = Number(db.prepare("INSERT INTO reservations (trip_id, title, type) VALUES (?, 'Mine', 'other')").run(tripId).lastInsertRowid);
+      const res = await request(server)
+        .put(`/api/trips/${tripId}/reservations/positions`)
+        .set('Cookie', sessionCookie(1))
+        .send({ positions: [{ id: ownReservationId }], day_id: ownDayId });
+      expect(res.status).toBe(200);
+    });
+  });
 });

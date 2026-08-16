@@ -527,13 +527,26 @@ export class ReservationsService {
     return { reservation, accommodationCreated };
   }
 
-  updatePositions(tripId: string | number, positions: { id: number; day_plan_position: number }[], dayId?: number | string | null) {
+  updatePositions(tripId: string | number, positions: { id: number; day_plan_position?: number }[], dayId?: number | string | null) {
     if (dayId) {
-      // Per-day positions for multi-day reservations
-      const stmt = this.db.prepare('INSERT OR REPLACE INTO reservation_day_positions (reservation_id, day_id, position) VALUES (?, ?, ?)');
+      // Per-day positions for multi-day reservations, scoped the way the legacy
+      // branch below already scopes its update. The table carries no trip_id and
+      // its two foreign keys only ask that the ids exist, so the trip has to come
+      // from the join: the row materialises only when the reservation and the day
+      // agree on it. Doing that in the statement rather than as a pre-check also
+      // makes a stale id a quiet no-op instead of a foreign-key error surfacing
+      // as a 500.
+      const stmt = this.db.prepare(`
+        INSERT OR REPLACE INTO reservation_day_positions (reservation_id, day_id, position)
+        SELECT r.id, d.id, ?
+          FROM reservations r
+          JOIN days d ON d.trip_id = r.trip_id
+         WHERE r.id = ? AND d.id = ? AND r.trip_id = ?
+      `);
       this.db.transaction(() => {
         for (const item of positions) {
-          stmt.run(item.id, dayId, item.day_plan_position);
+          // position is NOT NULL while the wire contract leaves the value optional.
+          stmt.run(item.day_plan_position ?? 0, item.id, dayId, tripId);
         }
       });
     } else {
