@@ -273,8 +273,24 @@ async function main() {
   }
 
   db.transaction(() => {
-    // --- app_settings: oidc_client_secret, smtp_pass, admin_webhook_url, admin_ntfy_token ---
-    for (const key of ['oidc_client_secret', 'smtp_pass', 'admin_webhook_url', 'admin_ntfy_token']) {
+    // --- app_settings: oidc_client_secret, smtp_pass, admin_webhook_url, admin_ntfy_token,
+    // plus the instance-wide provider keys (#1939) ---
+    //
+    // The last two mirror INSTANCE_API_KEY_NAMES in
+    // src/nest/settings/instance-api-keys.ts. Spelled out rather than imported,
+    // because that module pulls in DatabaseService and this script deliberately
+    // stays independent of src/ (see the crypto note above). Miss one and a
+    // rotation leaves it encrypted under the old key, which reads back as "no
+    // key" and silently drops the install to OpenStreetMap, so the copy is
+    // pinned by tests/unit/db/migrate-encryption-parity.test.ts.
+    for (const key of [
+      'oidc_client_secret',
+      'smtp_pass',
+      'admin_webhook_url',
+      'admin_ntfy_token',
+      'maps_api_key',
+      'unsplash_api_key',
+    ]) {
       const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined;
       if (!row?.value) continue;
       const newVal = migrateApiKeyValue(row.value, `app_settings.${key}`);
@@ -284,7 +300,10 @@ async function main() {
     }
 
     // --- users: api key columns + synology credentials ---
-    const apiKeyColumns = ['maps_api_key', 'openweather_api_key', 'immich_api_key', 'synology_password', 'synology_sid', 'synology_did'];
+    // unsplash_api_key was missing here for as long as the column has existed. It
+    // matters now that the resolver reads it as the per-user fallback (#1939): left
+    // out of a rotation it stays encrypted under the old key and reads back as unset.
+    const apiKeyColumns = ['maps_api_key', 'unsplash_api_key', 'openweather_api_key', 'immich_api_key', 'synology_password', 'synology_sid', 'synology_did'];
     const users = db.prepare('SELECT id FROM users').all() as { id: number }[];
 
     for (const user of users) {
