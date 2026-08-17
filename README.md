@@ -7,7 +7,6 @@
 </picture>
 
 <br />
-
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/subtitle-light.png" />
   <source media="(prefers-color-scheme: light)" srcset="docs/subtitle-dark.png" />
