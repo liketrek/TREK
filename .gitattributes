@@ -15,6 +15,7 @@
 *.sh   text eol=lf
 # Binary files — no line ending conversion
 *.png  binary
+*.webp binary
 *.jpg  binary
 *.jpeg binary
 *.gif  binary
