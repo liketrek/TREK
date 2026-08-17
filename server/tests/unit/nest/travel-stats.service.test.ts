@@ -44,10 +44,19 @@ afterAll(() => { testDb.close(); });
 // ── getTravelStats — dashboard passport card ────────────────────────────────
 
 describe('getTravelStats', () => {
-  function endpoint(reservationId: number, role: 'from' | 'to' | 'stop', sequence: number, lat: number, lng: number) {
+  function endpoint(
+    reservationId: number,
+    role: 'from' | 'to' | 'stop',
+    sequence: number,
+    lat: number,
+    lng: number,
+    code: string | null = null,
+    localDate: string | null = null,
+    localTime: string | null = null
+  ) {
     testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, lat, lng) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(reservationId, role, sequence, `Endpoint ${sequence}`, lat, lng);
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, lat, lng, code, local_date, local_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(reservationId, role, sequence, `Endpoint ${sequence}`, lat, lng, code, localDate, localTime);
   }
 
   // Every trip below is dated in the past: since #1048 the passport card only counts
@@ -147,6 +156,51 @@ describe('getTravelStats', () => {
 
     expect(stats.countries).not.toContain('BE');
     expect(stats.countries).not.toContain('JP');
+  });
+
+  // ── #1535: the layover split over two bookings ─────────────────────────────
+  // The passport card derives its countries from the same endpoints, so it needs the
+  // same pairing: a hub stored as the 'to' of one booking and the 'from' of the next
+  // slips past the #1486 role filter. Brussels → Helsinki → New York.
+
+  function splitChainThroughHelsinki(tripId: number, onwardDate: string, onwardTime: string) {
+    const inbound = createReservation(testDb, tripId, { type: 'flight', title: 'BRU-HEL' });
+    endpoint(inbound.id, 'from', 0, 50.9014, 4.4844, 'BRU', '2023-05-01', '07:00');
+    endpoint(inbound.id, 'to', 1, 60.3172, 24.9633, 'HEL', '2023-05-01', '09:30');
+    const onward = createReservation(testDb, tripId, { type: 'flight', title: 'HEL-JFK' });
+    endpoint(onward.id, 'from', 0, 60.3172, 24.9633, 'HEL', onwardDate, onwardTime);
+    endpoint(onward.id, 'to', 1, 40.6413, -73.7781, 'JFK', onwardDate, '15:00');
+  }
+
+  it('AUTH-DB-099: #1535 a plane change booked as two flights does not stamp the hub country', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'New York via Helsinki', start_date: PAST_START, end_date: PAST_END });
+    splitChainThroughHelsinki(trip.id, '2023-05-01', '11:00');
+
+    const stats = atlas.getTravelStats(user.id);
+    expect(stats.countries).toContain('BE');
+    expect(stats.countries).toContain('US');
+    expect(stats.countries).not.toContain('FI');
+  });
+
+  it('AUTH-DB-100: #1535 a stopover of two days still stamps the hub country', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Helsinki stopover', start_date: PAST_START, end_date: PAST_END });
+    splitChainThroughHelsinki(trip.id, '2023-05-03', '11:00');
+
+    expect(atlas.getTravelStats(user.id).countries).toContain('FI');
+  });
+
+  it('AUTH-DB-101: #1490 removing a country still subtracts it around the layover pairing', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'New York via Helsinki', start_date: PAST_START, end_date: PAST_END });
+    splitChainThroughHelsinki(trip.id, '2023-05-01', '11:00');
+
+    atlas.unmarkCountry(user.id, 'BE');
+
+    const stats = atlas.getTravelStats(user.id);
+    expect(stats.countries).not.toContain('BE');
+    expect(stats.countries).toContain('US');
   });
 
   it('AUTH-DB-097: #1048 a manually marked country stays stamped regardless of trip dates', () => {

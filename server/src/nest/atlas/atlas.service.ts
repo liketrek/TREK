@@ -14,7 +14,18 @@ import {
 } from './atlas-geo';
 import { KNOWN_COUNTRIES } from './known-countries';
 import { cityFromAddress } from './city-from-address';
+import { transferEndpointIds } from './transfer-endpoints';
+import type { FlightEndpointRow } from './transfer-endpoints';
 import { haversineKm } from '../common/geo';
+
+/**
+ * A reservation endpoint plus the two booking columns that decide whether it may
+ * take part in layover pairing at all (see transfer-endpoints.ts).
+ */
+type EndpointRow = FlightEndpointRow & {
+  reservation_type: string | null;
+  reservation_status: string | null;
+};
 
 export type CreateBucketData = {
   name: string;
@@ -314,19 +325,33 @@ export class AtlasService {
     // via resolvePlaceCountries above and would otherwise be missed (#1366).
     // Only 'from'/'to' legs count as actually reached — a 'stop' is an intermediate
     // connection/layover (e.g. a plane change) the traveler never really visited.
-    const endpoints = this.db
+    const endpointRows = this.db
       .prepare(
         `
-    SELECT DISTINCT r.trip_id, e.lat, e.lng
+    SELECT DISTINCT e.id, e.reservation_id, r.trip_id, e.role, e.code, e.lat, e.lng, e.local_date, e.local_time,
+           r.type AS reservation_type, r.status AS reservation_status,
+           CASE e.role
+             WHEN 'to' THEN COALESCE(r.reservation_end_time, r.reservation_time)
+             ELSE COALESCE(r.reservation_time, r.reservation_end_time)
+           END AS fallback_time
     FROM reservation_endpoints e
     JOIN reservations r ON e.reservation_id = r.id
     WHERE r.trip_id IN (${tripIds.map(() => '?').join(',')}) AND e.role IN ('from', 'to')
   `,
       )
-      .all(...tripIds) as { trip_id: number; lat: number; lng: number }[];
+      .all(...tripIds) as EndpointRow[];
 
-    // Selecting trip_id makes the DISTINCT per trip, so the same airport comes back once
-    // per booking. Collapse to one entry per coordinate before resolving countries —
+    // A layover the traveler never left is only marked 'stop' while both its legs sit in
+    // one booking. Split over two bookings it is a plain 'to' plus 'from' at the same
+    // airport, so it has to be recognised from the times instead (#1535). Only flights
+    // pair: a rental car picked up where a flight landed has its own from/to there and
+    // must keep contributing its country (#1366).
+    const transfers = transferEndpointIds(
+      endpointRows.filter((e) => e.reservation_type === 'flight' && e.reservation_status !== 'cancelled'),
+    );
+    const endpoints = endpointRows.filter((e) => !transfers.has(e.id));
+
+    // Collapse to one entry per coordinate before resolving countries —
     // getCountryFromCoords is a point-in-polygon scan and used to run once per point.
     const endpointStatus = new Map<string, { lat: number; lng: number; status: VisitStatus }>();
     for (const e of endpoints) {
@@ -962,9 +987,16 @@ export class AtlasService {
     // planned place there) was never counted as visited (#1366). Resolve each endpoint
     // coordinate to a country and fold it in too.
     // Only 'from'/'to' legs count as actually reached — a 'stop' is an intermediate
-    // connection/layover (e.g. a plane change) the traveler never really visited (#1486).
-    const endpoints = this.db.all<{ lat: number; lng: number }>(`
-    SELECT DISTINCT e.lat, e.lng
+    // connection/layover (e.g. a plane change) the traveler never really visited (#1486),
+    // and the same layover split over two bookings is recognised from its ground time
+    // instead, because there it is stored as a legitimate 'to'/'from' pair (#1535).
+    const endpointRows = this.db.all<EndpointRow>(`
+    SELECT DISTINCT e.id, e.reservation_id, r.trip_id, e.role, e.code, e.lat, e.lng, e.local_date, e.local_time,
+           r.type AS reservation_type, r.status AS reservation_status,
+           CASE e.role
+             WHEN 'to' THEN COALESCE(r.reservation_end_time, r.reservation_time)
+             ELSE COALESCE(r.reservation_time, r.reservation_end_time)
+           END AS fallback_time
     FROM reservation_endpoints e
     JOIN reservations r ON e.reservation_id = r.id
     JOIN trips t ON r.trip_id = t.id
@@ -973,7 +1005,18 @@ export class AtlasService {
       AND COALESCE(t.start_date, t.end_date) IS NOT NULL
       AND COALESCE(t.start_date, t.end_date) <= date('now')
   `, userId, userId);
-    for (const e of endpoints) {
+    const transfers = transferEndpointIds(
+      endpointRows.filter(e => e.reservation_type === 'flight' && e.reservation_status !== 'cancelled')
+    );
+    // The DISTINCT no longer collapses per coordinate now that the endpoint id has to be
+    // in the projection, so collapse here instead: getCountryFromCoords is a
+    // point-in-polygon scan and must stay at one run per coordinate.
+    const endpointCoords = new Map<string, { lat: number; lng: number }>();
+    for (const e of endpointRows) {
+      if (transfers.has(e.id)) continue;
+      endpointCoords.set(`${e.lat},${e.lng}`, { lat: e.lat, lng: e.lng });
+    }
+    for (const e of endpointCoords.values()) {
       const code = getCountryFromCoords(e.lat, e.lng);
       if (code) countryCodes.add(code.toUpperCase());
     }

@@ -54,11 +54,14 @@ function insertReservationEndpoint(
   role: 'from' | 'to' | 'stop',
   sequence: number,
   lat: number,
-  lng: number
+  lng: number,
+  code: string | null = null,
+  localDate: string | null = null,
+  localTime: string | null = null
 ) {
   db.prepare(
-    'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, lat, lng) VALUES (?, ?, ?, ?, ?, ?)'
-  ).run(reservationId, role, sequence, `Endpoint ${sequence}`, lat, lng);
+    'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, lat, lng, code, local_date, local_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(reservationId, role, sequence, `Endpoint ${sequence}`, lat, lng, code, localDate, localTime);
 }
 
 function insertPlace(db: any, tripId: number, name: string, address: string | null = null) {
@@ -199,6 +202,158 @@ describe('getStats', () => {
     const codes = stats.countries.map((c: { code: string }) => c.code);
     expect(codes).toContain('ES');
     expect(codes).not.toContain('DZ');
+  });
+});
+
+// ── #1535: the layover the role filter can't see ─────────────────────────────
+
+/**
+ * When the legs of one journey arrive as two separate bookings (an AirTrail import
+ * whose flights never chained), the connection airport is the legitimate 'to' of the
+ * first and the legitimate 'from' of the second, so the role filter from #1486 lets
+ * it through. Brussels to Helsinki to New York throughout: BE and US were reached,
+ * Finland was a plane change.
+ */
+describe('getStats layover pairs across two bookings', () => {
+  const BRU = { lat: 50.9014, lng: 4.4844, code: 'BRU' };
+  const HEL = { lat: 60.3172, lng: 24.9633, code: 'HEL' };
+  const JFK = { lat: 40.6413, lng: -73.7781, code: 'JFK' };
+
+  type Clock = { date: string | null; time: string | null };
+
+  function inboundToHelsinki(tripId: number, arrival: Clock) {
+    const res = createReservation(testDb, tripId, { type: 'flight', title: 'BRU-HEL' });
+    insertReservationEndpoint(testDb, res.id, 'from', 0, BRU.lat, BRU.lng, BRU.code, arrival.date, '07:00');
+    insertReservationEndpoint(testDb, res.id, 'to', 1, HEL.lat, HEL.lng, HEL.code, arrival.date, arrival.time);
+    return res;
+  }
+
+  function onwardFromHelsinki(tripId: number, departure: Clock, type = 'flight') {
+    const res = createReservation(testDb, tripId, { type, title: 'HEL-JFK' });
+    insertReservationEndpoint(testDb, res.id, 'from', 0, HEL.lat, HEL.lng, HEL.code, departure.date, departure.time);
+    insertReservationEndpoint(testDb, res.id, 'to', 1, JFK.lat, JFK.lng, JFK.code, departure.date, '15:00');
+    return res;
+  }
+
+  const codesFor = async (userId: number) =>
+    (await atlas.stats(userId)).countries.map((c: { code: string }) => c.code);
+
+  it('ATLAS-UNIT-044 (#1535): a hub arrived at and left again the same day is not visited', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'New York via Helsinki' });
+    inboundToHelsinki(trip.id, { date: '2026-08-01', time: '09:30' });
+    onwardFromHelsinki(trip.id, { date: '2026-08-01', time: '11:00' });
+
+    const codes = await codesFor(user.id);
+    expect(codes).toContain('BE');
+    expect(codes).toContain('US');
+    expect(codes).not.toContain('FI');
+  });
+
+  it('ATLAS-UNIT-045 (#1535): a hub the traveler left two days later stays visited', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Helsinki stopover' });
+    inboundToHelsinki(trip.id, { date: '2026-08-01', time: '09:30' });
+    onwardFromHelsinki(trip.id, { date: '2026-08-03', time: '11:00' });
+
+    expect(await codesFor(user.id)).toContain('FI');
+  });
+
+  it('ATLAS-UNIT-046 (#1535): a pair with no clocks pairs on the booking dates', async () => {
+    // The case the reporter actually has: a date-only AirTrail flight leaves the
+    // endpoints without local parts, so only reservation_time carries the day.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'New York via Helsinki' });
+    const inbound = inboundToHelsinki(trip.id, { date: null, time: null });
+    const onward = onwardFromHelsinki(trip.id, { date: null, time: null });
+    const setTime = testDb.prepare('UPDATE reservations SET reservation_time = ? WHERE id = ?');
+    setTime.run('2026-08-01', inbound.id);
+    setTime.run('2026-08-01', onward.id);
+
+    const codes = await codesFor(user.id);
+    expect(codes).toContain('BE');
+    expect(codes).toContain('US');
+    expect(codes).not.toContain('FI');
+  });
+
+  it('ATLAS-UNIT-047 (#1535): clockless bookings two days apart keep the hub visited', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Helsinki stopover' });
+    const inbound = inboundToHelsinki(trip.id, { date: null, time: null });
+    const onward = onwardFromHelsinki(trip.id, { date: null, time: null });
+    const setTime = testDb.prepare('UPDATE reservations SET reservation_time = ? WHERE id = ?');
+    setTime.run('2026-08-01', inbound.id);
+    setTime.run('2026-08-03', onward.id);
+
+    expect(await codesFor(user.id)).toContain('FI');
+  });
+
+  it('ATLAS-UNIT-048 (#1535): a place in the layover country keeps it visited', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'New York via Helsinki' });
+    inboundToHelsinki(trip.id, { date: '2026-08-01', time: '09:30' });
+    onwardFromHelsinki(trip.id, { date: '2026-08-01', time: '11:00' });
+    insertPlace(testDb, trip.id, 'Kamppi Chapel', 'Simonkatu 7, Helsinki, Finland');
+
+    expect(await codesFor(user.id)).toContain('FI');
+  });
+
+  it('ATLAS-UNIT-049 (#1366 guard): a car rental picked up where the flight landed keeps the country', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Driving Finland' });
+    inboundToHelsinki(trip.id, { date: '2026-08-01', time: '09:30' });
+    onwardFromHelsinki(trip.id, { date: '2026-08-01', time: '11:00' }, 'car_rental');
+
+    expect(await codesFor(user.id)).toContain('FI');
+  });
+
+  it('ATLAS-UNIT-050 (#1535): a cancelled onward flight is no connection', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Helsinki, stuck' });
+    inboundToHelsinki(trip.id, { date: '2026-08-01', time: '09:30' });
+    const onward = onwardFromHelsinki(trip.id, { date: '2026-08-01', time: '11:00' });
+    testDb.prepare('UPDATE reservations SET status = ? WHERE id = ?').run('cancelled', onward.id);
+
+    expect(await codesFor(user.id)).toContain('FI');
+  });
+
+  it('ATLAS-UNIT-051 (#1535): an onward flight on another trip is another journey', async () => {
+    // Landing home from one trip and leaving on the next within a day is not a plane
+    // change, and the pairing spans every trip the user can see.
+    const { user } = createUser(testDb);
+    const arriving = createTrip(testDb, user.id, { title: 'Back from Brussels' });
+    const leaving = createTrip(testDb, user.id, { title: 'Off to New York' });
+    inboundToHelsinki(arriving.id, { date: '2026-08-01', time: '09:30' });
+    onwardFromHelsinki(leaving.id, { date: '2026-08-01', time: '11:00' });
+
+    expect(await codesFor(user.id)).toContain('FI');
+  });
+
+  it('ATLAS-UNIT-052 (#1535): a same-day out-and-back is a day in the country, not a transfer', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'A day in Helsinki' });
+    inboundToHelsinki(trip.id, { date: '2026-08-01', time: '09:30' });
+    const back = createReservation(testDb, trip.id, { type: 'flight', title: 'HEL-BRU' });
+    insertReservationEndpoint(testDb, back.id, 'from', 0, HEL.lat, HEL.lng, HEL.code, '2026-08-01', '18:00');
+    insertReservationEndpoint(testDb, back.id, 'to', 1, BRU.lat, BRU.lng, BRU.code, '2026-08-01', '20:30');
+
+    expect(await codesFor(user.id)).toContain('FI');
+  });
+
+  it('ATLAS-UNIT-053 (#1535): a return into the other airport of the same city is still a day away', async () => {
+    // Same day trip as ATLAS-UNIT-052, but home into Charleroi instead of Zaventem, the
+    // way a cheap return is booked. Comparing the airports alone reads that as flying
+    // onwards and drops Finland, though the traveler spent the day in Helsinki.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'A day in Helsinki' });
+    inboundToHelsinki(trip.id, { date: '2026-08-01', time: '09:30' });
+    const back = createReservation(testDb, trip.id, { type: 'flight', title: 'HEL-CRL' });
+    insertReservationEndpoint(testDb, back.id, 'from', 0, HEL.lat, HEL.lng, HEL.code, '2026-08-01', '18:00');
+    insertReservationEndpoint(testDb, back.id, 'to', 1, 50.4592, 4.4538, 'CRL', '2026-08-01', '20:30');
+
+    const codes = await codesFor(user.id);
+    expect(codes).toContain('FI');
+    expect(codes).toContain('BE');
   });
 });
 

@@ -184,6 +184,39 @@ describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
     expect(jp.status).toBe(200);
     expect(jp.body.status).toBe('planned');
   });
+  // #1535: the same journey booked as two flights, which is what an AirTrail import
+  // whose legs never chained leaves behind. The hub is a legitimate 'to'/'from' pair, so
+  // only the ground time between them says it was a plane change. Own user again.
+  it('200 stats leaves out a layover country whose two legs are separate bookings', async () => {
+    const flyerId = createUser(db as never, { username: 'atlas-flyer', email: 'atlas-flyer@test.example' }).user.id;
+    const iso = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+    const trip = createTrip(db as never, flyerId, {
+      title: 'New York via Helsinki',
+      start_date: iso(-20),
+      end_date: iso(-10),
+    });
+    const day = iso(-15);
+    const insertFlight = db.prepare("INSERT INTO reservations (trip_id, title, type) VALUES (?, ?, 'flight')");
+    const insertEndpoint = db.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, lat, lng, code, local_date, local_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    );
+    const inbound = insertFlight.run(trip.id, 'BRU-HEL').lastInsertRowid;
+    insertEndpoint.run(inbound, 'from', 0, 'Brussels', 50.9014, 4.4844, 'BRU', day, '07:00');
+    insertEndpoint.run(inbound, 'to', 1, 'Helsinki', 60.3172, 24.9633, 'HEL', day, '09:30');
+    const onward = insertFlight.run(trip.id, 'HEL-JFK').lastInsertRowid;
+    insertEndpoint.run(onward, 'from', 0, 'Helsinki', 60.3172, 24.9633, 'HEL', day, '11:00');
+    insertEndpoint.run(onward, 'to', 1, 'New York', 40.6413, -73.7781, 'JFK', day, '15:00');
+
+    const res = await request(server).get('/api/addons/atlas/stats').set('Cookie', sessionCookie(flyerId));
+    expect(res.status).toBe(200);
+
+    const codes = (res.body.countries as { code: string }[]).map((c) => c.code);
+    expect(codes).toContain('BE');
+    expect(codes).toContain('US');
+    expect(codes).not.toContain('FI');
+    expect(res.body.stats.totalCountries).toBe(2);
+  });
+
   // ── /locate (#1115) ────────────────────────────────────────────────────────
   describe('GET locate', () => {
     it('resolves a coordinate to the country and the region the map can highlight', async () => {
