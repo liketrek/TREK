@@ -89,6 +89,7 @@ const reservations: TranslationStrings = {
   'reservations.span.arrival': 'Llegada',
   'reservations.span.inTransit': 'En tránsito',
   'reservations.span.pickup': 'Recogida',
+  'reservations.span.dropOff': 'Entrega',
   'reservations.span.return': 'Devolución',
   'reservations.span.active': 'Activo',
   'reservations.span.start': 'Inicio',

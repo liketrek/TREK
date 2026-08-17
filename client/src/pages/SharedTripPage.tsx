@@ -24,7 +24,7 @@ import { SUPPORTED_LANGUAGES, useTranslation } from '../i18n';
 import { useSettingsStore } from '../store/settingsStore';
 import { avatarSrc } from '../utils/avatarSrc';
 import { safeHexColor } from '../utils/safeColor';
-import { getMergedItems, getTransportForDay } from '../utils/dayMerge';
+import { getMergedItems, getTransportForDay, hidesOnMiddleDay } from '../utils/dayMerge';
 import { isDayInAccommodationRange } from '../utils/dayOrder';
 import { getFlightLegs, getTrainLegs } from '../utils/flightLegs';
 import { splitReservationDateTime } from '../utils/formatters';
@@ -443,12 +443,16 @@ export default function SharedTripPage() {
                   isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, sortedDays)
                 );
 
+                // The shared link has to say what the app says: a multi-day parking only
+                // shows up on its drop-off and pickup day (#1937). Filtered here rather
+                // than skipped in the loop below so the day body isn't gated open on a
+                // row that never renders.
                 const merged = getMergedItems({
                   dayAssignments: da,
                   dayNotes: notes,
                   dayTransports: dayTransport,
                   dayId: day.id,
-                });
+                }).filter(item => !(item.type === 'transport' && hidesOnMiddleDay(item.data, day.id)));
 
                 return (
                   <div

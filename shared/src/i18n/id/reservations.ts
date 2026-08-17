@@ -117,6 +117,7 @@ const reservations: TranslationStrings = {
   'reservations.span.arrival': 'Kedatangan',
   'reservations.span.inTransit': 'Dalam perjalanan',
   'reservations.span.pickup': 'Penjemputan',
+  'reservations.span.dropOff': 'Penyerahan',
   'reservations.span.return': 'Pengembalian',
   'reservations.span.active': 'Aktif',
   'reservations.span.start': 'Mulai',

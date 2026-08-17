@@ -117,7 +117,11 @@ const reservations: TranslationStrings = {
   'reservations.span.departure': 'Departure',
   'reservations.span.arrival': 'Arrival',
   'reservations.span.inTransit': 'In transit',
+  // span.pickup does double duty: the day a rental car is picked up, and the day a
+  // multi-day parking ends and you collect your own car again. Both read the same way
+  // in every locale, so parking only needs the drop-off wording of its own.
   'reservations.span.pickup': 'Pickup',
+  'reservations.span.dropOff': 'Drop-off',
   'reservations.span.return': 'Return',
   'reservations.span.active': 'Active',
   'reservations.span.start': 'Start',

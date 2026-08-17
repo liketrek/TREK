@@ -116,6 +116,7 @@ const reservations: TranslationStrings = {
   'reservations.span.arrival': 'Приліт',
   'reservations.span.inTransit': 'У дорозі',
   'reservations.span.pickup': 'Отримання',
+  'reservations.span.dropOff': 'Здача',
   'reservations.span.return': 'Повернення',
   'reservations.span.active': 'Активно',
   'reservations.span.start': 'Початок',

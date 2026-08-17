@@ -548,7 +548,7 @@ describe('downloadTripPDF', () => {
   })
 })
 
-// FE-W5PDF-001 to FE-W5PDF-018 — multi-day transport spans, the remaining
+// FE-W5PDF-001 to FE-W5PDF-030 — multi-day transport spans, the remaining
 // reservation subtitles, accommodation phases and cover fallbacks.
 describe('downloadTripPDF remaining branches', () => {
   const dA = { id: 10, day_number: 1, title: 'Day A', date: '2025-06-01' } as any
@@ -601,6 +601,20 @@ describe('downloadTripPDF remaining branches', () => {
     expect(html).toContain('reservations.span.pickup: Rental')
     expect(html).toContain('reservations.span.return: Rental')
     expect(html).not.toContain('reservations.span.active')
+  })
+
+  it('FE-W5PDF-029: a multi-day parking is labelled drop-off/pickup and skips the middle day (#1937)', async () => {
+    await downloadTripPDF(spanArgs([{
+      id: 506, title: 'Airport Parking', type: 'parking', day_id: 10, end_day_id: 12,
+      reservation_time: '2025-06-01T05:30', reservation_end_time: '2025-06-03T19:00',
+    }]))
+    const html = srcdoc()
+
+    expect(html).toContain('reservations.span.dropOff: Airport Parking')
+    expect(html).toContain('reservations.span.pickup: Airport Parking')
+    expect(html).not.toContain('reservations.span.ongoing')
+    // Day B holds nothing else, so it prints the empty-day hint rather than the booking.
+    expect(html).toContain('dayplan.emptyDay')
   })
 
   it('FE-W5PDF-004: hotels, day-less and unknown-day reservations are all skipped', async () => {
@@ -689,6 +703,25 @@ describe('downloadTripPDF remaining branches', () => {
 
     expect(html).toContain('AirX · X1')
     expect(html).toContain('AirX · X2 · AAA → BBB')
+  })
+
+  it('FE-W5PDF-030: a stopover flight prints the booking code of each segment that has one (#1943)', async () => {
+    await downloadTripPDF(spanArgs([{
+      id: 518, title: 'Layover', type: 'flight', day_id: 10, confirmation_number: 'BOOK1',
+      metadata: JSON.stringify({
+        legs: [
+          { airline: 'LH', flight_number: 'LH1', from: 'FRA', to: 'BER', confirmation_number: 'ABC123' },
+          { airline: 'ANA', flight_number: 'NH2', from: 'BER', to: 'HND' },
+        ],
+      }),
+    }]))
+    const html = srcdoc()
+
+    expect(html).toContain('LH · LH1 · FRA → BER · ABC123')
+    // A segment without one keeps the line it had before, and the booking's own
+    // reference still prints once for the whole card.
+    expect(html).toContain('ANA · NH2 · BER → HND')
+    expect(html).toContain('Code: BOOK1')
   })
 
   it('FE-W5PDF-010: a single-leg flight with waypoints joins the whole route', async () => {

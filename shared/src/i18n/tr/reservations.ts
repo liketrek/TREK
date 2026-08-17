@@ -117,6 +117,7 @@ const reservations: TranslationStrings = {
   'reservations.span.arrival': 'Varış',
   'reservations.span.inTransit': 'Yolda',
   'reservations.span.pickup': 'Alış',
+  'reservations.span.dropOff': 'Teslim',
   'reservations.span.return': 'İade',
   'reservations.span.active': 'Aktif',
   'reservations.span.start': 'Başlangıç',

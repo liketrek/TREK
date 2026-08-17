@@ -1,4 +1,4 @@
-// FE-COMP-RES-001 to FE-COMP-RES-040, FE-PLANNER-RESP-016 to FE-PLANNER-RESP-072
+// FE-COMP-RES-001 to FE-COMP-RES-040, FE-PLANNER-RESP-016 to FE-PLANNER-RESP-078
 import { render, screen, fireEvent, waitFor, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -237,6 +237,39 @@ describe('ReservationsPanel', () => {
     expect(codeEl.style.filter).toContain('blur');
     await user.hover(codeEl);
     expect(codeEl.style.filter).toBe('none');
+  });
+
+  const layoverFlight = () => buildReservation({
+    id: 7, type: 'flight', status: 'confirmed', confirmation_number: 'BOOK1',
+    metadata: JSON.stringify({
+      departure_airport: 'FRA', arrival_airport: 'HND',
+      legs: [
+        { from: 'FRA', to: 'BER', confirmation_number: 'ABC123' },
+        { from: 'BER', to: 'HND' },
+      ],
+    }),
+  });
+
+  it('FE-PLANNER-RESP-077: a segment with its own booking code shows it under its route (#1943)', () => {
+    render(<ReservationsPanel {...defaultProps} reservations={[layoverFlight()]} />);
+    // The booking's own reference keeps its own cell.
+    expect(screen.getByText('BOOK1')).toBeInTheDocument();
+    expect(screen.getByText('FRA → BER')).toBeInTheDocument();
+    expect(screen.getByText('ABC123')).toBeInTheDocument();
+    // A segment without its own code adds no cell.
+    expect(screen.queryByText('BER → HND')).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-RESP-078: a segment code obeys blur_booking_codes and reveals with the card', async () => {
+    const user = userEvent.setup();
+    seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: true, temperature_unit: 'celsius', language: 'en', dark_mode: false, default_currency: 'USD', map_tile_url: '', show_place_description: false } });
+    render(<ReservationsPanel {...defaultProps} reservations={[layoverFlight()]} />);
+    const legCode = screen.getByText('ABC123');
+    expect(legCode.style.filter).toContain('blur');
+    // One reveal per card, not per segment: the booking's own cell uncovers too.
+    await user.hover(legCode);
+    expect(legCode.style.filter).toBe('none');
+    expect(screen.getByText('BOOK1').style.filter).toBe('none');
   });
 
   it('FE-PLANNER-RESP-024: reservation notes are shown', () => {

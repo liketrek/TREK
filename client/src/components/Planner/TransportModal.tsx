@@ -85,9 +85,12 @@ interface WaypointForm {
   airline: string
   flight_number: string
   seat: string
+  // Booking reference of the leg leaving this waypoint: airlines often issue one
+  // per flight rather than one per booking (#1943). Empty means the booking's own.
+  confirmation_number: string
 }
 function emptyWaypoint(dayId: string | number = ''): WaypointForm {
-  return { airport: null, arrDayId: dayId, arrTime: '', depDayId: dayId, depTime: '', airline: '', flight_number: '', seat: '' }
+  return { airport: null, arrDayId: dayId, arrTime: '', depDayId: dayId, depTime: '', airline: '', flight_number: '', seat: '', confirmation_number: '' }
 }
 
 // ── Multi-leg train stations ───────────────────────────────────────────────
@@ -103,9 +106,10 @@ interface StationWaypointForm {
   train_number: string
   platform: string
   seat: string
+  confirmation_number: string
 }
 function emptyStationWaypoint(dayId: string | number = ''): StationWaypointForm {
-  return { location: null, arrDayId: dayId, arrTime: '', depDayId: dayId, depTime: '', train_number: '', platform: '', seat: '' }
+  return { location: null, arrDayId: dayId, arrTime: '', depDayId: dayId, depTime: '', train_number: '', platform: '', seat: '', confirmation_number: '' }
 }
 
 const TYPE_OPTIONS = [
@@ -264,6 +268,10 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
               airline: legOut?.airline ?? (isFirst ? (meta.airline ?? '') : ''),
               flight_number: legOut?.flight_number ?? (isFirst ? (meta.flight_number ?? '') : ''),
               seat: legOut?.seat ?? (isFirst ? (meta.seat ?? '') : ''),
+              // No fallback to src.confirmation_number: that one belongs to the
+              // whole booking and stays in the form's own field, otherwise a
+              // plain re-save would copy it onto the first leg.
+              confirmation_number: legOut?.confirmation_number ?? '',
             }
           })
         } else {
@@ -305,6 +313,8 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
               train_number: legOut?.train_number ?? (isFirst ? (meta.train_number ?? '') : ''),
               platform: legOut?.platform ?? (isFirst ? (meta.platform ?? '') : ''),
               seat: legOut?.seat ?? (isFirst ? (meta.seat ?? '') : ''),
+              // See the flight branch: the booking's own reference stays out of the legs.
+              confirmation_number: legOut?.confirmation_number ?? '',
             }
           })
         } else {
@@ -399,6 +409,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
               ...(w.airline ? { airline: w.airline } : {}),
               ...(w.flight_number ? { flight_number: w.flight_number } : {}),
               ...(w.seat ? { seat: w.seat } : {}),
+              ...(w.confirmation_number ? { confirmation_number: w.confirmation_number } : {}),
               dep_day_id: w.depDayId ? Number(w.depDayId) : null,
               dep_time: w.depTime || null,
               arr_day_id: next.arrDayId ? Number(next.arrDayId) : null,
@@ -426,6 +437,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
               ...(w.train_number ? { train_number: w.train_number } : {}),
               ...(w.platform ? { platform: w.platform } : {}),
               ...(w.seat ? { seat: w.seat } : {}),
+              ...(w.confirmation_number ? { confirmation_number: w.confirmation_number } : {}),
               dep_day_id: w.depDayId ? Number(w.depDayId) : null,
               dep_time: w.depTime || null,
               arr_day_id: next.arrDayId ? Number(next.arrDayId) : null,
@@ -630,6 +642,12 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
     }),
   ]
 
+  // The per-leg booking code is only offered where handleSubmit actually writes
+  // metadata.legs: the SAME condition, over the waypoints that become endpoints,
+  // not over the raw rows. Anywhere else the value would vanish on save (#1943).
+  const writesFlightLegs = waypoints.filter(w => w.airport).length > 2
+  const writesTrainLegs = trainWaypoints.filter(w => w.location).length > 2
+
   return (
     <Modal
       isOpen={isOpen}
@@ -792,7 +810,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
                             </div>
                           )}
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className={`grid grid-cols-1 ${writesFlightLegs ? 'sm:grid-cols-4' : 'sm:grid-cols-3'} gap-3`}>
                           <div>
                             <label className={labelClass}>{t('reservations.meta.airline')}</label>
                             <input type="text" value={wp.airline} onChange={e => updateWp({ airline: e.target.value })} placeholder="Lufthansa" className={inputClass} />
@@ -805,6 +823,13 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
                             <label className={labelClass}>{t('reservations.meta.seat')}</label>
                             <input type="text" value={wp.seat} onChange={e => updateWp({ seat: e.target.value })} placeholder="12A" className={inputClass} />
                           </div>
+                          {writesFlightLegs && (
+                            <div>
+                              <label className={labelClass}>{t('reservations.confirmationCode')}</label>
+                              <input type="text" value={wp.confirmation_number} onChange={e => updateWp({ confirmation_number: e.target.value })}
+                                placeholder={t('reservations.confirmationPlaceholder')} className={inputClass} />
+                            </div>
+                          )}
                         </div>
                       </>
                     )}
@@ -866,7 +891,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
                             <CustomTimePicker value={wp.depTime} onChange={v => updateWp({ depTime: v })} />
                           </div>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className={`grid grid-cols-1 ${writesTrainLegs ? 'sm:grid-cols-4' : 'sm:grid-cols-3'} gap-3`}>
                           <div>
                             <label className={labelClass}>{t('reservations.meta.trainNumber')}</label>
                             <input type="text" value={wp.train_number} onChange={e => updateWp({ train_number: e.target.value })} placeholder="ICE 123" className={inputClass} />
@@ -879,6 +904,13 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
                             <label className={labelClass}>{t('reservations.meta.seat')}</label>
                             <input type="text" value={wp.seat} onChange={e => updateWp({ seat: e.target.value })} placeholder="42A" className={inputClass} />
                           </div>
+                          {writesTrainLegs && (
+                            <div>
+                              <label className={labelClass}>{t('reservations.confirmationCode')}</label>
+                              <input type="text" value={wp.confirmation_number} onChange={e => updateWp({ confirmation_number: e.target.value })}
+                                placeholder={t('reservations.confirmationPlaceholder')} className={inputClass} />
+                            </div>
+                          )}
                         </div>
                       </>
                     )}

@@ -117,6 +117,7 @@ const reservations: TranslationStrings = {
   'reservations.span.arrival': 'Érkezés',
   'reservations.span.inTransit': 'Úton',
   'reservations.span.pickup': 'Felvétel',
+  'reservations.span.dropOff': 'Leadás',
   'reservations.span.return': 'Visszaadás',
   'reservations.span.active': 'Aktív',
   'reservations.span.start': 'Kezdés',

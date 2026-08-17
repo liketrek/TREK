@@ -2286,6 +2286,41 @@ describe('DayPlanSidebar', () => {
     expect(await screen.findByText('2 km')).toBeInTheDocument()
   })
 
+  it('FE-PLANNER-DAYPLAN-203: leg distance survives a parking on its middle days (#1937)', async () => {
+    const user = userEvent.setup()
+    const { calculateRouteWithLegs } = await import('../Map/RouteCalculator')
+    vi.mocked(calculateRouteWithLegs as any).mockImplementation((wp: any) => Promise.resolve({
+      distanceText: '2 km', durationText: '10 min',
+      legs: Array.from({ length: Math.max(0, (wp?.length ?? 0) - 1) }, () => ({
+        distanceText: '2 km', durationText: '10 min', drivingText: '10 min', walkingText: '25 min',
+      })),
+    }))
+    // Same trap as the car rental in -106: the parking row is hidden on day 11, so the
+    // through-leg between the places around it must stay keyed to the place.
+    const parking = {
+      ...buildReservation({ id: 323, type: 'parking', title: 'Airport Parking', day_id: 10 }),
+      end_day_id: 12,
+      day_positions: { 11: 0.5 },
+    }
+    const days = [
+      buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' }),
+      buildDay({ id: 11, date: '2025-06-02', title: 'Day 2' }),
+      buildDay({ id: 12, date: '2025-06-03', title: 'Day 3' }),
+    ]
+    const assigns = {
+      '11': [
+        buildAssignment({ id: 1, day_id: 11, order_index: 0, place: buildPlace({ id: 1, name: 'A', lat: 48.85, lng: 2.35 }) }),
+        buildAssignment({ id: 2, day_id: 11, order_index: 1, place: buildPlace({ id: 2, name: 'B', lat: 48.86, lng: 2.36 }) }),
+      ],
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days, places: [], assignments: assigns, reservations: [parking as any],
+      selectedDayId: null, showRouteToolsWhenExpanded: true,
+    })} />)
+    await user.click(screen.getByRole('button', { name: 'Route' }))
+    expect(await screen.findByText('2 km')).toBeInTheDocument()
+  })
+
   // ── Persisted / externally driven state ──────────────────────────────────
 
   it('FE-PLANNER-DAYPLAN-110: the saved collapse state wins over expanding every day', () => {
@@ -2441,6 +2476,56 @@ describe('DayPlanSidebar', () => {
     // so each only shows its own timeline row.
     expect(screen.getAllByText('Day rental')).toHaveLength(1)
     expect(screen.getAllByText('Ghost rental')).toHaveLength(1)
+  })
+
+  it('FE-PLANNER-DAYPLAN-200: a multi-day parking shows on the first and last day only (#1937)', () => {
+    const days = [
+      buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' }),
+      buildDay({ id: 11, date: '2025-06-02', title: 'Day 2' }),
+      buildDay({ id: 12, date: '2025-06-03', title: 'Day 3' }),
+    ]
+    const parking = buildReservation({
+      id: 320, type: 'parking', title: 'Airport Parking', day_id: 10, end_day_id: 12,
+      reservation_time: '2025-06-01T05:30:00', reservation_end_time: '2025-06-03T19:00:00',
+    })
+    render(<DayPlanSidebar {...makeDefaultProps({ days, reservations: [parking] })} />)
+    // Drop-off on day 1, pickup on day 3, nothing in between.
+    expect(screen.getAllByText('Airport Parking')).toHaveLength(2)
+    // And no smaller tag in the day header either, unlike a rental car.
+    expect(within(dayHeader('Day 2')).queryByText('Airport Parking')).not.toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-DAYPLAN-201: a multi-day parking labels its drop-off and its pickup day', () => {
+    const days = [
+      buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' }),
+      buildDay({ id: 11, date: '2025-06-02', title: 'Day 2' }),
+      buildDay({ id: 12, date: '2025-06-03', title: 'Day 3' }),
+    ]
+    const parking = buildReservation({
+      id: 321, type: 'parking', title: 'Airport Parking', day_id: 10, end_day_id: 12,
+      reservation_time: '2025-06-01T05:30:00', reservation_end_time: '2025-06-03T19:00:00',
+    })
+    render(<DayPlanSidebar {...makeDefaultProps({ days, reservations: [parking] })} />)
+    expect(screen.getByText('Drop-off')).toBeInTheDocument()
+    expect(screen.getByText('Pickup')).toBeInTheDocument()
+    // The generic span wording never appears for a parking.
+    expect(screen.queryByText('Ongoing')).not.toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-DAYPLAN-202: a day left empty by a spanning parking shows the empty-day hint', () => {
+    const days = [
+      buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' }),
+      buildDay({ id: 11, date: '2025-06-02', title: 'Day 2' }),
+      buildDay({ id: 12, date: '2025-06-03', title: 'Day 3' }),
+    ]
+    const parking = buildReservation({
+      id: 322, type: 'parking', title: 'Airport Parking', day_id: 10, end_day_id: 12,
+      reservation_time: '2025-06-01T05:30:00', reservation_end_time: '2025-06-03T19:00:00',
+    })
+    render(<DayPlanSidebar {...makeDefaultProps({ days, reservations: [parking] })} />)
+    // Days 1 and 3 carry the booking, so only day 2 is empty, and it says so instead
+    // of leaving a blank gap where the hidden row used to be.
+    expect(screen.getAllByText('No places planned for this day')).toHaveLength(1)
   })
 
   // ── Route legs, hotel bookends, travel modes ─────────────────────────────

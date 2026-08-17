@@ -57,6 +57,16 @@ export function DayPlanSidebarTransportDetailModal({
             if (meta.seat) detailFields.push({ label: t('reservations.meta.seat'), value: meta.seat })
           }
           if (res.confirmation_number) detailFields.push({ label: t('reservations.confirmationCode'), value: res.confirmation_number, sensitive: true })
+          // A stopover booking can carry its own reference per segment (#1943); the
+          // flat fields above only ever describe the first leg. Marked sensitive so
+          // the blur setting covers them like the booking's own code.
+          if (Array.isArray(meta.legs) && meta.legs.length > 1) {
+            for (const leg of meta.legs) {
+              if (!leg?.confirmation_number) continue
+              const segment = [leg.from, leg.to].filter(Boolean).join(' → ')
+              detailFields.push({ label: segment || t('reservations.confirmationCode'), value: leg.confirmation_number, sensitive: true })
+            }
+          }
           if (res.location) detailFields.push({ label: t('reservations.locationAddress'), value: res.location })
 
           return (

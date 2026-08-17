@@ -595,6 +595,44 @@ describe('exportICS', () => {
     expect(ics).not.toContain('Route:');
   });
 
+  it('CAL-043: a segment with its own booking reference gets its own Confirmation line (#1943)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Layover' });
+    const flight = createReservation(testDb, trip.id, { title: 'FRA to HND', type: 'flight' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, confirmation_number=?, metadata=? WHERE id=?').run(
+      '2025-06-02T09:00', 'BOOK1',
+      JSON.stringify({ legs: [
+        { from: 'FRA', to: 'BER', confirmation_number: 'ABC123' },
+        { from: 'BER', to: 'HND', confirmation_number: 'XYZ789' },
+      ] }),
+      flight.id,
+    );
+
+    const ics = svc.exportICS(trip.id).ics.replace(/\r\n /g, '');
+
+    expect(ics).toContain(
+      'DESCRIPTION:Type: flight\\nConfirmation: BOOK1\\nRoute: FRA → BER → HND'
+      + '\\nConfirmation FRA-BER: ABC123\\nConfirmation BER-HND: XYZ789\r\n'
+    );
+  });
+
+  it('CAL-044: a multi-leg flight without per-segment references reads exactly as before', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Layover' });
+    const flight = createReservation(testDb, trip.id, { title: 'FRA to HND', type: 'flight' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, confirmation_number=?, metadata=? WHERE id=?').run(
+      '2025-06-02T09:00', 'BOOK1',
+      JSON.stringify({ legs: [{ from: 'FRA', to: 'BER' }, { from: 'BER', to: 'HND' }] }),
+      flight.id,
+    );
+
+    const ics = svc.exportICS(trip.id).ics.replace(/\r\n /g, '');
+
+    // Byte parity for every feed that exists today: the description ends after
+    // the route line, so no subscriber sees a changed event.
+    expect(ics).toContain('DESCRIPTION:Type: flight\\nConfirmation: BOOK1\\nRoute: FRA → BER → HND\r\n');
+  });
+
   it('CAL-020: an empty trip title falls back for SUMMARY, X-WR-CALNAME and the filename', () => {
     const { user } = createUser(testDb);
     // The title is only NOT NULL, not non-empty; an empty one used to produce

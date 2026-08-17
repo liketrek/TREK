@@ -11,7 +11,7 @@ import type {
   Accommodation, Assignment, Day, DayNote, Reservation, RouteSegment, TranslationFn,
 } from '../../../../src/types'
 
-// FE-MOB-PTLM-001 to FE-MOB-PTLM-042
+// FE-MOB-PTLM-001 to FE-MOB-PTLM-043
 
 const DAYS = [
   { id: 1, trip_id: 1, day_number: 1, date: '2026-05-01', title: null },
@@ -190,6 +190,13 @@ describe('planTimelineModel — buildPlanRows', () => {
     const car = buildReservation({ id: 62, type: 'car', day_id: 1, end_day_id: 3 })
     expect(buildPlanRows({ merged: [transportItem(car)], reservations: [], routeSegments: [], dayId: 2 })).toEqual([])
     expect(buildPlanRows({ merged: [transportItem(car)], reservations: [], routeSegments: [], dayId: 1 })).toHaveLength(1)
+  })
+
+  it('FE-MOB-PTLM-043: hides a parking on the days between drop-off and pickup (#1937)', () => {
+    const parking = buildReservation({ id: 63, type: 'parking', day_id: 1, end_day_id: 3 })
+    expect(buildPlanRows({ merged: [transportItem(parking)], reservations: [], routeSegments: [], dayId: 2 })).toEqual([])
+    expect(buildPlanRows({ merged: [transportItem(parking)], reservations: [], routeSegments: [], dayId: 1 })).toHaveLength(1)
+    expect(buildPlanRows({ merged: [transportItem(parking)], reservations: [], routeSegments: [], dayId: 3 })).toHaveLength(1)
   })
 
   it('FE-MOB-PTLM-017: slots a connector between two located places and tags its origin', () => {

@@ -30,6 +30,26 @@ export function getSpanPhase(
 }
 
 /**
+ * Booking types that carry no information on the days between their start and end and
+ * therefore drop out of the day timeline there. A parked car just stands in the garage:
+ * you only need to know when you hand it over and when you collect it, so the days in
+ * between show nothing at all, not even a badge in the day header (#1937).
+ *
+ * A car rental is deliberately NOT in this set: its middle days are not dropped but
+ * moved into the day header, which is what people expect from a vehicle they are
+ * driving around. Kept as a set so another such type can join without editing every
+ * render site again.
+ */
+const MIDDLE_DAY_HIDDEN_TYPES = new Set(['parking'])
+
+export function hidesOnMiddleDay(
+  r: { type?: string | null; day_id?: number | null; end_day_id?: number | null },
+  dayId: number
+): boolean {
+  return !!r.type && MIDDLE_DAY_HIDDEN_TYPES.has(r.type) && getSpanPhase(r, dayId) === 'middle'
+}
+
+/**
  * The route waypoints a transport contributes on a given day, respecting multi-day spans.
  * A car rental (or any reservation whose span covers several days) is only routed to on its
  * pickup day (the departure endpoint) and from on its drop-off day (the arrival endpoint) — on

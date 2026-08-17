@@ -101,6 +101,14 @@ export const transportLegInputSchema = z.object({
   train_number: z.string().max(20).nullable().optional(),
   platform: z.string().max(20).nullable().optional(),
   seat: z.string().max(20).nullable().optional(),
+  /**
+   * This segment's OWN booking reference (#1943). Airlines and railways often
+   * issue one per flight instead of one per booking, so the reservation-level
+   * `confirmation_number` cannot cover the chain. Unset means the booking's own
+   * reference is the one that counts for this segment; the column stays the
+   * reference for the booking as a whole and is never derived from a leg.
+   */
+  confirmation_number: z.string().max(100).nullable().optional(),
   dep_day_id: z.number().int().positive().nullable().optional(),
   /** Local departure time of this segment, 'HH:mm'. */
   dep_time: z.string().max(10).nullable().optional(),

@@ -90,6 +90,7 @@ function parseId(value: string | string[]): number | null {
 const legsSchema = transportLegsInputSchema.optional().describe(
   'Per-segment detail of a stopover flight or train: one entry per segment, in route order, exactly ONE FEWER than endpoints[]. '
   + 'Each leg carries its own departure and arrival day + local time (dep_day_id/dep_time, arr_day_id/arr_time) plus airline/flight_number (flights) or train_number/platform (trains). '
+  + 'A leg may also carry its own confirmation_number when that segment was issued a separate booking reference; leave it out and the booking-level confirmation_number covers the segment. '
   + "Required for a booking with stopovers: a stop's endpoint stores only the onward departure, so without legs that one time is shown as both the arrival and the departure. "
   + 'Omit it for a direct booking. Blank endpoint times/dates, day_id/end_day_id and reservation_time are derived from the legs; a value that contradicts them is rejected.'
 );
@@ -207,7 +208,7 @@ function applyLegs(plan: LegPlan): LegOutcome | { error: string } {
       from: leg.from ?? depEp.code ?? depEp.name,
       to: leg.to ?? arrEp.code ?? arrEp.name,
     };
-    for (const key of ['airline', 'flight_number', 'train_number', 'platform', 'seat'] as const) {
+    for (const key of ['airline', 'flight_number', 'train_number', 'platform', 'seat', 'confirmation_number'] as const) {
       const value = leg[key];
       if (value) entry[key] = value;
     }
@@ -570,7 +571,7 @@ export class ReservationsMcp {
 
   @Tool({
     name: 'create_transport',
-    description: 'Create a transport booking (flight, train, car, or cruise) for a trip. Use endpoints[] to record origin/destination and intermediate stops — for flights, set code to the IATA airport code (use search_airports first). For a booking WITH STOPOVERS also pass legs[] (one entry per segment, one fewer than endpoints[]), otherwise every segment inherits the stop time as both its arrival and its departure. Created as pending — confirm with update_transport. Set price to record the cost; it will appear on the booking and in the Budget tab.',
+    description: 'Create a transport booking (flight, train, car, or cruise) for a trip. Use endpoints[] to record origin/destination and intermediate stops — for flights, set code to the IATA airport code (use search_airports first). For a booking WITH STOPOVERS also pass legs[] (one entry per segment, one fewer than endpoints[]), otherwise every segment inherits the stop time as both its arrival and its departure. The top-level confirmation_number is the booking reference; when a single segment was booked under its own reference, put that one on the leg instead. Created as pending — confirm with update_transport. Set price to record the cost; it will appear on the booking and in the Budget tab.',
     inputSchema: {
       tripId: z.number().int().positive(),
       type: z.enum(['flight', 'train', 'car', 'cruise']),
@@ -678,7 +679,7 @@ export class ReservationsMcp {
 
   @Tool({
     name: 'update_transport',
-    description: 'Update an existing transport booking. Pass endpoints[] to replace the full list of stops (origin, destination, intermediates), and legs[] to write the per-segment times of a stopover booking. Sending legs[] without metadata keeps the stored metadata (departure_airport, airtrail_ids, transit) and only replaces the segments. Use status "confirmed" to confirm.',
+    description: 'Update an existing transport booking. Pass endpoints[] to replace the full list of stops (origin, destination, intermediates), and legs[] to write the per-segment times of a stopover booking. Sending legs[] without metadata keeps the stored metadata (departure_airport, airtrail_ids, transit) and only replaces the segments. A per-segment booking reference lives on the leg (legs[].confirmation_number); the top-level one stays the booking reference. Use status "confirmed" to confirm.',
     inputSchema: {
       tripId: z.number().int().positive(),
       reservationId: z.number().int().positive(),

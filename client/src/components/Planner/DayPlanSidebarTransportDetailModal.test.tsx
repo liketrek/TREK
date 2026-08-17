@@ -1,4 +1,4 @@
-// FE-PLANNER-DPTRANSPORT-001 to FE-PLANNER-DPTRANSPORT-018
+// FE-PLANNER-DPTRANSPORT-001 to FE-PLANNER-DPTRANSPORT-019
 import { render, screen, fireEvent } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
@@ -233,6 +233,28 @@ describe('DayPlanSidebarTransportDetailModal', () => {
     expect(screen.queryByRole('button', { name: /common\.edit/ })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'common.close' }))
     expect(setTransportDetail).toHaveBeenCalledWith(null)
+  })
+
+  it('FE-PLANNER-DPTRANSPORT-019: a segment with its own booking code gets its own blurred field (#1943)', () => {
+    seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: true } })
+    const res = buildReservation({
+      id: 42, type: 'flight', title: 'BER → CDG → JFK', status: 'confirmed',
+      reservation_time: '2025-06-15T08:30:00',
+      confirmation_number: 'XY7Z9Q',
+      metadata: JSON.stringify({
+        legs: [
+          { from: 'BER', to: 'CDG', confirmation_number: 'ABC123' },
+          { from: 'CDG', to: 'JFK' },
+        ],
+      }),
+    } as Partial<Reservation>)
+    render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: res })} />)
+
+    expect(screen.getByText('BER → CDG')).toBeInTheDocument()
+    expect(screen.getByText('ABC123')).toHaveStyle({ filter: 'blur(5px)' })
+    // The booking's own reference keeps its own field, a code-less segment adds none.
+    expect(screen.getByText('XY7Z9Q')).toBeInTheDocument()
+    expect(screen.queryByText('CDG → JFK')).not.toBeInTheDocument()
   })
 
   it('FE-PLANNER-DPTRANSPORT-018: clicking the backdrop closes, clicking the card does not', async () => {

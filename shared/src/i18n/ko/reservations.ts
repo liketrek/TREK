@@ -116,6 +116,7 @@ const reservations: TranslationStrings = {
   'reservations.span.arrival': '도착',
   'reservations.span.inTransit': '이동 중',
   'reservations.span.pickup': '픽업',
+  'reservations.span.dropOff': '입차',
   'reservations.span.return': '반납',
   'reservations.span.active': '활성',
   'reservations.span.start': '시작',

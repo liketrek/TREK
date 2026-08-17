@@ -5,6 +5,7 @@ import { FileText, Info, Clock, MapPin, Navigation, Train, Plane, Bus, Car, Ship
 import { accommodationsApi, mapsApi, pluginsApi } from '../../api/client'
 import type { Trip, Day, Place, Category, AssignmentsMap, DayNote } from '../../types'
 import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
+import { hidesOnMiddleDay } from '../../utils/dayMerge'
 import { safeHexColor } from '../../utils/safeColor'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import { formatMoney, formatMoneySum, splitReservationDateTime, type MoneyEntry } from '../../utils/formatters'
@@ -228,6 +229,9 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
     if (phase === 'single') return null
     if (r.type === 'flight') return tr(`reservations.span.${phase === 'start' ? 'departure' : phase === 'end' ? 'arrival' : 'inTransit'}`)
     if (r.type === 'car') return tr(`reservations.span.${phase === 'start' ? 'pickup' : phase === 'end' ? 'return' : 'active'}`)
+    // Parking reuses span.pickup for its end day: you drop the car off and collect it
+    // again later, so the rental car's wording carries over without a second key.
+    if (r.type === 'parking') return tr(`reservations.span.${phase === 'start' ? 'dropOff' : phase === 'end' ? 'pickup' : 'ongoing'}`)
     return tr(`reservations.span.${phase === 'start' ? 'start' : phase === 'end' ? 'end' : 'ongoing'}`)
   }
   const pdfGetTransportForDay = (dayId: number) => (reservations || []).filter(r => {
@@ -251,9 +255,11 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
     const notes = (dayNotes || []).filter(n => n.day_id === day.id)
     const cost = dayCost(assignments, day.id, loc, tripCur, fxRates)
 
-    // Reservations for this day (hotel rendered via accommodations block; car middle-phase rendered in sidebar header only)
+    // Reservations for this day (hotel rendered via accommodations block; car middle-phase rendered in sidebar header only,
+    // a multi-day parking's middle days nowhere at all)
     const dayReservations = pdfGetTransportForDay(day.id)
       .filter(r => !(r.type === 'car' && pdfGetSpanPhase(r, day.id) === 'middle'))
+      .filter(r => !hidesOnMiddleDay(r, day.id))
 
     const merged = []
     assigned.forEach(a => merged.push({ type: 'place', k: a.order_index ?? 0, data: a }))
@@ -279,10 +285,13 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
             if (r.type === 'flight') {
               const legs = getFlightLegs(r)
               if (legs.length > 1) {
-                // Multi-leg: one line per leg so every flight number + segment route is shown.
+                // Multi-leg: one line per leg so every flight number + segment route is
+                // shown, with the segment's own booking code where it has one (#1943).
+                // At the gate that is the number the airline asks for.
                 subtitleLines = legs.map(l =>
                   [l.airline, l.flight_number,
-                   (l.from || l.to) ? [l.from, l.to].filter(Boolean).join(' → ') : '']
+                   (l.from || l.to) ? [l.from, l.to].filter(Boolean).join(' → ') : '',
+                   l.confirmation_number]
                     .filter(Boolean).join(' · '))
                   .filter(Boolean)
               } else {
@@ -296,10 +305,12 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
             else if (r.type === 'train') {
               const legs = getTrainLegs(r)
               if (legs.length > 1) {
-                // Multi-leg: one line per leg so every train number + segment route shows.
+                // Multi-leg: one line per leg so every train number + segment route shows,
+                // with the segment's own booking code where it has one (#1943).
                 subtitleLines = legs.map(l =>
                   [l.train_number, l.platform ? `Gl. ${l.platform}` : '',
-                   (l.from || l.to) ? [l.from, l.to].filter(Boolean).join(' → ') : '']
+                   (l.from || l.to) ? [l.from, l.to].filter(Boolean).join(' → ') : '',
+                   l.confirmation_number]
                     .filter(Boolean).join(' · '))
                   .filter(Boolean)
               } else {

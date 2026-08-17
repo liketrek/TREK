@@ -116,6 +116,7 @@ const reservations: TranslationStrings = {
   'reservations.span.arrival': 'الوصول',
   'reservations.span.inTransit': 'في الطريق',
   'reservations.span.pickup': 'الاستلام',
+  'reservations.span.dropOff': 'التسليم',
   'reservations.span.return': 'الإرجاع',
   'reservations.span.active': 'نشط',
   'reservations.span.start': 'البداية',

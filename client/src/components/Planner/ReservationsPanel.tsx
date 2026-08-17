@@ -23,6 +23,7 @@ import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginC
 import { usePluginStore, type ActivePlugin } from '../../store/pluginStore'
 import PluginFrame from '../Plugins/PluginFrame'
 import { splitReservationDateTime, formatTime } from '../../utils/formatters'
+import { getFlightLegs, getTrainLegs } from '../../utils/flightLegs'
 import EmptyState from '../shared/EmptyState'
 import { TravelerAvatarRow, TravelerFilterAvatars } from './TravelerPicker'
 import type { TripMember } from '../Budget/BudgetPanelMemberChips'
@@ -324,6 +325,41 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
                   {i > 0 && <TypeIcon size={14} style={{ color: typeInfo.color, flexShrink: 0 }} />}
                   <span style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ep.name}</span>
                 </span>
+              ))}
+            </div>
+          )
+        })()}
+
+        {/* Per-segment booking codes (#1943). A stopover booking can carry its own
+            reference per leg, and the cell above only ever shows the booking's own.
+            The reveal is shared with that cell on purpose: uncovering the codes is
+            one gesture per card, not one per segment. */}
+        {(() => {
+          if (r.type !== 'flight' && r.type !== 'train') return null
+          const legs = r.type === 'flight' ? getFlightLegs(r) : getTrainLegs(r)
+          if (legs.length < 2) return null
+          const coded = legs.filter(l => l.confirmation_number)
+          if (coded.length === 0) return null
+          return (
+            <div style={{ display: 'grid', gap: 10, gridTemplateColumns: coded.length > 1 ? `repeat(${Math.min(coded.length, 3)}, 1fr)` : '1fr' }}>
+              {coded.map((l, i) => (
+                <div key={i}>
+                  <div className={fieldLabelClass}>{[l.from, l.to].filter(Boolean).join(' → ') || t('reservations.confirmationCode')}</div>
+                  <div
+                    onMouseEnter={() => blurCodes && setCodeRevealed(true)}
+                    onMouseLeave={() => blurCodes && setCodeRevealed(false)}
+                    onClick={() => blurCodes && setCodeRevealed(v => !v)}
+                    className={`${fieldValueClass} text-center`}
+                    style={{
+                      fontFamily: '"SF Mono", "JetBrains Mono", Menlo, monospace', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))',
+                      filter: blurCodes && !codeRevealed ? 'blur(5px)' : 'none',
+                      cursor: blurCodes ? 'pointer' : 'default',
+                      transition: 'filter 0.2s',
+                    }}
+                  >
+                    {l.confirmation_number}
+                  </div>
+                </div>
               ))}
             </div>
           )

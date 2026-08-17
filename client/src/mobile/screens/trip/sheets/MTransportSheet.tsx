@@ -6,6 +6,7 @@ import { useTranslation } from '../../../../i18n'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { RES_ICONS } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { splitReservationDateTime } from '../../../../utils/formatters'
+import { getFlightLegs, getTrainLegs } from '../../../../utils/flightLegs'
 import { openFile } from '../../../../utils/fileDownload'
 import type { Reservation } from '../../../../types'
 import { Eyebrow, INNER_CLS, StatBox, TileHeader, displayTime } from './MTripSheetUi'
@@ -94,6 +95,11 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
   const seat = meta.seat
   const platform = meta.platform
   const transitLegs: TransitLeg[] = Array.isArray(meta.transit?.legs) ? meta.transit.legs : []
+
+  // Per-segment booking codes (#1943), only on a real stopover booking: the
+  // single-leg fallback would just echo the booking's own code shown below.
+  const routeLegs = res.type === 'flight' ? getFlightLegs(res) : res.type === 'train' ? getTrainLegs(res) : []
+  const legCodes = routeLegs.length > 1 ? routeLegs.filter(l => l.confirmation_number) : []
 
   const resFiles = (planner.files || []).filter(f =>
     !f.deleted_at && (f.reservation_id === res.id || (f.linked_reservation_ids || []).includes(res.id)),
@@ -220,6 +226,25 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
             </span>
           )}
         </div>
+
+        {/* ── Per-segment booking codes ── */}
+        {legCodes.length > 0 && (
+          <div className={`mt-3 flex flex-col gap-[7px] rounded-[13px] px-3 py-[9px] ${INNER_CLS}`}>
+            {legCodes.map((leg, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate text-[0.71875rem] font-medium">
+                  {[leg.from, leg.to].filter(Boolean).join(' → ') || t('reservations.confirmationCode')}
+                </span>
+                <span
+                  onClick={() => { if (blurCodes) setCodeRevealed(v => !v) }}
+                  className={`flex-none font-geist text-[0.71875rem] tabular-nums text-m-muted ${codeBlurred ? 'blur-[4px] select-none' : ''}`}
+                >
+                  #{leg.confirmation_number}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ── Notes ── */}
         {res.notes && (

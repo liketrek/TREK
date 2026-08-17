@@ -506,6 +506,33 @@ describe('Tool: create_transport (multi-leg)', () => {
     });
   });
 
+  it('stores a per-segment booking reference and leaves the booking-level one alone (#1943)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const data = parseToolResult(await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'flight', title: 'AMS to FCO',
+          endpoints: stopoverEndpoints,
+          legs: [
+            { from: 'AMS', to: 'CDG', confirmation_number: 'ABC123' },
+            { from: 'CDG', to: 'FCO' },
+          ],
+        },
+      })) as any;
+      const meta = storedMetadata(data.reservation.id);
+      expect(meta.legs[0].confirmation_number).toBe('ABC123');
+      // A leg without one gets no key at all, rather than an undefined that
+      // serialises away and back as null.
+      expect(Object.keys(meta.legs[1])).not.toContain('confirmation_number');
+      // The reference of a single segment must never become the booking's: that
+      // is a column of its own, fed only by the tool's own parameter.
+      expect(meta.confirmation_number).toBeUndefined();
+      expect(data.reservation.confirmation_number).toBeNull();
+    });
+  });
+
   it('never overwrites a flat key the caller set itself', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
@@ -803,6 +830,29 @@ describe('Tool: update_transport (multi-leg)', () => {
       expect(meta.legs[0].arr_time).toBe('10:15');
       expect(meta.legs[0].day_positions).toEqual({ 5: 2 });
       expect(meta.legs[1].day_positions).toBeUndefined();
+    });
+  });
+
+  it('keeps a per-segment booking reference through a legs-only update (#1943)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const created = await seedStopover(h, trip.id);
+      const result = await h.client.callTool({
+        name: 'update_transport',
+        arguments: {
+          tripId: trip.id, reservationId: created.reservation.id,
+          legs: [
+            { from: 'AMS', to: 'CDG', dep_time: '09:00', arr_time: '10:00', confirmation_number: 'ABC123' },
+            { from: 'CDG', to: 'FCO', dep_time: '11:00', arr_time: '12:00', confirmation_number: 'XYZ789' },
+          ],
+        },
+      });
+      const meta = storedMetadata((parseToolResult(result) as any).reservation.id);
+      // The copy-through list in applyLegs is what carries the field: a field
+      // missing from it is accepted by the schema and then silently dropped.
+      expect(meta.legs.map((l: any) => l.confirmation_number)).toEqual(['ABC123', 'XYZ789']);
+      expect(meta.confirmation_number).toBeUndefined();
     });
   });
 

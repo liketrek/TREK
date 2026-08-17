@@ -116,6 +116,7 @@ const reservations: TranslationStrings = {
   'reservations.span.arrival': '到着',
   'reservations.span.inTransit': '移動中',
   'reservations.span.pickup': '受取',
+  'reservations.span.dropOff': '預け入れ',
   'reservations.span.return': '返却',
   'reservations.span.active': '有効',
   'reservations.span.start': '開始',

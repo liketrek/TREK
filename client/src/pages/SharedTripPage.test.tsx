@@ -568,7 +568,7 @@ describe('SharedTripPage', () => {
     });
   });
 
-  // FE-PAGE-SHARED-021 to FE-PAGE-SHARED-036 drive the remaining render branches of
+  // FE-PAGE-SHARED-021 to FE-PAGE-SHARED-037 drive the remaining render branches of
   // the page: header variants, the permission-driven tab strip, and every item kind
   // the day timeline, bookings, packing, costs and chat sections can produce.
 
@@ -1132,6 +1132,36 @@ describe('SharedTripPage', () => {
       expect(option.style.background).toBe('rgb(243, 244, 246)');
       fireEvent.mouseLeave(option);
       expect(option.style.background).toBe('none');
+    });
+  });
+
+  describe('FE-PAGE-SHARED-037: a multi-day parking only shows on its drop-off and pickup day (#1937)', () => {
+    const days = [
+      { id: 9, trip_id: 1, day_number: 1, date: '2026-07-01', title: 'Day One' },
+      { id: 10, trip_id: 1, day_number: 2, date: '2026-07-02', title: 'Day Two' },
+      { id: 11, trip_id: 1, day_number: 3, date: '2026-07-03', title: 'Day Three' },
+    ];
+
+    it('skips the days in between and leaves that day collapsed', async () => {
+      await open('parking-token', payload({
+        days,
+        reservations: [
+          {
+            id: 81, title: 'Airport Parking', type: 'parking', status: 'confirmed', day_id: 9, end_day_id: 11,
+            reservation_time: '2026-07-01T05:30:00', reservation_end_time: '2026-07-03T19:00:00', metadata: null,
+          },
+        ],
+      }));
+
+      // Only one day is expanded at a time, so each day is checked on its own.
+      fireEvent.click(screen.getByText('Day One'));
+      await waitFor(() => expect(screen.getByText(/Airport Parking/)).toBeInTheDocument());
+
+      fireEvent.click(screen.getByText('Day Two'));
+      await waitFor(() => expect(screen.queryByText(/Airport Parking/)).toBeNull());
+
+      fireEvent.click(screen.getByText('Day Three'));
+      await waitFor(() => expect(screen.getByText(/Airport Parking/)).toBeInTheDocument());
     });
   });
 });

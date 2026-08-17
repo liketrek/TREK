@@ -95,6 +95,17 @@ describe('transportLegInputSchema', () => {
     expect(transportLegInputSchema.safeParse({ dep_time: 42 }).success).toBe(false);
   });
 
+  it('accepts a per-segment booking reference and its absence (#1943)', () => {
+    expect(
+      transportLegInputSchema.safeParse({ from: 'AMS', to: 'CDG', confirmation_number: 'ABC123' }).success,
+    ).toBe(true);
+    // null is what a form writes for a segment the user left blank.
+    expect(transportLegInputSchema.safeParse({ confirmation_number: null }).success).toBe(true);
+    // Same ceiling as the reservation-level reference on the MCP tools.
+    expect(transportLegInputSchema.safeParse({ confirmation_number: 'A'.repeat(100) }).success).toBe(true);
+    expect(transportLegInputSchema.safeParse({ confirmation_number: 'A'.repeat(101) }).success).toBe(false);
+  });
+
   it('parses a whole leg list', () => {
     const parsed = transportLegsInputSchema.safeParse([
       { from: 'AMS', to: 'CDG', dep_time: '09:00', arr_time: '10:00' },

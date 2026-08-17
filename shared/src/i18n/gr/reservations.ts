@@ -118,6 +118,7 @@ const reservations: TranslationStrings = {
   'reservations.span.arrival': 'Άφιξη',
   'reservations.span.inTransit': 'Σε διέλευση',
   'reservations.span.pickup': 'Παραλαβή',
+  'reservations.span.dropOff': 'Παράδοση',
   'reservations.span.return': 'Επιστροφή',
   'reservations.span.active': 'Ενεργό',
   'reservations.span.start': 'Έναρξη',

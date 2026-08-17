@@ -1,4 +1,4 @@
-// FE-PLANNER-TRANSMODAL-001 to FE-PLANNER-TRANSMODAL-053
+// FE-PLANNER-TRANSMODAL-001 to FE-PLANNER-TRANSMODAL-061
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -648,6 +648,105 @@ describe('TransportModal', () => {
     const payload = onSave.mock.calls[0][0];
     expect(payload.endpoints.map((e: { role: string }) => e.role)).toEqual(['from', 'to']);
     expect(payload.metadata.legs).toBeUndefined();
+  });
+
+  // ── Per-segment booking references (#1943) ─────────────────────────────────
+
+  function multiLegFlight(): Reservation {
+    const res = buildReservation({ id: 31, title: 'BRU → HEL → JFK', type: 'flight' });
+    return Object.assign(res, {
+      day_id: 10,
+      end_day_id: 12,
+      reservation_time: '2026-08-01T08:00',
+      reservation_end_time: '2026-08-03T15:00',
+      confirmation_number: 'BOOK1',
+      metadata: {
+        airline: 'Brussels Airlines', flight_number: 'SN 1234', departure_airport: 'BRU', arrival_airport: 'JFK',
+        legs: [
+          { from: 'BRU', to: 'HEL', airline: 'Brussels Airlines', flight_number: 'SN 1234', confirmation_number: 'ABC123', dep_day_id: 10, dep_time: '08:00', arr_day_id: 10, arr_time: '12:30' },
+          { from: 'HEL', to: 'JFK', airline: 'Finnair', flight_number: 'AY 15', confirmation_number: 'XYZ789', dep_day_id: 11, dep_time: '14:00', arr_day_id: 12, arr_time: '15:00' },
+        ],
+      },
+      endpoints: [
+        { id: 1, reservation_id: 31, role: 'from', sequence: 0, name: 'Brussels (BRU)', code: 'BRU', lat: 50.9, lng: 4.48, timezone: 'Europe/Brussels', local_date: '2026-08-01', local_time: '08:00' },
+        { id: 2, reservation_id: 31, role: 'stop', sequence: 1, name: 'Helsinki (HEL)', code: 'HEL', lat: 60.31, lng: 24.96, timezone: 'Europe/Helsinki', local_date: '2026-08-02', local_time: '14:00' },
+        { id: 3, reservation_id: 31, role: 'to', sequence: 2, name: 'New York (JFK)', code: 'JFK', lat: 40.64, lng: -73.78, timezone: 'America/New_York', local_date: '2026-08-03', local_time: '15:00' },
+      ],
+    }) as unknown as Reservation;
+  }
+
+  it('FE-PLANNER-TRANSMODAL-058: each segment of a stopover flight saves its own booking code', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<TransportModal {...defaultProps} days={routeDays} selectedDayId={10} onSave={onSave} />);
+
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'BRU → HEL → JFK');
+    await userEvent.click(screen.getByRole('button', { name: /Add stop/i }));
+    const airports = screen.getAllByTestId('airport-select');
+    fireEvent.change(airports[0], { target: { value: 'BRU' } });
+    fireEvent.change(airports[1], { target: { value: 'HEL' } });
+    fireEvent.change(airports[2], { target: { value: 'JFK' } });
+
+    // Two departing waypoints get a code field, the booking's own field stays last.
+    const codes = screen.getAllByPlaceholderText('e.g. ABC12345');
+    expect(codes).toHaveLength(3);
+    fireEvent.change(codes[0], { target: { value: 'ABC123' } });
+    fireEvent.change(codes[1], { target: { value: 'XYZ789' } });
+    fireEvent.change(codes[2], { target: { value: 'BOOK1' } });
+
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.metadata.legs.map((l: { confirmation_number?: string }) => l.confirmation_number)).toEqual(['ABC123', 'XYZ789']);
+    // The booking's own reference stays where it was and is never mirrored.
+    expect(payload.confirmation_number).toBe('BOOK1');
+    expect(payload.metadata.confirmation_number).toBeUndefined();
+  });
+
+  it('FE-PLANNER-TRANSMODAL-059: no per-segment field while the route writes no legs', async () => {
+    render(<TransportModal {...defaultProps} days={routeDays} selectedDayId={10} />);
+
+    fireEvent.change(screen.getAllByTestId('airport-select')[0], { target: { value: 'BRU' } });
+    fireEvent.change(screen.getAllByTestId('airport-select')[1], { target: { value: 'JFK' } });
+    // Only the booking's own field: a direct flight stores no legs.
+    expect(screen.getAllByPlaceholderText('e.g. ABC12345')).toHaveLength(1);
+
+    // A third waypoint whose airport is never picked drops out of the route, so
+    // the legs are still not written and the field must stay away. Otherwise the
+    // typed code would vanish on save.
+    await userEvent.click(screen.getByRole('button', { name: /Add stop/i }));
+    expect(screen.getAllByTestId('airport-select')).toHaveLength(3);
+    expect(screen.getAllByPlaceholderText('e.g. ABC12345')).toHaveLength(1);
+  });
+
+  it('FE-PLANNER-TRANSMODAL-060: editing a stopover flight pre-fills every segment code and a re-save keeps them', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<TransportModal {...defaultProps} days={routeDays} reservation={multiLegFlight()} onSave={onSave} />);
+
+    const codes = screen.getAllByPlaceholderText('e.g. ABC12345') as HTMLInputElement[];
+    expect(codes.map(i => i.value)).toEqual(['ABC123', 'XYZ789', 'BOOK1']);
+
+    await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.metadata.legs.map((l: { confirmation_number?: string }) => l.confirmation_number)).toEqual(['ABC123', 'XYZ789']);
+    expect(payload.confirmation_number).toBe('BOOK1');
+  });
+
+  it('FE-PLANNER-TRANSMODAL-061: dropping the stop drops the segment codes with the legs, never the booking code', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<TransportModal {...defaultProps} days={routeDays} reservation={multiLegFlight()} onSave={onSave} />);
+
+    // Removing the only stop collapses the route to a direct flight, so there are
+    // no legs left to hold a per-segment code. Documented behaviour, not a bug:
+    // the field disappears with them and the booking keeps its own reference.
+    await userEvent.click(screen.getByRole('button', { name: /^Delete$/i }));
+    expect(screen.getAllByPlaceholderText('e.g. ABC12345')).toHaveLength(1);
+
+    await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.metadata.legs).toBeUndefined();
+    expect(payload.confirmation_number).toBe('BOOK1');
   });
 
   it('FE-PLANNER-TRANSMODAL-034: the departure-date picker moves the whole flight to another day', async () => {

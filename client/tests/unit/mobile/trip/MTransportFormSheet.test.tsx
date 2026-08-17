@@ -8,7 +8,7 @@ import { buildPlanner } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { act, fireEvent, render, screen } from '../../../helpers/render'
 
-// FE-MOB-TRFRM-001 to FE-MOB-TRFRM-046
+// FE-MOB-TRFRM-001 to FE-MOB-TRFRM-048
 //
 // The sheet's own pickers (airport/location search, day select, time picker) and
 // the embedded transit panel are replaced by minimal controlled stand-ins so the
@@ -630,6 +630,62 @@ describe('MTransportFormSheet', () => {
     const legs = (handleSaveTransport.mock.calls[0][0].metadata as { legs: Record<string, unknown>[] }).legs
     expect(legs[0]).toMatchObject({ from: 'FRA', to: 'IST', day_positions: { '11': 3 } })
     expect(legs[1]).not.toHaveProperty('day_positions')
+  })
+
+  it('FE-MOB-TRFRM-047: each segment of a layover saves its own booking code (#1943)', async () => {
+    const handleSaveTransport = makeSave()
+    renderSheet(makePlanner({ handleSaveTransport }))
+    typeTitle('FRA-IST-HND')
+    // A direct flight writes no legs, so only the booking's own field is offered.
+    expect(screen.getAllByPlaceholderText('reservations.confirmationPlaceholder')).toHaveLength(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'reservations.layover.addStop' }))
+    setValue(airportInputs()[0], 'FRA')
+    setValue(airportInputs()[1], 'IST')
+    setValue(airportInputs()[2], 'HND')
+
+    const codes = screen.getAllByPlaceholderText('reservations.confirmationPlaceholder')
+    expect(codes).toHaveLength(3)
+    setValue(codes[0], 'ABC123')
+    setValue(codes[1], 'XYZ789')
+    setValue(codes[2], 'BOOK1')
+
+    await submit()
+
+    const payload = handleSaveTransport.mock.calls[0][0]
+    const legs = (payload.metadata as { legs: Record<string, unknown>[] }).legs
+    expect(legs.map(l => l.confirmation_number)).toEqual(['ABC123', 'XYZ789'])
+    // The booking's own reference stays on its column, never on a segment.
+    expect(payload.confirmation_number).toBe('BOOK1')
+    expect(payload.metadata).not.toHaveProperty('confirmation_number')
+  })
+
+  it('FE-MOB-TRFRM-048: a re-save on the phone keeps the stored segment codes (#1943)', async () => {
+    const handleSaveTransport = makeSave()
+    const editingTransport = {
+      id: 45, trip_id: 1, type: 'flight', title: 'FRA-IST-HND', status: 'pending',
+      day_id: 11, end_day_id: 12, confirmation_number: 'BOOK1',
+      metadata: {
+        legs: [
+          { from: 'FRA', to: 'IST', confirmation_number: 'ABC123', dep_day_id: 11, dep_time: '10:20', arr_day_id: 11, arr_time: '14:05' },
+          { from: 'IST', to: 'HND', confirmation_number: 'XYZ789', dep_day_id: 11, dep_time: '16:30', arr_day_id: 12, arr_time: '09:00' },
+        ],
+      },
+      endpoints: [
+        { id: 1, reservation_id: 45, role: 'from', sequence: 0, name: 'Frankfurt (FRA)', code: 'FRA', lat: 50.03, lng: 8.57, timezone: 'Europe/Berlin', local_date: null, local_time: null },
+        { id: 2, reservation_id: 45, role: 'stop', sequence: 1, name: 'Istanbul (IST)', code: 'IST', lat: 41.27, lng: 28.75, timezone: 'Europe/Istanbul', local_date: null, local_time: null },
+        { id: 3, reservation_id: 45, role: 'to', sequence: 2, name: 'Tokyo (HND)', code: 'HND', lat: 35.55, lng: 139.78, timezone: 'Asia/Tokyo', local_date: null, local_time: null },
+      ],
+    } as unknown as Reservation
+    renderSheet(makePlanner({ editingTransport, handleSaveTransport }))
+
+    const codes = screen.getAllByPlaceholderText('reservations.confirmationPlaceholder') as HTMLInputElement[]
+    expect(codes.map(i => i.value)).toEqual(['ABC123', 'XYZ789', 'BOOK1'])
+
+    await submit('common.update')
+
+    const legs = (handleSaveTransport.mock.calls[0][0].metadata as { legs: Record<string, unknown>[] }).legs
+    expect(legs.map(l => l.confirmation_number)).toEqual(['ABC123', 'XYZ789'])
   })
 
   it('FE-MOB-TRFRM-023: an edited flight without endpoints falls back to the reservation times', () => {

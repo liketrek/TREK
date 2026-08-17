@@ -412,6 +412,14 @@ export class CalendarService {
         // Multi-leg flight: show the whole route (FRA → BER → HND) on one event.
         const stops = [meta.legs[0]?.from, ...meta.legs.map((l: { to?: string }) => l.to)].filter(Boolean);
         if (stops.length) desc += `\nRoute: ${stops.join(' → ')}`;
+        // A segment booked under its own reference gets its own line (#1943): at
+        // the gate it is that code the airline asks for, not the booking's. No
+        // leg reference, no extra line, so an existing feed stays byte-identical.
+        for (const leg of meta.legs as { from?: string; to?: string; confirmation_number?: string }[]) {
+          if (!leg.confirmation_number) continue;
+          const segment = [leg.from, leg.to].filter(Boolean).join('-');
+          desc += `\nConfirmation${segment ? ` ${segment}` : ''}: ${leg.confirmation_number}`;
+        }
       } else if (meta.departure_airport || meta.arrival_airport) {
         if (meta.departure_airport) desc += `\nFrom: ${meta.departure_airport}`;
         if (meta.arrival_airport) desc += `\nTo: ${meta.arrival_airport}`;

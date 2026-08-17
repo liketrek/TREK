@@ -7,7 +7,7 @@ import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { fireEvent, render, screen } from '../../../helpers/render'
 
-// FE-MOB-TRSH-001 to FE-MOB-TRSH-020
+// FE-MOB-TRSH-001 to FE-MOB-TRSH-024
 
 vi.mock('../../../../src/utils/fileDownload', () => ({ openFile: vi.fn() }))
 
@@ -263,6 +263,36 @@ describe('MTransportSheet', () => {
     expect(screen.getByText('FRA → HND')).toBeInTheDocument()
     rerender(<MTransportSheet planner={makePlanner({ reservations: [] })} shell={shell} />)
     expect(screen.getByText('FRA → HND')).toBeInTheDocument()
+  })
+
+  const layover = (): Reservation => ({
+    ...FLIGHT,
+    metadata: JSON.stringify({
+      airline: 'Lufthansa', flight_number: 'LH 716',
+      legs: [
+        { from: 'FRA', to: 'BER', airline: 'Lufthansa', flight_number: 'LH 716', confirmation_number: 'ABC123' },
+        { from: 'BER', to: 'HND', airline: 'ANA', flight_number: 'NH 204' },
+      ],
+    }),
+  } as unknown as Reservation)
+
+  it('FE-MOB-TRSH-023: lists the booking code of every segment that has its own (#1943)', () => {
+    render(<MTransportSheet planner={makePlanner({ reservations: [layover()] })} shell={makeShell()} />)
+    // The booking's own reference keeps its row above.
+    expect(screen.getByText('#QW7788')).toBeInTheDocument()
+    expect(screen.getByText('FRA → BER')).toBeInTheDocument()
+    expect(screen.getByText('#ABC123')).toBeInTheDocument()
+    // A segment without one contributes no row.
+    expect(screen.queryByText('BER → HND')).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-TRSH-024: a segment code is blurred until it is tapped', () => {
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, blur_booking_codes: true } })
+    render(<MTransportSheet planner={makePlanner({ reservations: [layover()] })} shell={makeShell()} />)
+    const code = screen.getByText('#ABC123')
+    expect(code.className).toContain('blur-[4px]')
+    fireEvent.click(code)
+    expect(screen.getByText('#ABC123').className).not.toContain('blur-[4px]')
   })
 
   it('FE-MOB-TRSH-022: closes from the header button', () => {

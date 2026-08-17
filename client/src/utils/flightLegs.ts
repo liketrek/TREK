@@ -19,6 +19,8 @@ export interface FlightLeg {
   to: string | null
   airline?: string
   flight_number?: string
+  /** This segment's own booking reference, when it was booked separately (#1943). */
+  confirmation_number?: string
   dep_day_id?: number | null
   dep_time?: string | null // 'HH:mm'
   arr_day_id?: number | null
@@ -59,6 +61,7 @@ export function getFlightLegs(r: Reservation): FlightLeg[] {
       to: l.to ?? null,
       airline: l.airline || undefined,
       flight_number: l.flight_number || undefined,
+      confirmation_number: l.confirmation_number || undefined,
       dep_day_id: l.dep_day_id ?? null,
       dep_time: l.dep_time ?? null,
       arr_day_id: l.arr_day_id ?? null,
@@ -77,6 +80,8 @@ export function getFlightLegs(r: Reservation): FlightLeg[] {
     to: toCode,
     airline: meta.airline || undefined,
     flight_number: meta.flight_number || undefined,
+    // The single segment IS the booking, so its reference is the booking's.
+    confirmation_number: r.confirmation_number || undefined,
     dep_day_id: r.day_id ?? null,
     dep_time: first?.local_time ?? null,
     arr_day_id: r.end_day_id ?? r.day_id ?? null,
@@ -95,6 +100,8 @@ export interface TrainLeg {
   train_number?: string
   platform?: string
   seat?: string
+  /** This segment's own booking reference, when it was booked separately (#1943). */
+  confirmation_number?: string
   dep_day_id?: number | null
   dep_time?: string | null
   arr_day_id?: number | null
@@ -115,6 +122,7 @@ export function getTrainLegs(r: Reservation): TrainLeg[] {
       train_number: l.train_number || undefined,
       platform: l.platform || undefined,
       seat: l.seat || undefined,
+      confirmation_number: l.confirmation_number || undefined,
       dep_day_id: l.dep_day_id ?? null,
       dep_time: l.dep_time ?? null,
       arr_day_id: l.arr_day_id ?? null,
@@ -133,6 +141,8 @@ export function getTrainLegs(r: Reservation): TrainLeg[] {
     train_number: meta.train_number || undefined,
     platform: meta.platform || undefined,
     seat: meta.seat || undefined,
+    // The single segment IS the booking, so its reference is the booking's.
+    confirmation_number: r.confirmation_number || undefined,
     dep_day_id: r.day_id ?? null,
     dep_time: first?.local_time ?? null,
     arr_day_id: r.end_day_id ?? r.day_id ?? null,

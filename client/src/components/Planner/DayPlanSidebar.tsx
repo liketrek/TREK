@@ -28,7 +28,7 @@ import { placeToSaveTarget } from '../Collections/saveTarget'
 import { useTranslation } from '../../i18n'
 import { isDayInAccommodationRange, getAccommodationAnchors, getDayBookendHotels, shouldDrawMorningLeg, shouldDrawEveningLeg } from '../../utils/dayOrder'
 import {
-  TRANSPORT_TYPES, parseTimeToMinutes, getSpanPhase, getDisplayTimeForDay, getTransportRouteEndpoints,
+  TRANSPORT_TYPES, parseTimeToMinutes, getSpanPhase, hidesOnMiddleDay, getDisplayTimeForDay, getTransportRouteEndpoints,
   getTransportForDay as _getTransportForDay, getMergedItems as _getMergedItems,
   type MergedItem,
 } from '../../utils/dayMerge'
@@ -362,6 +362,9 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     if (phase === 'single') return null
     if (r.type === 'flight') return t(`reservations.span.${phase === 'start' ? 'departure' : phase === 'end' ? 'arrival' : 'inTransit'}`)
     if (r.type === 'car') return t(`reservations.span.${phase === 'start' ? 'pickup' : phase === 'end' ? 'return' : 'active'}`)
+    // Parking reuses span.pickup for its end day on purpose: you drop the car off and
+    // later pick it up again, so the rental car's wording fits without a second key.
+    if (r.type === 'parking') return t(`reservations.span.${phase === 'start' ? 'dropOff' : phase === 'end' ? 'pickup' : 'ongoing'}`)
     return t(`reservations.span.${phase === 'start' ? 'start' : phase === 'end' ? 'end' : 'ongoing'}`)
   }
 
@@ -513,11 +516,12 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
             cur = []
             curHasPlace = false
             if (to) cur.push({ id: r.id, lat: to.lat, lng: to.lng, isPlace: false })
-          } else if (cur.length > 0 && !(r.type === 'car' && getSpanPhase(r, dayId) === 'middle')) {
+          } else if (cur.length > 0 && !(r.type === 'car' && getSpanPhase(r, dayId) === 'middle') && !hidesOnMiddleDay(r, dayId)) {
             // No location: ignore for routing, but attribute the through-leg to the
             // booking so its distance/duration shows under it (purely cosmetic).
-            // Not for a car rental's middle days though — that row isn't rendered
-            // in the timeline, so re-keying would drop the leg entirely (#1504).
+            // Not for a car rental's middle days or a multi-day parking's though:
+            // those rows aren't rendered in the timeline, so re-keying would drop
+            // the leg entirely (#1504).
             cur[cur.length - 1] = { ...cur[cur.length - 1], id: r.id }
           }
         }
@@ -1477,6 +1481,10 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
           const merged = mergedItemsMap[day.id] || []
           const dayNoteUi = noteUi[day.id]
           const placeItems = merged.filter(i => i.type === 'place')
+          // A row hidden on a middle day still sits in `merged` (the route builder above
+          // has to see it), so the empty-day hint counts what actually renders. Without
+          // that, a day whose only entry is a spanning parking would show a blank gap.
+          const visibleCount = merged.filter(i => !(i.type === 'transport' && hidesOnMiddleDay(i.data, day.id))).length
           const dayTint = dayTints[day.id]
           // Resolved once per day: the header owns a background that its hover
           // handlers reassign imperatively, so both the base and the hover value have
@@ -1735,7 +1743,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     ) : connector
                   })()}
                   {daySchedule.byPosition[day.id]?.start.map(si => <PluginDayScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
-                  {merged.length === 0 && !dayNoteUi ? (
+                  {visibleCount === 0 && !dayNoteUi ? (
                     <div
                       onDragOver={e => { e.preventDefault(); if (dragOverDayId !== day.id) setDragOverDayId(day.id) }}
                       onDrop={e => handleDropOnDay(e, day.id)}
@@ -2121,6 +2129,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
 
                         // Car "active" (middle) days are shown in the day header, skip here
                         if (res.type === 'car' && spanPhase === 'middle') return null
+                        // A multi-day parking says nothing on the days in between and gets
+                        // no header badge either, only drop-off and pickup (#1937)
+                        if (hidesOnMiddleDay(res, day.id)) return null
 
                         const TransportIcon = RES_ICONS[res.type] || Ticket
                         const color = '#3b82f6'

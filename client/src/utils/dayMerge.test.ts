@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseTimeToMinutes, getSpanPhase, getTransportRouteEndpoints, getDisplayTimeForDay, getTransportForDay, getMergedItems } from './dayMerge'
+import { parseTimeToMinutes, getSpanPhase, hidesOnMiddleDay, getTransportRouteEndpoints, getDisplayTimeForDay, getTransportForDay, getMergedItems } from './dayMerge'
 
 describe('parseTimeToMinutes', () => {
   it('parses HH:MM string', () => {
@@ -31,6 +31,49 @@ describe('getSpanPhase', () => {
 
   it('returns middle for days in between', () => {
     expect(getSpanPhase({ day_id: 1, end_day_id: 3 }, 2)).toBe('middle')
+  })
+})
+
+describe('hidesOnMiddleDay', () => {
+  it('keeps a one-day parking on its only day', () => {
+    expect(hidesOnMiddleDay({ type: 'parking', day_id: 1, end_day_id: 1 }, 1)).toBe(false)
+  })
+
+  it('keeps a two-day parking on both days (no day in between exists)', () => {
+    const parking = { type: 'parking', day_id: 1, end_day_id: 2 }
+    expect(hidesOnMiddleDay(parking, 1)).toBe(false)
+    expect(hidesOnMiddleDay(parking, 2)).toBe(false)
+  })
+
+  it('hides a three-day parking only on the day in between', () => {
+    const parking = { type: 'parking', day_id: 1, end_day_id: 3 }
+    expect(hidesOnMiddleDay(parking, 1)).toBe(false)
+    expect(hidesOnMiddleDay(parking, 2)).toBe(true)
+    expect(hidesOnMiddleDay(parking, 3)).toBe(false)
+  })
+
+  it('hides every day in between of a longer parking span (#1937)', () => {
+    const parking = { type: 'parking', day_id: 1, end_day_id: 5 }
+    expect([1, 2, 3, 4, 5].map(d => hidesOnMiddleDay(parking, d)))
+      .toEqual([false, true, true, true, false])
+  })
+
+  it('leaves a car rental visible, since its middle days move to the day header', () => {
+    expect(hidesOnMiddleDay({ type: 'car', day_id: 1, end_day_id: 3 }, 2)).toBe(false)
+  })
+
+  it('leaves every other booking type alone', () => {
+    for (const type of ['train', 'cruise', 'event', 'hotel', 'other']) {
+      expect(hidesOnMiddleDay({ type, day_id: 1, end_day_id: 3 }, 2)).toBe(false)
+    }
+  })
+
+  it('keeps a parking whose end day is not part of the trip', () => {
+    expect(hidesOnMiddleDay({ type: 'parking', day_id: 1, end_day_id: 999 }, 1)).toBe(false)
+  })
+
+  it('keeps an unscheduled parking', () => {
+    expect(hidesOnMiddleDay({ type: 'parking', day_id: null, end_day_id: null }, 2)).toBe(false)
   })
 })
 

@@ -116,6 +116,7 @@ const reservations: TranslationStrings = {
   'reservations.span.arrival': 'Přílet',
   'reservations.span.inTransit': 'Na cestě',
   'reservations.span.pickup': 'Vyzvednutí',
+  'reservations.span.dropOff': 'Odevzdání',
   'reservations.span.return': 'Vrácení',
   'reservations.span.active': 'Aktivní',
   'reservations.span.start': 'Začátek',

@@ -74,9 +74,12 @@ interface WaypointForm {
   airline: string
   flight_number: string
   seat: string
+  // Booking reference of the leg leaving this waypoint (#1943); empty means the
+  // booking's own reference covers it.
+  confirmation_number: string
 }
 function emptyWaypoint(dayId: string | number = ''): WaypointForm {
-  return { airport: null, arrDayId: dayId, arrTime: '', depDayId: dayId, depTime: '', airline: '', flight_number: '', seat: '' }
+  return { airport: null, arrDayId: dayId, arrTime: '', depDayId: dayId, depTime: '', airline: '', flight_number: '', seat: '', confirmation_number: '' }
 }
 
 // A train mirrors the flight route model, but its waypoints are STATIONS
@@ -90,9 +93,10 @@ interface StationWaypointForm {
   train_number: string
   platform: string
   seat: string
+  confirmation_number: string
 }
 function emptyStationWaypoint(dayId: string | number = ''): StationWaypointForm {
-  return { location: null, arrDayId: dayId, arrTime: '', depDayId: dayId, depTime: '', train_number: '', platform: '', seat: '' }
+  return { location: null, arrDayId: dayId, arrTime: '', depDayId: dayId, depTime: '', train_number: '', platform: '', seat: '', confirmation_number: '' }
 }
 
 // Traveler picker row — same surface as the cost-split rows (bg on --m-ic).
@@ -220,6 +224,9 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
               airline: legOut?.airline ?? (isFirst ? (meta.airline ?? '') : ''),
               flight_number: legOut?.flight_number ?? (isFirst ? (meta.flight_number ?? '') : ''),
               seat: legOut?.seat ?? (isFirst ? (meta.seat ?? '') : ''),
+              // The booking's own reference stays in the form's field, never on a
+              // leg, so a plain re-save cannot duplicate it onto the first segment.
+              confirmation_number: legOut?.confirmation_number ?? '',
             }
           })
         } else {
@@ -258,6 +265,8 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
               train_number: legOut?.train_number ?? (isFirst ? (meta.train_number ?? '') : ''),
               platform: legOut?.platform ?? (isFirst ? (meta.platform ?? '') : ''),
               seat: legOut?.seat ?? (isFirst ? (meta.seat ?? '') : ''),
+              // See the flight branch: the booking's own reference stays out of the legs.
+              confirmation_number: legOut?.confirmation_number ?? '',
             }
           })
         } else {
@@ -325,6 +334,12 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
       return { value: d.id, label: d.title || t('dayplan.dayN', { n: d.day_number }), badge: dateBadge ?? dayBadge }
     }),
   ]
+
+  // Same condition handleSubmit uses to write metadata.legs, over the waypoints
+  // that actually become endpoints: below it there are no legs to hold a
+  // per-segment booking code and the value would be dropped on save (#1943).
+  const writesFlightLegs = waypoints.filter(w => w.airport).length > 2
+  const writesTrainLegs = trainWaypoints.filter(w => w.location).length > 2
 
   const handleClose = () => {
     if (importReviewActive) { advanceImportReview(); return }
@@ -396,6 +411,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
               ...(w.airline ? { airline: w.airline } : {}),
               ...(w.flight_number ? { flight_number: w.flight_number } : {}),
               ...(w.seat ? { seat: w.seat } : {}),
+              ...(w.confirmation_number ? { confirmation_number: w.confirmation_number } : {}),
               dep_day_id: w.depDayId ? Number(w.depDayId) : null,
               dep_time: w.depTime || null,
               arr_day_id: next.arrDayId ? Number(next.arrDayId) : null,
@@ -418,6 +434,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
               ...(w.train_number ? { train_number: w.train_number } : {}),
               ...(w.platform ? { platform: w.platform } : {}),
               ...(w.seat ? { seat: w.seat } : {}),
+              ...(w.confirmation_number ? { confirmation_number: w.confirmation_number } : {}),
               dep_day_id: w.depDayId ? Number(w.depDayId) : null,
               dep_time: w.depTime || null,
               arr_day_id: next.arrDayId ? Number(next.arrDayId) : null,
@@ -739,6 +756,18 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
                                   <input type="text" value={wp.seat} onChange={e => updateWp({ seat: e.target.value })} placeholder="12A" className={FIELD_CLS} />
                                 </div>
                               </div>
+                              {writesFlightLegs && (
+                                <div className="mt-2">
+                                  <Eyebrow className="mb-[5px] uppercase">{t('reservations.confirmationCode')}</Eyebrow>
+                                  <input
+                                    type="text"
+                                    value={wp.confirmation_number}
+                                    onChange={e => updateWp({ confirmation_number: e.target.value })}
+                                    placeholder={t('reservations.confirmationPlaceholder')}
+                                    className={FIELD_CLS}
+                                  />
+                                </div>
+                              )}
                             </>
                           )}
                         </div>
@@ -817,6 +846,18 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
                                   <input type="text" value={wp.seat} onChange={e => updateWp({ seat: e.target.value })} placeholder="42A" className={FIELD_CLS} />
                                 </div>
                               </div>
+                              {writesTrainLegs && (
+                                <div className="mt-2">
+                                  <Eyebrow className="mb-[5px] uppercase">{t('reservations.confirmationCode')}</Eyebrow>
+                                  <input
+                                    type="text"
+                                    value={wp.confirmation_number}
+                                    onChange={e => updateWp({ confirmation_number: e.target.value })}
+                                    placeholder={t('reservations.confirmationPlaceholder')}
+                                    className={FIELD_CLS}
+                                  />
+                                </div>
+                              )}
                             </>
                           )}
                         </div>

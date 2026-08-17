@@ -50,3 +50,49 @@ describe('getTrainLegs (#1150)', () => {
     expect(legs[0]).toMatchObject({ from: 'FRA', to: 'JFK', airline: 'LH', flight_number: 'LH 400' })
   })
 })
+
+describe('per-segment booking references (#1943)', () => {
+  it('reads each segment its own code, and leaves a code-less segment undefined', () => {
+    const flight = res({
+      type: 'flight',
+      confirmation_number: 'BOOK1',
+      metadata: JSON.stringify({
+        legs: [
+          { from: 'FRA', to: 'BER', confirmation_number: 'ABC123' },
+          { from: 'BER', to: 'HND' },
+        ],
+      }),
+    })
+    const legs = getFlightLegs(flight)
+    expect(legs[0].confirmation_number).toBe('ABC123')
+    // No fallback to the booking's own code: a segment either has one or it does
+    // not, and the booking's reference is shown separately.
+    expect(legs[1].confirmation_number).toBeUndefined()
+  })
+
+  it('reads a train segment code the same way', () => {
+    const train = res({
+      metadata: JSON.stringify({
+        legs: [
+          { from: 'Berlin Hbf', to: 'Frankfurt Hbf', confirmation_number: 'DB-1' },
+          { from: 'Frankfurt Hbf', to: 'München Hbf', confirmation_number: 'DB-2' },
+        ],
+      }),
+    })
+    expect(getTrainLegs(train).map(l => l.confirmation_number)).toEqual(['DB-1', 'DB-2'])
+  })
+
+  it('gives the derived single leg of a legacy booking the booking code', () => {
+    const flight = res({
+      type: 'flight', confirmation_number: 'BOOK1', day_id: 3,
+      metadata: JSON.stringify({ departure_airport: 'FRA', arrival_airport: 'JFK' }),
+    })
+    expect(getFlightLegs(flight)[0].confirmation_number).toBe('BOOK1')
+    const train = res({
+      confirmation_number: 'BOOK2',
+      endpoints: [ep('from', 0, 'Köln Hbf'), ep('to', 1, 'Aachen Hbf')],
+      metadata: '{}',
+    })
+    expect(getTrainLegs(train)[0].confirmation_number).toBe('BOOK2')
+  })
+})

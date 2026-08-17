@@ -1,6 +1,6 @@
 import { Cloud, CloudDrizzle, CloudLightning, CloudRain, CloudSnow, Sun, Wind } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { getDisplayTimeForDay, getSpanPhase, parseTimeToMinutes } from '../../../../utils/dayMerge'
+import { getDisplayTimeForDay, getSpanPhase, hidesOnMiddleDay, parseTimeToMinutes } from '../../../../utils/dayMerge'
 import { getDayBookendHotels, isDayInAccommodationRange } from '../../../../utils/dayOrder'
 import type { MergedItem } from '../../../../utils/dayMerge'
 import type { TransitLegDisplay } from '../../../../components/Planner/transitDisplay'
@@ -107,8 +107,10 @@ export function buildPlanRows(opts: {
       base.push({ key: `note-${note.id}`, kind: 'note', item, note })
     } else {
       const res = item.data as TransportEntry
-      // A car rental's middle days live in the day header, not the timeline.
+      // A car rental's middle days live in the day header, not the timeline; a
+      // multi-day parking drops out of both on those days (#1937).
       if (res.type === 'car' && getSpanPhase(res, dayId) === 'middle') continue
+      if (hidesOnMiddleDay(res, dayId)) continue
       const transit = getTransitMeta(res)
       const key = `tr-${res.id}${res.__leg ? `-leg${res.__leg.index}` : ''}`
       if (transit) base.push({ key, kind: 'transit', item, res, transit })

@@ -117,6 +117,7 @@ const reservations: TranslationStrings = {
   'reservations.span.arrival': 'Đến',
   'reservations.span.inTransit': 'Đang chuyển tiếp',
   'reservations.span.pickup': 'Đón',
+  'reservations.span.dropOff': 'Gửi xe',
   'reservations.span.return': 'Trở lại',
   'reservations.span.active': 'Tích cực',
   'reservations.span.start': 'Bắt đầu',
