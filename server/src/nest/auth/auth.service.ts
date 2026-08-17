@@ -14,6 +14,7 @@ import { PermissionsService } from '../permissions/permissions.service';
 import { validatePassword } from '../common/passwordPolicy';
 import { encryptMfaSecret, decryptMfaSecret } from '../common/crypto/mfaCrypto';
 import { decrypt_api_key, maybe_encrypt_api_key, encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { resolveApiKey } from '../settings/instance-api-keys';
 import { EphemeralTokenService } from './ephemeral-token.service';
 // Import from sessionManager directly, NOT the ../../mcp barrel: the barrel pulls
 // the whole tools fan-out (and via the domain bridges, the Nest services) into
@@ -235,13 +236,12 @@ export class AuthService {
     // One directory deeper than the legacy src/services location — the extra
     // '../' keeps resolving to the workspace package.json.
     const version: string = readEnv().app.appVersion ?? require('../../../package.json').version;
-    // The operator's key counts too. getMapsKey prefers it over anything in the
-    // users table, so asking the table alone would report "no key" on an install
-    // where every lookup works, and the client would hide the Google features it
-    // is actually able to use.
-    const hasGoogleKey =
-      !!readEnv().maps.placesApiKey ||
-      !!this.db.get("SELECT maps_api_key FROM users WHERE role = 'admin' AND maps_api_key IS NOT NULL AND maps_api_key != '' LIMIT 1");
+    // Asked through the same resolver the search itself uses, so the client can
+    // never show Google features that rest on a key this caller does not get —
+    // nor hide them from a member who does have one (#1939). Unauthenticated the
+    // question is only about the instance, which is the first two steps of the
+    // chain; id 0 matches no row.
+    const hasGoogleKey = !!resolveApiKey(this.db, 'maps_api_key', authenticatedUser?.id ?? 0, readEnv().maps.placesApiKey).key;
     const oidcDisplayName = readEnv().oidc.displayName ||
       this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'oidc_display_name'")?.value || null;
     const oidcConfigured = !!(

@@ -9,13 +9,14 @@ import type {
 } from '@trek/shared';
 import { readEnv, getAppUrl } from '../../app-config';
 import { safeFetchFollow, SsrfBlockedError } from '../../utils/ssrfGuard';
-import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
 // ── Photo cache (disk-backed) ────────────────────────────────────────────────
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { DatabaseService } from '../database/database.service';
 import { nominatimFetch, type GeoLane } from '../geo/nominatim.client';
 import {
   UA,
+  SEARCH_TEXT_FIELD_MASK,
   toApiLang,
   googleFtidFromMapsUrl,
   buildOsmDetails,
@@ -57,6 +58,18 @@ function placesEndpoint(endpoint: string): string {
   const base = readEnv().maps.placesApiBase;
   if (!base || !endpoint.startsWith(PLACES_UPSTREAM)) return endpoint;
   return base.replace(/\/+$/, '') + endpoint.slice(PLACES_UPSTREAM.length);
+}
+
+/**
+ * Says which of the three credentials Google rejected, never which value.
+ *
+ * The response body Google sends ("The caller does not have permission") is
+ * identical whichever key was used, so without this line a report of "works for
+ * the admin, fails for everyone else" cannot be told apart from a genuinely
+ * broken key.
+ */
+function logKeyFailure(label: string, status: number, userId: number, source: ApiKeySource | null): void {
+  console.error(`[Maps] ${label} failed with ${status} userId=${userId} keySource=${source}`);
 }
 
 function googleFetch(rawEndpoint: string, label: string, init?: RequestInit): Promise<Response> {
@@ -548,25 +561,25 @@ export class MapsService {
 
   // ── API key retrieval ──────────────────────────────────────────────────────
 
-  getMapsKey(userId: number): string | null {
-    // When the operator supplies the credential, the database is not asked at
-    // all. Two reasons, and the second is the load-bearing one: a per-user key
-    // would route around whatever the operator's endpoint counts, and the key
-    // columns are readable by any admin of this instance, so a shared key stored
-    // there would be a key handed out. Unset, this branch never runs.
-    const operatorKey = readEnv().maps.placesApiKey;
-    if (operatorKey) return operatorKey;
+  /**
+   * The Places credential for this request, and where it came from.
+   *
+   * Operator env first: a per-user key would route around whatever the
+   * operator's endpoint counts, and unset, that branch never runs. Then the
+   * instance-wide value the admin panel writes, then the caller's own row.
+   *
+   * What is deliberately gone is the old third step, "any admin's key" (#1939):
+   * it read a stranger's credential, which server/CLAUDE.md forbids, and made
+   * the answer depend on who was asking — the saving admin got their own key,
+   * everybody else got the lowest-id admin's and a 403 from Google. The source
+   * is returned so a provider error can say which of the three was used.
+   */
+  resolveMapsKey(userId: number): { key: string | null; source: ApiKeySource | null } {
+    return resolveApiKey(this.database, 'maps_api_key', userId, readEnv().maps.placesApiKey);
+  }
 
-    const user = this.database.get<{ maps_api_key: string | null }>(
-      'SELECT maps_api_key FROM users WHERE id = ?',
-      userId,
-    );
-    const user_key = decrypt_api_key(user?.maps_api_key);
-    if (user_key) return user_key;
-    const admin = this.database.get<{ maps_api_key: string }>(
-      "SELECT maps_api_key FROM users WHERE role = 'admin' AND maps_api_key IS NOT NULL AND maps_api_key != '' LIMIT 1",
-    );
-    return decrypt_api_key(admin?.maps_api_key) || null;
+  getMapsKey(userId: number): string | null {
+    return this.resolveMapsKey(userId).key;
   }
 
   // ── Nominatim search ───────────────────────────────────────────────────────
@@ -1417,7 +1430,7 @@ export class MapsService {
     lang?: string,
     locationBias?: { lat: number; lng: number; radius?: number },
   ): Promise<{ places: Record<string, unknown>[]; source: string }> {
-    const apiKey = this.getMapsKey(userId);
+    const { key: apiKey, source: keySource } = this.resolveMapsKey(userId);
 
     if (!apiKey) {
       const places = await this.searchNominatim(query, lang);
@@ -1441,8 +1454,7 @@ export class MapsService {
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask':
-          'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.websiteUri,places.nationalPhoneNumber,places.types,places.googleMapsUri,places.businessStatus',
+        'X-Goog-FieldMask': SEARCH_TEXT_FIELD_MASK,
       },
       body: JSON.stringify(searchBody),
     });
@@ -1450,6 +1462,7 @@ export class MapsService {
     const data = (await response.json()) as { places?: GooglePlaceResult[]; error?: { message?: string } };
 
     if (!response.ok) {
+      logKeyFailure('searchText', response.status, userId, keySource);
       const err = new Error(data.error?.message || 'Google Places API error') as Error & { status: number };
       err.status = response.status;
       throw err;
@@ -1488,7 +1501,7 @@ export class MapsService {
     locationBias?: { low: { lat: number; lng: number }; high: { lat: number; lng: number } },
     sessionToken?: string,
   ): Promise<{ suggestions: { placeId: string; mainText: string; secondaryText: string }[]; source: string }> {
-    const apiKey = this.getMapsKey(userId);
+    const { key: apiKey, source: keySource } = this.resolveMapsKey(userId);
 
     if (!apiKey) {
       return this.autocompleteNominatim(input, lang);
@@ -1526,6 +1539,7 @@ export class MapsService {
     };
 
     if (!response.ok) {
+      logKeyFailure('autocomplete', response.status, userId, keySource);
       const err = new Error(data.error?.message || 'Google Places Autocomplete error') as Error & { status: number };
       err.status = response.status;
       throw err;

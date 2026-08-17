@@ -22,6 +22,17 @@ export function buildUserAgent(instanceUrl: string | undefined): string {
 // Computed once at load — getAppUrl() reads only env vars, which don't change at runtime.
 export const UA = buildUserAgent(getAppUrl());
 
+/**
+ * The fields places:searchText is asked for.
+ *
+ * Here rather than beside the call because the admin panel's key test has to
+ * send the same mask: a key restricted to a narrower set of Places SKUs answers
+ * a one-field probe with 200 and the real search with 403, which is the second
+ * way to reach the #1939 report ("test button green, searching fails").
+ */
+export const SEARCH_TEXT_FIELD_MASK =
+  'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.websiteUri,places.nationalPhoneNumber,places.types,places.googleMapsUri,places.businessStatus';
+
 // TREK's internal language codes mostly coincide with valid BCP-47 codes, but a
 // couple don't: 'br' is Brazilian Portuguese here (BCP-47 'pt-BR'; bare 'br' is
 // Breton) and 'gr' is Greek (BCP-47 'el'). Outbound geo APIs (Google Places,

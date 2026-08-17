@@ -7,6 +7,14 @@ import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyC
 import { avatarUrl } from '../common/avatarUrl';
 import { EMAIL_REGEX, avatarDir, mask_stored_api_key } from './auth.helpers';
 import { splitManagedKeys, MANAGED_LOCKED_PROFILE_KEYS } from '../common/managed';
+import {
+  INSTANCE_API_KEY_NAMES,
+  readInstanceApiKey,
+  resolveApiKey,
+  writeInstanceApiKey,
+  type InstanceApiKeyName,
+} from '../settings/instance-api-keys';
+import { SEARCH_TEXT_FIELD_MASK } from '../maps/maps.helpers';
 import { User } from '../../types';
 
 /**
@@ -41,33 +49,109 @@ export class UserProfileService {
     return readEnv().managed.enabled;
   }
 
+  /** The three key columns plus the role that decides where a save lands. */
+  private currentKeys(userId: number) {
+    return this.db.get<Pick<User, 'role' | 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key'>>(
+      'SELECT role, maps_api_key, openweather_api_key, unsplash_api_key FROM users WHERE id = ?',
+      userId
+    );
+  }
+
+  /**
+   * The value a save is measured against, in cleartext.
+   *
+   * For an admin and one of the two instance-wide names that is the instance
+   * value, because that is what the panel shows them and what the search uses;
+   * their own column only speaks when no instance value has been set yet.
+   */
+  private storedKeyPlaintext(
+    name: 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key',
+    current: Pick<User, 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key'> | undefined,
+    isAdmin: boolean,
+  ): string {
+    if (isAdmin && (INSTANCE_API_KEY_NAMES as readonly string[]).includes(name)) {
+      const instance = readInstanceApiKey(this.db, name as InstanceApiKeyName);
+      if (instance !== null) return instance;
+    }
+    return decrypt_api_key(current?.[name]) ?? '';
+  }
+
+  /**
+   * Which key names this body actually changes.
+   *
+   * Compared on cleartext, never on what is stored: the IV is random, so the
+   * same key encrypted twice differs every time and a ciphertext comparison
+   * would report a change on every save. The panel saves before each test click,
+   * so that difference is the one between an audit trail and a full log.
+   *
+   * `skipped` are the names a managed install refuses to write — auditing them
+   * would claim a change that never happened.
+   */
+  private changedKeyNames(
+    body: Record<string, unknown>,
+    current: Pick<User, 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key'> | undefined,
+    isAdmin: boolean,
+    skipped: string[] = [],
+  ): string[] {
+    const norm = (v: unknown) => String(v ?? '').trim();
+    return (['maps_api_key', 'openweather_api_key', 'unsplash_api_key'] as const).filter(
+      (name) => body[name] !== undefined && !skipped.includes(name) && norm(body[name]) !== norm(this.storedKeyPlaintext(name, current, isAdmin))
+    );
+  }
+
+  /**
+   * Mirror the two instance-wide names into app_settings when an admin saves.
+   *
+   * Only an admin: `PUT /me/api-keys` is not admin-gated (the class carries
+   * JwtAuthGuard alone), so letting any caller write here would hand every
+   * member the instance credential. A non-admin keeps writing their own column,
+   * which is still the last step of the resolver.
+   */
+  private mirrorInstanceKeys(body: Record<string, unknown>, isAdmin: boolean): void {
+    if (!isAdmin) return;
+    for (const name of INSTANCE_API_KEY_NAMES) {
+      if (body[name] !== undefined) writeInstanceApiKey(this.db, name, body[name]);
+    }
+  }
+
   updateMapsKey(userId: number, key: unknown) {
     const maps_api_key = key as string | null | undefined;
     if (this.managed) {
-      return { success: true, maps_api_key: null, managed_keys: ['maps_api_key'] };
+      return { success: true, maps_api_key: null, managed_keys: ['maps_api_key'], changedKeys: [] };
     }
-    this.db.run(
-      'UPDATE users SET maps_api_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      maybe_encrypt_api_key(maps_api_key), userId
-    );
-    return { success: true, maps_api_key: mask_stored_api_key(maps_api_key) };
+    const current = this.currentKeys(userId);
+    const isAdmin = current?.role === 'admin';
+    const changedKeys = this.changedKeyNames({ maps_api_key }, current, isAdmin);
+    this.db.transaction(() => {
+      this.db.run(
+        'UPDATE users SET maps_api_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        maybe_encrypt_api_key(maps_api_key), userId
+      );
+      this.mirrorInstanceKeys({ maps_api_key }, isAdmin);
+    });
+    return { success: true, maps_api_key: mask_stored_api_key(maps_api_key), changedKeys };
   }
 
   updateApiKeys(userId: number, rawBody: unknown) {
     const body = rawBody as { maps_api_key?: string; openweather_api_key?: string; unsplash_api_key?: string };
     const { blocked } = splitManagedKeys(body, this.managed);
     for (const key of blocked) delete body[key as keyof typeof body];
-    const current = this.db.get<Pick<User, 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key'>>('SELECT maps_api_key, openweather_api_key, unsplash_api_key FROM users WHERE id = ?', userId);
+    const current = this.currentKeys(userId);
+    const isAdmin = current?.role === 'admin';
+    const changedKeys = this.changedKeyNames(body, current, isAdmin, blocked);
 
-    // `?? null` instead of the former non-null assertions: a user row deleted
-    // mid-request must degrade to a 0-row UPDATE, not a TypeError/500.
-    this.db.run(
-      'UPDATE users SET maps_api_key = ?, openweather_api_key = ?, unsplash_api_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      body.maps_api_key !== undefined ? maybe_encrypt_api_key(body.maps_api_key) : current?.maps_api_key ?? null,
-      body.openweather_api_key !== undefined ? maybe_encrypt_api_key(body.openweather_api_key) : current?.openweather_api_key ?? null,
-      body.unsplash_api_key !== undefined ? maybe_encrypt_api_key(body.unsplash_api_key) : current?.unsplash_api_key ?? null,
-      userId
-    );
+    this.db.transaction(() => {
+      // `?? null` instead of the former non-null assertions: a user row deleted
+      // mid-request must degrade to a 0-row UPDATE, not a TypeError/500.
+      this.db.run(
+        'UPDATE users SET maps_api_key = ?, openweather_api_key = ?, unsplash_api_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        body.maps_api_key !== undefined ? maybe_encrypt_api_key(body.maps_api_key) : current?.maps_api_key ?? null,
+        body.openweather_api_key !== undefined ? maybe_encrypt_api_key(body.openweather_api_key) : current?.openweather_api_key ?? null,
+        body.unsplash_api_key !== undefined ? maybe_encrypt_api_key(body.unsplash_api_key) : current?.unsplash_api_key ?? null,
+        userId
+      );
+      this.mirrorInstanceKeys(body, isAdmin);
+    });
 
     const updated = this.db.get<Pick<User, 'id' | 'username' | 'email' | 'role' | 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key' | 'avatar' | 'mfa_enabled'>>(
       'SELECT id, username, email, role, maps_api_key, openweather_api_key, unsplash_api_key, avatar, mfa_enabled FROM users WHERE id = ?',
@@ -79,13 +163,14 @@ export class UserProfileService {
       success: true,
       ...(blocked.length ? { managed_keys: blocked } : {}),
       user: { ...u, maps_api_key: mask_stored_api_key(u?.maps_api_key), openweather_api_key: mask_stored_api_key(u?.openweather_api_key), unsplash_api_key: mask_stored_api_key(u?.unsplash_api_key), avatar_url: avatarUrl(updated || {}) },
+      changedKeys,
     };
   }
 
   updateSettings(
     userId: number,
     rawBody: unknown
-  ): { error?: string; status?: number; success?: boolean; user?: Record<string, unknown> } {
+  ): { error?: string; status?: number; success?: boolean; user?: Record<string, unknown>; changedKeys?: string[] } {
     const body = rawBody as { maps_api_key?: string; openweather_api_key?: string; unsplash_api_key?: string; username?: string; email?: string };
     const { maps_api_key, openweather_api_key, unsplash_api_key, username, email } = body;
 
@@ -124,10 +209,19 @@ export class UserProfileService {
     if (username !== undefined) { updates.push('username = ?'); params.push(username.trim()); }
     if (email !== undefined) { updates.push('email = ?'); params.push(email.trim()); }
 
+    // Read before the write, so the comparison sees the old value; the role in
+    // the same row decides whether the two instance-wide names travel with it.
+    const current = this.currentKeys(userId);
+    const isAdmin = current?.role === 'admin';
+    const changedKeys = keyLocked ? [] : this.changedKeyNames(body, current, isAdmin, blocked);
+
     if (updates.length > 0) {
       updates.push('updated_at = CURRENT_TIMESTAMP');
       params.push(userId);
-      this.db.run(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, ...params);
+      this.db.transaction(() => {
+        this.db.run(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, ...params);
+        if (!keyLocked) this.mirrorInstanceKeys(body, isAdmin);
+      });
     }
 
     const updated = this.db.get<Pick<User, 'id' | 'username' | 'email' | 'role' | 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key' | 'avatar' | 'mfa_enabled'>>(
@@ -140,6 +234,7 @@ export class UserProfileService {
       success: true,
       ...(blocked.length ? { managed_keys: blocked } : {}),
       user: { ...u, maps_api_key: mask_stored_api_key(u?.maps_api_key), openweather_api_key: mask_stored_api_key(u?.openweather_api_key), unsplash_api_key: mask_stored_api_key(u?.unsplash_api_key), avatar_url: avatarUrl(updated || {}) },
+      changedKeys,
     };
   }
 
@@ -166,11 +261,15 @@ export class UserProfileService {
       };
     }
 
+    // Maps and Unsplash are read where the search reads them: instance-wide
+    // first. Showing the admin their own column while every request used another
+    // value is the confusion #1939 reported. Their column still answers while no
+    // instance value exists — on that install it is what the resolver picks too.
     return {
       settings: {
-        maps_api_key: decrypt_api_key(user.maps_api_key),
+        maps_api_key: readInstanceApiKey(this.db, 'maps_api_key') ?? decrypt_api_key(user.maps_api_key),
         openweather_api_key: decrypt_api_key(user.openweather_api_key),
-        unsplash_api_key: decrypt_api_key(user.unsplash_api_key),
+        unsplash_api_key: readInstanceApiKey(this.db, 'unsplash_api_key') ?? decrypt_api_key(user.unsplash_api_key),
       },
     };
   }
@@ -226,7 +325,7 @@ export class UserProfileService {
   // -------------------------------------------------------------------------
 
   async validateKeys(userId: number): Promise<{ error?: string; status?: number; maps: boolean; weather: boolean; maps_details: null | { ok: boolean; status: number | null; status_text: string | null; error_message: string | null; error_status: string | null; error_raw: string | null } }> {
-    const user = this.db.get<Pick<User, 'role' | 'maps_api_key' | 'openweather_api_key'>>('SELECT role, maps_api_key, openweather_api_key FROM users WHERE id = ?', userId);
+    const user = this.db.get<Pick<User, 'role' | 'openweather_api_key'>>('SELECT role, openweather_api_key FROM users WHERE id = ?', userId);
     if (user?.role !== 'admin') return { error: 'Admin access required', status: 403, maps: false, weather: false, maps_details: null };
 
     const result: {
@@ -242,7 +341,10 @@ export class UserProfileService {
       };
     } = { maps: false, weather: false, maps_details: null };
 
-    const maps_api_key = decrypt_api_key(user.maps_api_key);
+    // The key a search would actually use, not the one in this admin's column:
+    // testing a value nothing resolves to is how "the panel says the key is
+    // fine" and "every search 403s" coexisted (#1939).
+    const { key: maps_api_key } = resolveApiKey(this.db, 'maps_api_key', userId, readEnv().maps.placesApiKey);
     if (maps_api_key) {
       try {
         // Same Referer as maps.service googleFetch — without it, keys with an
@@ -256,7 +358,9 @@ export class UserProfileService {
               ...(referer ? { Referer: referer } : {}),
               'Content-Type': 'application/json',
               'X-Goog-Api-Key': maps_api_key,
-              'X-Goog-FieldMask': 'places.displayName',
+              // The mask the real search sends. A narrower probe passes on keys
+              // that are restricted to fewer Places SKUs than TREK asks for.
+              'X-Goog-FieldMask': SEARCH_TEXT_FIELD_MASK,
             },
             body: JSON.stringify({ textQuery: 'test' }),
           }

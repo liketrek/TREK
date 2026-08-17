@@ -3,7 +3,7 @@ import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { Injectable } from '@nestjs/common';
 import { safeFetch } from '../../utils/ssrfGuard';
-import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { resolveApiKey } from '../settings/instance-api-keys';
 import { DatabaseService } from '../database/database.service';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 
@@ -42,7 +42,7 @@ const COVER_EXT_BY_TYPE: Record<string, string> = {
  * Unsplash search and cover download.
  *
  * Its own module rather than a method on trips or places: both call it, and the
- * key resolution reads the env AND the users table, so it needs the injected
+ * key resolution reads the env AND the database, so it needs the injected
  * connection either way.
  */
 @Injectable()
@@ -55,18 +55,14 @@ export class UnsplashService {
   /**
  * Resolve an Unsplash access key for a request, in precedence order:
  * the `UNSPLASH_ACCESS_KEY` env var (instance-wide override, matching the
- * SMTP/OIDC env-over-DB convention) → the caller's own stored key → any
- * admin's stored key. Mirrors `getMapsKey`. Returns null when none is set,
- * in which case the search falls back to the unauthenticated endpoint.
+ * SMTP/OIDC env-over-DB convention) → the instance-wide value the admin panel
+ * saves → the caller's own stored key. Mirrors `resolveMapsKey`, including what
+ * it dropped: "any admin's stored key" read a stranger's credential and made
+ * the answer depend on who asked (#1939). Returns null when none is set, in
+ * which case the search falls back to the unauthenticated endpoint.
  */
   getUnsplashKey(userId: number): string | null {
-    const env_key = this.env.env().integrations.unsplashAccessKey;
-    if (env_key) return env_key;
-    const user = this.db.get<{ unsplash_api_key: string | null }>('SELECT unsplash_api_key FROM users WHERE id = ?', userId);
-    const user_key = decrypt_api_key(user?.unsplash_api_key);
-    if (user_key) return user_key;
-    const admin = this.db.get<{ unsplash_api_key: string }>("SELECT unsplash_api_key FROM users WHERE role = 'admin' AND unsplash_api_key IS NOT NULL AND unsplash_api_key != '' LIMIT 1");
-    return decrypt_api_key(admin?.unsplash_api_key) || null;
+    return resolveApiKey(this.db, 'unsplash_api_key', userId, this.env.env().integrations.unsplashAccessKey).key;
   }
 
   async searchUnsplashPhotos(query: string, perPage = 9, accessKey?: string | null) {

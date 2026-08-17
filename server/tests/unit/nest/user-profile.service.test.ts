@@ -40,6 +40,7 @@ import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createAdmin } from '../../helpers/factories';
 import { UserProfileService } from '../../../src/nest/auth/user-profile.service';
 import { DatabaseService } from '../../../src/nest/database/database.service';
+import { SEARCH_TEXT_FIELD_MASK } from '../../../src/nest/maps/maps.helpers';
 
 const profile = new UserProfileService(new DatabaseService(testDb));
 
@@ -253,6 +254,55 @@ describe('validateKeys', () => {
     if (prevAppUrl === undefined) delete process.env.APP_URL;
     else process.env.APP_URL = prevAppUrl;
   });
+
+  it('AUTH-DB-111: probes the operator key on an install where the admin has no column of their own', async () => {
+    const prevPlacesKey = process.env.PLACES_API_KEY;
+    process.env.PLACES_API_KEY = 'operator-key';
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      status: 200,
+      statusText: 'OK',
+      text: async () => '',
+    } as Response);
+
+    try {
+      // The admin column stays empty on purpose: on an operator-run install the
+      // key belongs to whoever runs the box, and the panel used to answer
+      // "no maps key" while every search on that same install worked.
+      const { user } = createAdmin(testDb);
+      const result = await profile.validateKeys(user.id);
+      const headers = (fetchSpy.mock.calls[0]?.[1]?.headers ?? {}) as Record<string, string>;
+      expect(headers['X-Goog-Api-Key']).toBe('operator-key');
+      expect(result.maps).toBe(true);
+    } finally {
+      fetchSpy.mockRestore();
+      if (prevPlacesKey === undefined) delete process.env.PLACES_API_KEY;
+      else process.env.PLACES_API_KEY = prevPlacesKey;
+    }
+  });
+
+  it('AUTH-DB-112: probes the instance key, not a stale value in the admin own column', async () => {
+    const { user } = createAdmin(testDb);
+    // What a second admin sees after the instance key was saved by the first
+    // one: their column still holds whatever they pasted long ago, while every
+    // search on the install runs on the app_settings row.
+    testDb.prepare('UPDATE users SET maps_api_key = ? WHERE id = ?').run('stale-personal-key', user.id);
+    testDb.prepare("INSERT INTO app_settings (key, value) VALUES ('maps_api_key', 'live-instance-key')").run();
+
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      status: 200,
+      statusText: 'OK',
+      text: async () => '',
+    } as Response);
+
+    await profile.validateKeys(user.id);
+    const headers = (fetchSpy.mock.calls[0]?.[1]?.headers ?? {}) as Record<string, string>;
+    expect(headers['X-Goog-Api-Key']).toBe('live-instance-key');
+    // And it asks for the fields the real search asks for, so a key restricted
+    // to fewer Places SKUs fails the test button instead of passing it.
+    expect(headers['X-Goog-FieldMask']).toBe(SEARCH_TEXT_FIELD_MASK);
+
+    fetchSpy.mockRestore();
+  });
 });
 
 describe('updateMapsKey / avatar', () => {
@@ -283,5 +333,112 @@ describe('profile quirk fixes', () => {
     expect(() => profile.updateApiKeys(999999, { maps_api_key: 'k' })).not.toThrow();
     const result = profile.updateApiKeys(999999, { openweather_api_key: 'w' });
     expect(result.success).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Instance-wide keys + changedKeys (#1939)
+//
+// apiKeyCrypto is mocked to identity in this file, so nothing here asserts
+// anything about encryption — the random-IV half of changedKeys is pinned in
+// tests/integration/security.test.ts, which runs with a real ENCRYPTION_KEY.
+// ---------------------------------------------------------------------------
+
+const instanceRow = (key: string) =>
+  (testDb.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined)?.value;
+
+describe('instance-wide API keys', () => {
+  it('AUTH-DB-102: an admin save lands in app_settings AND in their own column', () => {
+    const { user } = createAdmin(testDb);
+    profile.updateApiKeys(user.id, { maps_api_key: 'instance-google-key', unsplash_api_key: 'instance-unsplash-key' });
+    expect(instanceRow('maps_api_key')).toBe('instance-google-key');
+    expect(instanceRow('unsplash_api_key')).toBe('instance-unsplash-key');
+    // The column stays in step so clearing the field clears both.
+    const row = testDb.prepare('SELECT maps_api_key FROM users WHERE id = ?').get(user.id) as { maps_api_key: string };
+    expect(row.maps_api_key).toBe('instance-google-key');
+  });
+
+  it('AUTH-DB-103: a non-admin save never touches the instance value', () => {
+    const { user: admin } = createAdmin(testDb);
+    profile.updateApiKeys(admin.id, { maps_api_key: 'admin-set' });
+    const { user } = createUser(testDb);
+    profile.updateApiKeys(user.id, { maps_api_key: 'members-own' });
+    expect(instanceRow('maps_api_key')).toBe('admin-set');
+    const row = testDb.prepare('SELECT maps_api_key FROM users WHERE id = ?').get(user.id) as { maps_api_key: string };
+    expect(row.maps_api_key).toBe('members-own');
+  });
+
+  it('AUTH-DB-104: clearing the field stores an empty instance value rather than dropping the row', () => {
+    const { user } = createAdmin(testDb);
+    profile.updateApiKeys(user.id, { maps_api_key: 'to-be-removed' });
+    profile.updateApiKeys(user.id, { maps_api_key: '' });
+    // '' and not a missing row: a missing row would fall through to whatever
+    // still sat in the admin's own column.
+    expect(instanceRow('maps_api_key')).toBe('');
+  });
+
+  it('AUTH-DB-105: getSettings reads the instance value, not the admin own column', () => {
+    const { user } = createAdmin(testDb);
+    testDb.prepare('UPDATE users SET maps_api_key = ? WHERE id = ?').run('stale-personal-key', user.id);
+    testDb.prepare("INSERT INTO app_settings (key, value) VALUES ('maps_api_key', 'live-instance-key')").run();
+    expect(profile.getSettings(user.id).settings?.maps_api_key).toBe('live-instance-key');
+    // openweather is per-user and unaffected.
+    expect(profile.getSettings(user.id).settings?.openweather_api_key).toBeNull();
+  });
+
+  it('AUTH-DB-106: updateMapsKey mirrors for an admin and stays personal for a member', () => {
+    const { user: admin } = createAdmin(testDb);
+    expect(profile.updateMapsKey(admin.id, 'via-maps-key-route').changedKeys).toEqual(['maps_api_key']);
+    expect(instanceRow('maps_api_key')).toBe('via-maps-key-route');
+    const { user } = createUser(testDb);
+    profile.updateMapsKey(user.id, 'members-own');
+    expect(instanceRow('maps_api_key')).toBe('via-maps-key-route');
+  });
+
+  it('AUTH-DB-107: updateSettings mirrors the key half without touching name/email handling', () => {
+    const { user } = createAdmin(testDb);
+    const result = profile.updateSettings(user.id, { maps_api_key: 'from-settings-route', username: 'renamed' });
+    expect(result.success).toBe(true);
+    expect(result.user?.username).toBe('renamed');
+    expect(instanceRow('maps_api_key')).toBe('from-settings-route');
+    expect(result.changedKeys).toEqual(['maps_api_key']);
+  });
+});
+
+describe('changedKeys', () => {
+  it('AUTH-DB-108: only the names in the body count, and clearing counts as a change', () => {
+    const { user } = createAdmin(testDb);
+    profile.updateApiKeys(user.id, { maps_api_key: 'k1', openweather_api_key: 'w1' });
+    // unsplash was never sent, so it can never be reported.
+    expect(profile.updateApiKeys(user.id, { openweather_api_key: 'w2' }).changedKeys).toEqual(['openweather_api_key']);
+    expect(profile.updateApiKeys(user.id, { maps_api_key: '' }).changedKeys).toEqual(['maps_api_key']);
+  });
+
+  it('AUTH-DB-109: an unchanged value reports nothing, whitespace included', () => {
+    const { user } = createAdmin(testDb);
+    profile.updateApiKeys(user.id, { maps_api_key: 'unchanged-key' });
+    expect(profile.updateApiKeys(user.id, { maps_api_key: 'unchanged-key' }).changedKeys).toEqual([]);
+    // maybe_encrypt_api_key trims on the way in, so the comparison has to too.
+    expect(profile.updateApiKeys(user.id, { maps_api_key: '  unchanged-key  ' }).changedKeys).toEqual([]);
+    // A member is measured against their own column, not the instance value.
+    const { user: member } = createUser(testDb);
+    expect(profile.updateApiKeys(member.id, { maps_api_key: 'unchanged-key' }).changedKeys).toEqual(['maps_api_key']);
+  });
+
+  it('AUTH-DB-110: a managed install reports no change for the names it refuses to write', () => {
+    const prev = process.env.TREK_MANAGED;
+    process.env.TREK_MANAGED = 'true';
+    try {
+      const { user } = createAdmin(testDb);
+      const result = profile.updateApiKeys(user.id, { maps_api_key: 'operator-owns-this' });
+      expect(result.managed_keys).toEqual(['maps_api_key']);
+      expect(result.changedKeys).toEqual([]);
+      expect(instanceRow('maps_api_key')).toBeUndefined();
+      expect(profile.updateMapsKey(user.id, 'operator-owns-this').changedKeys).toEqual([]);
+      expect(profile.updateSettings(user.id, { maps_api_key: 'operator-owns-this' }).changedKeys).toEqual([]);
+    } finally {
+      if (prev === undefined) delete process.env.TREK_MANAGED;
+      else process.env.TREK_MANAGED = prev;
+    }
   });
 });

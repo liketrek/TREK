@@ -45,6 +45,7 @@ import { MailerService } from '../../src/nest/notifications/mailer/mailer.servic
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { createUser } from '../helpers/factories';
+import { encrypt_api_key } from '../../src/nest/common/crypto/apiKeyCrypto';
 import { resetRateLimits } from '../helpers/test-db';
 import { AuthModule } from '../../src/nest/auth/auth.module';
 import { AuthService } from '../../src/nest/auth/auth.service';
@@ -249,6 +250,80 @@ describe('Auth e2e (real auth guard + real service + real cookie service + temp 
     expect(res.status).toBe(400);
     // The global ZodValidationPipe envelope: { error: 'field: message; ...' }.
     expect(res.body.error).toMatch(/password/i);
+  });
+
+  it('PUT /me/api-keys stores the key instance-wide and audits it once (#1939)', async () => {
+    const admin = createUser(db as never, { username: 'keys-admin', email: 'keys-admin@example.test', role: 'admin' });
+    const before = auditRows('settings.api_keys_update');
+
+    const res = await request(server)
+      .put('/api/auth/me/api-keys')
+      .set('Cookie', sessionCookie(admin.user.id))
+      .send({ maps_api_key: 'e2e-google-key' });
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    // Masked in the response and never accompanied by the audit bookkeeping.
+    expect(res.body.user.maps_api_key).not.toBe('e2e-google-key');
+    expect(res.body).not.toHaveProperty('changedKeys');
+
+    // What every member's search will now resolve to, encrypted at rest.
+    const stored = db.prepare("SELECT value FROM app_settings WHERE key = 'maps_api_key'").get() as { value: string };
+    expect(stored.value).toMatch(/^enc:v1:/);
+    // And the admin panel reads back what the search uses.
+    const settings = await request(server).get('/api/auth/me/settings').set('Cookie', sessionCookie(admin.user.id));
+    expect(settings.body.settings.maps_api_key).toBe('e2e-google-key');
+
+    expect(auditRows('settings.api_keys_update')).toBe(before + 1);
+    const row = db
+      .prepare("SELECT resource, details FROM audit_log WHERE action = 'settings.api_keys_update' ORDER BY id DESC LIMIT 1")
+      .get() as { resource: string; details: string };
+    expect(row.resource).toBe('api_keys');
+    expect(row.details).toContain('maps_api_key');
+    expect(row.details).not.toContain('e2e-google-key');
+
+    // Saving the same value again is not a change, so the log does not grow.
+    await request(server)
+      .put('/api/auth/me/api-keys')
+      .set('Cookie', sessionCookie(admin.user.id))
+      .send({ maps_api_key: 'e2e-google-key' });
+    expect(auditRows('settings.api_keys_update')).toBe(before + 1);
+  }, 10000);
+
+  it('GET /app-config answers has_maps_key from the instance row, never from an admin column (#1939)', async () => {
+    const member = createUser(db as never, { username: 'keys-member', email: 'keys-member@example.test' });
+    const admin = createUser(db as never, { username: 'keys-cfg-admin', email: 'keys-cfg-admin@example.test', role: 'admin' });
+    // Seeded here instead of riding on the save above, so running this case on
+    // its own asserts the same thing.
+    const setInstanceKey = (value: string | null) => {
+      if (value === null) {
+        db.prepare("DELETE FROM app_settings WHERE key = 'maps_api_key'").run();
+        return;
+      }
+      db.prepare(
+        `INSERT INTO app_settings (key, value) VALUES ('maps_api_key', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+      ).run(encrypt_api_key(value));
+    };
+    const hasMapsKey = async (userId: number) => {
+      const res = await request(server).get('/api/auth/app-config').set('Cookie', sessionCookie(userId));
+      expect(res.status).toBe(200);
+      return res.body.has_maps_key;
+    };
+
+    setInstanceKey('instance-configured-key');
+    db.prepare('UPDATE users SET maps_api_key = NULL WHERE id = ?').run(admin.user.id);
+    // Instance key, no column anywhere: the member searches with it, so the
+    // client is told the feature is there.
+    expect(await hasMapsKey(member.user.id)).toBe(true);
+
+    // The reported half of #1939: the key exists only in one admin's column.
+    // It is not the member's to spend, so they are told there is none instead
+    // of being offered a Google search that answers 403.
+    setInstanceKey(null);
+    db.prepare('UPDATE users SET maps_api_key = ? WHERE id = ?').run(encrypt_api_key('admins-own-key'), admin.user.id);
+    expect(await hasMapsKey(member.user.id)).toBe(false);
+    // That same column still counts for the admin themselves.
+    expect(await hasMapsKey(admin.user.id)).toBe(true);
   });
 
   it('POST /logout clears the session cookie', async () => {

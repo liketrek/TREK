@@ -289,15 +289,52 @@ describe('AuthController (authenticated)', () => {
 
   it('maps-key + api-keys pass straight through to the service', () => {
     const updateMapsKey = vi.fn().mockReturnValue({ success: true });
-    expect(ac(asvc({}), rl(), {}, { updateMapsKey }).mapsKey(user, { maps_api_key: 'k' })).toEqual({ success: true });
+    expect(ac(asvc({}), rl(), {}, { updateMapsKey }).mapsKey(user, { maps_api_key: 'k' }, req)).toEqual({ success: true });
     expect(updateMapsKey).toHaveBeenCalledWith(1, 'k');
     const updateApiKeys = vi.fn().mockReturnValue({ ok: 1 });
-    expect(ac(asvc({}), rl(), {}, { updateApiKeys }).apiKeys(user, anyBody({ a: 1 } as never))).toEqual({ ok: 1 });
+    expect(ac(asvc({}), rl(), {}, { updateApiKeys }).apiKeys(user, anyBody({ a: 1 } as never), req)).toEqual({ ok: 1 });
+    // No changedKeys from the service (and none in the body): nothing to audit.
+    expect(writeAudit).not.toHaveBeenCalled();
+  });
+
+  it('api-keys audits one settings.api_keys_update with the changed names only (#1939)', () => {
+    const updateApiKeys = vi.fn().mockReturnValue({ success: true, user: { id: 1 }, changedKeys: ['maps_api_key'] });
+    const c = ac(asvc({}), rl(), {}, { updateApiKeys });
+    // changedKeys is stripped off the response — the client body is unchanged.
+    expect(c.apiKeys(user, anyBody({ maps_api_key: 'AIza-super-secret' } as never), req)).toEqual({ success: true, user: { id: 1 } });
+    expect(writeAudit).toHaveBeenCalledTimes(1);
+    expect(writeAudit).toHaveBeenCalledWith({
+      userId: 1,
+      action: 'settings.api_keys_update',
+      resource: 'api_keys',
+      ip: '1.2.3.4',
+      details: { changed: ['maps_api_key'] },
+    });
+    // Never the value, not even truncated: details is rendered raw in the panel.
+    expect(JSON.stringify(writeAudit.mock.calls)).not.toContain('AIza-super-secret');
+  });
+
+  it('maps-key and settings audit the same action; an unchanged save writes nothing', () => {
+    const mapsC = ac(asvc({}), rl(), {}, { updateMapsKey: vi.fn().mockReturnValue({ success: true, changedKeys: ['maps_api_key'] }) });
+    mapsC.mapsKey(user, { maps_api_key: 'k' }, req);
+    expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'settings.api_keys_update', details: { changed: ['maps_api_key'] } }));
+
+    writeAudit.mockClear();
+    const setC = ac(asvc({}), rl(), {}, { updateSettings: vi.fn().mockReturnValue({ success: true, user: { id: 1 }, changedKeys: ['unsplash_api_key'] }) });
+    expect(setC.updateSettings(user, {}, req)).toEqual({ success: true, user: { id: 1 } });
+    expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'settings.api_keys_update', details: { changed: ['unsplash_api_key'] } }));
+
+    // The test button in the panel saves before every click — an identical value
+    // must not cost a log line.
+    writeAudit.mockClear();
+    ac(asvc({}), rl(), {}, { updateApiKeys: vi.fn().mockReturnValue({ success: true, changedKeys: [] }) })
+      .apiKeys(user, anyBody({ maps_api_key: 'same' } as never), req);
+    expect(writeAudit).not.toHaveBeenCalled();
   });
 
   it('update-settings + get-settings map errors, else return their payloads', () => {
-    expect(thrown(() => ac(asvc({}), rl(), {}, { updateSettings: vi.fn().mockReturnValue({ error: 'Bad', status: 400 }) }).updateSettings(user, {}))).toEqual({ status: 400, body: { error: 'Bad' } });
-    expect(ac(asvc({}), rl(), {}, { updateSettings: vi.fn().mockReturnValue({ success: true, user: { id: 1 } }) }).updateSettings(user, {})).toEqual({ success: true, user: { id: 1 } });
+    expect(thrown(() => ac(asvc({}), rl(), {}, { updateSettings: vi.fn().mockReturnValue({ error: 'Bad', status: 400 }) }).updateSettings(user, {}, req))).toEqual({ status: 400, body: { error: 'Bad' } });
+    expect(ac(asvc({}), rl(), {}, { updateSettings: vi.fn().mockReturnValue({ success: true, user: { id: 1 } }) }).updateSettings(user, {}, req)).toEqual({ success: true, user: { id: 1 } });
     expect(thrown(() => ac(asvc({}), rl(), {}, { getSettings: vi.fn().mockReturnValue({ error: 'Nope', status: 404 }) }).getSettings(user))).toEqual({ status: 404, body: { error: 'Nope' } });
     expect(ac(asvc({}), rl(), {}, { getSettings: vi.fn().mockReturnValue({ settings: { theme: 'dark' } }) }).getSettings(user)).toEqual({ settings: { theme: 'dark' } });
   });

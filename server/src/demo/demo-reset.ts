@@ -27,6 +27,19 @@ function resetDemoUser(): void {
     console.error('[Demo Reset] Failed to read admin data:', e instanceof Error ? e.message : e);
   }
 
+  // The Places/Unsplash keys the searches actually use live in app_settings
+  // since #1939, so they have to survive the restore alongside the columns —
+  // otherwise the demo instance loses map search on every reset.
+  interface InstanceKeyRow { key: string; value: string | null }
+  let instanceKeys: InstanceKeyRow[] = [];
+  try {
+    instanceKeys = db.prepare(
+      "SELECT key, value FROM app_settings WHERE key IN ('maps_api_key', 'unsplash_api_key')"
+    ).all() as InstanceKeyRow[];
+  } catch (e: unknown) {
+    console.error('[Demo Reset] Failed to read instance API keys:', e instanceof Error ? e.message : e);
+  }
+
   // Flush WAL to main DB file
   try { db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch (e) {}
 
@@ -64,6 +77,19 @@ function resetDemoUser(): void {
       );
     } catch (e: unknown) {
       console.error('[Demo Reset] Failed to restore admin credentials:', e instanceof Error ? e.message : e);
+    }
+  }
+
+  if (instanceKeys.length) {
+    try {
+      const { db: freshDb } = require('../db/database');
+      const upsert = freshDb.prepare(
+        `INSERT INTO app_settings (key, value) VALUES (?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+      );
+      for (const row of instanceKeys) upsert.run(row.key, row.value);
+    } catch (e: unknown) {
+      console.error('[Demo Reset] Failed to restore instance API keys:', e instanceof Error ? e.message : e);
     }
   }
 

@@ -11,6 +11,7 @@ const ACTION_LABELS: Record<string, string> = {
   'user.mfa_enable': 'enabled MFA',
   'user.mfa_disable': 'disabled MFA',
   'settings.app_update': 'updated settings',
+  'settings.api_keys_update': 'updated API keys',
   'trip.create': 'created trip',
   'trip.delete': 'deleted trip',
   'admin.user_role_change': 'changed user role',
@@ -37,6 +38,12 @@ function buildInfoSummary(action: string, details?: Record<string, unknown>): st
     if (details.allow_registration !== undefined) parts.push(`registration=${details.allow_registration}`);
     if (details.require_mfa !== undefined) parts.push(`mfa=${details.require_mfa}`);
     return parts.length ? ` (${parts.join(', ')})` : '';
+  }
+  if (action === 'settings.api_keys_update') {
+    // The names, read straight out of details — the writer puts nothing else in
+    // there, and a key value must never reach a log line.
+    const changed = Array.isArray(details.changed) ? details.changed : [];
+    return changed.length ? ` (${changed.join(', ')})` : '';
   }
   if (action === 'immich.private_ip_configured') {
     return details.resolved_ip ? ` url=${details.immich_url} ip=${details.resolved_ip}` : '';

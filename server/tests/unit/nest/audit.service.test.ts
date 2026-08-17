@@ -170,6 +170,24 @@ describe('writeAudit', () => {
     testDb.prepare('ALTER TABLE audit_log_gone RENAME TO audit_log').run();
   });
 
+  it('AUDIT-SVC-018: settings.api_keys_update names the changed keys and nothing else (#1939)', () => {
+    seedUser(1, 'admin@b.c');
+    svc.writeAudit({
+      userId: 1,
+      action: 'settings.api_keys_update',
+      resource: 'api_keys',
+      details: { changed: ['maps_api_key', 'unsplash_api_key'] },
+      ip: '1.2.3.4',
+    });
+    expect(logInfo).toHaveBeenLastCalledWith('admin@b.c updated API keys (maps_api_key, unsplash_api_key) ip=1.2.3.4');
+    // A details blob without the array (or with an empty one) leaves the brief off
+    // rather than stringifying whatever else is in there.
+    svc.writeAudit({ userId: 1, action: 'settings.api_keys_update', details: { changed: [] }, ip: '1.2.3.4' });
+    expect(logInfo).toHaveBeenLastCalledWith('admin@b.c updated API keys ip=1.2.3.4');
+    svc.writeAudit({ userId: 1, action: 'settings.api_keys_update', details: { other: 'x' }, ip: '1.2.3.4' });
+    expect(logInfo).toHaveBeenLastCalledWith('admin@b.c updated API keys ip=1.2.3.4');
+  });
+
   it('AUDIT-SVC-014: buildInfoSummary variants (settings parts, login empty brief)', () => {
     seedUser(1, 'a@b.c');
     svc.writeAudit({ userId: 1, action: 'settings.app_update', details: { notification_channel: 'smtp', require_mfa: false }, ip: '1.1.1.1' });

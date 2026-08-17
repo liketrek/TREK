@@ -6,12 +6,28 @@ import path from 'path';
 // safeFetch is mocked so saveUnsplashCover never hits the network.
 // db is mocked so getUnsplashKey resolves from a controllable stub, and
 // decrypt_api_key is a passthrough so stored values compare as plaintext.
-const { safeFetch, mockDbGet } = vi.hoisted(() => ({ safeFetch: vi.fn(), mockDbGet: vi.fn(() => undefined as unknown) }));
+// The instance-wide row (#1939) is read before the user's own, so it gets its
+// own seam rather than eating the mockDbGet stub of every case below.
+const { safeFetch, mockDbGet, mockInstanceGet } = vi.hoisted(() => ({
+  safeFetch: vi.fn(),
+  mockDbGet: vi.fn((..._args: unknown[]) => undefined as unknown),
+  mockInstanceGet: vi.fn((..._args: unknown[]) => undefined as unknown),
+}));
 vi.mock('../../../../src/utils/ssrfGuard', () => ({ safeFetch }));
 vi.mock('../../../../src/db/database', () => ({
-  db: { prepare: () => ({ get: mockDbGet, all: vi.fn(() => []), run: vi.fn() }) },
+  db: {
+    prepare: (sql: string) => ({
+      get: (...args: unknown[]) => (sql.includes('app_settings') ? mockInstanceGet(...args) : mockDbGet(...args)),
+      all: vi.fn(() => []),
+      run: vi.fn(),
+    }),
+  },
 }));
-vi.mock('../../../../src/nest/common/crypto/apiKeyCrypto', () => ({ decrypt_api_key: (v: string | null) => v }));
+vi.mock('../../../../src/nest/common/crypto/apiKeyCrypto', () => ({
+  decrypt_api_key: (v: string | null) => v,
+  // Unused by the read path here, but instance-api-keys imports it.
+  maybe_encrypt_api_key: (v: string | null) => v,
+}));
 
 import { UnsplashService } from '../../../../src/nest/unsplash/unsplash.service';
 import { DatabaseService } from '../../../../src/nest/database/database.service';
@@ -31,6 +47,7 @@ afterEach(() => {
   vi.clearAllMocks();
   vi.unstubAllGlobals();
   mockDbGet.mockReturnValue(undefined);
+  mockInstanceGet.mockReturnValue(undefined);
   if (ORIGINAL_UNSPLASH_ENV === undefined) delete process.env.UNSPLASH_ACCESS_KEY;
   else process.env.UNSPLASH_ACCESS_KEY = ORIGINAL_UNSPLASH_ENV;
 });
@@ -63,6 +80,37 @@ describe('unsplashService.searchUnsplashPhotos', () => {
   it('UNSPLASH-003: maps a non-ok response to an error', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(fakeRes({ ok: false, status: 429, type: 'application/json', json: { errors: ['Rate limited'] } })));
     expect(await searchUnsplashPhotos('paris')).toEqual({ error: 'Rate limited', status: 429 });
+  });
+
+  it('UNSPLASH-016: a 200 carrying unparseable JSON becomes a 502, not a crash', async () => {
+    // The web endpoint answers 200 with an HTML challenge page when it decides the
+    // caller is a datacenter (#1449), so a parse failure on an ok response is an
+    // upstream problem, not the caller's.
+    const bad = fakeRes({ ok: true, type: 'text/html' });
+    (bad as { json: () => Promise<unknown> }).json = async () => {
+      throw new SyntaxError('Unexpected token < in JSON');
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(bad));
+    expect(await searchUnsplashPhotos('paris')).toEqual({ error: 'Unsplash search unavailable', status: 502 });
+  });
+
+  it('UNSPLASH-017: a failing response with unparseable JSON keeps its own status', async () => {
+    const bad = fakeRes({ ok: false, status: 503, type: 'text/html' });
+    (bad as { json: () => Promise<unknown> }).json = async () => {
+      throw new SyntaxError('Unexpected token < in JSON');
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(bad));
+    expect(await searchUnsplashPhotos('paris')).toEqual({ error: 'Unsplash search unavailable', status: 503 });
+  });
+
+  it('UNSPLASH-018: falls back to the generic message when a non-ok body names no error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(fakeRes({ ok: false, status: 500, type: 'application/json', json: {} })));
+    expect(await searchUnsplashPhotos('paris')).toEqual({ error: 'Unsplash search unavailable', status: 500 });
+  });
+
+  it('UNSPLASH-019: uses the single error field when the errors array is absent', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(fakeRes({ ok: false, status: 401, type: 'application/json', json: { error: 'Bad credentials' } })));
+    expect(await searchUnsplashPhotos('paris')).toEqual({ error: 'Bad credentials', status: 401 });
   });
 
   it('UNSPLASH-004: returns normalised photos on success and drops entries missing a url/thumb', async () => {
@@ -115,17 +163,27 @@ describe('unsplashService.getUnsplashKey', () => {
     expect(getUnsplashKey(1)).toBe('user-key');
   });
 
-  it('UNSPLASH-014: falls back to the admin key when the user has none', () => {
+  it('UNSPLASH-014: the instance-wide key wins over the user own key (#1939)', () => {
     delete process.env.UNSPLASH_ACCESS_KEY;
-    mockDbGet.mockReturnValueOnce({ unsplash_api_key: null });
-    mockDbGet.mockReturnValueOnce({ unsplash_api_key: 'admin-key' });
-    expect(getUnsplashKey(1)).toBe('admin-key');
+    mockInstanceGet.mockReturnValue({ value: 'instance-key' });
+    mockDbGet.mockReturnValue({ unsplash_api_key: 'user-key' });
+    expect(getUnsplashKey(1)).toBe('instance-key');
+    expect(mockDbGet).not.toHaveBeenCalled(); // the own row is not even read
   });
 
-  it('UNSPLASH-015: returns null when neither env, user, nor admin has a key', () => {
+  it('UNSPLASH-015: returns null when neither env, instance, nor the user has a key', () => {
     delete process.env.UNSPLASH_ACCESS_KEY;
     mockDbGet.mockReturnValue(undefined);
     expect(getUnsplashKey(1)).toBeNull();
+  });
+
+  it("UNSPLASH-015b: never reads another user's key — the admin fallback is gone (#1939)", () => {
+    delete process.env.UNSPLASH_ACCESS_KEY;
+    mockDbGet.mockReturnValue(undefined);
+    expect(getUnsplashKey(1)).toBeNull();
+    // Both reads are scoped: the instance row and this caller's own row.
+    expect(mockDbGet).toHaveBeenCalledTimes(1);
+    expect(mockDbGet).toHaveBeenCalledWith(1);
   });
 });
 

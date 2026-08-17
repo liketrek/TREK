@@ -38,6 +38,8 @@ type SsrfCheckStub = Pick<SsrfResult, 'allowed' | 'error'>;
 const {
   mockDbGet,
   mockDbRun,
+  mockInstanceGet,
+  preparedSql,
   mockCheckSsrf,
   mockCacheGet,
   mockCacheGetErrored,
@@ -47,8 +49,14 @@ const {
   mockCacheSetInFlight,
   mockServeFilePath,
 } = vi.hoisted(() => ({
-  mockDbGet: vi.fn(() => undefined as any),
+  mockDbGet: vi.fn((..._args: unknown[]) => undefined as any),
   mockDbRun: vi.fn(),
+  // The instance-wide key row (#1939) is read before the caller's own row, so it
+  // gets its own seam: every case below that stubs mockDbGet means "this user's
+  // row holds a key", and would otherwise have its stub eaten by the
+  // app_settings lookup.
+  mockInstanceGet: vi.fn((..._args: unknown[]) => undefined as any),
+  preparedSql: [] as string[],
   mockCheckSsrf: vi.fn(async (_url: string, _bypassInternalIpAllowed?: boolean): Promise<SsrfCheckStub> => ({
     allowed: true,
   })),
@@ -69,7 +77,14 @@ const {
 
 vi.mock('../../../src/db/database', () => ({
   db: {
-    prepare: () => ({ get: mockDbGet, all: vi.fn(() => []), run: mockDbRun }),
+    prepare: (sql: string) => {
+      preparedSql.push(sql);
+      return {
+        get: (...args: unknown[]) => (sql.includes('app_settings') ? mockInstanceGet(...args) : mockDbGet(...args)),
+        all: vi.fn(() => []),
+        run: mockDbRun,
+      };
+    },
   },
 }));
 
@@ -96,6 +111,8 @@ vi.mock('../../../src/utils/ssrfGuard', () => {
 
 vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   decrypt_api_key: (v: string | null) => v,
+  // Unused by the read paths here, but instance-api-keys imports it.
+  maybe_encrypt_api_key: (v: string | null) => v,
 }));
 
 vi.mock('../../../src/config', () => ({
@@ -131,6 +148,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
   mockDbGet.mockReset();
   mockDbGet.mockReturnValue(undefined);
+  mockInstanceGet.mockReset();
+  mockInstanceGet.mockReturnValue(undefined);
+  preparedSql.length = 0;
   mockDbRun.mockReset();
   mockCheckSsrf.mockReset();
   mockCheckSsrf.mockResolvedValue({ allowed: true });
@@ -392,23 +412,47 @@ describe('buildOsmDetails', () => {
   });
 });
 
-// ── getMapsKey ────────────────────────────────────────────────────────────────
+// ── resolveMapsKey / getMapsKey ───────────────────────────────────────────────
 
-describe('getMapsKey', () => {
-  it('MAPS-015: returns user key when user has one', () => {
+describe('resolveMapsKey', () => {
+  const ORIGINAL_PLACES_KEY = process.env.PLACES_API_KEY;
+  afterEach(() => {
+    if (ORIGINAL_PLACES_KEY === undefined) delete process.env.PLACES_API_KEY;
+    else process.env.PLACES_API_KEY = ORIGINAL_PLACES_KEY;
+  });
+
+  it('MAPS-015: returns the caller own row key when nothing above it is set', () => {
+    mockDbGet.mockReturnValue({ maps_api_key: 'user-api-key' });
+    expect(svc.resolveMapsKey(1)).toEqual({ key: 'user-api-key', source: 'user-row' });
+    expect(svc.getMapsKey(1)).toBe('user-api-key'); // the wrapper reads the same chain
+  });
+
+  it('MAPS-016: the instance-wide key wins over the caller own row (#1939)', () => {
+    mockInstanceGet.mockReturnValueOnce({ value: 'instance-api-key' });
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'user-api-key' });
-    expect(svc.getMapsKey(1)).toBe('user-api-key');
+    expect(svc.resolveMapsKey(1)).toEqual({ key: 'instance-api-key', source: 'instance' });
   });
 
-  it('MAPS-016: falls back to admin key when user has none', () => {
-    mockDbGet.mockReturnValueOnce({ maps_api_key: null });
-    mockDbGet.mockReturnValueOnce({ maps_api_key: 'admin-api-key' });
-    expect(svc.getMapsKey(1)).toBe('admin-api-key');
-  });
-
-  it('MAPS-017: returns null when neither user nor admin has a key', () => {
-    mockDbGet.mockReturnValue(undefined);
+  it('MAPS-017: returns null with no source when nothing is set anywhere', () => {
+    expect(svc.resolveMapsKey(1)).toEqual({ key: null, source: null });
     expect(svc.getMapsKey(1)).toBeNull();
+  });
+
+  it('MAPS-017b: the operator env key wins and the database is never asked', () => {
+    process.env.PLACES_API_KEY = 'operator-key';
+    expect(svc.resolveMapsKey(1)).toEqual({ key: 'operator-key', source: 'operator-env' });
+    expect(mockInstanceGet).not.toHaveBeenCalled();
+    expect(mockDbGet).not.toHaveBeenCalled();
+  });
+
+  it("MAPS-017c: never reads another user's row — the admin fallback is gone (#1939)", () => {
+    svc.resolveMapsKey(1);
+    // Two statements, both scoped: the instance row and this caller's own row.
+    // The old chain ended in "WHERE role = 'admin' ... LIMIT 1", which handed a
+    // stranger's credential to every non-admin.
+    expect(preparedSql).toHaveLength(2);
+    expect(preparedSql.join(' ')).not.toContain("role = 'admin'");
+    expect(preparedSql.some((sql) => sql.includes('WHERE id = ?'))).toBe(true);
   });
 });
 
@@ -1153,6 +1197,25 @@ describe('searchPlaces (fetch stubbed)', () => {
     });
   });
 
+  it('MAPS-039h: a Google rejection logs which credential was used, never the credential (#1939)', async () => {
+    mockInstanceGet.mockReturnValueOnce({ value: 'instance-secret-key' });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({ error: { message: 'The caller does not have permission' } }),
+      }),
+    );
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(svc.searchPlaces(7, 'anything')).rejects.toMatchObject({ status: 403 });
+    const logged = errorSpy.mock.calls.map((c) => String(c[0])).join('\n');
+    expect(logged).toContain('keySource=instance');
+    expect(logged).toContain('userId=7');
+    expect(logged).not.toContain('instance-secret-key');
+    errorSpy.mockRestore();
+  });
+
   it('MAPS-039c: throws with generic message when Google error has no message', async () => {
     mockDbGet.mockReturnValueOnce({ maps_api_key: 'some-key' });
     vi.stubGlobal(
@@ -1317,6 +1380,20 @@ describe('autocompletePlaces (fetch stubbed)', () => {
       message: 'API key invalid',
       status: 403,
     });
+  });
+
+  it('MAPS-083b: the autocomplete rejection logs the key source too (#1939)', async () => {
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'own-row-secret' });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, status: 403, json: async () => ({ error: { message: 'nope' } }) }),
+    );
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(svc.autocompletePlaces(4, 'anything')).rejects.toMatchObject({ status: 403 });
+    const logged = errorSpy.mock.calls.map((c) => String(c[0])).join('\n');
+    expect(logged).toContain('keySource=user-row');
+    expect(logged).not.toContain('own-row-secret');
+    errorSpy.mockRestore();
   });
 
   it('MAPS-084: throws generic message when Google error has no message', async () => {

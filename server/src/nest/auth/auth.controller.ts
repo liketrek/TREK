@@ -123,22 +123,51 @@ export class AuthController {
     return { success: true };
   }
 
+  /**
+   * One row per save that actually changed a key, on all three routes that can
+   * write these columns (#1939 asked for it: the API keys were the only admin
+   * setting whose change left no trace, while `settings.app_update` next door
+   * has always been logged).
+   *
+   * Names only. `details` is rendered as raw JSON in the admin audit panel and
+   * mirrored into the debug log, so a value here would leak the key twice over.
+   * Nothing is written when nothing changed — the panel saves before every test
+   * click, and each click would otherwise cost a log line.
+   */
+  private auditApiKeys(userId: number, changed: string[], req: Request): void {
+    if (!changed.length) return;
+    this.audit.writeAudit({
+      userId,
+      action: 'settings.api_keys_update',
+      resource: 'api_keys',
+      ip: getClientIp(req),
+      details: { changed },
+    });
+  }
+
   @Put('me/maps-key')
-  mapsKey(@CurrentUser() user: User, @Body() body: MapsKeyUpdateDto) {
-    return this.profile.updateMapsKey(user.id, body.maps_api_key);
+  mapsKey(@CurrentUser() user: User, @Body() body: MapsKeyUpdateDto, @Req() req: Request) {
+    // changedKeys is for the audit line, not for the client: destructured off so
+    // the response body stays what it always was.
+    const { changedKeys = [], ...result } = this.profile.updateMapsKey(user.id, body.maps_api_key);
+    this.auditApiKeys(user.id, changedKeys, req);
+    return result;
   }
 
   @Put('me/api-keys')
-  apiKeys(@CurrentUser() user: User, @Body() body: ApiKeysUpdateDto) {
-    return this.profile.updateApiKeys(user.id, body);
+  apiKeys(@CurrentUser() user: User, @Body() body: ApiKeysUpdateDto, @Req() req: Request) {
+    const { changedKeys = [], ...result } = this.profile.updateApiKeys(user.id, body);
+    this.auditApiKeys(user.id, changedKeys, req);
+    return result;
   }
 
   @Put('me/settings')
-  updateSettings(@CurrentUser() user: User, @Body() body: SettingsUpdateDto) {
+  updateSettings(@CurrentUser() user: User, @Body() body: SettingsUpdateDto, @Req() req: Request) {
     const result = this.profile.updateSettings(user.id, body);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
+    this.auditApiKeys(user.id, result.changedKeys ?? [], req);
     return { success: result.success, user: result.user };
   }
 
