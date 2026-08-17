@@ -5,7 +5,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import apiClient, { mapsApi, pluginsApi, type PluginAtlasLayer } from '../../api/client'
 import L from 'leaflet'
 import type { GeoJsonFeatureCollection } from '../../types'
-import { A2_TO_A3, countryStatus, findBucketDuplicate, isBucketDuplicateError, isCountryVisible, normalizeRegionName, withCountryMarkedVisited, wishlistA3Codes, countryColor, type AtlasData, type AtlasPlaceHit, type CountryDetail, type BucketItem } from './atlasModel'
+import { A2_TO_A3, countryStatus, findBucketDuplicate, isBucketDuplicateError, isCountryVisible, normalizeRegionName, regionCacheEvictions, withCountryMarkedVisited, wishlistA3Codes, countryColor, REGION_CACHE_MAX, type AtlasData, type AtlasPlaceHit, type CountryDetail, type BucketItem } from './atlasModel'
 import { continentForCountry, escapeHtml, type VisitStatus } from '@trek/shared'
 import { useToast } from '../../components/shared/Toast'
 import { getApiErrorMessage } from '../../types'
@@ -82,6 +82,12 @@ export function useAtlas() {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<L.Map | null>(null)
   const geoLayerRef = useRef<L.GeoJSON | null>(null)
+  // One renderer per map, not one per redraw: Leaflet registers a renderer as a layer
+  // of its own and leaves its container in the pane when the GeoJSON layer is removed,
+  // so building a fresh one on every rebuild left an orphaned canvas/svg behind that
+  // kept redrawing itself on every pan for the rest of the session (#1950).
+  const countryRendererRef = useRef<L.Canvas | null>(null)
+  const regionRendererRef = useRef<L.SVG | null>(null)
   const glareRef = useRef<HTMLDivElement>(null)
   const borderGlareRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -117,6 +123,16 @@ export function useAtlas() {
   const pluginLayerRef = useRef<L.GeoJSON | null>(null)
   const regionLayerRef = useRef<L.GeoJSON | null>(null)
   const regionGeoCache = useRef<Record<string, GeoJsonFeatureCollection>>({})
+  // Cached countries, least recently in view first, capped at REGION_CACHE_MAX.
+  const regionCacheOrder = useRef<string[]>([])
+  // Countries whose /regions/geo answer is still on the way. They must not be asked
+  // for twice while a pan fires moveend over and over, and must not be evicted before
+  // their own response lands.
+  const pendingRegionCodes = useRef<Set<string>>(new Set())
+  // Which countries the drawn layer was built from, so panning inside the same set of
+  // countries costs nothing.
+  const renderedRegionSigRef = useRef<string>('')
+  const rebuildRegionLayerRef = useRef<(force?: boolean) => void>(() => {})
   const [showRegions, setShowRegions] = useState(false)
   // Countries you only plan to visit stay off the map until asked for — the atlas is a
   // record of where you have been, not of where you booked a flight to (#1048).
@@ -242,6 +258,52 @@ export function useAtlas() {
       .catch(() => setPluginLayers([]))
   }, [])
 
+  /** The view the map currently shows, or null while there is no map to ask. */
+  const viewportBounds = (): L.LatLngBounds | null => {
+    try {
+      return mapInstance.current?.getBounds() ?? null
+    } catch {
+      return null
+    }
+  }
+
+  /** Does this country's outline touch the given view? Fail open: a country we hold no
+   *  outline for, or one whose bounds throw, counts as in view, because dropping it
+   *  would blank regions the user can see. */
+  const countryInView = (code: string, bounds: L.LatLngBounds | null): boolean => {
+    if (!bounds) return true
+    const layer = country_layer_by_a2_ref.current[code]
+    if (!layer) return true
+    try {
+      return bounds.intersects(layer.getBounds())
+    } catch {
+      return true
+    }
+  }
+
+  const touchRegionCode = (code: string): void => {
+    const order = regionCacheOrder.current
+    const at = order.indexOf(code)
+    if (at !== -1) order.splice(at, 1)
+    order.push(code)
+  }
+
+  /** Drop the countries nobody is looking at once the cache outgrows its cap. A country
+   *  still in view, or one still waiting for its response, is never dropped, or panning
+   *  across a wide country would fetch it, evict it and fetch it again. */
+  const evictRegionCache = (): void => {
+    const bounds = viewportBounds()
+    const keep = new Set<string>(pendingRegionCodes.current)
+    for (const code of regionCacheOrder.current) {
+      if (!keep.has(code) && countryInView(code, bounds)) keep.add(code)
+    }
+    for (const code of regionCacheEvictions(regionCacheOrder.current, keep, REGION_CACHE_MAX)) {
+      delete regionGeoCache.current[code]
+      const at = regionCacheOrder.current.indexOf(code)
+      if (at !== -1) regionCacheOrder.current.splice(at, 1)
+    }
+  }
+
   // Load admin-1 GeoJSON for countries visible in the current viewport
   const loadRegionsForViewportRef = useRef<() => void>(() => {})
   const loadRegionsForViewport = (): void => {
@@ -249,12 +311,21 @@ export function useAtlas() {
     const bounds = mapInstance.current.getBounds()
     const toLoad: string[] = []
     for (const [code, layer] of Object.entries(country_layer_by_a2_ref.current)) {
-      if (regionGeoCache.current[code]) continue
+      if (regionGeoCache.current[code]) {
+        // Recency means recency of being on screen. Touching every cached country wrote
+        // the order back into GeoJSON feature order on every moveend, so the eviction
+        // picked its victim by position in the dataset instead of by what the view had
+        // just left, and panning back to that country paid for a refetch.
+        if (countryInView(code, bounds)) touchRegionCode(code)
+        continue
+      }
+      if (pendingRegionCodes.current.has(code)) continue
       try {
         if (bounds.intersects((layer as any).getBounds())) toLoad.push(code)
       } catch {}
     }
     if (!toLoad.length) return
+    for (const code of toLoad) pendingRegionCodes.current.add(code)
     apiClient.get(`/addons/atlas/regions/geo?countries=${toLoad.join(',')}`)
       .then(geoRes => {
         const geo = geoRes.data
@@ -262,11 +333,12 @@ export function useAtlas() {
         let added = false
         for (const c of toLoad) {
           const features = geo.features.filter((f: any) => f.properties?.iso_a2?.toUpperCase() === c)
-          if (features.length > 0) { regionGeoCache.current[c] = { type: 'FeatureCollection', features }; added = true }
+          if (features.length > 0) { regionGeoCache.current[c] = { type: 'FeatureCollection', features }; touchRegionCode(c); added = true }
         }
-        if (added) setRegionGeoLoaded(v => v + 1)
+        if (added) { evictRegionCache(); setRegionGeoLoaded(v => v + 1) }
       })
       .catch(() => {})
+      .finally(() => { for (const code of toLoad) pendingRegionCodes.current.delete(code) })
   }
   loadRegionsForViewportRef.current = loadRegionsForViewport
 
@@ -320,6 +392,10 @@ export function useAtlas() {
     map.getPane('regionPane')!.style.zIndex = '401'
 
     mapInstance.current = map
+    // Both renderers live as long as the map does (see the note on the refs); map.remove()
+    // disposes them along with every other layer it holds.
+    countryRendererRef.current = L.canvas({ padding: 0.5, tolerance: 5 })
+    regionRendererRef.current = L.svg({ pane: 'regionPane' })
 
     // Zoom-based region switching
     map.on('zoomend', () => {
@@ -337,6 +413,7 @@ export function useAtlas() {
           regionLayerRef.current.addTo(map)
         }
         loadRegionsForViewportRef.current()
+        rebuildRegionLayerRef.current()
       } else {
         // Physically remove region layer so its SVG paths can't intercept events
         if (regionTooltipRef.current) regionTooltipRef.current.style.display = 'none'
@@ -348,15 +425,29 @@ export function useAtlas() {
     })
 
     map.on('moveend', () => {
-      if (map.getZoom() >= 6) loadRegionsForViewportRef.current()
+      if (map.getZoom() < 6) return
+      loadRegionsForViewportRef.current()
+      // A pan that stays over the same countries changes nothing, and the rebuild
+      // notices that for itself, cheaper than working it out here.
+      rebuildRegionLayerRef.current()
     })
 
-    return () => { map.remove(); mapInstance.current = null }
+    return () => {
+      map.remove()
+      mapInstance.current = null
+      countryRendererRef.current = null
+      regionRendererRef.current = null
+      // The layer belongs to the map that just went away. Without this the next map's
+      // zoomend would re-attach it, and Leaflet would revive the old renderer by
+      // appending a second container to the pane.
+      regionLayerRef.current = null
+      renderedRegionSigRef.current = ''
+    }
   }, [dark, loading])
 
   // Render GeoJSON countries
   useEffect(() => {
-    if (!mapInstance.current || !geoData || !data) return
+    if (!mapInstance.current || !geoData || !data || !countryRendererRef.current) return
 
     const visitedA3 = new Set(visibleCountries.map(c => A2_TO_A3[c.code]).filter(Boolean))
     const plannedA3 = new Set(visibleCountries.filter(c => countryStatus(c) !== 'visited').map(c => A2_TO_A3[c.code]).filter(Boolean))
@@ -378,7 +469,7 @@ export function useAtlas() {
     const colorForCode = countryColor
     const wishlistPatternCache = new Map<string, CanvasPattern | null>()
 
-    const canvasRenderer = L.canvas({ padding: 0.5, tolerance: 5 })
+    const canvasRenderer = countryRendererRef.current
 
     geoLayerRef.current = L.geoJSON(geoData, {
       renderer: canvasRenderer,
@@ -541,17 +632,35 @@ export function useAtlas() {
     // layers fetched before that would otherwise never get drawn.
   }, [geoData, pluginLayers, dark, loading])
 
-  // Render sub-national region layer (zoom >= 5)
-  useEffect(() => {
-    if (!mapInstance.current) return
+  // Render sub-national region layer (zoom >= 5). `force` is for the changes that alter
+  // how the regions look (theme, visits, the planned toggle); the map's own zoom/pan
+  // handlers pass nothing and get a rebuild only when the countries in view changed.
+  const rebuildRegionLayer = (force = false): void => {
+    if (!mapInstance.current || !regionRendererRef.current) return
+    // Below zoom 6 a rebuild can only do harm: it drops the layer that is on the map and
+    // the add at the end of this function starts at 6, so the regions would go and stay
+    // gone. At zoom 5 they are the only clickable layer left (the country layer is dimmed
+    // and pointer-events off), so the layer built further in has to survive the zoom out.
+    if (!force && mapInstance.current.getZoom() < 6) return
+    const regionRenderer = regionRendererRef.current
+
+    // Draw only the countries that are actually on screen. The cache deliberately
+    // outlives the viewport so panning back is free, but merging all of it into one
+    // layer meant a continent's worth of admin-1 polygons stayed in the DOM, and every
+    // newly loaded country tore the whole thing down and built it again (#1950).
+    const bounds = viewportBounds()
+    const inViewCodes = Object.keys(regionGeoCache.current).filter(code => countryInView(code, bounds)).sort()
+    const sig = inViewCodes.join('|')
+    if (!force && sig === renderedRegionSigRef.current) return
 
     // Remove existing region layer
     if (regionLayerRef.current) {
       mapInstance.current.removeLayer(regionLayerRef.current)
       regionLayerRef.current = null
     }
+    renderedRegionSigRef.current = sig
 
-    if (Object.keys(regionGeoCache.current).length === 0) return
+    if (inViewCodes.length === 0) return
 
     // Build set of visited region codes and per-country name sets. Regions follow their
     // country's status, so zooming into a planned country can't reveal "visited" regions.
@@ -598,10 +707,11 @@ export function useAtlas() {
     const isVisitedFeature = (f: any) => matchesRegions(f, visitedRegionCodes, visitedRegionNamesByCountry)
     const isPlannedFeature = (f: any) => matchesRegions(f, plannedRegionCodes, plannedRegionNamesByCountry)
 
-    // Include ALL region features — visited ones get colored fill, unvisited get outline only
+    // Include every region feature of the countries in view: visited ones get colored
+    // fill, unvisited get outline only (clicking one is how a region gets marked)
     const allFeatures: any[] = []
-    for (const geo of Object.values(regionGeoCache.current)) {
-      for (const f of geo.features) {
+    for (const code of inViewCodes) {
+      for (const f of regionGeoCache.current[code].features) {
         allFeatures.push(f)
       }
     }
@@ -614,10 +724,8 @@ export function useAtlas() {
 
     const mergedGeo = { type: 'FeatureCollection', features: allFeatures }
 
-    const svgRenderer = L.svg({ pane: 'regionPane' })
-
     regionLayerRef.current = L.geoJSON(mergedGeo as any, {
-      renderer: svgRenderer,
+      renderer: regionRenderer,
       interactive: true,
       pane: 'regionPane',
       style: (feature) => {
@@ -706,8 +814,17 @@ export function useAtlas() {
     if (mapInstance.current.getZoom() >= 6) {
       regionLayerRef.current.addTo(mapInstance.current)
     }
+  }
+  // Reassigned every render so the map handlers always call a closure that sees the
+  // current visits, theme and toggle state, same pattern as loadRegionsForViewport.
+  rebuildRegionLayerRef.current = rebuildRegionLayer
+
+  useEffect(() => {
+    // Anything in the deps changes how the regions look rather than which are on screen,
+    // so it has to redraw even when the countries in view are the same ones.
     // visitedCountries belongs here: the region colours are derived from it, and without
     // the dep this effect kept painting regions from a stale country list.
+    rebuildRegionLayerRef.current(true)
   }, [regionGeoLoaded, visitedRegions, dark, t, visitedCountries, showPlanned])
 
   const handleMarkCountry = (code: string, name: string): void => {

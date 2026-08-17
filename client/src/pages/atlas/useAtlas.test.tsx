@@ -6,6 +6,7 @@ import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildSettings } from '../../../tests/helpers/factories';
 import { useSettingsStore } from '../../store/settingsStore';
+import L from 'leaflet';
 import { A2_TO_A3 } from './atlasModel';
 import { useAtlas } from './useAtlas';
 
@@ -16,6 +17,8 @@ interface MockGeoJson {
   options: Record<string, unknown>;
   entries: { feature: Record<string, unknown>; layer: MockLayer }[];
   styles: Record<string, unknown>[];
+  /** Whether this layer is on the map right now: built is not the same as shown. */
+  attached: boolean;
 }
 
 interface MockLayer {
@@ -32,6 +35,9 @@ const lf = vi.hoisted(() => ({
   panes: {} as Record<string, { style: Record<string, string> }>,
   zoom: 3,
   intersects: true,
+  // The country codes the viewport is over, when a test needs to be selective about it.
+  // null falls back to the blanket `intersects` answer.
+  intersectsOnly: null as string[] | null,
   hasLayer: true,
   boundsThrows: false,
   mapsCreated: 0,
@@ -44,6 +50,7 @@ const lf = vi.hoisted(() => ({
     this.panes = { overlayPane: { style: {} } };
     this.zoom = 3;
     this.intersects = true;
+    this.intersectsOnly = null;
     this.hasLayer = true;
     this.boundsThrows = false;
     this.mapsCreated = 0;
@@ -53,7 +60,10 @@ const lf = vi.hoisted(() => ({
 }));
 
 vi.mock('leaflet', () => {
-  const makeLayer = () => {
+  // The bounds a country layer reports carry its own code, so the map's bounds can
+  // answer `intersects` per country instead of all-or-nothing.
+  const makeLayer = (feature?: { properties?: Record<string, unknown> }) => {
+    const code = typeof feature?.properties?.ISO_A2 === 'string' ? feature.properties.ISO_A2 : null;
     const handlers: Record<string, (e: unknown) => void> = {};
     const layer = {
       handlers,
@@ -62,7 +72,7 @@ vi.mock('leaflet', () => {
       setStyle: vi.fn(),
       getBounds: vi.fn(() => {
         if (lf.boundsThrows) throw new Error('no bounds');
-        return { isValid: () => true };
+        return { isValid: () => true, code };
       }),
     };
     return layer;
@@ -75,10 +85,16 @@ vi.mock('leaflet', () => {
     remove: vi.fn(() => { lf.mapsRemoved += 1; }),
     fitBounds: vi.fn(),
     addLayer: vi.fn(),
-    removeLayer: vi.fn(),
+    removeLayer: vi.fn((layer?: { record?: { attached: boolean } }) => {
+      if (layer?.record) layer.record.attached = false;
+    }),
     getZoom: vi.fn(() => lf.zoom),
     getCenter: vi.fn(() => ({ lat: 25, lng: 0 })),
-    getBounds: vi.fn(() => ({ intersects: () => lf.intersects })),
+    getBounds: vi.fn(() => ({
+      intersects: (other?: { code?: string | null }) => (
+        lf.intersectsOnly ? !!other?.code && lf.intersectsOnly.includes(other.code) : lf.intersects
+      ),
+    })),
     hasLayer: vi.fn(() => lf.hasLayer),
     createPane: vi.fn((name: string) => { lf.panes[name] = { style: {} }; }),
     getPane: vi.fn((name: string) => lf.panes[name]),
@@ -100,22 +116,23 @@ vi.mock('leaflet', () => {
     }),
     layerGroup: vi.fn(() => ({ addTo: vi.fn(() => ({})) })),
     geoJSON: vi.fn((data: { features?: Record<string, unknown>[] }, options: Record<string, unknown>) => {
-      const record = { data, options, entries: [] as unknown[], styles: [] as unknown[] };
+      const record = { data, options, entries: [] as unknown[], styles: [] as unknown[], attached: false };
       const style = options?.style as ((f: unknown) => unknown) | undefined;
       const onEachFeature = options?.onEachFeature as ((f: unknown, l: unknown) => void) | undefined;
       for (const feature of data?.features ?? []) {
         if (style) record.styles.push(style(feature));
         if (onEachFeature) {
-          const layer = makeLayer();
+          const layer = makeLayer(feature as { properties?: Record<string, unknown> });
           onEachFeature(feature, layer);
           record.entries.push({ feature, layer });
         }
       }
       lf.geoJson.push(record);
       const result = {
-        addTo: vi.fn(() => result),
-        removeFrom: vi.fn(),
-        remove: vi.fn(),
+        record,
+        addTo: vi.fn(() => { record.attached = true; return result; }),
+        removeFrom: vi.fn(() => { record.attached = false; }),
+        remove: vi.fn(() => { record.attached = false; }),
         clearLayers: vi.fn(),
         resetStyle: vi.fn(),
       };
@@ -194,6 +211,20 @@ function useAtlasHandlers(over: Partial<Record<string, unknown>> = {}) {
 /** The country layer is the only GeoJSON drawn without a dedicated pane. */
 function countryLayers(): MockGeoJson[] {
   return (lf.geoJson as MockGeoJson[]).filter((g) => g.options.pane === undefined);
+}
+
+/** Every region layer ever built, oldest first: one record per rebuild. */
+function regionLayers(): MockGeoJson[] {
+  return (lf.geoJson as MockGeoJson[]).filter((g) => g.options.pane === 'regionPane');
+}
+
+function newestRegionLayer(): MockGeoJson | undefined {
+  const layers = regionLayers();
+  return layers[layers.length - 1];
+}
+
+function regionCodesOf(layer: MockGeoJson | undefined): string[] {
+  return (layer?.data.features ?? []).map((f) => (f.properties as Record<string, string>).iso_3166_2);
 }
 
 async function mountAtlas(over: Partial<Record<string, unknown>> = {}, props: { withPanel?: boolean } = {}) {
@@ -807,6 +838,188 @@ describe('useAtlas', () => {
       act(() => { lf.mapHandlers.moveend?.forEach((cb) => cb()); });
 
       expect((lf.geoJson as MockGeoJson[]).some((g) => g.options.pane === 'regionPane')).toBe(false);
+    });
+
+    // ── The region layer used to keep every country it had ever seen and rebuild all of
+    // it, with a fresh renderer each time (#1950) ────────────────────────────────────
+    const twoRegions = {
+      type: 'FeatureCollection',
+      features: [
+        feature({ iso_a2: 'fr', iso_3166_2: 'FR-BRE', name: 'Bretagne', name_en: 'Brittany', admin: 'France' }),
+        feature({ iso_a2: 'it', iso_3166_2: 'IT-62', name: 'Lazio', name_en: 'Latium', admin: 'Italy' }),
+      ],
+    };
+
+    /** Zoom in far enough for regions, over the given countries. */
+    const zoomTo = async (...codes: string[]) => {
+      lf.zoom = 6;
+      lf.intersectsOnly = codes;
+      await act(async () => { lf.mapHandlers.zoomend?.forEach((cb) => cb()); });
+    };
+
+    const panTo = async (...codes: string[]) => {
+      lf.intersectsOnly = codes;
+      await act(async () => { lf.mapHandlers.moveend?.forEach((cb) => cb()); });
+    };
+
+    it('FE-HOOK-ATLAS-038: a map builds one canvas and one svg renderer for its whole life (#1950)', async () => {
+      // Leaflet keeps a renderer as a layer of its own and leaves its container in the
+      // pane when the GeoJSON layer goes, so one per redraw piles up orphaned canvases
+      // that keep updating on every pan.
+      const canvasBefore = vi.mocked(L.canvas).mock.calls.length;
+      const svgBefore = vi.mocked(L.svg).mock.calls.length;
+      await mountAtlas({ geo: geoCountries, regionGeo: twoRegions });
+      await waitFor(() => expect(lf.mapHandlers.zoomend?.length).toBeGreaterThan(0));
+
+      await zoomTo('FR');
+      await waitFor(() => expect(regionLayers().length).toBe(1));
+      // A second country lands, then the planned toggle repaints both layers.
+      await panTo('FR', 'IT');
+      await waitFor(() => expect(regionLayers().length).toBe(2));
+      act(() => atlas.togglePlanned());
+      await waitFor(() => expect(regionLayers().length).toBe(3));
+
+      expect(lf.mapsCreated).toBe(1);
+      expect(vi.mocked(L.canvas).mock.calls.length).toBe(canvasBefore + 1);
+      expect(vi.mocked(L.svg).mock.calls.length).toBe(svgBefore + 1);
+    });
+
+    it('FE-HOOK-ATLAS-039: only the countries in view contribute features (#1950)', async () => {
+      await mountAtlas({ geo: geoCountries, regionGeo: twoRegions });
+      await waitFor(() => expect(lf.mapHandlers.zoomend?.length).toBeGreaterThan(0));
+
+      await zoomTo('FR', 'IT');
+      await waitFor(() => expect(regionCodesOf(newestRegionLayer())).toEqual(['FR-BRE', 'IT-62']));
+
+      // Panning off Italy leaves it in the cache but takes it out of the layer.
+      await panTo('FR');
+      expect(regionCodesOf(newestRegionLayer())).toEqual(['FR-BRE']);
+
+      // Coming back draws it again straight from the cache.
+      await panTo('FR', 'IT');
+      expect(regionCodesOf(newestRegionLayer())).toEqual(['FR-BRE', 'IT-62']);
+    });
+
+    it('FE-HOOK-ATLAS-040: panning inside the same countries rebuilds nothing (#1950)', async () => {
+      await mountAtlas({ geo: geoCountries, regionGeo: twoRegions });
+      await waitFor(() => expect(lf.mapHandlers.zoomend?.length).toBeGreaterThan(0));
+
+      await zoomTo('FR', 'IT');
+      await waitFor(() => expect(regionLayers().length).toBe(1));
+
+      await panTo('FR', 'IT');
+      expect(regionLayers().length).toBe(1);
+
+      // Losing France from the view is a change, so that one does redraw.
+      await panTo('IT');
+      expect(regionLayers().length).toBe(2);
+      expect(regionCodesOf(newestRegionLayer())).toEqual(['IT-62']);
+    });
+
+    it('FE-HOOK-ATLAS-041: the cache stops at a dozen countries and reloads what fell out (#1950)', async () => {
+      // Fourteen countries seen one at a time: the oldest two are gone by the end, so
+      // coming back to the first one has to ask the server again.
+      const seen = ['FR', 'IT', 'ES', 'PT', 'NL', 'BE', 'AT', 'CH', 'PL', 'CZ', 'SE', 'NO', 'DK', 'FI'];
+      const geo = {
+        type: 'FeatureCollection',
+        // Deliberately the other way round from the visiting order: with both the same,
+        // dropping the country from the front of the dataset and dropping the one seen
+        // longest ago pick the same victim, and nothing below tells them apart.
+        features: [...seen].reverse().map((a2) => feature({ ISO_A2: a2, ADM0_A3: A2_TO_A3[a2], ISO_A3: A2_TO_A3[a2], NAME: a2, ADMIN: a2 })),
+      };
+      const regionGeo = {
+        type: 'FeatureCollection',
+        features: seen.map((a2) => feature({ iso_a2: a2.toLowerCase(), iso_3166_2: `${a2}-01`, name: `${a2} region`, admin: a2 })),
+      };
+      await mountAtlas({ geo, regionGeo });
+      await waitFor(() => expect(atlas.atlas_country_options.length).toBe(seen.length));
+
+      const requested: string[] = [];
+      server.use(http.get('/api/addons/atlas/regions/geo', ({ request }) => {
+        requested.push(new URL(request.url).searchParams.get('countries') ?? '');
+        return HttpResponse.json(regionGeo);
+      }));
+
+      lf.zoom = 6;
+      for (let i = 0; i < seen.length; i++) {
+        await panTo(seen[i]);
+        await waitFor(() => expect(requested).toHaveLength(i + 1));
+      }
+      expect(requested).toEqual(seen);
+
+      await panTo('FR');
+      await waitFor(() => expect(requested).toHaveLength(seen.length + 1));
+      expect(requested[requested.length - 1]).toBe('FR');
+
+      // The country the view sat on longest is still cached, so it costs nothing.
+      await panTo('FI');
+      expect(regionCodesOf(newestRegionLayer())).toEqual(['FI-01']);
+      expect(requested).toHaveLength(seen.length + 1);
+
+      // And the two the view left just before that are still there as well. They sit at
+      // the front of the dataset, which is the whole difference between dropping by
+      // position and dropping by how long ago the country was last on screen.
+      await panTo('DK');
+      await panTo('NO');
+      expect(requested).toHaveLength(seen.length + 1);
+    });
+
+    it('FE-HOOK-ATLAS-042: a theme change and the planned toggle still restyle the regions (#1950)', async () => {
+      await mountAtlas({ geo: geoCountries, regionGeo: twoRegions });
+      await waitFor(() => expect(lf.mapHandlers.zoomend?.length).toBeGreaterThan(0));
+
+      await zoomTo('FR');
+      await waitFor(() => expect(regionLayers().length).toBe(1));
+
+      const unvisitedFill = (layer: MockGeoJson) =>
+        (layer.options.style as (f: unknown) => { fillColor: string })(twoRegions.features[0]).fillColor;
+      expect(unvisitedFill(newestRegionLayer()!)).toBe('#000000');
+
+      act(() => atlas.togglePlanned());
+      await waitFor(() => expect(regionLayers().length).toBe(2));
+
+      // Dark mode rebuilds the map itself, so the layer has to come back dark-styled
+      // even though the countries in view never changed.
+      act(() => { seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: true }) }); });
+      await waitFor(() => expect(regionLayers().length).toBe(3));
+      expect(unvisitedFill(newestRegionLayer()!)).toBe('#ffffff');
+    });
+
+    it('FE-HOOK-ATLAS-043: flying to a country from the search draws its regions (#1950)', async () => {
+      await mountAtlas({ geo: geoCountries, regionGeo: twoRegions });
+      await waitFor(() => expect(atlas.atlas_country_options.length).toBe(3));
+
+      // fitBounds puts the view on Italy alone; the zoomend that follows must not cull it.
+      await act(async () => { atlas.select_country_from_search('IT'); });
+      await zoomTo('IT');
+
+      await waitFor(() => expect(regionCodesOf(newestRegionLayer())).toEqual(['IT-62']));
+    });
+
+    it('FE-HOOK-ATLAS-044: zooming out to 5 keeps the drawn regions on the map (#1950)', async () => {
+      await mountAtlas({ geo: geoCountries, regionGeo: twoRegions });
+      await waitFor(() => expect(lf.mapHandlers.zoomend?.length).toBeGreaterThan(0));
+
+      // Both countries land in the cache, then the view narrows to France alone.
+      await zoomTo('FR', 'IT');
+      await waitFor(() => expect(regionLayers().length).toBe(1));
+      await panTo('FR');
+      await waitFor(() => expect(regionCodesOf(newestRegionLayer())).toEqual(['FR-BRE']));
+      const shown = newestRegionLayer()!;
+      expect(shown.attached).toBe(true);
+
+      // One step out. Regions still show at zoom 5 and the country layer stops taking
+      // clicks there, so the region layer is the only way to mark anything. The wider view
+      // pulls Italy back in, which is exactly the change that asks for a rebuild, and the
+      // map only accepts a rebuilt layer from zoom 6, so it must not happen here.
+      lf.zoom = 5;
+      lf.intersectsOnly = ['FR', 'IT'];
+      await act(async () => { lf.mapHandlers.zoomend?.forEach((cb) => cb()); });
+      await act(async () => { lf.mapHandlers.moveend?.forEach((cb) => cb()); });
+
+      expect(lf.panes.overlayPane.style.pointerEvents).toBe('none');
+      expect(shown.attached).toBe(true);
+      expect(newestRegionLayer()).toBe(shown);
     });
   });
 

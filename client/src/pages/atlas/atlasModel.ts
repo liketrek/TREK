@@ -184,6 +184,33 @@ export function countryColor(a3: string): string {
   return COUNTRY_COLORS[hash % COUNTRY_COLORS.length]
 }
 
+// How many countries' worth of admin-1 geometry the region layer keeps around.
+// Panning back to a country you just left has to stay free, but a session that
+// wanders across a continent used to hold on to every country it ever touched,
+// a few hundred polygons each (#1950). A dozen covers the countries around any
+// one view, and /regions/geo is served with a day of cache headroom, so the
+// countries that do fall out come back without hitting the database.
+export const REGION_CACHE_MAX = 12
+
+/**
+ * Which cached countries to drop, given the cache order (least recently viewed
+ * first) and the codes that have to stay. Never returns a code from `keep`: when
+ * the countries in view alone exceed the cap it returns a shorter list instead of
+ * dropping geometry that is on screen, which is what stops panning across a big
+ * country turning into fetch / evict / refetch.
+ */
+export function regionCacheEvictions(order: string[], keep: Set<string>, max: number): string[] {
+  const drop: string[] = []
+  let remaining = order.length
+  for (const code of order) {
+    if (remaining <= max) break
+    if (keep.has(code)) continue
+    drop.push(code)
+    remaining -= 1
+  }
+  return drop
+}
+
 // Convert country code to flag emoji
 export function countryCodeToFlag(code: string): string {
   if (!code || code.length !== 2) return ''

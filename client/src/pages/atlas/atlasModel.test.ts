@@ -6,10 +6,12 @@ import {
   isBucketDuplicateError,
   isCountryVisible,
   normalizeRegionName,
+  regionCacheEvictions,
   withCountryMarkedVisited,
   wishlistA3Codes,
   countryColor,
   COUNTRY_COLORS,
+  REGION_CACHE_MAX,
   type AtlasData,
   type BucketItem,
 } from './atlasModel';
@@ -257,6 +259,32 @@ describe('findBucketDuplicate (#1898)', () => {
       .toBeUndefined();
     expect(findBucketDuplicate([existing], { ...candidate, name: 'Altstadt', country_code: 'DE', lat: 48.13, lng: 11.57 }))
       .toBe(existing);
+  });
+});
+
+// The region cache used to grow for the whole session (#1950). The eviction order is
+// pure arithmetic, so it is decided here rather than inside the Leaflet effect.
+describe('regionCacheEvictions (#1950)', () => {
+  it('drops nothing while the cache is within its cap', () => {
+    expect(regionCacheEvictions(['FR', 'IT'], new Set(), REGION_CACHE_MAX)).toEqual([]);
+    expect(regionCacheEvictions(['FR', 'IT'], new Set(), 2)).toEqual([]);
+  });
+
+  it('drops the least recently viewed countries first, and only as many as needed', () => {
+    expect(regionCacheEvictions(['FR', 'IT', 'ES', 'PT'], new Set(), 2)).toEqual(['FR', 'IT']);
+    expect(regionCacheEvictions(['FR', 'IT', 'ES', 'PT'], new Set(), 3)).toEqual(['FR']);
+  });
+
+  it('never drops a country that has to stay', () => {
+    // FR is the oldest entry but still on screen, so the next-oldest ones go instead.
+    expect(regionCacheEvictions(['FR', 'IT', 'ES', 'PT'], new Set(['FR']), 2)).toEqual(['IT', 'ES']);
+  });
+
+  it('stays over the cap rather than dropping what is in view', () => {
+    // Three countries on screen with room for two: evicting one would only make the
+    // next pan fetch it straight back.
+    expect(regionCacheEvictions(['FR', 'IT', 'ES'], new Set(['FR', 'IT', 'ES']), 2)).toEqual([]);
+    expect(regionCacheEvictions(['FR', 'IT', 'ES', 'PT'], new Set(['IT', 'ES', 'PT']), 2)).toEqual(['FR']);
   });
 });
 
