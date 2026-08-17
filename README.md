@@ -58,9 +58,8 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 ## What you get
 
 <picture>
-  <source media="(prefers-color-scheme: dark) and (max-width: 700px)" srcset="docs/tiles/grid-mobile-dark.svg" />
-  <source media="(prefers-color-scheme: dark)" srcset="docs/tiles/grid-desktop-dark.svg" />
   <source media="(max-width: 700px)" srcset="docs/tiles/grid-mobile.svg" />
+  <source media="(prefers-color-scheme: dark)" srcset="docs/tiles/grid-desktop-dark.svg" />
   <img src="docs/tiles/grid-desktop.svg" alt="Plan, track, share" width="100%" />
 </picture>
 
