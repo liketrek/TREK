@@ -49,8 +49,8 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 
 <div align="center">
   <a href="docs/screenshots/showcase-desktop-1.webp"><img src="docs/screenshots/showcase-desktop-1.webp" alt="Atlas · dashboard · trip planner" width="100%" /></a>
-  <a href="docs/screenshots/showcase-desktop-2.webp"><img src="docs/screenshots/showcase-desktop-2.webp" alt="Collections · journey journal · costs" width="100%" /></a>
   <a href="docs/screenshots/showcase-mobile.webp"><img src="docs/screenshots/showcase-mobile.webp" alt="Mobile PWA · dashboard, day plan, map, costs" width="100%" /></a>
+  <a href="docs/screenshots/showcase-desktop-2.webp"><img src="docs/screenshots/showcase-desktop-2.webp" alt="Collections · journey journal · costs" width="100%" /></a>
 </div>
 
 ---
@@ -58,8 +58,10 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 ## What you get
 
 <picture>
+  <source media="(prefers-color-scheme: dark) and (max-width: 700px)" srcset="docs/tiles/grid-mobile-dark.svg" />
+  <source media="(prefers-color-scheme: dark)" srcset="docs/tiles/grid-desktop-dark.svg" />
   <source media="(max-width: 700px)" srcset="docs/tiles/grid-mobile.svg" />
-  <img src="docs/tiles/grid-desktop.svg" alt="TREK feature tiles" width="100%" />
+  <img src="docs/tiles/grid-desktop.svg" alt="Plan, track, share" width="100%" />
 </picture>
 
 <details>
