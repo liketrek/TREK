@@ -66,32 +66,45 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 <details>
 <summary><b>See all features</b></summary>
 
+<br />
+
+Most of what follows is an addon an admin switches on or off. Lists, Costs, Documents, Collab, Vacay and Atlas ship on; Journey, Collections, MCP, AI Parsing and AirTrail ship off and are marked below.
+
 <table>
 <tr>
 <td width="50%" valign="top">
 
-#### 🧭 Trip planning
+#### 🧭 Planning
 
-- **Drag & drop planner** — organise places into day plans with reordering and cross-day moves
-- **Interactive map** — Leaflet or Mapbox GL with 3D buildings, terrain, photo markers, clustering, route visualization
-- **Place search** — Google Places (photos, ratings, hours) or OpenStreetMap (free, no API key)
-- **Place import** — shared Google Maps / Naver Maps lists, plus GPX and KML/KMZ/GeoJSON map files
-- **Day notes** — timestamped, icon-tagged notes with drag-and-drop reordering
-- **Route optimisation** — auto-sort places and export to Google Maps
-- **Weather forecasts** — 16-day via Open-Meteo (no key) + historical climate fallback
-- **Category filter** — show only matching pins on the map
+- **Day plans**: drag places between days and reorder inside a day, with undo. Notes and bookings drag the same way, and a map marker drops straight onto a day
+- **Maps**: Leaflet, Mapbox GL or MapLibre GL (OpenFreeMap, no token), with clustering, photo markers and route lines. 3D buildings and terrain are Mapbox only
+- **Place search**: Google Places when a key is set (photos, ratings, opening hours), otherwise OpenStreetMap with no key
+- **Place enrichment**: descriptions, facts, hours and photo candidates from OpenStreetMap, Wikipedia, Wikidata and Wikimedia Commons
+- **POI explore**: pull OpenStreetMap POIs by category for the current viewport over Overpass
+- **Import**: shared Google Maps and Naver Maps lists, plus GPX, KML and KMZ files
+- **Export**: GPX of a trip's places and tracks, and an ICS feed per trip or across all of them
+- **Routes**: auto-sort a day (nearest neighbour then 2-opt, locked stops and hotel anchors stay put), driving, walking or cycling profiles over OSRM, then open it in Google Maps or CoMaps
+- **Public transport**: door-to-door itineraries over Transitous
+- **Weather**: 16-day forecast from Open-Meteo, no key. Dates outside that window read the archive for the same date instead
+- **Day notes**: markdown body with an icon and a colour, reordered by drag and drop or moved to another day
+- **Trip dates**: move a trip and the days re-date themselves, either dragging the bookings along or re-anchoring them. Trips also copy and archive
 
 </td>
 <td width="50%" valign="top">
 
-#### 🧳 Travel management
+#### 🧳 Bookings and money
 
-- **Reservations** — flights, accommodations, restaurants with status, confirmation numbers, files; import from booking confirmation emails and PDFs ([KDE Itinerary](https://invent.kde.org/pim/kitinerary))
-- **Costs** — track and split trip expenses (Splitwise-style): per-person / per-day breakdowns, settle-up, multi-currency
-- **Packing lists** — categories, templates, user assignment, progress tracking
-- **Bag tracking** — optional weight tracking with iOS-style distribution
-- **Document manager** — attach docs, tickets, PDFs to trips / places / reservations (≤ 50 MB each)
-- **PDF export** — full trip plan as PDF with cover page, images, notes
+- **Reservations**: 16 booking types with status, confirmation code, travellers and attached files
+- **Flights and trains**: several legs with stopovers, per-leg times and endpoint timezones, against 4,045 bundled airports so local times resolve without a key
+- **Accommodation**: a stay spans a range of days with a check-in window, and shows on every night it covers
+- **Booking import**: EML, PDF, PKPass, HTML and TXT confirmations through [KItinerary](https://invent.kde.org/pim/kitinerary). Needs the `kitinerary-extractor` binary, which ships in the Docker image
+- **AirTrail** (off by default): link a self-hosted AirTrail instance to import flights as reservations and keep them in sync
+- **Costs**: split expenses in integer cents with equal or custom shares, several payers per expense, settle-up suggestions, a settlement log, and CSV export
+- **Currencies**: a currency per expense with the rate frozen at entry. Rates come from Frankfurter, no key
+- **Packing lists**: categories, admin-managed templates, assignees, three visibility tiers, and a packed-of-total line. Bags with weight roll-up are a separate admin switch, off by default
+- **To-dos**: assignee, due date, priority, and a reminder before one falls due
+- **Files**: attach to a trip, place, day entry or reservation. 50 MB each, 500 MB for video, with trash and restore
+- **PDF export**: cover page, place photos, day notes, bookings and costs, with an optional page break per day
 
 </td>
 </tr>
@@ -100,64 +113,70 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 
 #### 👥 Collaboration
 
-- **Real-time sync** — WebSocket. Changes appear instantly across all connected users
-- **Multi-user trips** — invite members with role-based access
-- **Invite links** — one-time or reusable links with expiry
-- **SSO (OIDC)** — Google, Apple, Authentik, Keycloak, or any OIDC provider
-- **2FA** — TOTP + backup codes
-- **Passkeys** — passwordless WebAuthn login (fingerprint / face / PIN / security key), admin-toggleable
-- **Collab suite** — group chat, shared notes, polls, day check-ins
+- **Real-time sync** (WebSocket): edits land live for everyone who has that trip open
+- **Members**: add by email or username, hand ownership to someone else, or add guests who have no login at all
+- **Permissions**: an admin maps each of 16 trip actions to admin, trip owner, trip member or everybody
+- **Invite links**: one reusable link per trip with an optional expiry. Admins can also issue signup invites with a use limit that drop the new account straight into a trip
+- **Public share**: a read-only trip page anyone can open without an account
+- **Collab**: group chat with replies, reactions and link previews, shared notes with attachments, polls, and a What's Next list of upcoming activities. Each of the four switches on its own
+
+#### 📔 Journal, Atlas and Vacay
+
+- **Journey** (off by default): dated entries with story, mood, weather and tags, photos and video from uploads or a linked [Immich](https://immich.app) or Synology Photos library, map views, co-authors, and a public share link
+- **Atlas**: mark countries and sub-national regions visited on [geoBoundaries](https://www.geoboundaries.org/) outlines, plus a bucket list, travel stats and a consecutive-years-travelled count
+- **Vacay**: leave calendar with half days, public holidays from date.nager.at, school holiday overlays for 16 European countries, carry-over between years, and joint or read-only sharing of a plan
+- **Collections** (off by default): a place library outside any trip, with labels, ratings, a custom image per place, copy-into-a-trip, and sharing by invite
 
 </td>
 <td width="50%" valign="top">
 
-#### 📱 Mobile & PWA
+#### 🧩 Plugins
 
-- **Installable** — iOS and Android, straight from the browser, no App Store needed
-- **Offline support** — Service Worker caches tiles, API, uploads via Workbox
-- **Native feel** — fullscreen standalone, themed status bar, splash screen
-- **Touch optimised** — mobile-specific layouts with safe-area handling
+- **Third-party plugins**: install from the TREK registry or sideload a zip, switch on per instance, with their own pages under `/plugins/<id>`
+- **Sandboxed**: one child process per plugin, 63 grantable permissions, an admin-edited outbound host allowlist, memory and RPC caps, and daily caps on AI and notification calls
+- **Trust**: registry downloads are pinned by sha256 and checked against the author's minisign key. A sideloaded zip is marked unverified, and `TREK_PLUGINS_ENABLED=false` turns the whole system off
+- **Extension points**: map markers and layers, place details, day schedules, PDF sections, Atlas layers, journal rows, trip warnings, calendar sources, route profiles and notification channels. Plugin pages run in an opaque-origin iframe
+- **SDK**: [`trek-plugin-sdk`](https://www.npmjs.com/package/trek-plugin-sdk) on npm, with a manifest validator, a mock host, and a dev-link mode that runs a local build against real data
+
+#### 🤖 AI and MCP
+
+- **MCP server** (off by default): OAuth 2.1 with mandatory PKCE and dynamic client registration. 199 tools, 30 resources, 4 prompts
+- **Scopes**: 29 scopes in 14 groups, each one tickable on the consent screen. Tokens are bound to the `/mcp` resource, and every tool call lands in the audit log
+- **Reach**: create trips and days, edit places, packing lists, to-dos, costs, reservations, collections and journeys, mark countries visited, all inside the scopes the token holds
+- **Prompts**: `trip-summary`, plus `packing-list` and `budget-overview` when those addons are on
+- **Addon-aware**: seven addon gates decide which tools and resources a session sees. Flipping one drops live sessions so the surface re-registers
+- **Booking extraction** (off by default): read a confirmation with a local Ollama server, any OpenAI-compatible endpoint, or Anthropic, configured instance-wide or per user
 
 </td>
 </tr>
 <tr>
 <td width="50%" valign="top">
 
-#### 🧩 Addons (admin-toggleable)
+#### 📱 Mobile and offline
 
-- **Lists** — packing lists + to-dos with templates, member assignments, optional bag tracking
-- **Costs** — expense tracker with splits and settle-up (who owes whom), multi-currency
-- **Documents** — file attachments on trips, places, and reservations
-- **Collab** — chat, notes, polls, day-by-day attendance
-- **Vacay** — personal vacation planner with calendar, 100+ country holidays, approved school holiday overlays, carry-over tracking
-- **Atlas** — world map of visited countries, bucket list, travel stats, streak tracking, liquid-glass UI
-- **Journey** — magazine-style travel journal with entries, photos (Immich/Synology), maps, moods
-- **AirTrail** — connect a self-hosted AirTrail instance to import and sync flights into reservations
-- **MCP** — expose TREK to AI assistants via OAuth 2.1
+- **Installable**: iOS and Android straight from the browser, no App Store. Runs standalone without browser chrome, with the status bar tinted per theme
+- **Phone layouts**: a separate shell below 768px with its own tokens, a bottom bar and safe-area insets. Which items sit in that bar is up to the user
+- **Offline reads**: the app shell and every route chunk are precached, and trips, places and file blobs live in a per-user IndexedDB store, so a trip opens with no network
+- **Offline writes**: mutations queue and replay with an `X-Idempotency-Key`, so a reconnect cannot double-apply. A stale edit is parked for a keep-mine or keep-theirs choice
+- **Offline maps**: pre-download a trip's raster tiles, and clear them again
+- **API responses are never cached** by the service worker. They vary per session, so they always come from the network
 
 </td>
 <td width="50%" valign="top">
 
-#### 🤖 AI / MCP
+#### ⚙️ Admin, accounts and security
 
-- **Built-in MCP server** — OAuth 2.1 authenticated. 150+ tools, 30 resources
-- **Granular scopes** — 27 OAuth scopes across 13 permission groups
-- **Full automation** — AI can create trips, plan days, build packing lists, manage budgets, mark countries visited
-- **Pre-built prompts** — `trip-summary`, `packing-list`, `budget-overview`
-- **Addon-aware** — exposes Atlas, Collab, Vacay when those addons are on
-
-</td>
-</tr>
-<tr>
-<td colspan="2" valign="top">
-
-#### ⚙️ Admin & customisation
-
-- **Dashboard views** — card grid or compact list · **Dark mode** — full theme with matching status bar
-- **20 languages** — EN, DE, ES, FR, IT, NL, HU, RU, ZH, ZH-TW, PL, CS, AR (RTL), BR, ID, TR, JA, KO, UK, GR
-- **Admin panel** — users, invites, packing templates, categories, addons, API keys, backups, GitHub history
-- **Notifications** — per-user preferences across email (SMTP), webhook, ntfy, and an in-app notification center
-- **Auto-backups** — scheduled with configurable retention · **Units** — °C/°F, 12h/24h, map tile sources, default coordinates
+- **Login methods**: password login, password registration, OIDC login, OIDC registration and passkey login each switch on and off on their own. `OIDC_ONLY` leaves SSO as the only way in
+- **SSO (OIDC)**: one provider by discovery, with PKCE and `id_token` verification (Authentik, Keycloak, Google and the like)
+- **2FA**: TOTP with ten single-use backup codes, and an admin can require it instance-wide
+- **Passkeys**: WebAuthn login by fingerprint, face, PIN or security key, off until an admin enables it. A passkey also satisfies the 2FA requirement
+- **Hardening**: per-IP limits on login, password reset and 2FA attempts, a password policy, secrets encrypted at rest and masked on read, and an SSRF guard on every URL you configure
+- **Admin panel**: users and invites, the permission matrix, packing templates, categories, addons, plugins, API keys, MCP tokens and OAuth sessions, backups, audit log, and GitHub releases
+- **Backups**: manual or scheduled hourly, daily, weekly or monthly, with retention in days. The zip carries the at-rest key, so a restore can decrypt its own secrets
+- **Notifications**: a per-user matrix of events against in-app, email (SMTP), webhook and ntfy, plus any channel a plugin registers
+- **Appearance**: light, dark or follow the OS, seven colour schemes plus a custom accent, transparency, compact density, reduce motion, and text size per tier
+- **23 languages**: en, de, es, fr, it, nl, hu, ru, zh, zh-TW, pl, cs, ar (right to left), br, id, tr, ja, ko, uk, gr, sv, vi, ca
+- **In-app help**: the wiki ships inside the image and is served from disk at `/help`, so the docs match the version you are running
 
 </td>
 </tr>
