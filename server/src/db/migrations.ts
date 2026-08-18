@@ -3970,6 +3970,17 @@ function runMigrations(db: Database.Database): void {
       // Answering "which photos of this journey have coordinates" without a scan.
       db.exec('CREATE INDEX IF NOT EXISTS idx_trek_photos_geo ON trek_photos(lat, lng) WHERE lat IS NOT NULL AND lng IS NOT NULL');
     },
+    // A journey shared while the trip is still running reads like a blog, and a
+    // blog puts the newest entry first (#1614). The owner decides per share link,
+    // because it is a property of how the link is meant to be read, not of the
+    // journey. Off by default: an already-published link must not reorder itself
+    // under its readers.
+    () => {
+      const cols = db.prepare("SELECT name FROM pragma_table_info('journey_share_tokens')").all() as Array<{ name: string }>;
+      if (!cols.some(c => c.name === 'newest_first')) {
+        db.exec('ALTER TABLE journey_share_tokens ADD COLUMN newest_first INTEGER NOT NULL DEFAULT 0');
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

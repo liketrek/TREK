@@ -7,6 +7,8 @@ interface JourneySharePermissions {
   share_timeline?: boolean;
   share_gallery?: boolean;
   share_map?: boolean;
+  /** Read the journey newest-first, like a blog, rather than in trip order. */
+  newest_first?: boolean;
 }
 
 interface JourneyShareTokenInfo {
@@ -15,6 +17,7 @@ interface JourneyShareTokenInfo {
   share_timeline: boolean;
   share_gallery: boolean;
   share_map: boolean;
+  newest_first: boolean;
 }
 
 /**
@@ -45,18 +48,19 @@ export class JourneyShareService {
       share_timeline = true,
       share_gallery = true,
       share_map = true,
+      newest_first = false,
     } = permissions;
 
     const existing = this.db.prepare('SELECT token FROM journey_share_tokens WHERE journey_id = ?').get(journeyId) as { token: string } | undefined;
     if (existing) {
-      this.db.prepare('UPDATE journey_share_tokens SET share_timeline = ?, share_gallery = ?, share_map = ? WHERE journey_id = ?')
-        .run(share_timeline ? 1 : 0, share_gallery ? 1 : 0, share_map ? 1 : 0, journeyId);
+      this.db.prepare('UPDATE journey_share_tokens SET share_timeline = ?, share_gallery = ?, share_map = ?, newest_first = ? WHERE journey_id = ?')
+        .run(share_timeline ? 1 : 0, share_gallery ? 1 : 0, share_map ? 1 : 0, newest_first ? 1 : 0, journeyId);
       return { token: existing.token, created: false };
     }
 
     const token = crypto.randomBytes(24).toString('base64url');
-    this.db.prepare('INSERT INTO journey_share_tokens (journey_id, token, created_by, share_timeline, share_gallery, share_map) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(journeyId, token, createdBy, share_timeline ? 1 : 0, share_gallery ? 1 : 0, share_map ? 1 : 0);
+    this.db.prepare('INSERT INTO journey_share_tokens (journey_id, token, created_by, share_timeline, share_gallery, share_map, newest_first) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(journeyId, token, createdBy, share_timeline ? 1 : 0, share_gallery ? 1 : 0, share_map ? 1 : 0, newest_first ? 1 : 0);
     return { token, created: true };
   }
 
@@ -69,6 +73,7 @@ export class JourneyShareService {
       share_timeline: !!row.share_timeline,
       share_gallery: !!row.share_gallery,
       share_map: !!row.share_map,
+      newest_first: !!row.newest_first,
     };
   }
 
@@ -219,6 +224,7 @@ export class JourneyShareService {
         share_timeline: shareTimeline,
         share_gallery: shareGallery,
         share_map: shareMap,
+        newest_first: !!row.newest_first,
       },
     };
   }

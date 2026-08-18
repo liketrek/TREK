@@ -5,6 +5,7 @@ import {
   Cloud,
   CloudLightning,
   CloudRain,
+  ArrowUpDown,
   CloudSun,
   Frown,
   Grid,
@@ -110,6 +111,9 @@ export default function JourneyPublicPage() {
     timelineEntries,
     groupedEntries,
     sortedDates,
+    displayDates,
+    newestFirst,
+    setNewestFirst,
     sidebarMapItems,
     allPhotos,
     stopNumberById,
@@ -150,9 +154,27 @@ export default function JourneyPublicPage() {
       {sortedDates.length === 0 && (
         <EmptyState scene="journey" title={t('journey.detail.noEntries')} />
       )}
-      {sortedDates.map((date, dayIdx) => {
+      {/* The owner publishes a reading order; the reader may flip it. Only the order
+          changes — the day colours and the stop numbers stay chronological. */}
+      {sortedDates.length > 1 && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setNewestFirst(!newestFirst)}
+            aria-pressed={newestFirst}
+            className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 px-3 py-1.5 text-[11px] font-semibold text-zinc-600 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500"
+          >
+            <ArrowUpDown size={12} />
+            {newestFirst ? t('memories.newest') : t('memories.oldest')}
+          </button>
+        </div>
+      )}
+      {displayDates.map((date) => {
         const dayEntries = groupedEntries.get(date)!;
         const fd = formatDate(date, locale);
+        // Day index stays chronological even when the feed reads newest-first, so a
+        // day keeps its colour and its number whichever way round it is shown.
+        const dayIdx = sortedDates.indexOf(date);
         const dayColor = DAY_COLORS[dayIdx % DAY_COLORS.length];
         return (
           <div key={date}>

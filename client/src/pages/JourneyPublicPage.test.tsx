@@ -558,4 +558,26 @@ describe('JourneyPublicPage', () => {
     expect(badge(shibuya)).toBe('1');
     expect(badge(sensoji)).toBe('2');
   });
+
+  // #1614 — a journey shared mid-trip reads like a blog. Only the reading order
+  // flips; the stop numbers stay chronological so the map still matches.
+  it('FE-PAGE-PUBLICJOURNEY-022: the reader can flip the order without renumbering the trip', async () => {
+    setupSuccess();
+    render(<JourneyPublicPage />);
+
+    await waitFor(() => expect(screen.getByText('Shibuya Crossing')).toBeInTheDocument());
+
+    const order = () =>
+      Array.from(document.querySelectorAll('[data-entry-id]')).map(el => el.getAttribute('data-entry-id'));
+    expect(order()).toEqual(['10', '11']);
+
+    fireEvent.click(screen.getByRole('button', { name: /first/i }));
+
+    await waitFor(() => expect(order()).toEqual(['11', '10']));
+
+    // Numbering is unchanged: entry 10 is still stop 1 even though it is shown last.
+    const shibuya = document.querySelector('[data-entry-id="10"]') as HTMLElement;
+    const badge = Array.from(shibuya.querySelectorAll('span')).find(s => /^\d+$/.test(s.textContent || ''));
+    expect(badge?.textContent).toBe('1');
+  });
 });

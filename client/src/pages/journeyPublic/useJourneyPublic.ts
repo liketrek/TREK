@@ -53,6 +53,8 @@ export function useJourneyPublic() {
 
   const timelineEntries = useMemo(() => entries, [entries])
   const groupedEntries = useMemo(() => groupByDate(timelineEntries), [timelineEntries])
+  // Chronological throughout: this is what the day colours and the stop numbers are
+  // derived from, so flipping the reading order must not renumber the trip.
   const sortedDates = useMemo(() => [...groupedEntries.keys()].sort(), [groupedEntries])
   const mapEntries = useMemo(
     () => timelineEntries.filter(e => e.location_lat && e.location_lng),
@@ -95,6 +97,16 @@ export function useJourneyPublic() {
     return m
   }, [sidebarMapItems])
 
+  // A journey shared while the trip is still running reads like a blog, so the owner
+  // can publish it newest-first (#1614). The reader may flip it either way; only the
+  // display order changes, never the numbering.
+  const [newestFirst, setNewestFirst] = useState<boolean | null>(null)
+  const effectiveNewestFirst = newestFirst ?? !!perms.newest_first
+  const displayDates = useMemo(
+    () => (effectiveNewestFirst ? [...sortedDates].reverse() : sortedDates),
+    [sortedDates, effectiveNewestFirst],
+  )
+
   // Two-column desktop layout: timeline feed left + sticky map right
   const desktopTwoColumn = !isMobile && perms.share_timeline && perms.share_map
 
@@ -114,7 +126,8 @@ export function useJourneyPublic() {
     view, setView, lightbox, setLightbox, showLangPicker, setShowLangPicker,
     mapRef, activeEntryId, setActiveEntryId, viewingEntry, setViewingEntry, handleMarkerClick,
     perms, journey, stats,
-    timelineEntries, groupedEntries, sortedDates, sidebarMapItems, allPhotos, stopNumberById,
+    timelineEntries, groupedEntries, sortedDates, displayDates, sidebarMapItems, allPhotos, stopNumberById,
+    newestFirst: effectiveNewestFirst, setNewestFirst,
     desktopTwoColumn,
   }
 }
