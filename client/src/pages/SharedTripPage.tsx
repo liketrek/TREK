@@ -486,17 +486,34 @@ export default function SharedTripPage() {
                       >
                         {di + 1}
                       </div>
-                      <div style={{ flex: 1 }}>
+                      {/* `flex: 1` alone gives this block a base size of 0, so the moment an
+                          accommodation chip pushes the row over the available width it freezes
+                          at its min-content width — a ~37px column with one word, or one CJK
+                          character, per line (#1955). Base auto plus minWidth 0 lets it shrink
+                          proportionally and truncate instead. */}
+                      <div style={{ flex: '1 1 auto', minWidth: 0 }}>
                         <div
                           className="text-[#111827]"
-                          style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600 }}
+                          style={{
+                            fontSize: 'calc(14px * var(--fs-scale-body, 1))',
+                            fontWeight: 600,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
                         >
                           {day.title || t('dayplan.dayN', { n: day.day_number })}
                         </div>
                         {day.date && (
                           <div
                             className="text-[#9ca3af]"
-                            style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 1 }}
+                            style={{
+                              fontSize: 'calc(11px * var(--fs-scale-caption, 1))',
+                              marginTop: 1,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
                           >
                             {new Date(day.date + 'T00:00:00Z').toLocaleDateString(locale, {
                               weekday: 'short',
@@ -512,18 +529,27 @@ export default function SharedTripPage() {
                           key={acc.id}
                           className="bg-[#f3f4f6] text-[#6b7280]"
                           style={{
-                            fontSize: 'calc(9px * var(--fs-scale-caption, 1))',
+                            fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))',
                             padding: '2px 6px',
                             borderRadius: 4,
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 3,
+                            gap: 4,
+                            minWidth: 0,
                           }}
                         >
-                          <Hotel size={8} /> {acc.place_name}
+                          <Hotel size={11} style={{ flexShrink: 0 }} />
+                          {/* Own span: text-overflow needs a block container, and the chip
+                              itself is a flex container. */}
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {acc.place_name}
+                          </span>
                         </span>
                       ))}
-                      <span className="text-[#9ca3af]" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))' }}>
+                      <span
+                        className="text-[#9ca3af]"
+                        style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', flexShrink: 0, whiteSpace: 'nowrap' }}
+                      >
                         {dayPlaceCount} {t('shared.places')}
                       </span>
                     </div>
