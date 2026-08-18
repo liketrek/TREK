@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { mapReservations } from '../../../src/nest/booking-import/kitinerary-mapper';
+import type { KiReservation } from '../../../src/nest/booking-import/kitinerary.types';
 
 const airport = (iata: string, lat: number, lng: number) => ({
   iataCode: iata,
@@ -66,5 +67,29 @@ describe('kitinerary mapper — multi-leg flight grouping', () => {
     expect(items).toHaveLength(1);
     expect(items[0].endpoints).toHaveLength(2);
     expect((items[0].metadata as any).legs).toBeUndefined();
+  });
+});
+
+describe('kitinerary mapper — rental car endpoints', () => {
+  it('carries pickup/dropoff addresses on the endpoints as the geocode fallback', () => {
+    const { items } = mapReservations([
+      {
+        '@type': 'RentalCarReservation',
+        reservationNumber: 'C486561570',
+        reservationFor: { name: 'Fullsize SUV', rentalCompany: { name: 'Budget' } },
+        pickupTime: '2026-11-29T16:00:00',
+        dropoffTime: '2026-11-30T16:00:00',
+        pickupLocation: { name: 'Eastport Intl Airport', address: '400 Harbour Rd, Eastport' },
+        // Mangled venue name next to a geocodable address — the real-world case
+        // the fallback exists for.
+        dropoffLocation: { name: 'Westfield Intl Apt', address: '1 Terminal Way, Westfield' },
+      },
+    ] as KiReservation[], 'test.json');
+
+    expect(items).toHaveLength(1);
+    expect(items[0].endpoints).toEqual([
+      expect.objectContaining({ role: 'from', name: 'Eastport Intl Airport', address: '400 Harbour Rd, Eastport' }),
+      expect.objectContaining({ role: 'to', name: 'Westfield Intl Apt', address: '1 Terminal Way, Westfield' }),
+    ]);
   });
 });

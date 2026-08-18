@@ -262,7 +262,7 @@ const bookingImportEndpointSchema = z.object({
   sequence: z.number(),
   name: z.string(),
   code: z.string().nullable(),
-  // Nullable: the mapper emits named endpoints without coords; confirm() geocodes
+  // Nullable: the mapper emits named endpoints without coords; preview() geocodes
   // them, and only the coord'd ones are persisted.
   lat: z.number().nullable(),
   lng: z.number().nullable(),

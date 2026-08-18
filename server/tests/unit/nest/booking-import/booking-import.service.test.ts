@@ -23,9 +23,10 @@ function make(opts: { kit?: boolean; ai?: boolean; extract?: any; parse?: any })
   const extractor = { isAvailable: () => opts.kit ?? false, extract: vi.fn(opts.extract ?? (async () => [])) };
   const llmParse = { isAvailable: () => opts.ai ?? false, parse: vi.fn(opts.parse ?? (async () => ({ kiItems: [], warnings: [] }))) };
   const reservations = { create: vi.fn() };
-  // budget/addons/realtime/maps ride the confirm() path only — the preview()
-  // tests never reach them, so stubs beyond the positional slots aren't needed.
-  const maps = { searchNominatim: vi.fn() };
+  // budget/addons/realtime ride the confirm() path only — the preview() tests never
+  // reach them, so stubs beyond the positional slots aren't needed. maps IS reached:
+  // preview() geocodes uncoordinated endpoints.
+  const maps = { searchNominatim: vi.fn(async (): Promise<{ lat: number | null; lng: number | null }[]> => []) };
   // Places became a constructor dep with the place DI fold (was a path mock of
   // services/placeService); only confirm() reaches it, so a bare create stub does.
   const places = { create: vi.fn() };
@@ -85,5 +86,96 @@ describe('BookingImportService.preview', () => {
     expect(extractor.extract).not.toHaveBeenCalled();
     expect(llmParse.parse).toHaveBeenCalled();
     expect(res.items[0].needs_review).toBe(true);
+  });
+});
+
+// A rental car is the clearest case: kitinerary gives the desk a name and an address
+// but no geo, so every endpoint arrives uncoordinated. Without geocoding here they are
+// dropped at save time by saveEndpoints() (reservation_endpoints.lat/lng are NOT NULL).
+const carKi = (pickup: Record<string, unknown>) => ({
+  '@type': 'RentalCarReservation',
+  reservationNumber: 'CAR1',
+  reservationFor: { name: 'Midsize SUV', rentalCompany: { name: 'Acme' } },
+  pickupTime: '2026-09-10T14:00:00',
+  dropoffTime: '2026-09-12T14:00:00',
+  pickupLocation: pickup,
+});
+
+describe('BookingImportService.preview — endpoint geocoding', () => {
+  it('geocodes an uncoordinated endpoint by name, on the background lane', async () => {
+    const { svc, maps } = make({ kit: true, extract: async () => [carKi({ name: 'Eastport Central Depot' })] });
+    maps.searchNominatim.mockResolvedValue([{ lat: 10, lng: 20 }]);
+
+    const res = await svc.preview([file()], 'no-ai', 1);
+
+    expect(res.items[0].endpoints).toEqual([expect.objectContaining({ name: 'Eastport Central Depot', lat: 10, lng: 20 })]);
+    expect(maps.searchNominatim).toHaveBeenCalledTimes(1);
+    expect(maps.searchNominatim).toHaveBeenCalledWith('Eastport Central Depot', undefined, 'background');
+  });
+
+  it('falls back to the address when the name alone does not resolve', async () => {
+    const { svc, maps } = make({
+      kit: true,
+      extract: async () => [carKi({ name: 'Curbside Counter 7', address: '1 Terminal Way, Eastport' })],
+    });
+    maps.searchNominatim
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ lat: 11, lng: 21 }]);
+
+    const res = await svc.preview([file()], 'no-ai', 1);
+
+    expect(res.items[0].endpoints![0]).toEqual(expect.objectContaining({ lat: 11, lng: 21 }));
+    expect(maps.searchNominatim).toHaveBeenNthCalledWith(2, '1 Terminal Way, Eastport', undefined, 'background');
+  });
+
+  it('keeps an unresolvable endpoint and warns that it will not be saved', async () => {
+    const { svc, maps } = make({
+      kit: true,
+      extract: async () => [carKi({ name: 'Curbside Counter 7', address: 'somewhere unmappable' })],
+    });
+    maps.searchNominatim.mockResolvedValue([]);
+
+    const res = await svc.preview([file('rental.pdf')], 'no-ai', 1);
+
+    // Kept, not filtered: it still shows in the review form's From→To so the user
+    // can set the location by hand.
+    expect(res.items[0].endpoints).toHaveLength(1);
+    expect(res.items[0].endpoints![0]).toEqual(expect.objectContaining({ name: 'Curbside Counter 7', lat: null, lng: null }));
+    expect(res.warnings.some(w => w.includes('could not locate "Curbside Counter 7"'))).toBe(true);
+  });
+
+  it('does not re-query an endpoint that already has coordinates', async () => {
+    const { svc, maps } = make({
+      kit: true,
+      extract: async () => [carKi({ name: 'Eastport Depot', geo: { latitude: 1, longitude: 2 } })],
+    });
+
+    const res = await svc.preview([file()], 'no-ai', 1);
+
+    expect(maps.searchNominatim).not.toHaveBeenCalled();
+    expect(res.items[0].endpoints![0]).toEqual(expect.objectContaining({ lat: 1, lng: 2 }));
+  });
+
+  it('treats a geocoder failure as non-fatal and still returns the booking', async () => {
+    const { svc, maps } = make({ kit: true, extract: async () => [carKi({ name: 'Eastport Central Depot' })] });
+    maps.searchNominatim.mockRejectedValue(new Error('nominatim unreachable'));
+
+    const res = await svc.preview([file()], 'no-ai', 1);
+
+    expect(res.items).toHaveLength(1);
+    expect(res.items[0].endpoints![0]).toEqual(expect.objectContaining({ lat: null, lng: null }));
+    expect(res.warnings.some(w => w.includes('could not locate'))).toBe(true);
+  });
+
+  it('strips the transient address so the response matches the wire contract', async () => {
+    const { svc, maps } = make({
+      kit: true,
+      extract: async () => [carKi({ name: 'Curbside Counter 7', address: '1 Terminal Way, Eastport' })],
+    });
+    maps.searchNominatim.mockResolvedValue([{ lat: 1, lng: 2 }]);
+
+    const res = await svc.preview([file()], 'no-ai', 1);
+
+    expect(res.items[0].endpoints![0]).not.toHaveProperty('address');
   });
 });

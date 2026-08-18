@@ -111,8 +111,9 @@ export class BookingImportService {
         const { items, warnings } = mapReservations(kiItems, file.originalname);
         // LLM extraction is less certain than kitinerary — always flag for review.
         if (aiUsed) for (const it of items) it.needs_review = true;
-        allItems.push(...items);
         allWarnings.push(...warnings);
+        allWarnings.push(...(await this.geocodeEndpoints(items, file.originalname)));
+        allItems.push(...items);
       }
 
       // Report per-file progress so a background import can drive a live widget.
@@ -120,6 +121,56 @@ export class BookingImportService {
     }
 
     return { items: allItems, warnings: allWarnings, files: fileReports };
+  }
+
+  /**
+   * Geocode transport endpoints (stations/stops/terminals/rental desks) that arrived
+   * without coords, so the route draws and map pins appear. The LLM and kitinerary
+   * rarely supply geo for anything but airports.
+   *
+   * This belongs to preview() because preview is the path the clients actually take:
+   * each parsed item is opened in the normal edit modal and saved through
+   * ReservationsService, never through confirm(). An endpoint still lacking coords at
+   * save time is dropped by saveEndpoints() — reservation_endpoints.lat/lng are NOT
+   * NULL — so it would vanish from the booking with nothing said. Hence the warning
+   * instead of a silent skip.
+   *
+   * Unresolvable endpoints are kept, not filtered: they still appear in the review
+   * form's From→To, where the user can set the location by hand before saving.
+   */
+  private async geocodeEndpoints(items: ParsedBookingItem[], fileName: string): Promise<string[]> {
+    const warnings: string[] = [];
+    for (const item of items) {
+      if (!Array.isArray(item.endpoints)) continue;
+      for (const ep of item.endpoints) {
+        if (ep.lat == null || ep.lng == null) {
+          // Name first, then the address: a rental desk's name is often unresolvable
+          // ("Curbside Counter 7") while the address on the same confirmation is exact.
+          for (const query of [ep.name, ep.address]) {
+            if (!query) continue;
+            try {
+              // 'background': an import geocodes every uncoordinated endpoint in one
+              // loop, and must yield to anyone typing in the interactive place search.
+              const hit = (await this.maps.searchNominatim(query, undefined, 'background'))[0];
+              if (hit?.lat != null && hit?.lng != null) {
+                ep.lat = hit.lat;
+                ep.lng = hit.lng;
+                break;
+              }
+            } catch {
+              // Geocoding failure is non-fatal — the booking still imports.
+            }
+          }
+          if (ep.lat == null || ep.lng == null) {
+            warnings.push(`${fileName}: could not locate "${ep.name}" — set it manually on the booking, or it won't be saved`);
+          }
+        }
+        // Transient: neither reservation_endpoints nor the wire contract
+        // (bookingImportEndpointSchema) carries an address.
+        delete ep.address;
+      }
+    }
+    return warnings;
   }
 
   /**

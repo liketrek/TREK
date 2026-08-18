@@ -156,6 +156,10 @@ export interface ParsedEndpoint {
   timezone: string | null;
   local_time: string | null;
   local_date: string | null;
+  /** Geocode fallback when the name alone doesn't resolve (e.g. a rental desk's
+   *  truncated "Westfield Intl Apt"). Consumed by preview() and stripped before
+   *  the response — reservation_endpoints has no address column. */
+  address?: string | null;
 }
 
 /** Venue used to auto-create a places row on confirm */
