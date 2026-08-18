@@ -78,10 +78,16 @@ export class PhotoCaptureBackfillService {
     const abs = path.resolve(UPLOADS_ROOT, filePath);
     if (abs !== UPLOADS_ROOT && !abs.startsWith(UPLOADS_ROOT + path.sep)) return null;
 
-    const parsed = await exifr.parse(abs, { pick: ['DateTimeOriginal', 'CreateDate', 'latitude', 'longitude'] })
-      .catch(() => null) as
-      | { DateTimeOriginal?: Date; CreateDate?: Date; latitude?: number; longitude?: number }
-      | null;
+    type Exif = { DateTimeOriginal?: Date; CreateDate?: Date; latitude?: number; longitude?: number };
+    let parsed: Exif | null = null;
+    try {
+      parsed = (await exifr.parse(abs, {
+        pick: ['DateTimeOriginal', 'CreateDate', 'latitude', 'longitude'],
+      })) as Exif | null;
+    } catch {
+      // Not an image, a truncated upload, a video — none of it is an error here.
+      return null;
+    }
     if (!parsed) return null;
 
     const taken = parsed.DateTimeOriginal ?? parsed.CreateDate ?? null;
