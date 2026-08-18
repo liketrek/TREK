@@ -10,6 +10,7 @@ import { getApiErrorMessage } from '../../types'
 import type { JourneyEntry, GalleryPhoto, JourneyTrip } from '../../store/journeyStore'
 import { photoUrl } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 import { ProviderPicker } from './JourneyDetailPageProviderPicker'
+import { ScrollTrigger } from './JourneyDetailPageScrollTrigger'
 import EmptyState from '../shared/EmptyState'
 
 export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick, onRefresh, onRegisterUpload }: {
@@ -54,6 +55,14 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
   }, [])
 
   const allPhotos = gallery
+  // A long trip's gallery is hundreds of tiles, and rendering them all at once is
+  // what makes scrolling it a chore (#1614). The provider picker has grown its own
+  // way in for the same reason; this reuses it rather than inventing a second one.
+  const GALLERY_PAGE = 60
+  const [visibleCount, setVisibleCount] = useState(GALLERY_PAGE)
+  const shownPhotos = allPhotos.slice(0, visibleCount)
+  // Deleting or adding photos must not leave the window stranded past the end.
+  useEffect(() => { setVisibleCount(c => Math.min(Math.max(c, GALLERY_PAGE), Math.max(allPhotos.length, GALLERY_PAGE))) }, [allPhotos.length])
 
   const entriesWithContent = entries.filter(e => e.type !== 'skeleton' || e.title)
 
@@ -143,7 +152,7 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
         <EmptyState scene="journey" title={t('journey.detail.noPhotos')} />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5 pb-24 md:pb-6">
-          {allPhotos.map((photo, i) => (
+          {shownPhotos.map((photo, i) => (
             <div
               key={photo.id}
               className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
@@ -192,6 +201,9 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
             </div>
           ))}
         </div>
+      )}
+      {visibleCount < allPhotos.length && (
+        <ScrollTrigger onVisible={() => setVisibleCount(c => c + GALLERY_PAGE)} loading={false} />
       )}
 
       {/* Provider Photo Picker Modal */}

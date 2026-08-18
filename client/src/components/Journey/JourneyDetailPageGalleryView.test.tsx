@@ -1,6 +1,7 @@
 // FE-JRN-GALLERY-001 to FE-JRN-GALLERY-016
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { act } from 'react'
 import { http, HttpResponse } from 'msw'
 import userEvent from '@testing-library/user-event'
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render'
@@ -21,6 +22,31 @@ const uploadGalleryPhotos = vi.fn(
 )
 
 const JOURNEY_ID = 9
+
+// The global IntersectionObserver stub never fires; this one hands the callback
+// back so the gallery's load-more sentinel can be driven into view on demand.
+const galleryObservers: { cb: IntersectionObserverCallback; el: Element | null }[] = []
+
+function triggerIntersection() {
+  for (const o of galleryObservers) {
+    o.cb([{ isIntersecting: true, target: o.el } as unknown as IntersectionObserverEntry], null as never)
+  }
+}
+
+function stubIntersectionObserver() {
+  galleryObservers.length = 0
+  vi.stubGlobal('IntersectionObserver', class {
+    observe: (el: Element) => void
+    disconnect = vi.fn()
+    unobserve = vi.fn()
+    takeRecords = vi.fn(() => [])
+    constructor(cb: IntersectionObserverCallback) {
+      const entry: { cb: IntersectionObserverCallback; el: Element | null } = { cb, el: null }
+      galleryObservers.push(entry)
+      this.observe = (el: Element) => { entry.el = el }
+    }
+  })
+}
 
 function buildGalleryPhoto(overrides: Partial<GalleryPhoto> = {}): GalleryPhoto {
   return {
@@ -302,5 +328,28 @@ describe('GalleryView', () => {
 
     await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Some photos failed to upload', 'error', undefined))
     expect(onRefresh).not.toHaveBeenCalled()
+  })
+  // #1614 — a long trip's gallery is hundreds of tiles; rendering them all at once
+  // is what made scrolling it a chore.
+  it('FE-JRN-GALLERY-017: renders a first page and grows as the trigger comes into view', () => {
+    stubIntersectionObserver()
+    const many = Array.from({ length: 145 }, (_, i) => buildGalleryPhoto({ id: 100 + i, photo_id: 100 + i }))
+    const { container } = mountGallery(many)
+
+    const tiles = () => container.querySelectorAll('.aspect-square')
+    expect(tiles()).toHaveLength(60)
+
+    // The observer is stubbed in this suite, so drive the trigger the way it would.
+    act(() => { triggerIntersection() })
+    expect(tiles()).toHaveLength(120)
+
+    act(() => { triggerIntersection() })
+    expect(tiles()).toHaveLength(145)
+  })
+
+  it('FE-JRN-GALLERY-018: a gallery below one page shows no trigger at all', () => {
+    const { container } = mountGallery([buildGalleryPhoto(), buildGalleryPhoto({ id: 101, photo_id: 101 })])
+    expect(container.querySelectorAll('.aspect-square')).toHaveLength(2)
+    expect(container.querySelector('.animate-spin')).toBeNull()
   })
 })
