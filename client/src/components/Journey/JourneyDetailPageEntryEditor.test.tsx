@@ -836,4 +836,46 @@ describe('EntryEditor', () => {
     expect(amazing.className).toContain('border-zinc-200')
     expect(amazing.getAttribute('style')).toBe('')
   })
+
+  // #1614 — entry_time was stored, sent and displayed everywhere, but the desktop
+  // editor never rendered an input for it.
+  it('FE-JRN-EDITOR-041: shows the stored time and saves an edited one', async () => {
+    const user = userEvent.setup()
+    const { onSave } = mountEditor(buildEntry({ id: 10, title: 'Old', entry_time: '14:30:00' }))
+
+    // The column carries HH:MM:SS; a time input only accepts HH:MM.
+    const timeInput = screen.getByDisplayValue('14:30')
+    expect(timeInput).toHaveAttribute('type', 'time')
+
+    fireEvent.change(timeInput, { target: { value: '09:05' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled())
+    expect(onSave.mock.calls[0][0]).toEqual(expect.objectContaining({ entry_time: '09:05' }))
+  })
+
+  it('FE-JRN-EDITOR-042: clearing the time sends null rather than an empty string', async () => {
+    const user = userEvent.setup()
+    const { onSave } = mountEditor(buildEntry({ id: 10, entry_time: '14:30:00' }))
+
+    fireEvent.change(screen.getByDisplayValue('14:30'), { target: { value: '' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled())
+    expect(onSave.mock.calls[0][0]).toEqual(expect.objectContaining({ entry_time: null }))
+  })
+
+  it('FE-JRN-EDITOR-043: the camera route is its own input, so the library picker survives', () => {
+    const { container } = mountEditor(buildEntry({ id: 10 }))
+
+    const inputs = Array.from(container.querySelectorAll('input[type="file"]'))
+    const camera = inputs.filter(i => i.getAttribute('capture') === 'environment')
+    const library = inputs.filter(i => !i.hasAttribute('capture'))
+
+    expect(camera).toHaveLength(1)
+    expect(library).toHaveLength(1)
+    // The library picker keeps multi-select; forcing capture onto it would drop that.
+    expect(library[0]).toHaveAttribute('multiple')
+    expect(camera[0]).not.toHaveAttribute('multiple')
+  })
 })

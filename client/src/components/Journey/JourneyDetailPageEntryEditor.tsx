@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { X, Plus, Image, Minus, Check, MapPin, Locate } from 'lucide-react'
+import { X, Plus, Image, Minus, Check, MapPin, Locate, Camera } from 'lucide-react'
 import { normalizeImageFiles } from '../../utils/convertHeic'
 import { type ResilientResult, type UploadProgress } from '../../utils/uploadQueue'
 import { useTranslation } from '../../i18n'
@@ -34,7 +34,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
   const [title, setTitle] = useState(entry.title || '')
   const [story, setStory] = useState(entry.story || '')
   const [entryDate, setEntryDate] = useState(entry.entry_date || new Date().toISOString().split('T')[0])
-  const [entryTime, setEntryTime] = useState(entry.entry_time || '')
+  const [entryTime, setEntryTime] = useState(entry.entry_time?.slice(0, 5) || '')
   const [locationName, setLocationName] = useState(entry.location_name || '')
   const [locationLat, setLocationLat] = useState<number | null>(entry.location_lat ?? null)
   const [locationLng, setLocationLng] = useState<number | null>(entry.location_lng ?? null)
@@ -60,6 +60,10 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
   const [externalProvider, setExternalProvider] = useState<string | null>(null)
   const [pendingProviderGroups, setPendingProviderGroups] = useState<PendingProviderGroup[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
+  // Own input: putting `capture` on the picker above would take the photo library
+  // away on a phone, which is the more common way in. This one only ever opens the
+  // camera, so tablets and laptops get the same route the phone sheet already has.
+  const cameraRef = useRef<HTMLInputElement>(null)
   const storyRef = useRef<HTMLTextAreaElement>(null)
   const persistedEntryIdRef = useRef<number | null>(entry.id > 0 ? entry.id : null)
 
@@ -71,7 +75,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
     title !== (entry.title || '') ||
     story !== (entry.story || '') ||
     entryDate !== (entry.entry_date || new Date().toISOString().split('T')[0]) ||
-    entryTime !== (entry.entry_time || '') ||
+    entryTime !== (entry.entry_time?.slice(0, 5) || '') ||
     locationName !== (entry.location_name || '') ||
     (locationLat ?? null) !== (entry.location_lat ?? null) ||
     (locationLng ?? null) !== (entry.location_lng ?? null) ||
@@ -258,6 +262,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
 
           <div>
             <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleFileChange} onClick={e => { (e.target as HTMLInputElement).value = '' }} className="hidden" />
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} onClick={e => { (e.target as HTMLInputElement).value = '' }} className="hidden" />
             <div className="flex gap-2">
               <button
                 onClick={() => { setPhotoTab('upload'); setShowGalleryPick(false); fileRef.current?.click() }}
@@ -282,6 +287,15 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
                   <Image size={13} /> {t('journey.editor.fromGallery')}
                 </button>
               )}
+              <button
+                onClick={() => { setPhotoTab('upload'); setShowGalleryPick(false); cameraRef.current?.click() }}
+                disabled={saving}
+                aria-label={t('journey.photo.add')}
+                title={t('journey.photo.add')}
+                className="border border-dashed border-zinc-200 dark:border-zinc-700 rounded-xl px-4 text-[12px] text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center disabled:opacity-50"
+              >
+                <Camera size={14} />
+              </button>
               <button
                 onClick={() => { setPhotoTab('external'); setShowGalleryPick(false) }}
                 disabled={saving}
@@ -559,9 +573,23 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.editor.date')}</label>
-              <DatePicker value={entryDate} onChange={setEntryDate} tripDates={tripDates} />
+            {/* Time sat in state and went to the server, it just had no input here — so a
+                draft's auto-stamped clock time showed up in the timeline, the map, the PDF
+                and the public share, and the desktop had no way to correct it (#1614). */}
+            <div className="grid grid-cols-[1fr_104px] gap-2">
+              <div>
+                <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.editor.date')}</label>
+                <DatePicker value={entryDate} onChange={setEntryDate} tripDates={tripDates} />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('mobileJourney.time')}</label>
+                <input
+                  type="time"
+                  value={entryTime}
+                  onChange={e => setEntryTime(e.target.value)}
+                  className="w-full h-[42px] px-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-transparent text-[13px] text-zinc-900 dark:text-white outline-none focus:border-zinc-400 dark:focus:border-zinc-500 [font-variant-numeric:tabular-nums]"
+                />
+              </div>
             </div>
             <div className="relative">
               <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.editor.location')}</label>
