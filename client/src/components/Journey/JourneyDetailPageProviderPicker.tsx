@@ -167,7 +167,7 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
         {/* Header */}
         {!embedded && <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700 flex-shrink-0">
           <h2 className="text-[16px] font-bold text-zinc-900 dark:text-white">
-            {provider === 'immich' ? 'Immich' : 'Synology Photos'}
+            {provider === 'immich' ? 'Immich' : provider === 'synologyphotos' ? 'Synology Photos' : provider}
           </h2>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
             <X size={16} />

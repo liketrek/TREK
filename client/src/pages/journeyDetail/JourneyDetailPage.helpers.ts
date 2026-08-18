@@ -66,7 +66,17 @@ export function groupPhotosByDate(photos: any[]): { date: string; label: string;
     if (!map.has(key)) map.set(key, [])
     map.get(key)!.push(asset)
   }
-  return [...map.entries()].map(([date, assets]) => ({
+  // Group order must not depend on the order of `photos`. Once the caller sorts by
+  // distance to the entry, first-seen order would put the day holding the nearest
+  // photo first and the date headings would stop reading chronologically. Order
+  // within a day is left as handed in, so the distance sort still applies there.
+  return [...map.entries()]
+    .sort((a, b) => {
+      if (a[0] === '__unknown__') return 1
+      if (b[0] === '__unknown__') return -1
+      return b[0].localeCompare(a[0])
+    })
+    .map(([date, assets]) => ({
     date,
     label: date === '__unknown__'
       ? 'Unknown date'
