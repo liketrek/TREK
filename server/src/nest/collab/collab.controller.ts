@@ -27,7 +27,7 @@ import { BLOCKED_EXTENSIONS } from '../../services/fileService';
 
 const MAX_NOTE_FILE_SIZE = 50 * 1024 * 1024;
 const filesDir = path.join(__dirname, '../../../uploads/files');
-const NOTE_UPLOAD = {
+export const NOTE_UPLOAD = {
   storage: diskStorage({
     destination: (_req, _file, cb) => { if (!fs.existsSync(filesDir)) fs.mkdirSync(filesDir, { recursive: true }); cb(null, filesDir); },
     filename: (_req, file, cb) => cb(null, `${uuidv4()}${path.extname(file.originalname)}`),

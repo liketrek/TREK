@@ -134,4 +134,71 @@ describe('SharedController', () => {
       expect(res.json).not.toHaveBeenCalled();
     });
   });
+
+  describe('createGuestNote', () => {
+    it('404 for an invalid or expired token', () => {
+      const c = new SharedController(svc({ getValidShareToken: vi.fn().mockReturnValue(null) } as Partial<ShareService>));
+      expect(thrown(() => c.createGuestNote('invalid-token', { title: 'T', guest_name: 'G' }))).toEqual({
+        status: 404,
+        body: { error: 'Invalid or expired link' },
+      });
+    });
+
+    it('403 when allow_guest_notes is false / disabled', () => {
+      const c = new SharedController(svc({
+        getValidShareToken: vi.fn().mockReturnValue({ trip_id: 10, created_by: 1, allow_guest_notes: 0 }),
+      } as Partial<ShareService>));
+      expect(thrown(() => c.createGuestNote('tok', { title: 'T', guest_name: 'G' }))).toEqual({
+        status: 403,
+        body: { error: 'Guest note submissions are disabled for this link' },
+      });
+    });
+
+    it('400 when guest_name or title is missing or empty', () => {
+      const c = new SharedController(svc({
+        getValidShareToken: vi.fn().mockReturnValue({ trip_id: 10, created_by: 1, allow_guest_notes: 1 }),
+      } as Partial<ShareService>));
+      expect(thrown(() => c.createGuestNote('tok', { title: '', guest_name: 'Alice' }))).toEqual({
+        status: 400,
+        body: { error: 'guest_name and title are required' },
+      });
+      expect(thrown(() => c.createGuestNote('tok', { title: 'Place note', guest_name: '   ' }))).toEqual({
+        status: 400,
+        body: { error: 'guest_name and title are required' },
+      });
+      expect(thrown(() => c.createGuestNote('tok', { guest_name: 'Alice' }))).toEqual({
+        status: 400,
+        body: { error: 'guest_name and title are required' },
+      });
+    });
+
+    it('creates guest note and returns 201 with { success: true, note }', () => {
+      const fakeNote = { id: 101, title: 'Cafe', guest_name: 'Alice', category: 'Food' };
+      const createGuestNote = vi.fn().mockReturnValue(fakeNote);
+      const c = new SharedController(svc({
+        getValidShareToken: vi.fn().mockReturnValue({ trip_id: 10, created_by: 1, allow_guest_notes: 1 }),
+        createGuestNote,
+      } as Partial<ShareService>));
+
+      const res = c.createGuestNote('tok', {
+        title: ' Cafe recommendation ',
+        content: ' Great espresso ',
+        category: ' Food ',
+        guest_name: ' Alice ',
+      });
+
+      expect(createGuestNote).toHaveBeenCalledWith(
+        10,
+        1,
+        {
+          title: 'Cafe recommendation',
+          content: 'Great espresso',
+          category: 'Food',
+          guest_name: 'Alice',
+        },
+        undefined,
+      );
+      expect(res).toEqual({ success: true, note: fakeNote });
+    });
+  });
 });

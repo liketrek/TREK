@@ -1,10 +1,25 @@
-import { Body, Controller, Delete, Get, HttpException, Param, Post, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpException,
+  Param,
+  Post,
+  Res,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { createReadStream } from 'node:fs';
 import type { User } from '../../types';
 import { ShareService } from './share.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { NOTE_UPLOAD } from '../collab/collab.controller';
 
 /**
  * /api/trips/:tripId/share-link — manage a trip's public read-only share token.
@@ -32,7 +47,7 @@ export class TripShareController {
   create(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: { share_map?: boolean; share_bookings?: boolean; share_packing?: boolean; share_budget?: boolean; share_collab?: boolean },
+    @Body() body: { share_map?: boolean; share_bookings?: boolean; share_packing?: boolean; share_budget?: boolean; share_collab?: boolean; allow_guest_notes?: boolean },
     @Res({ passthrough: true }) res: Response,
   ) {
     this.requireManage(tripId, user);
@@ -42,6 +57,7 @@ export class TripShareController {
       share_packing: body.share_packing,
       share_budget: body.share_budget,
       share_collab: body.share_collab,
+      allow_guest_notes: body.allow_guest_notes,
     });
     // 201 only on first creation; an update answers 200, mirroring the legacy route.
     res.status(result.created ? 201 : 200);
@@ -95,6 +111,46 @@ export class SharedController {
       if (!res.headersSent) res.status(404).json({ error: 'Photo not cached' });
     });
     stream.pipe(res);
+  }
+
+  @Post(':token/notes')
+  @HttpCode(201)
+  @UseInterceptors(FileInterceptor('file', NOTE_UPLOAD))
+  createGuestNote(
+    @Param('token') token: string,
+    @Body() body: { title?: string; content?: string; category?: string; guest_name?: string },
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    const shareRow = this.share.getValidShareToken(token);
+    if (!shareRow) {
+      throw new HttpException({ error: 'Invalid or expired link' }, 404);
+    }
+    if (!shareRow.allow_guest_notes) {
+      throw new HttpException({ error: 'Guest note submissions are disabled for this link' }, 403);
+    }
+
+    const guestName = typeof body.guest_name === 'string' ? body.guest_name.trim() : '';
+    const title = typeof body.title === 'string' ? body.title.trim() : '';
+    if (!guestName || !title) {
+      throw new HttpException({ error: 'guest_name and title are required' }, 400);
+    }
+
+    const content = typeof body.content === 'string' ? body.content.trim() : undefined;
+    const category = typeof body.category === 'string' ? body.category.trim() : undefined;
+
+    const note = this.share.createGuestNote(
+      shareRow.trip_id,
+      shareRow.created_by,
+      {
+        title,
+        content,
+        category,
+        guest_name: guestName,
+      },
+      file,
+    );
+
+    return { success: true, note };
   }
 
   @Get(':token')

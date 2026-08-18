@@ -591,3 +591,139 @@ describe('Share guest notes schema & permissions', () => {
   });
 });
 
+describe('Guest note submissions (POST /api/shared/:token/notes)', () => {
+  it('SHARE-027 — getSharedTripData returns noteCategories and allow_guest_notes in permissions', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    testDb.prepare("INSERT INTO collab_notes (trip_id, user_id, title, category) VALUES (?, ?, 'Note 1', 'Activities')").run(trip.id, user.id);
+    testDb.prepare("INSERT INTO collab_notes (trip_id, user_id, title, category) VALUES (?, ?, 'Note 2', 'Dining')").run(trip.id, user.id);
+
+    const { token } = createOrUpdateShareLink(String(trip.id), user.id, {
+      share_map: true,
+      allow_guest_notes: true,
+    });
+
+    const res = await request(app).get(`/api/shared/${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.permissions.allow_guest_notes).toBe(true);
+    expect(res.body.noteCategories).toEqual(expect.arrayContaining(['Activities', 'Dining']));
+  });
+
+  it('SHARE-028 — POST /api/shared/:token/notes returns 404 for invalid/expired token', async () => {
+    const res = await request(app)
+      .post('/api/shared/invalid-token-xyz/notes')
+      .send({ title: 'Hidden Cafe', guest_name: 'Visitor' });
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Invalid or expired link' });
+  });
+
+  it('SHARE-029 — POST /api/shared/:token/notes returns 403 when allow_guest_notes is false', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const { token } = createOrUpdateShareLink(String(trip.id), user.id, {
+      share_map: true,
+      allow_guest_notes: false,
+    });
+
+    const res = await request(app)
+      .post(`/api/shared/${token}/notes`)
+      .send({ title: 'Hidden Cafe', guest_name: 'Visitor' });
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: 'Guest note submissions are disabled for this link' });
+  });
+
+  it('SHARE-030 — POST /api/shared/:token/notes returns 400 when title or guest_name is missing/empty', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const { token } = createOrUpdateShareLink(String(trip.id), user.id, {
+      share_map: true,
+      allow_guest_notes: true,
+    });
+
+    const res1 = await request(app)
+      .post(`/api/shared/${token}/notes`)
+      .send({ title: '', guest_name: 'Visitor' });
+    expect(res1.status).toBe(400);
+
+    const res2 = await request(app)
+      .post(`/api/shared/${token}/notes`)
+      .send({ title: 'Nice spot', guest_name: '   ' });
+    expect(res2.status).toBe(400);
+  });
+
+  it('SHARE-031 — POST /api/shared/:token/notes creates note with guest_name and returns 201 with success: true and note', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const { token } = createOrUpdateShareLink(String(trip.id), user.id, {
+      share_map: true,
+      allow_guest_notes: true,
+    });
+
+    const res = await request(app)
+      .post(`/api/shared/${token}/notes`)
+      .send({
+        title: 'Secret Ramen Shop',
+        content: 'Down the alley, cash only',
+        category: 'Food',
+        guest_name: 'Traveler Ken',
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.note).toBeDefined();
+    expect(res.body.note.title).toBe('Secret Ramen Shop');
+    expect(res.body.note.content).toBe('Down the alley, cash only');
+    expect(res.body.note.category).toBe('Food');
+    expect(res.body.note.guest_name).toBe('Traveler Ken');
+    expect(res.body.note.trip_id).toBe(trip.id);
+
+    // Verify row persisted in SQLite
+    const saved = testDb.prepare('SELECT * FROM collab_notes WHERE id = ?').get(res.body.note.id) as any;
+    expect(saved).toBeDefined();
+    expect(saved.guest_name).toBe('Traveler Ken');
+    expect(saved.title).toBe('Secret Ramen Shop');
+  });
+
+  it('SHARE-032 — POST /api/shared/:token/notes handles file upload attachment and returns 201 with attachments', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const { token } = createOrUpdateShareLink(String(trip.id), user.id, {
+      share_map: true,
+      allow_guest_notes: true,
+    });
+
+    const res = await request(app)
+      .post(`/api/shared/${token}/notes`)
+      .field('title', 'Menu Photo')
+      .field('content', 'Captured menu board')
+      .field('category', 'Food')
+      .field('guest_name', 'Photographer Alice')
+      .attach('file', Buffer.from('dummy image content'), { filename: 'menu.png', contentType: 'image/png' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.note).toBeDefined();
+    expect(res.body.note.title).toBe('Menu Photo');
+    expect(res.body.note.guest_name).toBe('Photographer Alice');
+    expect(Array.isArray(res.body.note.attachments)).toBe(true);
+    expect(res.body.note.attachments).toHaveLength(1);
+    expect(res.body.note.attachments[0].original_name).toBe('menu.png');
+    expect(res.body.note.attachments[0].mime_type).toBe('image/png');
+    expect(res.body.note.attachments[0].url).toContain(`/api/trips/${trip.id}/files/`);
+  });
+
+  it('SHARE-033 — POST /api/trips/:tripId/share-link sets allow_guest_notes flag', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/share-link`)
+      .set('Cookie', authCookie(user.id))
+      .send({ allow_guest_notes: true });
+
+    expect(res.status).toBe(201);
+    const link = getShareLink(String(trip.id));
+    expect(link?.allow_guest_notes).toBe(true);
+  });
+});
+

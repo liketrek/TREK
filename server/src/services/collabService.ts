@@ -113,12 +113,12 @@ export function listNotes(tripId: string | number) {
   return notes.map(formatNote);
 }
 
-export function createNote(tripId: string | number, userId: number, data: { title: string; content?: string; category?: string; color?: string; website?: string; pinned?: boolean }) {
+export function createNote(tripId: string | number, userId: number, data: { title: string; content?: string; category?: string; color?: string; website?: string; pinned?: boolean; guest_name?: string }) {
   const pinned = data.pinned ? 1 : 0;
   const result = db.prepare(`
-    INSERT INTO collab_notes (trip_id, user_id, title, content, category, color, website, pinned)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(tripId, userId, data.title, data.content || null, data.category || 'General', data.color || '#6366f1', data.website || null, pinned);
+    INSERT INTO collab_notes (trip_id, user_id, title, content, category, color, website, pinned, guest_name)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(tripId, userId, data.title, data.content || null, data.category || 'General', data.color || '#6366f1', data.website || null, pinned, data.guest_name || null);
 
   const note = db.prepare(`
     SELECT n.*, u.username, u.avatar FROM collab_notes n JOIN users u ON n.user_id = u.id WHERE n.id = ?

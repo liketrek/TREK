@@ -196,6 +196,9 @@ export function getSharedTripData(token: string): Record<string, any> | null {
   // Categories
   const categories = db.prepare('SELECT * FROM categories').all();
 
+  const noteCatRows = db.prepare('SELECT DISTINCT category FROM collab_notes WHERE trip_id = ? AND category IS NOT NULL').all(tripId) as { category: string }[];
+  const noteCategories = noteCatRows.length > 0 ? noteCatRows.map(r => r.category) : ['General'];
+
   const permissions = {
     share_map: !!shareRow.share_map,
     share_bookings: !!shareRow.share_bookings,
@@ -230,7 +233,7 @@ export function getSharedTripData(token: string): Record<string, any> | null {
   // itinerary: days, their assignments/notes, and the place list with coordinates,
   // addresses and notes. Withhold it when the owner disabled the map.
   return {
-    trip, baseCurrency, categories, permissions,
+    trip, baseCurrency, categories, noteCategories, permissions,
     days: permissions.share_map ? days : [],
     assignments: permissions.share_map ? assignments : {},
     dayNotes: permissions.share_map ? dayNotes : {},
@@ -241,6 +244,16 @@ export function getSharedTripData(token: string): Record<string, any> | null {
     budget: permissions.share_budget ? budget : [],
     collab: collabMessages,
   };
+}
+
+/**
+ * Returns the share_tokens row if the token exists and has not expired, or null otherwise.
+ */
+export function getValidShareToken(token: string): any | null {
+  const shareRow = db.prepare(
+    "SELECT * FROM share_tokens WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))"
+  ).get(token) as any;
+  return shareRow || null;
 }
 
 /**

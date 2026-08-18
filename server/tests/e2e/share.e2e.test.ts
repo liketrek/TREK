@@ -31,9 +31,25 @@ const { checkPermission } = vi.hoisted(() => ({ checkPermission: vi.fn() }));
 vi.mock('../../src/services/permissions', () => ({ checkPermission }));
 
 const { shareSvc } = vi.hoisted(() => ({
-  shareSvc: { createOrUpdateShareLink: vi.fn(), getShareLink: vi.fn(), deleteShareLink: vi.fn(), getSharedTripData: vi.fn(), getSharedPlacePhotoPath: vi.fn() },
+  shareSvc: {
+    createOrUpdateShareLink: vi.fn(),
+    getShareLink: vi.fn(),
+    deleteShareLink: vi.fn(),
+    getSharedTripData: vi.fn(),
+    getSharedPlacePhotoPath: vi.fn(),
+    getValidShareToken: vi.fn(),
+  },
 }));
 vi.mock('../../src/services/shareService', () => shareSvc);
+
+const { collabSvc } = vi.hoisted(() => ({
+  collabSvc: {
+    createNote: vi.fn(),
+    addNoteFile: vi.fn(),
+    getFormattedNoteById: vi.fn(),
+  },
+}));
+vi.mock('../../src/services/collabService', () => collabSvc);
 
 import { ShareModule } from '../../src/nest/share/share.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
@@ -132,6 +148,43 @@ describe('Share-link e2e (real auth guard + temp SQLite)', () => {
       const res = await request(server).get('/api/shared/bad/place-photo/ChIJabc/bytes');
       expect(res.status).toBe(404);
       expect(res.body).toEqual({ error: 'Photo not cached' });
+    });
+  });
+
+  describe('public guest note submission (/api/shared/:token/notes)', () => {
+    it('404 for an invalid token', async () => {
+      shareSvc.getValidShareToken.mockReturnValueOnce(null);
+      const res = await request(server).post('/api/shared/bad/notes').send({ title: 'T', guest_name: 'G' });
+      expect(res.status).toBe(404);
+      expect(res.body).toEqual({ error: 'Invalid or expired link' });
+    });
+
+    it('403 when allow_guest_notes is false', async () => {
+      shareSvc.getValidShareToken.mockReturnValueOnce({ trip_id: 5, created_by: 1, allow_guest_notes: 0 });
+      const res = await request(server).post('/api/shared/tok/notes').send({ title: 'T', guest_name: 'G' });
+      expect(res.status).toBe(403);
+      expect(res.body).toEqual({ error: 'Guest note submissions are disabled for this link' });
+    });
+
+    it('400 when title or guest_name is missing', async () => {
+      shareSvc.getValidShareToken.mockReturnValueOnce({ trip_id: 5, created_by: 1, allow_guest_notes: 1 });
+      const res = await request(server).post('/api/shared/tok/notes').send({ title: '' });
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: 'guest_name and title are required' });
+    });
+
+    it('201 on valid submission and returns { success: true, note }', async () => {
+      shareSvc.getValidShareToken.mockReturnValueOnce({ trip_id: 5, created_by: 1, allow_guest_notes: 1 });
+      const fakeNote = { id: 99, title: 'Spot', guest_name: 'Guest' };
+      collabSvc.createNote.mockReturnValueOnce(fakeNote);
+      collabSvc.getFormattedNoteById.mockReturnValueOnce(fakeNote);
+
+      const res = await request(server)
+        .post('/api/shared/tok/notes')
+        .send({ title: 'Spot', guest_name: 'Guest', category: 'General' });
+
+      expect(res.status).toBe(201);
+      expect(res.body).toEqual({ success: true, note: fakeNote });
     });
   });
 });
