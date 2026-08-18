@@ -48,6 +48,7 @@ const HelpPage = lazyWithRetry(() => import('./pages/HelpPage'))
 const AtlasPage = lazyWithRetry(() => import('./pages/AtlasPage'))
 const JourneyPage = lazyWithRetry(() => import('./pages/JourneyPage'))
 const JourneyDetailPage = lazyWithRetry(() => import('./pages/JourneyDetailPage'))
+const JourneyStudioPage = lazyWithRetry(() => import('./pages/JourneyStudioPage'))
 const CollectionsPage = lazyWithRetry(() => import('./pages/CollectionsPage'))
 const JourneyPublicPage = lazyWithRetry(() => import('./pages/JourneyPublicPage'))
 const SharedTripPage = lazyWithRetry(() => import('./pages/SharedTripPage'))
@@ -513,7 +514,12 @@ export default function App() {
                 <ViewportRoute phone={MJourneyDetailScreen} desktop={JourneyDetailPage} />
               </ProtectedRoute>
             }
-          />
+          >
+            {/* Studio is nested so the journey stays mounted underneath it and
+                shows through the panel's margin — it is opened on top of the
+                journey, not navigated away to. */}
+            <Route path="studio" element={<JourneyStudioPage />} />
+          </Route>
           <Route
             path="/collections"
             element={

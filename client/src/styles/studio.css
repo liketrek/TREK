@@ -1,0 +1,930 @@
+/* ============================================================================
+   TREK Studio — the book designer's shell.
+
+   No palette of its own: the root carries `.trek-dash` as well, so every colour,
+   radius and shadow below resolves against the dashboard tokens and follows the
+   user's theme and accent without a second set to keep in sync. Collections does
+   the same (styles/collections.css).
+
+   Every rule is scoped under `.trek-dash` on purpose, not out of habit:
+   dashboard.css:95 resets `button` to `font/color/background/border/padding:
+   inherit|none|0` at specificity (0,1,1), which quietly beats a bare `.st-x`.
+   A Studio rule that is not scoped simply does not apply to a button.
+
+   What IS specific here is the material split. The workbench sits under a
+   scattered, colourful page and needs to stay calm, so it is nearly opaque with
+   a small blur; the rails float above it and get the full card glass. The sheet
+   itself is deliberately flat white — paper does not glow.
+   ============================================================================ */
+
+.trek-dash.st-root {
+  position: fixed;
+  /* Above the journey's Leaflet controls (z-index 400) but below the app's
+     dialogs and toasts (99999), so a confirm opened from Studio still lands on
+     top of it. */
+  z-index: 9999;
+  inset: 16px;
+  display: grid;
+  grid-template-rows: 56px minmax(0, 1fr);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--sh-lg), var(--glass-highlight);
+  /* Nearly opaque on purpose: a full 22px blur across the whole viewport is the
+     most expensive thing you can leave standing, and the journey underneath is
+     busy enough to hurt legibility. Same reasoning as the floating map controls
+     in collections.css. */
+  background: color-mix(in oklch, var(--bg) 94%, transparent);
+  backdrop-filter: blur(8px) saturate(1.2);
+  -webkit-backdrop-filter: blur(8px) saturate(1.2);
+  color: var(--ink);
+  /* The root carries .trek-dash for its tokens, and that class also declares
+     `min-height: 100%` for a full-page dashboard. Inherited here it forces the
+     panel to the full window height, pushing its bottom edge — and the zoom
+     pill with it — past the screen. */
+  min-height: 0;
+}
+
+.st-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: oklch(0.2 0.01 65 / .38);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.dark .st-scrim { background: oklch(0 0 0 / .55); }
+
+/* ----------------- entry / exit ----------------- */
+/* Grows out of the button that opened it. --st-ox/--st-oy are written by the
+   opener from the button's rect, relative to the panel's 16px inset, so the
+   origin is the button and not the centre. */
+.trek-dash.st-root {
+  transform-origin: var(--st-ox, 50%) var(--st-oy, 50%);
+}
+.st-enter { animation: st-in 280ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+.st-exit { animation: st-out 180ms cubic-bezier(0.4, 0, 1, 1) both; }
+.st-scrim-enter { animation: st-fade-in 180ms ease-out both; }
+.st-scrim-exit { animation: st-fade-out 160ms ease-in both; }
+
+@keyframes st-in {
+  from { opacity: 0; transform: scale(0.86); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes st-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.94); }
+}
+@keyframes st-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes st-fade-out { from { opacity: 1; } to { opacity: 0; } }
+
+/* The app-wide damping in index.css only covers the trek-* classes, so ours has
+   to opt in here or Studio would be the one surface that ignores the setting. */
+@media (prefers-reduced-motion: reduce) {
+  .st-enter, .st-exit, .st-scrim-enter, .st-scrim-exit {
+    animation-duration: 120ms;
+  }
+  .st-enter { animation-name: st-fade-in; }
+  .st-exit { animation-name: st-fade-out; }
+}
+
+/* ----------------- top bar ----------------- */
+.trek-dash .st-bar {
+  /* Its own stacking context, above the rails: the panels below carry z-index 1,
+     and without this the format menu would open behind them. */
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 18px 0 10px;
+  min-width: 0;
+  background: var(--glass-bg);
+  border-bottom: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.trek-dash .st-back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px 0 8px;
+  border-radius: 999px;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  max-width: 240px;
+  transition: background .18s, color .18s;
+}
+.trek-dash .st-back:hover { background: var(--accent-soft); color: var(--ink); }
+.trek-dash .st-back .st-back-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The journey's own cover, so you never lose track of whose book this is. */
+.trek-dash .st-cover {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  object-fit: cover;
+  flex: none;
+  border: 1px solid var(--line-2);
+  background: var(--surface-2);
+}
+
+.trek-dash .st-name {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.trek-dash .st-name input {
+  min-width: 0;
+  flex: 0 1 auto;
+  width: 100%;
+  max-width: 420px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 5px 9px;
+  margin-left: -9px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  transition: background .18s, border-color .18s;
+}
+.trek-dash .st-name input:hover { background: color-mix(in oklch, var(--ink) 5%, transparent); }
+.trek-dash .st-name input:focus {
+  outline: none;
+  background: var(--surface);
+  border-color: var(--accent);
+}
+
+.trek-dash .st-bar-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  margin-left: auto;
+}
+/* The undo/redo pair belongs together; everything else in the group breathes. */
+.trek-dash .st-bar-group .st-tool.is-icon + .st-tool.is-icon { margin-left: -5px; }
+
+.trek-dash .st-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 9px;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  flex: none;
+  transition: background .18s, color .18s, opacity .18s;
+}
+.trek-dash .st-tool.is-icon { width: 30px; padding: 0; }
+
+/* The browser's own ring is a hard black box on a glass bar. Keep it for
+   keyboard users, drop it for the pointer. */
+.trek-dash .st-tool:focus { outline: none; }
+.trek-dash .st-tool:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-soft), 0 0 0 3px var(--accent);
+}
+.trek-dash .st-tool-label { line-height: 1; }
+
+/* Below 1360 the labels go and the tools become icons — the bar is not allowed
+   to grow into the book's space. */
+@media (max-width: 1359px) {
+  .trek-dash .st-tool-label { display: none; }
+  .trek-dash .st-tool { padding: 0 8px; }
+}
+.trek-dash .st-tool:hover:not(:disabled) { background: color-mix(in oklch, var(--ink) 7%, transparent); color: var(--ink); }
+.trek-dash .st-tool:disabled { opacity: .35; }
+/* ----------------- format picker ----------------- */
+.trek-dash .st-picker { position: relative; flex: none; }
+
+.trek-dash .st-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 3;
+  min-width: 240px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-radius: var(--r-sm);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--sh-lg), var(--glass-highlight);
+  backdrop-filter: blur(30px) saturate(1.8);
+  -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  animation: st-menu-in 140ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+@keyframes st-menu-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) { .st-menu { animation-duration: 80ms; } }
+
+.trek-dash .st-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 16px;
+  border-radius: 10px;
+  text-align: left;
+  color: var(--ink-2);
+  transition: background .16s, color .16s;
+}
+.trek-dash .st-menu-item:hover { background: color-mix(in oklch, var(--ink) 7%, transparent); color: var(--ink); }
+.trek-dash .st-menu-item.is-active { color: var(--ink); }
+/* One tile for every format, with the sheet centred inside it. Sizing the
+   shapes directly made a portrait and a landscape sheet different heights, so
+   nothing lined up down the list. */
+.trek-dash .st-menu-tile {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+.trek-dash .st-menu-shape {
+  border-radius: 2px;
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  box-shadow: var(--sh-xs);
+}
+.trek-dash .st-menu-text { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.trek-dash .st-menu-name { font-size: 13px; font-weight: 500; }
+.trek-dash .st-menu-dim { font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+.trek-dash .st-tool.is-primary {
+  /* --accent-on is the accent used AS text on a surface; the colour that reads
+     on top of the accent is --accent-text (index.css:562, :753). Using the
+     former here paints the label in its own background. */
+  background: var(--accent);
+  color: var(--accent-text, #fff);
+  padding: 0 14px;
+  font-weight: 600;
+}
+/* Disabled it is still the loudest thing in the bar, which is wrong for a
+   control that cannot do anything yet — so it steps back to an outline until
+   there is something to export. */
+.trek-dash .st-tool.is-primary:disabled {
+  background: transparent;
+  color: var(--ink-2);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  opacity: .5;
+}
+.trek-dash .st-tool.is-primary:hover:not(:disabled) { filter: brightness(1.08); }
+
+.trek-dash .st-sep { width: 1px; height: 20px; background: var(--line-2); margin: 0 2px; flex: none; }
+
+/* ----------------- body: rail | workbench | inspector ----------------- */
+.trek-dash .st-body {
+  display: grid;
+  grid-template-columns: 64px 236px minmax(0, 1fr) 300px;
+  min-height: 0;
+}
+
+/* Under 1280 the inspector floats over the workbench instead of narrowing it —
+   below roughly 700px of canvas a spread stops being legible at any zoom. */
+@media (max-width: 1279px) {
+  .trek-dash .st-body { grid-template-columns: 64px 236px minmax(0, 1fr); }
+  .trek-dash .st-inspector {
+    position: absolute;
+    top: 56px;
+    right: 0;
+    bottom: 0;
+    width: 300px;
+    box-shadow: var(--sh-lg);
+  }
+}
+@media (max-width: 1079px) {
+  .trek-dash .st-body { grid-template-columns: 64px minmax(0, 1fr); }
+  .trek-dash .st-side {
+    position: absolute;
+    top: 56px;
+    left: 64px;
+    bottom: 0;
+    width: 236px;
+    box-shadow: var(--sh-lg);
+  }
+}
+
+.trek-dash .st-panel {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  z-index: 1;
+}
+.trek-dash .st-pages { border-right: 1px solid var(--glass-border); }
+.trek-dash .st-inspector { border-left: 1px solid var(--glass-border); }
+
+.trek-dash .st-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 14px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+  flex: none;
+}
+.trek-dash .st-panel-scroll { overflow-y: auto; overflow-x: hidden; padding: 0 12px 14px; min-height: 0; }
+
+/* ----------------- page thumbnails ----------------- */
+.trek-dash .st-thumbs { display: flex; flex-direction: column; gap: 10px; }
+.trek-dash .st-thumb {
+  display: block;
+  width: 100%;
+  border-radius: var(--r-xs);
+  border: 2px solid transparent;
+  padding: 3px;
+  transition: border-color .18s, background .18s;
+  text-align: left;
+}
+.trek-dash .st-thumb:focus { outline: none; }
+.trek-dash .st-thumb:focus-visible { border-color: var(--accent); }
+.trek-dash .st-thumb:hover { background: color-mix(in oklch, var(--ink) 5%, transparent); }
+.trek-dash .st-thumb.is-active { border-color: var(--accent); }
+.trek-dash .st-thumb-sheet {
+  /* The sheet is paper: flat, opaque, no glass. `position: relative` is
+     load-bearing: the preview inside is absolutely positioned, and without an
+     anchor here it would lay itself out against whatever is positioned further
+     up the tree and spill out of the rail. */
+  position: relative;
+  background: #ffffff;
+  border-radius: 4px;
+  box-shadow: var(--sh-sm);
+  overflow: hidden;
+}
+.trek-dash .st-thumb-label {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------- workbench ----------------- */
+.trek-dash .st-work-wrap {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  /* A faint tint so the white sheet reads as an object lying on something. */
+  background:
+    radial-gradient(120% 90% at 50% 0%, color-mix(in oklch, var(--accent) 5%, transparent) 0%, transparent 60%),
+    var(--bg-2);
+}
+
+.trek-dash .st-work {
+  overflow: auto;
+  min-width: 0;
+  padding: 40px;
+  display: grid;
+  place-items: center;
+}
+
+/*
+ * A scaled element keeps its unscaled layout box, so centring and scrolling
+ * would follow the full-size sheet and not what you actually see. The stage
+ * carries the scaled measurements and the sheet is drawn from its top-left
+ * corner inside it — layout and optics then agree at every zoom level.
+ */
+.trek-dash .st-stage {
+  position: relative;
+  flex: none;
+  /* Dragging a frame must not sweep a text selection across the page behind it.
+     Text on the sheet is content to be laid out, not prose to be highlighted;
+     in-place editing will opt back in on the element being edited. */
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.trek-dash .st-sheet {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  background: #ffffff;
+  box-shadow: 0 1px 2px oklch(0 0 0 / .1), 0 30px 70px -30px oklch(0 0 0 / .45);
+}
+/* The trim edge, drawn as an inset outline so it never shifts the geometry. */
+.trek-dash .st-sheet::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px oklch(0 0 0 / .07);
+}
+
+.trek-dash .st-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--ink-3);
+  text-align: center;
+  padding: 0 32px;
+  pointer-events: none;
+}
+
+/* ----------------- section rail + side panel ----------------- */
+.trek-dash .st-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 6px;
+  background: var(--glass-bg);
+  border-right: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  z-index: 1;
+}
+.trek-dash .st-rail-btn {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 11px;
+  color: var(--ink-3);
+  transition: background .16s, color .16s;
+}
+.trek-dash .st-rail-btn span {
+  font-size: 9px;
+  font-weight: 600;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trek-dash .st-rail-btn:hover { background: color-mix(in oklch, var(--ink) 6%, transparent); color: var(--ink-2); }
+.trek-dash .st-rail-btn.is-on { background: var(--accent-soft); color: var(--accent-ink); }
+
+.trek-dash .st-side { border-right: 1px solid var(--glass-border); }
+
+.trek-dash .st-tabs {
+  display: flex;
+  gap: 3px;
+  padding: 0 12px 10px;
+  flex: none;
+}
+.trek-dash .st-tabs button {
+  flex: 1;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-3);
+  background: color-mix(in oklch, var(--ink) 4%, transparent);
+  transition: background .16s, color .16s;
+}
+/* The count is a footnote to the label, not part of it — a badge keeps it from
+   competing with the word for the same weight. */
+.trek-dash .st-tabs button em {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 15px;
+  margin-left: 5px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--ink) 10%, transparent);
+  color: var(--ink-3);
+  font-style: normal;
+  font-size: 9.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  vertical-align: middle;
+}
+.trek-dash .st-tabs button.is-on em {
+  background: color-mix(in oklch, var(--accent-text, #fff) 24%, transparent);
+  color: var(--accent-text, #fff);
+}
+.trek-dash .st-tabs button:hover { color: var(--ink-2); }
+.trek-dash .st-tabs button.is-on { background: var(--accent); color: var(--accent-text, #fff); }
+
+/* ----------------- content browser ----------------- */
+.trek-dash .st-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+.trek-dash .st-photo-cell {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  transition: transform .14s ease-out, box-shadow .14s;
+}
+.trek-dash .st-photo-cell:hover { transform: translateY(-2px); box-shadow: var(--sh-md); }
+.trek-dash .st-photo-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.trek-dash .st-entries { display: flex; flex-direction: column; gap: 8px; }
+.trek-dash .st-entry {
+  padding: 10px 11px 11px;
+  border-radius: var(--r-sm);
+  background: color-mix(in oklch, var(--surface) 70%, transparent);
+  border: 1px solid var(--line);
+}
+.trek-dash .st-entry-head { font-size: 12.5px; font-weight: 600; letter-spacing: -0.01em; }
+.trek-dash .st-entry-meta { font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
+
+.trek-dash .st-stack { display: flex; flex-direction: column; gap: 5px; }
+.trek-dash .st-tile {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 13px;
+  border-radius: 10px;
+  text-align: left;
+  color: var(--ink);
+  background: color-mix(in oklch, var(--surface) 65%, transparent);
+  border: 1px solid var(--line);
+  transition: background .16s, border-color .16s, transform .14s;
+}
+.trek-dash .st-tile:hover { background: var(--surface); border-color: var(--line-2); transform: translateY(-1px); }
+
+.trek-dash .st-shape-grid { display: flex; gap: 6px; flex-wrap: wrap; }
+.trek-dash .st-shape-btn {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  color: var(--ink-2);
+  background: color-mix(in oklch, var(--surface) 65%, transparent);
+  border: 1px solid var(--line);
+  transition: background .16s, transform .14s, color .16s;
+}
+.trek-dash .st-shape-btn:hover { background: var(--surface); color: var(--ink); transform: translateY(-1px); }
+
+/* ----------------- template cards ----------------- */
+.trek-dash .st-tpl-slot {
+  position: absolute;
+  border-radius: 1.5px;
+  background: color-mix(in oklch, var(--ink) 16%, transparent);
+}
+.trek-dash .st-tpl-slot.is-heading { background: color-mix(in oklch, var(--ink) 45%, transparent); }
+.trek-dash .st-tpl-slot.is-meta { background: color-mix(in oklch, var(--ink) 26%, transparent); }
+.trek-dash .st-tpl-slot.is-body {
+  background: repeating-linear-gradient(
+    to bottom,
+    color-mix(in oklch, var(--ink) 22%, transparent) 0 1px,
+    transparent 1px 3px
+  );
+}
+.trek-dash .st-tpl-fold {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: color-mix(in oklch, var(--ink) 12%, transparent);
+}
+
+/* ----------------- selection chrome ----------------- */
+/*
+ * Drawn in screen pixels above the page, never inside it: an outline that lived
+ * on the sheet would scale with the zoom (hairline at 30%, a fat band at 300%)
+ * and, worse, would be one mistake away from ending up in the print.
+ */
+.trek-dash .st-chrome {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.trek-dash .st-select {
+  position: absolute;
+  pointer-events: none;
+  /*
+   * Two rings, not one. A single accent line vanishes the moment it crosses a
+   * photograph of the same value — and over a picture that is dark on one side
+   * and bright on the other, no single colour works and no measurement of "the"
+   * background behind the frame can be right. A dark line with a light one
+   * immediately outside it always leaves one of the two readable, whatever it
+   * happens to be lying on. The soft halo outside them is decoration and may
+   * disappear against anything it likes.
+   */
+  box-shadow:
+    0 0 0 1.5px var(--accent),
+    0 0 0 2.5px rgba(255, 255, 255, .92),
+    0 0 0 6px color-mix(in oklch, var(--accent) 13%, transparent);
+  border-radius: 1px;
+}
+
+/* Corners round, edges as short bars — you can tell what a handle will do
+   before you touch it, which eight identical squares never manage. */
+.trek-dash .st-handle {
+  position: absolute;
+  background: #fff;
+  border: 1.5px solid var(--accent);
+  /* Same reasoning as the frame: a white ring outside the dark border keeps the
+     handle findable on a dark photograph. */
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .85), 0 1px 3px oklch(0 0 0 / .3);
+  pointer-events: auto;
+  transition: transform .12s ease-out, box-shadow .12s;
+}
+.trek-dash .st-handle:hover { transform: scale(1.25); box-shadow: 0 0 0 1px rgba(255,255,255,.85), 0 2px 7px oklch(0 0 0 / .34); }
+.trek-dash .st-handle.is-corner {
+  width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border-radius: 50%;
+}
+.trek-dash .st-handle.is-h {
+  width: 22px; height: 7px; margin: -3.5px 0 0 -11px; border-radius: 4px;
+}
+.trek-dash .st-handle.is-v {
+  width: 7px; height: 22px; margin: -11px 0 0 -3.5px; border-radius: 4px;
+}
+
+/* Drop target for a photo dragged in from the content panel. */
+.trek-dash .st-drop {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 2px;
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 0 0 3px rgba(255, 255, 255, .9),
+    inset 0 0 0 100vmax color-mix(in oklch, var(--accent) 16%, transparent);
+}
+
+/* In-place text editing: sits exactly on the element, in its own type. */
+.trek-dash .st-inline-edit {
+  position: absolute;
+  z-index: 4;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  resize: none;
+  overflow: hidden;
+  background: rgba(255, 255, 255, .92);
+  box-shadow: 0 0 0 1.5px var(--accent), 0 0 0 2.5px rgba(255, 255, 255, .9);
+  white-space: pre-wrap;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.trek-dash .st-inline-edit:focus { outline: none; }
+
+/* ----------------- floating quick bar ----------------- */
+.trek-dash .st-quickbar {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 4px;
+  border-radius: 11px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--sh-md), var(--glass-highlight);
+  backdrop-filter: blur(24px) saturate(1.7);
+  -webkit-backdrop-filter: blur(24px) saturate(1.7);
+  pointer-events: auto;
+  animation: st-quick-in 130ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  z-index: 3;
+}
+@keyframes st-quick-in {
+  from { opacity: 0; transform: translate(-50%, calc(-100% + 5px)); }
+  to { opacity: 1; transform: translate(-50%, -100%); }
+}
+@media (prefers-reduced-motion: reduce) { .trek-dash .st-quickbar { animation-duration: 70ms; } }
+
+.trek-dash .st-quickbar button {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--ink-2);
+  transition: background .14s, color .14s;
+}
+.trek-dash .st-quickbar button:hover { background: color-mix(in oklch, var(--ink) 9%, transparent); color: var(--ink); }
+.trek-dash .st-quickbar button.is-danger:hover { background: color-mix(in oklch, #e11d48 16%, transparent); color: #e11d48; }
+.trek-dash .st-quickbar-sep { width: 1px; height: 16px; background: var(--line-2); margin: 0 3px; }
+
+.trek-dash .st-guide {
+  position: absolute;
+  background: #f43f5e; /* theme-lint-disable — an alignment guide must not be the accent, or it vanishes against a selection outline */
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .7);
+  pointer-events: none;
+}
+
+/* ----------------- floating zoom pill ----------------- */
+.trek-dash .st-zoom {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  pointer-events: auto;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 44px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  backdrop-filter: blur(30px) saturate(1.8);
+  -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  z-index: 2;
+}
+.trek-dash .st-zoom button {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+  transition: background .18s, color .18s;
+}
+.trek-dash .st-zoom button:hover:not(:disabled) { background: color-mix(in oklch, var(--ink) 8%, transparent); color: var(--ink); }
+.trek-dash .st-zoom button:disabled { opacity: .35; }
+.trek-dash .st-zoom-value {
+  min-width: 54px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* ----------------- inspector controls ----------------- */
+.trek-dash .st-section { padding: 12px 2px 14px; border-bottom: 1px solid var(--line); }
+.trek-dash .st-section:last-of-type { border-bottom: 0; }
+.trek-dash .st-section-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--ink-3);
+  margin-bottom: 9px;
+}
+
+.trek-dash .st-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.trek-dash .st-row { display: flex; flex-wrap: wrap; gap: 5px; }
+
+.trek-dash .st-field { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.trek-dash .st-field > span {
+  font-size: 11px;
+  color: var(--ink-3);
+  flex: none;
+  min-width: 13px;
+}
+.trek-dash .st-field input[type="range"] { flex: 1; min-width: 0; accent-color: var(--accent); }
+
+.trek-dash .st-input {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  color: var(--ink);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  transition: border-color .16s;
+}
+.trek-dash .st-input:focus { outline: none; border-color: var(--accent); }
+.trek-dash .st-textarea {
+  height: auto;
+  padding: 8px;
+  line-height: 1.5;
+  font-variant-numeric: normal;
+  resize: vertical;
+}
+
+.trek-dash .st-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 27px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--ink) 5%, transparent);
+  color: var(--ink-2);
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background .16s, color .16s;
+}
+.trek-dash .st-chip:hover { background: color-mix(in oklch, var(--ink) 10%, transparent); color: var(--ink); }
+.trek-dash .st-chip.is-on { background: var(--accent); color: var(--accent-text, #fff); }
+.trek-dash .st-chip.is-icon { width: 27px; padding: 0; }
+.trek-dash .st-chip.is-danger:hover { background: color-mix(in oklch, #e11d48 18%, transparent); color: #e11d48; }
+.trek-dash .st-chip:focus { outline: none; }
+.trek-dash .st-chip:focus-visible { box-shadow: 0 0 0 2px var(--accent-soft), 0 0 0 3px var(--accent); }
+
+.trek-dash .st-swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.trek-dash .st-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  border: 1px solid var(--line-2);
+  box-shadow: var(--sh-xs);
+  transition: transform .14s, box-shadow .14s;
+}
+.trek-dash .st-swatch:hover { transform: scale(1.08); }
+.trek-dash .st-swatch.is-on { box-shadow: 0 0 0 2px var(--accent); }
+.trek-dash .st-swatch-custom {
+  position: relative;
+  overflow: hidden;
+  background: conic-gradient(#e11d48, #f59e0b, #10b981, #3b82f6, #8b5cf6, #e11d48); /* theme-lint-disable — the colour wheel is the control */
+  cursor: pointer;
+}
+.trek-dash .st-swatch-custom input { position: absolute; inset: -6px; opacity: 0; cursor: pointer; }
+
+/* ----------------- focal point pad ----------------- */
+.trek-dash .st-focal-wrap { margin-top: 9px; }
+.trek-dash .st-focal {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--line-2);
+  background: var(--surface-2);
+  cursor: crosshair;
+  touch-action: none;
+}
+.trek-dash .st-focal img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+.trek-dash .st-focal-dot {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px oklch(0 0 0 / .35), 0 2px 6px oklch(0 0 0 / .4);
+  pointer-events: none;
+}
+.trek-dash .st-focal-dot::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+/* ----------------- inspector placeholder ----------------- */
+.trek-dash .st-hint {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-3);
+  padding: 6px 2px;
+}
+
+/* ----------------- phone ----------------- */
+.trek-dash.st-phone {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 32px;
+  text-align: center;
+  background: var(--bg);
+  color: var(--ink);
+}

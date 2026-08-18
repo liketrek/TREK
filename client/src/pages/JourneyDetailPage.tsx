@@ -8,9 +8,10 @@ import PhotoLightbox from '../components/Journey/PhotoLightbox'
 import ContributorInviteDialog from '../components/Journey/ContributorInviteDialog'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import EmptyState from '../components/shared/EmptyState'
+import { Outlet } from 'react-router'
 import {
   ArrowLeft, MoreHorizontal, Download, List, Grid, MapPin,
-  Plus, ChevronUp, ChevronDown, Eye, EyeOff,
+  Plus, ChevronUp, ChevronDown, Eye, EyeOff, BookOpen,
 } from 'lucide-react'
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
 import MobileEntryView from '../components/Journey/MobileEntryView'
@@ -35,6 +36,7 @@ function JourneyDetailPageDesktop() {
   // scroll-synced map and the map/trip-date derivations live in the hook.
   const {
     id, navigate, toast, t, locale,
+    openStudio, prefetchStudio,
     current, loading,
     canEditEntries, canEditJourney, myRole,
     view, setView, activeEntryId, setActiveEntryId, feedRef,
@@ -166,6 +168,14 @@ function JourneyDetailPageDesktop() {
           </div>
 
           <div className="flex items-center gap-1.5">
+            <button
+              onClick={openStudio}
+              onMouseEnter={prefetchStudio}
+              aria-label={t('journey.studio.openAria')}
+              className={barButton}
+            >
+              <BookOpen size={16} />
+            </button>
             <button onClick={openBookPdf} aria-label={t('journey.pdf.saveAsPdf')} className={barButton}>
               <Download size={16} />
             </button>
@@ -251,6 +261,14 @@ function JourneyDetailPageDesktop() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={openStudio}
+                      onMouseEnter={prefetchStudio}
+                      className="inline-flex h-[34px] items-center gap-1.5 px-3.5 rounded-full bg-white/15 backdrop-blur border border-white/15 text-[12px] font-semibold hover:bg-white/25"
+                    >
+                      <BookOpen size={14} />
+                      {t('journey.studio.open')}
+                    </button>
                     <button onClick={openBookPdf} aria-label={t('journey.pdf.saveAsPdf')} className="w-[34px] h-[34px] rounded-full bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"><Download size={14} /></button>
                     <div className="relative group">
                       <button
@@ -626,6 +644,10 @@ function JourneyDetailPageDesktop() {
           onClose={() => setLightbox(null)}
         />
       )}
+
+      {/* TREK Studio. It portals itself over the page, so this journey keeps
+          rendering underneath and shows through the panel's margin. */}
+      <Outlet />
     </div>
   )
 }

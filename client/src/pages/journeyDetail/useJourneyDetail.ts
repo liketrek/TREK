@@ -343,8 +343,37 @@ export function useJourneyDetail() {
     return dates
   }, [current?.trips])
 
+  /** Studio's margin to the window on all four sides — see `.st-root` in studio.css. */
+  const STUDIO_INSET = 16
+
+  /**
+   * Open TREK Studio.
+   *
+   * The button's own rect travels along in the navigation state so the panel can
+   * grow out of the button instead of appearing from nowhere. The origin is
+   * expressed inside the panel's box, which starts 16px in from the left and
+   * `--nav-h + 16px` down from the top (see studio.css).
+   */
+  const openStudio = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    const r = e.currentTarget.getBoundingClientRect()
+    navigate(`/journey/${id}/studio`, {
+      state: {
+        studioOrigin: {
+          x: Math.round(r.left + r.width / 2 - STUDIO_INSET),
+          y: Math.round(r.top + r.height / 2 - STUDIO_INSET),
+        },
+      },
+    })
+  }, [navigate, id])
+
+  /** Warm the Studio chunk on hover so the click is not spent downloading it. */
+  const prefetchStudio = useCallback(() => {
+    void import('../JourneyStudioPage')
+  }, [])
+
   return {
     id, navigate, toast, t, locale,
+    openStudio, prefetchStudio,
     current, loading,
     canEditEntries, canEditJourney, myRole,
     view, setView, activeEntryId, setActiveEntryId, feedRef,
