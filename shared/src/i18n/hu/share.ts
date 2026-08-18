@@ -12,5 +12,6 @@ const share: TranslationStrings = {
   'share.permPacking': 'Csomagolás',
   'share.permBudget': 'Költségek',
   'share.permCollab': 'Csevegés',
+  'share.permGuestNotes': 'Vendég jegyzetek engedélyezése',
 };
 export default share;

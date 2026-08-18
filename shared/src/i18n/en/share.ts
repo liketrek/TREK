@@ -12,5 +12,6 @@ const share: TranslationStrings = {
   'share.permPacking': 'Packing',
   'share.permBudget': 'Costs',
   'share.permCollab': 'Chat',
+  'share.permGuestNotes': 'Allow guest notes',
 };
 export default share;

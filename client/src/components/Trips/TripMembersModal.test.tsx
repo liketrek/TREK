@@ -462,4 +462,78 @@ describe('TripMembersModal', () => {
     // Access count covers owner + the real member only (2), not the guest.
     expect(screen.getByText(/Access \(2/)).toBeInTheDocument();
   });
+
+  it('FE-COMP-MEMBERS-028: allow_guest_notes toggle renders and sends updated perms on click', async () => {
+    const user = userEvent.setup();
+    seedStore(usePermissionsStore, { permissions: { share_manage: 'trip_owner' } });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: ownerUser.id }) });
+
+    let postedPerms: Record<string, unknown> | null = null;
+    server.use(
+      http.get('/api/trips/1/share-link', () =>
+        HttpResponse.json({
+          token: 'tok99',
+          share_map: true,
+          share_bookings: true,
+          share_packing: false,
+          share_budget: false,
+          share_collab: false,
+          allow_guest_notes: false,
+        })
+      ),
+      http.post('/api/trips/1/share-link', async ({ request }) => {
+        postedPerms = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ token: 'tok99', ...postedPerms });
+      }),
+    );
+
+    render(<TripMembersModal {...defaultProps} />);
+    await screen.findByText('Public Link');
+
+    const guestNotesBtn = await screen.findByText('Allow guest notes');
+    expect(guestNotesBtn).toBeInTheDocument();
+
+    await user.click(guestNotesBtn);
+
+    await waitFor(() => {
+      expect(postedPerms).not.toBeNull();
+      expect(postedPerms).toMatchObject({ allow_guest_notes: true });
+    });
+  });
+
+  it('FE-COMP-MEMBERS-029: allow_guest_notes is initialised from existing share link info', async () => {
+    const user = userEvent.setup();
+    seedStore(usePermissionsStore, { permissions: { share_manage: 'trip_owner' } });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: ownerUser.id }) });
+
+    let postedPerms: Record<string, unknown> | null = null;
+    server.use(
+      http.get('/api/trips/1/share-link', () =>
+        HttpResponse.json({
+          token: 'tok99',
+          share_map: true,
+          share_bookings: true,
+          share_packing: false,
+          share_budget: false,
+          share_collab: false,
+          allow_guest_notes: true,
+        })
+      ),
+      http.post('/api/trips/1/share-link', async ({ request }) => {
+        postedPerms = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ token: 'tok99', ...postedPerms });
+      }),
+    );
+
+    render(<TripMembersModal {...defaultProps} />);
+    await screen.findByText('Public Link');
+
+    const guestNotesBtn = await screen.findByText('Allow guest notes');
+    await user.click(guestNotesBtn);
+
+    await waitFor(() => {
+      expect(postedPerms).not.toBeNull();
+      expect(postedPerms).toMatchObject({ allow_guest_notes: false });
+    });
+  });
 });

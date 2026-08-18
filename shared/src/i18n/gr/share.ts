@@ -12,5 +12,6 @@ const share: TranslationStrings = {
   'share.permPacking': 'Πακετάρισμα',
   'share.permBudget': 'Κόστη',
   'share.permCollab': 'Συνομιλία',
+  'share.permGuestNotes': 'Να επιτρέπονται σημειώσεις επισκεπτών',
 };
 export default share;

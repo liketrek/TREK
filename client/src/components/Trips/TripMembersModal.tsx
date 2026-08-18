@@ -38,7 +38,7 @@ function ShareLinkSection({ tripId, t }: { tripId: number; t: (key: string, para
   const [shareToken, setShareToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
-  const [perms, setPerms] = useState({ share_map: true, share_bookings: true, share_packing: false, share_budget: false, share_collab: false })
+  const [perms, setPerms] = useState<Record<string, boolean>>({ share_map: true, share_bookings: true, share_packing: false, share_budget: false, share_collab: false, allow_guest_notes: false })
   const toast = useToast()
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -49,7 +49,7 @@ function ShareLinkSection({ tripId, t }: { tripId: number; t: (key: string, para
   useEffect(() => {
     shareApi.getLink(tripId).then(d => {
       setShareToken(d.token)
-      if (d.token) setPerms({ share_map: d.share_map ?? true, share_bookings: d.share_bookings ?? true, share_packing: d.share_packing ?? false, share_budget: d.share_budget ?? false, share_collab: d.share_collab ?? false })
+      if (d.token) setPerms({ share_map: d.share_map ?? true, share_bookings: d.share_bookings ?? true, share_packing: d.share_packing ?? false, share_budget: d.share_budget ?? false, share_collab: d.share_collab ?? false, allow_guest_notes: d.allow_guest_notes ?? false })
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [tripId])
@@ -105,6 +105,7 @@ function ShareLinkSection({ tripId, t }: { tripId: number; t: (key: string, para
           { key: 'share_packing', label: t('share.permPacking') },
           { key: 'share_budget', label: t('share.permBudget') },
           { key: 'share_collab', label: t('share.permCollab') },
+          { key: 'allow_guest_notes', label: t('share.permGuestNotes') },
         ].map(opt => (
           <button key={opt.key} onClick={() => !opt.always && handleUpdatePerms(opt.key, !perms[opt.key])}
             style={{

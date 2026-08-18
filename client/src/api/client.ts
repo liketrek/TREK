@@ -11,7 +11,7 @@ import {
   type SettingUpsertRequest, type SettingsBulkRequest,
   type JourneyCreateRequest, type JourneyAddTripRequest,
   type JourneyReorderEntriesRequest, type JourneyProviderPhotosRequest,
-  type JourneyShareLinkRequest,
+  type JourneyShareLinkRequest, type ShareLinkRequest,
   type RegisterRequest, type LoginRequest, type ForgotPasswordRequest,
   type ResetPasswordRequest, type ChangePasswordRequest,
   type MfaVerifyLoginRequest, type MfaEnableRequest, type McpTokenCreateRequest,
@@ -981,11 +981,23 @@ export const backupApi = {
   setAutoSettings: (settings: Record<string, unknown>) => apiClient.put('/backup/auto-settings', settings).then(r => r.data),
 }
 
+export interface ShareLinkInfo {
+  token: string | null
+  share_map?: boolean
+  share_bookings?: boolean
+  share_packing?: boolean
+  share_budget?: boolean
+  share_collab?: boolean
+  allow_guest_notes?: boolean
+  [key: string]: unknown
+}
+
 export const shareApi = {
-  getLink: (tripId: number | string) => apiClient.get(`/trips/${tripId}/share-link`).then(r => r.data),
-  createLink: (tripId: number | string, perms?: Record<string, boolean>) => apiClient.post(`/trips/${tripId}/share-link`, perms || {}).then(r => r.data),
+  getLink: (tripId: number | string): Promise<ShareLinkInfo> => apiClient.get(`/trips/${tripId}/share-link`).then(r => r.data),
+  createLink: (tripId: number | string, perms?: ShareLinkRequest | Record<string, boolean>) => apiClient.post(`/trips/${tripId}/share-link`, perms || {}).then(r => r.data),
   deleteLink: (tripId: number | string) => apiClient.delete(`/trips/${tripId}/share-link`).then(r => r.data),
   getSharedTrip: (token: string) => apiClient.get(`/shared/${token}`).then(r => r.data),
+  addGuestNote: (token: string, formData: FormData) => postMultipart<{ success: boolean; note: any }>(`/shared/${token}/notes`, formData),
 }
 
 // Public transit routing (#1065) — Transitous/MOTIS proxied through the server.
