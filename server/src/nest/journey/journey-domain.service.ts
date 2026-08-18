@@ -342,6 +342,10 @@ export class JourneyDomainService {
     // (cross-tenant leak). Mirrors the trip-access gate every other trip-scoped
     // path enforces.
     if (!this.db.canAccessTrip(tripId, userId)) return false;
+    // And a journey the caller can actually reach. Without this, any logged-in user
+    // could link a trip of theirs into a stranger's journey and seed entries and
+    // photos there — the MCP tool has always checked this, the REST route never did.
+    if (!this.canAccessJourney(journeyId, userId)) return false;
     const now = this.ts();
     try {
       this.db.prepare('INSERT OR IGNORE INTO journey_trips (journey_id, trip_id, added_at) VALUES (?, ?, ?)').run(
@@ -442,9 +446,15 @@ export class JourneyDomainService {
   }
 
   // import trip_photos into journey gallery when a trip is linked
+  //
+  // Only the ones the owner actually shared with the trip. A photo left unshared is
+  // denied on the trip path (memories-access checks tp.shared = 1), and copying it
+  // here handed it to every journey contributor and, with an open gallery, to
+  // anonymous visitors of the share link — journey_photos.shared cannot gate that
+  // afterwards, because a direct upload writes 0 into the same column.
   private syncTripPhotos(journeyId: number, tripId: number) {
     const tripPhotos = this.db
-      .prepare('SELECT tp.photo_id, tp.shared FROM trip_photos tp WHERE tp.trip_id = ?')
+      .prepare('SELECT tp.photo_id, tp.shared FROM trip_photos tp WHERE tp.trip_id = ? AND tp.shared = 1')
       .all(tripId) as { photo_id: number; shared: number }[];
     if (!tripPhotos.length) return;
 

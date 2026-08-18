@@ -2079,3 +2079,55 @@ describe('journeyTracks', () => {
     expect(svc.journeyTracks(journey.id, stranger.id)).toBeNull();
   });
 });
+
+// ── Trip linking: whose journey, and whose photos (#1614 review) ─────────────
+
+describe('addTripToJourney guards', () => {
+  it('JOURNEY-SVC-100: refuses to link into a journey the caller cannot reach', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const journey = createJourney(testDb, owner.id, { title: "Owner's journey" });
+    const trip = createTrip(testDb, stranger.id, { title: 'Stranger trip' });
+
+    // The stranger owns the trip, so the trip gate passes — only the journey gate stops this.
+    expect(svc.addTripToJourney(journey.id, trip.id, stranger.id)).toBe(false);
+    const links = testDb.prepare('SELECT * FROM journey_trips WHERE journey_id = ?').all(journey.id);
+    expect(links).toHaveLength(0);
+  });
+
+  it('JOURNEY-SVC-101: a contributor may still link, the owner obviously too', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: helper } = createUser(testDb);
+    const journey = createJourney(testDb, owner.id, { title: 'Shared journey' });
+    testDb.prepare('INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, ?, ?)')
+      .run(journey.id, helper.id, 'editor', new Date().toISOString());
+    const trip = createTrip(testDb, helper.id, { title: 'Helper trip' });
+
+    expect(svc.addTripToJourney(journey.id, trip.id, helper.id)).toBe(true);
+  });
+
+  it('JOURNEY-SVC-102: only trip photos the owner shared are copied into the gallery', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id, { title: 'Photo journey' });
+    const trip = createTrip(testDb, user.id, { title: 'Photo trip' });
+
+    const mk = (assetId: string) => {
+      const r = testDb.prepare(
+        "INSERT INTO trek_photos (provider, asset_id, owner_id, media_type) VALUES ('immich', ?, ?, 'image')",
+      ).run(assetId, user.id);
+      return Number(r.lastInsertRowid);
+    };
+    const sharedPhoto = mk('shared-asset');
+    const privatePhoto = mk('private-asset');
+    const ins = testDb.prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id, shared) VALUES (?, ?, ?, ?)');
+    ins.run(trip.id, user.id, sharedPhoto, 1);
+    ins.run(trip.id, user.id, privatePhoto, 0);
+
+    svc.addTripToJourney(journey.id, trip.id, user.id);
+
+    const copied = testDb
+      .prepare('SELECT photo_id FROM journey_photos WHERE journey_id = ? ORDER BY photo_id')
+      .all(journey.id) as { photo_id: number }[];
+    expect(copied.map(r => r.photo_id)).toEqual([sharedPhoto]);
+  });
+});
