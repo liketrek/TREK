@@ -48,6 +48,24 @@ describe('MJourneyEntrySheet quick capture', () => {
     });
   });
 
+  // #1614 — the ask was "photos *or* quick notes" while travelling, and a moment
+  // without a picture is still worth catching.
+  it('takes a note in capture mode and saves it', async () => {
+    vi.spyOn(mapsApi, 'reverse').mockResolvedValue({ name: 'Singapore', address: 'Singapore' });
+    const { props } = setup();
+
+    const note = await screen.findByPlaceholderText('Write your story...');
+    fireEvent.change(note, { target: { value: 'Ferry was late, worth it' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() =>
+      expect(props.onSave).toHaveBeenCalledWith(
+        expect.objectContaining({ story: 'Ferry was late, worth it' }),
+        undefined,
+      ),
+    );
+  });
+
   it('captures GPS, reverse-geocodes it, detects an editable weather category, and saves', async () => {
     vi.spyOn(mapsApi, 'reverse').mockResolvedValue({ name: 'Singapore', address: 'Singapore' });
     vi.spyOn(weatherApi, 'getCurrent').mockResolvedValue({

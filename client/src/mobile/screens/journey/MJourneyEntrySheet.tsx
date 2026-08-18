@@ -585,6 +585,20 @@ export default function MJourneyEntrySheet({
           </div>
         )}
 
+        {/* Quick capture keeps a note field: the ask was "photos *or* quick notes"
+            unterwegs, and a moment without a picture is still worth catching. Two
+            rows rather than three — it is a note, not the story, which is written
+            later in the full sheet. */}
+        {captureOnly && !readOnly && (
+          <textarea
+            rows={2}
+            value={story}
+            onChange={e => setStory(e.target.value)}
+            placeholder={t('journey.editor.writeStory')}
+            className={`mt-[10px] w-full resize-none px-[14px] py-3 font-geist text-[0.8125rem] leading-[1.5] text-m-ink outline-none placeholder:text-m-faint ${fieldShell} rounded-[14px]`}
+          />
+        )}
+
         {!captureOnly && <>
           {readOnly ? (
             story && (
