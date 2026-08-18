@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import { useJourneyStudio } from '../../pages/journeyStudio/useJourneyStudio'
 import { PAGE_PRESET_ORDER, PAGE_PRESETS } from './pagePresets'
-import { StudioSidebar, type JourneySource } from './StudioSidebar'
+import { StudioSidebar } from './StudioSidebar'
 import { StudioCanvas } from './StudioCanvas'
 import { StudioInspector } from './StudioInspector'
 import '../../styles/dashboard.css'

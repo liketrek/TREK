@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import {
-  Circle, Files, ImageIcon, LayoutTemplate, Minus, Shapes, Square, Type,
+  Circle, Files, ImageIcon, LayoutTemplate, Minus, Shapes, Square,
 } from 'lucide-react'
 import type { BookElement, BookPageSetup } from '@trek/shared'
 import { useStudioStore } from '../../store/studioStore'
-import { SpreadFold, SpreadView, photoSrc } from './SpreadView'
+import { SpreadFold, SpreadView } from './SpreadView'
+import { photoSrc } from './bookRender'
 import { TEMPLATES, applyTemplate } from './templates'
 
 /**

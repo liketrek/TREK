@@ -263,7 +263,7 @@ function entrySpread(entry: AutoEntry, input: AutoInput): BookSpread {
 
   const colX = page.pageWidth + m + 6
   const colW = page.pageWidth - m * 2 - 6
-  let cy = pushHeading(colX, m + 18, colW)
+  const cy = pushHeading(colX, m + 18, colW)
 
   const rest = photos.slice(1, 4)
   const gridH = rest.length ? (rest.length === 1 ? H * 0.3 : H * 0.24) : 0

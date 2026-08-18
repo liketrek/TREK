@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router'
-import { useJourneyStore } from '../../store/journeyStore'
+import { useJourneyStore, type GalleryPhoto, type JourneyEntry, type JourneyPhoto } from '../../store/journeyStore'
 import { useStudioStore } from '../../store/studioStore'
 import { useTranslation } from '../../i18n'
 import { useIsMobile } from '../../hooks/useIsMobile'
@@ -85,24 +85,26 @@ export function useJourneyStudio() {
     if (!journey || builtFor.current === journey.id) return
     builtFor.current = journey.id
 
+    // A skeleton entry is a place pulled in from a trip that nobody has written
+    // about yet; without a title it has nothing to put on a page.
     const entries: AutoEntry[] = (journey.entries || [])
-      .filter((e: any) => e.type !== 'skeleton' || e.title)
-      .map((e: any) => ({
+      .filter((e: JourneyEntry) => e.type !== 'skeleton' || !!e.title)
+      .map((e: JourneyEntry) => ({
         id: e.id,
         title: e.title ?? null,
         story: e.story ?? null,
         location: e.location_name ?? null,
         date: e.entry_date ?? null,
-        photos: (e.photos || []).map((p: any): AutoPhoto => ({
-          photoId: p.photo_id ?? p.id,
+        photos: (e.photos || []).map((p: JourneyPhoto): AutoPhoto => ({
+          photoId: p.photo_id,
           width: p.width ?? null,
           height: p.height ?? null,
           caption: p.caption ?? null,
         })),
       }))
 
-    const gallery: AutoPhoto[] = (journey.gallery || []).map((p: any) => ({
-      photoId: p.photo_id ?? p.id,
+    const gallery: AutoPhoto[] = (journey.gallery || []).map((p: GalleryPhoto) => ({
+      photoId: p.photo_id,
       width: p.width ?? null,
       height: p.height ?? null,
       caption: p.caption ?? null,
@@ -227,16 +229,16 @@ export function useJourneyStudio() {
   /** The journey's own material, for the content browser. */
   const source = useMemo(() => ({
     entries: (journey?.entries || [])
-      .filter((e: any) => e.title || e.story || e.location_name)
-      .map((e: any) => ({
+      .filter((e: JourneyEntry) => !!(e.title || e.story || e.location_name))
+      .map((e: JourneyEntry) => ({
         id: e.id,
         title: e.title ?? null,
         story: e.story ?? null,
         location: e.location_name ?? null,
         date: e.entry_date ?? null,
       })),
-    photos: (journey?.gallery || []).map((p: any) => ({
-      photoId: p.photo_id ?? p.id,
+    photos: (journey?.gallery || []).map((p: GalleryPhoto) => ({
+      photoId: p.photo_id,
       caption: p.caption ?? null,
     })),
   }), [journey])

@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import type { BookElement, BookPageSetup, BookSpread } from '@trek/shared'
+import { FONT_STACKS, photoSrc } from './bookRender'
 
 /**
  * One spread, drawn.
@@ -13,16 +14,6 @@ import type { BookElement, BookPageSetup, BookSpread } from '@trek/shared'
  * ratio, so what you see at `scale(0.4)` is the same box model the printer gets
  * at 1:1 — not an approximation of it.
  */
-
-export const FONT_STACKS: Record<string, string> = {
-  sans: '"Poppins", system-ui, sans-serif',
-  serif: 'Georgia, "Times New Roman", serif',
-  display: '"MuseoModerno", "Poppins", system-ui, sans-serif',
-}
-
-export function photoSrc(photoId: number, big: boolean): string {
-  return `/api/photos/${photoId}/${big ? 'original' : 'thumbnail'}`
-}
 
 function frameStyle(el: BookElement): CSSProperties {
   return {

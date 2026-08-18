@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { ChevronsDown, ChevronsUp, Copy, Lock, Trash2, Unlock } from 'lucide-react'
 import type { BookElement, BookPageSetup, BookSpread } from '@trek/shared'
-import { FONT_STACKS, SpreadFold, SpreadView } from './SpreadView'
+import { SpreadFold, SpreadView } from './SpreadView'
+import { FONT_STACKS } from './bookRender'
 import { useSpreadInteraction, type HandleId } from './useSpreadInteraction'
 import { useStudioStore } from '../../store/studioStore'
 

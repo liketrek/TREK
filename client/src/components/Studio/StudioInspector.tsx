@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import { useRef } from 'react'
 import { useStudioStore } from '../../store/studioStore'
-import { FONT_STACKS, photoSrc } from './SpreadView'
+import { FONT_STACKS, photoSrc } from './bookRender'
 
 /**
  * Properties of whatever is selected.
