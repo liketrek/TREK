@@ -54,7 +54,6 @@
   --glass-highlight: inset 0 1px 0 oklch(1 0 0 / .8);
   --glass-blur: blur(22px) saturate(1.7);
 }
-
 /* dark variant — same geometry, dark surfaces, theme-driven accent */
 .dark .trek-dash {
   --bg: oklch(0.17 0 0);
@@ -217,6 +216,45 @@
 }
 .trek-dash .hero-tool:hover { background: oklch(1 0 0 / .26); transform: scale(1.05); }
 .trek-dash .hero-tool svg { width: 16px; height: 16px; }
+.trek-dash .departure-countdown-board {
+  position: absolute; top: 76px; inset-inline-end: 32px; z-index: 4;
+  width: min(500px, calc(100% - 64px)); overflow: hidden;
+  border: 1px solid oklch(1 0 0 / .24); border-radius: 24px;
+  color: #fff; background: linear-gradient(135deg, oklch(0.2 0.03 250 / .78), oklch(0.16 0.025 250 / .52));
+  box-shadow: 0 20px 48px oklch(0 0 0 / .2), inset 0 1px oklch(1 0 0 / .14);
+  backdrop-filter: blur(22px) saturate(1.25); -webkit-backdrop-filter: blur(22px) saturate(1.25);
+}
+.trek-dash .departure-countdown-head {
+  min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  padding: 13px 18px 11px; border-bottom: 1px solid oklch(1 0 0 / .13);
+}
+.trek-dash .departure-countdown-title {
+  flex: none; font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+}
+.trek-dash .departure-countdown-transport {
+  min-width: 0; overflow: hidden; color: oklch(1 0 0 / .7);
+  font-size: 10px; font-weight: 550; text-overflow: ellipsis; white-space: nowrap;
+}
+.trek-dash .departure-countdown-units { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.trek-dash .departure-countdown-unit {
+  position: relative; display: flex; align-items: center; flex-direction: column; padding: 18px 8px 17px;
+}
+.trek-dash .departure-countdown-unit + .departure-countdown-unit::before {
+  content: ""; position: absolute; top: 17px; bottom: 17px; inset-inline-start: 0; width: 1px;
+  background: oklch(1 0 0 / .13);
+}
+.trek-dash .departure-countdown-number {
+  font-size: clamp(28px, 4vw, 46px); font-weight: 650; font-variant-numeric: tabular-nums;
+  letter-spacing: -.055em; line-height: 1;
+}
+.trek-dash .departure-countdown-label {
+  max-width: 100%; overflow: hidden; margin-top: 8px; color: oklch(1 0 0 / .58);
+  font-size: 9px; font-weight: 700; letter-spacing: .12em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap;
+}
+.trek-dash .hero-trip.has-departure-countdown .hero-title {
+  display: -webkit-box; overflow: hidden; font-size: clamp(64px, 6vw, 72px);
+  -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+}
 .trek-dash .hero-title-block { align-self: end; padding-bottom: 24px; }
 .trek-dash .hero-eyebrow {
   display: inline-flex; align-items: center; gap: 10px;
@@ -628,6 +666,16 @@
   /* the page already opens with the notification/profile strip, trim its top gap */
   .trek-dash .page { padding-top: 4px; }
   .trek-dash .hero-title { font-size: 48px; }
+  .trek-dash .departure-countdown-board {
+    top: 68px; right: 18px; left: 18px; width: auto; border-radius: 18px;
+  }
+  .trek-dash .departure-countdown-head { gap: 10px; padding: 10px 12px 8px; }
+  .trek-dash .departure-countdown-title { font-size: 8px; letter-spacing: .12em; }
+  .trek-dash .departure-countdown-transport { font-size: 8px; }
+  .trek-dash .departure-countdown-unit { padding: 14px 4px 12px; }
+  .trek-dash .departure-countdown-number { font-size: clamp(25px, 9vw, 36px); }
+  .trek-dash .departure-countdown-label { margin-top: 6px; font-size: 7px; letter-spacing: .08em; }
+  .trek-dash .hero-trip.has-departure-countdown .hero-title { font-size: 44px; }
 
   /* Boarding pass — separate 2×2 glass card under the hero (mockup) */
   .trek-dash .pass-card {
@@ -706,6 +754,12 @@
   /* Tools — stacked full-width cards (mockup) */
   .trek-dash .page-sidebar { flex-direction: column; flex-wrap: nowrap; gap: 14px; margin: 0 0 40px; padding: 0; }
   .trek-dash .page-sidebar .tool { flex: none; width: auto; }
+}
+
+@media (max-width: 360px) {
+  .trek-dash .hero-trip.has-departure-countdown .hero-title { font-size: 38px; }
+  .trek-dash .departure-countdown-board { right: 14px; left: 14px; }
+  .trek-dash .departure-countdown-transport { max-width: 54%; }
 }
 
 /* Floating action button — Neuer Trip */

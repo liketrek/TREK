@@ -155,6 +155,10 @@ const dashboard: TranslationStrings = {
   'dashboard.hero.lastDay': 'Last day', // en-fallback
   'dashboard.hero.untilStart': 'Until start', // en-fallback
   'dashboard.hero.startsIn': 'Trip starts in', // en-fallback
+  'dashboard.hero.departureIn': 'Αναχώρηση σε',
+  'dashboard.hero.hourUnit': 'ώρες',
+  'dashboard.hero.minuteUnit': 'λεπτά',
+  'dashboard.hero.secondUnit': 'δευτερόλεπτα',
   'dashboard.atlas.countriesVisited': 'Atlas · Countries visited', // en-fallback
   'dashboard.atlas.ofTotal': 'of {total}', // en-fallback
   'dashboard.atlas.tripsTotal': 'Trips total', // en-fallback
