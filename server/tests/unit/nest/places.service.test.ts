@@ -14,6 +14,7 @@ import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/plac
 import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { TRACK_COLORS } from '@trek/shared';
+import { ADDRESS_BACKFILL_MAX_PLACES } from '../../../src/nest/places/places.helpers';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
 
@@ -1466,5 +1467,102 @@ describe('importNaverList provider payload', () => {
     expect(result.listName).toBe('Seoul');
     expect(result.places).toHaveLength(1);
     expect(result.places[0].name).toBe('Gyeongbokgung');
+  });
+});
+
+// ── Free address backfill for list imports (#1954) ───────────────────────────
+//
+// A place pasted as a single Google Maps link has always been reverse geocoded;
+// the same place arriving through a list import was not, so it stayed without an
+// address forever. These cover the backfill that closes that gap.
+
+describe('backfillMissingAddresses', () => {
+  function backfillSvc(reverseGeocode: MapsService['reverseGeocode']) {
+    return makePlacesService({ reverseGeocode } as unknown as MapsService);
+  }
+
+  it('PLACE-SVC-078 — fills the address of a place that has none', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Bar', lat: 48.85, lng: 2.35 }) as any;
+
+    const reverseGeocode = vi.fn(async () => ({ name: null, address: '1 Rue de Rivoli, Paris' }));
+    await backfillSvc(reverseGeocode).backfillMissingAddresses(String(trip.id), [
+      { id: place.id, name: 'Bar', lat: 48.85, lng: 2.35 },
+    ]);
+
+    expect(reverseGeocode).toHaveBeenCalledWith('48.85', '2.35', undefined, { lane: 'background', timeoutMs: 10000 });
+    const row = testDb.prepare('SELECT address FROM places WHERE id = ?').get(place.id) as { address: string };
+    expect(row.address).toBe('1 Rue de Rivoli, Paris');
+  });
+
+  it('PLACE-SVC-079 — never overwrites an address the import or the Google pass already wrote', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Bar', lat: 48.85, lng: 2.35 }) as any;
+    testDb.prepare('UPDATE places SET address = ? WHERE id = ?').run('Imported address', place.id);
+
+    const reverseGeocode = vi.fn(async () => ({ name: null, address: 'Nominatim address' }));
+    await backfillSvc(reverseGeocode).backfillMissingAddresses(String(trip.id), [
+      { id: place.id, name: 'Bar', lat: 48.85, lng: 2.35, address: 'Imported address' },
+    ]);
+
+    expect(reverseGeocode).not.toHaveBeenCalled();
+    const row = testDb.prepare('SELECT address FROM places WHERE id = ?').get(place.id) as { address: string };
+    expect(row.address).toBe('Imported address');
+  });
+
+  it('PLACE-SVC-080 — a lookup that answers with nothing leaves the row untouched', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Bar', lat: 48.85, lng: 2.35 }) as any;
+
+    await backfillSvc(vi.fn(async () => ({ name: null, address: null }))).backfillMissingAddresses(String(trip.id), [
+      { id: place.id, name: 'Bar', lat: 48.85, lng: 2.35 },
+    ]);
+
+    const row = testDb.prepare('SELECT address FROM places WHERE id = ?').get(place.id) as { address: string | null };
+    expect(row.address).toBeNull();
+  });
+
+  it('PLACE-SVC-081 — one failing lookup does not take down the rest of the batch', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const first = createPlace(testDb, trip.id, { name: 'A', lat: 1, lng: 2 }) as any;
+    const second = createPlace(testDb, trip.id, { name: 'B', lat: 3, lng: 4 }) as any;
+
+    const reverseGeocode = vi.fn()
+      .mockRejectedValueOnce(new Error('nominatim down'))
+      .mockResolvedValueOnce({ name: null, address: 'Second address' });
+
+    await expect(
+      backfillSvc(reverseGeocode as unknown as MapsService['reverseGeocode']).backfillMissingAddresses(String(trip.id), [
+        { id: first.id, name: 'A', lat: 1, lng: 2 },
+        { id: second.id, name: 'B', lat: 3, lng: 4 },
+      ]),
+    ).resolves.toBeUndefined();
+
+    const rows = testDb.prepare('SELECT id, address FROM places WHERE trip_id = ? ORDER BY id').all(trip.id) as {
+      id: number; address: string | null;
+    }[];
+    expect(rows[0].address).toBeNull();
+    expect(rows[1].address).toBe('Second address');
+  });
+
+  it('PLACE-SVC-082 — an oversized batch is refused rather than queued for an hour', async () => {
+    const reverseGeocode = vi.fn();
+    const batch = Array.from({ length: ADDRESS_BACKFILL_MAX_PLACES + 1 }, (_, i) => ({
+      id: i + 1, name: `P${i}`, lat: 1, lng: 2,
+    }));
+    await backfillSvc(reverseGeocode as unknown as MapsService['reverseGeocode']).backfillMissingAddresses('1', batch);
+    expect(reverseGeocode).not.toHaveBeenCalled();
+  });
+
+  it('PLACE-SVC-083 — a place without coordinates is skipped', async () => {
+    const reverseGeocode = vi.fn();
+    await backfillSvc(reverseGeocode as unknown as MapsService['reverseGeocode']).backfillMissingAddresses('1', [
+      { id: 1, name: 'A', lat: null as unknown as number, lng: null as unknown as number },
+    ]);
+    expect(reverseGeocode).not.toHaveBeenCalled();
   });
 });

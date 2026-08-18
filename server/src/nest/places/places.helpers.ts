@@ -254,6 +254,12 @@ export const SEARCH_BIAS_RADIUS_METERS = 2000;
 /** Concurrent enrichment lookups — small, to stay friendly to the Maps quota. */
 export const ENRICH_CONCURRENCY = 3;
 
+// The free address backfill is one Nominatim request per place on the throttled
+// background lane (~1/s), so a normal list costs seconds. Past this it stops being
+// a backfill and starts being bulk geocoding, which Nominatim's usage policy asks
+// people not to do — so it stops rather than queueing for an hour.
+export const ADDRESS_BACKFILL_MAX_PLACES = 250;
+
 
 /**
  * Pick the search result that is the same place as the import: it must be a

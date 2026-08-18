@@ -1974,6 +1974,7 @@ export class MapsService {
     lat: string,
     lng: string,
     lang?: string,
+    opts?: { lane?: GeoLane; timeoutMs?: number },
   ): Promise<{ name: string | null; address: string | null }> {
     const params = new URLSearchParams({
       lat,
@@ -1983,7 +1984,7 @@ export class MapsService {
       zoom: '18',
       'accept-language': toApiLang(lang),
     });
-    const response = await nominatimFetch('reverse', params);
+    const response = await nominatimFetch('reverse', params, opts);
     if (!response.ok) return { name: null, address: null };
     const data = (await response.json()) as { name?: string; display_name?: string; address?: Record<string, string> };
     const addr = data.address || {};

@@ -29,6 +29,7 @@ import { JourneyDomainService } from '../journey/journey-domain.service';
 import {
   COORD_DEDUP_TOLERANCE,
   ENRICH_CONCURRENCY,
+  ADDRESS_BACKFILL_MAX_PLACES,
   escapeLikePattern,
   MAX_LIST_RESPONSE_BYTES,
   googleMapsFeatureIdFromItem,
@@ -983,8 +984,8 @@ export class PlacesService {
       }
     });
 
-    if (opts?.enrich && opts.userId && created.length) {
-      void this.enrichImportedPlaces(tripId, opts.userId, created as EnrichablePlace[], opts.lang);
+    if (created.length) {
+      void this.enrichImportedList(tripId, created as EnrichablePlace[], opts);
     }
 
     return { places: created, listName, skipped };
@@ -1126,8 +1127,8 @@ export class PlacesService {
       }
     });
 
-    if (opts?.enrich && opts.userId && created.length) {
-      void this.enrichImportedPlaces(tripId, opts.userId, created as EnrichablePlace[], opts.lang);
+    if (created.length) {
+      void this.enrichImportedList(tripId, created as EnrichablePlace[], opts);
     }
 
     return { places: created, listName, skipped };
@@ -1223,6 +1224,63 @@ export class PlacesService {
       });
     } catch (err) {
       console.error('[Places] import enrichment pass failed:', err instanceof Error ? err.message : err);
+    }
+  }
+
+  /**
+   * Everything a just-imported list gets in the background, in one place so the
+   * Google and Naver call sites cannot drift apart.
+   *
+   * The Google pass stays exactly as opt-in and key-gated as before. The address
+   * backfill behind it needs neither — it is the same free Nominatim reverse
+   * lookup a single pasted link has always had, which is what made a list import
+   * come out thinner than the same place added one at a time (#1954).
+   */
+  private async enrichImportedList(tripId: string, places: EnrichablePlace[], opts?: ListImportOptions): Promise<void> {
+    if (opts?.enrich && opts.userId) {
+      await this.enrichImportedPlaces(tripId, opts.userId, places, opts.lang);
+    }
+    await this.backfillMissingAddresses(tripId, places, opts?.lang);
+  }
+
+  /**
+   * Fill in the address of imported places that have none, from Nominatim.
+   *
+   * Runs on the background lane so it never queues in front of a user's own
+   * search, writes through COALESCE so it can only fill an empty column — the
+   * Google pass above may already have written a better one — and pushes each
+   * row over the websocket so the sidebar fills in without a reload. Never
+   * throws: one bad lookup must not take down a detached task.
+   */
+  async backfillMissingAddresses(tripId: string, places: EnrichablePlace[], lang?: string): Promise<void> {
+    try {
+      const pending = places.filter(p => !p.address && p.lat != null && p.lng != null);
+      if (!pending.length) return;
+      if (pending.length > ADDRESS_BACKFILL_MAX_PLACES) {
+        console.warn(`[Places] address backfill skipped for trip ${tripId}: ${pending.length} places exceeds the ${ADDRESS_BACKFILL_MAX_PLACES} cap`);
+        return;
+      }
+      // Serial on purpose: the background lane throttles to roughly one request a
+      // second anyway, so concurrency would only build a queue.
+      for (const place of pending) {
+        try {
+          const { address } = await this.maps.reverseGeocode(String(place.lat), String(place.lng), lang, {
+            lane: 'background',
+            timeoutMs: 10000,
+          });
+          if (!address) continue;
+          this.dbs.run(
+            'UPDATE places SET address = COALESCE(address, ?), updated_at = CURRENT_TIMESTAMP WHERE id = ? AND trip_id = ?',
+            address, place.id, tripId,
+          );
+          const updated = this.dbs.getPlaceWithTags(place.id);
+          if (updated) this.realtime.broadcast(tripId, 'place:updated', { place: updated }, undefined);
+        } catch (err) {
+          console.error(`[Places] address backfill failed for place ${place.id}:`, err instanceof Error ? err.message : err);
+        }
+      }
+    } catch (err) {
+      console.error('[Places] address backfill pass failed:', err instanceof Error ? err.message : err);
     }
   }
 

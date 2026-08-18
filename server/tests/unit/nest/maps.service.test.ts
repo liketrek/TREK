@@ -2266,6 +2266,46 @@ describe('googleFtidFromMapsUrl', () => {
     expect(googleFtidFromMapsUrl('not a url')).toBeNull();
     expect(googleFtidFromMapsUrl(null)).toBeNull();
   });
+
+  // #1954 — a followed maps.app.goo.gl link keeps the id in the `data=` blob, not
+  // in a query parameter, which is why a pasted single link used to lose it.
+  it('MAPS-FTID-004: extracts the ftid from the data= path blob of a resolved share link', () => {
+    expect(
+      googleFtidFromMapsUrl(
+        'https://www.google.com/maps/place/Notre-Dame/data=!4m6!3m5!1s0x47e671e23a09b3b1:0x40b82c3688b2f60!8m2!3d48.8529!4d2.3499',
+      ),
+    ).toBe('0x47e671e23a09b3b1:0x40b82c3688b2f60');
+  });
+
+  it('MAPS-FTID-005: the query parameter still wins over the path blob', () => {
+    expect(
+      googleFtidFromMapsUrl(
+        'https://www.google.com/maps/place/X/data=!3m5!1s0x1:0x2!8m2?ftid=0x882bf179e806d471:0x8591dde29c821a93',
+      ),
+    ).toBe('0x882bf179e806d471:0x8591dde29c821a93');
+  });
+
+  it('MAPS-FTID-006: ignores the path blob outside a /place/ URL', () => {
+    // A directions link carries one !1s per waypoint and the first is the origin,
+    // so reading it would attach the wrong place.
+    expect(
+      googleFtidFromMapsUrl('https://www.google.com/maps/dir/A/B/data=!4m2!1s0x47e671e23a09b3b1:0x40b82c3688b2f60'),
+    ).toBeNull();
+  });
+
+  it('MAPS-FTID-007: a place URL without either shape is still null, and case is normalised', () => {
+    expect(googleFtidFromMapsUrl('https://www.google.com/maps/place/Notre-Dame/@48.85,2.34,17z')).toBeNull();
+    expect(
+      googleFtidFromMapsUrl('https://www.google.com/maps/place/X/data=!1s0x47E671E23A09B3B1:0x40B82C3688B2F60'),
+    ).toBe('0x47e671e23a09b3b1:0x40b82c3688b2f60');
+  });
+
+  it('MAPS-FTID-008: a long hostile path blob resolves in linear time (ReDoS budget)', () => {
+    const hostile = `https://www.google.com/maps/place/X/data=${'!1s0x'.repeat(20000)}`;
+    const started = Date.now();
+    expect(googleFtidFromMapsUrl(hostile)).toBeNull();
+    expect(Date.now() - started).toBeLessThan(500);
+  });
 });
 
 // ── buildUserAgent (instance-specific UA, #1309) ──────────────────────────────
