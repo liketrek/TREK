@@ -78,6 +78,7 @@ export default function StudioShell() {
             bookView={bookView}
             source={s.source}
             t={s.t}
+            locale={s.locale}
           />
           <Workbench s={s} bookView={bookView} />
           <StudioInspector spreadIndex={s.activeSpread} page={s.page} t={s.t} />

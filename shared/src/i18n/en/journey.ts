@@ -340,5 +340,14 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.quietText': 'Text only',
   'journey.studio.tpl.portraitPair': 'A pair',
   'journey.studio.dropPhotoHere': 'Drag & drop\nyour photo',
+  'journey.studio.searchContent': 'Search photos and entries',
+  'journey.studio.noMatches': 'Nothing matches that.',
+  'journey.studio.decorations': 'Decoration',
+  'journey.studio.quoteMark': 'Quotation mark',
+  'journey.studio.circleOutline': 'Outlined circle',
+  'journey.studio.roundFrame': 'Rounded frame',
+  'journey.studio.shapeKind.rounded': 'Rounded rectangle',
+  'journey.studio.shapeKind.triangle': 'Triangle',
+  'journey.studio.shapeKind.outline': 'Outline only',
 };
 export default journey;

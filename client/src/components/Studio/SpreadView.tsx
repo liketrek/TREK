@@ -127,7 +127,14 @@ export function ElementView({
           ...frameStyle(el),
           background,
           border: el.stroke ? `${el.strokeWidth}mm solid ${el.stroke}` : undefined,
+          // A stroke has to sit inside the frame, or the drawn shape would be
+          // wider than the box the editor snapped and the print would not match.
+          boxSizing: 'border-box',
           borderRadius: el.shape === 'ellipse' ? '50%' : el.radius ? `${el.radius}mm` : undefined,
+          // A triangle is a clip, not a border trick: the old CSS border hack
+          // cannot take a fill gradient or a stroke, and its size does not follow
+          // the frame the way everything else here does.
+          clipPath: el.shape === 'triangle' ? 'polygon(50% 0%, 100% 100%, 0% 100%)' : undefined,
         }}
       />
     )

@@ -38,6 +38,12 @@ export interface AutoEntry {
 }
 
 export interface AutoInput {
+  /**
+   * The app's language, not the browser's. A book whose captions are dated in
+   * the reader's OS locale while the rest of it is written in the app's is a
+   * mismatch nobody asked for.
+   */
+  locale: string
   title: string
   subtitle: string | null
   coverPhotoId: number | null
@@ -122,11 +128,11 @@ function shape(
   } as BookElement
 }
 
-function formatDate(iso: string | null): string {
+function formatDate(iso: string | null, locale: string): string {
   if (!iso) return ''
   const d = new Date(iso + 'T00:00:00')
   if (Number.isNaN(d.getTime())) return ''
-  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 /** A full-bleed frame: out past the trim on every side the page is cut on. */
@@ -189,7 +195,7 @@ function entrySpread(entry: AutoEntry, input: AutoInput): BookSpread {
   const photos = entry.photos.slice(0, 5)
   const story = (entry.story || '').trim()
   const heading = entry.title || entry.location || ''
-  const meta = [formatDate(entry.date), entry.location].filter(Boolean).join('  ·  ')
+  const meta = [formatDate(entry.date, input.locale), entry.location].filter(Boolean).join('  ·  ')
 
   const pushHeading = (x: number, y: number, w: number) => {
     let cy = y
@@ -304,7 +310,7 @@ function backSpread(input: AutoInput): BookSpread {
     .filter((d): d is string => !!d)
     .sort()
   const span = dates.length
-    ? [formatDate(dates[0]), formatDate(dates[dates.length - 1])].filter(Boolean).join(' — ')
+    ? [formatDate(dates[0], input.locale), formatDate(dates[dates.length - 1], input.locale)].filter(Boolean).join(' — ')
     : ''
   const places = new Set(input.entries.map(e => e.location).filter(Boolean)).size
   const photos = input.entries.reduce((n, e) => n + e.photos.length, 0)

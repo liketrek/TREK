@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react'
 import {
-  Circle, Files, ImageIcon, LayoutTemplate, Minus, Shapes, Square,
+  Circle, Files, ImageIcon, LayoutTemplate, Minus, Quote, Search, Shapes,
+  Square, Triangle, X,
 } from 'lucide-react'
 import type { BookElement, BookPageSetup } from '@trek/shared'
 import { useStudioStore } from '../../store/studioStore'
+import { formatDate } from '../../utils/formatters'
 import { SpreadFold, SpreadView } from './SpreadView'
 import { photoSrc } from './bookRender'
 import { TEMPLATES, applyTemplate } from './templates'
@@ -24,18 +26,21 @@ type Section = 'pages' | 'content' | 'elements' | 'templates'
 export interface JourneySource {
   entries: { id: number; title: string | null; story: string | null; location: string | null; date: string | null }[]
   photos: { photoId: number; caption?: string | null }[]
+  /** photoId to the words of the entry it belongs to, lower-cased. */
+  photoEntries: Record<number, string>
 }
 
 const uid = (p: string) => `${p}-${Math.random().toString(36).slice(2, 9)}`
 
 export function StudioSidebar({
-  page, pxPerMm, bookView, source, t,
+  page, pxPerMm, bookView, source, t, locale,
 }: {
   page: BookPageSetup
   pxPerMm: number
   bookView: boolean
   source: JourneySource
   t: (k: string) => string
+  locale: string
 }) {
   const [section, setSection] = useState<Section>('pages')
 
@@ -65,7 +70,7 @@ export function StudioSidebar({
 
       <aside className="st-panel st-side">
         {section === 'pages' && <PagesPanel page={page} pxPerMm={pxPerMm} bookView={bookView} t={t} />}
-        {section === 'content' && <ContentPanel source={source} page={page} t={t} />}
+        {section === 'content' && <ContentPanel source={source} page={page} t={t} locale={locale} />}
         {section === 'elements' && <ElementsPanel page={page} t={t} />}
         {section === 'templates' && <TemplatesPanel page={page} pxPerMm={pxPerMm} t={t} onOpenContent={() => setSection('content')} />}
       </aside>
@@ -142,9 +147,28 @@ function PagesPanel({
  * an item drops it on the current spread, centred, at a sensible size.
  */
 function ContentPanel({
-  source, page, t,
-}: { source: JourneySource; page: BookPageSetup; t: (k: string) => string }) {
+  source, page, t, locale,
+}: { source: JourneySource; page: BookPageSetup; t: (k: string) => string; locale: string }) {
   const [tab, setTab] = useState<'photos' | 'text'>('photos')
+  const [query, setQuery] = useState('')
+
+  /*
+   * Filtering, not a search index: a journey holds tens or hundreds of items, and
+   * a substring match over what is already in memory answers instantly. A photo
+   * matches on its own caption *and* on the entry it belongs to — most photos
+   * carry no words at all, so matching only captions would make the box look
+   * broken on exactly the journeys that need it.
+   */
+  const q = query.trim().toLowerCase()
+  const entries = q
+    ? source.entries.filter(e =>
+      [e.title, e.story, e.location].some(v => v && v.toLowerCase().includes(q)))
+    : source.entries
+  const photos = q
+    ? source.photos.filter(p =>
+      (p.caption && p.caption.toLowerCase().includes(q))
+      || (source.photoEntries[p.photoId] || '').includes(q))
+    : source.photos
   const addElement = useStudioStore(s => s.addElement)
   const active = useStudioStore(s => s.activeSpread)
   const doc = useStudioStore(s => s.doc)
@@ -178,19 +202,36 @@ function ContentPanel({
   return (
     <>
       <Head label={t('journey.studio.content')} />
+
+      <div className="st-search">
+        <Search size={14} />
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder={t('journey.studio.searchContent')}
+          aria-label={t('journey.studio.searchContent')}
+          spellCheck={false}
+        />
+        {query && (
+          <button onClick={() => setQuery('')} aria-label={t('common.clear')}>
+            <X size={13} />
+          </button>
+        )}
+      </div>
+
       <div className="st-tabs">
         <button className={tab === 'photos' ? 'is-on' : ''} onClick={() => setTab('photos')}>
-          {t('journey.studio.photos')} <em>{source.photos.length}</em>
+          {t('journey.studio.photos')} <em>{photos.length}</em>
         </button>
         <button className={tab === 'text' ? 'is-on' : ''} onClick={() => setTab('text')}>
-          {t('journey.studio.entries')} <em>{source.entries.length}</em>
+          {t('journey.studio.entries')} <em>{entries.length}</em>
         </button>
       </div>
 
       <div className="st-panel-scroll">
         {tab === 'photos' ? (
           <div className="st-photo-grid">
-            {source.photos.map(p => (
+            {photos.map(p => (
               <button
                 key={p.photoId}
                 className="st-photo-cell"
@@ -210,14 +251,25 @@ function ContentPanel({
                 <img src={photoSrc(p.photoId, false)} alt="" loading="lazy" draggable={false} />
               </button>
             ))}
-            {!source.photos.length && <p className="st-hint">{t('journey.studio.noPhotos')}</p>}
+            {!photos.length && (
+              <p className="st-hint">{t(q ? 'journey.studio.noMatches' : 'journey.studio.noPhotos')}</p>
+            )}
           </div>
         ) : (
           <div className="st-entries">
-            {source.entries.map(e => (
+            {entries.map(e => (
               <div key={e.id} className="st-entry">
                 <div className="st-entry-head">{e.title || e.location || t('journey.studio.untitled')}</div>
-                {e.date && <div className="st-entry-meta">{e.date}{e.location ? `  ·  ${e.location}` : ''}</div>}
+                {(e.date || e.location) && (
+                  <div className="st-entry-meta">
+                    {/* Two facts, two badges. Joined by a dot they read as one
+                        string and the eye has to parse where the date ends. The
+                        date follows the app's language, like every other date in
+                        TREK — see utils/formatters.ts. */}
+                    {e.date && <span className="st-badge">{formatDate(e.date, locale) ?? e.date}</span>}
+                    {e.location && <span className="st-badge is-quiet">{e.location}</span>}
+                  </div>
+                )}
                 <div className="st-row" style={{ marginTop: 7 }}>
                   {e.title && (
                     <button className="st-chip" onClick={() => dropText(e.title!, 22, 700, e.id, 'entry.title')}>
@@ -237,6 +289,7 @@ function ContentPanel({
                 </div>
               </div>
             ))}
+            {!entries.length && <p className="st-hint">{t('journey.studio.noMatches')}</p>}
           </div>
         )}
       </div>
@@ -264,13 +317,22 @@ function ElementsPanel({ page, t }: { page: BookPageSetup; t: (k: string) => str
       color: '#1a1a1a', binding: null, overridden: false, ...extra,
     } as BookElement)
 
-  const addShape = (shape: 'rect' | 'ellipse' | 'line') =>
+  const addShape = (
+    shape: 'rect' | 'ellipse' | 'line' | 'triangle',
+    opts: { radius?: number; outline?: boolean } = {},
+  ) =>
     addElement(active, {
       id: uid('s'), kind: 'shape',
-      frame: shape === 'line' ? centre(page.pageWidth * 0.5, 0.6) : centre(60, 60),
+      // A rule is a shape too — a hairline box rather than its own element type,
+      // so it moves, colours and snaps like everything else on the page.
+      frame: shape === 'line' ? centre(page.pageWidth * 0.5, 0.5) : centre(60, 60),
       rotation: 0, opacity: 1, locked: false,
       shape: shape === 'line' ? 'rect' : shape,
-      fill: '#141414', gradient: 'none', stroke: null, strokeWidth: 0, radius: 0,
+      fill: opts.outline ? null : '#141414',
+      gradient: 'none',
+      stroke: opts.outline ? '#141414' : null,
+      strokeWidth: opts.outline ? 0.5 : 0,
+      radius: opts.radius ?? 0,
     } as BookElement)
 
   return (
@@ -306,11 +368,40 @@ function ElementsPanel({ page, t }: { page: BookPageSetup; t: (k: string) => str
             <button className="st-shape-btn" onClick={() => addShape('rect')} title={t('journey.studio.shapeKind.rect')}>
               <Square size={20} strokeWidth={1.6} />
             </button>
+            <button className="st-shape-btn" onClick={() => addShape('rect', { radius: 6 })} title={t('journey.studio.shapeKind.rounded')}>
+              <Square size={20} strokeWidth={1.6} style={{ borderRadius: 7 }} />
+            </button>
             <button className="st-shape-btn" onClick={() => addShape('ellipse')} title={t('journey.studio.shapeKind.ellipse')}>
               <Circle size={20} strokeWidth={1.6} />
             </button>
+            <button className="st-shape-btn" onClick={() => addShape('triangle')} title={t('journey.studio.shapeKind.triangle')}>
+              <Triangle size={20} strokeWidth={1.6} />
+            </button>
             <button className="st-shape-btn" onClick={() => addShape('line')} title={t('journey.studio.shapeKind.line')}>
               <Minus size={20} strokeWidth={2} />
+            </button>
+            <button className="st-shape-btn" onClick={() => addShape('rect', { outline: true })} title={t('journey.studio.shapeKind.outline')}>
+              <Square size={20} strokeWidth={1.1} style={{ opacity: .5 }} />
+            </button>
+          </div>
+        </div>
+
+        <div className="st-section">
+          <div className="st-section-label">{t('journey.studio.decorations')}</div>
+          <div className="st-shape-grid">
+            <button
+              className="st-shape-btn"
+              onClick={() => addText(46, 700, '\u201C', { color: '#c9c2b4', leading: 0.9 })}
+              title={t('journey.studio.quoteMark')}
+            >
+              <Quote size={20} strokeWidth={1.6} />
+            </button>
+            <button
+              className="st-shape-btn"
+              onClick={() => addShape('rect', { outline: true, radius: 60 })}
+              title={t('journey.studio.circleOutline')}
+            >
+              <Circle size={20} strokeWidth={1.1} style={{ opacity: .5 }} />
             </button>
           </div>
         </div>
@@ -329,6 +420,18 @@ function ElementsPanel({ page, t }: { page: BookPageSetup; t: (k: string) => str
               title={t('journey.studio.emptyFrame')}
             >
               <ImageIcon size={20} strokeWidth={1.6} />
+            </button>
+            <button
+              className="st-shape-btn"
+              onClick={() => addElement(active, {
+                id: uid('p'), kind: 'photo',
+                frame: centre(page.pageWidth * 0.45, page.pageWidth * 0.45),
+                rotation: 0, opacity: 1, locked: false,
+                photoId: null, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 6, filter: 'none',
+              } as BookElement)}
+              title={t('journey.studio.roundFrame')}
+            >
+              <Square size={20} strokeWidth={1.6} style={{ borderRadius: 7, opacity: .75 }} />
             </button>
           </div>
           <p className="st-hint" style={{ paddingTop: 8 }}>{t('journey.studio.frameHint')}</p>

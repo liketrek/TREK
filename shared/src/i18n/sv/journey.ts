@@ -340,5 +340,14 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.quietText': 'Text only', // en-fallback
   'journey.studio.tpl.portraitPair': 'A pair', // en-fallback
   'journey.studio.dropPhotoHere': 'Dra din bild\nhit',
+  'journey.studio.searchContent': 'Search photos and entries', // en-fallback
+  'journey.studio.noMatches': 'Nothing matches that.', // en-fallback
+  'journey.studio.decorations': 'Decoration', // en-fallback
+  'journey.studio.quoteMark': 'Quotation mark', // en-fallback
+  'journey.studio.circleOutline': 'Outlined circle', // en-fallback
+  'journey.studio.roundFrame': 'Rounded frame', // en-fallback
+  'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
+  'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
+  'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
 };
 export default journey;

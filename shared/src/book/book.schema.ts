@@ -100,7 +100,7 @@ export const bookTextElementSchema = z.object({
 export const bookShapeElementSchema = z.object({
   ...elementBase,
   kind: z.literal('shape'),
-  shape: z.enum(['rect', 'ellipse', 'line']).default('rect'),
+  shape: z.enum(['rect', 'ellipse', 'line', 'triangle']).default('rect'),
   fill: hex.nullable().default('#111827'),
   /**
    * Fade the fill out towards one edge. A cover almost always needs this: a

@@ -533,6 +533,60 @@
 .trek-dash .st-tabs button:hover { color: var(--ink-2); }
 .trek-dash .st-tabs button.is-on { background: var(--accent); color: var(--accent-text, #fff); }
 
+/* ----------------- search ----------------- */
+.trek-dash .st-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 12px 9px;
+  padding: 0 9px;
+  height: 32px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  color: var(--ink-3);
+  transition: border-color .16s;
+}
+.trek-dash .st-search:focus-within { border-color: var(--accent); }
+.trek-dash .st-search input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  font-size: 12.5px;
+}
+.trek-dash .st-search input:focus { outline: none; }
+.trek-dash .st-search button {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--ink-3);
+}
+.trek-dash .st-search button:hover { background: color-mix(in oklch, var(--ink) 10%, transparent); color: var(--ink); }
+
+/* ----------------- badges ----------------- */
+.trek-dash .st-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 17px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--ink) 7%, transparent);
+  color: var(--ink-2);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trek-dash .st-badge.is-quiet { background: transparent; color: var(--ink-3); font-weight: 500; padding-left: 2px; }
+
 /* ----------------- content browser ----------------- */
 .trek-dash .st-photo-grid {
   display: grid;
@@ -558,7 +612,7 @@
   border: 1px solid var(--line);
 }
 .trek-dash .st-entry-head { font-size: 12.5px; font-weight: 600; letter-spacing: -0.01em; }
-.trek-dash .st-entry-meta { font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
+.trek-dash .st-entry-meta { display: flex; align-items: center; gap: 5px; margin-top: 5px; min-width: 0; }
 
 .trek-dash .st-stack { display: flex; flex-direction: column; gap: 5px; }
 .trek-dash .st-tile {

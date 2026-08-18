@@ -39,7 +39,7 @@ export function useJourneyStudio() {
   const { id } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const isMobile = useIsMobile()
   const { current, loading, loadJourney } = useJourneyStore()
 
@@ -114,6 +114,7 @@ export function useJourneyStudio() {
     const preset = PAGE_PRESETS['square-210']
 
     loadDoc(buildBook({
+      locale,
       title: journey.title || '',
       subtitle: journey.subtitle ?? null,
       coverPhotoId: gallery[0]?.photoId ?? null,
@@ -126,7 +127,7 @@ export function useJourneyStudio() {
         safe: preset.safeMm,
       },
     }))
-  }, [journey, loadDoc])
+  }, [journey, loadDoc, locale])
 
   // The book is named after the journey until someone renames it. Tracking the
   // rename explicitly keeps a later journey title change from overwriting a name
@@ -241,6 +242,16 @@ export function useJourneyStudio() {
       photoId: p.photo_id,
       caption: p.caption ?? null,
     })),
+    // Which entry a photo hangs on, so a search for a place finds its pictures
+    // even though a picture carries no words of its own.
+    photoEntries: (() => {
+      const map: Record<number, string> = {}
+      for (const e of (journey?.entries || []) as JourneyEntry[]) {
+        const words = [e.title, e.location_name].filter(Boolean).join(' ').toLowerCase()
+        for (const p of e.photos || []) map[p.photo_id] = words
+      }
+      return map
+    })(),
   }), [journey])
 
   const coverUrl = journey?.cover_image
@@ -249,6 +260,7 @@ export function useJourneyStudio() {
 
   return {
     t,
+    locale,
     isMobile,
     journeyId,
     journey,
