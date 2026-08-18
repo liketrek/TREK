@@ -225,6 +225,15 @@ export default function MTripShell({
     if (trTab !== 'plan') planner.handleTabChange('plan')
   }
 
+  // Map focus on the selected day. Drives the same declutter the desktop sidebar's
+  // collapse chevron drives (#216) rather than adding a second filter — the phone
+  // lost that affordance when this shell replaced DayPlanSidebar, so a day's pins
+  // could not be told apart from the rest of the trip at all (#1962). Unplanned
+  // places stay visible either way, which is what the collapse path has always done.
+  const focusMapOnDay = (dayId: number | null) => {
+    planner.setExpandedDayIds(dayId == null ? null : new Set([dayId]))
+  }
+
   const toggleView = () => {
     const next = view === 'plan' ? 'map' : 'plan'
     setView(next)
@@ -234,6 +243,11 @@ export default function MTripShell({
     if (next === 'map') {
       planner.setRouteShown(true)
       if (planner.selectedDayId != null) planner.handleSelectDay(planner.selectedDayId, false)
+      focusMapOnDay(planner.selectedDayId)
+    } else {
+      // Leaving the map: nothing is filtered while the timeline is up, so the next
+      // visit starts from the whole trip unless a day is picked again.
+      focusMapOnDay(null)
     }
   }
 
@@ -267,8 +281,12 @@ export default function MTripShell({
     if (dayId === planner.selectedDayId) openSheet('day', { dayId })
     else {
       planner.handleSelectDay(dayId, view !== 'map')
-      // In map mode a day tap fits to that day's places AND draws its route.
-      if (view === 'map') planner.setRouteShown(true)
+      // In map mode a day tap fits to that day's places, draws its route and drops
+      // the other days' pins, so the day it framed is the day it shows.
+      if (view === 'map') {
+        planner.setRouteShown(true)
+        focusMapOnDay(dayId)
+      }
     }
   }
 

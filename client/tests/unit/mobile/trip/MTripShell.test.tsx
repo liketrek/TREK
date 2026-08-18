@@ -257,6 +257,36 @@ describe('MTripShell', () => {
     expect(planner.setRouteShown).toHaveBeenCalledWith(true)
   })
 
+  // #1962 — the phone lost the desktop sidebar's collapse chevron, so the map showed
+  // every day's pins at once with no way to narrow it down.
+  it('FE-MOB-SHELL-040: entering the map focuses it on the selected day', () => {
+    const { planner } = renderShell()
+    fireEvent.click(screen.getByRole('button', { name: 'mobileTrip.mapView' }))
+    expect(planner.setExpandedDayIds).toHaveBeenCalledWith(new Set([11]))
+  })
+
+  it('FE-MOB-SHELL-041: a day tap in map mode moves the focus with it', () => {
+    const { planner } = renderShell()
+    fireEvent.click(screen.getByRole('button', { name: 'mobileTrip.mapView' }))
+    vi.mocked(planner.setExpandedDayIds).mockClear()
+    fireEvent.click(screen.getByRole('button', { name: 'Sun 3' }))
+    expect(planner.setExpandedDayIds).toHaveBeenCalledWith(new Set([12]))
+  })
+
+  it('FE-MOB-SHELL-042: a day tap in list mode leaves the map unfiltered', () => {
+    const { planner } = renderShell()
+    fireEvent.click(screen.getByRole('button', { name: 'Sun 3' }))
+    expect(planner.setExpandedDayIds).not.toHaveBeenCalled()
+  })
+
+  it('FE-MOB-SHELL-043: leaving the map clears the focus again', () => {
+    const { planner } = renderShell()
+    fireEvent.click(screen.getByRole('button', { name: 'mobileTrip.mapView' }))
+    vi.mocked(planner.setExpandedDayIds).mockClear()
+    fireEvent.click(screen.getByRole('button', { name: 'mobileTrip.listView' }))
+    expect(planner.setExpandedDayIds).toHaveBeenCalledWith(null)
+  })
+
   it('FE-MOB-SHELL-023: the dock only shows enabled tabs and marks the active one', () => {
     const { planner } = renderShell({
       TRIP_TABS: [
