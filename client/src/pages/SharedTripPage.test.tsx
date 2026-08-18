@@ -7,6 +7,7 @@ import { resetAllStores, seedStore } from '../../tests/helpers/store';
 import { buildSettings } from '../../tests/helpers/factories';
 import { useSettingsStore } from '../store/settingsStore';
 import SharedTripPage from './SharedTripPage';
+import L from 'leaflet';
 
 // Mock react-leaflet (SharedTripPage renders a map)
 vi.mock('react-leaflet', () => ({
@@ -15,6 +16,7 @@ vi.mock('react-leaflet', () => ({
   ),
   TileLayer: () => null,
   Marker: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  Polyline: () => <div data-testid="route-line" />,
   Tooltip: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   useMap: () => ({
     fitBounds: vi.fn(),
@@ -500,8 +502,11 @@ describe('SharedTripPage', () => {
       );
       renderSharedTrip('test-token');
       // The untitled day shows the German label "Tag 1", proving the hardcoded English
-      // "Day 1" was replaced by the i18n key t('dayplan.dayN').
-      await waitFor(() => expect(screen.getByText('Tag 1')).toBeInTheDocument());
+      // "Day 1" was replaced by the i18n key t('dayplan.dayN'). It appears twice since
+      // the day picker above the map was added (#1962): once as a chip, once on the card.
+      await waitFor(() => expect(screen.getAllByText('Tag 1')).toHaveLength(2));
+      const labels = screen.getAllByText('Tag 1');
+      expect(labels.filter((el) => el.closest('button'))).toHaveLength(1);
     });
   });
 
@@ -701,7 +706,10 @@ describe('SharedTripPage', () => {
         accommodations: [{ id: 3, place_name: 'Hotel Lutetia', start_day_id: 5, end_day_id: 5 }],
       }));
 
-      expect(screen.getByText('Day 1')).toBeInTheDocument();
+      // Twice since the day picker landed (#1962): the chip above the map and the card.
+      const dayLabels = screen.getAllByText('Day 1');
+      expect(dayLabels).toHaveLength(2);
+      expect(dayLabels.filter((el) => el.closest('button'))).toHaveLength(1);
       expect(screen.getByText('Hotel Lutetia')).toBeInTheDocument();
       expect(screen.getByText('0 places')).toBeInTheDocument();
       // No date row for an undated day.
@@ -782,6 +790,158 @@ describe('SharedTripPage', () => {
       // Collapsing again restores the trip-wide marker set.
       fireEvent.click(screen.getByText('Day One'));
       await waitFor(() => expect(screen.getAllByText('Louvre')).toHaveLength(1));
+    });
+  });
+
+  // ── Day order, route line and the day picker at the map (#1962) ────────────
+  describe('FE-PAGE-SHARED-038: day markers carry their order and a connecting line', () => {
+    const day = { id: 7, trip_id: 1, day_number: 1, date: '2026-07-02', title: 'Day One' };
+    const louvre = { id: 201, name: 'Louvre', lat: 48.86, lng: 2.33, category: { id: 1, name: 'Sight', color: '#ff0000', icon: 'landmark' } };
+    const orsay = { id: 202, name: 'Orsay', lat: 48.85, lng: 2.32, category: null };
+    const notre = { id: 203, name: 'Notre-Dame', lat: 48.853, lng: 2.35, category: null };
+
+    // Every divIcon call the last render produced, as raw html strings.
+    const iconHtml = () => (L.divIcon as unknown as ReturnType<typeof vi.fn>).mock.calls.map((c: any[]) => String(c[0].html));
+
+    beforeEach(() => (L.divIcon as unknown as ReturnType<typeof vi.fn>).mockClear());
+
+    it('numbers the stops by order_index, not by payload order', async () => {
+      await open('order-map-token', payload({
+        days: [day],
+        places: [louvre, orsay, notre],
+        assignments: {
+          '7': [
+            { id: 302, day_id: 7, place_id: 202, order_index: 1, place: orsay },
+            { id: 303, day_id: 7, place_id: 203, order_index: 2, place: notre },
+            { id: 301, day_id: 7, place_id: 201, order_index: 0, place: louvre },
+          ],
+        },
+      }));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Day 1' }));
+      await waitFor(() => expect(iconHtml().some((h: string) => h.includes('>1<'))).toBe(true));
+
+      const html = iconHtml();
+      // Louvre is order_index 0 and therefore 1, regardless of where it sat in the payload.
+      expect(html.filter((h: string) => h.includes('>1<'))).toHaveLength(1);
+      expect(html.filter((h: string) => h.includes('>2<'))).toHaveLength(1);
+      expect(html.filter((h: string) => h.includes('>3<'))).toHaveLength(1);
+    });
+
+    it('shows both positions once for a stop the day visits twice, and renders it once', async () => {
+      await open('twice-token', payload({
+        days: [day],
+        places: [louvre, orsay],
+        assignments: {
+          '7': [
+            { id: 301, day_id: 7, place_id: 201, order_index: 0, place: louvre },
+            { id: 302, day_id: 7, place_id: 202, order_index: 1, place: orsay },
+            { id: 303, day_id: 7, place_id: 201, order_index: 2, place: louvre },
+          ],
+        },
+      }));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Day 1' }));
+      await waitFor(() => expect(iconHtml().some((h: string) => h.includes('1 \u00b7 3'))).toBe(true));
+      // One marker for the repeated place, not two with the same React key.
+      expect(iconHtml().filter((h: string) => h.includes('1 \u00b7 3'))).toHaveLength(1);
+    });
+
+    it('leaves the trip-wide pool unnumbered, since it has no order to show', async () => {
+      await open('nonum-token', payload({
+        days: [day],
+        places: [louvre, orsay],
+        assignments: { '7': [{ id: 301, day_id: 7, place_id: 201, order_index: 0, place: louvre }] },
+      }));
+
+      await waitFor(() => expect(iconHtml().length).toBeGreaterThan(0));
+      expect(iconHtml().some((h: string) => h.includes('border-radius:8px'))).toBe(false);
+    });
+
+    it('draws the connecting line only for a day with more than one stop', async () => {
+      await open('line-token', payload({
+        days: [day],
+        places: [louvre, orsay],
+        assignments: {
+          '7': [
+            { id: 301, day_id: 7, place_id: 201, order_index: 0, place: louvre },
+            { id: 302, day_id: 7, place_id: 202, order_index: 1, place: orsay },
+          ],
+        },
+      }));
+
+      // No day selected: no line, even though the trip has two geocoded places.
+      expect(screen.queryByTestId('route-line')).toBeNull();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Day 1' }));
+      await waitFor(() => expect(screen.getByTestId('route-line')).toBeInTheDocument());
+
+      fireEvent.click(screen.getByRole('button', { name: 'All' }));
+      await waitFor(() => expect(screen.queryByTestId('route-line')).toBeNull());
+    });
+
+    it('does not draw a line for a day with a single stop', async () => {
+      await open('single-token', payload({
+        days: [day],
+        places: [louvre],
+        assignments: { '7': [{ id: 301, day_id: 7, place_id: 201, order_index: 0, place: louvre }] },
+      }));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Day 1' }));
+      await waitFor(() => expect(screen.getAllByText('Louvre').length).toBeGreaterThan(1));
+      expect(screen.queryByTestId('route-line')).toBeNull();
+    });
+  });
+
+  describe('FE-PAGE-SHARED-039: the day picker sits at the map and agrees with the day card', () => {
+    const day = { id: 7, trip_id: 1, day_number: 1, date: '2026-07-02', title: 'Day One' };
+    const louvre = { id: 201, name: 'Louvre', lat: 48.86, lng: 2.33, category: null };
+    const orsay = { id: 202, name: 'Orsay', lat: 48.85, lng: 2.32, category: null };
+
+    it('narrows the markers to one day and back again', async () => {
+      await open('picker-token', payload({
+        days: [day],
+        places: [louvre, orsay],
+        assignments: { '7': [{ id: 301, day_id: 7, place_id: 201, order_index: 0, place: louvre }] },
+      }));
+
+      // All: both geocoded places are on the map, so Orsay's tooltip is present.
+      expect(screen.getByText('Orsay')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Day 1' }));
+      await waitFor(() => expect(screen.queryByText('Orsay')).toBeNull());
+
+      fireEvent.click(screen.getByRole('button', { name: 'All' }));
+      await waitFor(() => expect(screen.getByText('Orsay')).toBeInTheDocument());
+    });
+
+    it('marks the active chip for assistive tech', async () => {
+      await open('pressed-token', payload({ days: [day], places: [louvre], assignments: {} }));
+
+      expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
+      fireEvent.click(screen.getByRole('button', { name: 'Day 1' }));
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Day 1' })).toHaveAttribute('aria-pressed', 'true'),
+      );
+      expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'false');
+    });
+  });
+
+  describe('FE-PAGE-SHARED-040: trip-wide markers keep their category colour', () => {
+    // The payload nests the category on a day's assignments but sends it flat on the
+    // trip-wide pool, so reading only the nested shape painted every marker indigo.
+    it('reads the flat category_color the trip pool sends', async () => {
+      (L.divIcon as unknown as ReturnType<typeof vi.fn>).mockClear();
+      await open('flatcat-token', payload({
+        days: [],
+        places: [{ id: 201, name: 'Louvre', lat: 48.86, lng: 2.33, category_color: '#ff8800', category_icon: 'landmark' }],
+        assignments: {},
+      }));
+
+      await waitFor(() => expect((L.divIcon as unknown as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(0));
+      const html = (L.divIcon as unknown as ReturnType<typeof vi.fn>).mock.calls.map((c: any[]) => String(c[0].html));
+      expect(html.some((h: string) => h.includes('#ff8800'))).toBe(true);
+      expect(html.some((h: string) => h.includes('#6366f1'))).toBe(false);
     });
   });
 

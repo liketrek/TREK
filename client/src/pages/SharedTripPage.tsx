@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { createElement, useEffect, useRef } from 'react';
 import { renderIconMarkup } from '../utils/iconMarkup';
-import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet';
+import { MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import { getCategoryIcon } from '../components/shared/categoryIcons';
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../constants/mapDefaults';
 import { SUPPORTED_LANGUAGES, useTranslation } from '../i18n';
@@ -33,24 +33,41 @@ import { useSharedTrip } from './sharedTrip/useSharedTrip';
 
 const TRANSPORT_ICONS = { flight: Plane, train: Train, bus: Bus, car: Car, cruise: Ship };
 
-function createMarkerIcon(place: any) {
+// Injected into Leaflet's marker HTML, where CSS variables cannot reach - the same
+// reason MapView.tsx is exempt from theme:lint outright.
+const ORDER_BADGE_STYLE = 'position:absolute;bottom:-4px;right:-4px;min-width:16px;height:16px;border-radius:8px;padding:0 3px;background:rgba(255,255,255,0.94);border:1.5px solid rgba(0,0,0,0.15);box-shadow:0 1px 4px rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;font-weight:800;color:#111827;line-height:1;box-sizing:border-box;white-space:nowrap;'; // theme-lint-disable
+
+function createMarkerIcon(place: any, orderNumbers?: number[] | null) {
   const cat = place.category;
   // This page answers without a guard, so an unescaped colour here reaches
   // people who have no account on the instance at all.
-  const color = safeHexColor(cat?.color, '#6366f1');
-  const CatIcon = getCategoryIcon(cat?.icon);
+  // The payload carries the category in two shapes: nested on a day's assignments,
+  // flat on the trip-wide pool. Reading only the nested one dropped every marker
+  // outside a day selection to the placeholder colour.
+  const color = safeHexColor(cat?.color ?? place.category_color, '#6366f1');
+  const CatIcon = getCategoryIcon(cat?.icon ?? place.category_icon);
   const iconSvg = renderIconMarkup(createElement(CatIcon, { size: 14, strokeWidth: 2, color: 'white' }));
+  // Position in the day's order, same contract as the planner: a stop the day
+  // visits twice shows both, e.g. "1 . 3". The values are array indices, never payload.
+  const badge = orderNumbers?.length
+    ? `<span style="${ORDER_BADGE_STYLE}font-size:${orderNumbers.length > 1 ? 7.5 : 9}px;">${orderNumbers.join(' \u00b7 ')}</span>`
+    : '';
   return L.divIcon({
     className: '',
     iconSize: [28, 28],
     iconAnchor: [14, 14],
-    html: `<div style="width:28px;height:28px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;">${iconSvg}</div>`,
+    html: `<div style="position:relative;width:28px;height:28px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;">${iconSvg}${badge}</div>`,
   });
 }
 
 function FitBoundsToPlaces({ places, framedOnMount }: { places: any[]; framedOnMount: boolean }) {
   const map = useMap();
   const fitRan = useRef(false);
+  // The page rebuilds this array on every render (a Page body may not memoise), so
+  // keying the effect on the coordinates rather than the array identity is what stops
+  // an unrelated re-render - the language picker, a late FX response - from throwing
+  // the viewer's pan and zoom away.
+  const fitKey = places.map((p) => `${p.lat},${p.lng}`).join('|');
   useEffect(() => {
     if (places.length === 0) return;
     // The map already opened framed on these places; fitting again would only re-do it.
@@ -62,7 +79,7 @@ function FitBoundsToPlaces({ places, framedOnMount }: { places: any[]; framedOnM
     fitRan.current = true;
     const bounds = L.latLngBounds(places.map((p) => [p.lat, p.lng]));
     map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
-  }, [places, map]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fitKey, map]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }
 
@@ -136,10 +153,27 @@ export default function SharedTripPage() {
   } = data;
   const sortedDays = [...(days || [])].sort((a: any, b: any) => a.day_number - b.day_number);
 
-  // Map places
-  const mapPlaces = selectedDay
-    ? (assignments[String(selectedDay)] || []).map((a: any) => a.place).filter((p: any) => p?.lat && p?.lng)
-    : (places || []).filter((p: any) => p?.lat && p?.lng);
+  // Map places. In day mode each stop carries its position in the day's order; the
+  // trip-wide pool has none (it arrives by created_at). The index runs over the full
+  // sorted assignment list, like the planner does, so a stop without coordinates still
+  // consumes a number and the app and the share link agree on what "3" means.
+  const dayAssignments = selectedDay
+    ? [...(assignments[String(selectedDay)] || [])].sort((a: any, b: any) => a.order_index - b.order_index)
+    : [];
+  const dayOrderMap: Record<number, number[]> = {};
+  dayAssignments.forEach((a: any, i: number) => {
+    if (!a.place?.id) return;
+    (dayOrderMap[a.place.id] ||= []).push(i + 1);
+  });
+  const dayPlaces: any[] = [];
+  const seenPlaceIds = new Set<number>();
+  for (const a of dayAssignments as any[]) {
+    const p = a.place;
+    if (!p?.lat || !p?.lng || seenPlaceIds.has(p.id)) continue;
+    seenPlaceIds.add(p.id);
+    dayPlaces.push(p);
+  }
+  const mapPlaces = selectedDay ? dayPlaces : (places || []).filter((p: any) => p?.lat && p?.lng);
 
   // Open framed on the trip's places instead of on Paris. MapContainer only reads center/zoom
   // at mount, so recomputing this per render is free — and the fit below takes over from there.
@@ -396,6 +430,41 @@ export default function SharedTripPage() {
         {/* Map */}
         {activeTab === 'plan' && (
           <>
+            {/* Day picker at the map. Same setter as the day card below, so the map and
+                the expanded day can never disagree. Without it the only way to narrow the
+                map down was a control 300px further down the page. */}
+            {sortedDays.length > 0 && (
+              <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 10, padding: '2px 0' }}>
+                {[null, ...sortedDays.map((d: any) => d.id)].map((id: number | null, i: number) => {
+                  const active = selectedDay === id;
+                  return (
+                    <button
+                      key={id ?? 'all'}
+                      type="button"
+                      onClick={() => setSelectedDay(id)}
+                      aria-pressed={active}
+                      // Same literals as the day-number circle below. This page pins itself
+                      // to the light neutral look (applyAppearance skips /shared/*), so a
+                      // token here would not be value-equal to the rest of the card.
+                      className={active ? 'bg-[#111827] text-white' : 'bg-[#f3f4f6] text-[#6b7280]'} // theme-lint-disable
+                      style={{
+                        padding: '5px 12px',
+                        borderRadius: 999,
+                        border: 'none',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        fontWeight: 600,
+                        fontFamily: 'inherit',
+                        flexShrink: 0,
+                        fontSize: 'calc(12px * var(--fs-scale-body, 1))',
+                      }}
+                    >
+                      {id === null ? t('day.allDays') : t('dayplan.dayN', { n: sortedDays[i - 1].day_number })}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             <div
               style={{
                 borderRadius: 16,
@@ -416,8 +485,19 @@ export default function SharedTripPage() {
                   referrerPolicy="strict-origin-when-cross-origin"
                 />
                 <FitBoundsToPlaces places={mapPlaces} framedOnMount={framed !== null} />
+                {selectedDay && mapPlaces.length > 1 && (
+                  <Polyline
+                    positions={mapPlaces.map((p: any) => [p.lat, p.lng])}
+                    // Dashed and straight on purpose: it shows the order of the day's stops,
+                    // not the roads between them. A real route would mean sending the
+                    // itinerary to a third party for every anonymous visitor of a shared
+                    // link, with no way for the trip's owner to opt out.
+                    pathOptions={{ color: '#0a84ff', weight: 3, opacity: 0.8, dashArray: '6 8', lineCap: 'round' }} // theme-lint-disable
+                    interactive={false}
+                  />
+                )}
                 {mapPlaces.map((p: any) => (
-                  <Marker key={p.id} position={[p.lat, p.lng]} icon={createMarkerIcon(p)}>
+                  <Marker key={p.id} position={[p.lat, p.lng]} icon={createMarkerIcon(p, dayOrderMap[p.id] ?? null)}>
                     <Tooltip>{p.name}</Tooltip>
                   </Marker>
                 ))}
