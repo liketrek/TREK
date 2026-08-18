@@ -398,6 +398,11 @@ export interface TrekPhoto {
   media_type?: string | null;
   /** Optional video duration in milliseconds. */
   duration_ms?: number | null;
+  /** When the picture was taken, as the provider or its EXIF reported it (#1614). */
+  taken_at?: string | null;
+  /** Capture coordinates. Stored as a pair or not at all. */
+  lat?: number | null;
+  lng?: number | null;
   created_at: string;
 }
 

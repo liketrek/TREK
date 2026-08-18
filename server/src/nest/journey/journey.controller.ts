@@ -22,6 +22,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import type { User } from '../../types';
 import { JourneyService } from './journey.service';
+import { PhotoCaptureBackfillService } from '../memories/photo-capture-backfill.service';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
 import { ADDON_IDS } from '../../addons';
@@ -120,7 +121,20 @@ const VIDEO_UPLOAD = {
 @UseGuards(AddonGuard, JwtAuthGuard)
 @RequireAddon(ADDON_IDS.JOURNEY, 'Journey')
 export class JourneyController {
-  constructor(private readonly journey: JourneyService) {}
+  constructor(
+    private readonly journey: JourneyService,
+    private readonly captureBackfill: PhotoCaptureBackfillService,
+  ) {}
+
+  // The add call carries only an asset id, so when and where the picture was taken
+  // are fetched from the provider afterwards rather than trusted from the client
+  // (#1614). Detached: a slow or unreachable provider must not hold up the add.
+  private backfillCapture(photos: unknown[], userId: number): void {
+    const ids = photos
+      .map(p => (p as { photo_id?: number } | null)?.photo_id)
+      .filter((id): id is number => typeof id === 'number');
+    this.captureBackfill.schedule(ids, userId);
+  }
 
   // ── Static prefix routes (before /:id) ──────────────────────────────────
   @Get()
@@ -211,6 +225,7 @@ export class JourneyController {
         const photo = this.journey.addProviderPhoto(Number(entryId), user.id, String(body.provider), String(id), body.caption as string | undefined, pp, mt);
         if (photo) added.push(photo);
       });
+      this.backfillCapture(added, user.id);
       return { photos: added, added: added.length };
     }
     if (!body.provider || !body.asset_id) {
@@ -220,6 +235,7 @@ export class JourneyController {
     if (!photo) {
       throw new HttpException({ error: 'Not allowed or duplicate' }, 403);
     }
+    this.backfillCapture([photo], user.id);
     return photo;
   }
 
@@ -325,6 +341,7 @@ export class JourneyController {
         const photo = this.journey.addProviderPhotoToGallery(Number(id), user.id, String(body.provider), String(aid), undefined, pp, mt);
         if (photo) added.push(photo);
       });
+      this.backfillCapture(added, user.id);
       return { photos: added, added: added.length };
     }
     if (!body.provider || !body.asset_id) {
@@ -334,6 +351,7 @@ export class JourneyController {
     if (!photo) {
       throw new HttpException({ error: 'Not allowed or duplicate' }, 403);
     }
+    this.backfillCapture([photo], user.id);
     return photo;
   }
 
