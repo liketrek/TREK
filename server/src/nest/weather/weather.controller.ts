@@ -27,12 +27,14 @@ export class WeatherController {
     @Query('lng') lng?: string,
     @Query('date') date?: string,
     @Query('lang') lang?: string,
+    /** HH:MM — lets a past date answer for that hour rather than the day (#1614). */
+    @Query('time') time?: string,
   ): Promise<WeatherResult> {
     if (!lat || !lng) {
       throw new HttpException({ error: 'Latitude and longitude are required' }, 400);
     }
     try {
-      return await this.weather.get(lat, lng, date, lang ?? 'de');
+      return await this.weather.get(lat, lng, date, lang ?? 'de', time);
     } catch (err: unknown) {
       throw toHttp(err, 'Weather error:', 'Error fetching weather data');
     }

@@ -1029,7 +1029,8 @@ export const healthApi = {
 }
 
 export const weatherApi = {
-  get: (lat: number, lng: number, date: string): Promise<WeatherResult> => apiClient.get('/weather', { params: { lat, lng, date } }).then(r => parseInDev(weatherResultSchema, r.data, 'weather.get')),
+  // `time` (HH:MM) makes a past date answer for that hour instead of the day (#1614).
+  get: (lat: number, lng: number, date: string, time?: string): Promise<WeatherResult> => apiClient.get('/weather', { params: { lat, lng, date, time } }).then(r => parseInDev(weatherResultSchema, r.data, 'weather.get')),
   getCurrent: (lat: number, lng: number, lang?: string): Promise<WeatherResult> => apiClient.get('/weather', { params: { lat, lng, lang } }).then(r => parseInDev(weatherResultSchema, r.data, 'weather.getCurrent')),
   getDetailed: (lat: number, lng: number, date: string, lang?: string): Promise<WeatherResult> => apiClient.get('/weather/detailed', { params: { lat, lng, date, lang } }).then(r => parseInDev(weatherResultSchema, r.data, 'weather.getDetailed')),
 }

@@ -4,6 +4,21 @@
 // outbound client in the codebase carries one.
 const WEATHER_TIMEOUT_MS = 8000;
 
+/**
+ * Which slot of Open-Meteo's hourly series a HH:MM belongs to.
+ *
+ * The archive answers with one entry per hour of the requested day in the local
+ * timezone, so the hour is the index. Anything unparseable means "no time given",
+ * which falls back to the daily figures rather than guessing midnight.
+ */
+function hourIndexFromTime(time?: string): number | null {
+  if (!time) return null;
+  const m = /^(\d{1,2}):(\d{2})/.exec(time.trim());
+  if (!m) return null;
+  const hour = Number(m[1]);
+  return Number.isInteger(hour) && hour >= 0 && hour <= 23 ? hour : null;
+}
+
 // ── Interfaces ──────────────────────────────────────────────────────────
 
 export interface WeatherResult {
@@ -182,8 +197,9 @@ async function _getWeatherImpl(
   lng: string,
   date: string | undefined,
   lang: string,
+  time?: string,
 ): Promise<WeatherResult> {
-  const ck = cacheKey(lat, lng, date);
+  const ck = cacheKey(lat, lng, date ? `${date}T${time ?? ''}` : date);
 
   if (date) {
     const cached = getCached(ck);
@@ -227,12 +243,34 @@ async function _getWeatherImpl(
     // Past date: use archive API for the actual date
     if (diffDays < -1) {
       const dateStr = targetDate.toISOString().slice(0, 10);
-      const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${dateStr}&end_date=${dateStr}&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum&timezone=auto`;
+      // With a time in hand, ask for the hourly series too: a journal entry made at
+      // 14:30 wants the weather of that hour, not the day's high and low averaged
+      // together, which is what a rainy morning and a bright afternoon collapse to.
+      const hourParam = hourIndexFromTime(time) != null
+        ? '&hourly=temperature_2m,weathercode'
+        : '';
+      const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${dateStr}&end_date=${dateStr}&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum${hourParam}&timezone=auto`;
       const response = await fetch(url, { signal: AbortSignal.timeout(WEATHER_TIMEOUT_MS) });
       const data = await response.json() as OpenMeteoForecast;
 
       if (!response.ok || data.error) {
         throw new ApiError(response.status || 500, data.reason || 'Open-Meteo Archive API error');
+      }
+
+      const hourIdx = hourIndexFromTime(time);
+      const hourly = (data as { hourly?: { temperature_2m?: (number | null)[]; weathercode?: (number | null)[] } }).hourly;
+      if (hourIdx != null && hourly?.temperature_2m?.[hourIdx] != null) {
+        const temp = hourly.temperature_2m[hourIdx]!;
+        const code = hourly.weathercode?.[hourIdx] ?? undefined;
+        const descriptions = lang === 'de' ? WMO_DESCRIPTION_DE : WMO_DESCRIPTION_EN;
+        const result: WeatherResult = {
+          temp: Math.round(temp),
+          main: WMO_MAP[code!] || estimateCondition(temp, 0),
+          description: descriptions[code!] || '',
+          type: 'forecast',
+        };
+        setCache(ck, result, TTL_CLIMATE_MS);
+        return result;
       }
 
       const daily = data.daily;
@@ -348,15 +386,17 @@ export async function getWeather(
   lng: string,
   date: string | undefined,
   lang: string,
+  /** HH:MM of the moment being asked about. Only the archive path can use it. */
+  time?: string,
 ): Promise<WeatherResult> {
-  const ck = cacheKey(lat, lng, date);
+  const ck = cacheKey(lat, lng, date ? `${date}T${time ?? ''}` : date);
   const cached = getCached(ck);
   if (cached) return cached;
 
   const inFlightKey = `${ck}:${lang}`;
   const existing = inFlight.get(inFlightKey);
   if (existing) return existing;
-  const promise = _getWeatherImpl(lat, lng, date, lang);
+  const promise = _getWeatherImpl(lat, lng, date, lang, time);
   inFlight.set(inFlightKey, promise);
   try { return await promise; } finally { inFlight.delete(inFlightKey); }
 }

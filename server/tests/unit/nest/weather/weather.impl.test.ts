@@ -306,6 +306,51 @@ describe('getWeather', () => {
       expect(vi.mocked(fetch).mock.calls[0][0]).toContain('archive-api.open-meteo.com');
     });
 
+    // #1614 — an entry made at 14:30 wants the weather of that hour. Averaging a
+    // rainy morning with a bright afternoon is what the daily figures do.
+    it('answers for the given hour when a time comes with the date', async () => {
+      const date = dateOffset(-5);
+      const hourly = { temperature_2m: Array(24).fill(null), weathercode: Array(24).fill(null) };
+      hourly.temperature_2m[14] = 21;
+      hourly.weathercode[14] = 0;
+      vi.mocked(fetch).mockResolvedValueOnce(mockResponse({
+        daily: { time: [date], temperature_2m_max: [18], temperature_2m_min: [10], weathercode: [2], precipitation_sum: [0] },
+        hourly,
+      }));
+
+      const result = await getWeather('14.02', '24.02', date, 'en', '14:30');
+
+      expect(vi.mocked(fetch).mock.calls[0][0]).toContain('hourly=temperature_2m,weathercode');
+      expect(result.temp).toBe(21);
+      // The daily average would have been 14, so this is demonstrably the hour.
+      expect(result.temp_max).toBeUndefined();
+    });
+
+    it('falls back to the daily figures when the hour has no reading', async () => {
+      const date = dateOffset(-5);
+      vi.mocked(fetch).mockResolvedValueOnce(mockResponse({
+        daily: { time: [date], temperature_2m_max: [18], temperature_2m_min: [10], weathercode: [2], precipitation_sum: [0] },
+        hourly: { temperature_2m: Array(24).fill(null), weathercode: Array(24).fill(null) },
+      }));
+
+      const result = await getWeather('14.03', '24.03', date, 'en', '14:30');
+
+      expect(result.temp).toBe(14);
+      expect(result.temp_max).toBe(18);
+    });
+
+    it('ignores an unparseable time rather than guessing midnight', async () => {
+      const date = dateOffset(-5);
+      vi.mocked(fetch).mockResolvedValueOnce(mockResponse({
+        daily: { time: [date], temperature_2m_max: [18], temperature_2m_min: [10], weathercode: [2], precipitation_sum: [0] },
+      }));
+
+      const result = await getWeather('14.04', '24.04', date, 'en', 'not-a-time');
+
+      expect(vi.mocked(fetch).mock.calls[0][0]).not.toContain('hourly=');
+      expect(result.temp).toBe(14);
+    });
+
     it('returns no_forecast error when archive has no data for the date', async () => {
       const date = dateOffset(-5);
       vi.mocked(fetch).mockResolvedValueOnce(mockResponse({ daily: { time: [], temperature_2m_max: [], temperature_2m_min: [], weathercode: [] } }));
