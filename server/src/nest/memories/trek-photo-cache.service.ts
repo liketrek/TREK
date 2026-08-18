@@ -85,7 +85,9 @@ export class TrekPhotoCacheService {
 
     res.set('Content-Type', entry.contentType);
     res.set('Cache-Control', 'public, max-age=3600');
-    res.sendFile(entry.filePath);
+    // Root-relative, see photo-resolver.service.ts — an absolute path 404s under
+    // the Nest ExpressAdapter.
+    res.sendFile(path.basename(entry.filePath), { root: path.dirname(entry.filePath) });
     return true;
   }
 

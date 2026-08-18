@@ -62,7 +62,9 @@ export class JourneyPublicController {
         throw new HttpException({ error: 'Not found' }, 404);
       }
       res.set('Cache-Control', 'public, max-age=86400');
-      res.sendFile(resolved);
+      // Root-relative, see photo-resolver.service.ts — an absolute path 404s under
+      // the Nest ExpressAdapter. The guard above already confined `resolved`.
+      res.sendFile(path.basename(resolved), { root: path.dirname(resolved) });
       return;
     }
 

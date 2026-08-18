@@ -96,7 +96,12 @@ export class PhotoResolverService {
           if (fs.existsSync(thumbAbs)) {
             res.set('Cache-Control', 'public, max-age=86400, immutable');
             res.set('X-Content-Type-Options', 'nosniff');
-            res.sendFile(thumbAbs);
+            // Explicit { root } + basename, not the absolute path: under the Nest
+            // ExpressAdapter, res.sendFile(absolutePath) resolves against the
+            // rewritten req.url and 404s spuriously even though the file is right
+            // there (same trap as files-download.controller.ts). The existsSync
+            // above already pins this inside the uploads tree.
+            res.sendFile(path.basename(thumbAbs), { root: path.dirname(thumbAbs) });
             return;
           }
         }
@@ -113,7 +118,7 @@ export class PhotoResolverService {
       if (fs.existsSync(localPath)) {
         res.set('Cache-Control', 'public, max-age=86400');
         res.set('X-Content-Type-Options', 'nosniff');
-        res.sendFile(localPath);
+        res.sendFile(path.basename(localPath), { root: path.dirname(localPath) });
         return;
       }
     }
