@@ -359,8 +359,12 @@ export class JourneyDomainService {
 
     // sync skeleton entries for all places in this trip
     this.syncTripPlaces(journeyId, tripId, userId);
-    // import existing trip photos (Immich/Synology) with sharing settings
-    this.syncTripPhotos(journeyId, tripId);
+    // Trip photos are deliberately NOT pulled in any more (#1614). Photos live in
+    // journeys now: the trip-photo surface lost its UI in 3.1.0, nothing writes to
+    // it on an install newer than that, and copying rows between the two was what
+    // let a photo one member had chosen not to share reach a journey at all. The
+    // table and its (unreferenced) routes stay for one more release rather than
+    // being dropped in an append-only migration.
     this.broadcastJourneyEvent(journeyId, 'journey:trip:synced', { tripId });
     return true;
   }
@@ -442,35 +446,6 @@ export class JourneyDomainService {
         sortOrder: nextOrder,
         now,
       });
-    }
-  }
-
-  // import trip_photos into journey gallery when a trip is linked
-  //
-  // Only the ones the owner actually shared with the trip. A photo left unshared is
-  // denied on the trip path (memories-access checks tp.shared = 1), and copying it
-  // here handed it to every journey contributor and, with an open gallery, to
-  // anonymous visitors of the share link — journey_photos.shared cannot gate that
-  // afterwards, because a direct upload writes 0 into the same column.
-  private syncTripPhotos(journeyId: number, tripId: number) {
-    const tripPhotos = this.db
-      .prepare('SELECT tp.photo_id, tp.shared FROM trip_photos tp WHERE tp.trip_id = ? AND tp.shared = 1')
-      .all(tripId) as { photo_id: number; shared: number }[];
-    if (!tripPhotos.length) return;
-
-    const now = this.ts();
-    const maxOrderRow = this.db
-      .prepare('SELECT MAX(sort_order) as m FROM journey_photos WHERE journey_id = ?')
-      .get(journeyId) as { m: number | null };
-    let nextOrder = (maxOrderRow?.m ?? -1) + 1;
-
-    for (const tp of tripPhotos) {
-      this.db.prepare(
-        `
-        INSERT OR IGNORE INTO journey_photos (journey_id, photo_id, shared, sort_order, created_at)
-        VALUES (?, ?, ?, ?, ?)
-      `,
-      ).run(journeyId, tp.photo_id, tp.shared, nextOrder++, now);
     }
   }
 
