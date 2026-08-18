@@ -130,7 +130,7 @@ export class JourneyShareService {
     const photos = this.db.prepare(`
       SELECT gp.id, jep.entry_id, gp.photo_id, gp.caption, jep.sort_order, gp.shared, gp.created_at,
              tkp.provider, tkp.asset_id, tkp.owner_id, tkp.file_path, tkp.thumbnail_path, tkp.width, tkp.height,
-             tkp.media_type, tkp.duration_ms
+             tkp.media_type, tkp.duration_ms, tkp.taken_at, tkp.lat, tkp.lng
       FROM journey_entry_photos jep
       JOIN journey_photos gp ON gp.id = jep.journey_photo_id
       JOIN trek_photos tkp ON tkp.id = gp.photo_id
@@ -146,7 +146,7 @@ export class JourneyShareService {
     const gallery = this.db.prepare(`
       SELECT gp.id, gp.journey_id, gp.photo_id, gp.caption, gp.shared, gp.sort_order, gp.created_at,
              tkp.provider, tkp.asset_id, tkp.owner_id, tkp.file_path, tkp.thumbnail_path, tkp.width, tkp.height,
-             tkp.media_type, tkp.duration_ms
+             tkp.media_type, tkp.duration_ms, tkp.taken_at, tkp.lat, tkp.lng
       FROM journey_photos gp
       JOIN trek_photos tkp ON tkp.id = gp.photo_id
       WHERE gp.journey_id = ?
@@ -183,6 +183,7 @@ export class JourneyShareService {
         const projected: Record<string, unknown> = { ...e };
         if (!shareMap) { projected.location_lat = null; projected.location_lng = null; }
         if (!shareGallery) projected.photos = [];
+        else if (!shareMap) projected.photos = stripPhotoGps(e.photos);
         return projected;
       });
     } else if (shareMap) {
@@ -208,7 +209,11 @@ export class JourneyShareService {
         status: journey.status,
       },
       entries: publicEntries,
-      gallery: shareGallery ? gallery : [],
+      // A photo now carries the coordinates it was taken at, which is a location the
+      // owner never typed and may not expect to publish. It follows share_map, the
+      // same switch the entry coordinates follow — otherwise a gallery-only share
+      // would hand out places the map was deliberately turned off for.
+      gallery: shareGallery ? (shareMap ? gallery : stripPhotoGps(gallery)) : [],
       stats,
       permissions: {
         share_timeline: shareTimeline,
@@ -217,4 +222,9 @@ export class JourneyShareService {
       },
     };
   }
+}
+
+/** Drop capture coordinates from a photo list, keeping everything else. */
+function stripPhotoGps<T>(photos: T[] | undefined | null): T[] {
+  return (photos ?? []).map(p => ({ ...(p as Record<string, unknown>), lat: null, lng: null })) as T[];
 }

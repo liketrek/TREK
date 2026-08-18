@@ -14,7 +14,7 @@ import { TrekPhotosRepository } from '../photos/trek-photos.repository';
 const JP_SELECT = `
   gp.id, jep.entry_id, gp.photo_id, gp.caption, jep.sort_order, gp.shared, gp.created_at,
   tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height,
-  tp.media_type, tp.duration_ms
+  tp.media_type, tp.duration_ms, tp.taken_at, tp.lat, tp.lng
 `;
 
 const JP_JOIN = `journey_entry_photos jep
@@ -24,7 +24,7 @@ const JP_JOIN = `journey_entry_photos jep
 const GALLERY_SELECT = `
   gp.id, gp.journey_id, gp.photo_id, gp.caption, gp.shared, gp.sort_order, gp.created_at,
   tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height,
-  tp.media_type, tp.duration_ms
+  tp.media_type, tp.duration_ms, tp.taken_at, tp.lat, tp.lng
 `;
 
 const GALLERY_JOIN = 'journey_photos gp JOIN trek_photos tp ON tp.id = gp.photo_id';
