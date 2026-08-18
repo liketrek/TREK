@@ -79,7 +79,7 @@ export class PhotoCaptureBackfillService {
     if (abs !== UPLOADS_ROOT && !abs.startsWith(UPLOADS_ROOT + path.sep)) return null;
 
     type Exif = { DateTimeOriginal?: Date; CreateDate?: Date; latitude?: number; longitude?: number };
-    let parsed: Exif | null = null;
+    let parsed: Exif | null;
     try {
       parsed = (await exifr.parse(abs, {
         pick: ['DateTimeOriginal', 'CreateDate', 'latitude', 'longitude'],
