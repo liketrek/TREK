@@ -106,7 +106,7 @@ export class DaysMcp {
 
   @Tool({
     name: 'set_day_default_transport_mode',
-    description: 'Set the whole-day default travel mode for a day. transport_mode is a route profile key (e.g. "driving", "walking", "cycling", "transit"); null clears the default. Per-segment leg modes still override this.',
+    description: 'Set the whole-day default travel mode for a day. transport_mode is a route profile key: "driving", "walking", "cycling", or a plugin profile written as "plugin:<pluginId>/<profileId>". Any other value is stored but drawn as a driving route. null clears the default. Per-segment leg modes still override this.',
     inputSchema: {
       tripId: z.number().int().positive(),
       dayId: z.number().int().positive(),

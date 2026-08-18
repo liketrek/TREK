@@ -117,7 +117,7 @@ export class AssignmentsMcp {
 
   @Tool({
     name: 'set_leg_transport_mode',
-    description: 'Set the travel mode of a route leg for a place assignment. Use direction "outgoing" (default) for the common case: the leg leaving this stop toward the next. Use direction "incoming" ONLY when this stop\'s arriving leg originates from something that is not itself a place assignment (e.g. a flight/train booking arrival, or a morning hotel departure) – setting "incoming" on an ordinary place-to-place leg is stored but has no effect on route rendering, because it targets a column that is only read for non-place origins. transport_mode is a route profile key (e.g. "driving", "walking", "cycling", "transit"); null clears it so the leg inherits the day default.',
+    description: 'Set the travel mode of a route leg for a place assignment. Use direction "outgoing" (default) for the common case: the leg leaving this stop toward the next. Use direction "incoming" ONLY when this stop\'s arriving leg originates from something that is not itself a place assignment (e.g. a flight/train booking arrival, or a morning hotel departure) – setting "incoming" on an ordinary place-to-place leg is stored but has no effect on route rendering, because it targets a column that is only read for non-place origins. transport_mode is a route profile key: "driving", "walking", "cycling", or a plugin profile written as "plugin:<pluginId>/<profileId>". Any other value is stored but drawn as a driving route. null clears it so the leg inherits the day default.',
     inputSchema: {
       tripId: z.number().int().positive(),
       assignmentId: z.number().int().positive(),

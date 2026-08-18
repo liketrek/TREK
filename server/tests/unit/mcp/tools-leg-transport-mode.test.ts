@@ -70,6 +70,9 @@ describe('Tool: set_leg_transport_mode', () => {
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id);
     const assignment = createDayAssignment(testDb, day.id, place.id);
+    // Seed the incoming column so the assertion below proves it survives; the factory
+    // leaves it NULL, so without this it would pass whether or not the tool touched it.
+    testDb.prepare('UPDATE day_assignments SET incoming_leg_transport_mode = ? WHERE id = ?').run('walking', assignment.id);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -78,7 +81,7 @@ describe('Tool: set_leg_transport_mode', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.assignment.leg_transport_mode).toBe('cycling');
-      expect(data.assignment.incoming_leg_transport_mode ?? null).toBeNull(); // outgoing must not touch incoming (panel item 4)
+      expect(data.assignment.incoming_leg_transport_mode).toBe('walking'); // outgoing must not touch incoming (panel item 4)
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'assignment:updated', expect.any(Object));
     });
   });
@@ -95,10 +98,10 @@ describe('Tool: set_leg_transport_mode', () => {
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'set_leg_transport_mode',
-        arguments: { tripId: trip.id, assignmentId: assignment.id, transport_mode: 'transit', direction: 'incoming' },
+        arguments: { tripId: trip.id, assignmentId: assignment.id, transport_mode: 'walking', direction: 'incoming' },
       });
       const data = parseToolResult(result) as any;
-      expect(data.assignment.incoming_leg_transport_mode).toBe('transit');
+      expect(data.assignment.incoming_leg_transport_mode).toBe('walking');
       expect(data.assignment.leg_transport_mode).toBe('driving'); // outgoing untouched
     });
   });
