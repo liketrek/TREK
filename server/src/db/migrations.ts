@@ -3955,6 +3955,21 @@ function runMigrations(db: Database.Database): void {
         upsert.run(column, row.value);
       }
     },
+    // Capture metadata on the photo itself (#1614): when it was taken and where.
+    // Both are needed before photos can sit on the Journey map by their own
+    // coordinates, and before a gallery can be ordered by when a picture was
+    // taken rather than when it happened to be added. Nullable throughout —
+    // most providers answer with neither, and a photo without them is normal.
+    // Guarded so re-running the migration tail is a no-op.
+    () => {
+      const cols = db.prepare("SELECT name FROM pragma_table_info('trek_photos')").all() as Array<{ name: string }>;
+      const has = (name: string) => cols.some(c => c.name === name);
+      if (!has('taken_at')) db.exec('ALTER TABLE trek_photos ADD COLUMN taken_at TEXT');
+      if (!has('lat')) db.exec('ALTER TABLE trek_photos ADD COLUMN lat REAL');
+      if (!has('lng')) db.exec('ALTER TABLE trek_photos ADD COLUMN lng REAL');
+      // Answering "which photos of this journey have coordinates" without a scan.
+      db.exec('CREATE INDEX IF NOT EXISTS idx_trek_photos_geo ON trek_photos(lat, lng) WHERE lat IS NOT NULL AND lng IS NOT NULL');
+    },
   ];
 
   if (currentVersion < migrations.length) {

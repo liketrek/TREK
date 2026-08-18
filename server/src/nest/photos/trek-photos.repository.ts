@@ -90,6 +90,36 @@ export class TrekPhotosRepository {
   }
 
   /**
+   * Where and when the picture was taken (#1614).
+   *
+   * COALESCE throughout, for the same reason recordLocalThumbnail does it: the
+   * three sources disagree in how much they know. A provider search answers with
+   * coordinates, the same provider's album listing does not, and a local file
+   * only gives them up once its EXIF has been read. Whichever arrives first wins,
+   * and a later, emptier answer must not blank what is already there.
+   *
+   * A photo with neither is the normal case, not a failure.
+   */
+  recordCaptureMetadata(
+    photoId: number,
+    meta: { takenAt?: string | null; lat?: number | null; lng?: number | null },
+  ): void {
+    const { takenAt = null, lat = null, lng = null } = meta;
+    if (takenAt == null && lat == null && lng == null) return;
+    // Coordinates are stored as a pair or not at all — a lone latitude is not a
+    // place, and half a pair would put the photo on the null island.
+    const hasPair = Number.isFinite(lat) && Number.isFinite(lng);
+    this.db.run(
+      `UPDATE trek_photos
+          SET taken_at = COALESCE(taken_at, ?),
+              lat      = COALESCE(lat, ?),
+              lng      = COALESCE(lng, ?)
+        WHERE id = ?`,
+      takenAt, hasPair ? lat : null, hasPair ? lng : null, photoId,
+    );
+  }
+
+  /**
    * Drop the row once no trip and no journey references it. Local photos are
    * kept: their bytes are ours, and the file would outlive the row.
    */
