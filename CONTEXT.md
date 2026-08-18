@@ -48,6 +48,10 @@ _Avoid_: Rate type, rate metadata
 A person represented in one trip who can hold assignments or financial participation, whether or not they can sign in.
 _Avoid_: User, traveler
 
+**Departure transport**:
+The chronologically first non-cancelled transport booking that can be placed on a Trip's timeline.
+_Avoid_: First reservation, Trip start time
+
 **Account member**:
 A trip participant linked to a TREK account with access to the trip.
 _Avoid_: Real member, registered guest

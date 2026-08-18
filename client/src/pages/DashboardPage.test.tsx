@@ -1,7 +1,7 @@
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildSettings, buildTrip, buildUser } from '../../tests/helpers/factories';
+import { buildDay, buildReservation, buildSettings, buildTrip, buildUser } from '../../tests/helpers/factories';
 import { server } from '../../tests/helpers/msw/server';
 import { render, screen, waitFor } from '../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
@@ -638,6 +638,114 @@ describe('DashboardPage', () => {
       await waitFor(() => {
         expect(screen.getAllByText(/trip starts in/i).length).toBeGreaterThan(0);
       });
+    });
+  });
+
+  describe('Departure transport countdown board', () => {
+    it('shows the Option A timer while preserving the original boarding-pass status', async () => {
+      const day = buildDay({ id: 50, date: '2026-07-08' });
+      const flight = buildReservation({
+        id: 70,
+        day_id: day.id,
+        type: 'flight',
+        status: 'pending',
+        title: 'HX676',
+        reservation_time: '2026-07-08T09:05',
+        endpoints: [
+          {
+            role: 'from',
+            sequence: 0,
+            name: 'Hong Kong (HKG)',
+            code: 'HKG',
+            lat: 22.308,
+            lng: 113.9185,
+            timezone: 'Asia/Hong_Kong',
+            local_date: '2026-07-08',
+            local_time: '09:05',
+          },
+        ],
+      });
+      server.use(
+        http.get('/api/trips/:id/bundle', () =>
+          HttpResponse.json({
+            members: [],
+            places: [],
+            days: [day],
+            reservations: [flight],
+          })
+        )
+      );
+
+      render(<DashboardPage />);
+
+      const timer = await screen.findByRole('timer');
+      expect(timer).toBeInTheDocument();
+      expect(timer.closest('.hero-trip')).toHaveClass('has-departure-countdown');
+      expect(screen.getByText('Departure in')).toBeInTheDocument();
+      expect(screen.getByTitle('HX676 · 09:05')).toBeInTheDocument();
+      expect(screen.getAllByText(/days left/i).length).toBeGreaterThan(0);
+    });
+
+    it('does not skip an incomplete first transport to count down a later flight', async () => {
+      const day = buildDay({ id: 51, date: '2026-07-07' });
+      const incompleteBus = buildReservation({
+        id: 71,
+        day_id: day.id,
+        type: 'bus',
+        status: 'pending',
+        title: 'Airport bus',
+        reservation_time: '2026-07-07',
+        endpoints: [
+          {
+            role: 'from',
+            sequence: 0,
+            name: 'Central',
+            code: null,
+            lat: 22.2819,
+            lng: 114.158,
+            timezone: 'Asia/Hong_Kong',
+            local_date: '2026-07-07',
+            local_time: null,
+          },
+        ],
+      });
+      const completeFlight = buildReservation({
+        id: 72,
+        day_id: day.id,
+        type: 'flight',
+        status: 'confirmed',
+        title: 'Later flight',
+        reservation_time: '2026-07-08T09:05',
+        endpoints: [
+          {
+            role: 'from',
+            sequence: 0,
+            name: 'Hong Kong (HKG)',
+            code: 'HKG',
+            lat: 22.308,
+            lng: 113.9185,
+            timezone: 'Asia/Hong_Kong',
+            local_date: '2026-07-08',
+            local_time: '09:05',
+          },
+        ],
+      });
+      server.use(
+        http.get('/api/trips/:id/bundle', () =>
+          HttpResponse.json({
+            members: [{ id: 88, username: 'Bundle Loaded', avatar_url: '/avatar.png' }],
+            places: [],
+            days: [day],
+            reservations: [completeFlight, incompleteBus],
+          })
+        )
+      );
+
+      render(<DashboardPage />);
+
+      expect(await screen.findByAltText('Bundle Loaded')).toBeInTheDocument();
+      expect(screen.queryByRole('timer')).not.toBeInTheDocument();
+      expect(screen.getAllByText(/days left/i).length).toBeGreaterThan(0);
     });
   });
 

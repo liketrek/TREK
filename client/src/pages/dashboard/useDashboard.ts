@@ -99,13 +99,21 @@ export function useDashboard() {
     || null
   const rest = spotlight ? trips.filter(t => t.id !== spotlight.id) : trips
 
-  // Pull the spotlight trip's members + places so the boarding pass can show
-  // real buddies and place thumbnails instead of placeholders.
+  // Pull the spotlight trip's members, places and itinerary so the boarding pass
+  // can show real content and derive its fixed first departure transport.
   useEffect(() => {
     if (!spotlight) { setHeroBundle(null); return }
+    setHeroBundle(null)
     let cancelled = false
     tripsApi.bundle(spotlight.id)
-      .then((b: HeroBundle) => { if (!cancelled) setHeroBundle({ members: b.members || [], places: b.places || [] }) })
+      .then((b: HeroBundle) => {
+        if (!cancelled) setHeroBundle({
+          members: b.members || [],
+          places: b.places || [],
+          days: b.days || [],
+          reservations: b.reservations || [],
+        })
+      })
       .catch(() => { if (!cancelled) setHeroBundle(null) })
     return () => { cancelled = true }
   }, [spotlight?.id])
