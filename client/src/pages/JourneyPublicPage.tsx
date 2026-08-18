@@ -117,6 +117,7 @@ export default function JourneyPublicPage() {
     sidebarMapItems,
     allPhotos,
     stopNumberById,
+    mapPhotos,
     desktopTwoColumn,
   } = useJourneyPublic();
 
@@ -147,6 +148,17 @@ export default function JourneyPublicPage() {
       !isMobile &&
       perms.share_map && { id: 'map' as const, icon: MapPin, label: t('journey.share.map') },
   ].filter(Boolean) as { id: 'timeline' | 'gallery' | 'map'; icon: any; label: string }[];
+
+  // The hook cannot build these: the thumbnail URL needs the share token, which is
+  // the credential for the byte proxy.
+  const photoLayer = token
+    ? mapPhotos.map((p: { id: string; lat: number; lng: number; photoId: number }) => ({
+        id: p.id,
+        lat: p.lat,
+        lng: p.lng,
+        thumbUrl: photoUrl({ photo_id: p.photoId }, token, 'thumbnail'),
+      }))
+    : [];
 
   // Shared timeline renderer used in both layout modes
   const renderTimeline = () => (
@@ -770,6 +782,7 @@ export default function JourneyPublicPage() {
                 ref={mapRef}
                 checkins={[]}
                 entries={sidebarMapItems as any}
+                photos={photoLayer}
                 height={9999}
                 fullScreen
                 activeMarkerId={activeEntryId ?? undefined}
@@ -830,7 +843,7 @@ export default function JourneyPublicPage() {
           {/* Map (standalone tab — only in single-column mode) */}
           {view === 'map' && perms.share_map && (
             <div className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-700">
-              <JourneyMap checkins={[]} entries={sidebarMapItems as any} height={500} />
+              <JourneyMap checkins={[]} entries={sidebarMapItems as any} photos={photoLayer} height={500} />
             </div>
           )}
         </div>

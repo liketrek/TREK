@@ -97,6 +97,15 @@ export function useJourneyPublic() {
     return m
   }, [sidebarMapItems])
 
+  // Photos that know where they were taken. Only meaningful when the map is shared —
+  // the server nulls the coordinates otherwise, so this comes out empty by itself.
+  const mapPhotos = useMemo(
+    () => gallery
+      .filter(p => typeof p.lat === 'number' && typeof p.lng === 'number')
+      .map(p => ({ id: String(p.id), lat: p.lat!, lng: p.lng!, photoId: p.photo_id })),
+    [gallery],
+  )
+
   // A journey shared while the trip is still running reads like a blog, so the owner
   // can publish it newest-first (#1614). The reader may flip it either way; only the
   // display order changes, never the numbering.
@@ -126,7 +135,7 @@ export function useJourneyPublic() {
     view, setView, lightbox, setLightbox, showLangPicker, setShowLangPicker,
     mapRef, activeEntryId, setActiveEntryId, viewingEntry, setViewingEntry, handleMarkerClick,
     perms, journey, stats,
-    timelineEntries, groupedEntries, sortedDates, displayDates, sidebarMapItems, allPhotos, stopNumberById,
+    timelineEntries, groupedEntries, sortedDates, displayDates, sidebarMapItems, allPhotos, stopNumberById, mapPhotos,
     newestFirst: effectiveNewestFirst, setNewestFirst,
     desktopTwoColumn,
   }

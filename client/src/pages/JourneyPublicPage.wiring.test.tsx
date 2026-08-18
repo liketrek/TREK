@@ -83,6 +83,7 @@ function buildHook(over: Record<string, unknown> = {}): Record<string, unknown> 
     sortedDates: [...grouped.keys()].sort(),
     sidebarMapItems: [],
     stopNumberById: new Map<string, number>(),
+    mapPhotos: [] as { id: string; lat: number; lng: number; photoId: number }[],
     displayDates: [...grouped.keys()].sort(),
     newestFirst: false,
     setNewestFirst: vi.fn(),

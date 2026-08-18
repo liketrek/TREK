@@ -39,6 +39,11 @@ export interface PublicGalleryPhoto {
   owner_id?: number | null
   file_path?: string | null
   caption?: string | null
+  /** Where and when the picture was taken (#1614). Absent for most photos, and the
+   *  coordinates are withheld entirely unless the owner shared the map. */
+  taken_at?: string | null
+  lat?: number | null
+  lng?: number | null
 }
 
 export function groupByDate(entries: PublicEntry[]): Map<string, PublicEntry[]> {

@@ -43,9 +43,8 @@ describe('incoming_leg_transport_mode migration', () => {
     //
     // >>> Appending a migration? Re-point the "undo" below at whatever yours
     // >>> does. That is the whole maintenance cost of this guard. The current
-    // >>> trailing slot copies the lowest-id admin's Google and Unsplash keys
-    // >>> into app_settings, so undoing it means clearing those rows and
-    // >>> leaving an admin holding a key for it to find again.
+    // >>> trailing slot adds journey_share_tokens.newest_first, so undoing it
+    // >>> means dropping that column and letting the replay put it back.
     const upgraded = new Database(':memory:');
     upgraded.exec('PRAGMA foreign_keys = ON');
     createTables(upgraded);
@@ -53,30 +52,19 @@ describe('incoming_leg_transport_mode migration', () => {
 
     const { version } = upgraded.prepare('SELECT version FROM schema_version').get() as { version: number };
 
-    upgraded.prepare("DELETE FROM app_settings WHERE key IN ('maps_api_key', 'unsplash_api_key')").run();
-    upgraded
-      .prepare(
-        `INSERT INTO users (id, username, email, password_hash, role, maps_api_key)
-         VALUES (2, 'b', 'b@test.local', 'x', 'admin', NULL)`
-      )
-      .run();
-    // The only key on the install, which is the one condition under which the
-    // migration promotes it at all; the rest of that decision is pinned in
-    // tests/unit/db/instance-api-key-backfill.test.ts.
-    upgraded
-      .prepare(
-        `INSERT INTO users (id, username, email, password_hash, role, maps_api_key)
-         VALUES (1, 'a', 'a@test.local', 'x', 'admin', 'key-of-the-first-admin')`
-      )
-      .run();
+    const hasNewestFirst = () =>
+      (upgraded.prepare("SELECT name FROM pragma_table_info('journey_share_tokens')").all() as { name: string }[])
+        .some(c => c.name === 'newest_first');
+
+    expect(hasNewestFirst()).toBe(true);
+    upgraded.exec('ALTER TABLE journey_share_tokens DROP COLUMN newest_first');
+    expect(hasNewestFirst()).toBe(false);
 
     upgraded.prepare('UPDATE schema_version SET version = ?').run(version - 1);
 
     runMigrations(upgraded);
 
-    expect(upgraded.prepare("SELECT value FROM app_settings WHERE key = 'maps_api_key'").get()).toEqual({
-      value: 'key-of-the-first-admin',
-    });
+    expect(hasNewestFirst()).toBe(true);
     expect(upgraded.prepare('SELECT version FROM schema_version').get()).toEqual({ version });
     upgraded.close();
   });

@@ -29,6 +29,10 @@ vi.mock('leaflet', () => {
     getZoom: vi.fn(() => 10),
     zoomIn: vi.fn(),
     zoomOut: vi.fn(),
+    // The photo layer subscribes to zoom/pan and clusters in screen space (#1614).
+    on: vi.fn(),
+    off: vi.fn(),
+    latLngToContainerPoint: vi.fn(() => ({ x: 0, y: 0 })),
   };
   return {
     default: {
@@ -38,6 +42,7 @@ vi.mock('leaflet', () => {
       polyline: vi.fn(() => { const line: any = { addTo: vi.fn(() => line), bindTooltip: vi.fn(() => line) }; return line }),
       divIcon: vi.fn(() => ({})),
       latLngBounds: vi.fn(() => ({})),
+      layerGroup: vi.fn(() => ({ addLayer: vi.fn(), addTo: vi.fn(), remove: vi.fn() })),
     },
     map: vi.fn(() => mockMap),
     tileLayer: vi.fn(() => ({ addTo: vi.fn() })),
@@ -575,5 +580,36 @@ describe('JourneyMap', () => {
     const labels = vi.mocked(mockedMarker().bindTooltip).mock.calls.map(c => c[0]);
     expect(labels.some(l => typeof l === 'string' && l.includes('<img'))).toBe(false);
     expect(labels).toContain('&lt;img src=x onerror=&quot;alert(1)&quot;&gt;');
+  });
+  // #1614 — photos placed by their own capture coordinates, collapsed by proximity.
+  it('FE-COMP-JOURNEYMAP-046: draws one thumbnail per cluster and counts the rest', () => {
+    render(
+      <JourneyMap
+        checkins={[]}
+        entries={[]}
+        photos={[
+          { id: 'p1', lat: 48.85, lng: 2.29, thumbUrl: '/uploads/a.jpg' },
+          { id: 'p2', lat: 48.85, lng: 2.29, thumbUrl: '/uploads/b.jpg' },
+          { id: 'p3', lat: 48.85, lng: 2.29, thumbUrl: '/uploads/c.jpg' },
+        ]}
+      />,
+    );
+
+    // The mock projects every photo to the same point, so all three land in one
+    // bucket: one marker, and its badge says 3.
+    const html = vi.mocked(L.divIcon).mock.calls.map(c => String(c[0]?.html)).filter(h => h.includes('/uploads/'));
+    expect(html).toHaveLength(1);
+    expect(html[0]).toContain('/uploads/a.jpg');
+    expect(html[0]).toContain('>3<');
+  });
+
+  it('FE-COMP-JOURNEYMAP-047: a lone photo gets no count badge', () => {
+    render(
+      <JourneyMap checkins={[]} entries={[]} photos={[{ id: 'p1', lat: 1, lng: 2, thumbUrl: '/uploads/only.jpg' }]} />,
+    );
+
+    const html = vi.mocked(L.divIcon).mock.calls.map(c => String(c[0]?.html)).filter(h => h.includes('/uploads/'));
+    expect(html).toHaveLength(1);
+    expect(html[0]).not.toMatch(/>\d+</);
   });
 });
