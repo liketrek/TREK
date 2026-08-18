@@ -21,23 +21,9 @@ function rewritePlacePhotoUrl(url: string | null | undefined, token: string): st
   return url ?? null;
 }
 
-interface SharePermissions {
-  share_map?: boolean;
-  share_bookings?: boolean;
-  share_packing?: boolean;
-  share_budget?: boolean;
-  share_collab?: boolean;
-}
+import { SharePermissions, ShareTokenInfo } from '../types';
 
-interface ShareTokenInfo {
-  token: string;
-  created_at: string;
-  share_map: boolean;
-  share_bookings: boolean;
-  share_packing: boolean;
-  share_budget: boolean;
-  share_collab: boolean;
-}
+export type { SharePermissions, ShareTokenInfo };
 
 /**
  * Creates a new share link or updates the permissions on an existing one.
@@ -54,12 +40,13 @@ export function createOrUpdateShareLink(
     share_packing = false,
     share_budget = false,
     share_collab = false,
+    allow_guest_notes = false,
   } = permissions;
 
   const existing = db.prepare('SELECT token FROM share_tokens WHERE trip_id = ?').get(tripId) as { token: string } | undefined;
   if (existing) {
-    db.prepare('UPDATE share_tokens SET share_map = ?, share_bookings = ?, share_packing = ?, share_budget = ?, share_collab = ? WHERE trip_id = ?')
-      .run(share_map ? 1 : 0, share_bookings ? 1 : 0, share_packing ? 1 : 0, share_budget ? 1 : 0, share_collab ? 1 : 0, tripId);
+    db.prepare('UPDATE share_tokens SET share_map = ?, share_bookings = ?, share_packing = ?, share_budget = ?, share_collab = ?, allow_guest_notes = ? WHERE trip_id = ?')
+      .run(share_map ? 1 : 0, share_bookings ? 1 : 0, share_packing ? 1 : 0, share_budget ? 1 : 0, share_collab ? 1 : 0, allow_guest_notes ? 1 : 0, tripId);
     return { token: existing.token, created: false };
   }
 
@@ -69,8 +56,8 @@ export function createOrUpdateShareLink(
   // behaviour for anyone who's already sharing a link.
   const token = crypto.randomBytes(24).toString('base64url');
   const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
-  db.prepare('INSERT INTO share_tokens (trip_id, token, created_by, share_map, share_bookings, share_packing, share_budget, share_collab, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(tripId, token, createdBy, share_map ? 1 : 0, share_bookings ? 1 : 0, share_packing ? 1 : 0, share_budget ? 1 : 0, share_collab ? 1 : 0, expiresAt);
+  db.prepare('INSERT INTO share_tokens (trip_id, token, created_by, share_map, share_bookings, share_packing, share_budget, share_collab, allow_guest_notes, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(tripId, token, createdBy, share_map ? 1 : 0, share_bookings ? 1 : 0, share_packing ? 1 : 0, share_budget ? 1 : 0, share_collab ? 1 : 0, allow_guest_notes ? 1 : 0, expiresAt);
   return { token, created: true };
 }
 
@@ -88,6 +75,7 @@ export function getShareLink(tripId: string): ShareTokenInfo | null {
     share_packing: !!row.share_packing,
     share_budget: !!row.share_budget,
     share_collab: !!row.share_collab,
+    allow_guest_notes: !!row.allow_guest_notes,
   };
 }
 
@@ -214,6 +202,7 @@ export function getSharedTripData(token: string): Record<string, any> | null {
     share_packing: !!shareRow.share_packing,
     share_budget: !!shareRow.share_budget,
     share_collab: !!shareRow.share_collab,
+    allow_guest_notes: !!shareRow.allow_guest_notes,
   };
 
   // Collab messages (only if owner chose to share)

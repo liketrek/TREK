@@ -232,6 +232,22 @@ function createTables(db: Database.Database): void {
       UNIQUE(trip_id, user_id)
     );
 
+    CREATE TABLE IF NOT EXISTS share_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+      token TEXT NOT NULL UNIQUE,
+      created_by INTEGER NOT NULL REFERENCES users(id),
+      share_map INTEGER DEFAULT 1,
+      share_bookings INTEGER DEFAULT 1,
+      share_packing INTEGER DEFAULT 0,
+      share_budget INTEGER DEFAULT 0,
+      share_collab INTEGER DEFAULT 0,
+      allow_guest_notes INTEGER DEFAULT 0,
+      expires_at TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_share_tokens_token ON share_tokens(token);
+
     CREATE TABLE IF NOT EXISTS day_notes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       day_id INTEGER NOT NULL REFERENCES days(id) ON DELETE CASCADE,
@@ -481,6 +497,7 @@ function createTables(db: Database.Database): void {
       content TEXT,
       color TEXT DEFAULT '#6366f1',
       pinned INTEGER DEFAULT 0,
+      guest_name TEXT DEFAULT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );

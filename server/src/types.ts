@@ -245,6 +245,7 @@ export interface CollabNote {
   content?: string | null;
   color: string;
   pinned: number;
+  guest_name?: string | null;
   website?: string | null;
   username?: string;
   avatar?: string | null;
@@ -444,4 +445,24 @@ export interface JourneyContributor {
   user_id: number;
   role: 'owner' | 'editor' | 'viewer';
   added_at: number;
+}
+
+export interface SharePermissions {
+  share_map?: boolean;
+  share_bookings?: boolean;
+  share_packing?: boolean;
+  share_budget?: boolean;
+  share_collab?: boolean;
+  allow_guest_notes?: boolean;
+}
+
+export interface ShareTokenInfo {
+  token: string;
+  created_at: string;
+  share_map: boolean;
+  share_bookings: boolean;
+  share_packing: boolean;
+  share_budget: boolean;
+  share_collab: boolean;
+  allow_guest_notes: boolean;
 }

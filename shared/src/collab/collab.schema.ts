@@ -17,6 +17,7 @@ export const collabNoteCreateRequestSchema = z.object({
   category: z.string().optional(),
   color: z.string().optional(),
   website: z.string().optional(),
+  guest_name: z.string().optional(),
 });
 export type CollabNoteCreateRequest = z.infer<typeof collabNoteCreateRequestSchema>;
 

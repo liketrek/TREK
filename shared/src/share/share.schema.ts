@@ -15,5 +15,6 @@ export const shareLinkRequestSchema = z.object({
   share_packing: z.boolean().optional(),
   share_budget: z.boolean().optional(),
   share_collab: z.boolean().optional(),
+  allow_guest_notes: z.boolean().optional(),
 });
 export type ShareLinkRequest = z.infer<typeof shareLinkRequestSchema>;

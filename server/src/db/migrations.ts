@@ -3701,6 +3701,20 @@ function runMigrations(db: Database.Database): void {
       `);
       db.exec('CREATE INDEX IF NOT EXISTS idx_hidden_regions_user ON hidden_regions (user_id);');
     },
+
+    // Add allow_guest_notes to share_tokens and guest_name to collab_notes
+    () => {
+      try {
+        db.exec('ALTER TABLE share_tokens ADD COLUMN allow_guest_notes INTEGER DEFAULT 0;');
+      } catch (err) {
+        console.warn('[migrations] Non-fatal migration step failed:', err);
+      }
+      try {
+        db.exec('ALTER TABLE collab_notes ADD COLUMN guest_name TEXT DEFAULT NULL;');
+      } catch (err) {
+        console.warn('[migrations] Non-fatal migration step failed:', err);
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

@@ -50,6 +50,7 @@ import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { createUser, createTrip, addTripMember, createDay, createPlace, createDayAssignment, createDayNote } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
 import * as placePhotoCache from '../../src/services/placePhotoCache';
+import { createOrUpdateShareLink, getShareLink, getSharedTripData } from '../../src/services/shareService';
 import fs from 'node:fs';
 
 let nestApp: INestApplication;
@@ -545,3 +546,48 @@ describe('Shared trip — place photos in shared links (issue #1100)', () => {
     expect(res.body).toEqual({ error: 'Photo not cached' });
   });
 });
+
+describe('Share guest notes schema & permissions', () => {
+  it('supports allow_guest_notes in share_tokens and guest_name in collab_notes', () => {
+    const shareCols = testDb.prepare("PRAGMA table_info('share_tokens')").all() as { name: string }[];
+    expect(shareCols.some(c => c.name === 'allow_guest_notes')).toBe(true);
+
+    const collabCols = testDb.prepare("PRAGMA table_info('collab_notes')").all() as { name: string }[];
+    expect(collabCols.some(c => c.name === 'guest_name')).toBe(true);
+  });
+
+  it('stores and retrieves allow_guest_notes via shareService', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Guest Notes Share' });
+
+    const { token } = createOrUpdateShareLink(String(trip.id), user.id, {
+      share_map: true,
+      allow_guest_notes: true,
+    });
+    expect(token).toBeDefined();
+
+    const link = getShareLink(String(trip.id));
+    expect(link).not.toBeNull();
+    expect(link?.allow_guest_notes).toBe(true);
+
+    const sharedData = getSharedTripData(token);
+    expect(sharedData?.permissions.allow_guest_notes).toBe(true);
+  });
+
+  it('allows inserting collab_notes with guest_name', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Collab Note Guest Test' });
+
+    const stmt = testDb.prepare(`
+      INSERT INTO collab_notes (trip_id, user_id, title, content, category, guest_name)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    const res = stmt.run(trip.id, user.id, 'Secret Spot', 'Great cafe near the corner', 'Food', 'Alice Guest');
+    expect(res.changes).toBe(1);
+
+    const row = testDb.prepare('SELECT * FROM collab_notes WHERE id = ?').get(res.lastInsertRowid) as any;
+    expect(row.guest_name).toBe('Alice Guest');
+    expect(row.title).toBe('Secret Spot');
+  });
+});
+
