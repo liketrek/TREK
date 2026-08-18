@@ -536,4 +536,26 @@ describe('JourneyPublicPage', () => {
       expect(images.length).toBeGreaterThan(0);
     });
   });
+
+  // #1962 — the marker number used to be the stop's position within its day while
+  // the day heading showed the day number, so the same digit appeared repeatedly in
+  // different colours with no key. Both now count stops across the whole journey.
+  it('FE-PAGE-PUBLICJOURNEY-021: numbers each stop once, and the timeline carries the same number', async () => {
+    setupSuccess();
+    render(<JourneyPublicPage />);
+
+    await waitFor(() => expect(screen.getByText('Shibuya Crossing')).toBeInTheDocument());
+
+    // Two geocoded entries on two different days: stops 1 and 2, not 1 and 1.
+    const shibuya = document.querySelector('[data-entry-id="10"]') as HTMLElement;
+    const sensoji = document.querySelector('[data-entry-id="11"]') as HTMLElement;
+    expect(shibuya).toBeTruthy();
+    expect(sensoji).toBeTruthy();
+
+    const badge = (el: HTMLElement) =>
+      Array.from(el.querySelectorAll('span')).find(s => /^\d+$/.test(s.textContent || ''))?.textContent;
+
+    expect(badge(shibuya)).toBe('1');
+    expect(badge(sensoji)).toBe('2');
+  });
 });

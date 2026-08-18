@@ -112,6 +112,7 @@ export default function JourneyPublicPage() {
     sortedDates,
     sidebarMapItems,
     allPhotos,
+    stopNumberById,
     desktopTwoColumn,
   } = useJourneyPublic();
 
@@ -302,6 +303,22 @@ export default function JourneyPublicPage() {
                         <h3 className="mb-2 text-[16px] font-semibold leading-snug tracking-tight text-zinc-900 dark:text-white">
                           {entry.title}
                         </h3>
+                      )}
+
+                      {/* The number the map marker carries, so the timeline is the key
+                          to the map rather than a second, unrelated numbering (#1962).
+                          Outside the photo-count gate below: a single-photo entry puts
+                          its title and location in the image overlay, but the stop
+                          number has to be readable either way. */}
+                      {stopNumberById.has(String(entry.id)) && (
+                        <div className="mb-2">
+                          <span
+                            className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold text-white"
+                            style={{ background: dayColor }}
+                          >
+                            {stopNumberById.get(String(entry.id))}
+                          </span>
+                        </div>
                       )}
 
                       {/* Location + time badges */}

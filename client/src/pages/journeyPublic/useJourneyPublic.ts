@@ -63,12 +63,16 @@ export function useJourneyPublic() {
   // Map entries with day color/label for colored markers.
   // dayIdx is derived from sortedDates (ALL timeline dates) so marker colors
   // stay in sync with the timeline day headers even when some days have no locations.
+  // The marker number used to be the stop's position *within* its day, while the
+  // timeline heading showed the day number — two different numbers in the same
+  // colour, and on mobile the heading is not rendered at all, so the key was
+  // missing entirely (#1962). It is now the stop's place in the whole journey, so
+  // every number appears exactly once and the colour still groups the day.
   const sidebarMapItems = useMemo(() => {
-    const counters = new Map<string, number>()
+    let stop = 0
     return mapEntries.map(e => {
       const dayIdx = sortedDates.indexOf(e.entry_date)
-      const dayLabel = (counters.get(e.entry_date) ?? 0) + 1
-      counters.set(e.entry_date, dayLabel)
+      const dayLabel = ++stop
       return {
         id: String(e.id),
         lat: e.location_lat!,
@@ -82,6 +86,14 @@ export function useJourneyPublic() {
       }
     })
   }, [mapEntries, sortedDates])
+
+  // The same number the marker carries, so the timeline is the key to the map
+  // rather than a second, unrelated numbering.
+  const stopNumberById = useMemo(() => {
+    const m = new Map<string, number>()
+    sidebarMapItems.forEach(i => m.set(i.id, i.dayLabel))
+    return m
+  }, [sidebarMapItems])
 
   // Two-column desktop layout: timeline feed left + sticky map right
   const desktopTwoColumn = !isMobile && perms.share_timeline && perms.share_map
@@ -102,7 +114,7 @@ export function useJourneyPublic() {
     view, setView, lightbox, setLightbox, showLangPicker, setShowLangPicker,
     mapRef, activeEntryId, setActiveEntryId, viewingEntry, setViewingEntry, handleMarkerClick,
     perms, journey, stats,
-    timelineEntries, groupedEntries, sortedDates, sidebarMapItems, allPhotos,
+    timelineEntries, groupedEntries, sortedDates, sidebarMapItems, allPhotos, stopNumberById,
     desktopTwoColumn,
   }
 }

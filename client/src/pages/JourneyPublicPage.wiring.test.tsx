@@ -82,6 +82,7 @@ function buildHook(over: Record<string, unknown> = {}): Record<string, unknown> 
     groupedEntries: grouped,
     sortedDates: [...grouped.keys()].sort(),
     sidebarMapItems: [],
+    stopNumberById: new Map<string, number>(),
     allPhotos: [] as PublicGalleryPhoto[],
     desktopTwoColumn: true,
     ...over,
