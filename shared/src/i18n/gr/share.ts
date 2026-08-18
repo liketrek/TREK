@@ -13,5 +13,14 @@ const share: TranslationStrings = {
   'share.permBudget': 'Κόστη',
   'share.permCollab': 'Συνομιλία',
   'share.permGuestNotes': 'Να επιτρέπονται σημειώσεις επισκεπτών',
+  'share.addNote': "Προσθήκη σημείωσης",
+  'share.guestNoteSuccess': "Η σημείωση στάλθηκε με επιτυχία!",
+  'share.guestName': "Το όνομά σας",
+  'share.noteTitle': "Τίτλος σημείωσης",
+  'share.noteContent': "Λεπτομέρειες σημείωσης (προαιρετικό)",
+  'share.noteCategory': "Κατηγορία",
+  'share.attachFile': "Επισύναψη αρχείου / φωτογραφίας",
+  'share.fileTooLarge': "Το μέγεθος του αρχείου υπερβαίνει το όριο των 50MB",
+  'share.sendNote': "Αποστολή σημείωσης",
 };
 export default share;

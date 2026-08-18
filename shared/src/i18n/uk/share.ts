@@ -13,5 +13,14 @@ const share: TranslationStrings = {
   'share.permBudget': 'Витрати',
   'share.permCollab': 'Чат',
   'share.permGuestNotes': 'Дозволити гостьові нотатки',
+  'share.addNote': "Додати нотатку",
+  'share.guestNoteSuccess': "Нотатку успішно надіслано!",
+  'share.guestName': "Ваше ім’я",
+  'share.noteTitle': "Заголовок нотатки",
+  'share.noteContent': "Деталі нотатки (необов’язково)",
+  'share.noteCategory': "Категорія",
+  'share.attachFile': "Прикріпити файл / фото",
+  'share.fileTooLarge': "Розмір файлу перевищує ліміт 50 МБ",
+  'share.sendNote': "Надіслати нотатку",
 };
 export default share;

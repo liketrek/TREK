@@ -13,5 +13,14 @@ const share: TranslationStrings = {
   'share.permBudget': 'Költségek',
   'share.permCollab': 'Csevegés',
   'share.permGuestNotes': 'Vendég jegyzetek engedélyezése',
+  'share.addNote': "Jegyzet hozzáadása",
+  'share.guestNoteSuccess': "Jegyzet sikeresen elküldve!",
+  'share.guestName': "Az Ön neve",
+  'share.noteTitle': "Jegyzet címe",
+  'share.noteContent': "Jegyzet részletei (opcionális)",
+  'share.noteCategory': "Kategória",
+  'share.attachFile': "Fájl / fénykép csatolása",
+  'share.fileTooLarge': "A fájl mérete meghaladja az 50 MB-os korlátot",
+  'share.sendNote': "Jegyzet küldése",
 };
 export default share;

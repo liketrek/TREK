@@ -12,5 +12,14 @@ const share: TranslationStrings = {
   'share.permBudget': '費用',
   'share.permCollab': 'チャット',
   'share.permGuestNotes': 'ゲストメモを許可',
+  'share.addNote': "メモを追加",
+  'share.guestNoteSuccess': "メモを送信しました！",
+  'share.guestName': "お名前",
+  'share.noteTitle': "メモのタイトル",
+  'share.noteContent': "メモの詳細（任意）",
+  'share.noteCategory': "カテゴリー",
+  'share.attachFile': "ファイル・写真を添付",
+  'share.fileTooLarge': "ファイルサイズが50MBの上限を超えています",
+  'share.sendNote': "メモを送信",
 };
 export default share;

@@ -572,4 +572,92 @@ describe('SharedTripPage', () => {
       await waitFor(() => expect(screen.getAllByText(/125\.00 NZD/).length).toBeGreaterThan(0));
     });
   });
+
+  describe('FE-PAGE-SHARED-021: Add Note button rendered when allow_guest_notes is true', () => {
+    it('shows Add Note action button when permissions.allow_guest_notes is true', async () => {
+      server.use(
+        http.get('/api/shared/:token', ({ params }) => {
+          if (params.token !== 'guest-notes-token') return;
+          return HttpResponse.json({
+            trip: { id: 1, title: 'Shared Paris Trip', start_date: '2026-07-01', end_date: '2026-07-05' },
+            days: [], assignments: {}, dayNotes: {}, places: [], reservations: [], accommodations: [], packing: [],
+            budget: [], categories: [], noteCategories: ['Food', 'General'],
+            permissions: { share_bookings: false, share_packing: false, share_budget: false, share_collab: false, allow_guest_notes: true },
+            collab: [],
+          });
+        }),
+      );
+
+      renderSharedTrip('guest-notes-token');
+      await waitFor(() => expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument());
+
+      const addNoteBtn = screen.getByRole('button', { name: /add note/i });
+      expect(addNoteBtn).toBeInTheDocument();
+    });
+  });
+
+  describe('FE-PAGE-SHARED-022: Add Note button hidden when allow_guest_notes is false', () => {
+    it('does not show Add Note action button when permissions.allow_guest_notes is false or undefined', async () => {
+      renderSharedTrip('test-token');
+      await waitFor(() => expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument());
+
+      expect(screen.queryByRole('button', { name: /add note/i })).toBeNull();
+    });
+  });
+
+  describe('FE-PAGE-SHARED-023: Submitting guest note from SharedTripPage modal', () => {
+    it('opens GuestAddNoteModal and submits note data via POST /api/shared/:token/notes', async () => {
+      let postedFormData: { guest_name?: string; title?: string; content?: string; category?: string } = {};
+
+      server.use(
+        http.get('/api/shared/:token', ({ params }) => {
+          if (params.token !== 'submit-note-token') return;
+          return HttpResponse.json({
+            trip: { id: 1, title: 'Shared Paris Trip', start_date: '2026-07-01', end_date: '2026-07-05' },
+            days: [], assignments: {}, dayNotes: {}, places: [], reservations: [], accommodations: [], packing: [],
+            budget: [], categories: [], noteCategories: ['Sightseeing', 'General'],
+            permissions: { share_bookings: false, share_packing: false, share_budget: false, share_collab: false, allow_guest_notes: true },
+            collab: [],
+          });
+        }),
+        http.post('/api/shared/:token/notes', async ({ request }) => {
+          const formData = await request.formData();
+          postedFormData = {
+            guest_name: formData.get('guest_name')?.toString(),
+            title: formData.get('title')?.toString(),
+            content: formData.get('content')?.toString(),
+            category: formData.get('category')?.toString(),
+          };
+          return HttpResponse.json({
+            success: true,
+            note: { id: 10, title: postedFormData.title },
+          }, { status: 201 });
+        }),
+      );
+
+      renderSharedTrip('submit-note-token');
+      await waitFor(() => expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument());
+
+      const addNoteBtn = screen.getByRole('button', { name: /add note/i });
+      fireEvent.click(addNoteBtn);
+
+      await waitFor(() => expect(screen.getByRole('heading', { name: /add note/i })).toBeInTheDocument());
+
+      fireEvent.change(screen.getByPlaceholderText('Your name'), { target: { value: 'Bob' } });
+      fireEvent.change(screen.getByPlaceholderText('Note title'), { target: { value: 'Visit Louvre Museum' } });
+      fireEvent.change(screen.getByPlaceholderText('Note details (optional)'), { target: { value: 'Book tickets online in advance' } });
+      fireEvent.change(screen.getByRole('combobox'), { target: { value: 'Sightseeing' } });
+
+      const sendBtn = screen.getByRole('button', { name: 'Send Note' });
+      fireEvent.click(sendBtn);
+
+      await waitFor(() => {
+        expect(postedFormData.guest_name).toBe('Bob');
+        expect(postedFormData.title).toBe('Visit Louvre Museum');
+        expect(postedFormData.content).toBe('Book tickets online in advance');
+        expect(postedFormData.category).toBe('Sightseeing');
+      });
+    });
+  });
 });
+

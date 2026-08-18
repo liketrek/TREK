@@ -13,5 +13,14 @@ const share: TranslationStrings = {
   'share.permBudget': 'Pressupost',
   'share.permCollab': 'Xat',
   'share.permGuestNotes': 'Permetre notes de convidats',
+  'share.addNote': "Afegir nota",
+  'share.guestNoteSuccess': "Nota enviada correctament!",
+  'share.guestName': "El teu nom",
+  'share.noteTitle': "Títol de la nota",
+  'share.noteContent': "Detalls de la nota (opcional)",
+  'share.noteCategory': "Categoria",
+  'share.attachFile': "Adjuntar fitxer / foto",
+  'share.fileTooLarge': "La mida del fitxer supera el límit de 50 MB",
+  'share.sendNote': "Enviar nota",
 };
 export default share;

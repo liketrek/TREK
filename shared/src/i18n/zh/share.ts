@@ -12,5 +12,14 @@ const share: TranslationStrings = {
   'share.permBudget': '费用',
   'share.permCollab': '聊天',
   'share.permGuestNotes': '允许访客留言',
+  'share.addNote': "添加便签",
+  'share.guestNoteSuccess': "便签发送成功！",
+  'share.guestName': "您的姓名",
+  'share.noteTitle': "便签标题",
+  'share.noteContent': "便签详情（可选）",
+  'share.noteCategory': "分类",
+  'share.attachFile': "添加附件 / 照片",
+  'share.fileTooLarge': "文件大小超过 50MB 限制",
+  'share.sendNote': "发送便签",
 };
 export default share;

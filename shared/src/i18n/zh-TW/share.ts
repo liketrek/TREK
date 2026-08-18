@@ -12,5 +12,14 @@ const share: TranslationStrings = {
   'share.permBudget': '費用',
   'share.permCollab': '聊天',
   'share.permGuestNotes': '允許訪客留言',
+  'share.addNote': "新增筆記",
+  'share.guestNoteSuccess': "筆記發送成功！",
+  'share.guestName': "您的姓名",
+  'share.noteTitle': "筆記標題",
+  'share.noteContent': "筆記詳情（選填）",
+  'share.noteCategory': "分類",
+  'share.attachFile': "附加檔案 / 照片",
+  'share.fileTooLarge': "檔案大小超過 50MB 限制",
+  'share.sendNote': "發送筆記",
 };
 export default share;

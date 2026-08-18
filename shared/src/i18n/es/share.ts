@@ -13,5 +13,14 @@ const share: TranslationStrings = {
   'share.permBudget': 'Costes',
   'share.permCollab': 'Chat',
   'share.permGuestNotes': 'Permitir notas de invitados',
+  'share.addNote': "Añadir nota",
+  'share.guestNoteSuccess': "¡Nota enviada con éxito!",
+  'share.guestName': "Tu nombre",
+  'share.noteTitle': "Título de la nota",
+  'share.noteContent': "Detalles de la nota (opcional)",
+  'share.noteCategory': "Categoría",
+  'share.attachFile': "Adjuntar archivo / foto",
+  'share.fileTooLarge': "El tamaño del archivo supera el límite de 50 MB",
+  'share.sendNote': "Enviar nota",
 };
 export default share;

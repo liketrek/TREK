@@ -10,6 +10,7 @@ import {
   MapPin,
   MessageCircle,
   Plane,
+  Plus,
   Ship,
   Ticket,
   Train,
@@ -19,6 +20,7 @@ import { createElement, useEffect, useRef } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import { getCategoryIcon } from '../components/shared/categoryIcons';
+import GuestAddNoteModal from '../components/shared/GuestAddNoteModal';
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../constants/mapDefaults';
 import { SUPPORTED_LANGUAGES, useTranslation } from '../i18n';
 import { useSettingsStore } from '../store/settingsStore';
@@ -77,6 +79,9 @@ export default function SharedTripPage() {
     setActiveTab,
     showLangPicker,
     setShowLangPicker,
+    showAddNoteModal,
+    setShowAddNoteModal,
+    token,
   } = useSharedTrip();
 
   if (error)
@@ -1137,6 +1142,28 @@ export default function SharedTripPage() {
           </div>
         </div>
       </div>
+
+      {/* Guest Note Submission */}
+      {permissions?.allow_guest_notes && token && (
+        <>
+          <button
+            type="button"
+            onClick={() => setShowAddNoteModal(true)}
+            className="fixed bottom-6 right-6 z-40 bg-slate-900 hover:bg-slate-800 text-white shadow-xl flex items-center gap-2 px-4 py-2.5 rounded-full font-semibold transition-all text-sm hover:scale-105 active:scale-95 border border-slate-700/50"
+            aria-label={t('share.addNote')}
+          >
+            <Plus size={16} />
+            <span>{t('share.addNote')}</span>
+          </button>
+          <GuestAddNoteModal
+            isOpen={showAddNoteModal}
+            onClose={() => setShowAddNoteModal(false)}
+            token={token}
+            categories={data?.noteCategories || ['General']}
+            t={t}
+          />
+        </>
+      )}
     </div>
   );
 }

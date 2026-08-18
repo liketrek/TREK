@@ -13,5 +13,14 @@ const share: TranslationStrings = {
   'share.permBudget': 'Náklady',
   'share.permCollab': 'Chat',
   'share.permGuestNotes': 'Povolit poznámky hostů',
+  'share.addNote': "Přidat poznámku",
+  'share.guestNoteSuccess': "Poznámka byla úspěšně odeslána!",
+  'share.guestName': "Vaše jméno",
+  'share.noteTitle': "Název poznámky",
+  'share.noteContent': "Podrobnosti poznámky (volitelné)",
+  'share.noteCategory': "Kategorie",
+  'share.attachFile': "Připojit soubor / fotografii",
+  'share.fileTooLarge': "Velikost souboru překračuje limit 50 MB",
+  'share.sendNote': "Odeslat poznámku",
 };
 export default share;

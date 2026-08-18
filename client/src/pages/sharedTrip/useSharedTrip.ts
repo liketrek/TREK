@@ -19,6 +19,7 @@ export function useSharedTrip() {
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState('plan')
   const [showLangPicker, setShowLangPicker] = useState(false)
+  const [showAddNoteModal, setShowAddNoteModal] = useState(false)
 
   useEffect(() => {
     if (!token) return
@@ -46,5 +47,19 @@ export function useSharedTrip() {
   const base = String(data?.baseCurrency || data?.trip?.currency || 'EUR').toUpperCase()
   const { convert } = useExchangeRates(base)
 
-  return { data, error, base, convert, selectedDay, setSelectedDay, activeTab, setActiveTab, showLangPicker, setShowLangPicker }
+  return {
+    data,
+    error,
+    base,
+    convert,
+    selectedDay,
+    setSelectedDay,
+    activeTab,
+    setActiveTab,
+    showLangPicker,
+    setShowLangPicker,
+    showAddNoteModal,
+    setShowAddNoteModal,
+    token: token || '',
+  }
 }
