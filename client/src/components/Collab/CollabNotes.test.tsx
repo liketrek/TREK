@@ -1267,4 +1267,93 @@ describe('CollabNotes', () => {
     await screen.findByText('Unpinned');
     expect(document.body.innerHTML.indexOf('Pinned')).toBeLessThan(document.body.innerHTML.indexOf('Unpinned'));
   });
+
+  it('FE-COMP-NOTES-058: note with guest_name renders guest badge on note card', async () => {
+    server.use(
+      http.get('/api/trips/1/collab/notes', () =>
+        HttpResponse.json({
+          notes: [{
+            id: 101, trip_id: 1, user_id: 1, username: 'owner',
+            author_username: 'owner', author_avatar: null,
+            guest_name: 'Bob Guest',
+            title: 'Guest Note Title', content: 'Note content from guest',
+            category: 'Tips', color: '#3b82f6', files: [], attachments: [],
+            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
+          }],
+        })
+      )
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Guest Note Title');
+    const guestBadge = screen.getByTestId('collab-note-guest-badge');
+    expect(guestBadge).toBeInTheDocument();
+    expect(guestBadge).toHaveTextContent('Bob Guest');
+  });
+
+  it('FE-COMP-NOTES-059: note with guest_name reflects guest in author tooltip', async () => {
+    server.use(
+      http.get('/api/trips/1/collab/notes', () =>
+        HttpResponse.json({
+          notes: [{
+            id: 102, trip_id: 1, user_id: 1, username: 'owner',
+            guest_name: 'Charlie Guest',
+            title: 'Charlie Note', content: '', category: null, color: '#3b82f6', files: [], attachments: [],
+            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
+          }],
+        })
+      )
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Charlie Note');
+    // The tooltip should show the guest name and guest tag
+    expect(screen.getByText('Charlie Guest (Guest)')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-NOTES-060: view modal displays guest badge when guest_name is present', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/trips/1/collab/notes', () =>
+        HttpResponse.json({
+          notes: [{
+            id: 103, trip_id: 1, user_id: 1, username: 'owner',
+            guest_name: 'Diana Guest',
+            title: 'Diana View Note', content: 'Detailed thoughts from Diana',
+            category: 'Food', color: '#ef4444', files: [], attachments: [],
+            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
+          }],
+        })
+      )
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Diana View Note');
+    await user.click(screen.getByTitle('collab.notes.expand'));
+    // Modal opens and shows Diana Guest badge in the header
+    const badges = await screen.findAllByTestId('collab-note-guest-badge');
+    expect(badges.length).toBeGreaterThan(1); // 1 in card, 1 in view modal
+    expect(badges[1]).toHaveTextContent('Diana Guest');
+  });
+
+  it('FE-COMP-NOTES-061: edit modal displays guest badge attribution when editing a guest note', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/trips/1/collab/notes', () =>
+        HttpResponse.json({
+          notes: [{
+            id: 104, trip_id: 1, user_id: 1, username: 'owner',
+            guest_name: 'Evan Guest',
+            title: 'Evan Edit Note', content: 'Evan text',
+            category: null, color: '#3b82f6', files: [], attachments: [],
+            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
+          }],
+        })
+      )
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('Evan Edit Note');
+    await user.click(screen.getByTitle('Edit'));
+    await screen.findByDisplayValue('Evan Edit Note');
+    const badges = await screen.findAllByTestId('collab-note-guest-badge');
+    expect(badges.length).toBeGreaterThan(1);
+    expect(badges[1]).toHaveTextContent('Evan Guest');
+  });
 });

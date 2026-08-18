@@ -1,6 +1,6 @@
 import ReactDOM from 'react-dom'
 import { useState, useRef } from 'react'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, UserRound } from 'lucide-react'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import { FONT } from './CollabNotes.constants'
@@ -117,15 +117,44 @@ export function NoteFormModal({ onClose, onSubmit, onDeleteFile, existingCategor
           padding: '14px 16px 12px',
           borderBottom: '1px solid var(--border-faint)',
         }}>
-          <h3 style={{
-            fontSize: 'calc(14px * var(--fs-scale-body, 1))',
-            fontWeight: 700,
-            color: 'var(--text-primary)',
-            margin: 0,
-            fontFamily: FONT,
-          }}>
-            {isEdit ? t('collab.notes.edit') : t('collab.notes.new')}
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, overflow: 'hidden' }}>
+            <h3 style={{
+              fontSize: 'calc(14px * var(--fs-scale-body, 1))',
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+              margin: 0,
+              fontFamily: FONT,
+              whiteSpace: 'nowrap',
+            }}>
+              {isEdit ? t('collab.notes.edit') : t('collab.notes.new')}
+            </h3>
+            {note?.guest_name && (
+              <span
+                data-testid="collab-note-guest-badge"
+                style={{
+                  fontSize: 'calc(10px * var(--fs-scale-caption, 1))',
+                  fontWeight: 600,
+                  color: 'var(--text-muted)',
+                  background: 'var(--bg-tertiary)',
+                  padding: '2px 8px',
+                  borderRadius: 99,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  maxWidth: 160,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+                title={note.guest_name}
+              >
+                <UserRound size={10} style={{ flexShrink: 0 }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {note.guest_name}
+                </span>
+              </span>
+            )}
+          </div>
           <button
             type="button"
             onClick={onClose}

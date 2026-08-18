@@ -3,7 +3,7 @@ import { avatarSrc } from '../../utils/avatarSrc'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import { Trash2, Pin, PinOff, Pencil, Maximize2 } from 'lucide-react'
+import { Trash2, Pin, PinOff, Pencil, Maximize2, UserRound } from 'lucide-react'
 import { FONT } from './CollabNotes.constants'
 import { AuthedImg } from './CollabNotesAuthedImg'
 import { UserAvatar } from './CollabNotesUserAvatar'
@@ -29,7 +29,7 @@ interface NoteCardProps {
 export function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdit, onView, onPreviewFile, getCategoryColor, tripId, t }: NoteCardProps) {
   const [hovered, setHovered] = useState(false)
 
-  const author = note.author || note.user || { username: note.username, avatar: note.avatar_url || avatarSrc(note.avatar) }
+  const author = note.author || note.user || { username: note.guest_name || note.username, avatar: note.avatar_url || avatarSrc(note.avatar) }
   const color = getCategoryColor ? getCategoryColor(note.category) : (note.color || '#6366f1')
 
   const handleTogglePin = useCallback(() => {
@@ -70,6 +70,30 @@ export function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdi
           {note.category && (
             <span style={{ fontSize: 'calc(8px * var(--fs-scale-caption, 1))', fontWeight: 600, color, background: `${color}18`, padding: '2px 6px', borderRadius: 99, flexShrink: 0, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
               {note.category}
+            </span>
+          )}
+          {note.guest_name && (
+            <span
+              data-testid="collab-note-guest-badge"
+              style={{
+                fontSize: 'calc(8px * var(--fs-scale-caption, 1))',
+                fontWeight: 600,
+                color: 'var(--text-muted)',
+                background: 'var(--bg-tertiary)',
+                padding: '2px 6px',
+                borderRadius: 99,
+                flexShrink: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 3,
+                letterSpacing: '0.02em',
+              }}
+              title={note.guest_name}
+            >
+              <UserRound size={8} />
+              <span style={{ maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {note.guest_name}
+              </span>
             </span>
           )}
         </span>
@@ -119,7 +143,7 @@ export function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdi
                 fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, padding: '5px 10px', borderRadius: 8,
                 boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '1px solid var(--border-faint)',
               }}>
-                {author.username}
+                {note.guest_name ? `${note.guest_name} (${t('members.guest') || 'Guest'})` : author.username}
               </div>
             </div>
           </div>

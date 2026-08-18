@@ -3,7 +3,7 @@ import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import ReactDOM from 'react-dom'
-import { Plus, Pencil, X, StickyNote, Settings } from 'lucide-react'
+import { Plus, Pencil, X, StickyNote, Settings, UserRound } from 'lucide-react'
 import { collabApi } from '../../api/client'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
@@ -398,14 +398,31 @@ function ViewNoteModal(S: NotesState) {
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 'calc(17px * var(--fs-scale-subtitle, 1))', fontWeight: 600, color: 'var(--text-primary)' }}>{viewingNote.title}</div>
-            {viewingNote.category && (
-              <span style={{
-                display: 'inline-block', marginTop: 4, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600,
-                color: getCategoryColor(viewingNote.category),
-                background: `${getCategoryColor(viewingNote.category)}18`,
-                padding: '2px 8px', borderRadius: 6,
-              }}>{viewingNote.category}</span>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+              {viewingNote.category && (
+                <span style={{
+                  display: 'inline-block', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600,
+                  color: getCategoryColor(viewingNote.category),
+                  background: `${getCategoryColor(viewingNote.category)}18`,
+                  padding: '2px 8px', borderRadius: 6,
+                }}>{viewingNote.category}</span>
+              )}
+              {viewingNote.guest_name && (
+                <span
+                  data-testid="collab-note-guest-badge"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600,
+                    color: 'var(--text-muted)', background: 'var(--bg-tertiary)',
+                    padding: '2px 8px', borderRadius: 6,
+                  }}
+                  title={viewingNote.guest_name}
+                >
+                  <UserRound size={11} />
+                  <span>{viewingNote.guest_name}</span>
+                </span>
+              )}
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
             {canEdit && <button onClick={() => { setViewingNote(null); setEditingNote(viewingNote) }}
