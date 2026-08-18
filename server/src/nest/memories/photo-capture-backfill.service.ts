@@ -1,4 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import path from 'node:path';
+import exifr from 'exifr';
+import { UPLOADS_ROOT } from './uploads-root';
 import { PhotoResolverService } from './photo-resolver.service';
 import { TrekPhotosRepository } from '../photos/trek-photos.repository';
 
@@ -37,6 +40,14 @@ export class PhotoCaptureBackfillService {
         // per photo is the expensive part of an album import.
         if (!photo || (photo.taken_at && photo.lat != null && photo.lng != null)) continue;
 
+        // A local file has no provider to ask — the answer is in its own EXIF, and
+        // getPhotoInfo would only hand back what the DB row already says.
+        if (photo.provider === 'local') {
+          const meta = await this.readLocalExif(photo.file_path);
+          if (meta) this.photos.recordCaptureMetadata(id, meta);
+          continue;
+        }
+
         const info = await this.resolver.getPhotoInfo(id, userId);
         if (!info.success) continue;
 
@@ -49,5 +60,34 @@ export class PhotoCaptureBackfillService {
         console.error(`[Photos] capture backfill failed for ${id}:`, err instanceof Error ? err.message : err);
       }
     }
+  }
+
+  /**
+   * EXIF of an uploaded file.
+   *
+   * Note for anyone chasing "my phone photo has no location": the client converts
+   * HEIC before upload and that conversion drops GPS, so an iPhone photo arrives
+   * here already stripped. Nothing to read is the expected outcome far more often
+   * than not — hence no logging on the empty case.
+   */
+  private async readLocalExif(
+    filePath?: string | null,
+  ): Promise<{ takenAt: string | null; lat: number | null; lng: number | null } | null> {
+    if (!filePath) return null;
+    // Never let a stored path climb out of the uploads tree.
+    const abs = path.resolve(UPLOADS_ROOT, filePath);
+    if (abs !== UPLOADS_ROOT && !abs.startsWith(UPLOADS_ROOT + path.sep)) return null;
+
+    const parsed = await exifr.parse(abs, { pick: ['DateTimeOriginal', 'CreateDate', 'latitude', 'longitude'] })
+      .catch(() => null) as
+      | { DateTimeOriginal?: Date; CreateDate?: Date; latitude?: number; longitude?: number }
+      | null;
+    if (!parsed) return null;
+
+    const taken = parsed.DateTimeOriginal ?? parsed.CreateDate ?? null;
+    const takenAt = taken instanceof Date && !Number.isNaN(taken.getTime()) ? taken.toISOString() : null;
+    const lat = typeof parsed.latitude === 'number' ? parsed.latitude : null;
+    const lng = typeof parsed.longitude === 'number' ? parsed.longitude : null;
+    return takenAt || lat != null ? { takenAt, lat, lng } : null;
   }
 }

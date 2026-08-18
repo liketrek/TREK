@@ -212,6 +212,7 @@ export class JourneyController {
     if (!results.length) {
       throw new HttpException({ error: 'Not allowed' }, 403);
     }
+    this.backfillCapture(results, user.id);
     return { photos: results };
   }
 
@@ -293,6 +294,9 @@ export class JourneyController {
     if (!photos.length) {
       throw new HttpException({ error: 'Not allowed' }, 403);
     }
+    // An uploaded file carries its own EXIF; reading it is what puts the photo on
+    // the map later. Detached, like the provider branch.
+    this.backfillCapture(photos, user.id);
     return { photos };
   }
 
