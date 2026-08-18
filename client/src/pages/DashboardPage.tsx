@@ -20,7 +20,7 @@ import {
   Utensils,
   X,
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { TripCardBadge } from '../api/client';
 import { CURRENCIES } from '../components/Budget/BudgetPanel.constants';
 import CollectionsWidget from '../components/Dashboard/CollectionsWidget';
@@ -31,12 +31,12 @@ import { IcsSubscribeModal } from '../components/Planner/IcsSubscribeModal';
 import PluginFrame from '../components/Plugins/PluginFrame';
 import PluginWidgets from '../components/Plugins/PluginWidgets';
 import { TripCardBadges, useTripCardBadges } from '../components/Plugins/TripCardBadges';
-import TripFormModal from '../components/Trips/TripFormModal';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import CopyTripDialog from '../components/shared/CopyTripDialog';
 import CurrencySelect from '../components/shared/CurrencySelect';
 import CustomSelect from '../components/shared/CustomSelect';
 import PlaceAvatar from '../components/shared/PlaceAvatar';
+import TripFormModal from '../components/Trips/TripFormModal';
 import { useTranslation } from '../i18n';
 import { useAddonStore } from '../store/addonStore';
 import { usePluginStore } from '../store/pluginStore';
@@ -51,8 +51,10 @@ import {
   type UpcomingReservation,
   MS_PER_DAY,
   daysUntil,
+  getDepartureTransport,
   getTripStatus,
 } from './dashboard/dashboardModel';
+import DepartureCountdownBoard from './dashboard/DepartureCountdownBoard';
 import { useDashboard } from './dashboard/useDashboard';
 
 const GRADIENTS = [
@@ -437,6 +439,15 @@ function BoardingPassHero({
   const status = getTripStatus(trip);
   const start = splitDate(trip.start_date, locale);
   const end = splitDate(trip.end_date, locale);
+  const departureTransport = useMemo(
+    () => (bundle ? getDepartureTransport(bundle.reservations, bundle.days) : null),
+    [bundle]
+  );
+  const [completedDepartureId, setCompletedDepartureId] = useState<number | null>(null);
+  useEffect(() => {
+    setCompletedDepartureId(null);
+  }, [departureTransport?.reservationId, departureTransport?.departureAt]);
+  const showDepartureCountdown = !!departureTransport && completedDepartureId !== departureTransport.reservationId;
 
   // Countdown cell — plain text in the same style as the trip-dates cell:
   // days remaining while the trip runs, days until departure before it starts.
@@ -589,7 +600,7 @@ function BoardingPassHero({
 
   return (
     <>
-      <section className="hero-trip" onClick={onOpen}>
+      <section className={`hero-trip${showDepartureCountdown ? ' has-departure-countdown' : ''}`} onClick={onOpen}>
         {trip.cover_image ? (
           <img className="bg" src={trip.cover_image} alt={trip.title} />
         ) : (
@@ -621,6 +632,13 @@ function BoardingPassHero({
               </button>
             </div>
           </div>
+
+          {showDepartureCountdown && departureTransport && (
+            <DepartureCountdownBoard
+              departure={departureTransport}
+              onComplete={() => setCompletedDepartureId(departureTransport.reservationId)}
+            />
+          )}
 
           <div className="hero-title-block">
             <h2 className="hero-title">{trip.title}</h2>
