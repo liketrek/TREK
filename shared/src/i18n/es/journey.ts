@@ -260,6 +260,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.folioAuto': 'Automático',
   'journey.studio.exportLayout': 'Diseño',
   'journey.studio.exportPages': 'Páginas sueltas',
   'journey.studio.exportPagesHint': 'Una hoja por página, en orden de lectura. Lo que quiere una imprenta.',

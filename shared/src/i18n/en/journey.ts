@@ -260,6 +260,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty',
   'journey.studio.autoLayout': 'Auto layout',
   'journey.studio.export': 'Export',
+  'journey.studio.folioAuto': 'Automatic',
   'journey.studio.exportLayout': 'Layout',
   'journey.studio.exportPages': 'Single pages',
   'journey.studio.exportPagesHint': 'One leaf per sheet, in reading order. What a printer wants.',

@@ -259,6 +259,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.folioAuto': 'تلقائي',
   'journey.studio.exportLayout': 'التخطيط',
   'journey.studio.exportPages': 'صفحات مفردة',
   'journey.studio.exportPagesHint': 'ورقة واحدة لكل صفحة، بترتيب القراءة. هذا ما تطلبه المطبعة.',

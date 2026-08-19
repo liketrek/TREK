@@ -260,6 +260,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.folioAuto': 'Automatikus',
   'journey.studio.exportLayout': 'Elrendezés',
   'journey.studio.exportPages': 'Önálló oldalak',
   'journey.studio.exportPagesHint': 'Oldalanként egy ív, olvasási sorrendben. Ezt kéri a nyomda.',

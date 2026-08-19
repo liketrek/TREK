@@ -261,6 +261,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.folioAuto': '自動',
   'journey.studio.exportLayout': 'レイアウト',
   'journey.studio.exportPages': '単ページ',
   'journey.studio.exportPagesHint': '1ページにつき1枚、読み順に並べます。印刷所が求める形式です。',

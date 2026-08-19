@@ -261,6 +261,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.folioAuto': 'Automatisch',
   'journey.studio.exportLayout': 'Opmaak',
   'journey.studio.exportPages': 'Losse pagina’s',
   'journey.studio.exportPagesHint': 'Eén blad per pagina, op leesvolgorde. Wat een drukker wil.',

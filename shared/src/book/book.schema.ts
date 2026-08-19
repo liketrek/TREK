@@ -435,6 +435,15 @@ export const bookPageNumbersSchema = z.object({
   /** Millimetres from the trim edge. */
   margin: mm.default(12),
   size: z.number().min(4).max(48).default(8),
+  /**
+   * Pick the folio colour from what it lands on, rather than using `color`.
+   *
+   * A book has dark pages and light ones, and one fixed colour is wrong on half
+   * of them — a grey folio disappears into a full-bleed night photograph and
+   * again into a black page. The renderer decides per page; `color` is what it
+   * uses when this is off, and choosing a colour turns it off.
+   */
+  autoColor: z.boolean().default(true),
   color: hex.default('#8a8578'),
   font: z.enum(BOOK_FONTS_IDS).default('sans'),
 });

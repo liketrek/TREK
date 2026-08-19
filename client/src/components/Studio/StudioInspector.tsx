@@ -109,8 +109,25 @@ export function StudioInspector({
                     onChange={v => setPageNumbers({ margin: v })}
                   />
                 </div>
-                <div style={{ marginTop: 8 }}>
-                  <Swatches value={folios.color} onPick={c => setPageNumbers({ color: c })} />
+                {/*
+                  Automatic first, and picking a colour is what turns it off —
+                  no separate switch to find and no state where a chosen colour
+                  is quietly ignored.
+                */}
+                <div className="st-row" style={{ marginTop: 8 }}>
+                  <button
+                    className={`st-chip ${folios.autoColor ? 'is-on' : ''}`}
+                    onClick={() => setPageNumbers({ autoColor: true })}
+                    aria-pressed={folios.autoColor}
+                  >
+                    {t('journey.studio.folioAuto')}
+                  </button>
+                </div>
+                <div style={{ marginTop: 8, opacity: folios.autoColor ? 0.45 : 1 }}>
+                  <Swatches
+                    value={folios.color}
+                    onPick={c => setPageNumbers({ color: c, autoColor: false })}
+                  />
                 </div>
               </>
             )}

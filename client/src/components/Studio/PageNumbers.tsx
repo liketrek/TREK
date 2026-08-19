@@ -1,5 +1,6 @@
 import type { BookPageSetup, BookSpread } from '@trek/shared'
 import { fontStack } from './bookFonts'
+import { folioInk } from './folioColour'
 
 /**
  * The folios.
@@ -59,6 +60,15 @@ export function PageNumbers({
     <>
       {([['left', left], ['right', right]] as const).map(([side, number]) => {
         const at = place(side)
+        /*
+         * Sampled at the middle of the number's own box, which is where the
+         * digits actually are — the box is 40% of the page wide so that the
+         * text can align inside it, and its left edge is often over something
+         * else entirely.
+         */
+        const ink = cfg.autoColor
+          ? folioInk(spread, at.x + at.w / 2, y - size * 0.18)
+          : { color: cfg.color, shadow: undefined }
         return (
           <div
             key={side}
@@ -73,7 +83,8 @@ export function PageNumbers({
               fontWeight: 500,
               letterSpacing: '0.08em',
               lineHeight: 1,
-              color: cfg.color,
+              color: ink.color,
+              textShadow: ink.shadow,
               fontVariantNumeric: 'tabular-nums',
               pointerEvents: 'none',
             }}

@@ -260,6 +260,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.folioAuto': 'Tự động',
   'journey.studio.exportLayout': 'Bố cục',
   'journey.studio.exportPages': 'Trang đơn',
   'journey.studio.exportPagesHint': 'Mỗi trang một tờ, theo thứ tự đọc. Đây là thứ nhà in cần.',

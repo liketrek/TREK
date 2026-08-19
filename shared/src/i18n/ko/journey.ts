@@ -260,6 +260,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.folioAuto': '자동',
   'journey.studio.exportLayout': '레이아웃',
   'journey.studio.exportPages': '낱쪽',
   'journey.studio.exportPagesHint': '한 쪽에 한 장씩, 읽는 순서대로. 인쇄소가 원하는 형식입니다.',

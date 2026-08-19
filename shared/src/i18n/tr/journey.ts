@@ -260,6 +260,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.folioAuto': 'Otomatik',
   'journey.studio.exportLayout': 'Yerleşim',
   'journey.studio.exportPages': 'Tek sayfa',
   'journey.studio.exportPagesHint': 'Sayfa başına bir yaprak, okuma sırasında. Matbaanın istediği budur.',

@@ -260,6 +260,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'Diese Doppelseite ist noch leer',
   'journey.studio.autoLayout': 'Automatisch anordnen',
   'journey.studio.export': 'Exportieren',
+  'journey.studio.folioAuto': 'Automatisch',
   'journey.studio.exportLayout': 'Layout',
   'journey.studio.exportPages': 'Einzelseiten',
   'journey.studio.exportPagesHint': 'Ein Blatt pro Seite, in Leserichtung. Das will eine Druckerei.',

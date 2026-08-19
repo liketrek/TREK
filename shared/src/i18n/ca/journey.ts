@@ -260,6 +260,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.folioAuto': 'Automàtic',
   'journey.studio.exportLayout': 'Disposició',
   'journey.studio.exportPages': 'Pàgines soltes',
   'journey.studio.exportPagesHint': 'Un full per pàgina, en ordre de lectura. El que vol una impremta.',

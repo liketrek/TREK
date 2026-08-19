@@ -259,6 +259,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.folioAuto': 'Otomatis',
   'journey.studio.exportLayout': 'Tata letak',
   'journey.studio.exportPages': 'Halaman tunggal',
   'journey.studio.exportPagesHint': 'Satu lembar per halaman, sesuai urutan baca. Ini yang diminta percetakan.',
