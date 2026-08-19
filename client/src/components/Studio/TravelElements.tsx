@@ -8,8 +8,9 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { fontStack } from './bookFonts'
-import { COUNTRY_SHAPES, countryWorldPath, projectMercator } from './countryShapes'
-import { projectOntoTiles, tileView } from './mapTiles'
+import { brightness } from './folioColour'
+import { COUNTRY_SHAPES, countryWorldPath, projectMercator, unprojectMercator } from './countryShapes'
+import { projectOntoTiles, tileView, usableStaticUrl } from './mapTiles'
 import { FLAG_H, FLAG_W, flagBands, flagDisc, flagSpec } from './flags'
 import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
 import { useTranslation } from '../../i18n'
@@ -70,6 +71,9 @@ function typeSize(el: TravelElement, base: number): number {
 
 /** Two decimals of a millimetre, matching what the document stores. */
 const round2 = (n: number) => Math.round(n * 100) / 100
+/** Tile geometry, kept finer than the rest: see the note where it is used. */
+const round3 = (n: number) => Math.round(n * 1000) / 1000
+const TILE_OVERLAP = 0.12
 
 /** #rrggbb plus an alpha. */
 function rgba(hex: string, alpha: number): string {
@@ -125,6 +129,29 @@ const MAP_PALETTES = {
  * invisible.
  */
 const DEFAULT_ACCENT = '#111111' // theme-lint-disable — the contract's default, matched here
+
+/** Ink for a mark that picks its own, and its opposite. */
+const BADGE_DARK_INK = '#1c1b19' // theme-lint-disable — ink on a printed page, not a UI token
+const BADGE_LIGHT_INK = '#ffffff' // theme-lint-disable — paper white on a filled chip
+
+/**
+ * What colour a mark's words are.
+ *
+ * Automatic unless the element says otherwise, and what automatic means depends
+ * on what the mark is: a chip carries its words on its own fill, so they answer
+ * to the fill's brightness; a day or a date drawn plain takes the accent,
+ * because that is the figure the page is built around. Anything else is
+ * ordinary text in the text colour.
+ *
+ * The moment somebody picks a colour this steps aside completely. That is the
+ * point of the flag: automatic is a good default and a bad cage.
+ */
+function badgeInk(el: BookBadgeElement): string {
+  if (!el.autoColor) return el.color
+  if (el.style === 'chip') return brightness(el.accent) > 0.55 ? BADGE_DARK_INK : BADGE_LIGHT_INK
+  if (el.variant === 'day' || el.variant === 'date') return el.accent
+  return el.color
+}
 function routeInk(accent: string, onDark: boolean): string {
   if (!onDark) return accent
   return accent.toLowerCase() === DEFAULT_ACCENT ? '#f2efe9' : accent // theme-lint-disable — paper on a dark map
@@ -141,6 +168,9 @@ function routeInk(accent: string, onDark: boolean): string {
  */
 function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProperties }) {
   const palette = MAP_PALETTES[el.style]
+  // Per element: two cut maps on one spread sharing a stencil would both be cut
+  // to whichever of them rendered last.
+  const clipId = `st-clip-${el.id}`
   const ink = routeInk(el.accent, palette.onDark)
   /*
    * Country outlines are the vector map's *subject*; over real imagery they are
@@ -148,41 +178,122 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
    * drawn when there is no picture underneath.
    */
   const imagery = el.source === 'tiles' || el.source === 'static'
-  const shapes = el.showLand && !imagery
+  /*
+   * The outlines are needed for two different jobs, and only one of them is
+   * drawing. As a picture they are the vector map's subject, and over real
+   * imagery they would be a second coastline on top of the one already in the
+   * photograph. As a stencil they are what the imagery is cut to, which is
+   * exactly the case where there IS imagery — so the geometry is loaded
+   * whenever either job wants it, and drawn only for the first.
+   */
+  const wantsStencil = el.clip === 'country'
+  const shapes = (el.showLand && !imagery) || wantsStencil
     ? el.countries.map(c => COUNTRY_SHAPES[c.toUpperCase()]).filter(Boolean)
     : []
+  const drawLand = el.showLand && !imagery
   const points = el.points.map(p => ({ ...p, ...projectMercator(p.lng, p.lat) }))
+  /*
+   * The travelled way, projected the same as everything else.
+   *
+   * Segments stay separate: two tracks that do not join must not be drawn as
+   * though they did, or a book about a trip with a flight in the middle of it
+   * shows a road across the sea.
+   */
+  /*
+   * Defended rather than assumed, unlike the rest of the element's fields.
+   *
+   * A document that came through the contract always has this. One built by
+   * hand somewhere in the editor might not, and the cost of being wrong is not
+   * a missing line: reading `.map` off undefined here takes the whole spread
+   * down with it, in a renderer that also has to run for print.
+   */
+  const path = el.path ?? []
+  const trail = path.map(seg => seg.map(([lat, lng]) => projectMercator(lng, lat)))
 
-  // Bounds over everything drawn. Countries first: a route inside one country
-  // should show the country, not a tight box around four stops.
+  /*
+   * ── What the view is fitted to ────────────────────────────────────────
+   *
+   * The journey, not the geography. Fitting to the country outlines meant a
+   * trip that stayed inside Berlin was drawn as the whole of Germany with two
+   * dots in the middle of it: technically a map of where you were, useless as
+   * a page about the trip. The outlines are still drawn, they simply run off
+   * the edge of the frame the way a coastline does on any real map.
+   *
+   * `fitToCountries` asks for the other behaviour deliberately, for the page
+   * every travel book has: the country entire, with the route inside it.
+   */
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-  for (const s of shapes) {
-    minX = Math.min(minX, s.b[0]); minY = Math.min(minY, s.b[1])
-    maxX = Math.max(maxX, s.b[2]); maxY = Math.max(maxY, s.b[3])
+  /*
+   * Cutting to the coastline only means anything if the coastline is in view,
+   * so `clip` implies the country fit however the element was configured.
+   */
+  const cutToLand = el.clip === 'country' && shapes.length > 0
+  const fitToLand = el.fitToCountries || cutToLand || (points.length === 0 && trail.length === 0)
+  if (fitToLand) {
+    for (const s of shapes) {
+      minX = Math.min(minX, s.b[0]); minY = Math.min(minY, s.b[1])
+      maxX = Math.max(maxX, s.b[2]); maxY = Math.max(maxY, s.b[3])
+    }
   }
   for (const p of points) {
     minX = Math.min(minX, p.x); minY = Math.min(minY, p.y)
     maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y)
   }
+  for (const seg of trail) {
+    for (const p of seg) {
+      minX = Math.min(minX, p.x); minY = Math.min(minY, p.y)
+      maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y)
+    }
+  }
 
   const empty = !Number.isFinite(minX)
-  // A degree either way, so a single stop is a point on a map rather than a
-  // division by zero.
   if (empty) { minX = -1; minY = -1; maxX = 1; maxY = 1 }
-  if (maxX - minX < 0.02) { minX -= 1; maxX += 1 }
-  if (maxY - minY < 0.02) { minY -= 1; maxY += 1 }
+  /*
+   * One stop is a place, not an extent.
+   *
+   * The window around it used to be two whole degrees, which put a single
+   * hotel on a map of half a country. A hundredth of the projected world is
+   * roughly a large city and its surroundings: near enough to see where it is,
+   * close enough that the pin means something.
+   */
+  const SINGLE = 0.01
+  if (maxX - minX < SINGLE) { const c = (minX + maxX) / 2; minX = c - SINGLE / 2; maxX = c + SINGLE / 2 }
+  if (maxY - minY < SINGLE) { const c = (minY + maxY) / 2; minY = c - SINGLE / 2; maxY = c + SINGLE / 2 }
 
   const W = el.frame.w
   const H = el.frame.h
-  const pad = Math.min(W, H) * 0.06
-  const scale = Math.min((W - pad * 2) / (maxX - minX), (H - pad * 2) / (maxY - minY))
+  /*
+   * Room around the route, as a share of the route rather than of the frame.
+   *
+   * A fixed margin in millimetres is the wrong shape twice over: on a wide
+   * route it is a hairline, and on a short one it is most of the picture. A
+   * share of the extent keeps the same amount of air around a walk across a
+   * city and a drive across a continent.
+   */
+  // Same defence as `path`: undefined would make this NaN, and a NaN here
+  // propagates into every coordinate on the map rather than failing loudly.
+  const grow = Math.max(0, el.fitPadding ?? 0.18)
+  const spanX = (maxX - minX) * (1 + grow)
+  const spanY = (maxY - minY) * (1 + grow)
+  const cx = (minX + maxX) / 2
+  const cy = (minY + maxY) / 2
+  minX = cx - spanX / 2; maxX = cx + spanX / 2
+  minY = cy - spanY / 2; maxY = cy + spanY / 2
+
+  const scale = Math.min(W / (maxX - minX), H / (maxY - minY))
   const offX = (W - (maxX - minX) * scale) / 2 - minX * scale
   const offY = (H - (maxY - minY) * scale) / 2 - minY * scale
   const at = (x: number, y: number) => ({ x: x * scale + offX, y: y * scale + offY })
 
   const stroke = Math.max(0.12, Math.min(W, H) * 0.006)
-  const routeWidth = stroke * 1.9
-  const pin = Math.max(0.5, Math.min(W, H) * 0.016)
+  /*
+   * Finer than the first version, which drew a 5mm dot and a 2mm line on a
+   * 150mm page: at that weight the route stops being a line on a map and
+   * becomes a diagram of one. A printed map's marks are small — the reader is
+   * six inches from the page, not across a room from a screen.
+   */
+  const routeWidth = Math.max(0.3, Math.min(W, H) * 0.0075)
+  const pin = Math.max(0.35, Math.min(W, H) * 0.0085)
   const label = typeSize(el, 0.035)
 
   /*
@@ -192,8 +303,26 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
    * route is vector, and layering them as two elements keeps the line sharp at
    * any print size instead of resampling it along with the picture.
    */
+  /*
+   * The tiles are cut to the same thing the vector fit uses, the travelled way
+   * included — otherwise a route that wanders outside the box around its stops
+   * runs off the edge of its own map.
+   */
+  const tileExtent = [
+    ...el.points.map(p => ({ lat: p.lat, lng: p.lng })),
+    ...path.flatMap(seg => seg.map(([lat, lng]) => ({ lat, lng }))),
+  ]
+  // The window the fit above arrived at, back in coordinates, so the tiles
+  // cover exactly what the vector map covers.
+  const topLeft = unprojectMercator(minX, minY)
+  const bottomRight = unprojectMercator(maxX, maxY)
   const tiled = el.source === 'tiles'
-    ? tileView(el.points, { w: W, h: H }, el.tileUrl, el.zoom)
+    ? tileView(tileExtent, { w: W, h: H }, el.tileUrl, el.zoom, {
+      minLng: topLeft.lng,
+      maxLat: topLeft.lat,
+      maxLng: bottomRight.lng,
+      minLat: bottomRight.lat,
+    })
     : null
 
   /*
@@ -208,15 +337,126 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
     ? el.points.map(p => projectOntoTiles(tiled, p.lng, p.lat))
     : points.map(p => at(p.x, p.y))
 
+  /*
+   * The drawn line, which is the travelled way when there is one.
+   *
+   * Falling back to the stops joined in order is honest for a trip with no
+   * routed geometry — it says "these places, in this order" — but where the
+   * trip knows the roads, drawing the straight line instead is drawing
+   * something that did not happen.
+   */
+  const trailOnScreen = tiled
+    ? path.map(seg => seg.map(([lat, lng]) => projectOntoTiles(tiled, lng, lat)))
+    : trail.map(seg => seg.map(p => at(p.x, p.y)))
+  const lines = trailOnScreen.length ? trailOnScreen : (route.length > 1 ? [route] : [])
+
   return (
     <div style={{ ...frameStyle, overflow: 'hidden' }}>
+      {/*
+        The tile grid, laid out in millimetres under the route.
+
+        Each tile is placed rather than flowed: a grid of images with no gaps
+        between them is not something CSS layout gives you for free at
+        fractional millimetre sizes.
+
+        They are drawn a little larger than their spacing on purpose. A tile
+        boundary that lands mid-pixel leaves a hairline of white paper showing
+        through the map, and the eye finds it immediately — it reads as a fold
+        or a scratch rather than as rounding. A tenth of a millimetre of
+        overlap costs nothing (the overlapping strip is the same picture) and
+        closes the seam at every zoom and every print size.
+      */}
+      {tiled && !cutToLand && tiled.tiles.map(t => (
+        <img
+          key={`${t.z}-${t.x}-${t.y}`}
+          src={t.url}
+          alt=""
+          draggable={false}
+          style={{
+            position: 'absolute',
+            left: `${round3(tiled.originX + t.x * tiled.size)}mm`,
+            top: `${round3(tiled.originY + t.y * tiled.size)}mm`,
+            width: `${round3(tiled.size + TILE_OVERLAP)}mm`,
+            height: `${round3(tiled.size + TILE_OVERLAP)}mm`,
+            display: 'block',
+          }}
+        />
+      ))}
+
+      {/*
+        Or one picture, for the styles that only exist as a rendered map. The
+        URL was resolved when the element was placed, so nothing is negotiated
+        at print time.
+      */}
+      {el.source === 'static' && el.tileUrl && !cutToLand && (
+        <img
+          src={usableStaticUrl(el.tileUrl)}
+          alt=""
+          draggable={false}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            display: 'block',
+          }}
+        />
+      )}
+
       <svg
         width={`${W}mm`}
         height={`${H}mm`}
         viewBox={`0 0 ${W} ${H}`}
-        style={{ display: 'block' }}
+        style={{ display: 'block', position: 'relative' }}
       >
-        {shapes.map((s, i) => (
+        {/*
+          The land as a stencil.
+
+          Defined once and used by both the picture and, on a cut map, nothing
+          else: the outlines below draw themselves normally when the map is a
+          rectangle, and become the edge of the picture when it is not.
+        */}
+        {cutToLand && (
+          <defs>
+            <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
+              {shapes.map((sh, i) => (
+                <path key={i} d={countryWorldPath(sh)} transform={`translate(${offX} ${offY}) scale(${scale})`} />
+              ))}
+            </clipPath>
+          </defs>
+        )}
+
+        {/*
+          Imagery, cut to the stencil.
+
+          Inside the SVG rather than under it, because clipping to a path is
+          something SVG does exactly and CSS does approximately — and this has
+          to survive a print pipeline, where an approximation is a soft edge
+          around a country.
+        */}
+        {cutToLand && tiled && (
+          <g clipPath={`url(#${clipId})`}>
+            {tiled.tiles.map(t => (
+              <image
+                key={`${t.z}-${t.x}-${t.y}`}
+                href={t.url}
+                x={round3(tiled.originX + t.x * tiled.size)}
+                y={round3(tiled.originY + t.y * tiled.size)}
+                width={round3(tiled.size + TILE_OVERLAP)}
+                height={round3(tiled.size + TILE_OVERLAP)}
+                preserveAspectRatio="none"
+              />
+            ))}
+          </g>
+        )}
+        {cutToLand && el.source === 'static' && el.tileUrl && (
+          <g clipPath={`url(#${clipId})`}>
+            <image href={usableStaticUrl(el.tileUrl)} x={0} y={0} width={W} height={H} preserveAspectRatio="xMidYMid slice" />
+          </g>
+        )}
+
+        {(drawLand || cutToLand) && shapes.map((s, i) => (
           <path
             key={i}
             d={countryWorldPath(s)}
@@ -224,30 +464,34 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
             // fitting and the stroke is divided back out — the border stays the
             // width it was asked for instead of scaling with the map.
             transform={`translate(${offX} ${offY}) scale(${scale})`}
-            fill={palette.land}
+            // On a cut map the picture is the fill, and this path is only the
+            // edge around it — filling it as well would paint the land flat
+            // over the very imagery it was cut to show.
+            fill={cutToLand ? 'none' : palette.land}
             stroke={palette.border}
             strokeWidth={stroke / scale}
             strokeLinejoin="round"
           />
         ))}
 
-        {el.showRoute && route.length > 1 && (
+        {el.showRoute && lines.map((seg, i) => seg.length > 1 && (
           <polyline
-            points={route.map(p => `${p.x},${p.y}`).join(' ')}
+            key={i}
+            points={seg.map(p => `${round2(p.x)},${round2(p.y)}`).join(' ')}
             fill="none"
             stroke={ink}
             strokeWidth={routeWidth}
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-        )}
+        ))}
 
         {el.showPins && route.map((p, i) => (
           <circle
             key={i}
             cx={p.x}
             cy={p.y}
-            r={i === 0 || i === route.length - 1 ? pin * 1.5 : pin}
+            r={i === 0 || i === route.length - 1 ? pin * 1.35 : pin}
             // The intermediate stops are hollow, so a run of them reads as a
             // dotted line rather than as a caterpillar.
             fill={i === 0 || i === route.length - 1 ? ink : (palette.onDark ? '#2b3038' : '#ffffff')}
@@ -280,29 +524,16 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
       </svg>
 
       {/*
-        The credit. Required by the tile licence, and a book is a published
-        work — nobody can add a footnote to it after it is bound. Small and in
-        the corner, the way a map credits its source on paper.
+        No credit line on the map itself.
+
+        The tile licences do require attribution, and it used to be printed in
+        the corner of every tiled map for exactly that reason. It is off the
+        picture now by decision: a credit box over the artwork is the first
+        thing anyone notices on a page they designed, and a book has a better
+        place for it. `attribution` is still resolved and still stored on the
+        element, so whoever prints the book can set it in the colophon, which
+        is where a book has always credited its sources.
       */}
-      {el.attribution && imagery && (
-        <span
-          style={{
-            position: 'absolute',
-            right: `${round2(Math.min(W, H) * 0.02)}mm`,
-            bottom: `${round2(Math.min(W, H) * 0.015)}mm`,
-            fontFamily: fontStack(el.font),
-            fontSize: `${round2(Math.max(1.4, Math.min(W, H) * 0.022))}mm`,
-            lineHeight: 1.2,
-            color: 'rgba(0,0,0,.62)',
-            background: 'rgba(255,255,255,.72)',
-            padding: `${round2(Math.min(W, H) * 0.004)}mm ${round2(Math.min(W, H) * 0.01)}mm`,
-            borderRadius: `${round2(Math.min(W, H) * 0.006)}mm`,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {el.attribution}
-        </span>
-      )}
     </div>
   )
 }
@@ -693,7 +924,7 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
         justifyContent: 'center',
         gap: `${round2(stacked ? small * 0.5 : small * 0.75)}mm`,
         fontFamily: fontStack(el.font),
-        color: chip ? '#ffffff' : el.color,
+        color: badgeInk(el),
         background: chip ? el.accent : undefined,
         border: outline ? `${round2(Math.max(0.18, el.frame.h * 0.022))}mm solid ${rgba(el.color, 0.4)}` : undefined,
         borderRadius: chip || outline ? `${round2(Math.min(el.frame.w, el.frame.h) * 0.5)}mm` : undefined,
@@ -751,7 +982,7 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
             lineHeight: 1,
             letterSpacing: el.variant === 'coords' ? '0.1em' : '-0.015em',
             fontVariantNumeric: 'tabular-nums',
-            color: chip ? '#ffffff' : el.variant === 'day' || el.variant === 'date' ? el.accent : el.color,
+            color: badgeInk(el),
             whiteSpace: 'nowrap',
           }}
         >

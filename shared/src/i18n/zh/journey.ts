@@ -300,6 +300,8 @@ const journey: TranslationStrings = {
   'journey.studio.typography': 'Type', // en-fallback
   'journey.studio.leading': 'Line', // en-fallback
   'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.autoColour': '自动',
+  'journey.studio.countryNames': '名称',
   'journey.studio.crop': 'Crop', // en-fallback
   'journey.studio.look': 'Look', // en-fallback
   'journey.studio.radius': 'Corner', // en-fallback
@@ -492,6 +494,18 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': '渲染时获取，并附带来源标注打印',
   'journey.studio.mapZoom': '缩放',
+  'journey.studio.mapFraming': '取景',
+  'journey.studio.mapFitStops': '停留点',
+  'journey.studio.mapFitCountry': '整个国家',
+  'journey.studio.mapPadTight': '紧凑',
+  'journey.studio.mapPadNormal': '普通',
+  'journey.studio.mapPadWide': '宽松',
+  'journey.studio.mapPadFar': '很宽松',
+  'journey.studio.mapClipRect': '带边框',
+  'journey.studio.mapClipCountry': '按形状裁切',
+  'journey.studio.mapClipNeedsCountry': '需要一个国家来裁切',
+  'journey.studio.mapCutVector': '裁切',
+  'journey.studio.mapCutTiles': '裁切地图',
   'journey.studio.mapZoomAuto': '自适应',
   'journey.studio.saving': '正在保存',
   'journey.studio.saved': '已保存',

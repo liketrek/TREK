@@ -129,7 +129,31 @@ export function TravelInspector({ el, stats, set, t, Section }: TravelInspectorP
         <Swatches value={el.accent} onPick={c => set({ accent: c } as Partial<BookElement>)} />
       </Section>
       <Section label={t('journey.studio.colour')}>
-        <Swatches value={el.color} onPick={c => set({ color: c } as Partial<BookElement>)} />
+        {/*
+          Picking a colour is what turns automatic off.
+
+          A chip works out its own text colour from the fill it carries, which
+          is right until somebody wants something else — and then a separate
+          switch to find first is one step too many. So the swatch does both,
+          and the Automatic chip beside it is the way back rather than the way
+          in. Only marks have this; the other elements have no fill of their
+          own to answer to.
+        */}
+        <Swatches
+          value={el.color}
+          onPick={c => set(
+            (el.kind === 'badge' ? { color: c, autoColor: false } : { color: c }) as Partial<BookElement>,
+          )}
+        />
+        {el.kind === 'badge' && (
+          <div className="st-row" style={{ marginTop: 8 }}>
+            <Toggle
+              on={el.autoColor}
+              label={t('journey.studio.autoColour')}
+              onClick={() => set({ autoColor: !el.autoColor } as Partial<BookElement>)}
+            />
+          </div>
+        )}
       </Section>
       <Section label={t('journey.studio.textScale')}>
         <div className="st-row">
@@ -239,6 +263,77 @@ function MapProps({ el, set, t, Section }: {
         )}
       </Section>
 
+      {/*
+        ── What the map shows ─────────────────────────────────────────────
+
+        Three questions, and they are not the same question: how close the view
+        is, how much air is left around it, and what shape the picture is cut
+        to. The first two used to be decided for you, and the decision was
+        wrong often enough to be the loudest complaint about this element: a
+        trip that stayed inside one city was drawn as the whole country with
+        two dots in the middle of it.
+      */}
+      <Section label={t('journey.studio.mapFraming')}>
+        <div className="st-row" style={{ flexWrap: 'wrap' }}>
+          <button
+            className={`st-chip ${!el.fitToCountries ? 'is-on' : ''}`}
+            onClick={() => set({ fitToCountries: false } as Partial<BookElement>)}
+          >
+            {t('journey.studio.mapFitStops')}
+          </button>
+          <button
+            className={`st-chip ${el.fitToCountries ? 'is-on' : ''}`}
+            onClick={() => set({ fitToCountries: true } as Partial<BookElement>)}
+          >
+            {t('journey.studio.mapFitCountry')}
+          </button>
+        </div>
+
+        {/*
+          Room around what is drawn, as a share of it: the same setting has to
+          look right around a walk across a city and a drive across a
+          continent, and millimetres cannot do that.
+        */}
+        <div className="st-row" style={{ marginTop: 8, flexWrap: 'wrap' }}>
+          {([
+            ['journey.studio.mapPadTight', 0.04],
+            ['journey.studio.mapPadNormal', 0.18],
+            ['journey.studio.mapPadWide', 0.5],
+            ['journey.studio.mapPadFar', 1.2],
+          ] as const).map(([key, value]) => (
+            <button
+              key={key}
+              className={`st-chip ${Math.abs(el.fitPadding - value) < 0.001 ? 'is-on' : ''}`}
+              onClick={() => set({ fitPadding: value } as Partial<BookElement>)}
+            >
+              {t(key)}
+            </button>
+          ))}
+        </div>
+
+        {/*
+          And the shape. A rectangle is a map in a box, which is what a full
+          page wants; cut to the coastline it stops being a figure and becomes
+          an illustration that can sit next to anything.
+        */}
+        <div className="st-row" style={{ marginTop: 8, flexWrap: 'wrap' }}>
+          <button
+            className={`st-chip ${el.clip === 'rect' ? 'is-on' : ''}`}
+            onClick={() => set({ clip: 'rect' } as Partial<BookElement>)}
+          >
+            {t('journey.studio.mapClipRect')}
+          </button>
+          <button
+            className={`st-chip ${el.clip === 'country' ? 'is-on' : ''}`}
+            disabled={el.countries.length === 0}
+            title={el.countries.length === 0 ? t('journey.studio.mapClipNeedsCountry') : undefined}
+            onClick={() => set({ clip: 'country' } as Partial<BookElement>)}
+          >
+            {t('journey.studio.mapClipCountry')}
+          </button>
+        </div>
+      </Section>
+
       {el.source === 'tiles' && (
         <Section label={t('journey.studio.mapZoom')}>
           <div className="st-row" style={{ flexWrap: 'wrap' }}>
@@ -248,7 +343,7 @@ function MapProps({ el, set, t, Section }: {
             >
               {t('journey.studio.mapZoomAuto')}
             </button>
-            {[4, 7, 10, 13].map(z => (
+            {[3, 5, 7, 9, 11, 13, 15, 17].map(z => (
               <button
                 key={z}
                 className={`st-chip ${el.zoom === z ? 'is-on' : ''}`}
@@ -371,6 +466,39 @@ function CountriesProps({ el, set, t, Section }: {
           </button>
         ))}
       </div>
+
+      {/*
+        The names themselves, one per line.
+
+        They arrive resolved from the journey and are usually right, but "usually"
+        is not a thing you can print: a country whose English name nobody uses,
+        a territory the geocoder names differently from the way the trip talked
+        about it, a line that wants to read "Scotland" rather than "United
+        Kingdom". A textarea rather than a field per country because the list is
+        two names on one page and twenty on another, and lines are how anyone
+        already edits a list.
+
+        Editing only the names is deliberate: the codes stay as they were, so the
+        outlines and flags keep matching the places actually visited.
+      */}
+      {el.showName && (
+        <label className="st-field" style={{ marginTop: 10 }}>
+          <span>{t('journey.studio.countryNames')}</span>
+          <textarea
+            className="st-input st-textarea"
+            rows={Math.min(8, Math.max(2, el.codes.length))}
+            value={el.names.join('\n')}
+            onChange={e => {
+              const lines = e.target.value.split('\n')
+              // One name per country, in the order they were visited: a removed
+              // line must not shift every name after it onto the wrong outline.
+              set({
+                names: el.codes.map((code, i) => (lines[i] ?? el.names[i] ?? code).slice(0, 80)),
+              } as Partial<BookElement>)
+            }}
+          />
+        </label>
+      )}
     </Section>
   )
 }

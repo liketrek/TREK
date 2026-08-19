@@ -302,6 +302,8 @@ const journey: TranslationStrings = {
   'journey.studio.typography': 'Type', // en-fallback
   'journey.studio.leading': 'Line', // en-fallback
   'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.autoColour': 'Tự động',
+  'journey.studio.countryNames': 'Tên',
   'journey.studio.crop': 'Crop', // en-fallback
   'journey.studio.look': 'Look', // en-fallback
   'journey.studio.radius': 'Corner', // en-fallback
@@ -494,6 +496,18 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Tải khi kết xuất và in kèm ghi công',
   'journey.studio.mapZoom': 'Thu phóng',
+  'journey.studio.mapFraming': 'Khung nhìn',
+  'journey.studio.mapFitStops': 'Điểm dừng',
+  'journey.studio.mapFitCountry': 'Toàn bộ quốc gia',
+  'journey.studio.mapPadTight': 'Sát',
+  'journey.studio.mapPadNormal': 'Bình thường',
+  'journey.studio.mapPadWide': 'Rộng',
+  'journey.studio.mapPadFar': 'Rất rộng',
+  'journey.studio.mapClipRect': 'Trong khung',
+  'journey.studio.mapClipCountry': 'Cắt theo hình',
+  'journey.studio.mapClipNeedsCountry': 'Cần một quốc gia để cắt theo',
+  'journey.studio.mapCutVector': 'Cắt hình',
+  'journey.studio.mapCutTiles': 'Bản đồ cắt hình',
   'journey.studio.mapZoomAuto': 'Vừa khung',
   'journey.studio.saving': 'Đang lưu',
   'journey.studio.saved': 'Đã lưu',

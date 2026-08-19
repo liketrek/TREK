@@ -300,6 +300,8 @@ const journey: TranslationStrings = {
   'journey.studio.typography': 'Type', // en-fallback
   'journey.studio.leading': 'Line', // en-fallback
   'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.autoColour': '自動',
+  'journey.studio.countryNames': '名稱',
   'journey.studio.crop': 'Crop', // en-fallback
   'journey.studio.look': 'Look', // en-fallback
   'journey.studio.radius': 'Corner', // en-fallback
@@ -492,6 +494,18 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': '算繪時取得，並附上來源標註列印',
   'journey.studio.mapZoom': '縮放',
+  'journey.studio.mapFraming': '取景',
+  'journey.studio.mapFitStops': '停留點',
+  'journey.studio.mapFitCountry': '整個國家',
+  'journey.studio.mapPadTight': '緊湊',
+  'journey.studio.mapPadNormal': '普通',
+  'journey.studio.mapPadWide': '寬鬆',
+  'journey.studio.mapPadFar': '很寬鬆',
+  'journey.studio.mapClipRect': '有邊框',
+  'journey.studio.mapClipCountry': '依形狀裁切',
+  'journey.studio.mapClipNeedsCountry': '需要一個國家來裁切',
+  'journey.studio.mapCutVector': '裁切',
+  'journey.studio.mapCutTiles': '裁切地圖',
   'journey.studio.mapZoomAuto': '自動',
   'journey.studio.saving': '正在儲存',
   'journey.studio.saved': '已儲存',

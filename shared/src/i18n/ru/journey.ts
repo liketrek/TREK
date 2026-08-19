@@ -302,6 +302,8 @@ const journey: TranslationStrings = {
   'journey.studio.typography': 'Type', // en-fallback
   'journey.studio.leading': 'Line', // en-fallback
   'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.autoColour': 'Автоматически',
+  'journey.studio.countryNames': 'Названия',
   'journey.studio.crop': 'Crop', // en-fallback
   'journey.studio.look': 'Look', // en-fallback
   'journey.studio.radius': 'Corner', // en-fallback
@@ -494,6 +496,18 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Загружается при отрисовке и печатается с указанием источника',
   'journey.studio.mapZoom': 'Масштаб',
+  'journey.studio.mapFraming': 'Кадр',
+  'journey.studio.mapFitStops': 'Остановки',
+  'journey.studio.mapFitCountry': 'Вся страна',
+  'journey.studio.mapPadTight': 'Плотно',
+  'journey.studio.mapPadNormal': 'Обычно',
+  'journey.studio.mapPadWide': 'Широко',
+  'journey.studio.mapPadFar': 'Очень широко',
+  'journey.studio.mapClipRect': 'В рамке',
+  'journey.studio.mapClipCountry': 'По контуру',
+  'journey.studio.mapClipNeedsCountry': 'Для обрезки нужна страна',
+  'journey.studio.mapCutVector': 'Контур',
+  'journey.studio.mapCutTiles': 'Карта по контуру',
   'journey.studio.mapZoomAuto': 'По содержимому',
   'journey.studio.saving': 'Сохранение',
   'journey.studio.saved': 'Сохранено',

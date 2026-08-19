@@ -69,7 +69,7 @@ const MIN_PREVIEW_W = 120
 const THUMB_CHROME = (2 + 3) * 2
 
 export function StudioSidebar({
-  page, pxPerMm, bookView, source, stats, t, locale,
+  page, pxPerMm, bookView, source, stats, path, t, locale,
 }: {
   page: BookPageSetup
   pxPerMm: number
@@ -77,6 +77,8 @@ export function StudioSidebar({
   source: JourneySource
   /** What the journey adds up to, for the travel elements. Null while loading or on failure. */
   stats: JourneyStats | null
+  /** The roads the trip took, for a map that draws them. Empty when it has none. */
+  path: [number, number][][]
   t: (k: string) => string
   locale: string
 }) {
@@ -111,7 +113,7 @@ export function StudioSidebar({
         {section === 'pages' && <PagesPanel page={page} pxPerMm={pxPerMm} bookView={bookView} t={t} />}
         {section === 'content' && <ContentPanel source={source} page={page} t={t} locale={locale} />}
         {section === 'elements' && <StudioElementsPanel page={page} t={t} />}
-        {section === 'travel' && <StudioTravelPanel page={page} stats={stats} t={t} locale={locale} />}
+        {section === 'travel' && <StudioTravelPanel page={page} stats={stats} path={path} t={t} locale={locale} />}
         {section === 'templates' && <TemplatesPanel page={page} pxPerMm={pxPerMm} t={t} onOpenContent={() => setSection('content')} />}
       </aside>
     </>
@@ -361,7 +363,7 @@ function ContentPanel({
    */
   const dropMark = (variant: 'mood' | 'weather', code: string, label: string) =>
     addElement(active, {
-      ...base, id: uid('bd'), kind: 'badge',
+      ...base, id: uid('bd'), kind: 'badge', autoColor: true,
       frame: centre(page.pageWidth * 0.22, page.pageHeight * 0.062),
       variant, text: label, sub: '', code, style: 'plain',
     } as BookElement)

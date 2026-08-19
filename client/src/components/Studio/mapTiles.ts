@@ -71,6 +71,9 @@ export function projectOntoTiles(view: TileView, lng: number, lat: number): { x:
 /** How many tiles across a printed map may use, before it is not worth it. */
 const MAX_TILES = 8 * 8
 
+/** Shard letters for templates that still carry `{s}`. */
+const TILE_SHARDS = ['a', 'b', 'c']
+
 /**
  * Which tiles cover a set of points, and where to draw them.
  *
@@ -83,10 +86,27 @@ export function tileView(
   frame: { w: number; h: number },
   template: string,
   fixedZoom: number | null,
+  /**
+   * The exact window to cover, when the caller has already worked one out.
+   *
+   * The map element fits its own view — to the stops, to the countries, with
+   * whatever padding it was given — and the tiles have to be cut to *that*, not
+   * to a second fit computed here from the same points by different rules. Two
+   * fits meant the picture and the route were of slightly different places, and
+   * on a map cut to a country's outline it meant the country was full of the
+   * wrong towns.
+   */
+  extent?: { minLng: number; minLat: number; maxLng: number; maxLat: number },
 ): TileView | null {
-  if (!template || !points.length) return null
+  if (!template || (!points.length && !extent)) return null
 
-  const unit = points.map(p => toMercatorUnit(p.lng, p.lat))
+  const corners = extent
+    ? [
+      { lat: extent.maxLat, lng: extent.minLng },
+      { lat: extent.minLat, lng: extent.maxLng },
+    ]
+    : points
+  const unit = corners.map(p => toMercatorUnit(p.lng, p.lat))
   let minX = Math.min(...unit.map(u => u.x))
   let maxX = Math.max(...unit.map(u => u.x))
   let minY = Math.min(...unit.map(u => u.y))
@@ -98,8 +118,11 @@ export function tileView(
   if (maxX - minX < PAD) { const c = (minX + maxX) / 2; minX = c - PAD / 2; maxX = c + PAD / 2 }
   if (maxY - minY < PAD) { const c = (minY + maxY) / 2; minY = c - PAD / 2; maxY = c + PAD / 2 }
 
-  const spanX = (maxX - minX) * 1.12
-  const spanY = (maxY - minY) * 1.12
+  // A given extent is already the window the caller wants; only a fit worked
+  // out from bare points needs air added around it.
+  const AIR = extent ? 1 : 1.12
+  const spanX = (maxX - minX) * AIR
+  const spanY = (maxY - minY) * AIR
   const cx = (minX + maxX) / 2
   const cy = (minY + maxY) / 2
 
@@ -121,24 +144,49 @@ export function tileView(
 
   let zoom = fixedZoom ?? fitZoom()
 
+  /*
+   * ── Which tiles, and how big ──────────────────────────────────────────
+   *
+   * The old sum went the wrong way round: it took the tiles the route happens
+   * to sit on, and then sized them to the frame. Whenever the route's own box
+   * did not line up with the tile grid — which is nearly always — the grid was
+   * narrower than the frame on one side and the map ran out with paper showing
+   * beside it.
+   *
+   * So the frame decides. First how large a tile has to be drawn for the route
+   * to span the frame, then which tiles are inside the frame at that size,
+   * with the edges rounded outwards so the last row and column overhang rather
+   * than stop short. The result covers the frame by construction.
+   */
+  let scale = 2 ** zoom
+  let size = 0
+  let x0 = 0, x1 = 0, y0 = 0, y1 = 0
+
+  const layOut = () => {
+    scale = 2 ** zoom
+    // Cover, not contain: a map with a margin of paper down one side is not a
+    // map, it is a mistake. Padding belongs to the fit, not to the grid.
+    size = Math.max(
+      frame.w / Math.max(spanX * scale, 1e-9),
+      frame.h / Math.max(spanY * scale, 1e-9),
+    )
+    const halfW = frame.w / 2 / size
+    const halfH = frame.h / 2 / size
+    x0 = Math.floor(cx * scale - halfW)
+    x1 = Math.ceil(cx * scale + halfW) - 1
+    y0 = Math.floor(cy * scale - halfH)
+    y1 = Math.ceil(cy * scale + halfH) - 1
+  }
+
   // Back off until the grid is a size worth printing. A 12x12 grid is 144
   // requests for a picture 60mm across.
-  let scale = 2 ** zoom
-  let x0 = Math.floor(minX * scale)
-  let x1 = Math.floor(maxX * scale)
-  let y0 = Math.floor(minY * scale)
-  let y1 = Math.floor(maxY * scale)
+  layOut()
   while (zoom > 0 && (x1 - x0 + 1) * (y1 - y0 + 1) > MAX_TILES) {
     zoom -= 1
-    scale = 2 ** zoom
-    x0 = Math.floor(minX * scale)
-    x1 = Math.floor(maxX * scale)
-    y0 = Math.floor(minY * scale)
-    y1 = Math.floor(maxY * scale)
+    layOut()
   }
 
   // Drawn so the route's centre is the frame's centre.
-  const size = Math.max(frame.w / ((x1 - x0 + 1) || 1), frame.h / ((y1 - y0 + 1) || 1))
   const originX = frame.w / 2 - (cx * scale - x0) * size
   const originY = frame.h / 2 - (cy * scale - y0) * size
 
@@ -157,7 +205,18 @@ export function tileView(
           // Longitude wraps, so a route across the antimeridian keeps its tiles.
           .replace('{x}', String(wrap(x)))
           .replace('{y}', String(y))
-          .replace('{r}', ''),
+          .replace('{r}', '')
+          /*
+           * The shard letter, chosen from the tile's own coordinates.
+           *
+           * Left in the template it is not a placeholder, it is a hostname that
+           * does not resolve, and the map draws as a blank frame with a route
+           * across it. Derived from x and y rather than picked at random so a
+           * given tile always comes from the same host: the editor and the
+           * print run then hit the same cache instead of fetching the picture
+           * twice.
+           */
+          .replace('{s}', TILE_SHARDS[Math.abs(x + y) % TILE_SHARDS.length]),
       })
     }
   }
@@ -190,6 +249,44 @@ export function attributionFor(template: string): string {
  * one request, one picture, and the route can be drawn into it as an overlay.
  * Needs the token the instance is already configured with.
  */
+/**
+ * Styles the Static Images API cannot draw, and what to use instead.
+ *
+ * Mapbox's newer styles are 3D GL styles: they are assembled in the browser
+ * from vector tiles, lighting and model layers, and the static renderer simply
+ * refuses them — `standard` answers 400 with "Unsupported rasterarray tileset
+ * format", which arrives as a picture that never loads and no explanation
+ * anywhere.
+ *
+ * An instance configured for the planner's map is therefore usually configured
+ * with a style this cannot use, through no fault of whoever set it up. Falling
+ * back to the classic equivalent gives them a map that looks like the one they
+ * chose, rather than an empty frame.
+ */
+const STATIC_STYLE: Record<string, string> = {
+  'mapbox/standard': 'mapbox/streets-v12',
+  'mapbox/standard-satellite': 'mapbox/satellite-streets-v12',
+}
+
+/**
+ * Repair a static URL that was frozen into a document before the fallback
+ * above existed.
+ *
+ * The URL is stored rather than rebuilt at render time, on purpose, so a map
+ * placed last week keeps looking the way it did. That also means a map placed
+ * with a style the static renderer refuses stays broken for good unless it is
+ * fixed on the way out — and "delete it and place it again" is not a repair
+ * anyone should have to be told about.
+ */
+export function usableStaticUrl(url: string): string {
+  for (const [gl, classic] of Object.entries(STATIC_STYLE)) {
+    if (url.includes(`/styles/v1/${gl}/static/`)) {
+      return url.replace(`/styles/v1/${gl}/static/`, `/styles/v1/${classic}/static/`)
+    }
+  }
+  return url
+}
+
 export function staticMapUrl(opts: {
   points: { lat: number; lng: number }[]
   style: string
@@ -201,7 +298,8 @@ export function staticMapUrl(opts: {
   if (!opts.token || !opts.points.length) return null
 
   // mapbox://styles/mapbox/standard -> mapbox/standard
-  const style = opts.style.replace(/^mapbox:\/\/styles\//, '') || 'mapbox/streets-v12'
+  const asked = opts.style.replace(/^mapbox:\/\/styles\//, '') || 'mapbox/streets-v12'
+  const style = STATIC_STYLE[asked] ?? asked
 
   const lats = opts.points.map(p => p.lat)
   const lngs = opts.points.map(p => p.lng)

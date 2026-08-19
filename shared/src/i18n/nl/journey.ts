@@ -303,6 +303,8 @@ const journey: TranslationStrings = {
   'journey.studio.typography': 'Type', // en-fallback
   'journey.studio.leading': 'Line', // en-fallback
   'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.autoColour': 'Automatisch',
+  'journey.studio.countryNames': 'Namen',
   'journey.studio.crop': 'Crop', // en-fallback
   'journey.studio.look': 'Look', // en-fallback
   'journey.studio.radius': 'Corner', // en-fallback
@@ -495,6 +497,18 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Wordt bij het renderen opgehaald en met bronvermelding gedrukt',
   'journey.studio.mapZoom': 'Zoom',
+  'journey.studio.mapFraming': 'Uitsnede',
+  'journey.studio.mapFitStops': 'Stops',
+  'journey.studio.mapFitCountry': 'Hele land',
+  'journey.studio.mapPadTight': 'Krap',
+  'journey.studio.mapPadNormal': 'Normaal',
+  'journey.studio.mapPadWide': 'Ruim',
+  'journey.studio.mapPadFar': 'Heel ruim',
+  'journey.studio.mapClipRect': 'In een kader',
+  'journey.studio.mapClipCountry': 'Uitgesneden',
+  'journey.studio.mapClipNeedsCountry': 'Er is een land nodig om uit te snijden',
+  'journey.studio.mapCutVector': 'Uitsnede',
+  'journey.studio.mapCutTiles': 'Uitgesneden kaart',
   'journey.studio.mapZoomAuto': 'Passend',
   'journey.studio.saving': 'Opslaan',
   'journey.studio.saved': 'Opgeslagen',

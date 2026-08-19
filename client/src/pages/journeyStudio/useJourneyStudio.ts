@@ -44,6 +44,40 @@ export const STUDIO_INSET = 16
  *    Escape with nothing selected leaves.
  */
 /**
+ * A journey's tracks, thinned to what a printed line can show.
+ *
+ * A three-week drive is hundreds of thousands of GPS fixes. At the size a map
+ * is printed, a point every fifteen metres and a point every kilometre are the
+ * same picture, and only one of them fits in a document that has to be saved,
+ * sent over a websocket and parsed on the other side.
+ *
+ * Thinned by taking every nth point rather than by simplifying the geometry:
+ * Douglas-Peucker would keep the shape better, and it is a hundred lines of
+ * code to gain something nobody can see at 60mm across. The ends of every
+ * segment are kept, because a track that stops short of where it ended reads
+ * as a bug.
+ */
+export function bookPath(tracks: { points: readonly unknown[][] }[]): [number, number][][] {
+  const SEGMENTS = 40
+  const PER_SEGMENT = 600
+  const out: [number, number][][] = []
+  for (const track of tracks.slice(0, SEGMENTS)) {
+    // Normalised on the way in: the contract types a pair as a tuple, and Zod
+    // infers that loosely enough that the pair has to be rebuilt to stay one.
+    const pts = track.points
+      .map(p => [Number(p[0]), Number(p[1])] as [number, number])
+      .filter(p => Number.isFinite(p[0]) && Number.isFinite(p[1]))
+    if (pts.length < 2) continue
+    if (pts.length <= PER_SEGMENT) { out.push(pts); continue }
+    const step = (pts.length - 1) / (PER_SEGMENT - 1)
+    const thinned: [number, number][] = []
+    for (let i = 0; i < PER_SEGMENT; i++) thinned.push(pts[Math.round(i * step)])
+    out.push(thinned)
+  }
+  return out
+}
+
+/**
  * The page a Studio with no document yet reports.
  *
  * Parsed from the contract rather than written out, so a new field on the page
@@ -92,6 +126,8 @@ export function useJourneyStudio() {
    * shows its loading state until the document exists, so the wait is free.
    */
   const [statsSettled, setStatsSettled] = useState(false)
+  /** The travelled way, thinned for the page. See `bookPath` for the thinning. */
+  const [path, setPath] = useState<[number, number][][]>([])
 
   /*
    * The stored book, if this journey has one.
@@ -265,6 +301,23 @@ export function useJourneyStudio() {
       .then(data => { if (!cancelled) setStats(data) })
       .catch(() => { if (!cancelled) setStats(null) })
       .finally(() => { if (!cancelled) setStatsSettled(true) })
+    return () => { cancelled = true }
+  }, [journeyId])
+
+  /*
+   * The roads the trip actually took.
+   *
+   * Separate from the statistics and deliberately not part of what the book
+   * waits for: a journey with no routed geometry is the common case, the map
+   * falls back to joining its stops, and holding the whole editor closed until
+   * a track request has answered would be a bad trade for a line.
+   */
+  useEffect(() => {
+    if (!Number.isFinite(journeyId)) return
+    let cancelled = false
+    journeyApi.listTracks(journeyId)
+      .then(data => { if (!cancelled) setPath(bookPath(data.tracks)) })
+      .catch(() => { if (!cancelled) setPath([]) })
     return () => { cancelled = true }
   }, [journeyId])
 
@@ -519,6 +572,8 @@ export function useJourneyStudio() {
     coverUrl,
     source,
     stats,
+    /** The travelled way, ready to freeze into a map element. */
+    path,
 
     doc,
     page,

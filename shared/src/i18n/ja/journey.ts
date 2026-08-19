@@ -303,6 +303,8 @@ const journey: TranslationStrings = {
   'journey.studio.typography': 'Type', // en-fallback
   'journey.studio.leading': 'Line', // en-fallback
   'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.autoColour': '自動',
+  'journey.studio.countryNames': '名前',
   'journey.studio.crop': 'Crop', // en-fallback
   'journey.studio.look': 'Look', // en-fallback
   'journey.studio.radius': 'Corner', // en-fallback
@@ -495,6 +497,18 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'レンダリング時に取得し、出典を付けて印刷します',
   'journey.studio.mapZoom': 'ズーム',
+  'journey.studio.mapFraming': '表示範囲',
+  'journey.studio.mapFitStops': '立ち寄り先',
+  'journey.studio.mapFitCountry': '国全体',
+  'journey.studio.mapPadTight': '狭め',
+  'journey.studio.mapPadNormal': '標準',
+  'journey.studio.mapPadWide': '広め',
+  'journey.studio.mapPadFar': 'かなり広め',
+  'journey.studio.mapClipRect': '枠あり',
+  'journey.studio.mapClipCountry': '形に切り抜く',
+  'journey.studio.mapClipNeedsCountry': '切り抜くには国が必要です',
+  'journey.studio.mapCutVector': '切り抜き',
+  'journey.studio.mapCutTiles': '切り抜き地図',
   'journey.studio.mapZoomAuto': '自動',
   'journey.studio.saving': '保存中',
   'journey.studio.saved': '保存しました',

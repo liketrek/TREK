@@ -245,6 +245,15 @@ function mapEl(
     showLabels: false,
     countries: stats.countries.map(c => c.code),
     points: stats.points.map(pt => ({ lat: pt.lat, lng: pt.lng, label: pt.label })),
+    /*
+     * The fields the contract would default for a parsed element, spelled out
+     * because this one is cast. `path` in particular is read as an array while
+     * the map draws, so leaving it out is not a cosmetic difference.
+     */
+    path: [],
+    fitPadding: 0.18,
+    fitToCountries: false,
+    clip: 'rect',
     ...opts,
   } as BookElement
 }
@@ -287,6 +296,10 @@ function badgeEl(
     sub: value.sub ?? '',
     code: value.code ?? null,
     style: 'plain',
+    // Built by hand rather than parsed, so the contract's defaults do not
+    // apply: left out, a mark reads as having been given a colour, and a chip
+    // draws its words in ink on an ink-coloured capsule.
+    autoColor: true,
     ...opts,
   } as BookElement
 }
@@ -419,6 +432,15 @@ function placeMap(
     tileUrl: '',
     attribution: '',
     zoom: 5,
+    path: [],
+    fitPadding: 0.18,
+    /*
+     * This one is the "where in the world was this" mark beside an entry, so it
+     * wants the country whole with a dot in it — the opposite of the route map,
+     * which wants the trip.
+     */
+    fitToCountries: true,
+    clip: 'rect',
     showLand: true,
     showRoute: false,
     showPins: true,

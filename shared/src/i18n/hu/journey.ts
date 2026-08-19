@@ -302,6 +302,8 @@ const journey: TranslationStrings = {
   'journey.studio.typography': 'Type', // en-fallback
   'journey.studio.leading': 'Line', // en-fallback
   'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.autoColour': 'Automatikus',
+  'journey.studio.countryNames': 'Nevek',
   'journey.studio.crop': 'Crop', // en-fallback
   'journey.studio.look': 'Look', // en-fallback
   'journey.studio.radius': 'Corner', // en-fallback
@@ -494,6 +496,18 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Rendereléskor töltődik le, és forrásmegjelöléssel nyomtatódik',
   'journey.studio.mapZoom': 'Nagyítás',
+  'journey.studio.mapFraming': 'Kivágás',
+  'journey.studio.mapFitStops': 'Állomások',
+  'journey.studio.mapFitCountry': 'Egész ország',
+  'journey.studio.mapPadTight': 'Szűk',
+  'journey.studio.mapPadNormal': 'Normál',
+  'journey.studio.mapPadWide': 'Tág',
+  'journey.studio.mapPadFar': 'Nagyon tág',
+  'journey.studio.mapClipRect': 'Keretben',
+  'journey.studio.mapClipCountry': 'Alakra vágva',
+  'journey.studio.mapClipNeedsCountry': 'A vágáshoz ország kell',
+  'journey.studio.mapCutVector': 'Kivágás',
+  'journey.studio.mapCutTiles': 'Kivágott térkép',
   'journey.studio.mapZoomAuto': 'Igazítás',
   'journey.studio.saving': 'Mentés',
   'journey.studio.saved': 'Mentve',

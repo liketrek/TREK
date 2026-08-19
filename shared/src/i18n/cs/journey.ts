@@ -302,6 +302,8 @@ const journey: TranslationStrings = {
   'journey.studio.typography': 'Type', // en-fallback
   'journey.studio.leading': 'Line', // en-fallback
   'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.autoColour': 'Automaticky',
+  'journey.studio.countryNames': 'Názvy',
   'journey.studio.crop': 'Crop', // en-fallback
   'journey.studio.look': 'Look', // en-fallback
   'journey.studio.radius': 'Corner', // en-fallback
@@ -494,6 +496,18 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Načte se při vykreslení a vytiskne se s uvedením zdroje',
   'journey.studio.mapZoom': 'Přiblížení',
+  'journey.studio.mapFraming': 'Výřez',
+  'journey.studio.mapFitStops': 'Zastávky',
+  'journey.studio.mapFitCountry': 'Celá země',
+  'journey.studio.mapPadTight': 'Těsně',
+  'journey.studio.mapPadNormal': 'Normálně',
+  'journey.studio.mapPadWide': 'Šířeji',
+  'journey.studio.mapPadFar': 'Hodně široce',
+  'journey.studio.mapClipRect': 'V rámu',
+  'journey.studio.mapClipCountry': 'Vyříznuto',
+  'journey.studio.mapClipNeedsCountry': 'K vyříznutí je potřeba země',
+  'journey.studio.mapCutVector': 'Výřez',
+  'journey.studio.mapCutTiles': 'Vyříznutá mapa',
   'journey.studio.mapZoomAuto': 'Podle obsahu',
   'journey.studio.saving': 'Ukládání',
   'journey.studio.saved': 'Uloženo',

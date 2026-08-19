@@ -301,6 +301,8 @@ const journey: TranslationStrings = {
   'journey.studio.typography': 'Type', // en-fallback
   'journey.studio.leading': 'Line', // en-fallback
   'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.autoColour': 'Otomatis',
+  'journey.studio.countryNames': 'Nama',
   'journey.studio.crop': 'Crop', // en-fallback
   'journey.studio.look': 'Look', // en-fallback
   'journey.studio.radius': 'Corner', // en-fallback
@@ -493,6 +495,18 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Diambil saat render dan dicetak dengan atribusinya',
   'journey.studio.mapZoom': 'Zum',
+  'journey.studio.mapFraming': 'Bingkai',
+  'journey.studio.mapFitStops': 'Perhentian',
+  'journey.studio.mapFitCountry': 'Seluruh negara',
+  'journey.studio.mapPadTight': 'Rapat',
+  'journey.studio.mapPadNormal': 'Normal',
+  'journey.studio.mapPadWide': 'Lebar',
+  'journey.studio.mapPadFar': 'Sangat lebar',
+  'journey.studio.mapClipRect': 'Dalam kotak',
+  'journey.studio.mapClipCountry': 'Dipotong bentuk',
+  'journey.studio.mapClipNeedsCountry': 'Perlu negara untuk memotong',
+  'journey.studio.mapCutVector': 'Potongan',
+  'journey.studio.mapCutTiles': 'Peta potongan',
   'journey.studio.mapZoomAuto': 'Sesuaikan',
   'journey.studio.saving': 'Menyimpan',
   'journey.studio.saved': 'Tersimpan',

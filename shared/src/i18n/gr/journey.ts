@@ -304,6 +304,8 @@ const journey: TranslationStrings = {
   'journey.studio.typography': 'Type', // en-fallback
   'journey.studio.leading': 'Line', // en-fallback
   'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.autoColour': 'Αυτόματο',
+  'journey.studio.countryNames': 'Ονόματα',
   'journey.studio.crop': 'Crop', // en-fallback
   'journey.studio.look': 'Look', // en-fallback
   'journey.studio.radius': 'Corner', // en-fallback
@@ -496,6 +498,18 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Λαμβάνεται κατά την απόδοση και τυπώνεται με την αναφορά της',
   'journey.studio.mapZoom': 'Ζουμ',
+  'journey.studio.mapFraming': 'Πλαισίωση',
+  'journey.studio.mapFitStops': 'Στάσεις',
+  'journey.studio.mapFitCountry': 'Όλη η χώρα',
+  'journey.studio.mapPadTight': 'Στενά',
+  'journey.studio.mapPadNormal': 'Κανονικά',
+  'journey.studio.mapPadWide': 'Πλατιά',
+  'journey.studio.mapPadFar': 'Πολύ πλατιά',
+  'journey.studio.mapClipRect': 'Σε πλαίσιο',
+  'journey.studio.mapClipCountry': 'Κομμένο σχήμα',
+  'journey.studio.mapClipNeedsCountry': 'Χρειάζεται χώρα για την κοπή',
+  'journey.studio.mapCutVector': 'Κοπή',
+  'journey.studio.mapCutTiles': 'Κομμένος χάρτης',
   'journey.studio.mapZoomAuto': 'Προσαρμογή',
   'journey.studio.saving': 'Αποθήκευση',
   'journey.studio.saved': 'Αποθηκεύτηκε',

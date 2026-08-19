@@ -302,6 +302,8 @@ const journey: TranslationStrings = {
   'journey.studio.typography': 'Type', // en-fallback
   'journey.studio.leading': 'Line', // en-fallback
   'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.autoColour': 'Otomatik',
+  'journey.studio.countryNames': 'Adlar',
   'journey.studio.crop': 'Crop', // en-fallback
   'journey.studio.look': 'Look', // en-fallback
   'journey.studio.radius': 'Corner', // en-fallback
@@ -494,6 +496,18 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Sayfa işlenirken indirilir ve kaynak bilgisiyle basılır',
   'journey.studio.mapZoom': 'Yakınlaştırma',
+  'journey.studio.mapFraming': 'Çerçeveleme',
+  'journey.studio.mapFitStops': 'Duraklar',
+  'journey.studio.mapFitCountry': 'Tüm ülke',
+  'journey.studio.mapPadTight': 'Dar',
+  'journey.studio.mapPadNormal': 'Normal',
+  'journey.studio.mapPadWide': 'Geniş',
+  'journey.studio.mapPadFar': 'Çok geniş',
+  'journey.studio.mapClipRect': 'Çerçeveli',
+  'journey.studio.mapClipCountry': 'Şekle kesilmiş',
+  'journey.studio.mapClipNeedsCountry': 'Kesmek için bir ülke gerekir',
+  'journey.studio.mapCutVector': 'Kesim',
+  'journey.studio.mapCutTiles': 'Kesilmiş harita',
   'journey.studio.mapZoomAuto': 'Sığdır',
   'journey.studio.saving': 'Kaydediliyor',
   'journey.studio.saved': 'Kaydedildi',

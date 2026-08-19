@@ -302,6 +302,8 @@ const journey: TranslationStrings = {
   'journey.studio.typography': 'Type', // en-fallback
   'journey.studio.leading': 'Line', // en-fallback
   'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.autoColour': 'Automatycznie',
+  'journey.studio.countryNames': 'Nazwy',
   'journey.studio.crop': 'Crop', // en-fallback
   'journey.studio.look': 'Look', // en-fallback
   'journey.studio.radius': 'Corner', // en-fallback
@@ -494,6 +496,18 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Pobierane przy renderowaniu i drukowane z informacją o źródle',
   'journey.studio.mapZoom': 'Powiększenie',
+  'journey.studio.mapFraming': 'Kadr',
+  'journey.studio.mapFitStops': 'Przystanki',
+  'journey.studio.mapFitCountry': 'Cały kraj',
+  'journey.studio.mapPadTight': 'Ciasno',
+  'journey.studio.mapPadNormal': 'Normalnie',
+  'journey.studio.mapPadWide': 'Szeroko',
+  'journey.studio.mapPadFar': 'Bardzo szeroko',
+  'journey.studio.mapClipRect': 'W ramce',
+  'journey.studio.mapClipCountry': 'Wycięty kształt',
+  'journey.studio.mapClipNeedsCountry': 'Do wycięcia potrzebny jest kraj',
+  'journey.studio.mapCutVector': 'Wycinek',
+  'journey.studio.mapCutTiles': 'Wycięta mapa',
   'journey.studio.mapZoomAuto': 'Dopasuj',
   'journey.studio.saving': 'Zapisywanie',
   'journey.studio.saved': 'Zapisano',

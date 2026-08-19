@@ -302,6 +302,8 @@ const journey: TranslationStrings = {
   'journey.studio.typography': 'Type', // en-fallback
   'journey.studio.leading': 'Line', // en-fallback
   'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.autoColour': 'Automatiskt',
+  'journey.studio.countryNames': 'Namn',
   'journey.studio.crop': 'Crop', // en-fallback
   'journey.studio.look': 'Look', // en-fallback
   'journey.studio.radius': 'Corner', // en-fallback
@@ -494,6 +496,18 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Hämtas vid rendering och trycks med sin källhänvisning',
   'journey.studio.mapZoom': 'Zoom',
+  'journey.studio.mapFraming': 'Utsnitt',
+  'journey.studio.mapFitStops': 'Stopp',
+  'journey.studio.mapFitCountry': 'Hela landet',
+  'journey.studio.mapPadTight': 'Tajt',
+  'journey.studio.mapPadNormal': 'Normalt',
+  'journey.studio.mapPadWide': 'Brett',
+  'journey.studio.mapPadFar': 'Mycket brett',
+  'journey.studio.mapClipRect': 'I ram',
+  'journey.studio.mapClipCountry': 'Urklippt',
+  'journey.studio.mapClipNeedsCountry': 'Det behövs ett land att klippa mot',
+  'journey.studio.mapCutVector': 'Urklipp',
+  'journey.studio.mapCutTiles': 'Urklippt karta',
   'journey.studio.mapZoomAuto': 'Anpassa',
   'journey.studio.saving': 'Sparar',
   'journey.studio.saved': 'Sparat',

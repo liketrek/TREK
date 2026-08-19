@@ -301,6 +301,8 @@ const journey: TranslationStrings = {
   'journey.studio.typography': 'Type', // en-fallback
   'journey.studio.leading': 'Line', // en-fallback
   'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.autoColour': 'تلقائي',
+  'journey.studio.countryNames': 'الأسماء',
   'journey.studio.crop': 'Crop', // en-fallback
   'journey.studio.look': 'Look', // en-fallback
   'journey.studio.radius': 'Corner', // en-fallback
@@ -493,6 +495,18 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'تُجلب عند العرض وتُطبع مع إسنادها',
   'journey.studio.mapZoom': 'التقريب',
+  'journey.studio.mapFraming': 'العرض',
+  'journey.studio.mapFitStops': 'المحطات',
+  'journey.studio.mapFitCountry': 'البلد كامل',
+  'journey.studio.mapPadTight': 'ضيق',
+  'journey.studio.mapPadNormal': 'عادي',
+  'journey.studio.mapPadWide': 'واسع',
+  'journey.studio.mapPadFar': 'واسع جدا',
+  'journey.studio.mapClipRect': 'داخل إطار',
+  'journey.studio.mapClipCountry': 'مقصوص',
+  'journey.studio.mapClipNeedsCountry': 'يحتاج بلدا ليقص وفقه',
+  'journey.studio.mapCutVector': 'مقصوص',
+  'journey.studio.mapCutTiles': 'خريطة مقصوصة',
   'journey.studio.mapZoomAuto': 'ملائم',
   'journey.studio.saving': 'يجري الحفظ',
   'journey.studio.saved': 'تم الحفظ',

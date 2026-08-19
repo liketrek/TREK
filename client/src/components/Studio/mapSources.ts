@@ -1,6 +1,7 @@
 import type { BookFrame } from '@trek/shared'
 import { useSettingsStore } from '../../store/settingsStore'
 import { attributionFor, staticMapUrl } from './mapTiles'
+import { normalizeTileUrl } from '../../utils/tileUrl'
 
 /**
  * Which map sources this instance can actually offer.
@@ -30,7 +31,9 @@ const DEFAULT_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 export function useMapSources(frame: BookFrame, points: { lat: number; lng: number }[]): MapSourceOption[] {
   const settings = useSettingsStore(s => s.settings)
 
-  const tiles = (settings.map_tile_url || '').trim() || DEFAULT_TILES
+  // Through the same normaliser the planner's map uses: a template saved
+  // before OSM dropped its shards still names a host that no longer exists.
+  const tiles = normalizeTileUrl((settings.map_tile_url || '').trim()) || DEFAULT_TILES
   const out: MapSourceOption[] = [
     { id: 'vector', labelKey: 'journey.studio.mapSourceVector', url: '', attribution: '' },
     { id: 'tiles', labelKey: 'journey.studio.mapSourceTiles', url: tiles, attribution: attributionFor(tiles) },

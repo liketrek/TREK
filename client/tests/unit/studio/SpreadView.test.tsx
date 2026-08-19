@@ -313,6 +313,46 @@ describe('travel elements', () => {
    * Drawn, not typed. A regional-indicator pair renders as the two letters on
    * Windows, which is where most readers are — see the note in flags.ts.
    */
+  /*
+   * ── What colour a mark's words are ────────────────────────────────────
+   *
+   * A chip is a filled capsule, so its words answer to the fill rather than to
+   * the page. Ink on ink is the failure this prevents, and it is not a subtle
+   * one: a black day counter on a black chip is an empty capsule.
+   */
+  it('sets a chip on a dark fill in paper, not in ink', () => {
+    const badge = {
+      ...common, ...typeset, id: 'b1', kind: 'badge',
+      variant: 'day', text: 'DAY 1', sub: '', code: null, style: 'chip',
+      accent: '#111111', color: '#111111', autoColor: true,
+    } as unknown as BookElement
+    const { container } = draw([badge])
+    const html = container.innerHTML
+    expect(html).toContain('rgb(255, 255, 255)')
+  })
+
+  it('sets a chip on a pale fill in ink', () => {
+    const badge = {
+      ...common, ...typeset, id: 'b1', kind: 'badge',
+      variant: 'day', text: 'DAY 1', sub: '', code: null, style: 'chip',
+      accent: '#f4efe6', color: '#ffffff', autoColor: true,
+    } as unknown as BookElement
+    expect(draw([badge]).container.innerHTML).toContain('rgb(28, 27, 25)')
+  })
+
+  /* Automatic is a good default and a bad cage: a chosen colour wins outright. */
+  it('uses the chosen colour once automatic is off, fill or no fill', () => {
+    const badge = {
+      ...common, ...typeset, id: 'b1', kind: 'badge',
+      variant: 'day', text: 'DAY 1', sub: '', code: null, style: 'chip',
+      accent: '#111111', color: '#c81e4a', autoColor: false,
+    } as unknown as BookElement
+    // The badge's own words, not the page behind it — the paper is white here,
+    // so asking the whole tree would pass whatever the mark did.
+    const words = draw([badge]).getByText('DAY 1')
+    expect(words.style.color).toBe('rgb(200, 30, 74)')
+  })
+
   it('draws a flag badge as geometry rather than as an emoji', () => {
     const badge = {
       ...common, ...typeset, id: 'b1', kind: 'badge',

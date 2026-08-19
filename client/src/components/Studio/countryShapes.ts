@@ -33,6 +33,16 @@ export function projectMercator(lng: number, lat: number): { x: number; y: numbe
 }
 
 /**
+ * The inverse, for handing the vector map's extent to something that thinks in
+ * coordinates — the tile grid, which has to cover exactly what the outlines
+ * cover or the picture and the shape it is cut to will not line up.
+ */
+export function unprojectMercator(x: number, y: number): { lng: number; lat: number } {
+  const rad = 2 * (Math.atan(Math.exp((-y * Math.PI) / 180)) - Math.PI / 4)
+  return { lng: x, lat: (rad * 180) / Math.PI }
+}
+
+/**
  * The same outline, placed in projected world coordinates.
  *
  * The stored path is normalised into its own box; multiplying by the box's span

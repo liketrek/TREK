@@ -302,6 +302,8 @@ const journey: TranslationStrings = {
   'journey.studio.typography': 'Type', // en-fallback
   'journey.studio.leading': 'Line', // en-fallback
   'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.autoColour': '자동',
+  'journey.studio.countryNames': '이름',
   'journey.studio.crop': 'Crop', // en-fallback
   'journey.studio.look': 'Look', // en-fallback
   'journey.studio.radius': 'Corner', // en-fallback
@@ -494,6 +496,18 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': '렌더링할 때 가져오며 출처와 함께 인쇄됩니다',
   'journey.studio.mapZoom': '확대',
+  'journey.studio.mapFraming': '보기 범위',
+  'journey.studio.mapFitStops': '경유지',
+  'journey.studio.mapFitCountry': '국가 전체',
+  'journey.studio.mapPadTight': '좁게',
+  'journey.studio.mapPadNormal': '보통',
+  'journey.studio.mapPadWide': '넓게',
+  'journey.studio.mapPadFar': '아주 넓게',
+  'journey.studio.mapClipRect': '사각형',
+  'journey.studio.mapClipCountry': '모양대로 자르기',
+  'journey.studio.mapClipNeedsCountry': '자르려면 국가가 필요합니다',
+  'journey.studio.mapCutVector': '잘라낸 지도',
+  'journey.studio.mapCutTiles': '잘라낸 지도',
   'journey.studio.mapZoomAuto': '자동',
   'journey.studio.saving': '저장 중',
   'journey.studio.saved': '저장됨',

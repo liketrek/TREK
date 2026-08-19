@@ -76,10 +76,12 @@ function Card({ label, onClick, children }: {
 }
 
 export function StudioTravelPanel({
-  page, stats, t, locale,
+  page, stats, path, t, locale,
 }: {
   page: BookPageSetup
   stats: JourneyStats | null
+  /** The travelled way, already thinned. Empty when the trip has no geometry. */
+  path: [number, number][][]
   t: (k: string) => string
   locale: string
 }) {
@@ -114,7 +116,8 @@ export function StudioTravelPanel({
 
   const base = {
     rotation: 0, opacity: 1, locked: false,
-    font: 'sans' as const, color: '#1a1a1a', accent: '#111111', textScale: 1, stale: false,
+    font: 'sans' as const, color: '#1a1a1a', accent: '#111111', textScale: 1, weight: 700 as const,
+    stale: false,
   }
 
   /**
@@ -149,39 +152,32 @@ export function StudioTravelPanel({
    * click places it, so the preview and the result are the same object — there
    * is no second description of what a card means.
    */
-  const statsEl = (metrics: BookMetric[], layout: 'grid' | 'row' | 'column'): BookElement => ({
-    ...base, id: uid('st'), kind: 'stats',
-    frame: centre(page.pageWidth * (layout === 'column' ? 0.45 : 1.05),
-      page.pageHeight * (layout === 'row' ? 0.2 : 0.34)),
-    metrics, layout, showIcons: true, units: 'metric', values,
-  } as BookElement)
-
   const mapSide = Math.min(page.pageWidth, page.pageHeight) * 0.72
+  /** Which outlines a cut map would have to cut against. */
+  const countryCodes = stats.countries.map(c => c.code)
 
   const mapEl = (
     style: 'minimal' | 'outline' | 'dark' | 'paper',
     source: 'vector' | 'tiles' | 'static' = 'vector',
     url = '',
     attribution = '',
+    clip: 'rect' | 'country' = 'rect',
   ): BookElement => ({
     ...base, id: uid('mp'), kind: 'map',
     frame: centre(mapSide, mapSide * 0.78),
-    style, source, tileUrl: url, attribution, zoom: null,
+    style, source, tileUrl: url, attribution, zoom: null, clip,
     showLand: true, showRoute: true, showPins: true, showLabels: false,
     countries: stats.countries.map(c => c.code),
     points: stats.points.map(p => ({ lat: p.lat, lng: p.lng, label: p.label })),
+    /*
+     * Frozen into the element, like every other travel figure: a page that
+     * fetches its own route at print time is a page that changes when someone
+     * edits the trip, and prints empty when the export runs signed out.
+     */
+    path,
+    fitPadding: 0.18,
+    fitToCountries: false,
   } as BookElement)
-
-  const countriesEl = (layout: 'list' | 'grid' | 'column'): BookElement => {
-    const codes = stats.countries.map(c => c.code)
-    const rows = layout === 'grid' ? Math.ceil(Math.max(1, codes.length) / 3) : Math.max(1, codes.length)
-    return {
-      ...base, id: uid('co'), kind: 'countries',
-      frame: centre(page.pageWidth * 0.62, Math.min(page.pageHeight * 0.8, 22 * rows)),
-      codes, names: codes.map(countryName),
-      layout, showOutline: true, showFlag: false, showName: true, align: 'center',
-    } as BookElement
-  }
 
   /*
    * A mark is placed at the size that suits what it holds.
@@ -209,7 +205,7 @@ export function StudioTravelPanel({
   ): BookElement => {
     const [fw, fh] = MARK_SIZE[variant] ?? [0.24, 0.08]
     return {
-      ...base, id: uid('bd'), kind: 'badge',
+      ...base, id: uid('bd'), kind: 'badge', autoColor: true,
       frame: centre(page.pageWidth * fw, page.pageHeight * fh),
       variant, text, sub, code, style,
     } as BookElement
@@ -235,13 +231,6 @@ export function StudioTravelPanel({
   const first = stats.points[0] ?? null
   const firstCountry = stats.countries[0] ?? null
   const startDay = stats.start ? new Date(`${stats.start}T00:00:00`) : null
-
-  const summaries: { el: BookElement; label: string }[] = [
-    { el: statsEl(['distance', 'days', 'steps', 'photos'], 'grid'), label: t('journey.studio.tripSummary') },
-    { el: statsEl(['distance', 'days', 'countries'], 'row'), label: t('journey.studio.statsRow') },
-    { el: statsEl(['distance', 'days', 'steps', 'photos', 'countries', 'furthest'], 'grid'), label: t('journey.studio.statsFull') },
-    { el: statsEl(['distance', 'days', 'steps'], 'column'), label: t('journey.studio.layoutColumn') },
-  ]
 
   const marks: { el: BookElement; label: string }[] = []
   if (startDay) {
@@ -276,17 +265,6 @@ export function StudioTravelPanel({
     <>
       <PanelHead label={t('journey.studio.travel')} />
       <div className="st-panel-scroll">
-        <div className="st-section">
-          <div className="st-section-label">{t('journey.studio.summary')}</div>
-          <div className="st-travel-grid is-wide">
-            {summaries.map(({ el, label }) => (
-              <Card key={el.id} label={label} onClick={() => place(el)}>
-                <TravelPreview el={el} minHeight={38} maxHeight={82} />
-              </Card>
-            ))}
-          </div>
-        </div>
-
         <div className="st-section">
           <div className="st-section-label">{t('journey.studio.singleFigures')}</div>
           <div className="st-travel-grid">
@@ -334,6 +312,33 @@ export function StudioTravelPanel({
                   })}
                 </div>
               )}
+
+              {/*
+                The same map with the box taken away.
+
+                A rectangle of map is a figure on a page: it needs a border, a
+                caption, somewhere to sit. The country cut out of it is a shape,
+                and a shape can be laid over a photograph, bled off an edge or
+                set beside a paragraph the way an illustration is. It is the
+                same data and a completely different page.
+              */}
+              {countryCodes.length > 0 && (
+                <div className="st-travel-grid" style={{ marginTop: 6 }}>
+                  {[
+                    { id: 'vector' as const, url: '', attribution: '', key: 'journey.studio.mapCutVector' },
+                    ...mapSources
+                      .filter(src => src.id === 'tiles')
+                      .map(src => ({ id: src.id, url: src.url, attribution: src.attribution, key: 'journey.studio.mapCutTiles' })),
+                  ].map(src => {
+                    const el = mapEl('minimal', src.id, src.url, src.attribution, 'country')
+                    return (
+                      <Card key={`cut-${src.id}`} label={t(src.key)} onClick={() => place(el)}>
+                        <TravelPreview el={el} minHeight={62} maxHeight={80} />
+                      </Card>
+                    )
+                  })}
+                </div>
+              )}
             </>
           ) : (
             <p className="st-hint">{t('journey.studio.noRoute')}</p>
@@ -344,21 +349,17 @@ export function StudioTravelPanel({
           <div className="st-section-label">{t('journey.studio.countries')}</div>
           {stats.countries.length ? (
             <>
+              {/*
+                One country per element, rather than a block listing them all.
+
+                A list of countries is a composition somebody else made: it
+                decides the order, the spacing and the type size, and the only
+                way to change any of it is to not use it. Placed one at a time
+                they are ordinary elements — numbered, moved, set at different
+                sizes, put on different pages — which is what a book of a trip
+                through several countries actually wants.
+              */}
               <div className="st-travel-grid">
-                {([
-                  ['list', 'countryList'],
-                  ['grid', 'countryGrid'],
-                ] as const).map(([layout, key]) => {
-                  const el = countriesEl(layout)
-                  return (
-                    <Card key={layout} label={t(`journey.studio.${key}`)} onClick={() => place(el)}>
-                      <TravelPreview el={el} minHeight={54} maxHeight={88} />
-                    </Card>
-                  )
-                })}
-              </div>
-              {/* One country on its own, for a chapter opener that belongs to it. */}
-              <div className="st-travel-grid" style={{ marginTop: 6 }}>
                 {stats.countries.slice(0, 8).map(c => {
                   const el = badgeEl('country', countryName(c.code), '', c.code)
                   return (

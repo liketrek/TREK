@@ -303,6 +303,8 @@ const journey: TranslationStrings = {
   'journey.studio.typography': 'Type', // en-fallback
   'journey.studio.leading': 'Line', // en-fallback
   'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.autoColour': 'Автоматично',
+  'journey.studio.countryNames': 'Назви',
   'journey.studio.crop': 'Crop', // en-fallback
   'journey.studio.look': 'Look', // en-fallback
   'journey.studio.radius': 'Corner', // en-fallback
@@ -495,6 +497,18 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Завантажується під час рендерингу й друкується із зазначенням джерела',
   'journey.studio.mapZoom': 'Масштаб',
+  'journey.studio.mapFraming': 'Кадр',
+  'journey.studio.mapFitStops': 'Зупинки',
+  'journey.studio.mapFitCountry': 'Уся країна',
+  'journey.studio.mapPadTight': 'Щільно',
+  'journey.studio.mapPadNormal': 'Звичайно',
+  'journey.studio.mapPadWide': 'Широко',
+  'journey.studio.mapPadFar': 'Дуже широко',
+  'journey.studio.mapClipRect': 'У рамці',
+  'journey.studio.mapClipCountry': 'За контуром',
+  'journey.studio.mapClipNeedsCountry': 'Для обрізання потрібна країна',
+  'journey.studio.mapCutVector': 'Контур',
+  'journey.studio.mapCutTiles': 'Карта за контуром',
   'journey.studio.mapZoomAuto': 'За вмістом',
   'journey.studio.saving': 'Збереження',
   'journey.studio.saved': 'Збережено',

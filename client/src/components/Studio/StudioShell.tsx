@@ -85,6 +85,7 @@ export default function StudioShell() {
             bookView={bookView}
             source={s.source}
             stats={s.stats}
+            path={s.path}
             t={s.t}
             locale={s.locale}
           />

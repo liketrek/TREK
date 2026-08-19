@@ -304,6 +304,59 @@ export const bookMapElementSchema = z.object({
     }))
     .max(400)
     .default([]),
+  /**
+   * The way the trip was actually travelled, where the trip knows it.
+   *
+   * `points` are the stops, and a line drawn straight between them is a claim
+   * about the journey that is almost always false: it crosses mountains,
+   * water and borders that the trip went around. TREK already stores routed
+   * geometry per place from the planner and from imported GPX, so where that
+   * exists the line follows the road instead of the ruler.
+   *
+   * Segments rather than one list, because two tracks that do not join must
+   * not be drawn as though they did: the gap between the end of one day's
+   * driving and the start of the next is a gap, not a leg.
+   *
+   * `[lat, lng]`, matching the order the tracks endpoint answers in, and thinned
+   * when it is frozen into the document: a printed line gains nothing from a
+   * point every fifteen metres, and a book carrying every GPS fix of a
+   * three-week trip is a document nobody can save.
+   */
+  path: z
+    .array(z.array(z.tuple([z.number().min(-90).max(90), z.number().min(-180).max(180)])).max(1200))
+    .max(40)
+    .default([]),
+  /**
+   * How much room to leave around what is drawn, as a share of its own extent.
+   *
+   * The view is fitted to the stops, not to the countries: a trip that stayed
+   * in Berlin is a map of Berlin, not a map of Germany with two dots on it.
+   * Country outlines are still drawn, they simply run off the edge like the
+   * geography they are.
+   */
+  fitPadding: z.number().min(0).max(4).default(0.18),
+  /**
+   * Fit to the countries instead of to the stops.
+   *
+   * For the one page every travel book has: the whole country, coloured in,
+   * with the route somewhere inside it. It is a deliberate choice rather than
+   * what happens by accident when a route is small.
+   */
+  fitToCountries: z.boolean().default(false),
+  /**
+   * The shape the map is cut to.
+   *
+   * `rect` is a map in a box, which is what a map usually is and what a full
+   * page wants. `country` cuts it to the outline of the countries themselves,
+   * so the picture *is* the country: no frame, no box, the page showing through
+   * around the coastline. That is the version worth putting next to a
+   * photograph, and it is the one thing a rectangle can never be.
+   *
+   * Cutting only makes sense against the whole outline, so it fits to the
+   * countries whatever `fitToCountries` says: a city-sized view cut to the
+   * shape of a country is an evenly coloured rectangle with a route on it.
+   */
+  clip: z.enum(['rect', 'country']).default('rect'),
 });
 
 export const BOOK_METRICS = ['distance', 'days', 'steps', 'photos', 'countries', 'places', 'furthest'] as const;
@@ -361,6 +414,17 @@ export const bookBadgeElementSchema = z.object({
   /** ISO-3166-1 alpha-2 for the flag and country variants. */
   code: z.string().length(2).nullable().default(null),
   style: z.enum(['plain', 'chip', 'outline', 'stacked']).default('plain'),
+  /**
+   * Let the mark pick its own text colour.
+   *
+   * The same bargain the page numbers make: automatic until somebody chooses,
+   * and choosing is what turns it off. A chip is a filled capsule, so its words
+   * have to answer to the fill rather than to the page: white on ink, ink on a
+   * pale accent. Doing that by hand means changing two colours every time you
+   * change one, and getting it wrong means a black day counter on a black chip,
+   * which is what happened before this existed.
+   */
+  autoColor: z.boolean().default(true),
 });
 
 /**

@@ -302,6 +302,8 @@ const journey: TranslationStrings = {
   'journey.studio.typography': 'Type', // en-fallback
   'journey.studio.leading': 'Line', // en-fallback
   'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.autoColour': 'Automàtic',
+  'journey.studio.countryNames': 'Noms',
   'journey.studio.crop': 'Crop', // en-fallback
   'journey.studio.look': 'Look', // en-fallback
   'journey.studio.radius': 'Corner', // en-fallback
@@ -494,6 +496,18 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Es descarrega en renderitzar i s’imprimeix amb l’atribució',
   'journey.studio.mapZoom': 'Zoom',
+  'journey.studio.mapFraming': 'Enquadrament',
+  'journey.studio.mapFitStops': 'Parades',
+  'journey.studio.mapFitCountry': 'Tot el país',
+  'journey.studio.mapPadTight': 'Ajustat',
+  'journey.studio.mapPadNormal': 'Normal',
+  'journey.studio.mapPadWide': 'Ampli',
+  'journey.studio.mapPadFar': 'Molt ampli',
+  'journey.studio.mapClipRect': 'Amb marc',
+  'journey.studio.mapClipCountry': 'Retallat',
+  'journey.studio.mapClipNeedsCountry': 'Cal un país per retallar',
+  'journey.studio.mapCutVector': 'Retall',
+  'journey.studio.mapCutTiles': 'Mapa retallat',
   'journey.studio.mapZoomAuto': 'Ajustar',
   'journey.studio.saving': 'Desant',
   'journey.studio.saved': 'Desat',

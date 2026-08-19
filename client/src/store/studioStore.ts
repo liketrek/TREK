@@ -138,8 +138,19 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       elements: sp.elements.map(e => (e.id === id ? { ...e, rotation } : e)),
     }))),
 
-  addElement: (spreadIndex, el) => get().commit(doc =>
-    replaceSpread(doc, spreadIndex, sp => ({ ...sp, elements: [...sp.elements, el] }))),
+  addElement: (spreadIndex, el) => {
+    get().commit(doc =>
+      replaceSpread(doc, spreadIndex, sp => ({ ...sp, elements: [...sp.elements, el] })))
+    /*
+     * Selected on arrival.
+     *
+     * Everything you would want to do next is in the inspector, and the
+     * inspector shows the selection: placing a day counter and then hunting for
+     * it on the page to click it before its settings appear is a step nobody
+     * asked for. Duplicating already worked this way; placing did not.
+     */
+    set({ selection: [el.id] })
+  },
 
   removeElements: (spreadIndex, ids) => {
     get().commit(doc => replaceSpread(doc, spreadIndex, sp => ({
