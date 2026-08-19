@@ -3,8 +3,44 @@ import { avatarUrl } from '../common/avatarUrl';
 import type { Journey, JourneyEntry, JourneyPhoto, JourneyContributor } from '../../types';
 import { DatabaseService } from '../database/database.service';
 import { RealtimeService } from '../realtime/realtime.service';
-import type { JourneyTrack, TrekWsUserEventName } from '@trek/shared';
+import type { JourneyStats, JourneyTrack, TrekWsUserEventName } from '@trek/shared';
 import { TrekPhotosRepository } from '../photos/trek-photos.repository';
+import { getCountryFromCoords } from '../atlas/atlas-geo';
+import { computeJourneyStats, type StatsInputPoint } from './journey-stats';
+
+/**
+ * English country names for whatever codes a journey turned up.
+ *
+ * `Intl.DisplayNames` rather than a bundled table or the admin-0 properties:
+ * Node has the CLDR data already, the names it gives are the ones every other
+ * piece of software shows, and parsing 30MB of boundary GeoJSON to read a
+ * `NAME` field would be an absurd way to learn that IS is Iceland.
+ *
+ * English on purpose — the client re-resolves these into the reader's language
+ * when it places the element, and a book needs the country's name in the
+ * language the book is written in, not the language of whoever's server it is.
+ */
+function regionNames(): Intl.DisplayNames | null {
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'region' });
+  } catch {
+    // A Node built without full ICU has no region names. Codes are a poor
+    // label but a working one, and a book page is not worth a 500 over.
+    return null;
+  }
+}
+
+function countryNamesFor(points: { country: string | null }[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  const display = regionNames();
+  for (const p of points) {
+    if (!p.country) continue;
+    const code = p.country.toUpperCase();
+    if (out[code]) continue;
+    out[code] = (display?.of(code) ?? code) || code;
+  }
+  return out;
+}
 
 
 
@@ -836,6 +872,138 @@ export class JourneyDomainService {
       });
     }
     return tracks;
+  }
+
+  /**
+   * What this journey adds up to — the figures TREK Studio prints on a page.
+   *
+   * Derived, never stored: the trips added to the journey carry the places and
+   * the dates, the journey carries the entries and the photographs, and the
+   * numbers fall out of those. Nothing here is a column anyone has to keep in
+   * step.
+   *
+   * ── Where the route comes from ─────────────────────────────────────────
+   *
+   * The journey's own entries when they carry coordinates, because an entry is
+   * something that happened somewhere on a day and that is exactly what a route
+   * is made of. A journey assembled from trips that nobody has written up yet
+   * has no such entries, and falls back to the places on those trips — which is
+   * the same route, told by the itinerary instead of by the traveller.
+   *
+   * Mixing the two would double back on itself: an entry written about a place
+   * that is also on the trip would be two stops at one location, and the
+   * distance would count the leg twice.
+   *
+   * ── Where the countries come from ──────────────────────────────────────
+   *
+   * `place_regions` first: Atlas already resolves a place to its country and
+   * caches it there, and reading a cache beats repeating a point-in-polygon
+   * test against 4MB of boundaries. What is missing falls through to
+   * `getCountryFromCoords`, which is the same answer computed rather than
+   * remembered. That import is a plain function from a module built to have no
+   * DI and no Nest edges, so it costs this domain no coupling to Atlas.
+   */
+  journeyStats(journeyId: number, userId: number): JourneyStats | null {
+    if (!this.canAccessJourney(journeyId, userId)) return null;
+
+    const entryRows = this.db.prepare(`
+      SELECT id, title, location_name, location_lat, location_lng, entry_date
+        FROM journey_entries
+       WHERE journey_id = ?
+       ORDER BY entry_date ASC, sort_order ASC, id ASC
+    `).all(journeyId) as {
+      id: number; title: string | null; location_name: string | null;
+      location_lat: number | null; location_lng: number | null; entry_date: string | null;
+    }[];
+
+    const tripDates = this.db.prepare(`
+      SELECT t.start_date AS start, t.end_date AS end
+        FROM journey_trips jt JOIN trips t ON t.id = jt.trip_id
+       WHERE jt.journey_id = ?
+    `).all(journeyId) as { start: string | null; end: string | null }[];
+
+    // Ordered the way the trip is walked: by day, then by the order within it.
+    // A place can be assigned to more than one day (a hotel across three nights
+    // is one place, three assignments), so the join is aggregated back down to
+    // one row per place at its earliest day — otherwise the route would visit
+    // the hotel three times and the distance would count those legs.
+    const placeRows = this.db.prepare(`
+      SELECT p.id, p.name, p.lat, p.lng,
+             MIN(d.date) AS day,
+             MIN(da.order_index) AS ord
+        FROM journey_trips jt
+        JOIN places p ON p.trip_id = jt.trip_id
+        LEFT JOIN day_assignments da ON da.place_id = p.id
+        LEFT JOIN days d ON d.id = da.day_id
+       WHERE jt.journey_id = ?
+       GROUP BY p.id
+       ORDER BY day IS NULL, day ASC, ord ASC, p.id ASC
+    `).all(journeyId) as {
+      id: number; name: string | null; lat: number | null; lng: number | null;
+      day: string | null; ord: number | null;
+    }[];
+
+    const placeCount = this.db.prepare(`
+      SELECT COUNT(*) AS n FROM journey_trips jt
+        JOIN places p ON p.trip_id = jt.trip_id
+       WHERE jt.journey_id = ?
+    `).get(journeyId) as { n: number };
+
+    const photoCount = this.db
+      .prepare('SELECT COUNT(*) AS n FROM journey_photos WHERE journey_id = ?')
+      .get(journeyId) as { n: number };
+
+    // The cached country per place, for whichever of them Atlas has seen.
+    const cachedCountry = new Map<number, string>();
+    const placeIds = placeRows.map(p => p.id);
+    for (let i = 0; i < placeIds.length; i += 400) {
+      const chunk = placeIds.slice(i, i + 400);
+      if (!chunk.length) continue;
+      const rows = this.db
+        .prepare(`SELECT place_id, country_code FROM place_regions WHERE place_id IN (${chunk.map(() => '?').join(',')})`)
+        .all(...chunk) as { place_id: number; country_code: string }[];
+      for (const r of rows) if (r.country_code) cachedCountry.set(r.place_id, r.country_code.toUpperCase());
+    }
+
+    const countryAt = (lat: number, lng: number, placeId?: number): string | null => {
+      if (placeId != null) {
+        const cached = cachedCountry.get(placeId);
+        if (cached) return cached;
+      }
+      return getCountryFromCoords(lat, lng);
+    };
+
+    const fromEntries: StatsInputPoint[] = entryRows
+      .filter(e => Number.isFinite(e.location_lat) && Number.isFinite(e.location_lng))
+      .map(e => ({
+        lat: e.location_lat as number,
+        lng: e.location_lng as number,
+        label: e.title || e.location_name || '',
+        date: e.entry_date ?? null,
+        country: countryAt(e.location_lat as number, e.location_lng as number),
+      }));
+
+    const points: StatsInputPoint[] = fromEntries.length
+      ? fromEntries
+      : placeRows
+        .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng))
+        .map(p => ({
+          lat: p.lat as number,
+          lng: p.lng as number,
+          label: p.name || '',
+          date: p.day ?? null,
+          country: countryAt(p.lat as number, p.lng as number, p.id),
+        }));
+
+    return computeJourneyStats({
+      journeyId,
+      points,
+      entries: entryRows.length,
+      photos: photoCount?.n ?? 0,
+      places: placeCount?.n ?? 0,
+      tripDates,
+      countryNames: countryNamesFor(points),
+    });
   }
 
   listEntries(journeyId: number, userId: number) {

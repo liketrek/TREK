@@ -44,7 +44,10 @@ vi.mock('../../src/nest/memories/photo-resolver.service', async (importOriginal)
 });
 
 const { jsvc } = vi.hoisted(() => ({
-  jsvc: { listJourneys: vi.fn(), createJourney: vi.fn(), getJourneyFull: vi.fn() },
+  jsvc: {
+    listJourneys: vi.fn(), createJourney: vi.fn(), getJourneyFull: vi.fn(),
+    journeyStats: vi.fn(),
+  },
 }));
 import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
 
@@ -123,6 +126,45 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
     const res = await request(server).get('/api/journeys/9').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Journey not found' });
+  });
+
+  /*
+   * The journey figures TREK Studio prints (#1973). Read-only and derived, so
+   * what e2e adds over the controller unit test is that the addon gate and the
+   * auth guard both run in front of it — a route that reports where someone has
+   * been must not be reachable without a session.
+   */
+  it('401 for the journey stats without a session', async () => {
+    expect((await request(server).get('/api/journeys/9/stats')).status).toBe(401);
+  });
+
+  it('404 for the stats of an inaccessible journey', async () => {
+    jsvc.journeyStats.mockReturnValue(null);
+    const res = await request(server).get('/api/journeys/9/stats').set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Journey not found' });
+  });
+
+  it('200 with the figures, returned bare rather than in an envelope', async () => {
+    jsvc.journeyStats.mockReturnValue({
+      journeyId: 9, distance: 1_189_000, days: 14, steps: 14, photos: 57, places: 0,
+      furthest: 408_000,
+      countries: [{ code: 'IS', name: 'Iceland', places: 14, firstVisit: '2026-06-02' }],
+      points: [{ lat: 64.14, lng: -21.94, label: 'Reykjavík', date: '2026-06-02', country: 'IS' }],
+      start: '2026-06-02', end: '2026-06-15',
+    });
+    const res = await request(server).get('/api/journeys/9/stats').set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(200);
+    expect(res.body.distance).toBe(1_189_000);
+    expect(res.body.countries).toEqual([{ code: 'IS', name: 'Iceland', places: 14, firstVisit: '2026-06-02' }]);
+    expect(jsvc.journeyStats).toHaveBeenCalledWith(9, 1);
+  });
+
+  it('404 (addon gate) for the stats when the Journey addon is disabled', async () => {
+    isAddonEnabled.mockReturnValue(false);
+    const res = await request(server).get('/api/journeys/9/stats').set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Journey addon is not enabled' });
   });
 
   it('public journey read is unguarded (200 with a valid token, no cookie)', async () => {

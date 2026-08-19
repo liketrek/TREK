@@ -741,7 +741,9 @@ export function addJourneyContributor(
 }
 
 export function linkTripToJourney(db: Database.Database, journeyId: number, tripId: number): void {
+  // The column is added_at, not linked_at — this helper had no callers until
+  // #1973 and so had never actually run against the schema.
   db.prepare(
-    'INSERT OR IGNORE INTO journey_trips (journey_id, trip_id, linked_at) VALUES (?, ?, ?)'
+    'INSERT OR IGNORE INTO journey_trips (journey_id, trip_id, added_at) VALUES (?, ?, ?)'
   ).run(journeyId, tripId, Date.now());
 }

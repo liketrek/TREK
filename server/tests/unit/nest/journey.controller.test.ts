@@ -136,6 +136,17 @@ describe('JourneyController', () => {
 
   it('entries under journey: list 404, create 400/404, reorder 400/403', () => {
     expect(thrown(() => new JourneyController(svc({ listEntries: vi.fn().mockReturnValue(null) } as Partial<JourneyService>)).listEntries(user, '9'))).toEqual({ status: 404, body: { error: 'Journey not found' } });
+
+    // GET /:id/stats — the journey figures Studio prints (#1973). Same access
+    // shape as the routes around it: the service answers null for a journey the
+    // caller cannot see, and that is a 404 rather than a 403, so the endpoint
+    // cannot be used to find out which journeys exist.
+    expect(thrown(() => new JourneyController(svc({ journeyStats: vi.fn().mockReturnValue(null) } as Partial<JourneyService>)).stats(user, '9'))).toEqual({ status: 404, body: { error: 'Journey not found' } });
+    const journeyStats = vi.fn().mockReturnValue({ journeyId: 9, distance: 1189000, days: 14, steps: 14, photos: 57, places: 0, furthest: 408000, countries: [], points: [], start: null, end: null });
+    // Returned bare, not wrapped in an envelope — the contract in
+    // shared/src/book/journey-stats.schema.ts is the object itself.
+    expect(new JourneyController(svc({ journeyStats } as Partial<JourneyService>)).stats(user, '9')).toMatchObject({ journeyId: 9, distance: 1189000 });
+    expect(journeyStats).toHaveBeenCalledWith(9, 1);
     expect(new JourneyController(svc({ listEntries: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<JourneyService>)).listEntries(user, '9')).toEqual({ entries: [{ id: 1 }] });
     expect(thrown(() => new JourneyController(svc()).createEntry(user, '9', {}))).toEqual({ status: 400, body: { error: 'entry_date is required' } });
     expect(thrown(() => new JourneyController(svc({ createEntry: vi.fn().mockReturnValue(null) } as Partial<JourneyService>)).createEntry(user, '9', { entry_date: '2026-01-01' }))).toEqual({ status: 404, body: { error: 'Journey not found' } });
@@ -370,12 +381,15 @@ describe('JourneyPublicController', () => {
       await new JourneyPublicController(s).legacyPhoto('tok', 'local', '../../files/secret.pdf', '2', 'original', res);
 
       expect(sendFile).toHaveBeenCalledTimes(1);
-      const served = sendFile.mock.calls[0][0] as string;
-      // basename() collapses the traversal: the served file stays inside
-      // uploads/journey and never reaches the sibling /uploads/files dir.
-      expect(path.basename(served)).toBe('secret.pdf');
-      expect(served).toMatch(/[\\/]journey[\\/]secret\.pdf$/);
-      expect(served).not.toMatch(/[\\/]files[\\/]/);
+      // Sent as basename + root rather than as one absolute path: an absolute
+      // path resolves against the rewritten req.url under the Nest
+      // ExpressAdapter and 404s. The traversal is still collapsed — what is
+      // asserted is the pair, since together they are the file that gets served.
+      const [served, options] = sendFile.mock.calls[0] as [string, { root: string }];
+      expect(served).toBe('secret.pdf');
+      expect(options.root).toMatch(/[\\/]journey$/);
+      expect(options.root).not.toMatch(/[\\/]files/);
+      expect(path.join(options.root, served)).toMatch(/[\\/]journey[\\/]secret\.pdf$/);
     } finally {
       existsSpy.mockRestore();
     }

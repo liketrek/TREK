@@ -435,6 +435,24 @@ export class JourneyController {
     return { tracks };
   }
 
+  /**
+   * The figures TREK Studio prints on a page — distance, days, steps, photos,
+   * countries and the route itself (#1973).
+   *
+   * Read-only and derived, like /tracks above it: nothing here is stored, it is
+   * what the trips added to this journey add up to. Studio freezes the answer
+   * into the book document when an element is placed, so this is called while
+   * designing and never while printing.
+   */
+  @Get(':id/stats')
+  stats(@CurrentUser() user: User, @Param('id') id: string) {
+    const stats = this.journey.journeyStats(Number(id), user.id);
+    if (!stats) {
+      throw new HttpException({ error: 'Journey not found' }, 404);
+    }
+    return stats;
+  }
+
   @Post(':id/entries')
   createEntry(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyEntryCreateDto, @Headers('x-socket-id') socketId?: string) {
     if (!body.entry_date) {

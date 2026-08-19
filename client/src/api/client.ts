@@ -12,6 +12,7 @@ import {
   type NotificationRespondRequest,
   type SettingUpsertRequest, type SettingsBulkRequest,
   type JourneyCreateRequest, type JourneyAddTripRequest, type JourneyTracksResponse,
+  type JourneyStats,
   type JourneyReorderEntriesRequest, type JourneyProviderPhotosRequest,
   type JourneyShareLinkRequest,
   type RegisterRequest, type LoginRequest, type ForgotPasswordRequest,
@@ -889,6 +890,9 @@ export const journeyApi = {
   listEntries: (id: number) => apiClient.get(`/journeys/${id}/entries`).then(r => r.data),
   // GPX tracks of the trips this journey's entries came from (#1260).
   listTracks: (id: number): Promise<JourneyTracksResponse> => apiClient.get(`/journeys/${id}/tracks`).then(r => r.data),
+  // What the journey adds up to — distance, days, countries, the route (#1973).
+  // Read by TREK Studio, which freezes the answer into the book document.
+  stats: (id: number): Promise<JourneyStats> => apiClient.get(`/journeys/${id}/stats`).then(r => r.data),
   createEntry: (id: number, data: Record<string, unknown>) => apiClient.post(`/journeys/${id}/entries`, data).then(r => r.data),
   updateEntry: (entryId: number, data: Record<string, unknown>) => apiClient.patch(`/journeys/entries/${entryId}`, data).then(r => r.data),
   deleteEntry: (entryId: number) => apiClient.delete(`/journeys/entries/${entryId}`).then(r => r.data),

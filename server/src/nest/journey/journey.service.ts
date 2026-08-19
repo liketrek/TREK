@@ -52,6 +52,7 @@ export class JourneyService {
   // Entries
   listEntries(id: number, userId: number) { return this.journey.listEntries(id, userId); }
   journeyTracks(id: number, userId: number) { return this.journey.journeyTracks(id, userId); }
+  journeyStats(id: number, userId: number) { return this.journey.journeyStats(id, userId); }
   // Entry create/update bodies are free-form in the legacy route (req.body: any);
   // the cast keeps that boundary here so callers needn't pre-shape the payload.
   createEntry(id: number, userId: number, data: Record<string, unknown>, sid?: string) { return this.journey.createEntry(id, userId, data as Parameters<typeof this.journey.createEntry>[2], sid); }
