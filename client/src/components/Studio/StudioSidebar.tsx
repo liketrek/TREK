@@ -1,14 +1,19 @@
 import { useMemo, useState } from 'react'
 import {
-  Circle, Files, ImageIcon, LayoutTemplate, Minus, Quote, Search, Shapes,
-  Square, Triangle, X,
+  ChevronDown, ChevronUp, Compass, Copy, Files, ImageIcon, LayoutTemplate, Plus,
+  Search, Shapes, Trash2, X,
 } from 'lucide-react'
-import type { BookElement, BookPageSetup } from '@trek/shared'
+import type { BookElement, BookPageSetup, JourneyStats } from '@trek/shared'
+import { useElementSize } from '../../hooks/useElementSize'
 import { useStudioStore } from '../../store/studioStore'
 import { formatDate } from '../../utils/formatters'
 import { SpreadFold, SpreadView } from './SpreadView'
 import { photoSrc } from './bookRender'
 import { TEMPLATES, applyTemplate } from './templates'
+import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
+import { PanelHead as Head } from './StudioPanelHead'
+import { StudioElementsPanel } from './StudioElementsPanel'
+import { StudioTravelPanel } from './StudioTravelPanel'
 
 /**
  * The left side of Studio: a narrow rail of sections and one wide panel showing
@@ -21,10 +26,20 @@ import { TEMPLATES, applyTemplate } from './templates'
  * costs 52px and gives the panel the room a photo browser actually needs.
  */
 
-type Section = 'pages' | 'content' | 'elements' | 'templates'
+type Section = 'pages' | 'content' | 'elements' | 'travel' | 'templates'
 
 export interface JourneySource {
-  entries: { id: number; title: string | null; story: string | null; location: string | null; date: string | null }[]
+  entries: {
+    id: number
+    title: string | null
+    story: string | null
+    location: string | null
+    date: string | null
+    mood: string | null
+    weather: string | null
+    pros: string[]
+    cons: string[]
+  }[]
   photos: { photoId: number; caption?: string | null }[]
   /** photoId to the words of the entry it belongs to, lower-cased. */
   photoEntries: Record<number, string>
@@ -32,13 +47,35 @@ export interface JourneySource {
 
 const uid = (p: string) => `${p}-${Math.random().toString(36).slice(2, 9)}`
 
+/**
+ * How wide a page preview may be drawn.
+ *
+ * Page thumbnails and layout cards are drawn at a `scale()` rather than laid
+ * out by CSS — the sheet inside them is sized in millimetres — so they need an
+ * actual pixel width, and it is **measured** rather than derived.
+ *
+ * Deriving it was tried twice and was wrong twice. The panel width, the scroll
+ * padding and the button's own border and padding are all knowable from
+ * studio.css; the scrollbar is not. It appears only once the list is long
+ * enough, takes a width that depends on the platform, and the arithmetic that
+ * ignored it produced a card overhanging its own selection outline. Measuring
+ * the row the cards sit in gets all four contributions at once and cannot drift
+ * when any of them changes.
+ */
+const MIN_PREVIEW_W = 120
+
+/** The button's border and padding, which the row's width still includes. */
+const THUMB_CHROME = (2 + 3) * 2
+
 export function StudioSidebar({
-  page, pxPerMm, bookView, source, t, locale,
+  page, pxPerMm, bookView, source, stats, t, locale,
 }: {
   page: BookPageSetup
   pxPerMm: number
   bookView: boolean
   source: JourneySource
+  /** What the journey adds up to, for the travel elements. Null while loading or on failure. */
+  stats: JourneyStats | null
   t: (k: string) => string
   locale: string
 }) {
@@ -48,6 +85,7 @@ export function StudioSidebar({
     { id: 'pages', icon: Files, labelKey: 'journey.studio.pages' },
     { id: 'content', icon: ImageIcon, labelKey: 'journey.studio.content' },
     { id: 'elements', icon: Shapes, labelKey: 'journey.studio.elements' },
+    { id: 'travel', icon: Compass, labelKey: 'journey.studio.travel' },
     { id: 'templates', icon: LayoutTemplate, labelKey: 'journey.studio.templates' },
   ]
 
@@ -71,19 +109,11 @@ export function StudioSidebar({
       <aside className="st-panel st-side">
         {section === 'pages' && <PagesPanel page={page} pxPerMm={pxPerMm} bookView={bookView} t={t} />}
         {section === 'content' && <ContentPanel source={source} page={page} t={t} locale={locale} />}
-        {section === 'elements' && <ElementsPanel page={page} t={t} />}
+        {section === 'elements' && <StudioElementsPanel page={page} t={t} />}
+        {section === 'travel' && <StudioTravelPanel page={page} stats={stats} t={t} locale={locale} />}
         {section === 'templates' && <TemplatesPanel page={page} pxPerMm={pxPerMm} t={t} onOpenContent={() => setSection('content')} />}
       </aside>
     </>
-  )
-}
-
-function Head({ label, count }: { label: string; count?: number }) {
-  return (
-    <div className="st-panel-head">
-      <span>{label}</span>
-      {count != null && <span style={{ fontVariantNumeric: 'tabular-nums' }}>{count}</span>}
-    </div>
   )
 }
 
@@ -93,47 +123,120 @@ function PagesPanel({
   const doc = useStudioStore(s => s.doc)
   const active = useStudioStore(s => s.activeSpread)
   const setActive = useStudioStore(s => s.setActiveSpread)
+  const addSpread = useStudioStore(s => s.addSpread)
+  const duplicateSpread = useStudioStore(s => s.duplicateSpread)
+  const removeSpread = useStudioStore(s => s.removeSpread)
+  const moveSpread = useStudioStore(s => s.moveSpread)
+  const canEditSpread = useStudioStore(s => s.canEditSpread)
   const spreads = doc?.spreads ?? []
-  const THUMB_W = 196
+  const list = useElementSize<HTMLDivElement>()
+  const THUMB_W = Math.max(MIN_PREVIEW_W, list.width - THUMB_CHROME)
+
+  /** Where a new spread would land: after the last inner one. */
+  const lastInner = spreads.reduce((last, sp, i) => (sp.role === 'inner' ? i : last), -1)
 
   return (
     <>
       <Head label={t('journey.studio.pages')} count={spreads.length} />
       <div className="st-panel-scroll">
-        <div className="st-thumbs">
+        <div className="st-thumbs" ref={list.ref}>
           {spreads.map((sp, i) => {
             const single = sp.role !== 'inner'
             const wMm = single ? page.pageWidth : page.pageWidth * 2
             // The same component at a smaller scale, not a second drawing of the
             // page — a spread can never look different here than on the sheet.
             const scale = THUMB_W / (wMm * pxPerMm)
+            const editable = canEditSpread(i)
             return (
-              <button
-                key={sp.id}
-                className={`st-thumb ${i === active ? 'is-active' : ''}`}
-                onClick={() => setActive(i)}
-              >
-                <div className="st-thumb-sheet" style={{ width: THUMB_W, height: page.pageHeight * pxPerMm * scale }}>
-                  <div
-                    style={{
-                      position: 'absolute', left: 0, top: 0,
-                      width: `${wMm}mm`, height: `${page.pageHeight}mm`,
-                      transform: `scale(${scale})`, transformOrigin: 'top left',
-                    }}
-                  >
-                    <SpreadView spread={sp} page={page} />
+              <div className="st-thumb-row" key={sp.id}>
+                <button
+                  className={`st-thumb ${i === active ? 'is-active' : ''}`}
+                  onClick={() => setActive(i)}
+                >
+                  <div className="st-thumb-sheet" style={{ width: THUMB_W, height: page.pageHeight * pxPerMm * scale }}>
+                    <div
+                      style={{
+                        position: 'absolute', left: 0, top: 0,
+                        width: `${wMm}mm`, height: `${page.pageHeight}mm`,
+                        transform: `scale(${scale})`, transformOrigin: 'top left',
+                      }}
+                    >
+                      <SpreadView spread={sp} page={page} />
+                    </div>
+                    {bookView && !single && <SpreadFold page={page} scaled={pxPerMm * scale} />}
                   </div>
-                  {bookView && !single && <SpreadFold page={page} scaled={pxPerMm * scale} />}
-                </div>
-                <span className="st-thumb-label">
-                  {sp.role === 'cover' ? t('journey.studio.cover')
-                    : sp.role === 'back' ? t('journey.studio.backCover')
-                    : `${i * 2} – ${i * 2 + 1}`}
-                </span>
-              </button>
+                  <span className="st-thumb-label">
+                    {sp.role === 'cover' ? t('journey.studio.cover')
+                      : sp.role === 'back' ? t('journey.studio.backCover')
+                      : `${i * 2} – ${i * 2 + 1}`}
+                  </span>
+                </button>
+
+                {/*
+                  The actions sit on the thumbnail rather than in a menu bar of
+                  their own: what you are acting on is the page you are pointing
+                  at, and a toolbar somewhere else would need you to select
+                  first and act second. The cover and the back cover have no
+                  actions — a book has exactly one of each, and moving or
+                  deleting them is not a thing anyone means to do.
+                */}
+                {editable && (
+                  <div className="st-thumb-actions">
+                    <button
+                      onClick={() => moveSpread(i, -1)}
+                      disabled={!canEditSpread(i - 1)}
+                      title={t('journey.studio.movePageUp')}
+                      aria-label={t('journey.studio.movePageUp')}
+                    >
+                      <ChevronUp size={13} />
+                    </button>
+                    <button
+                      onClick={() => moveSpread(i, 1)}
+                      disabled={!canEditSpread(i + 1)}
+                      title={t('journey.studio.movePageDown')}
+                      aria-label={t('journey.studio.movePageDown')}
+                    >
+                      <ChevronDown size={13} />
+                    </button>
+                    <button
+                      onClick={() => duplicateSpread(i)}
+                      title={t('journey.studio.duplicatePage')}
+                      aria-label={t('journey.studio.duplicatePage')}
+                    >
+                      <Copy size={12} />
+                    </button>
+                    <button
+                      className="is-danger"
+                      onClick={() => removeSpread(i)}
+                      title={t('journey.studio.deletePage')}
+                      aria-label={t('journey.studio.deletePage')}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Insert between two spreads, where the new one will go — a
+                    single "add" at the end cannot express "another page here". */}
+                {editable && (
+                  <button
+                    className="st-thumb-insert"
+                    onClick={() => addSpread(i)}
+                    title={t('journey.studio.addPageAfter')}
+                    aria-label={t('journey.studio.addPageAfter')}
+                  >
+                    <Plus size={12} />
+                  </button>
+                )}
+              </div>
             )
           })}
         </div>
+
+        <button className="st-add-page" onClick={() => addSpread(lastInner)}>
+          <Plus size={14} />
+          {t('journey.studio.addPage')}
+        </button>
       </div>
     </>
   )
@@ -162,7 +265,8 @@ function ContentPanel({
   const q = query.trim().toLowerCase()
   const entries = q
     ? source.entries.filter(e =>
-      [e.title, e.story, e.location].some(v => v && v.toLowerCase().includes(q)))
+      [e.title, e.story, e.location, ...e.pros, ...e.cons]
+        .some(v => v && v.toLowerCase().includes(q)))
     : source.entries
   const photos = q
     ? source.photos.filter(p =>
@@ -196,6 +300,43 @@ function ContentPanel({
       text: value, font: 'sans', size, weight, italic: false,
       align: 'left', leading: weight === 700 ? 1.1 : 1.55, tracking: weight === 700 ? -0.02 : 0,
       color: '#1a1a1a', binding: { source: kind, entryId }, overridden: false,
+    } as BookElement)
+  }
+
+  const base = {
+    rotation: 0, opacity: 1, locked: false,
+    font: 'sans' as const, color: '#1a1a1a', accent: '#c2410c', textScale: 1, stale: false,
+  }
+
+  /**
+   * A mood or a weather mark, drawn with the icon the journey page uses.
+   *
+   * `code` holds the key rather than the label, so the element carries what the
+   * entry recorded and the renderer decides how to draw it — which is what lets
+   * the icon and the palette come from one place.
+   */
+  const dropMark = (variant: 'mood' | 'weather', code: string, label: string) =>
+    addElement(active, {
+      ...base, id: uid('bd'), kind: 'badge',
+      frame: centre(page.pageWidth * 0.22, page.pageHeight * 0.062),
+      variant, text: label, sub: '', code, style: 'plain',
+    } as BookElement)
+
+  /** Both columns of an entry's pros and cons, as one element. */
+  const dropProsCons = (pros: string[], cons: string[]) => {
+    const rows = Math.max(pros.length, cons.length, 1)
+    addElement(active, {
+      ...base, id: uid('li'), kind: 'list',
+      // Matches what ListView needs for `rows` lines at its largest line size,
+      // so the element arrives filled rather than with a third of it empty.
+      frame: centre(page.pageWidth * 0.72, Math.min(page.pageHeight * 0.6, 6 * (0.86 + 1.7 * rows))),
+      items: [
+        ...pros.map(text => ({ text, tone: 'pro' as const })),
+        ...cons.map(text => ({ text, tone: 'con' as const })),
+      ],
+      layout: 'columns', showMarks: true,
+      proLabel: t('journey.editor.pros'),
+      conLabel: t('journey.editor.cons'),
     } as BookElement)
   }
 
@@ -286,156 +427,39 @@ function ContentPanel({
                       {t('journey.studio.addPlace')}
                     </button>
                   )}
+                  {/*
+                    What the entry recorded besides its story. Each chip shows
+                    the value rather than the field name — "Sunny" tells you
+                    what you are about to place; "Weather" does not.
+                  */}
+                  {e.mood && MOOD_CONFIG[e.mood] && (
+                    <button
+                      className="st-chip"
+                      onClick={() => dropMark('mood', e.mood!, t(MOOD_CONFIG[e.mood!].label))}
+                    >
+                      {t(MOOD_CONFIG[e.mood].label)}
+                    </button>
+                  )}
+                  {e.weather && WEATHER_CONFIG[e.weather] && (
+                    <button
+                      className="st-chip"
+                      onClick={() => dropMark('weather', e.weather!, t(WEATHER_CONFIG[e.weather!].label))}
+                    >
+                      {t(WEATHER_CONFIG[e.weather].label)}
+                    </button>
+                  )}
+                  {(e.pros.length > 0 || e.cons.length > 0) && (
+                    <button className="st-chip" onClick={() => dropProsCons(e.pros, e.cons)}>
+                      {t('journey.studio.addProsCons')}
+                      <em>{e.pros.length + e.cons.length}</em>
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
             {!entries.length && <p className="st-hint">{t('journey.studio.noMatches')}</p>}
           </div>
         )}
-      </div>
-    </>
-  )
-}
-
-function ElementsPanel({ page, t }: { page: BookPageSetup; t: (k: string) => string }) {
-  const addElement = useStudioStore(s => s.addElement)
-  const active = useStudioStore(s => s.activeSpread)
-  const doc = useStudioStore(s => s.doc)
-  const spread = doc?.spreads[active]
-
-  const centre = (w: number, h: number) => {
-    const W = spread && spread.role !== 'inner' ? page.pageWidth : page.pageWidth * 2
-    return { x: (W - w) / 2, y: (page.pageHeight - h) / 2, w, h }
-  }
-
-  const addText = (size: number, weight: 400 | 500 | 600 | 700, sample: string, extra: Partial<BookElement> = {}) =>
-    addElement(active, {
-      id: uid('t'), kind: 'text', frame: centre(page.pageWidth * 0.7, size * 0.5 + 8),
-      rotation: 0, opacity: 1, locked: false,
-      text: sample, font: 'sans', size, weight, italic: false,
-      align: 'left', leading: size > 16 ? 1.1 : 1.5, tracking: size > 16 ? -0.02 : 0,
-      color: '#1a1a1a', binding: null, overridden: false, ...extra,
-    } as BookElement)
-
-  const addShape = (
-    shape: 'rect' | 'ellipse' | 'line' | 'triangle',
-    opts: { radius?: number; outline?: boolean } = {},
-  ) =>
-    addElement(active, {
-      id: uid('s'), kind: 'shape',
-      // A rule is a shape too — a hairline box rather than its own element type,
-      // so it moves, colours and snaps like everything else on the page.
-      frame: shape === 'line' ? centre(page.pageWidth * 0.5, 0.5) : centre(60, 60),
-      rotation: 0, opacity: 1, locked: false,
-      shape: shape === 'line' ? 'rect' : shape,
-      fill: opts.outline ? null : '#141414',
-      gradient: 'none',
-      stroke: opts.outline ? '#141414' : null,
-      strokeWidth: opts.outline ? 0.5 : 0,
-      radius: opts.radius ?? 0,
-    } as BookElement)
-
-  return (
-    <>
-      <Head label={t('journey.studio.elements')} />
-      <div className="st-panel-scroll">
-        <div className="st-section">
-          <div className="st-section-label">{t('journey.studio.text')}</div>
-          <div className="st-stack">
-            <button className="st-tile" onClick={() => addText(30, 700, t('journey.studio.sampleHeading'))}>
-              <span style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em' }}>{t('journey.studio.styleTitle')}</span>
-            </button>
-            <button className="st-tile" onClick={() => addText(16, 600, t('journey.studio.sampleSubheading'))}>
-              <span style={{ fontSize: 14, fontWeight: 600 }}>{t('journey.studio.styleSubtitle')}</span>
-            </button>
-            <button className="st-tile" onClick={() => addText(10, 400, t('journey.studio.sampleBody'))}>
-              <span style={{ fontSize: 12.5 }}>{t('journey.studio.styleBody')}</span>
-            </button>
-            <button
-              className="st-tile"
-              onClick={() => addText(7.5, 600, t('journey.studio.sampleCaption'), { tracking: 0.14, color: '#8a8578' })}
-            >
-              <span style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-                {t('journey.studio.styleCaption')}
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <div className="st-section">
-          <div className="st-section-label">{t('journey.studio.shapes')}</div>
-          <div className="st-shape-grid">
-            <button className="st-shape-btn" onClick={() => addShape('rect')} title={t('journey.studio.shapeKind.rect')}>
-              <Square size={20} strokeWidth={1.6} />
-            </button>
-            <button className="st-shape-btn" onClick={() => addShape('rect', { radius: 6 })} title={t('journey.studio.shapeKind.rounded')}>
-              <Square size={20} strokeWidth={1.6} style={{ borderRadius: 7 }} />
-            </button>
-            <button className="st-shape-btn" onClick={() => addShape('ellipse')} title={t('journey.studio.shapeKind.ellipse')}>
-              <Circle size={20} strokeWidth={1.6} />
-            </button>
-            <button className="st-shape-btn" onClick={() => addShape('triangle')} title={t('journey.studio.shapeKind.triangle')}>
-              <Triangle size={20} strokeWidth={1.6} />
-            </button>
-            <button className="st-shape-btn" onClick={() => addShape('line')} title={t('journey.studio.shapeKind.line')}>
-              <Minus size={20} strokeWidth={2} />
-            </button>
-            <button className="st-shape-btn" onClick={() => addShape('rect', { outline: true })} title={t('journey.studio.shapeKind.outline')}>
-              <Square size={20} strokeWidth={1.1} style={{ opacity: .5 }} />
-            </button>
-          </div>
-        </div>
-
-        <div className="st-section">
-          <div className="st-section-label">{t('journey.studio.decorations')}</div>
-          <div className="st-shape-grid">
-            <button
-              className="st-shape-btn"
-              onClick={() => addText(46, 700, '\u201C', { color: '#c9c2b4', leading: 0.9 })}
-              title={t('journey.studio.quoteMark')}
-            >
-              <Quote size={20} strokeWidth={1.6} />
-            </button>
-            <button
-              className="st-shape-btn"
-              onClick={() => addShape('rect', { outline: true, radius: 60 })}
-              title={t('journey.studio.circleOutline')}
-            >
-              <Circle size={20} strokeWidth={1.1} style={{ opacity: .5 }} />
-            </button>
-          </div>
-        </div>
-
-        <div className="st-section">
-          <div className="st-section-label">{t('journey.studio.frames')}</div>
-          <div className="st-shape-grid">
-            <button
-              className="st-shape-btn"
-              onClick={() => addElement(active, {
-                id: uid('p'), kind: 'photo',
-                frame: centre(page.pageWidth * 0.5, page.pageWidth * 0.38),
-                rotation: 0, opacity: 1, locked: false,
-                photoId: null, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 0, filter: 'none',
-              } as BookElement)}
-              title={t('journey.studio.emptyFrame')}
-            >
-              <ImageIcon size={20} strokeWidth={1.6} />
-            </button>
-            <button
-              className="st-shape-btn"
-              onClick={() => addElement(active, {
-                id: uid('p'), kind: 'photo',
-                frame: centre(page.pageWidth * 0.45, page.pageWidth * 0.45),
-                rotation: 0, opacity: 1, locked: false,
-                photoId: null, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 6, filter: 'none',
-              } as BookElement)}
-              title={t('journey.studio.roundFrame')}
-            >
-              <Square size={20} strokeWidth={1.6} style={{ borderRadius: 7, opacity: .75 }} />
-            </button>
-          </div>
-          <p className="st-hint" style={{ paddingTop: 8 }}>{t('journey.studio.frameHint')}</p>
-        </div>
       </div>
     </>
   )
@@ -456,8 +480,9 @@ function TemplatesPanel({
   const commit = useStudioStore(s => s.commit)
   const spread = doc?.spreads[active]
 
-  const CARD_W = 196
-  const scale = useMemo(() => CARD_W / (page.pageWidth * 2 * pxPerMm), [page.pageWidth, pxPerMm])
+  const list = useElementSize<HTMLDivElement>()
+  const CARD_W = Math.max(MIN_PREVIEW_W, list.width - THUMB_CHROME)
+  const scale = useMemo(() => CARD_W / (page.pageWidth * 2 * pxPerMm), [CARD_W, page.pageWidth, pxPerMm])
 
   if (!spread) return null
   const single = spread.role !== 'inner'
@@ -469,7 +494,7 @@ function TemplatesPanel({
         {single ? (
           <p className="st-hint">{t('journey.studio.templatesCoverHint')}</p>
         ) : (
-          <div className="st-thumbs">
+          <div className="st-thumbs" ref={list.ref}>
             {TEMPLATES.map(tpl => {
               const slots = tpl.build(page)
               return (

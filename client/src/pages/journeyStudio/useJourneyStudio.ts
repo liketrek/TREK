@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router'
+import type { JourneyStats } from '@trek/shared'
+import { journeyApi } from '../../api/client'
 import { useJourneyStore, type GalleryPhoto, type JourneyEntry, type JourneyPhoto } from '../../store/journeyStore'
 import { useStudioStore } from '../../store/studioStore'
 import { useTranslation } from '../../i18n'
@@ -65,10 +67,19 @@ export function useJourneyStudio() {
   const [closing, setClosing] = useState(false)
   const [zoom, setZoom] = useState(0.4)
   const [autoFit, setAutoFit] = useState(true)
-  const [bookName, setBookName] = useState('')
+  const [stats, setStats] = useState<JourneyStats | null>(null)
+  /*
+   * Whether the figures have been *asked for* — success or failure both count.
+   *
+   * The auto layout uses them, so it has to wait for the answer rather than
+   * race it: laying the book out first would give a journey a summary spread
+   * or not depending on which promise resolved first, which is the kind of
+   * non-determinism nobody can reproduce when it goes wrong. Studio already
+   * shows its loading state until the document exists, so the wait is free.
+   */
+  const [statsSettled, setStatsSettled] = useState(false)
 
   const workRef = useRef<HTMLDivElement>(null)
-  const nameTouched = useRef(false)
   const builtFor = useRef<number | null>(null)
 
   const journey = current && current.id === journeyId ? current : null
@@ -82,7 +93,7 @@ export function useJourneyStudio() {
   // document and this must not run again, or it would throw away the user's
   // work every time the journey re-renders.
   useEffect(() => {
-    if (!journey || builtFor.current === journey.id) return
+    if (!journey || !statsSettled || builtFor.current === journey.id) return
     builtFor.current = journey.id
 
     // A skeleton entry is a place pulled in from a trip that nobody has written
@@ -126,21 +137,46 @@ export function useJourneyStudio() {
         bleed: preset.bleedMm,
         safe: preset.safeMm,
       },
+      stats,
     }))
-  }, [journey, loadDoc, locale])
+    // `stats` is deliberately not a dependency: the book is laid out once, from
+    // the figures as they stood at that moment. Re-running on a later fetch
+    // would throw away the user's work — which is the same reason `builtFor`
+    // exists for the journey itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [journey, statsSettled, loadDoc, locale])
 
-  // The book is named after the journey until someone renames it. Tracking the
-  // rename explicitly keeps a later journey title change from overwriting a name
-  // the user chose on purpose.
+  /*
+   * What the journey adds up to, for the travel elements.
+   *
+   * Fetched once and held here rather than inside the panel that offers them:
+   * the numbers are the same for every element on every spread, and a fetch per
+   * element would ask the server the same question twenty times while someone
+   * lays out a summary page.
+   *
+   * A failure is not an error state. The travel elements are one section of one
+   * panel; a book with photographs in it is still a book, and a red banner
+   * across the editor because a derived statistic could not be computed would
+   * be out of all proportion. The section simply says it has nothing yet.
+   */
   useEffect(() => {
-    if (!journey || nameTouched.current) return
-    setBookName(journey.title || '')
-  }, [journey])
+    if (!Number.isFinite(journeyId)) return
+    let cancelled = false
+    journeyApi.stats(journeyId)
+      .then(data => { if (!cancelled) setStats(data) })
+      .catch(() => { if (!cancelled) setStats(null) })
+      .finally(() => { if (!cancelled) setStatsSettled(true) })
+    return () => { cancelled = true }
+  }, [journeyId])
 
-  const renameBook = useCallback((value: string) => {
-    nameTouched.current = true
-    setBookName(value)
-  }, [])
+  /*
+   * The book has no name of its own.
+   *
+   * It carries the journey's, written into `doc.title` when the book is laid
+   * out — which is the name anyone would give it anyway. The bar used to offer
+   * a field for a second one; it was a box whose only real use was being left
+   * alone, and the space is better spent saying what this thing is.
+   */
 
   const preset = (doc?.page.preset ?? 'square-210') as PagePresetId
   const page = doc?.page ?? {
@@ -230,13 +266,22 @@ export function useJourneyStudio() {
   /** The journey's own material, for the content browser. */
   const source = useMemo(() => ({
     entries: (journey?.entries || [])
-      .filter((e: JourneyEntry) => !!(e.title || e.story || e.location_name))
+      .filter((e: JourneyEntry) => !!(
+        e.title || e.story || e.location_name || e.mood || e.weather
+        || e.pros_cons?.pros?.length || e.pros_cons?.cons?.length
+      ))
       .map((e: JourneyEntry) => ({
         id: e.id,
         title: e.title ?? null,
         story: e.story ?? null,
         location: e.location_name ?? null,
         date: e.entry_date ?? null,
+        // What the entry recorded beyond its story: how the day felt, what the
+        // weather did, and what was worth and not worth it.
+        mood: e.mood ?? null,
+        weather: e.weather ?? null,
+        pros: e.pros_cons?.pros?.filter(Boolean) ?? [],
+        cons: e.pros_cons?.cons?.filter(Boolean) ?? [],
       })),
     photos: (journey?.gallery || []).map((p: GalleryPhoto) => ({
       photoId: p.photo_id,
@@ -271,8 +316,7 @@ export function useJourneyStudio() {
     close,
     coverUrl,
     source,
-    bookName,
-    renameBook,
+    stats,
 
     doc,
     page,

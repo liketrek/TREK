@@ -10,6 +10,7 @@ import { PAGE_PRESET_ORDER, PAGE_PRESETS } from './pagePresets'
 import { StudioSidebar } from './StudioSidebar'
 import { StudioCanvas } from './StudioCanvas'
 import { StudioInspector } from './StudioInspector'
+import { StudioWordmark } from './StudioWordmark'
 import '../../styles/dashboard.css'
 import '../../styles/studio.css'
 
@@ -77,11 +78,12 @@ export default function StudioShell() {
             pxPerMm={s.pxPerMm}
             bookView={bookView}
             source={s.source}
+            stats={s.stats}
             t={s.t}
             locale={s.locale}
           />
           <Workbench s={s} bookView={bookView} />
-          <StudioInspector spreadIndex={s.activeSpread} page={s.page} t={s.t} />
+          <StudioInspector spreadIndex={s.activeSpread} page={s.page} stats={s.stats} t={s.t} locale={s.locale} />
         </div>
       </div>
     </>,
@@ -106,14 +108,15 @@ function StudioBar({
 
       <div className="st-sep" />
 
-      <div className="st-name">
-        <input
-          value={s.bookName}
-          onChange={e => s.renameBook(e.target.value)}
-          placeholder={s.t('journey.studio.namePlaceholder')}
-          aria-label={s.t('journey.studio.bookName')}
-          spellCheck={false}
-        />
+      {/*
+        The lockup, not a name field. The book is the journey's, and it was
+        already titled after it — a second place to type the same name is a
+        field whose only job is to be left alone. What the bar is short of is
+        somewhere to say what this thing *is*.
+      */}
+      <div className="st-brand">
+        <StudioWordmark style={{ height: 26 }} />
+        <span className="st-beta">{s.t('journey.studio.beta')}</span>
       </div>
 
       <div className="st-bar-group">

@@ -1,4 +1,4 @@
-import type { BookElement, BookPageSetup } from '@trek/shared'
+import type { BookElement, BookPageSetup, BookShapeId, JourneyStats } from '@trek/shared'
 import {
   AlignCenter, AlignJustify, AlignLeft, AlignRight, ArrowDown, ArrowUp,
   ChevronsDown, ChevronsUp, Lock, Trash2, Unlock,
@@ -6,6 +6,10 @@ import {
 import { useRef } from 'react'
 import { useStudioStore } from '../../store/studioStore'
 import { FONT_STACKS, photoSrc } from './bookRender'
+import { FRAME_SHAPES, SHAPE_GROUPS } from './shapes'
+import { ShapeGlyph } from './StudioElementsPanel'
+import { TravelInspector } from './StudioTravelInspector'
+import { Swatches } from './StudioSwatches'
 
 /**
  * Properties of whatever is selected.
@@ -21,16 +25,19 @@ const FONTS: { id: 'sans' | 'serif' | 'display'; label: string }[] = [
   { id: 'display', label: 'MuseoModerno' },
 ]
 
-const SWATCHES = ['#111111', '#ffffff', '#8a8578', '#b45309', '#0f766e', '#1e3a8a', '#9f1239']
-
 export function StudioInspector({
   spreadIndex,
   page,
+  stats,
   t,
+  locale,
 }: {
   spreadIndex: number
   page: BookPageSetup
+  /** Live journey figures, so a travel element can be brought up to date. */
+  stats: JourneyStats | null
   t: (k: string) => string
+  locale: string
 }) {
   const doc = useStudioStore(s => s.doc)
   const selection = useStudioStore(s => s.selection)
@@ -160,34 +167,132 @@ export function StudioInspector({
               />
             </Section>
             <Section label={t('journey.studio.look')}>
-              <div className="st-row">
-                {(['none', 'bw', 'warm'] as const).map(f => (
+              <div className="st-row" style={{ flexWrap: 'wrap' }}>
+                {(['none', 'bw', 'warm', 'cool', 'fade', 'contrast'] as const).map(f => (
                   <button key={f} className={`st-chip ${el.filter === f ? 'is-on' : ''}`} onClick={() => set({ filter: f })}>
                     {t(`journey.studio.filter.${f}`)}
                   </button>
                 ))}
               </div>
               <div style={{ marginTop: 8 }}>
-                <Num label={t('journey.studio.radius')} value={el.radius} min={0} max={60} step={0.5} onChange={v => set({ radius: v })} />
+                {/* A corner radius and a mask are the same idea at different
+                    resolutions, so the radius steps aside once a shape is cut. */}
+                <Num
+                  label={t('journey.studio.radius')}
+                  value={el.radius}
+                  min={0}
+                  max={60}
+                  step={0.5}
+                  onChange={v => set({ radius: v })}
+                />
+              </div>
+            </Section>
+
+            <Section label={t('journey.studio.frameStyle')}>
+              <div className="st-row" style={{ flexWrap: 'wrap' }}>
+                {([
+                  ['none', 'plainFrame'],
+                  ['polaroid', 'polaroidFrame'],
+                  ['white', 'whiteFrame'],
+                  ['shadow', 'shadowFrame'],
+                  ['film', 'filmFrame'],
+                  ['tape', 'tapeFrame'],
+                ] as const).map(([style, key]) => (
+                  <button
+                    key={style}
+                    className={`st-chip ${el.frameStyle === style ? 'is-on' : ''}`}
+                    onClick={() => set({ frameStyle: style })}
+                  >
+                    {t(`journey.studio.${key}`)}
+                  </button>
+                ))}
+              </div>
+            </Section>
+
+            <Section label={t('journey.studio.mask')}>
+              <div className="st-mini-shapes">
+                <button
+                  className={`st-mini-shape ${el.mask ? '' : 'is-on'}`}
+                  onClick={() => set({ mask: null })}
+                  title={t('journey.studio.maskNone')}
+                >
+                  <span className="st-mini-none" />
+                </button>
+                {FRAME_SHAPES.filter(sh => sh !== 'rect').map(sh => (
+                  <button
+                    key={sh}
+                    className={`st-mini-shape ${el.mask === sh ? 'is-on' : ''}`}
+                    onClick={() => set({ mask: sh })}
+                    aria-label={sh}
+                  >
+                    <ShapeGlyph shape={sh} />
+                  </button>
+                ))}
               </div>
             </Section>
           </>
         )}
 
         {el.kind === 'shape' && (
-          <Section label={t('journey.studio.shape')}>
-            <div className="st-row">
-              {(['rect', 'ellipse'] as const).map(k => (
-                <button key={k} className={`st-chip ${el.shape === k ? 'is-on' : ''}`} onClick={() => set({ shape: k })}>
-                  {t(`journey.studio.shapeKind.${k}`)}
-                </button>
-              ))}
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <Swatches value={el.fill ?? '#111111'} onPick={c => set({ fill: c })} />
-            </div>
-          </Section>
+          <>
+            <Section label={t('journey.studio.shape')}>
+              {/* Every shape, not just the two the element started as: swapping
+                  a placed shape keeps its position, size and colour, which
+                  deleting and re-adding would not. */}
+              <div className="st-mini-shapes">
+                {SHAPE_GROUPS.flatMap(g => g.shapes).map((sh: BookShapeId) => (
+                  <button
+                    key={sh}
+                    className={`st-mini-shape ${el.shape === sh ? 'is-on' : ''}`}
+                    onClick={() => set({ shape: sh })}
+                    aria-label={sh}
+                  >
+                    <ShapeGlyph shape={sh} />
+                  </button>
+                ))}
+              </div>
+              <div style={{ marginTop: 8 }}>
+                <Swatches value={el.fill ?? '#111111'} onPick={c => set({ fill: c })} />
+              </div>
+            </Section>
+
+            <Section label={t('journey.studio.strokeStyle')}>
+              <div className="st-row">
+                {([
+                  ['solid', 'strokeSolid'],
+                  ['dashed', 'strokeDashed'],
+                  ['dotted', 'strokeDotted'],
+                ] as const).map(([style, key]) => (
+                  <button
+                    key={style}
+                    className={`st-chip ${el.strokeStyle === style ? 'is-on' : ''}`}
+                    onClick={() => set({
+                      strokeStyle: style,
+                      // A stroke style with no stroke is invisible, so asking
+                      // for dashes turns the outline on rather than doing
+                      // nothing and looking broken.
+                      ...(el.stroke ? {} : { stroke: el.fill ?? '#141414', strokeWidth: el.strokeWidth || 0.5 }),
+                    })}
+                  >
+                    {t(`journey.studio.${key}`)}
+                  </button>
+                ))}
+              </div>
+              <div style={{ marginTop: 8 }}>
+                <Num
+                  label={t('journey.studio.strokeStyle')}
+                  value={el.strokeWidth}
+                  min={0}
+                  max={20}
+                  step={0.1}
+                  onChange={v => set({ strokeWidth: v, ...(v > 0 && !el.stroke ? { stroke: '#141414' } : {}) })}
+                />
+              </div>
+            </Section>
+          </>
         )}
+
+        <TravelInspector el={el} stats={stats} set={set} t={t} locale={locale} Section={Section} />
 
         <Section label={t('journey.studio.arrange')}>
           <div className="st-row">
@@ -305,25 +410,6 @@ function FocalPad({
         <span className="st-focal-dot" style={{ left: `${x * 100}%`, top: `${y * 100}%` }} />
       </div>
       <p className="st-hint" style={{ padding: '6px 0 0' }}>{hint}</p>
-    </div>
-  )
-}
-
-function Swatches({ value, onPick }: { value: string; onPick: (c: string) => void }) {
-  return (
-    <div className="st-swatches">
-      {SWATCHES.map(c => (
-        <button
-          key={c}
-          className={`st-swatch ${value.toLowerCase() === c ? 'is-on' : ''}`}
-          style={{ background: c }} // theme-lint-disable — a colour picker shows the colours themselves
-          onClick={() => onPick(c)}
-          aria-label={c}
-        />
-      ))}
-      <label className="st-swatch st-swatch-custom">
-        <input type="color" value={value} onChange={e => onPick(e.target.value)} />
-      </label>
     </div>
   )
 }
