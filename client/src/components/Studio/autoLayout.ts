@@ -252,7 +252,7 @@ function mapEl(
      */
     path: [],
     fitPadding: 0.18,
-    fitToCountries: false,
+    fitToCountries: true,
     clip: 'rect',
     ...opts,
   } as BookElement

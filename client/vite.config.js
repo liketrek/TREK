@@ -22,6 +22,19 @@ export default defineConfig(({ mode }) => ({
         enabled: true,
         type: 'module',
         suppressWarnings: true,
+        /*
+         * No navigation fallback from the dev service worker.
+         *
+         * `workbox.navigateFallback` below is right for production: offline, a
+         * deep link has to be answered by the cached shell. In development it
+         * means the worker answers a reload with the index.html it cached
+         * earlier, whose <script> tags point at module URLs from before the last
+         * restart — so the browser faithfully re-runs the previous version of
+         * the app while the editor shows the new one, and every explanation for
+         * that is wrong until someone thinks of the service worker. It cost
+         * several rounds of "I don't see the change" to find.
+         */
+        navigateFallback: undefined,
       },
       workbox: {
         // Anything above this is dropped from the precache manifest. The build does

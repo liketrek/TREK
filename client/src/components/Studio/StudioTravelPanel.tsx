@@ -156,6 +156,26 @@ export function StudioTravelPanel({
   /** Which outlines a cut map would have to cut against. */
   const countryCodes = stats.countries.map(c => c.code)
 
+  /**
+   * One country, as the entry a list would have made of it.
+   *
+   * The list and the grid are gone: they were compositions somebody else made,
+   * deciding the order, the spacing and the type size, and the only way to
+   * change any of that was to not use them. What is left is the same entry —
+   * name over silhouette, set the same way — as an element you place one at a
+   * time. Three of them down a page is the list, with the spacing yours; one of
+   * them at 80mm is a chapter opener, which the list could never be.
+   *
+   * The name is editable afterwards, so numbering them "1. Germany",
+   * "2. Netherlands" is typing rather than a feature.
+   */
+  const countryEl = (code: string): BookElement => ({
+    ...base, id: uid('co'), kind: 'countries',
+    frame: centre(page.pageWidth * 0.34, 34),
+    codes: [code], names: [countryName(code)],
+    layout: 'list', showOutline: true, showFlag: false, showName: true, align: 'center',
+  } as BookElement)
+
   const mapEl = (
     style: 'minimal' | 'outline' | 'dark' | 'paper',
     source: 'vector' | 'tiles' | 'static' = 'vector',
@@ -176,7 +196,7 @@ export function StudioTravelPanel({
      */
     path,
     fitPadding: 0.18,
-    fitToCountries: false,
+    fitToCountries: true,
   } as BookElement)
 
   /*
@@ -294,51 +314,6 @@ export function StudioTravelPanel({
                 })}
               </div>
 
-              {/*
-                Real imagery, from whatever this instance is already configured
-                with. Only the sources that have something behind them appear —
-                offering Mapbox with no token produces a grey rectangle and no
-                explanation anywhere for why.
-              */}
-              {mapSources.filter(src => src.id !== 'vector').length > 0 && (
-                <div className="st-travel-grid" style={{ marginTop: 6 }}>
-                  {mapSources.filter(src => src.id !== 'vector').map(src => {
-                    const el = mapEl('minimal', src.id, src.url, src.attribution)
-                    return (
-                      <Card key={src.id} label={t(src.labelKey)} onClick={() => place(el)}>
-                        <TravelPreview el={el} minHeight={62} maxHeight={80} />
-                      </Card>
-                    )
-                  })}
-                </div>
-              )}
-
-              {/*
-                The same map with the box taken away.
-
-                A rectangle of map is a figure on a page: it needs a border, a
-                caption, somewhere to sit. The country cut out of it is a shape,
-                and a shape can be laid over a photograph, bled off an edge or
-                set beside a paragraph the way an illustration is. It is the
-                same data and a completely different page.
-              */}
-              {countryCodes.length > 0 && (
-                <div className="st-travel-grid" style={{ marginTop: 6 }}>
-                  {[
-                    { id: 'vector' as const, url: '', attribution: '', key: 'journey.studio.mapCutVector' },
-                    ...mapSources
-                      .filter(src => src.id === 'tiles')
-                      .map(src => ({ id: src.id, url: src.url, attribution: src.attribution, key: 'journey.studio.mapCutTiles' })),
-                  ].map(src => {
-                    const el = mapEl('minimal', src.id, src.url, src.attribution, 'country')
-                    return (
-                      <Card key={`cut-${src.id}`} label={t(src.key)} onClick={() => place(el)}>
-                        <TravelPreview el={el} minHeight={62} maxHeight={80} />
-                      </Card>
-                    )
-                  })}
-                </div>
-              )}
             </>
           ) : (
             <p className="st-hint">{t('journey.studio.noRoute')}</p>
@@ -360,11 +335,27 @@ export function StudioTravelPanel({
                 through several countries actually wants.
               */}
               <div className="st-travel-grid">
-                {stats.countries.slice(0, 8).map(c => {
-                  const el = badgeEl('country', countryName(c.code), '', c.code)
+                {stats.countries.slice(0, 12).map(c => {
+                  const el = countryEl(c.code)
                   return (
                     <Card key={c.code} label={countryName(c.code)} onClick={() => place(el)}>
-                      <TravelPreview el={el} minHeight={34} maxHeight={48} />
+                      <TravelPreview el={el} minHeight={44} maxHeight={64} />
+                    </Card>
+                  )
+                })}
+              </div>
+
+              {/*
+                And the same country as a mark: the outline beside the name
+                rather than under it, at the size of a line of type. It belongs
+                next to a date or a coordinate, not on a page of its own.
+              */}
+              <div className="st-travel-grid" style={{ marginTop: 6 }}>
+                {stats.countries.slice(0, 12).map(c => {
+                  const el = badgeEl('country', countryName(c.code), '', c.code)
+                  return (
+                    <Card key={`mark-${c.code}`} label={countryName(c.code)} onClick={() => place(el)}>
+                      <TravelPreview el={el} minHeight={30} maxHeight={44} />
                     </Card>
                   )
                 })}

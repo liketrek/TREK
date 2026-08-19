@@ -336,13 +336,15 @@ export const bookMapElementSchema = z.object({
    */
   fitPadding: z.number().min(0).max(4).default(0.18),
   /**
-   * Fit to the countries instead of to the stops.
+   * Fit to the countries rather than to the stops.
    *
-   * For the one page every travel book has: the whole country, coloured in,
-   * with the route somewhere inside it. It is a deliberate choice rather than
-   * what happens by accident when a route is small.
+   * The default, because it is the picture a travel book usually wants: the
+   * country, with the route inside it. Fitting to the stops is the other half
+   * of the choice and matters as soon as the trip is smaller than the country
+   * it happened in — a week in Berlin drawn as the whole of Germany is two
+   * dots in a large empty shape.
    */
-  fitToCountries: z.boolean().default(false),
+  fitToCountries: z.boolean().default(true),
   /**
    * The shape the map is cut to.
    *

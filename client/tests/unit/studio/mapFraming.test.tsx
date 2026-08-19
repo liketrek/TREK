@@ -41,7 +41,7 @@ const map = (over: Record<string, unknown> = {}): BookElement => ({
 
 function draw(el: BookElement) {
   const spread: BookSpread = { id: 's', role: 'inner', background: null, elements: [el], parked: [], entryId: null }
-  return render(<SpreadView spread={spread} page={page} single />)
+  return render(<SpreadView spread={spread} page={page} />)
 }
 
 /** How far apart the two pins are drawn, in the SVG's own units. */
