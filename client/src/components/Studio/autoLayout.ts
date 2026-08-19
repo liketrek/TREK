@@ -191,7 +191,8 @@ const travelBase = {
   locked: false,
   font: 'sans' as const,
   color: INK,
-  accent: ACCENT,
+  // Ink, not the app's orange — see the note on `accent` in the contract.
+  accent: INK,
   textScale: 1,
   stale: false,
 }
@@ -589,6 +590,61 @@ function stationsSpread(entries: AutoEntry[], input: AutoInput, label: string): 
  */
 
 /**
+ * ── The panels ───────────────────────────────────────────────────────────
+ *
+ * The thing the first version of this file was missing.
+ *
+ * A printed travel book is not photographs on paper with captions: it is
+ * built out of *areas* — a page laid solid in ink with pale type on it, a band
+ * down the outer edge, a picture that overruns the panel it sits against, a
+ * box ruled around a block of text. Those areas are what carry the design, and
+ * every one of them is a rectangle with a fill, drawn before the things that
+ * sit on top of it.
+ *
+ * Which is all layering is: the document paints in array order, so a panel
+ * pushed first is a panel everything else lands on. Nothing here needs a
+ * feature the editor does not already have — it needed using.
+ */
+
+/** Near-black with a blue cast, the colour these books lay a page in. */
+const PANEL_INK = '#12161d' // theme-lint-disable — book ink, not app chrome
+
+/** Type on a panel, and the paper colour of the quiet pages. */
+const PANEL_TYPE = '#f2efe9' // theme-lint-disable — book ink, not app chrome
+const CREAM = '#faf8f4' // theme-lint-disable — book ink, not app chrome
+
+/** A whole page laid in colour, bleeding off its three outer edges. */
+function pagePanel(page: BookPageSetup, side: 'left' | 'right', fill: string): BookElement {
+  const b = page.bleed
+  return shape({
+    x: side === 'left' ? -b : page.pageWidth,
+    y: -b,
+    w: page.pageWidth + b,
+    h: page.pageHeight + b * 2,
+  }, fill)
+}
+
+/** A band down the outer edge — the cheapest mark that says "designed". */
+function edgeBand(page: BookPageSetup, side: 'left' | 'right', fill: string, width = 8): BookElement {
+  const b = page.bleed
+  return shape({
+    x: side === 'left' ? -b : page.pageWidth * 2 - width,
+    y: -b,
+    w: width + b,
+    h: page.pageHeight + b * 2,
+  }, fill)
+}
+
+/** A box ruled around something, with nothing inside it. */
+function ruleBox(
+  frame: { x: number; y: number; w: number; h: number },
+  colour: string,
+  radius = 0,
+): BookElement {
+  return shape(frame, null, { stroke: colour, strokeWidth: 0.3, radius })
+}
+
+/**
  * Which page the picture is on. Alternating keeps the book moving.
  *
  * Named for the picture rather than the words because that is the half a reader
@@ -891,7 +947,7 @@ function immersiveSpread(ctx: EntryContext): BookSpread {
   const els: BookElement[] = []
   const hero = entry.photos[0]
 
-  els.push(photo(bleedFrame(page, true), hero.photoId, { focalY: 0.45 }))
+  els.push(photo(bleedFrame(page, true), hero ? hero.photoId : null, { focalY: 0.45 }))
 
   // A panel behind the type: white on an unknown photograph is a coin toss.
   els.push(shape({ x: -page.bleed, y: H * 0.56, w: W + page.bleed * 2, h: H * 0.44 + page.bleed }, '#0d0d0f', { // theme-lint-disable — book ink, not app chrome
@@ -916,6 +972,152 @@ function immersiveSpread(ctx: EntryContext): BookSpread {
   if (coords) els.push(coords)
 
   return sheet(els, entry, '#0d0d0f') // theme-lint-disable — book ink, not app chrome
+}
+
+/**
+ * A page laid in ink, the picture overrunning it.
+ *
+ * The composition these books use more than any other: one page solid, the
+ * other a photograph, and something crossing the join so the two halves read
+ * as one sheet rather than as two pages that happen to be adjacent. Here the
+ * crossing is a second picture, sitting half on the panel and half off it.
+ */
+function panelSpread(ctx: EntryContext): BookSpread {
+  const { entry, input, hand } = ctx
+  const { page } = input
+  const H = page.pageHeight
+  const m = 20
+  const els: BookElement[] = []
+  const [hero, ...rest] = entry.photos
+
+  const panelSide = hand === 'left' ? 'right' : 'left'
+  const panelX = panelSide === 'left' ? 0 : page.pageWidth
+  const tx = panelX + m
+  const colW = page.pageWidth - m * 2
+
+  // The panel first: everything after it lands on top.
+  els.push(pagePanel(page, panelSide, PANEL_INK))
+
+  if (hero) {
+    els.push(photo({
+      x: panelSide === 'left' ? page.pageWidth : -page.bleed,
+      y: -page.bleed,
+      w: page.pageWidth + page.bleed,
+      h: H + page.bleed * 2,
+    }, hero.photoId, { focalX: isPortrait(hero) ? 0.5 : 0.55 }))
+  } else {
+    els.push(photo({
+      x: (panelSide === 'left' ? page.pageWidth : 0) + m,
+      y: m,
+      w: colW,
+      h: H - m * 2,
+    }, null))
+  }
+
+  const flag = flagRow({ x: tx, y: m, w: colW, h: 7 }, entry.country ?? null, countryOf(entry, input))
+  if (flag) els.push(flag)
+
+  const cy = headingBlock(els, entry, input, tx, m + 30, colW, {
+    size: 21, ink: PANEL_TYPE, muted: '#a8a094', // theme-lint-disable — book ink, not app chrome
+  })
+  const story = (entry.story || '').trim()
+  if (story) {
+    els.push(text({ x: tx, y: cy + 3, w: colW, h: H - cy - m - 46 }, story, {
+      size: 9.5, leading: 1.66, color: '#d9d4cb', // theme-lint-disable — book ink, not app chrome
+      binding: { source: 'entry.story', entryId: entry.id },
+    }))
+  }
+
+  /*
+   * A second picture across the fold, half on the panel.
+   *
+   * This is the whole point of the layout: without it the spread is two pages,
+   * with it the spread is one. Pushed last so it sits over both.
+   */
+  const crossing = rest[0]
+  if (crossing) {
+    const cw = 62
+    const ch = 46
+    els.push(photo({
+      x: page.pageWidth - cw * 0.55,
+      y: H - m - ch - 14,
+      w: cw,
+      h: ch,
+    }, crossing.photoId, { radius: 1 }))
+  }
+
+  footMarks(els, ctx, tx, colW, H - m - 4)
+  return sheet(els, entry, CREAM)
+}
+
+/**
+ * A band down the edge, a ruled box, and pictures at two sizes.
+ *
+ * The quiet counterpart to the panel spread — nothing solid across a whole
+ * page, but enough drawing that it does not read as a photograph with a
+ * caption. The box around the text is doing the same job a panel does: it
+ * makes the words an object on the page rather than something poured onto it.
+ */
+function bandSpread(ctx: EntryContext): BookSpread {
+  const { entry, input, hand } = ctx
+  const { page } = input
+  const H = page.pageHeight
+  const m = 20
+  const gut = 5
+  const els: BookElement[] = []
+  const photos = entry.photos
+
+  const bandSide = hand === 'left' ? 'left' : 'right'
+  els.push(edgeBand(page, bandSide, ACCENT, 6))
+
+  // The big picture takes most of one page, off the top and the outer edge.
+  const heroSide = hand === 'left' ? 'left' : 'right'
+  const heroX = heroSide === 'left' ? 6 : page.pageWidth
+  const heroW = page.pageWidth - 6 + (heroSide === 'left' ? 0 : page.bleed)
+  if (photos[0]) {
+    els.push(photo({ x: heroX, y: -page.bleed, w: heroW, h: H * 0.62 }, photos[0].photoId))
+  } else {
+    els.push(photo({ x: heroX + m, y: m, w: heroW - m * 2, h: H * 0.5 }, null))
+  }
+
+  const textPage = heroSide === 'left' ? page.pageWidth : 0
+  const tx = textPage + m
+  const colW = page.pageWidth - m * 2
+
+  // The words in a ruled box, set in from it on every side.
+  const boxY = m + 6
+  const boxH = H * 0.52
+  els.push(ruleBox({ x: tx, y: boxY, w: colW, h: boxH }, '#d8d2c6', 1.5)) // theme-lint-disable — book ink, not app chrome
+
+  const flag = flagRow({ x: tx + 8, y: boxY + 8, w: colW - 16, h: 6 }, entry.country ?? null, countryOf(entry, input))
+  if (flag) els.push(flag)
+
+  const cy = headingBlock(els, entry, input, tx + 8, boxY + 30, colW - 16, { size: 18 })
+  const story = (entry.story || '').trim()
+  if (story) {
+    els.push(text({ x: tx + 8, y: cy + 2, w: colW - 16, h: boxY + boxH - cy - 12 }, story, {
+      size: 9.5, leading: 1.6, color: '#2a2a2a', // theme-lint-disable — book ink, not app chrome
+      binding: { source: 'entry.story', entryId: entry.id },
+    }))
+  }
+
+  // Two smaller pictures under the box, and one that overlaps the hero above.
+  const rest = photos.slice(1, 3)
+  if (rest.length) {
+    const cw = (colW - gut * (rest.length - 1)) / rest.length
+    rest.forEach((ph, i) => {
+      els.push(photo({ x: tx + i * (cw + gut), y: boxY + boxH + 10, w: cw, h: H * 0.2 }, ph.photoId, { radius: 1 }))
+    })
+  }
+  const overlap = photos[3]
+  if (overlap) {
+    els.push(photo({ x: heroX + 14, y: H * 0.62 - 26, w: 52, h: 40 }, overlap.photoId, { radius: 1 }))
+  }
+
+  const mark = dateMark(entry.date, input.locale, { x: heroX + 14, y: H - m - 34, w: 26, h: 22 })
+  if (mark) els.push(mark)
+  footMarks(els, ctx, tx, colW, H - m - 4)
+  return sheet(els, entry, '#ffffff') // theme-lint-disable — book ink, not app chrome
 }
 
 /** The country a stop is in, named in the book's language. */
@@ -953,13 +1155,26 @@ function entrySpread(entry: AutoEntry, input: AutoInput, index = 0): BookSpread 
   // The place page is for a stop nobody wrote about. Words want a page with
   // room for them, even when the pictures have not arrived.
   if (photos.length === 0 && !story) return placeSpread(c)
-  if (photos.length === 0) return storySpread(c)
-  if (isPano(photos[0])) return panoSpread(c)
-  // Every fourth spread with a picture goes full bleed, so the loud page stays
-  // loud. Never the first: a book should not open at its own volume.
-  if (photos.length >= 1 && index > 0 && index % 4 === 3) return immersiveSpread(c)
-  if (photos.length === 1) return storySpread(c)
-  return gallerySpread(c)
+  // Guarded: an entry can have words and no pictures at all.
+  if (photos.length > 0 && isPano(photos[0])) return panoSpread(c)
+
+  /*
+   * Six layouts on a rotation, so the book does not read as a template.
+   *
+   * By contents first — a panorama wants the fold, a stop with nothing said
+   * about it wants the place page — and then by position, so two neighbours
+   * with the same contents come out differently. The full-bleed page is kept
+   * to every sixth and never the first: a book should not open at its own
+   * volume, and a book of loud pages has no loud page.
+   */
+  switch (index % 6) {
+    case 0: return photos.length > 1 ? gallerySpread(c) : storySpread(c)
+    case 1: return panelSpread(c)
+    case 2: return photos.length > 2 ? bandSpread(c) : storySpread(c)
+    case 3: return photos.length ? immersiveSpread(c) : panelSpread(c)
+    case 4: return photos.length > 1 ? bandSpread(c) : panelSpread(c)
+    default: return photos.length > 1 ? gallerySpread(c) : storySpread(c)
+  }
 }
 
 /**

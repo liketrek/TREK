@@ -219,7 +219,18 @@ const typeset = {
   font: z.enum(BOOK_FONTS_IDS).default('sans'),
   color: hex.default('#1a1a1a'),
   /** The one colour that carries emphasis — the figure in a stat, the route on a map. */
-  accent: hex.default('#c2410c'),
+  /**
+   * The one colour that carries emphasis — the figure in a stat, the route on
+   * a map, the fill of a chip.
+   *
+   * Black by default, not the app's orange. A book is printed and a printed
+   * page is ink on paper; a colour that arrives without being chosen turns
+   * every travel element into the same accent whether or not the book wants
+   * one. Picking a colour is one click and is what the swatches are for — and
+   * the map's dark style overrides it anyway, because black lines on a dark
+   * map are lines nobody can see.
+   */
+  accent: hex.default('#111111'),
   /** Scales every piece of type in the element at once. 1 is the drawn default. */
   textScale: z.number().min(0.4).max(3).default(1),
   /** Set when the journey has moved on since these values were taken. */

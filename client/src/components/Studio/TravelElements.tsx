@@ -99,10 +99,24 @@ export function TravelElementView({ el, frameStyle }: { el: BookElement; frameSt
  * land is drawn, which is enough.
  */
 const MAP_PALETTES = {
-  minimal: { land: '#e9e5dc', border: '#d6d0c4' },
-  outline: { land: 'transparent', border: '#b9b3a6' },
-  dark: { land: '#2b3038', border: '#4a515c' },
-  paper: { land: '#efe8d8', border: '#cbbb96' },
+  minimal: { land: '#e9e5dc', border: '#d6d0c4', onDark: false },
+  outline: { land: 'transparent', border: '#b9b3a6', onDark: false },
+  dark: { land: '#2b3038', border: '#4a515c', onDark: true },
+  paper: { land: '#efe8d8', border: '#cbbb96', onDark: false },
+}
+
+/**
+ * What the route is drawn in.
+ *
+ * The element's accent, except on the dark map, where the accent's default —
+ * ink — would be a black line on a near-black country. A colour someone chose
+ * is still theirs: only the default is overridden, and only where it would be
+ * invisible.
+ */
+const DEFAULT_ACCENT = '#111111' // theme-lint-disable — the contract's default, matched here
+function routeInk(accent: string, onDark: boolean): string {
+  if (!onDark) return accent
+  return accent.toLowerCase() === DEFAULT_ACCENT ? '#f2efe9' : accent // theme-lint-disable — paper on a dark map
 }
 
 /**
@@ -116,6 +130,7 @@ const MAP_PALETTES = {
  */
 function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProperties }) {
   const palette = MAP_PALETTES[el.style]
+  const ink = routeInk(el.accent, palette.onDark)
   /*
    * Country outlines are the vector map's *subject*; over real imagery they are
    * a second coastline drawn on top of the one in the picture. So they are only
@@ -209,7 +224,7 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
           <polyline
             points={route.map(p => `${p.x},${p.y}`).join(' ')}
             fill="none"
-            stroke={el.accent}
+            stroke={ink}
             strokeWidth={routeWidth}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -224,8 +239,8 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
             r={i === 0 || i === route.length - 1 ? pin * 1.5 : pin}
             // The intermediate stops are hollow, so a run of them reads as a
             // dotted line rather than as a caterpillar.
-            fill={i === 0 || i === route.length - 1 ? el.accent : '#ffffff'}
-            stroke={el.accent}
+            fill={i === 0 || i === route.length - 1 ? ink : (palette.onDark ? '#2b3038' : '#ffffff')}
+            stroke={ink}
             strokeWidth={routeWidth * 0.6}
           />
         ))}

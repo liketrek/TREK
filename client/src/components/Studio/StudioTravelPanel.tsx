@@ -114,7 +114,7 @@ export function StudioTravelPanel({
 
   const base = {
     rotation: 0, opacity: 1, locked: false,
-    font: 'sans' as const, color: '#1a1a1a', accent: '#c2410c', textScale: 1, stale: false,
+    font: 'sans' as const, color: '#1a1a1a', accent: '#111111', textScale: 1, stale: false,
   }
 
   /**
