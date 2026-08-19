@@ -54,6 +54,14 @@ export interface Sheet {
   height: number
   /** Width of the whole spread behind the window, for positioning it. */
   spreadWidth: number
+  /**
+   * Whether this leaf is one page rather than two.
+   *
+   * Covers are, in both modes. It matters to the print CSS: a document that
+   * mixes widths needs a second `@page` rule for the narrow sheets, or they get
+   * laid onto the wide page box with white either side.
+   */
+  single: boolean
   /** A label for the print view — "3", or "2 – 3" for a spread. */
   label: string
 }
@@ -111,6 +119,7 @@ export function sheetsFor(doc: BookDocument, mode: SheetMode): Sheet[] {
         width: spreadWidth,
         height: pageHeight,
         spreadWidth,
+        single,
         label: single ? '' : folioRange(spreadIndex, pageNumbers.startAt),
       })
       return;
@@ -124,6 +133,7 @@ export function sheetsFor(doc: BookDocument, mode: SheetMode): Sheet[] {
         width: pageWidth,
         height: pageHeight,
         spreadWidth,
+        single: true,
         label: String(folio(spreadIndex, pageNumbers.startAt) + half),
       })
     }

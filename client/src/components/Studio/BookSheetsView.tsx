@@ -28,46 +28,43 @@ export function BookSheetsView({
 }) {
   const sheets = sheetsFor(doc, mode)
 
-  /*
-   * Every sheet is the same size, so the print CSS needs one `@page` rule.
-   *
-   * In spread mode that means a cover — one page wide — sits centred on a
-   * spread-wide sheet rather than getting a page box of its own. Named page
-   * rules would avoid the white margin, and are not carried by every browser
-   * that can print; a reading PDF with an evenly centred cover is the better
-   * trade. Page mode, the one an actual press gets, has no such case: every
-   * leaf is one page.
-   */
-  const widest = Math.max(...sheets.map(s => s.width), doc.page.pageWidth)
-  const box = sheetBox(widest, doc.page.pageHeight, doc.page.bleed, marks)
-
   return (
     <div className="bx-book">
       {sheets.map((sheet, i) => (
-        <SheetView key={`${sheet.spread.id}-${sheet.offset}`} sheet={sheet} doc={doc} box={box} marks={marks} last={i === sheets.length - 1} />
+        <SheetView
+          key={`${sheet.spread.id}-${sheet.offset}`}
+          sheet={sheet}
+          doc={doc}
+          marks={marks}
+          last={i === sheets.length - 1}
+        />
       ))}
     </div>
   )
 }
 
 function SheetView({
-  sheet, doc, box, marks, last,
+  sheet, doc, marks, last,
 }: {
   sheet: Sheet
   doc: BookDocument
-  box: ReturnType<typeof sheetBox>
   marks: boolean
   last: boolean
 }) {
   /*
-   * A sheet narrower than the box is centred in it — see the note above about
-   * one `@page` rule. In page mode this is always zero.
+   * Each sheet is sized to what is on it, not to the widest in the book.
+   *
+   * A cover is one page wide and a spread is two, and in spread mode they sit
+   * in the same document. Making every sheet the wider of the two — so that one
+   * `@page` rule would cover them all — put a cover in the middle of a
+   * spread-sized page with white either side, which is not a cover. The print
+   * CSS carries a named page rule for the narrow ones instead.
    */
-  const inset = (box.width - box.margin * 2 - sheet.width) / 2
+  const box = sheetBox(sheet.width, sheet.height, doc.page.bleed, marks)
 
   return (
     <div
-      className="bx-sheet"
+      className={`bx-sheet${sheet.single ? ' is-single' : ''}`}
       data-label={sheet.label}
       style={{
         position: 'relative',
@@ -88,7 +85,7 @@ function SheetView({
       <div
         style={{
           position: 'absolute',
-          left: `${box.margin - box.bleed + inset}mm`,
+          left: `${box.margin - box.bleed}mm`,
           top: `${box.margin - box.bleed}mm`,
           width: `${sheet.width + box.bleed * 2}mm`,
           height: `${sheet.height + box.bleed * 2}mm`,
@@ -117,7 +114,7 @@ function SheetView({
         </div>
       </div>
 
-      {marks && <CropMarks box={box} width={sheet.width} height={sheet.height} inset={inset} />}
+      {marks && <CropMarks box={box} width={sheet.width} height={sheet.height} />}
     </div>
   )
 }
@@ -130,14 +127,13 @@ function SheetView({
  * a mark that stays in the finished book.
  */
 function CropMarks({
-  box, width, height, inset,
+  box, width, height,
 }: {
   box: ReturnType<typeof sheetBox>
   width: number
   height: number
-  inset: number
 }) {
-  const left = box.margin + inset
+  const left = box.margin
   const top = box.margin
   const right = left + width
   const bottom = top + height

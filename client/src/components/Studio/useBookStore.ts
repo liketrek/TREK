@@ -100,6 +100,16 @@ export function useBookStore(
   const hasLocalWork = () =>
     !!pending.current || inFlight.current || (!!latest.current && latest.current !== synced.current)
 
+  /**
+   * Set while a conflict is on screen, and nothing is written until it clears.
+   *
+   * Without it the editor keeps offering the same rejected document: every
+   * change queues a save, every save is refused, and the refusal re-renders the
+   * thing that queued it. The user sees a status that flickers and the server
+   * sees a client hammering it — over a question only the user can answer.
+   */
+  const blocked = useRef(false)
+
   /** Kept in a ref so the socket listener is not re-subscribed per render. */
   const onRemoteRef = useRef(onRemote)
   onRemoteRef.current = onRemote
@@ -135,7 +145,7 @@ export function useBookStore(
 
   const write = useCallback(async () => {
     const next = pending.current
-    if (!next || inFlight.current) return
+    if (!next || inFlight.current || blocked.current) return
     inFlight.current = true
     pending.current = null
     firstDirtyAt.current = null
@@ -161,6 +171,7 @@ export function useBookStore(
        */
       const res = (err as { response?: { status?: number; data?: { current?: BookRecord } } }).response
       if (res?.status === 409 && res.data?.current) {
+        blocked.current = true
         setState({ status: 'conflict', current: res.data.current })
       } else {
         setState({ status: 'error' })
@@ -204,6 +215,7 @@ export function useBookStore(
   /** Take the other version, discarding the local one. */
   const acceptTheirs = useCallback((current: BookRecord) => {
     const document = normalizeBookDocument(current.document)
+    blocked.current = false
     setRecord({ ...current, document })
     version.current = current.version
     synced.current = document
@@ -223,6 +235,7 @@ export function useBookStore(
    */
   const keepMine = useCallback((current: BookRecord) => {
     version.current = current.version
+    blocked.current = false
     setState({ status: 'idle' })
   }, [])
 

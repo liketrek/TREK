@@ -40,8 +40,15 @@ export function StudioExport({
   const stage = useRef<HTMLDivElement>(null)
 
   const sheets = sheetsFor(doc, mode)
+
+  /*
+   * Two sizes, because spread mode mixes them: covers are one page and
+   * everything between them is two. The wider one is the document's page box
+   * and the narrower gets a named rule — see printSheets.
+   */
   const widest = Math.max(...sheets.map(s => s.width), doc.page.pageWidth)
   const box = sheetBox(widest, doc.page.pageHeight, doc.page.bleed, marks)
+  const single = sheetBox(doc.page.pageWidth, doc.page.pageHeight, doc.page.bleed, marks)
 
   useEffect(() => {
     if (!building) return
@@ -52,6 +59,8 @@ export function StudioExport({
       html,
       sheetWidth: box.width,
       sheetHeight: box.height,
+      singleWidth: single.width,
+      singleHeight: single.height,
       title,
       labels: {
         save: t('journey.studio.exportSave'),

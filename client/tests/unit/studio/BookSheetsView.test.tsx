@@ -120,11 +120,11 @@ describe('cutting a spread', () => {
   })
 
   /*
-   * Every sheet is the same size so the print CSS needs one @page rule, which
-   * means a cover in spread mode sits centred rather than getting a page box of
-   * its own.
+   * A cover is one page wide and stays that way, even in a document whose other
+   * sheets are two. Sizing every sheet to the widest put the cover in the
+   * middle of a spread-sized page with white either side, which is not a cover.
    */
-  it('centres a cover on a spread-wide sheet rather than shrinking the sheet', () => {
+  it('keeps a cover at its own size next to spreads', () => {
     const { container } = render(
       <BookSheetsView
         doc={book([spread('cover', 'c'), spread('inner', 'a')])}
@@ -133,10 +133,33 @@ describe('cutting a spread', () => {
       />,
     )
     const [cover, inner] = sheets(container)
-    expect(mm(cover, 'width')).toBe(mm(inner, 'width'))
+    expect(mm(cover, 'width')).toBe(216)
+    expect(mm(inner, 'width')).toBe(426)
+    // Nothing is shifted to centre it — the window sits at the margin.
+    expect(mm(windowOf(cover), 'left')).toBe(0)
+  })
 
-    // Half a page of white on each side of the cover: (420 - 210) / 2.
-    expect(mm(windowOf(cover), 'left')).toBe(105)
+  /* And says so, so the print CSS can give it a page box of its own. */
+  it('marks the one-page sheets for the named page rule', () => {
+    const { container } = render(
+      <BookSheetsView
+        doc={book([spread('cover', 'c'), spread('inner', 'a'), spread('back', 'b')])}
+        mode="spreads"
+        marks={false}
+      />,
+    )
+    expect(sheets(container).map(s => s.classList.contains('is-single'))).toEqual([true, false, true])
+  })
+
+  it('marks every sheet single in page mode, where they all are', () => {
+    const { container } = render(
+      <BookSheetsView
+        doc={book([spread('cover', 'c'), spread('inner', 'a')])}
+        mode="pages"
+        marks={false}
+      />,
+    )
+    expect(sheets(container).every(s => s.classList.contains('is-single'))).toBe(true)
   })
 })
 

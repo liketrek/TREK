@@ -96,6 +96,32 @@ describe('the document', () => {
   })
 })
 
+describe('a document of two sheet sizes', () => {
+  /*
+   * Spread mode mixes them: covers are one page, everything between is two.
+   * Before the named rule every sheet was made as wide as the widest, which put
+   * a cover in the middle of a spread-sized page with white either side.
+   */
+  it('gives the one-page sheets a page box of their own', () => {
+    open({ sheetWidth: 426, sheetHeight: 224, singleWidth: 224, singleHeight: 224 })
+    const html = frame().srcdoc
+    expect(html).toContain('@page { size: 426mm 224mm; margin: 0; }')
+    expect(html).toContain('@page single { size: 224mm 224mm; margin: 0; }')
+    expect(html).toContain('.bx-sheet.is-single { page: single; }')
+  })
+
+  /* Page mode has one size, so a second rule would be noise. */
+  it('writes no second rule when every sheet is the same size', () => {
+    open({ sheetWidth: 224, sheetHeight: 224, singleWidth: 224, singleHeight: 224 })
+    expect(frame().srcdoc).not.toContain('@page single')
+  })
+
+  it('writes none when no single size was given at all', () => {
+    open({ sheetWidth: 224, sheetHeight: 224 })
+    expect(frame().srcdoc).not.toContain('@page single')
+  })
+})
+
 describe('fitting the preview', () => {
   /*
    * A spread sheet is over 400 mm across — wider than any preview pane at 1:1 —

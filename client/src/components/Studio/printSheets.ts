@@ -43,6 +43,15 @@ export interface PrintSheetsInput {
   /** Sheet size in millimetres, bleed and crop-mark room included. */
   sheetWidth: number
   sheetHeight: number
+  /**
+   * The size of a one-page sheet, when the document also holds two-page ones.
+   *
+   * Spread mode mixes them: the covers are single leaves and everything between
+   * is a spread. Omitted when every sheet is the same size, which is the whole
+   * of page mode.
+   */
+  singleWidth?: number
+  singleHeight?: number
   title: string
   /** Chrome for the overlay itself. */
   labels: { save: string; close: string; count: string; preparing: string }
@@ -76,6 +85,21 @@ function escapeAttr(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 }
 
+/**
+ * A page box for the single-page sheets, when the document mixes widths.
+ *
+ * A named page rule, which is how CSS says "these elements print on a different
+ * sheet size". The alternative was making every sheet as wide as the widest,
+ * and that laid a cover in the middle of a spread-sized page with white either
+ * side — which is not a cover, it is a cover with a mistake around it.
+ */
+function singleRule(input: PrintSheetsInput): string {
+  if (!input.singleWidth || !input.singleHeight) return ''
+  if (input.singleWidth === input.sheetWidth && input.singleHeight === input.sheetHeight) return ''
+  return `  @page single { size: ${input.singleWidth}mm ${input.singleHeight}mm; margin: 0; }
+  .bx-sheet.is-single { page: single; }`
+}
+
 function escapeText(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
@@ -103,6 +127,7 @@ ${collectStyles()}
    * and a printer margin on top would scale the whole thing down to fit.
    */
   @page { size: ${input.sheetWidth}mm ${input.sheetHeight}mm; margin: 0; }
+${singleRule(input)}
   /*
    * On screen the sheets are scaled to fit the window; on paper they are not.
    *

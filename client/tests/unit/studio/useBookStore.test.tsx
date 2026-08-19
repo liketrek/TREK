@@ -336,6 +336,45 @@ describe('conflicts', () => {
     expect(result.current.state.status).toBe('error')
   })
 
+  /*
+   * The one that turned into a loop on screen: every change queued a save,
+   * every save was refused, and the refusal re-rendered the thing that queued
+   * it. A conflict is a question only the user can answer, so nothing is
+   * written until they have.
+   */
+  it('stops writing until the conflict is answered', async () => {
+    api.saveBook.mockRejectedValue(conflictError(record({ version: 6 })))
+    const { result } = await mount()
+
+    act(() => { result.current.queueSave(doc('mine'), 'T') })
+    await tick()
+    expect(api.saveBook).toHaveBeenCalledTimes(1)
+
+    // More edits arrive; none of them go out.
+    act(() => { result.current.queueSave(doc('mine again'), 'T') })
+    await tick()
+    act(() => { result.current.queueSave(doc('and again'), 'T') })
+    await tick()
+    expect(api.saveBook).toHaveBeenCalledTimes(1)
+  })
+
+  it('writes again once the user has chosen', async () => {
+    const theirs = record({ version: 6 })
+    api.saveBook.mockRejectedValueOnce(conflictError(theirs))
+    const { result } = await mount()
+
+    act(() => { result.current.queueSave(doc('mine'), 'T') })
+    await tick()
+    expect(result.current.state.status).toBe('conflict')
+
+    api.saveBook.mockResolvedValue(record({ version: 7 }))
+    act(() => { result.current.keepMine(theirs) })
+    act(() => { result.current.queueSave(doc('mine again'), 'T') })
+    await tick()
+
+    expect(api.saveBook).toHaveBeenCalledTimes(2)
+  })
+
   it('returns their document when their version is taken, and drops the pending write', async () => {
     const theirs = record({ version: 6, document: doc('theirs') })
     api.saveBook.mockRejectedValue(conflictError(theirs))

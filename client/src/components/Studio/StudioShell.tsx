@@ -6,13 +6,14 @@ import {
   Redo2, Sparkles, Undo2,
 } from 'lucide-react'
 import { useJourneyStudio } from '../../pages/journeyStudio/useJourneyStudio'
-import { PAGE_MAX_MM, PAGE_MIN_MM, PAGE_PRESET_ORDER, PAGE_PRESETS } from './pagePresets'
+import { PAGE_PRESET_ORDER, PAGE_PRESETS } from './pagePresets'
 import { StudioSidebar } from './StudioSidebar'
 import { StudioCanvas } from './StudioCanvas'
 import { StudioInspector } from './StudioInspector'
 import { StudioWordmark } from './StudioWordmark'
 import { SaveIndicator } from './SaveIndicator'
 import { StudioExport } from './StudioExport'
+import { TrimField } from './TrimField'
 import '../../styles/dashboard.css'
 import '../../styles/studio.css'
 
@@ -361,31 +362,17 @@ function FormatPicker({ s }: { s: Studio }) {
           */}
           <div className="st-menu-sep" />
           <div className="st-menu-custom">
-            <label>
-              <span>{s.t('journey.studio.width')}</span>
-              <input
-                type="number"
-                inputMode="decimal"
-                value={Math.round(s.page.pageWidth * 10) / 10}
-                min={PAGE_MIN_MM}
-                max={PAGE_MAX_MM}
-                step={1}
-                onChange={e => s.setPageSize('w', Number(e.target.value))}
-              />
-            </label>
+            <TrimField
+              label={s.t('journey.studio.width')}
+              value={s.page.pageWidth}
+              onCommit={v => s.setPageSize('w', v)}
+            />
             <span className="st-menu-times">×</span>
-            <label>
-              <span>{s.t('journey.studio.height')}</span>
-              <input
-                type="number"
-                inputMode="decimal"
-                value={Math.round(s.page.pageHeight * 10) / 10}
-                min={PAGE_MIN_MM}
-                max={PAGE_MAX_MM}
-                step={1}
-                onChange={e => s.setPageSize('h', Number(e.target.value))}
-              />
-            </label>
+            <TrimField
+              label={s.t('journey.studio.height')}
+              value={s.page.pageHeight}
+              onCommit={v => s.setPageSize('h', v)}
+            />
             <span className="st-menu-unit">mm</span>
           </div>
         </div>

@@ -100,6 +100,9 @@ export function useJourneyStudio() {
    * afternoon went with it.
    */
   const book = useBookStore(journeyId, loadDoc)
+  // Pulled out because close() needs it and the store object itself is new on
+  // every render — depending on that made the save effect fire per render.
+  const { queueSave, saveNow, loaded: bookLoaded } = book
 
   const workRef = useRef<HTMLDivElement>(null)
   const builtFor = useRef<number | null>(null)
@@ -183,7 +186,7 @@ export function useJourneyStudio() {
         pageHeight: preset.pageHeightMm,
         bleed: preset.bleedMm,
         safe: preset.safeMm,
-        pageNumbers: { show: false, startAt: 2, position: 'outer', margin: 12, size: 8, color: '#8a8578', font: 'sans' },
+        pageNumbers: bookPageSetupSchema.shape.pageNumbers.parse({}),
       },
       stats,
     }
@@ -331,9 +334,18 @@ export function useJourneyStudio() {
    * open nor an incoming change shows up as an edit.
    */
   useEffect(() => {
-    if (!doc || !book.loaded || !journey) return
-    book.queueSave(doc, journey.title || '')
-  }, [doc, book, journey])
+    if (!doc || !bookLoaded || !journey) return
+    queueSave(doc, journey.title || '')
+    /*
+     * The callbacks, never the store object.
+     *
+     * useBookStore returns a fresh object every render, so depending on it ran
+     * this effect on every render — and after a conflict, where the local
+     * document is by definition not the saved one, that meant a save attempt
+     * per render: a 409, a re-render, another attempt, without end. The
+     * callbacks are memoised, so these dependencies hold still.
+     */
+  }, [doc, queueSave, bookLoaded, journey])
 
   /** Largest zoom at which the whole spread still fits the workbench. */
   const fitZoom = useCallback(() => {
@@ -376,11 +388,11 @@ export function useJourneyStudio() {
   const close = useCallback(() => {
     // Whatever is still queued goes now: the debounce exists so a drag is one
     // request, not so the last edit before closing is lost.
-    void book.saveNow()
+    void saveNow()
     setClosing(true)
     // Mirrors the exit duration in studio.css.
     window.setTimeout(() => navigate(backTo, { replace: true }), 180)
-  }, [navigate, backTo, book])
+  }, [navigate, backTo, saveNow])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -471,9 +483,10 @@ export function useJourneyStudio() {
     relayoutCurrentSpread,
     canRelayoutSpread,
 
-    /** Autosave: its state, and the two ways out of a conflict. */
     /** Applying the other side of a conflict replaces the open document. */
     loadDoc,
+
+    /** Autosave: its state, and the two ways out of a conflict. */
     saveState: book.state,
     saveNow: book.saveNow,
     acceptTheirs: book.acceptTheirs,
