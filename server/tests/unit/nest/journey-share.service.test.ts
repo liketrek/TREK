@@ -495,6 +495,55 @@ describe('getPublicJourney', () => {
     expect(e.story).toBeUndefined(); // narrative withheld
   });
 
+  // #1614 — a photo now carries the coordinates it was taken at. That is a place
+  // the owner never typed, so it has to follow the same switch the entry
+  // coordinates follow rather than riding in on the gallery flag.
+  it('JOURNEY-SHARE-025: withholds photo capture coordinates when the map flag is off', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id, {
+      type: 'entry', title: 'Day 1', story: 'notes', entry_date: '2026-05-01',
+    });
+    const trekId = insertJourneyPhoto(entry.id, { ownerId: user.id });
+    testDb.prepare('UPDATE trek_photos SET lat = ?, lng = ?, taken_at = ? WHERE id = ?')
+      .run(48.8584, 2.2945, '2026-05-01T10:00:00Z', trekId);
+
+    const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
+      share_timeline: true, share_gallery: true, share_map: false,
+    });
+
+    const result = svc.getPublicJourney(token)!;
+    const gallery = result.gallery as Record<string, unknown>[];
+    expect(gallery).toHaveLength(1);
+    expect(gallery[0].lat).toBeNull();
+    expect(gallery[0].lng).toBeNull();
+    // The capture time is not a location and stays — it is what a blog view sorts by.
+    expect(gallery[0].taken_at).toBe('2026-05-01T10:00:00Z');
+
+    const inline = (result.entries[0] as Record<string, unknown>).photos as Record<string, unknown>[];
+    expect(inline[0].lat).toBeNull();
+    expect(inline[0].lng).toBeNull();
+  });
+
+  it('JOURNEY-SHARE-026: hands out photo coordinates once the map is shared', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id, {
+      type: 'entry', title: 'Day 1', entry_date: '2026-05-01',
+    });
+    const trekId = insertJourneyPhoto(entry.id, { ownerId: user.id });
+    testDb.prepare('UPDATE trek_photos SET lat = ?, lng = ? WHERE id = ?')
+      .run(48.8584, 2.2945, trekId);
+
+    const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
+      share_timeline: true, share_gallery: true, share_map: true,
+    });
+
+    const gallery = svc.getPublicJourney(token)!.gallery as Record<string, unknown>[];
+    expect(gallery[0].lat).toBe(48.8584);
+    expect(gallery[0].lng).toBe(2.2945);
+  });
+
   it('JOURNEY-SHARE-024: strips inline entry photos (and their asset metadata) when the gallery is off', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);

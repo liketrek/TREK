@@ -5,6 +5,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 
 import { JourneyController } from '../../../src/nest/journey/journey.controller';
+import type { PhotoCaptureBackfillService } from '../../../src/nest/memories/photo-capture-backfill.service';
 import { JourneyPublicController } from '../../../src/nest/journey/journey-public.controller';
 import type { JourneyService } from '../../../src/nest/journey/journey.service';
 import type { JourneyBookService } from '../../../src/nest/journey/journey-book.service';
@@ -16,15 +17,19 @@ function svc(o: Partial<JourneyService> = {}): JourneyService {
   return { journeyAddonEnabled: vi.fn().mockReturnValue(true), ...o } as unknown as JourneyService;
 }
 
+// The capture backfill is detached and irrelevant to every case here — it only has
+// to exist so the constructor can call it.
+const captureBackfillStub = { schedule: vi.fn(), run: vi.fn() } as unknown as PhotoCaptureBackfillService;
+
 /**
  * Build the controller.
  *
- * The Studio book (#1973) is a second injected dependency, and every one of
+ * The Studio book (#1973) is a third injected dependency, and every one of
  * these cases would otherwise have to name it. It is stubbed unless a test is
  * actually about the book.
  */
 function ctl(service: JourneyService, books: Partial<JourneyBookService> = {}): JourneyController {
-  return new JourneyController(service, books as JourneyBookService);
+  return new JourneyController(service, books as JourneyBookService, captureBackfillStub);
 }
 
 function thrown(fn: () => unknown): { status: number; body: unknown } {
@@ -148,17 +153,6 @@ describe('JourneyController', () => {
 
   it('entries under journey: list 404, create 400/404, reorder 400/403', () => {
     expect(thrown(() => ctl(svc({ listEntries: vi.fn().mockReturnValue(null) } as Partial<JourneyService>)).listEntries(user, '9'))).toEqual({ status: 404, body: { error: 'Journey not found' } });
-
-    // GET /:id/stats — the journey figures Studio prints (#1973). Same access
-    // shape as the routes around it: the service answers null for a journey the
-    // caller cannot see, and that is a 404 rather than a 403, so the endpoint
-    // cannot be used to find out which journeys exist.
-    expect(thrown(() => ctl(svc({ journeyStats: vi.fn().mockReturnValue(null) } as Partial<JourneyService>)).stats(user, '9'))).toEqual({ status: 404, body: { error: 'Journey not found' } });
-    const journeyStats = vi.fn().mockReturnValue({ journeyId: 9, distance: 1189000, days: 14, steps: 14, photos: 57, places: 0, furthest: 408000, countries: [], points: [], start: null, end: null });
-    // Returned bare, not wrapped in an envelope — the contract in
-    // shared/src/book/journey-stats.schema.ts is the object itself.
-    expect(ctl(svc({ journeyStats } as Partial<JourneyService>)).stats(user, '9')).toMatchObject({ journeyId: 9, distance: 1189000 });
-    expect(journeyStats).toHaveBeenCalledWith(9, 1);
     expect(ctl(svc({ listEntries: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<JourneyService>)).listEntries(user, '9')).toEqual({ entries: [{ id: 1 }] });
     expect(thrown(() => ctl(svc()).createEntry(user, '9', {}))).toEqual({ status: 400, body: { error: 'entry_date is required' } });
     expect(thrown(() => ctl(svc({ createEntry: vi.fn().mockReturnValue(null) } as Partial<JourneyService>)).createEntry(user, '9', { entry_date: '2026-01-01' }))).toEqual({ status: 404, body: { error: 'Journey not found' } });

@@ -53,6 +53,8 @@ export function useJourneyPublic() {
 
   const timelineEntries = useMemo(() => entries, [entries])
   const groupedEntries = useMemo(() => groupByDate(timelineEntries), [timelineEntries])
+  // Chronological throughout: this is what the day colours and the stop numbers are
+  // derived from, so flipping the reading order must not renumber the trip.
   const sortedDates = useMemo(() => [...groupedEntries.keys()].sort(), [groupedEntries])
   const mapEntries = useMemo(
     () => timelineEntries.filter(e => e.location_lat && e.location_lng),
@@ -63,12 +65,16 @@ export function useJourneyPublic() {
   // Map entries with day color/label for colored markers.
   // dayIdx is derived from sortedDates (ALL timeline dates) so marker colors
   // stay in sync with the timeline day headers even when some days have no locations.
+  // The marker number used to be the stop's position *within* its day, while the
+  // timeline heading showed the day number — two different numbers in the same
+  // colour, and on mobile the heading is not rendered at all, so the key was
+  // missing entirely (#1962). It is now the stop's place in the whole journey, so
+  // every number appears exactly once and the colour still groups the day.
   const sidebarMapItems = useMemo(() => {
-    const counters = new Map<string, number>()
+    let stop = 0
     return mapEntries.map(e => {
       const dayIdx = sortedDates.indexOf(e.entry_date)
-      const dayLabel = (counters.get(e.entry_date) ?? 0) + 1
-      counters.set(e.entry_date, dayLabel)
+      const dayLabel = ++stop
       return {
         id: String(e.id),
         lat: e.location_lat!,
@@ -82,6 +88,33 @@ export function useJourneyPublic() {
       }
     })
   }, [mapEntries, sortedDates])
+
+  // The same number the marker carries, so the timeline is the key to the map
+  // rather than a second, unrelated numbering.
+  const stopNumberById = useMemo(() => {
+    const m = new Map<string, number>()
+    sidebarMapItems.forEach(i => m.set(i.id, i.dayLabel))
+    return m
+  }, [sidebarMapItems])
+
+  // Photos that know where they were taken. Only meaningful when the map is shared —
+  // the server nulls the coordinates otherwise, so this comes out empty by itself.
+  const mapPhotos = useMemo(
+    () => gallery
+      .filter(p => typeof p.lat === 'number' && typeof p.lng === 'number')
+      .map(p => ({ id: String(p.id), lat: p.lat!, lng: p.lng!, photoId: p.photo_id })),
+    [gallery],
+  )
+
+  // A journey shared while the trip is still running reads like a blog, so the owner
+  // can publish it newest-first (#1614). The reader may flip it either way; only the
+  // display order changes, never the numbering.
+  const [newestFirst, setNewestFirst] = useState<boolean | null>(null)
+  const effectiveNewestFirst = newestFirst ?? !!perms.newest_first
+  const displayDates = useMemo(
+    () => (effectiveNewestFirst ? [...sortedDates].reverse() : sortedDates),
+    [sortedDates, effectiveNewestFirst],
+  )
 
   // Two-column desktop layout: timeline feed left + sticky map right
   const desktopTwoColumn = !isMobile && perms.share_timeline && perms.share_map
@@ -102,7 +135,8 @@ export function useJourneyPublic() {
     view, setView, lightbox, setLightbox, showLangPicker, setShowLangPicker,
     mapRef, activeEntryId, setActiveEntryId, viewingEntry, setViewingEntry, handleMarkerClick,
     perms, journey, stats,
-    timelineEntries, groupedEntries, sortedDates, sidebarMapItems, allPhotos,
+    timelineEntries, groupedEntries, sortedDates, displayDates, sidebarMapItems, allPhotos, stopNumberById, mapPhotos,
+    newestFirst: effectiveNewestFirst, setNewestFirst,
     desktopTwoColumn,
   }
 }

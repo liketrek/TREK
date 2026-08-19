@@ -128,6 +128,8 @@ export const journeyShareLinkRequestSchema = z.looseObject({
   share_timeline: z.unknown().optional(),
   share_gallery: z.unknown().optional(),
   share_map: z.unknown().optional(),
+  /** Show the newest entry first, blog-style, rather than in trip order (#1614). */
+  newest_first: z.unknown().optional(),
 });
 export type JourneyShareLinkRequest = z.infer<typeof journeyShareLinkRequestSchema>;
 

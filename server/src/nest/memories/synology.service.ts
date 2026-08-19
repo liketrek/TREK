@@ -507,8 +507,10 @@ export class SynologyService {
 
       while (true) {
           const params: ApiCallParams = passphrase
-              ? { api: 'SYNO.Foto.Browse.Item', method: 'list', version: 1, passphrase, offset, limit: pageSize, additional: ['thumbnail'] }
-              : { api: 'SYNO.Foto.Browse.Item', method: 'list', version: 1, album_id: Number(albumId), offset, limit: pageSize, additional: ['thumbnail'] };
+              // 'gps' costs nothing extra on the same call and is the only way a
+              // photo picked from an album can ever reach the map (#1614).
+              ? { api: 'SYNO.Foto.Browse.Item', method: 'list', version: 1, passphrase, offset, limit: pageSize, additional: ['thumbnail', 'gps'] }
+              : { api: 'SYNO.Foto.Browse.Item', method: 'list', version: 1, album_id: Number(albumId), offset, limit: pageSize, additional: ['thumbnail', 'gps'] };
           const result = await this._requestSynologyApi<{ list: SynologyPhotoItem[] }>(userId, params);
           if (!result.success) return result as ServiceResult<AssetsList>;
           const items = result.data.list || [];
@@ -520,6 +522,8 @@ export class SynologyService {
       const assets = allItems.map(item => ({
           id: String(item.additional?.thumbnail?.cache_key || item.id || ''),
           takenAt: item.time ? new Date(item.time * 1000).toISOString() : '',
+          lat: typeof item.additional?.gps?.latitude === 'number' ? item.additional.gps.latitude : null,
+          lng: typeof item.additional?.gps?.longitude === 'number' ? item.additional.gps.longitude : null,
       })).filter(a => a.id);
 
       return success({ assets, total: assets.length, hasMore: false });

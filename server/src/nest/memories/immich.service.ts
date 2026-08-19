@@ -519,6 +519,11 @@ export class ImmichService {
           takenAt: a.fileCreatedAt || a.createdAt,
           city: a.exifInfo?.city || null,
           country: a.exifInfo?.country || null,
+          // The search path has always carried these; dropping them here meant a
+          // photo picked out of an album could never be placed on a map, and the
+          // distance sort silently had nothing to sort by (#1614).
+          lat: typeof a.exifInfo?.latitude === 'number' ? a.exifInfo.latitude : null,
+          lng: typeof a.exifInfo?.longitude === 'number' ? a.exifInfo.longitude : null,
           mediaType: a.type === 'VIDEO' ? 'video' : 'image',
         }));
       return { assets };

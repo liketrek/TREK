@@ -5,6 +5,7 @@ import {
   Cloud,
   CloudLightning,
   CloudRain,
+  ArrowUpDown,
   CloudSun,
   Frown,
   Grid,
@@ -110,8 +111,13 @@ export default function JourneyPublicPage() {
     timelineEntries,
     groupedEntries,
     sortedDates,
+    displayDates,
+    newestFirst,
+    setNewestFirst,
     sidebarMapItems,
     allPhotos,
+    stopNumberById,
+    mapPhotos,
     desktopTwoColumn,
   } = useJourneyPublic();
 
@@ -143,15 +149,44 @@ export default function JourneyPublicPage() {
       perms.share_map && { id: 'map' as const, icon: MapPin, label: t('journey.share.map') },
   ].filter(Boolean) as { id: 'timeline' | 'gallery' | 'map'; icon: any; label: string }[];
 
+  // The hook cannot build these: the thumbnail URL needs the share token, which is
+  // the credential for the byte proxy.
+  const photoLayer = token
+    ? mapPhotos.map((p: { id: string; lat: number; lng: number; photoId: number }) => ({
+        id: p.id,
+        lat: p.lat,
+        lng: p.lng,
+        thumbUrl: photoUrl({ photo_id: p.photoId }, token, 'thumbnail'),
+      }))
+    : [];
+
   // Shared timeline renderer used in both layout modes
   const renderTimeline = () => (
     <div className="flex flex-col gap-6">
       {sortedDates.length === 0 && (
         <EmptyState scene="journey" title={t('journey.detail.noEntries')} />
       )}
-      {sortedDates.map((date, dayIdx) => {
+      {/* The owner publishes a reading order; the reader may flip it. Only the order
+          changes — the day colours and the stop numbers stay chronological. */}
+      {sortedDates.length > 1 && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setNewestFirst(!newestFirst)}
+            aria-pressed={newestFirst}
+            className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 px-3 py-1.5 text-[11px] font-semibold text-zinc-600 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500"
+          >
+            <ArrowUpDown size={12} />
+            {newestFirst ? t('memories.newest') : t('memories.oldest')}
+          </button>
+        </div>
+      )}
+      {displayDates.map((date) => {
         const dayEntries = groupedEntries.get(date)!;
         const fd = formatDate(date, locale);
+        // Day index stays chronological even when the feed reads newest-first, so a
+        // day keeps its colour and its number whichever way round it is shown.
+        const dayIdx = sortedDates.indexOf(date);
         const dayColor = DAY_COLORS[dayIdx % DAY_COLORS.length];
         return (
           <div key={date}>
@@ -302,6 +337,22 @@ export default function JourneyPublicPage() {
                         <h3 className="mb-2 text-[16px] font-semibold leading-snug tracking-tight text-zinc-900 dark:text-white">
                           {entry.title}
                         </h3>
+                      )}
+
+                      {/* The number the map marker carries, so the timeline is the key
+                          to the map rather than a second, unrelated numbering (#1962).
+                          Outside the photo-count gate below: a single-photo entry puts
+                          its title and location in the image overlay, but the stop
+                          number has to be readable either way. */}
+                      {stopNumberById.has(String(entry.id)) && (
+                        <div className="mb-2">
+                          <span
+                            className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold text-white"
+                            style={{ background: dayColor }}
+                          >
+                            {stopNumberById.get(String(entry.id))}
+                          </span>
+                        </div>
                       )}
 
                       {/* Location + time badges */}
@@ -731,6 +782,7 @@ export default function JourneyPublicPage() {
                 ref={mapRef}
                 checkins={[]}
                 entries={sidebarMapItems as any}
+                photos={photoLayer}
                 height={9999}
                 fullScreen
                 activeMarkerId={activeEntryId ?? undefined}
@@ -791,7 +843,7 @@ export default function JourneyPublicPage() {
           {/* Map (standalone tab — only in single-column mode) */}
           {view === 'map' && perms.share_map && (
             <div className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-700">
-              <JourneyMap checkins={[]} entries={sidebarMapItems as any} height={500} />
+              <JourneyMap checkins={[]} entries={sidebarMapItems as any} photos={photoLayer} height={500} />
             </div>
           )}
         </div>

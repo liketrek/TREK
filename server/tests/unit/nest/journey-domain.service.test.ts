@@ -1411,7 +1411,11 @@ describe('Edge cases', () => {
     expect(JSON.parse(raw.pros_cons)).toEqual({ pros: ['Fun'], cons: [] });
   });
 
-  it('JOURNEY-SVC-086: addTripToJourney syncs trip photos when present', () => {
+  // #1614 — photos live in journeys now. Linking a trip used to copy its
+  // trip_photos into the gallery; that surface lost its UI in 3.1.0, nothing
+  // writes to it on a newer install, and the copy was how a photo one member had
+  // chosen not to share could reach a journey at all.
+  it('JOURNEY-SVC-086: addTripToJourney no longer pulls trip photos into the gallery', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     const trip = createTrip(testDb, user.id, {
@@ -1421,16 +1425,10 @@ describe('Edge cases', () => {
     });
     addTripPhoto(testDb, trip.id, user.id, 'immich-photo-1', 'immich', { shared: true });
 
-    svc.addTripToJourney(journey.id, trip.id, user.id);
+    expect(svc.addTripToJourney(journey.id, trip.id, user.id)).toBe(true);
 
-    // Trip photos now go straight into the journey gallery (no wrapper entry).
-    const photos = testDb.prepare(`
-      SELECT jp.*, tkp.asset_id FROM journey_photos jp
-      JOIN trek_photos tkp ON tkp.id = jp.photo_id
-      WHERE jp.journey_id = ?
-    `).all(journey.id);
-    expect(photos.length).toBe(1);
-    expect((photos[0] as any).asset_id).toBe('immich-photo-1');
+    const photos = testDb.prepare('SELECT 1 FROM journey_photos WHERE journey_id = ?').all(journey.id);
+    expect(photos).toHaveLength(0);
   });
 
   it('JOURNEY-SVC-087: removeTripFromJourney detaches filled entries, deletes skeletons', () => {
@@ -2106,28 +2104,19 @@ describe('addTripToJourney guards', () => {
     expect(svc.addTripToJourney(journey.id, trip.id, helper.id)).toBe(true);
   });
 
-  it('JOURNEY-SVC-102: only trip photos the owner shared are copied into the gallery', () => {
+  it('JOURNEY-SVC-102: not even a shared trip photo is copied any more', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id, { title: 'Photo journey' });
     const trip = createTrip(testDb, user.id, { title: 'Photo trip' });
 
-    const mk = (assetId: string) => {
-      const r = testDb.prepare(
-        "INSERT INTO trek_photos (provider, asset_id, owner_id, media_type) VALUES ('immich', ?, ?, 'image')",
-      ).run(assetId, user.id);
-      return Number(r.lastInsertRowid);
-    };
-    const sharedPhoto = mk('shared-asset');
-    const privatePhoto = mk('private-asset');
-    const ins = testDb.prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id, shared) VALUES (?, ?, ?, ?)');
-    ins.run(trip.id, user.id, sharedPhoto, 1);
-    ins.run(trip.id, user.id, privatePhoto, 0);
+    const r = testDb.prepare(
+      "INSERT INTO trek_photos (provider, asset_id, owner_id, media_type) VALUES ('immich', 'shared-asset', ?, 'image')",
+    ).run(user.id);
+    testDb.prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id, shared) VALUES (?, ?, ?, 1)')
+      .run(trip.id, user.id, Number(r.lastInsertRowid));
 
     svc.addTripToJourney(journey.id, trip.id, user.id);
 
-    const copied = testDb
-      .prepare('SELECT photo_id FROM journey_photos WHERE journey_id = ? ORDER BY photo_id')
-      .all(journey.id) as { photo_id: number }[];
-    expect(copied.map(r => r.photo_id)).toEqual([sharedPhoto]);
+    expect(testDb.prepare('SELECT 1 FROM journey_photos WHERE journey_id = ?').all(journey.id)).toHaveLength(0);
   });
 });

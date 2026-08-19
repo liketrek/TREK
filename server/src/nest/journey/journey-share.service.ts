@@ -7,6 +7,8 @@ interface JourneySharePermissions {
   share_timeline?: boolean;
   share_gallery?: boolean;
   share_map?: boolean;
+  /** Read the journey newest-first, like a blog, rather than in trip order. */
+  newest_first?: boolean;
 }
 
 interface JourneyShareTokenInfo {
@@ -15,6 +17,7 @@ interface JourneyShareTokenInfo {
   share_timeline: boolean;
   share_gallery: boolean;
   share_map: boolean;
+  newest_first: boolean;
 }
 
 /**
@@ -45,18 +48,19 @@ export class JourneyShareService {
       share_timeline = true,
       share_gallery = true,
       share_map = true,
+      newest_first = false,
     } = permissions;
 
     const existing = this.db.prepare('SELECT token FROM journey_share_tokens WHERE journey_id = ?').get(journeyId) as { token: string } | undefined;
     if (existing) {
-      this.db.prepare('UPDATE journey_share_tokens SET share_timeline = ?, share_gallery = ?, share_map = ? WHERE journey_id = ?')
-        .run(share_timeline ? 1 : 0, share_gallery ? 1 : 0, share_map ? 1 : 0, journeyId);
+      this.db.prepare('UPDATE journey_share_tokens SET share_timeline = ?, share_gallery = ?, share_map = ?, newest_first = ? WHERE journey_id = ?')
+        .run(share_timeline ? 1 : 0, share_gallery ? 1 : 0, share_map ? 1 : 0, newest_first ? 1 : 0, journeyId);
       return { token: existing.token, created: false };
     }
 
     const token = crypto.randomBytes(24).toString('base64url');
-    this.db.prepare('INSERT INTO journey_share_tokens (journey_id, token, created_by, share_timeline, share_gallery, share_map) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(journeyId, token, createdBy, share_timeline ? 1 : 0, share_gallery ? 1 : 0, share_map ? 1 : 0);
+    this.db.prepare('INSERT INTO journey_share_tokens (journey_id, token, created_by, share_timeline, share_gallery, share_map, newest_first) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(journeyId, token, createdBy, share_timeline ? 1 : 0, share_gallery ? 1 : 0, share_map ? 1 : 0, newest_first ? 1 : 0);
     return { token, created: true };
   }
 
@@ -69,6 +73,7 @@ export class JourneyShareService {
       share_timeline: !!row.share_timeline,
       share_gallery: !!row.share_gallery,
       share_map: !!row.share_map,
+      newest_first: !!row.newest_first,
     };
   }
 
@@ -130,7 +135,7 @@ export class JourneyShareService {
     const photos = this.db.prepare(`
       SELECT gp.id, jep.entry_id, gp.photo_id, gp.caption, jep.sort_order, gp.shared, gp.created_at,
              tkp.provider, tkp.asset_id, tkp.owner_id, tkp.file_path, tkp.thumbnail_path, tkp.width, tkp.height,
-             tkp.media_type, tkp.duration_ms
+             tkp.media_type, tkp.duration_ms, tkp.taken_at, tkp.lat, tkp.lng
       FROM journey_entry_photos jep
       JOIN journey_photos gp ON gp.id = jep.journey_photo_id
       JOIN trek_photos tkp ON tkp.id = gp.photo_id
@@ -146,7 +151,7 @@ export class JourneyShareService {
     const gallery = this.db.prepare(`
       SELECT gp.id, gp.journey_id, gp.photo_id, gp.caption, gp.shared, gp.sort_order, gp.created_at,
              tkp.provider, tkp.asset_id, tkp.owner_id, tkp.file_path, tkp.thumbnail_path, tkp.width, tkp.height,
-             tkp.media_type, tkp.duration_ms
+             tkp.media_type, tkp.duration_ms, tkp.taken_at, tkp.lat, tkp.lng
       FROM journey_photos gp
       JOIN trek_photos tkp ON tkp.id = gp.photo_id
       WHERE gp.journey_id = ?
@@ -183,6 +188,7 @@ export class JourneyShareService {
         const projected: Record<string, unknown> = { ...e };
         if (!shareMap) { projected.location_lat = null; projected.location_lng = null; }
         if (!shareGallery) projected.photos = [];
+        else if (!shareMap) projected.photos = stripPhotoGps(e.photos);
         return projected;
       });
     } else if (shareMap) {
@@ -208,13 +214,23 @@ export class JourneyShareService {
         status: journey.status,
       },
       entries: publicEntries,
-      gallery: shareGallery ? gallery : [],
+      // A photo now carries the coordinates it was taken at, which is a location the
+      // owner never typed and may not expect to publish. It follows share_map, the
+      // same switch the entry coordinates follow — otherwise a gallery-only share
+      // would hand out places the map was deliberately turned off for.
+      gallery: shareGallery ? (shareMap ? gallery : stripPhotoGps(gallery)) : [],
       stats,
       permissions: {
         share_timeline: shareTimeline,
         share_gallery: shareGallery,
         share_map: shareMap,
+        newest_first: !!row.newest_first,
       },
     };
   }
+}
+
+/** Drop capture coordinates from a photo list, keeping everything else. */
+function stripPhotoGps<T>(photos: T[] | undefined | null): T[] {
+  return (photos ?? []).map(p => ({ ...(p as Record<string, unknown>), lat: null, lng: null })) as T[];
 }

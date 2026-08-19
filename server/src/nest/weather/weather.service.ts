@@ -25,8 +25,8 @@ export class WeatherService implements OnModuleInit, OnModuleDestroy {
     stopCacheCleanup();
   }
 
-  get(lat: string, lng: string, date: string | undefined, lang: string): Promise<WeatherResult> {
-    return getWeather(lat, lng, date, lang) as Promise<WeatherResult>;
+  get(lat: string, lng: string, date: string | undefined, lang: string, time?: string): Promise<WeatherResult> {
+    return getWeather(lat, lng, date, lang, time) as Promise<WeatherResult>;
   }
 
   getDetailed(lat: string, lng: string, date: string, lang: string): Promise<WeatherResult> {

@@ -14,10 +14,57 @@ export interface MapMarkerItem {
   dayLabel: number
 }
 
+/**
+ * Grid clustering in screen space.
+ *
+ * The Journey maps have never had clustering, and the library the planner uses
+ * hangs off react-leaflet while this map drives Leaflet directly. Bucketing by
+ * rounded pixel position is a few lines, is deterministic, and is enough for the
+ * job: photos of one place collapse into one thumbnail with a count, and pulling
+ * the map apart separates them again.
+ */
+const PHOTO_CLUSTER_PX = 64
+
+function clusterPhotos(
+  map: L.Map,
+  photos: MapPhoto[],
+): { lat: number; lng: number; members: MapPhoto[] }[] {
+  const buckets = new Map<string, MapPhoto[]>()
+  for (const photo of photos) {
+    const pt = map.latLngToContainerPoint([photo.lat, photo.lng])
+    const key = `${Math.round(pt.x / PHOTO_CLUSTER_PX)}:${Math.round(pt.y / PHOTO_CLUSTER_PX)}`
+    const list = buckets.get(key)
+    if (list) list.push(photo)
+    else buckets.set(key, [photo])
+  }
+  return [...buckets.values()].map(members => ({
+    // Anchor on the first member rather than the centroid: the thumbnail shown is
+    // that photo's, so the pin should point where that picture was taken.
+    lat: members[0].lat,
+    lng: members[0].lng,
+    members,
+  }))
+}
+
+function photoMarkerHtml(thumbUrl: string, count: number): string {
+  const badge = count > 1
+    ? `<span style="position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#fff;border:1.5px solid rgba(0,0,0,.12);box-shadow:0 1px 4px rgba(0,0,0,.22);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#111827;line-height:1;box-sizing:border-box;">${count}</span>`
+    : ''
+  return `<div style="position:relative;width:48px;height:48px;border-radius:12px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);background-image:url('${encodeURI(thumbUrl)}');background-size:cover;background-position:center;"></div>${badge}`
+}
+
 export interface JourneyMapHandle {
   highlightMarker: (id: string | null) => void
   focusMarker: (id: string) => void
   invalidateSize: () => void
+}
+
+/** A photo that knows where it was taken (#1614). */
+export interface MapPhoto {
+  id: string
+  lat: number
+  lng: number
+  thumbUrl: string
 }
 
 interface MapEntry {
@@ -35,6 +82,9 @@ interface Props {
   ref?: Ref<JourneyMapHandle>
   checkins: any[]
   entries: MapEntry[]
+  /** Photos placed by their own capture coordinates, clustered by proximity. */
+  photos?: MapPhoto[]
+  onPhotoClick?: (photoIds: string[]) => void
   trail?: { lat: number; lng: number }[]
   /** Routed GPX geometries from the journey's trips (#1260). */
   tracks?: JourneyTrack[]
@@ -92,7 +142,7 @@ const EMPTY_TRACKS: JourneyTrack[] = []
 const TRACK_FALLBACK_COLOR = '#4f46e5'
 
 function JourneyMap(
-  { entries, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, ref }: Props,
+  { entries, photos, onPhotoClick, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, ref }: Props,
 ) {
   const stableTrail = trail || EMPTY_TRAIL
   const stableTracks = tracks || EMPTY_TRACKS
@@ -104,6 +154,9 @@ function JourneyMap(
   const highlightedRef = useRef<string | null>(null)
   const onMarkerClickRef = useRef(onMarkerClick)
   onMarkerClickRef.current = onMarkerClick
+  const photoLayerRef = useRef<L.LayerGroup | null>(null)
+  const onPhotoClickRef = useRef(onPhotoClick)
+  onPhotoClickRef.current = onPhotoClick
 
   const darkRef = useRef(dark)
   darkRef.current = dark
@@ -283,6 +336,49 @@ function JourneyMap(
       markersRef.current.clear()
     }
   }, [entries, stableTrail, stableTracks, dark, mapTileUrl, fullScreen, paddingBottom])
+
+  // Photo layer (#1614). Its own effect on purpose: photos arriving must not tear
+  // down and rebuild the map the way the entry effect does. Redrawn on zoom and
+  // pan because the clustering is done in screen space.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    const draw = () => {
+      photoLayerRef.current?.remove()
+      photoLayerRef.current = null
+      if (!photos?.length) return
+
+      const group = L.layerGroup()
+      for (const cluster of clusterPhotos(map, photos)) {
+        const marker = L.marker([cluster.lat, cluster.lng], {
+          icon: L.divIcon({
+            className: '',
+            iconSize: [48, 48],
+            iconAnchor: [24, 24],
+            html: photoMarkerHtml(cluster.members[0].thumbUrl, cluster.members.length),
+          }),
+          // Below the entry pins: the itinerary is the point of the map, the photos
+          // are context.
+          zIndexOffset: -500,
+        })
+        marker.on('click', () => onPhotoClickRef.current?.(cluster.members.map(m => m.id)))
+        group.addLayer(marker)
+      }
+      group.addTo(map)
+      photoLayerRef.current = group
+    }
+
+    draw()
+    map.on('zoomend', draw)
+    map.on('moveend', draw)
+    return () => {
+      map.off('zoomend', draw)
+      map.off('moveend', draw)
+      photoLayerRef.current?.remove()
+      photoLayerRef.current = null
+    }
+  }, [photos, entries, stableTrail, stableTracks, dark, mapTileUrl, fullScreen, paddingBottom])
 
   // react to activeMarkerId prop changes — runs after map is built
   useEffect(() => {

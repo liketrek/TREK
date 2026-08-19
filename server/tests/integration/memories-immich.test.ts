@@ -56,7 +56,7 @@ const { testDb, dbMock, immichState } = vi.hoisted(() => {
  * the legacy one. Both must be filtered out of the picker (#1474).
  */
 const DEFAULT_ALBUM_ASSETS = [
-  { id: 'asset-sync-1', type: 'IMAGE', fileCreatedAt: '2024-06-01T10:00:00.000Z', exifInfo: { city: 'Paris', country: 'France' } },
+  { id: 'asset-sync-1', type: 'IMAGE', fileCreatedAt: '2024-06-01T10:00:00.000Z', exifInfo: { city: 'Paris', country: 'France', latitude: 48.8584, longitude: 2.2945 } },
   { id: 'asset-sync-2', type: 'VIDEO', fileCreatedAt: '2024-06-02T10:00:00.000Z', exifInfo: { city: 'Lyon', country: 'France' } },
   { id: 'asset-hidden', type: 'VIDEO', fileCreatedAt: '2024-06-03T10:00:00.000Z', visibility: 'hidden' },
   { id: 'asset-legacy-hidden', type: 'VIDEO', fileCreatedAt: '2024-06-04T10:00:00.000Z', isVisible: false },
@@ -588,6 +588,23 @@ describe('Immich album photos', () => {
       mediaType: 'image',
     });
     expect(res.body.assets[1].mediaType).toBe('video');
+  });
+
+  // #1614 — the album mapping used to drop lat/lng even though the search path
+  // kept them, so a photo picked from an album could never reach a map.
+  it('IMMICH-064b — album photos carry their capture coordinates, and tolerate their absence', async () => {
+    const { user } = createUser(testDb);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+
+    const res = await request(app)
+      .get(`${IMMICH}/albums/album-uuid-1/photos`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.body.assets[0]).toMatchObject({ lat: 48.8584, lng: 2.2945 });
+    // The second fixture asset has no coordinates; it must come back null, not undefined
+    // or a half pair.
+    expect(res.body.assets[1].lat).toBeNull();
+    expect(res.body.assets[1].lng).toBeNull();
   });
 
   it('IMMICH-065 — album photos are fetched via search/metadata with albumIds and withExif', async () => {
