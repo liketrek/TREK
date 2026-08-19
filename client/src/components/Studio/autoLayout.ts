@@ -1,4 +1,6 @@
-import type { BookDocument, BookElement, BookPageSetup, BookSpread } from '@trek/shared'
+import type {
+  BookDocument, BookElement, BookMetric, BookPageSetup, BookSpread, JourneyStats,
+} from '@trek/shared'
 
 /**
  * The auto mode: turn a journey into a book.
@@ -49,6 +51,12 @@ export interface AutoInput {
   coverPhotoId: number | null
   entries: AutoEntry[]
   page: BookPageSetup
+  /**
+   * What the journey adds up to. Null when the figures could not be fetched —
+   * the book then simply has no summary pages rather than pages with nothing
+   * on them.
+   */
+  stats: JourneyStats | null
 }
 
 let seq = 0
@@ -102,6 +110,8 @@ function photo(
     focalY: 0.5,
     radius: 0,
     filter: 'none',
+    mask: null,
+    frameStyle: 'none',
     ...opts,
   } as BookElement
 }
@@ -126,6 +136,137 @@ function shape(
     radius: 0,
     ...opts,
   } as BookElement
+}
+
+/**
+ * Ink for the travel elements.
+ *
+ * A single warm accent against near-black, chosen once here so the summary
+ * spread, the country page and the marks on the entries read as one book rather
+ * than as three features that happen to share a document.
+ */
+const INK = '#1a1a1a' // theme-lint-disable — book ink, not app chrome
+const ACCENT = '#c2410c' // theme-lint-disable — book ink, not app chrome
+
+const travelBase = {
+  rotation: 0,
+  opacity: 1,
+  locked: false,
+  font: 'sans' as const,
+  color: INK,
+  accent: ACCENT,
+  textScale: 1,
+  stale: false,
+}
+
+function statsEl(
+  frame: { x: number; y: number; w: number; h: number },
+  stats: JourneyStats,
+  metrics: BookMetric[],
+  layout: 'grid' | 'row' | 'column' = 'grid',
+  opts: Partial<Extract<BookElement, { kind: 'stats' }>> = {},
+): BookElement {
+  return {
+    ...travelBase,
+    id: uid('st'),
+    kind: 'stats',
+    frame,
+    metrics,
+    layout,
+    showIcons: true,
+    units: 'metric',
+    values: {
+      distance: stats.distance,
+      days: stats.days,
+      steps: stats.steps,
+      photos: stats.photos,
+      countries: stats.countries.length,
+      places: stats.places,
+      furthest: stats.furthest,
+    },
+    ...opts,
+  } as BookElement
+}
+
+function mapEl(
+  frame: { x: number; y: number; w: number; h: number },
+  stats: JourneyStats,
+  opts: Partial<Extract<BookElement, { kind: 'map' }>> = {},
+): BookElement {
+  return {
+    ...travelBase,
+    id: uid('mp'),
+    kind: 'map',
+    frame,
+    style: 'minimal',
+    showLand: true,
+    showRoute: true,
+    showPins: true,
+    showLabels: false,
+    countries: stats.countries.map(c => c.code),
+    points: stats.points.map(pt => ({ lat: pt.lat, lng: pt.lng, label: pt.label })),
+    ...opts,
+  } as BookElement
+}
+
+function countriesEl(
+  frame: { x: number; y: number; w: number; h: number },
+  stats: JourneyStats,
+  names: string[],
+  opts: Partial<Extract<BookElement, { kind: 'countries' }>> = {},
+): BookElement {
+  return {
+    ...travelBase,
+    id: uid('co'),
+    kind: 'countries',
+    frame,
+    codes: stats.countries.map(c => c.code),
+    names,
+    layout: 'list',
+    showOutline: true,
+    showFlag: false,
+    showName: true,
+    align: 'center',
+    ...opts,
+  } as BookElement
+}
+
+function badgeEl(
+  frame: { x: number; y: number; w: number; h: number },
+  variant: 'flag' | 'date' | 'day' | 'coords' | 'country' | 'distance',
+  value: { text?: string; sub?: string; code?: string | null },
+  opts: Partial<Extract<BookElement, { kind: 'badge' }>> = {},
+): BookElement {
+  return {
+    ...travelBase,
+    id: uid('bd'),
+    kind: 'badge',
+    frame,
+    variant,
+    text: value.text ?? '',
+    sub: value.sub ?? '',
+    code: value.code ?? null,
+    style: 'plain',
+    ...opts,
+  } as BookElement
+}
+
+/**
+ * The day of the month, set as a numeral with its month beneath.
+ *
+ * A date line reading "12 June 2026" is information; the same date as a figure
+ * is a mark on the page. Travel books have set dates this way for as long as
+ * they have existed, and it is the cheapest thing in this file that makes a
+ * spread look composed.
+ */
+function dateMark(iso: string | null, locale: string, frame: { x: number; y: number; w: number; h: number }): BookElement | null {
+  if (!iso) return null
+  const d = new Date(`${iso}T00:00:00`)
+  if (Number.isNaN(d.getTime())) return null
+  return badgeEl(frame, 'date', {
+    text: String(d.getDate()),
+    sub: d.toLocaleDateString(locale, { month: 'long' }).toUpperCase(),
+  }, { style: 'stacked' })
 }
 
 function formatDate(iso: string | null, locale: string): string {
@@ -199,6 +340,13 @@ function entrySpread(entry: AutoEntry, input: AutoInput): BookSpread {
 
   const pushHeading = (x: number, y: number, w: number) => {
     let cy = y
+    // A short accent rule above the date. One drawn element per entry, and the
+    // cheapest thing in this file that makes a spread read as designed rather
+    // than as text placed on a page — it gives the block a top edge to hang
+    // from, which a line of grey capitals on white does not have.
+    if (meta || heading) {
+      els.push(shape({ x, y: cy - 6, w: Math.min(14, w * 0.18), h: 0.5 }, ACCENT))
+    }
     if (meta) {
       els.push(text({ x, y: cy, w, h: 5 }, meta.toUpperCase(), {
         size: 7.5, weight: 600, tracking: 0.14, color: '#8a8578', // theme-lint-disable — book ink, not app chrome
@@ -217,7 +365,18 @@ function entrySpread(entry: AutoEntry, input: AutoInput): BookSpread {
   }
 
   if (photos.length === 0) {
-    // A text page. Two columns, because a single 250mm line is unreadable.
+    /*
+     * A text page — and the one spread with room to spare, since the left page
+     * is otherwise blank. The date goes there as a numeral: large, quiet, and
+     * the only thing on that page, which is what turns an entry with no
+     * photographs from a gap in the book into a deliberate pause in it.
+     */
+    const mark = dateMark(entry.date, input.locale, {
+      x: m + 6, y: H * 0.4, w: page.pageWidth * 0.42, h: H * 0.2,
+    })
+    if (mark) els.push(mark)
+
+    // Two columns, because a single 250mm line is unreadable.
     const cy = pushHeading(page.pageWidth * 0.5, m + 24, page.pageWidth - m)
     els.push(text({ x: page.pageWidth * 0.5, y: cy + 4, w: page.pageWidth * 0.5 - m, h: H - cy - m * 2 }, story, {
       size: 10.5, leading: 1.6, color: '#2a2a2a', // theme-lint-disable — book ink, not app chrome
@@ -300,6 +459,123 @@ function entrySpread(entry: AutoEntry, input: AutoInput): BookSpread {
  * and a back. Quiet on purpose: the last thing a reader sees should be a full
  * stop, not another layout.
  */
+/**
+ * The journey at a glance: the route drawn, and what it came to.
+ *
+ * This is the spread a travel book opens on and the one a photo album cannot
+ * have — it is made entirely of facts the trip already carried. The map takes
+ * the left page because a route is read before it is quantified, and the
+ * figures sit on the right where the eye lands second.
+ *
+ * Omitted rather than left empty when there is nothing to draw: a journey whose
+ * stops carry no coordinates has no route, and a page holding a blank frame
+ * over the words "0 KM" is worse than no page.
+ */
+/**
+ * Country names in the book's language.
+ *
+ * The API answers in English because it does not know who will read the book;
+ * `Intl.DisplayNames` is the same CLDR data Atlas uses for regions, so a German
+ * book says "Island" from the same two-letter code an English one reads as
+ * "Iceland".
+ */
+function countryNames(input: AutoInput): string[] {
+  const codes = input.stats?.countries ?? []
+  let display: Intl.DisplayNames | null = null
+  try {
+    display = new Intl.DisplayNames([input.locale], { type: 'region' })
+  } catch {
+    display = null
+  }
+  return codes.map(c => display?.of(c.code.toUpperCase()) || c.name || c.code.toUpperCase())
+}
+
+function summarySpread(input: AutoInput): BookSpread | null {
+  const stats = input.stats
+  if (!stats) return null
+  // Something has to be worth printing. One stop is a pin, not a journey.
+  if (stats.points.length < 2 && !stats.distance && !stats.days) return null
+
+  const { page } = input
+  const W = page.pageWidth
+  const H = page.pageHeight
+  const m = 18
+  const els: BookElement[] = []
+
+  if (stats.points.length >= 2) {
+    els.push(mapEl({ x: m, y: m, w: W - m * 2, h: H - m * 2 }, stats))
+  }
+
+  // Which figures are worth the space: everything the journey actually has.
+  // A "0 PHOTOS" tile is a hole in a composition, not information.
+  const metrics: BookMetric[] = ([
+    ['distance', stats.distance],
+    ['days', stats.days],
+    ['steps', stats.steps],
+    ['photos', stats.photos],
+    ['countries', stats.countries.length],
+    ['furthest', stats.furthest],
+  ] as [BookMetric, number][])
+    .filter(([, v]) => v > 0)
+    .map(([k]) => k)
+    .slice(0, 6)
+
+  if (metrics.length) {
+    els.push(statsEl(
+      { x: W + m, y: H * 0.26, w: W - m * 2, h: H * 0.48 },
+      stats,
+      metrics,
+      'grid',
+    ))
+  }
+
+  // A hairline over the figures, the width of the text block — the one piece of
+  // drawing on the page, and it is there to say the right-hand page is a
+  // caption to the left-hand one rather than a second subject.
+  els.push(shape(
+    { x: W + m, y: H * 0.2, w: (W - m * 2) * 0.22, h: 0.4 },
+    ACCENT,
+  ))
+
+  return { id: uid('sp'), role: 'inner', background: null, elements: els, parked: [], entryId: null }
+}
+
+/**
+ * The countries, each name over its own outline.
+ *
+ * Only for a journey that crossed a border: one country listed on a page of its
+ * own says nothing the cover did not already say. Polarsteps prints this page
+ * and it is the single most recognisable thing in their books — a list of names
+ * is a list, the same list over its silhouettes is a map of where you went.
+ */
+function countriesSpread(input: AutoInput, names: string[]): BookSpread | null {
+  const stats = input.stats
+  if (!stats || stats.countries.length < 2) return null
+
+  const { page } = input
+  const W = page.pageWidth
+  const H = page.pageHeight
+  const m = 20
+  const rows = stats.countries.length
+  // Tall enough to breathe, but never taller than the page it sits on.
+  const height = Math.min(H - m * 2, Math.max(H * 0.4, rows * 26))
+
+  return {
+    id: uid('sp'),
+    role: 'inner',
+    background: null,
+    elements: [
+      countriesEl(
+        { x: W + m, y: (H - height) / 2, w: W - m * 2, h: height },
+        stats,
+        names,
+      ),
+    ],
+    parked: [],
+    entryId: null,
+  }
+}
+
 function backSpread(input: AutoInput): BookSpread {
   const { page } = input
   const m = 18
@@ -312,8 +588,6 @@ function backSpread(input: AutoInput): BookSpread {
   const span = dates.length
     ? [formatDate(dates[0], input.locale), formatDate(dates[dates.length - 1], input.locale)].filter(Boolean).join(' — ')
     : ''
-  const places = new Set(input.entries.map(e => e.location).filter(Boolean)).size
-  const photos = input.entries.reduce((n, e) => n + e.photos.length, 0)
 
   els.push(shape({ x: -page.bleed, y: -page.bleed, w: page.pageWidth + page.bleed * 2, h: page.pageHeight + page.bleed * 2 }, '#141414')) // theme-lint-disable — book ink, not app chrome
 
@@ -326,14 +600,40 @@ function backSpread(input: AutoInput): BookSpread {
       size: 8.5, align: 'center', color: '#ffffff', opacity: 0.55, // theme-lint-disable — book ink, not app chrome
     }))
   }
-  const tally = [
-    places ? `${places} Orte` : '',
-    photos ? `${photos} Fotos` : '',
-  ].filter(Boolean).join('   ·   ')
-  if (tally) {
-    els.push(text({ x: m, y: page.pageHeight * 0.5 + 10, w: page.pageWidth - m * 2, h: 6 }, tally.toUpperCase(), {
-      size: 7, weight: 600, align: 'center', tracking: 0.16, color: '#ffffff', opacity: 0.4, // theme-lint-disable — book ink, not app chrome
-    }))
+  /*
+   * The closing tally, as a figures element rather than a built string.
+   *
+   * It used to be `${places} Orte` — German, hardcoded, in a book that follows
+   * the app's language everywhere else. The element takes its labels from the
+   * same translations as the rest of Studio, so the last page of a French book
+   * is finally in French.
+   */
+  if (input.stats) {
+    const closing: BookMetric[] = ([
+      ['days', input.stats.days],
+      ['places', input.stats.places || input.stats.steps],
+      ['photos', input.stats.photos],
+    ] as [BookMetric, number][])
+      .filter(([, v]) => v > 0)
+      .map(([k]) => k)
+
+    if (closing.length) {
+      els.push(statsEl(
+        { x: m, y: page.pageHeight * 0.5 + 6, w: page.pageWidth - m * 2, h: 22 },
+        input.stats,
+        closing,
+        'row',
+        {
+          showIcons: false,
+          // Set against the dark card, and quiet: this is a full stop, not a
+          // second summary page.
+          color: '#ffffff', // theme-lint-disable — book ink, not app chrome
+          accent: '#ffffff', // theme-lint-disable — book ink, not app chrome
+          opacity: 0.55,
+          textScale: 0.8,
+        },
+      ))
+    }
   }
 
   return { id: uid('sp'), role: 'back', background: '#141414', elements: els, parked: [], entryId: null } // theme-lint-disable — book ink, not app chrome
@@ -341,6 +641,21 @@ function backSpread(input: AutoInput): BookSpread {
 
 export function buildBook(input: AutoInput): BookDocument {
   const spreads: BookSpread[] = [coverSpread(input)]
+
+  /*
+   * The summary and the countries open the book, before the entries.
+   *
+   * They are the answer to "where did you go", and a reader who has that
+   * answer reads the entries as places on a route rather than as a sequence of
+   * unrelated days. Both return null when the journey has nothing to say with
+   * them, so a book is never padded with an empty page.
+   */
+  const summary = summarySpread(input)
+  if (summary) spreads.push(summary)
+
+  const countries = countriesSpread(input, countryNames(input))
+  if (countries) spreads.push(countries)
+
   for (const entry of input.entries) spreads.push(entrySpread(entry, input))
   spreads.push(backSpread(input))
   return {
