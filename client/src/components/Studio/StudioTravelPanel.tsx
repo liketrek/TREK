@@ -3,6 +3,7 @@ import { BOOK_METRICS } from '@trek/shared'
 import { useStudioStore } from '../../store/studioStore'
 import { PanelHead } from './StudioPanelHead'
 import { TravelPreview } from './TravelPreview'
+import { useMapSources } from './mapSources'
 
 /**
  * The journey's own figures, as things you can put on a page.
@@ -88,6 +89,13 @@ export function StudioTravelPanel({
   const spread = doc?.spreads[active]
   const single = !!spread && spread.role !== 'inner'
 
+  // Above the early return below, because hooks are.
+  const mapFrame = {
+    w: Math.min(page.pageWidth, page.pageHeight) * 0.72,
+    h: Math.min(page.pageWidth, page.pageHeight) * 0.72 * 0.78,
+  }
+  const mapSources = useMapSources(mapFrame, stats?.points ?? [])
+
   const centre = (w: number, h: number) => {
     const W = single ? page.pageWidth : page.pageWidth * 2
     return { x: (W - w) / 2, y: (page.pageHeight - h) / 2, w, h }
@@ -148,16 +156,21 @@ export function StudioTravelPanel({
     metrics, layout, showIcons: true, units: 'metric', values,
   } as BookElement)
 
-  const mapEl = (style: 'minimal' | 'outline' | 'dark' | 'paper'): BookElement => {
-    const side = Math.min(page.pageWidth, page.pageHeight) * 0.72
-    return {
-      ...base, id: uid('mp'), kind: 'map',
-      frame: centre(side, side * 0.78),
-      style, showLand: true, showRoute: true, showPins: true, showLabels: false,
-      countries: stats.countries.map(c => c.code),
-      points: stats.points.map(p => ({ lat: p.lat, lng: p.lng, label: p.label })),
-    } as BookElement
-  }
+  const mapSide = Math.min(page.pageWidth, page.pageHeight) * 0.72
+
+  const mapEl = (
+    style: 'minimal' | 'outline' | 'dark' | 'paper',
+    source: 'vector' | 'tiles' | 'static' = 'vector',
+    url = '',
+    attribution = '',
+  ): BookElement => ({
+    ...base, id: uid('mp'), kind: 'map',
+    frame: centre(mapSide, mapSide * 0.78),
+    style, source, tileUrl: url, attribution, zoom: null,
+    showLand: true, showRoute: true, showPins: true, showLabels: false,
+    countries: stats.countries.map(c => c.code),
+    points: stats.points.map(p => ({ lat: p.lat, lng: p.lng, label: p.label })),
+  } as BookElement)
 
   const countriesEl = (layout: 'list' | 'grid' | 'column'): BookElement => {
     const codes = stats.countries.map(c => c.code)
@@ -291,16 +304,37 @@ export function StudioTravelPanel({
         <div className="st-section">
           <div className="st-section-label">{t('journey.studio.routeMap')}</div>
           {stats.points.length ? (
-            <div className="st-travel-grid">
-              {(['minimal', 'outline', 'paper', 'dark'] as const).map(style => {
-                const el = mapEl(style)
-                return (
-                  <Card key={style} label={t(`journey.studio.mapStyle.${style}`)} onClick={() => place(el)}>
-                    <TravelPreview el={el} minHeight={62} maxHeight={80} />
-                  </Card>
-                )
-              })}
-            </div>
+            <>
+              <div className="st-travel-grid">
+                {(['minimal', 'outline', 'paper', 'dark'] as const).map(style => {
+                  const el = mapEl(style)
+                  return (
+                    <Card key={style} label={t(`journey.studio.mapStyle.${style}`)} onClick={() => place(el)}>
+                      <TravelPreview el={el} minHeight={62} maxHeight={80} />
+                    </Card>
+                  )
+                })}
+              </div>
+
+              {/*
+                Real imagery, from whatever this instance is already configured
+                with. Only the sources that have something behind them appear —
+                offering Mapbox with no token produces a grey rectangle and no
+                explanation anywhere for why.
+              */}
+              {mapSources.filter(src => src.id !== 'vector').length > 0 && (
+                <div className="st-travel-grid" style={{ marginTop: 6 }}>
+                  {mapSources.filter(src => src.id !== 'vector').map(src => {
+                    const el = mapEl('minimal', src.id, src.url, src.attribution)
+                    return (
+                      <Card key={src.id} label={t(src.labelKey)} onClick={() => place(el)}>
+                        <TravelPreview el={el} minHeight={62} maxHeight={80} />
+                      </Card>
+                    )
+                  })}
+                </div>
+              )}
+            </>
           ) : (
             <p className="st-hint">{t('journey.studio.noRoute')}</p>
           )}

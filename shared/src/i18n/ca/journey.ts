@@ -466,5 +466,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.bandQuote': 'Paraules al mig',
   'journey.studio.tpl.staggerFour': 'Quatre esglaonades',
   'journey.studio.weightMissing': 'Aquesta tipografia no té aquest gruix',
+  'journey.studio.mapSource': 'Origen del mapa',
+  'journey.studio.mapSourceVector': 'Contorns',
+  'journey.studio.mapSourceTiles': 'Tessel·les',
+  'journey.studio.mapSourceStatic': 'Mapbox',
+  'journey.studio.mapSourceHint': 'Es descarrega en renderitzar i s’imprimeix amb l’atribució',
+  'journey.studio.mapZoom': 'Zoom',
+  'journey.studio.mapZoomAuto': 'Ajustar',
 };
 export default journey;

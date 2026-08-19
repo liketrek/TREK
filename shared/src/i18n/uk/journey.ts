@@ -467,5 +467,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.bandQuote': 'Слова посередині',
   'journey.studio.tpl.staggerFour': 'Чотири зі зсувом',
   'journey.studio.weightMissing': 'У цієї гарнітури немає такого накреслення',
+  'journey.studio.mapSource': 'Джерело карти',
+  'journey.studio.mapSourceVector': 'Контури',
+  'journey.studio.mapSourceTiles': 'Тайли',
+  'journey.studio.mapSourceStatic': 'Mapbox',
+  'journey.studio.mapSourceHint': 'Завантажується під час рендерингу й друкується із зазначенням джерела',
+  'journey.studio.mapZoom': 'Масштаб',
+  'journey.studio.mapZoomAuto': 'За вмістом',
 };
 export default journey;

@@ -466,5 +466,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.bandQuote': 'Parole in mezzo',
   'journey.studio.tpl.staggerFour': 'Quattro sfalsate',
   'journey.studio.weightMissing': 'Questo carattere non ha questo peso',
+  'journey.studio.mapSource': 'Origine mappa',
+  'journey.studio.mapSourceVector': 'Contorni',
+  'journey.studio.mapSourceTiles': 'Tessere',
+  'journey.studio.mapSourceStatic': 'Mapbox',
+  'journey.studio.mapSourceHint': 'Scaricata al rendering e stampata con la sua attribuzione',
+  'journey.studio.mapZoom': 'Zoom',
+  'journey.studio.mapZoomAuto': 'Adatta',
 };
 export default journey;

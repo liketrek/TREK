@@ -5,6 +5,7 @@ import type {
 import { BOOK_METRICS } from '@trek/shared'
 import { isStale, refreshPatch } from './travelRefresh'
 import { Swatches } from './StudioSwatches'
+import { useMapSources } from './mapSources'
 
 /**
  * Properties of the travel elements.
@@ -151,6 +152,7 @@ function MapProps({ el, set, t, Section }: {
   t: (k: string) => string
   Section: TravelInspectorProps['Section']
 }) {
+  const sources = useMapSources(el.frame, el.points)
   return (
     <>
       <Section label={t('journey.studio.routeMap')}>
@@ -166,9 +168,56 @@ function MapProps({ el, set, t, Section }: {
           ))}
         </div>
       </Section>
+      <Section label={t('journey.studio.mapSource')}>
+        <div className="st-row" style={{ flexWrap: 'wrap' }}>
+          {sources.map(src => (
+            <button
+              key={src.id}
+              className={`st-chip ${el.source === src.id ? 'is-on' : ''}`}
+              onClick={() => set({
+                source: src.id,
+                tileUrl: src.url,
+                // The credit travels with the source. Switching to imagery and
+                // leaving the previous attribution would print the wrong one.
+                attribution: src.attribution,
+              } as Partial<BookElement>)}
+            >
+              {t(src.labelKey)}
+            </button>
+          ))}
+        </div>
+        {el.source !== 'vector' && (
+          <p className="st-hint" style={{ paddingTop: 6 }}>{t('journey.studio.mapSourceHint')}</p>
+        )}
+      </Section>
+
+      {el.source === 'tiles' && (
+        <Section label={t('journey.studio.mapZoom')}>
+          <div className="st-row" style={{ flexWrap: 'wrap' }}>
+            <button
+              className={`st-chip ${el.zoom === null ? 'is-on' : ''}`}
+              onClick={() => set({ zoom: null } as Partial<BookElement>)}
+            >
+              {t('journey.studio.mapZoomAuto')}
+            </button>
+            {[4, 7, 10, 13].map(z => (
+              <button
+                key={z}
+                className={`st-chip ${el.zoom === z ? 'is-on' : ''}`}
+                onClick={() => set({ zoom: z } as Partial<BookElement>)}
+              >
+                {z}
+              </button>
+            ))}
+          </div>
+        </Section>
+      )}
+
       <Section label={t('journey.studio.mapLayers')}>
         <div className="st-row" style={{ flexWrap: 'wrap' }}>
-          <Toggle on={el.showLand} label={t('journey.studio.showLand')} onClick={() => set({ showLand: !el.showLand } as Partial<BookElement>)} />
+          {el.source !== 'tiles' && el.source !== 'static' && (
+            <Toggle on={el.showLand} label={t('journey.studio.showLand')} onClick={() => set({ showLand: !el.showLand } as Partial<BookElement>)} />
+          )}
           <Toggle on={el.showRoute} label={t('journey.studio.showRoute')} onClick={() => set({ showRoute: !el.showRoute } as Partial<BookElement>)} />
           <Toggle on={el.showPins} label={t('journey.studio.showPins')} onClick={() => set({ showPins: !el.showPins } as Partial<BookElement>)} />
           <Toggle on={el.showLabels} label={t('journey.studio.showLabels')} onClick={() => set({ showLabels: !el.showLabels } as Partial<BookElement>)} />

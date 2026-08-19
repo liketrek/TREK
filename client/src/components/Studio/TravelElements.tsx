@@ -116,7 +116,13 @@ const MAP_PALETTES = {
  */
 function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProperties }) {
   const palette = MAP_PALETTES[el.style]
-  const shapes = el.showLand
+  /*
+   * Country outlines are the vector map's *subject*; over real imagery they are
+   * a second coastline drawn on top of the one in the picture. So they are only
+   * drawn when there is no picture underneath.
+   */
+  const imagery = el.source === 'tiles' || el.source === 'static'
+  const shapes = el.showLand && !imagery
     ? el.countries.map(c => COUNTRY_SHAPES[c.toUpperCase()]).filter(Boolean)
     : []
   const points = el.points.map(p => ({ ...p, ...projectMercator(p.lng, p.lat) }))
@@ -153,7 +159,28 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
   const pin = Math.max(0.5, Math.min(W, H) * 0.016)
   const label = typeSize(el, 0.035)
 
-  const route = points.map(p => at(p.x, p.y))
+  /*
+   * Real imagery, when the element was placed with a source that has some.
+   *
+   * It sits *under* the SVG rather than inside it: tiles are raster and the
+   * route is vector, and layering them as two elements keeps the line sharp at
+   * any print size instead of resampling it along with the picture.
+   */
+  const tiled = el.source === 'tiles'
+    ? tileView(el.points, { w: W, h: H }, el.tileUrl, el.zoom)
+    : null
+
+  /*
+   * The route, in whichever projection is drawing.
+   *
+   * Two projections are in play — the vector fit, which sizes itself to the
+   * country outlines, and the tile grid, which is cut from Web Mercator at a
+   * zoom level. Using the wrong one puts the line next to the road rather than
+   * on it, which is the sort of error that only shows up once it is printed.
+   */
+  const route = tiled
+    ? el.points.map(p => projectOntoTiles(tiled, p.lng, p.lat))
+    : points.map(p => at(p.x, p.y))
 
   return (
     <div style={{ ...frameStyle, overflow: 'hidden' }}>
@@ -225,6 +252,31 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
           )
         })}
       </svg>
+
+      {/*
+        The credit. Required by the tile licence, and a book is a published
+        work — nobody can add a footnote to it after it is bound. Small and in
+        the corner, the way a map credits its source on paper.
+      */}
+      {el.attribution && imagery && (
+        <span
+          style={{
+            position: 'absolute',
+            right: `${round2(Math.min(W, H) * 0.02)}mm`,
+            bottom: `${round2(Math.min(W, H) * 0.015)}mm`,
+            fontFamily: fontStack(el.font),
+            fontSize: `${round2(Math.max(1.4, Math.min(W, H) * 0.022))}mm`,
+            lineHeight: 1.2,
+            color: 'rgba(0,0,0,.62)',
+            background: 'rgba(255,255,255,.72)',
+            padding: `${round2(Math.min(W, H) * 0.004)}mm ${round2(Math.min(W, H) * 0.01)}mm`,
+            borderRadius: `${round2(Math.min(W, H) * 0.006)}mm`,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {el.attribution}
+        </span>
+      )}
     </div>
   )
 }

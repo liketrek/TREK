@@ -234,11 +234,37 @@ export const bookMapElementSchema = z.object({
   ...typeset,
   kind: z.literal('map'),
   /**
-   * Drawn from coordinates as vector, never from map tiles. Tiles carry a
-   * licence, need fetching at render time, and go soft the moment they are
-   * printed larger than the zoom they were cut for; an outline and a route
-   * print sharp at any size and belong to nobody.
+   * Where the map underneath comes from.
+   *
+   * `vector` draws country outlines from the bundled boundaries: it carries no
+   * licence, fetches nothing at render time, and prints sharp at any size,
+   * which is why it is the default and why a book can be exported offline.
+   *
+   * `tiles` and `static` use the map provider the instance is already
+   * configured with, for a book that wants real geography — streets, terrain,
+   * coastline detail an outline cannot give. Both fetch at render time and both
+   * carry an attribution the element prints, because the licence requires it
+   * and a book is a published work. A tiled map is also raster: it is cut for a
+   * zoom level, so printing it much larger than it was fetched goes soft.
    */
+  source: z.enum(['vector', 'tiles', 'static']).default('vector'),
+  /**
+   * The tile template, frozen when the element was placed.
+   *
+   * Kept in the document rather than read from settings at render time for the
+   * same reason the figures are: a page that resolves its own contents from an
+   * account's current settings is a page that changes when someone else edits
+   * a preference.
+   */
+  tileUrl: z.string().max(500).default(''),
+  /** What the licence requires the page to say. Printed small, in a corner. */
+  attribution: z.string().max(200).default(''),
+  /**
+   * Zoom for the tiled sources. Null lets the element choose one that fits the
+   * route, which is right almost always and wrong when someone wants the
+   * street detail of a single city.
+   */
+  zoom: z.number().int().min(0).max(19).nullable().default(null),
   style: z.enum(['minimal', 'outline', 'dark', 'paper']).default('minimal'),
   /** Country silhouettes under the route, drawn from the bundled boundaries. */
   showLand: z.boolean().default(true),

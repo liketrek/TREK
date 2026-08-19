@@ -466,5 +466,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.bandQuote': 'Arada sözler',
   'journey.studio.tpl.staggerFour': 'Kaydırılmış dört',
   'journey.studio.weightMissing': 'Bu yazı tipinde bu kalınlık yok',
+  'journey.studio.mapSource': 'Harita kaynağı',
+  'journey.studio.mapSourceVector': 'Dış hatlar',
+  'journey.studio.mapSourceTiles': 'Harita karoları',
+  'journey.studio.mapSourceStatic': 'Mapbox',
+  'journey.studio.mapSourceHint': 'Sayfa işlenirken indirilir ve kaynak bilgisiyle basılır',
+  'journey.studio.mapZoom': 'Yakınlaştırma',
+  'journey.studio.mapZoomAuto': 'Sığdır',
 };
 export default journey;

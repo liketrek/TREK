@@ -466,5 +466,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.bandQuote': 'Worte dazwischen',
   'journey.studio.tpl.staggerFour': 'Vier versetzt',
   'journey.studio.weightMissing': 'Diese Schrift hat diesen Schnitt nicht',
+  'journey.studio.mapSource': 'Kartenquelle',
+  'journey.studio.mapSourceVector': 'Umrisse',
+  'journey.studio.mapSourceTiles': 'Kartenkacheln',
+  'journey.studio.mapSourceStatic': 'Mapbox',
+  'journey.studio.mapSourceHint': 'Wird beim Rendern geladen und mit Quellenangabe gedruckt',
+  'journey.studio.mapZoom': 'Zoom',
+  'journey.studio.mapZoomAuto': 'Passend',
 };
 export default journey;

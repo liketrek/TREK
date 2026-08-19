@@ -465,5 +465,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.bandQuote': 'Kata di tengah',
   'journey.studio.tpl.staggerFour': 'Empat berselang',
   'journey.studio.weightMissing': 'Huruf ini tidak punya ketebalan itu',
+  'journey.studio.mapSource': 'Sumber peta',
+  'journey.studio.mapSourceVector': 'Garis luar',
+  'journey.studio.mapSourceTiles': 'Ubin peta',
+  'journey.studio.mapSourceStatic': 'Mapbox',
+  'journey.studio.mapSourceHint': 'Diambil saat render dan dicetak dengan atribusinya',
+  'journey.studio.mapZoom': 'Zum',
+  'journey.studio.mapZoomAuto': 'Sesuaikan',
 };
 export default journey;

@@ -466,5 +466,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.bandQuote': 'Slova uprostřed',
   'journey.studio.tpl.staggerFour': 'Čtyři přesazené',
   'journey.studio.weightMissing': 'Toto písmo tento řez nemá',
+  'journey.studio.mapSource': 'Zdroj mapy',
+  'journey.studio.mapSourceVector': 'Obrysy',
+  'journey.studio.mapSourceTiles': 'Dlaždice',
+  'journey.studio.mapSourceStatic': 'Mapbox',
+  'journey.studio.mapSourceHint': 'Načte se při vykreslení a vytiskne se s uvedením zdroje',
+  'journey.studio.mapZoom': 'Přiblížení',
+  'journey.studio.mapZoomAuto': 'Podle obsahu',
 };
 export default journey;

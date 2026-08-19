@@ -468,5 +468,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.bandQuote': 'Λέξεις ανάμεσα',
   'journey.studio.tpl.staggerFour': 'Τέσσερις σε κλιμάκωση',
   'journey.studio.weightMissing': 'Αυτή η γραμματοσειρά δεν έχει αυτό το βάρος',
+  'journey.studio.mapSource': 'Πηγή χάρτη',
+  'journey.studio.mapSourceVector': 'Περιγράμματα',
+  'journey.studio.mapSourceTiles': 'Πλακίδια',
+  'journey.studio.mapSourceStatic': 'Mapbox',
+  'journey.studio.mapSourceHint': 'Λαμβάνεται κατά την απόδοση και τυπώνεται με την αναφορά της',
+  'journey.studio.mapZoom': 'Ζουμ',
+  'journey.studio.mapZoomAuto': 'Προσαρμογή',
 };
 export default journey;

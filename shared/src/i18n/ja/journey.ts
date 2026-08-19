@@ -467,5 +467,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.bandQuote': '間にことば',
   'journey.studio.tpl.staggerFour': '4枚ずらし',
   'journey.studio.weightMissing': 'この書体にこのウェイトはありません',
+  'journey.studio.mapSource': '地図のソース',
+  'journey.studio.mapSourceVector': '輪郭',
+  'journey.studio.mapSourceTiles': '地図タイル',
+  'journey.studio.mapSourceStatic': 'Mapbox',
+  'journey.studio.mapSourceHint': 'レンダリング時に取得し、出典を付けて印刷します',
+  'journey.studio.mapZoom': 'ズーム',
+  'journey.studio.mapZoomAuto': '自動',
 };
 export default journey;

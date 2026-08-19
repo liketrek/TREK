@@ -466,5 +466,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.bandQuote': 'Ord emellan',
   'journey.studio.tpl.staggerFour': 'Fyra förskjutna',
   'journey.studio.weightMissing': 'Det här typsnittet har inte den vikten',
+  'journey.studio.mapSource': 'Kartkälla',
+  'journey.studio.mapSourceVector': 'Konturer',
+  'journey.studio.mapSourceTiles': 'Kartrutor',
+  'journey.studio.mapSourceStatic': 'Mapbox',
+  'journey.studio.mapSourceHint': 'Hämtas vid rendering och trycks med sin källhänvisning',
+  'journey.studio.mapZoom': 'Zoom',
+  'journey.studio.mapZoomAuto': 'Anpassa',
 };
 export default journey;

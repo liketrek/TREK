@@ -466,5 +466,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.bandQuote': 'Слова посередине',
   'journey.studio.tpl.staggerFour': 'Четыре со сдвигом',
   'journey.studio.weightMissing': 'У этой гарнитуры нет такого начертания',
+  'journey.studio.mapSource': 'Источник карты',
+  'journey.studio.mapSourceVector': 'Контуры',
+  'journey.studio.mapSourceTiles': 'Тайлы',
+  'journey.studio.mapSourceStatic': 'Mapbox',
+  'journey.studio.mapSourceHint': 'Загружается при отрисовке и печатается с указанием источника',
+  'journey.studio.mapZoom': 'Масштаб',
+  'journey.studio.mapZoomAuto': 'По содержимому',
 };
 export default journey;

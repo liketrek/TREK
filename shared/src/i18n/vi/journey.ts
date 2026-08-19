@@ -466,5 +466,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.bandQuote': 'Chữ ở giữa',
   'journey.studio.tpl.staggerFour': 'Bốn so le',
   'journey.studio.weightMissing': 'Phông chữ này không có độ đậm đó',
+  'journey.studio.mapSource': 'Nguồn bản đồ',
+  'journey.studio.mapSourceVector': 'Đường viền',
+  'journey.studio.mapSourceTiles': 'Ô bản đồ',
+  'journey.studio.mapSourceStatic': 'Mapbox',
+  'journey.studio.mapSourceHint': 'Tải khi kết xuất và in kèm ghi công',
+  'journey.studio.mapZoom': 'Thu phóng',
+  'journey.studio.mapZoomAuto': 'Vừa khung',
 };
 export default journey;

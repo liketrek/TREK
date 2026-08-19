@@ -466,5 +466,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.bandQuote': 'Szavak középen',
   'journey.studio.tpl.staggerFour': 'Négy eltolva',
   'journey.studio.weightMissing': 'Ennek a betűtípusnak nincs ilyen vastagsága',
+  'journey.studio.mapSource': 'Térkép forrása',
+  'journey.studio.mapSourceVector': 'Körvonalak',
+  'journey.studio.mapSourceTiles': 'Térképcsempék',
+  'journey.studio.mapSourceStatic': 'Mapbox',
+  'journey.studio.mapSourceHint': 'Rendereléskor töltődik le, és forrásmegjelöléssel nyomtatódik',
+  'journey.studio.mapZoom': 'Nagyítás',
+  'journey.studio.mapZoomAuto': 'Igazítás',
 };
 export default journey;

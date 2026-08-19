@@ -465,5 +465,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.bandQuote': 'كلمات في الوسط',
   'journey.studio.tpl.staggerFour': 'أربع متدرجة',
   'journey.studio.weightMissing': 'هذا الخط لا يوفر هذا الوزن',
+  'journey.studio.mapSource': 'مصدر الخريطة',
+  'journey.studio.mapSourceVector': 'المخططات',
+  'journey.studio.mapSourceTiles': 'بلاطات الخريطة',
+  'journey.studio.mapSourceStatic': 'Mapbox',
+  'journey.studio.mapSourceHint': 'تُجلب عند العرض وتُطبع مع إسنادها',
+  'journey.studio.mapZoom': 'التقريب',
+  'journey.studio.mapZoomAuto': 'ملائم',
 };
 export default journey;

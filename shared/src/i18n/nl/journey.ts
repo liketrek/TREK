@@ -467,5 +467,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.bandQuote': 'Woorden ertussen',
   'journey.studio.tpl.staggerFour': 'Vier verspringend',
   'journey.studio.weightMissing': 'Dit lettertype heeft die dikte niet',
+  'journey.studio.mapSource': 'Kaartbron',
+  'journey.studio.mapSourceVector': 'Omtrekken',
+  'journey.studio.mapSourceTiles': 'Kaarttegels',
+  'journey.studio.mapSourceStatic': 'Mapbox',
+  'journey.studio.mapSourceHint': 'Wordt bij het renderen opgehaald en met bronvermelding gedrukt',
+  'journey.studio.mapZoom': 'Zoom',
+  'journey.studio.mapZoomAuto': 'Passend',
 };
 export default journey;

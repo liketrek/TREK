@@ -464,5 +464,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.bandQuote': '文字置中',
   'journey.studio.tpl.staggerFour': '四張錯落',
   'journey.studio.weightMissing': '此字體沒有這個字重',
+  'journey.studio.mapSource': '地圖來源',
+  'journey.studio.mapSourceVector': '輪廓',
+  'journey.studio.mapSourceTiles': '地圖圖磚',
+  'journey.studio.mapSourceStatic': 'Mapbox',
+  'journey.studio.mapSourceHint': '算繪時取得，並附上來源標註列印',
+  'journey.studio.mapZoom': '縮放',
+  'journey.studio.mapZoomAuto': '自動',
 };
 export default journey;

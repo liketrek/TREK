@@ -467,5 +467,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.bandQuote': 'Mots au milieu',
   'journey.studio.tpl.staggerFour': 'Quatre décalées',
   'journey.studio.weightMissing': 'Cette police n’a pas cette graisse',
+  'journey.studio.mapSource': 'Source de la carte',
+  'journey.studio.mapSourceVector': 'Contours',
+  'journey.studio.mapSourceTiles': 'Tuiles',
+  'journey.studio.mapSourceStatic': 'Mapbox',
+  'journey.studio.mapSourceHint': 'Téléchargée au rendu et imprimée avec son crédit',
+  'journey.studio.mapZoom': 'Zoom',
+  'journey.studio.mapZoomAuto': 'Ajuster',
 };
 export default journey;

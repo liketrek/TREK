@@ -466,5 +466,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.bandQuote': '가운데 글',
   'journey.studio.tpl.staggerFour': '네 칸 엇갈림',
   'journey.studio.weightMissing': '이 서체에는 해당 굵기가 없습니다',
+  'journey.studio.mapSource': '지도 소스',
+  'journey.studio.mapSourceVector': '윤곽선',
+  'journey.studio.mapSourceTiles': '지도 타일',
+  'journey.studio.mapSourceStatic': 'Mapbox',
+  'journey.studio.mapSourceHint': '렌더링할 때 가져오며 출처와 함께 인쇄됩니다',
+  'journey.studio.mapZoom': '확대',
+  'journey.studio.mapZoomAuto': '자동',
 };
 export default journey;
