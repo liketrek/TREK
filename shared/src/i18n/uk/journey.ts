@@ -474,5 +474,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceHint': 'Завантажується під час рендерингу й друкується із зазначенням джерела',
   'journey.studio.mapZoom': 'Масштаб',
   'journey.studio.mapZoomAuto': 'За вмістом',
+  'journey.studio.saving': 'Збереження',
+  'journey.studio.saved': 'Збережено',
+  'journey.studio.saveFailed': 'Не збережено',
+  'journey.studio.saveRetry': 'Спробувати ще раз',
+  'journey.studio.saveConflict': 'Цю книгу зберіг хтось інший',
+  'journey.studio.saveTakeTheirs': 'Їхню версію',
+  'journey.studio.saveKeepMine': 'Мою версію',
 };
 export default journey;

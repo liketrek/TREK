@@ -475,5 +475,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceHint': 'Λαμβάνεται κατά την απόδοση και τυπώνεται με την αναφορά της',
   'journey.studio.mapZoom': 'Ζουμ',
   'journey.studio.mapZoomAuto': 'Προσαρμογή',
+  'journey.studio.saving': 'Αποθήκευση',
+  'journey.studio.saved': 'Αποθηκεύτηκε',
+  'journey.studio.saveFailed': 'Δεν αποθηκεύτηκε',
+  'journey.studio.saveRetry': 'Δοκιμή ξανά',
+  'journey.studio.saveConflict': 'Κάποιος άλλος αποθήκευσε αυτό το βιβλίο',
+  'journey.studio.saveTakeTheirs': 'Τη δική τους',
+  'journey.studio.saveKeepMine': 'Τη δική μου',
 };
 export default journey;

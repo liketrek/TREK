@@ -474,5 +474,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceHint': 'Wordt bij het renderen opgehaald en met bronvermelding gedrukt',
   'journey.studio.mapZoom': 'Zoom',
   'journey.studio.mapZoomAuto': 'Passend',
+  'journey.studio.saving': 'Opslaan',
+  'journey.studio.saved': 'Opgeslagen',
+  'journey.studio.saveFailed': 'Niet opgeslagen',
+  'journey.studio.saveRetry': 'Opnieuw proberen',
+  'journey.studio.saveConflict': 'Iemand anders heeft dit boek opgeslagen',
+  'journey.studio.saveTakeTheirs': 'De hunne',
+  'journey.studio.saveKeepMine': 'De mijne',
 };
 export default journey;

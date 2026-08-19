@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router'
 import type { BookPageNumbers, JourneyStats } from '@trek/shared'
+import { bookPageSetupSchema } from '@trek/shared'
 import { journeyApi } from '../../api/client'
 import { useJourneyStore, type GalleryPhoto, type JourneyEntry, type JourneyPhoto } from '../../store/journeyStore'
 import { useStudioStore } from '../../store/studioStore'
+import { useBookStore } from '../../components/Studio/useBookStore'
 import { useTranslation } from '../../i18n'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { PAGE_PRESETS, clampPageSize, type PagePresetId } from '../../components/Studio/pagePresets'
@@ -40,6 +42,14 @@ export const STUDIO_INSET = 16
  *    an editor that reflex would cost you the page you were working on. Only an
  *    Escape with nothing selected leaves.
  */
+/**
+ * The page a Studio with no document yet reports.
+ *
+ * Parsed from the contract rather than written out, so a new field on the page
+ * setup cannot be missing here — and once, so it is not rebuilt per render.
+ */
+const EMPTY_PAGE = bookPageSetupSchema.parse({ preset: 'square-210', pageWidth: 210, pageHeight: 210 })
+
 export function useJourneyStudio() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -82,6 +92,15 @@ export function useJourneyStudio() {
    */
   const [statsSettled, setStatsSettled] = useState(false)
 
+  /*
+   * The stored book, if this journey has one.
+   *
+   * Studio used to lay a book out on every open, which meant the auto layout
+   * was not a starting point but the only point — close the tab and the
+   * afternoon went with it.
+   */
+  const book = useBookStore(journeyId, loadDoc)
+
   const workRef = useRef<HTMLDivElement>(null)
   const builtFor = useRef<number | null>(null)
   /*
@@ -106,8 +125,23 @@ export function useJourneyStudio() {
   // document and this must not run again, or it would throw away the user's
   // work every time the journey re-renders.
   useEffect(() => {
-    if (!journey || !statsSettled || builtFor.current === journey.id) return
+    if (!journey || !statsSettled || !book.loaded || builtFor.current === journey.id) return
     builtFor.current = journey.id
+
+    /*
+     * A stored book wins over a fresh layout, always.
+     *
+     * The auto layout is what a journey with no book gets; running it over one
+     * that exists would throw away everything anyone had done, on open, with no
+     * warning. `autoInput` is still built either way, because the relayout
+     * button needs it.
+     */
+    if (book.record) {
+      // Already normalised by useBookStore, and deliberately the same object it
+      // holds — see `synced` there, which is what keeps opening a book from
+      // counting as an edit.
+      loadDoc(book.record.document)
+    }
 
     // A skeleton entry is a place pulled in from a trip that nobody has written
     // about yet; without a title it has nothing to put on a page.
@@ -153,13 +187,13 @@ export function useJourneyStudio() {
       },
       stats,
     }
-    loadDoc(buildBook(autoInput.current))
+    if (!book.record) loadDoc(buildBook(autoInput.current))
     // `stats` is deliberately not a dependency: the book is laid out once, from
     // the figures as they stood at that moment. Re-running on a later fetch
     // would throw away the user's work — which is the same reason `builtFor`
     // exists for the journey itself.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [journey, statsSettled, loadDoc, locale])
+  }, [journey, statsSettled, book.loaded, book.record, loadDoc, locale])
 
   /*
    * What the journey adds up to, for the travel elements.
@@ -194,10 +228,7 @@ export function useJourneyStudio() {
    */
 
   const preset = (doc?.page.preset ?? 'square-210') as PagePresetId
-  const page = doc?.page ?? {
-    preset: 'square-210' as const,
-    pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5,
-  }
+  const page = doc?.page ?? EMPTY_PAGE
   const spread = doc?.spreads[activeSpread] ?? null
   const spreadWidthMm = spread && spread.role === 'inner' ? page.pageWidth * 2 : page.pageWidth
 
@@ -286,6 +317,24 @@ export function useJourneyStudio() {
     }))
   }, [commit])
 
+  /*
+   * Save on change.
+   *
+   * Watching the document rather than wrapping every mutation: the store has a
+   * dozen ways to change a book and will grow more, and a save call at each of
+   * them is a save call somebody forgets to add. One effect on the value that
+   * matters cannot be forgotten.
+   *
+   * The document that was just loaded — at open, or when another editor's
+   * version arrives — is passed straight back here on the next render. The
+   * store recognises it by identity and does not write it back, so neither an
+   * open nor an incoming change shows up as an edit.
+   */
+  useEffect(() => {
+    if (!doc || !book.loaded || !journey) return
+    book.queueSave(doc, journey.title || '')
+  }, [doc, book, journey])
+
   /** Largest zoom at which the whole spread still fits the workbench. */
   const fitZoom = useCallback(() => {
     const el = workRef.current
@@ -325,10 +374,13 @@ export function useJourneyStudio() {
   }, [])
 
   const close = useCallback(() => {
+    // Whatever is still queued goes now: the debounce exists so a drag is one
+    // request, not so the last edit before closing is lost.
+    void book.saveNow()
     setClosing(true)
     // Mirrors the exit duration in studio.css.
     window.setTimeout(() => navigate(backTo, { replace: true }), 180)
-  }, [navigate, backTo])
+  }, [navigate, backTo, book])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -418,6 +470,14 @@ export function useJourneyStudio() {
     relayoutBook,
     relayoutCurrentSpread,
     canRelayoutSpread,
+
+    /** Autosave: its state, and the two ways out of a conflict. */
+    /** Applying the other side of a conflict replaces the open document. */
+    loadDoc,
+    saveState: book.state,
+    saveNow: book.saveNow,
+    acceptTheirs: book.acceptTheirs,
+    keepMine: book.keepMine,
     spread,
     spreadWidthMm,
     activeSpread,

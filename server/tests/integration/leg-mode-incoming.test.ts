@@ -43,9 +43,8 @@ describe('incoming_leg_transport_mode migration', () => {
     //
     // >>> Appending a migration? Re-point the "undo" below at whatever yours
     // >>> does. That is the whole maintenance cost of this guard. The current
-    // >>> trailing slot copies the lowest-id admin's Google and Unsplash keys
-    // >>> into app_settings, so undoing it means clearing those rows and
-    // >>> leaving an admin holding a key for it to find again.
+    // >>> trailing slot creates journey_books (the TREK Studio document store,
+    // >>> #1973), so undoing it means dropping that table and its index.
     const upgraded = new Database(':memory:');
     upgraded.exec('PRAGMA foreign_keys = ON');
     createTables(upgraded);
@@ -53,30 +52,22 @@ describe('incoming_leg_transport_mode migration', () => {
 
     const { version } = upgraded.prepare('SELECT version FROM schema_version').get() as { version: number };
 
-    upgraded.prepare("DELETE FROM app_settings WHERE key IN ('maps_api_key', 'unsplash_api_key')").run();
-    upgraded
-      .prepare(
-        `INSERT INTO users (id, username, email, password_hash, role, maps_api_key)
-         VALUES (2, 'b', 'b@test.local', 'x', 'admin', NULL)`
-      )
-      .run();
-    // The only key on the install, which is the one condition under which the
-    // migration promotes it at all; the rest of that decision is pinned in
-    // tests/unit/db/instance-api-key-backfill.test.ts.
-    upgraded
-      .prepare(
-        `INSERT INTO users (id, username, email, password_hash, role, maps_api_key)
-         VALUES (1, 'a', 'a@test.local', 'x', 'admin', 'key-of-the-first-admin')`
-      )
-      .run();
+    upgraded.exec('DROP INDEX IF EXISTS idx_journey_books_journey');
+    upgraded.exec('DROP TABLE IF EXISTS journey_books');
+    expect(
+      upgraded.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'journey_books'").get()
+    ).toBeUndefined();
 
     upgraded.prepare('UPDATE schema_version SET version = ?').run(version - 1);
 
     runMigrations(upgraded);
 
-    expect(upgraded.prepare("SELECT value FROM app_settings WHERE key = 'maps_api_key'").get()).toEqual({
-      value: 'key-of-the-first-admin',
-    });
+    expect(
+      upgraded.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'journey_books'").get()
+    ).toEqual({ name: 'journey_books' });
+    expect(
+      upgraded.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_journey_books_journey'").get()
+    ).toEqual({ name: 'idx_journey_books_journey' });
     expect(upgraded.prepare('SELECT version FROM schema_version').get()).toEqual({ version });
     upgraded.close();
   });

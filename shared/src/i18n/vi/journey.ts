@@ -473,5 +473,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceHint': 'Tải khi kết xuất và in kèm ghi công',
   'journey.studio.mapZoom': 'Thu phóng',
   'journey.studio.mapZoomAuto': 'Vừa khung',
+  'journey.studio.saving': 'Đang lưu',
+  'journey.studio.saved': 'Đã lưu',
+  'journey.studio.saveFailed': 'Chưa lưu',
+  'journey.studio.saveRetry': 'Thử lại',
+  'journey.studio.saveConflict': 'Người khác đã lưu cuốn sách này',
+  'journey.studio.saveTakeTheirs': 'Bản của họ',
+  'journey.studio.saveKeepMine': 'Bản của tôi',
 };
 export default journey;

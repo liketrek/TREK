@@ -473,5 +473,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceHint': 'Загружается при отрисовке и печатается с указанием источника',
   'journey.studio.mapZoom': 'Масштаб',
   'journey.studio.mapZoomAuto': 'По содержимому',
+  'journey.studio.saving': 'Сохранение',
+  'journey.studio.saved': 'Сохранено',
+  'journey.studio.saveFailed': 'Не сохранено',
+  'journey.studio.saveRetry': 'Повторить',
+  'journey.studio.saveConflict': 'Эту книгу сохранил кто-то ещё',
+  'journey.studio.saveTakeTheirs': 'Их версию',
+  'journey.studio.saveKeepMine': 'Мою версию',
 };
 export default journey;

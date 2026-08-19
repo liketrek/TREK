@@ -473,5 +473,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceHint': 'Es descarrega en renderitzar i s’imprimeix amb l’atribució',
   'journey.studio.mapZoom': 'Zoom',
   'journey.studio.mapZoomAuto': 'Ajustar',
+  'journey.studio.saving': 'Desant',
+  'journey.studio.saved': 'Desat',
+  'journey.studio.saveFailed': 'Sense desar',
+  'journey.studio.saveRetry': 'Torna-ho a provar',
+  'journey.studio.saveConflict': 'Una altra persona ha desat aquest llibre',
+  'journey.studio.saveTakeTheirs': 'La seva',
+  'journey.studio.saveKeepMine': 'La meva',
 };
 export default journey;

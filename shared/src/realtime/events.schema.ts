@@ -272,6 +272,20 @@ export const TREK_WS_EVENTS = {
     payload: z.object({ journeyId: id, targetUserId: id, role: z.unknown() }),
   },
 
+  /*
+   * The Studio book was saved (#1973).
+   *
+   * Carries the new version rather than the document. Everyone with the book
+   * open needs to know theirs is behind — which is one integer — and the ones
+   * who care can ask for the document. Pushing a few hundred kilobytes of JSON
+   * to every contributor on every autosave would be a broadcast the size of the
+   * thing being edited.
+   */
+  'journey:book:saved': {
+    scope: 'user',
+    payload: z.object({ journeyId: id, version: z.number(), savedBy: id }),
+  },
+
   // ── Booking import (user-scoped; push() injects jobId + tripId) ─────────
   'import:progress': {
     scope: 'user',

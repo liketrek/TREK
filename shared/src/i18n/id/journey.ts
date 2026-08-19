@@ -472,5 +472,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceHint': 'Diambil saat render dan dicetak dengan atribusinya',
   'journey.studio.mapZoom': 'Zum',
   'journey.studio.mapZoomAuto': 'Sesuaikan',
+  'journey.studio.saving': 'Menyimpan',
+  'journey.studio.saved': 'Tersimpan',
+  'journey.studio.saveFailed': 'Belum tersimpan',
+  'journey.studio.saveRetry': 'Coba lagi',
+  'journey.studio.saveConflict': 'Orang lain menyimpan buku ini',
+  'journey.studio.saveTakeTheirs': 'Punya mereka',
+  'journey.studio.saveKeepMine': 'Punya saya',
 };
 export default journey;

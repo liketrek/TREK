@@ -473,5 +473,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceHint': 'Načte se při vykreslení a vytiskne se s uvedením zdroje',
   'journey.studio.mapZoom': 'Přiblížení',
   'journey.studio.mapZoomAuto': 'Podle obsahu',
+  'journey.studio.saving': 'Ukládání',
+  'journey.studio.saved': 'Uloženo',
+  'journey.studio.saveFailed': 'Neuloženo',
+  'journey.studio.saveRetry': 'Zkusit znovu',
+  'journey.studio.saveConflict': 'Tuto knihu uložil někdo jiný',
+  'journey.studio.saveTakeTheirs': 'Jejich verzi',
+  'journey.studio.saveKeepMine': 'Moji verzi',
 };
 export default journey;

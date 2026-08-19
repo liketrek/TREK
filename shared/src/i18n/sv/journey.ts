@@ -473,5 +473,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceHint': 'Hämtas vid rendering och trycks med sin källhänvisning',
   'journey.studio.mapZoom': 'Zoom',
   'journey.studio.mapZoomAuto': 'Anpassa',
+  'journey.studio.saving': 'Sparar',
+  'journey.studio.saved': 'Sparat',
+  'journey.studio.saveFailed': 'Inte sparat',
+  'journey.studio.saveRetry': 'Försök igen',
+  'journey.studio.saveConflict': 'Någon annan har sparat den här boken',
+  'journey.studio.saveTakeTheirs': 'Deras',
+  'journey.studio.saveKeepMine': 'Min',
 };
 export default journey;

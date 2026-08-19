@@ -473,5 +473,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceHint': 'Rendereléskor töltődik le, és forrásmegjelöléssel nyomtatódik',
   'journey.studio.mapZoom': 'Nagyítás',
   'journey.studio.mapZoomAuto': 'Igazítás',
+  'journey.studio.saving': 'Mentés',
+  'journey.studio.saved': 'Mentve',
+  'journey.studio.saveFailed': 'Nincs mentve',
+  'journey.studio.saveRetry': 'Újra',
+  'journey.studio.saveConflict': 'Ezt a könyvet valaki más mentette',
+  'journey.studio.saveTakeTheirs': 'Az övék',
+  'journey.studio.saveKeepMine': 'Az enyém',
 };
 export default journey;

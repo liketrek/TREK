@@ -22,6 +22,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import type { User } from '../../types';
 import { JourneyService } from './journey.service';
+import { JourneyBookService } from './journey-book.service';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
 import { ADDON_IDS } from '../../addons';
@@ -32,6 +33,7 @@ import {
   JourneyEntryCreateDto, JourneyEntryPhotoUploadDto, JourneyEntryUpdateDto, JourneyGalleryVideoDto,
   JourneyLinkPhotoDto, JourneyPhotoUpdateDto, JourneyPreferencesDto, JourneyProviderPhotosDto,
   JourneyReorderEntriesDto, JourneyShareLinkDto, JourneyUpdateDto,
+  BookSaveDto,
 } from './journey.dto';
 import { isVideoMime, isVideoExtension, MAX_VIDEO_SIZE } from '../files/files.constants';
 import { AllowedFileTypesService } from '../files/allowed-file-types.service';
@@ -120,7 +122,10 @@ const VIDEO_UPLOAD = {
 @UseGuards(AddonGuard, JwtAuthGuard)
 @RequireAddon(ADDON_IDS.JOURNEY, 'Journey')
 export class JourneyController {
-  constructor(private readonly journey: JourneyService) {}
+  constructor(
+    private readonly journey: JourneyService,
+    private readonly books: JourneyBookService,
+  ) {}
 
   // ── Static prefix routes (before /:id) ──────────────────────────────────
   @Get()
@@ -451,6 +456,69 @@ export class JourneyController {
       throw new HttpException({ error: 'Journey not found' }, 404);
     }
     return stats;
+  }
+
+  /*
+   * ── The Studio book (#1973) ──────────────────────────────────────────
+   *
+   * A book belongs to its journey and inherits its access exactly: every
+   * contributor may open and edit it. No second permission model over the same
+   * object — that is how two rules end up disagreeing about who may do what.
+   */
+
+  @Get(':id/book')
+  getBook(@CurrentUser() user: User, @Param('id') id: string) {
+    const book = this.books.getBook(Number(id), user.id);
+    if (book === null && !this.books.canOpen(Number(id), user.id)) {
+      throw new HttpException({ error: 'Journey not found' }, 404);
+    }
+    // A journey with no book yet is not an error: Studio opens, lays one out
+    // and saves it. Answering 404 would make "no book" and "no journey"
+    // indistinguishable to the client.
+    return { book };
+  }
+
+  @Put(':id/book')
+  @HttpCode(200)
+  saveBook(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: BookSaveDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const result = this.books.saveBook(Number(id), user.id, {
+      title: body.title ?? '',
+      document: body.document,
+      baseVersion: body.baseVersion,
+    });
+    if (result === null) {
+      throw new HttpException({ error: 'Journey not found' }, 404);
+    }
+    if ('conflict' in result) {
+      /*
+       * 409, with the current record in the body.
+       *
+       * Two people editing is the normal case here, not an exception — the
+       * client needs to be able to show what the other version is, and a bare
+       * status code would make that a second round trip at exactly the moment
+       * someone is worried about losing work.
+       */
+      throw new HttpException(
+        { error: 'Book was changed by someone else', current: result.conflict },
+        409,
+      );
+    }
+    this.books.broadcastSaved(Number(id), user.id, result.record, socketId);
+    return result.record;
+  }
+
+  @Delete(':id/book')
+  @HttpCode(204)
+  deleteBook(@CurrentUser() user: User, @Param('id') id: string) {
+    const removed = this.books.deleteBook(Number(id), user.id);
+    if (removed === null) {
+      throw new HttpException({ error: 'Journey not found' }, 404);
+    }
   }
 
   @Post(':id/entries')

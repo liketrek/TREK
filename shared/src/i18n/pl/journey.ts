@@ -473,5 +473,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceHint': 'Pobierane przy renderowaniu i drukowane z informacją o źródle',
   'journey.studio.mapZoom': 'Powiększenie',
   'journey.studio.mapZoomAuto': 'Dopasuj',
+  'journey.studio.saving': 'Zapisywanie',
+  'journey.studio.saved': 'Zapisano',
+  'journey.studio.saveFailed': 'Niezapisane',
+  'journey.studio.saveRetry': 'Spróbuj ponownie',
+  'journey.studio.saveConflict': 'Ktoś inny zapisał tę książkę',
+  'journey.studio.saveTakeTheirs': 'Ich wersję',
+  'journey.studio.saveKeepMine': 'Moją wersję',
 };
 export default journey;

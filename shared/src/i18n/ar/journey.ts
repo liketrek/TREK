@@ -472,5 +472,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceHint': 'تُجلب عند العرض وتُطبع مع إسنادها',
   'journey.studio.mapZoom': 'التقريب',
   'journey.studio.mapZoomAuto': 'ملائم',
+  'journey.studio.saving': 'يجري الحفظ',
+  'journey.studio.saved': 'تم الحفظ',
+  'journey.studio.saveFailed': 'لم يُحفظ',
+  'journey.studio.saveRetry': 'إعادة المحاولة',
+  'journey.studio.saveConflict': 'حفظ شخص آخر هذا الكتاب',
+  'journey.studio.saveTakeTheirs': 'نسختهم',
+  'journey.studio.saveKeepMine': 'نسختي',
 };
 export default journey;

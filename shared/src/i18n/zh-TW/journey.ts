@@ -471,5 +471,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceHint': '算繪時取得，並附上來源標註列印',
   'journey.studio.mapZoom': '縮放',
   'journey.studio.mapZoomAuto': '自動',
+  'journey.studio.saving': '正在儲存',
+  'journey.studio.saved': '已儲存',
+  'journey.studio.saveFailed': '未儲存',
+  'journey.studio.saveRetry': '重試',
+  'journey.studio.saveConflict': '其他人儲存了這本書',
+  'journey.studio.saveTakeTheirs': '用他們的',
+  'journey.studio.saveKeepMine': '用我的',
 };
 export default journey;

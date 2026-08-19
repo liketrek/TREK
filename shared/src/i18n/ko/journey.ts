@@ -473,5 +473,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceHint': '렌더링할 때 가져오며 출처와 함께 인쇄됩니다',
   'journey.studio.mapZoom': '확대',
   'journey.studio.mapZoomAuto': '자동',
+  'journey.studio.saving': '저장 중',
+  'journey.studio.saved': '저장됨',
+  'journey.studio.saveFailed': '저장되지 않음',
+  'journey.studio.saveRetry': '다시 시도',
+  'journey.studio.saveConflict': '다른 사람이 이 책을 저장했습니다',
+  'journey.studio.saveTakeTheirs': '상대 버전',
+  'journey.studio.saveKeepMine': '내 버전',
 };
 export default journey;

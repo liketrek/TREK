@@ -471,5 +471,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceHint': '渲染时获取，并附带来源标注打印',
   'journey.studio.mapZoom': '缩放',
   'journey.studio.mapZoomAuto': '自适应',
+  'journey.studio.saving': '正在保存',
+  'journey.studio.saved': '已保存',
+  'journey.studio.saveFailed': '未保存',
+  'journey.studio.saveRetry': '重试',
+  'journey.studio.saveConflict': '其他人保存了这本书',
+  'journey.studio.saveTakeTheirs': '用他们的',
+  'journey.studio.saveKeepMine': '用我的',
 };
 export default journey;

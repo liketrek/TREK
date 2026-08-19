@@ -473,5 +473,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceHint': 'Sayfa işlenirken indirilir ve kaynak bilgisiyle basılır',
   'journey.studio.mapZoom': 'Yakınlaştırma',
   'journey.studio.mapZoomAuto': 'Sığdır',
+  'journey.studio.saving': 'Kaydediliyor',
+  'journey.studio.saved': 'Kaydedildi',
+  'journey.studio.saveFailed': 'Kaydedilmedi',
+  'journey.studio.saveRetry': 'Yeniden dene',
+  'journey.studio.saveConflict': 'Bu kitabı başka biri kaydetti',
+  'journey.studio.saveTakeTheirs': 'Onlarınki',
+  'journey.studio.saveKeepMine': 'Benimki',
 };
 export default journey;

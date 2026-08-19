@@ -15,6 +15,7 @@ import {
   journeyReorderEntriesRequestSchema,
   journeyShareLinkRequestSchema,
   journeyUpdateRequestSchema,
+  bookSaveRequestSchema,
 } from '@trek/shared';
 
 /**
@@ -49,3 +50,6 @@ export class JourneyLinkPhotoDto extends createZodDto(journeyLinkPhotoRequestSch
 export class JourneyPhotoUpdateDto extends createZodDto(journeyPhotoUpdateRequestSchema) {}
 export class JourneyEntryPhotoUploadDto extends createZodDto(journeyEntryPhotoUploadRequestSchema) {}
 export class JourneyGalleryVideoDto extends createZodDto(journeyGalleryVideoRequestSchema) {}
+
+/** A Studio book save — the whole document, plus the version it was made against. */
+export class BookSaveDto extends createZodDto(bookSaveRequestSchema) {}

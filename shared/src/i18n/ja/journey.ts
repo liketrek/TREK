@@ -474,5 +474,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceHint': 'レンダリング時に取得し、出典を付けて印刷します',
   'journey.studio.mapZoom': 'ズーム',
   'journey.studio.mapZoomAuto': '自動',
+  'journey.studio.saving': '保存中',
+  'journey.studio.saved': '保存しました',
+  'journey.studio.saveFailed': '未保存',
+  'journey.studio.saveRetry': '再試行',
+  'journey.studio.saveConflict': 'ほかの人がこの本を保存しました',
+  'journey.studio.saveTakeTheirs': '相手の版',
+  'journey.studio.saveKeepMine': '自分の版',
 };
 export default journey;

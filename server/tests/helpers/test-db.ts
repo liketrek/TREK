@@ -71,6 +71,7 @@ const RESET_TABLES = [
   'trip_members',
   'trips',
   // Journey
+  'journey_books',
   'journey_share_tokens',
   'journey_photos',
   'journey_entries',

@@ -1395,3 +1395,50 @@
   background: color-mix(in oklch, var(--accent) 10%, transparent);
 }
 .trek-dash .st-chip:disabled { opacity: .32; cursor: default; }
+
+/* ----------------- save state ----------------- *
+ * Quiet by default. A status that announces every successful save is one people
+ * learn to stop reading, which is the wrong habit for the one time it says
+ * something else.
+ */
+.trek-dash .st-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-3);
+  background: color-mix(in oklch, var(--ink) 5%, transparent);
+  flex: none;
+  white-space: nowrap;
+}
+.trek-dash .st-save.is-quiet { background: transparent; }
+.trek-dash .st-save.is-error {
+  color: var(--danger, #b91c1c);
+  background: color-mix(in oklch, var(--danger, #b91c1c) 12%, transparent);
+}
+.trek-dash .st-save.is-conflict {
+  color: var(--ink);
+  background: color-mix(in oklch, var(--warn, #b45309) 16%, transparent);
+  border: 1px solid color-mix(in oklch, var(--warn, #b45309) 34%, transparent);
+  height: 28px;
+}
+.trek-dash .st-save.is-conflict button {
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+  background: color-mix(in oklch, var(--ink) 10%, transparent);
+}
+.trek-dash .st-save.is-conflict button:hover {
+  background: color-mix(in oklch, var(--ink) 18%, transparent);
+}
+
+.trek-dash .st-spin { animation: st-spin 900ms linear infinite; }
+@keyframes st-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .trek-dash .st-spin { animation: none; } }

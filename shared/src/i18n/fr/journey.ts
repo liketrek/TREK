@@ -474,5 +474,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceHint': 'Téléchargée au rendu et imprimée avec son crédit',
   'journey.studio.mapZoom': 'Zoom',
   'journey.studio.mapZoomAuto': 'Ajuster',
+  'journey.studio.saving': 'Enregistrement',
+  'journey.studio.saved': 'Enregistré',
+  'journey.studio.saveFailed': 'Non enregistré',
+  'journey.studio.saveRetry': 'Réessayer',
+  'journey.studio.saveConflict': 'Quelqu’un d’autre a enregistré ce livre',
+  'journey.studio.saveTakeTheirs': 'La leur',
+  'journey.studio.saveKeepMine': 'La mienne',
 };
 export default journey;

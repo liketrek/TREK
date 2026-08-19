@@ -86,7 +86,14 @@ export class JourneyDomainService {
 
 
 
-  private broadcastJourneyEvent(
+  /**
+   * Tell everyone on a journey that something changed.
+   *
+   * Public because the book service needs the same audience — who can see a
+   * journey is one question with one answer, and a second copy of this walk
+   * over contributors and owner would be a second answer waiting to disagree.
+   */
+  broadcastJourneyEvent(
     journeyId: number,
     // Typed against the shared WS registry rather than left as `string`: the
     // legacy broadcastToUser took anything, so a typo'd event name shipped as a

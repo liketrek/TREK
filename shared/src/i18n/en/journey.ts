@@ -473,5 +473,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceHint': 'Fetched when the page is rendered, and printed with its credit',
   'journey.studio.mapZoom': 'Zoom',
   'journey.studio.mapZoomAuto': 'Fit',
+  'journey.studio.saving': 'Saving',
+  'journey.studio.saved': 'Saved',
+  'journey.studio.saveFailed': 'Not saved',
+  'journey.studio.saveRetry': 'Try again',
+  'journey.studio.saveConflict': 'Someone else saved this book',
+  'journey.studio.saveTakeTheirs': 'Take theirs',
+  'journey.studio.saveKeepMine': 'Keep mine',
 };
 export default journey;

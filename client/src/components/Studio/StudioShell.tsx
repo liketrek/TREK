@@ -11,6 +11,7 @@ import { StudioSidebar } from './StudioSidebar'
 import { StudioCanvas } from './StudioCanvas'
 import { StudioInspector } from './StudioInspector'
 import { StudioWordmark } from './StudioWordmark'
+import { SaveIndicator } from './SaveIndicator'
 import '../../styles/dashboard.css'
 import '../../styles/studio.css'
 
@@ -125,6 +126,14 @@ function StudioBar({
         <StudioWordmark style={{ height: 26 }} />
         <span className="st-beta">{s.t('journey.studio.beta')}</span>
       </div>
+
+      <SaveIndicator
+        state={s.saveState}
+        t={s.t}
+        onAcceptTheirs={current => s.loadDoc(s.acceptTheirs(current))}
+        onKeepMine={s.keepMine}
+        onRetry={() => { void s.saveNow() }}
+      />
 
       <div className="st-bar-group">
         <button
