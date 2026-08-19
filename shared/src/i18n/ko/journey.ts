@@ -455,5 +455,15 @@ const journey: TranslationStrings = {
   'journey.studio.relayoutSpreadNone': '이 페이지는 항목에서 만든 것이 아닙니다',
   'journey.studio.relayoutBook': '책 전체',
   'journey.studio.relayoutBookHint': '모든 페이지 교체 — 되돌릴 수 있음',
+  'journey.studio.tpl.coverFull': '재단 여백',
+  'journey.studio.tpl.coverBand': '사진과 띠',
+  'journey.studio.tpl.coverWindow': '액자형',
+  'journey.studio.tpl.coverQuiet': '글자만',
+  'journey.studio.tpl.coverHalf': '위아래 반반',
+  'journey.studio.tpl.fullText': '사진과 이야기',
+  'journey.studio.tpl.grid9': '아홉 칸',
+  'journey.studio.tpl.mosaic': '모자이크',
+  'journey.studio.tpl.bandQuote': '가운데 글',
+  'journey.studio.tpl.staggerFour': '네 칸 엇갈림',
 };
 export default journey;

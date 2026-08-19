@@ -454,5 +454,15 @@ const journey: TranslationStrings = {
   'journey.studio.relayoutSpreadNone': 'Halaman ini bukan dari catatan',
   'journey.studio.relayoutBook': 'Seluruh buku',
   'journey.studio.relayoutBookHint': 'Mengganti semua halaman — bisa dibatalkan',
+  'journey.studio.tpl.coverFull': 'Penuh',
+  'journey.studio.tpl.coverBand': 'Gambar dan pita',
+  'journey.studio.tpl.coverWindow': 'Berbingkai',
+  'journey.studio.tpl.coverQuiet': 'Teks saja',
+  'journey.studio.tpl.coverHalf': 'Dua bagian',
+  'journey.studio.tpl.fullText': 'Gambar dan cerita',
+  'journey.studio.tpl.grid9': 'Sembilan',
+  'journey.studio.tpl.mosaic': 'Mozaik',
+  'journey.studio.tpl.bandQuote': 'Kata di tengah',
+  'journey.studio.tpl.staggerFour': 'Empat berselang',
 };
 export default journey;

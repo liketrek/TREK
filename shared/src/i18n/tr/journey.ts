@@ -455,5 +455,15 @@ const journey: TranslationStrings = {
   'journey.studio.relayoutSpreadNone': 'Bu sayfa bir kayıttan gelmiyor',
   'journey.studio.relayoutBook': 'Tüm kitap',
   'journey.studio.relayoutBookHint': 'Tüm sayfaları değiştirir — geri alınabilir',
+  'journey.studio.tpl.coverFull': 'Taşmalı',
+  'journey.studio.tpl.coverBand': 'Görsel ve şerit',
+  'journey.studio.tpl.coverWindow': 'Çerçeveli',
+  'journey.studio.tpl.coverQuiet': 'Yalnızca yazı',
+  'journey.studio.tpl.coverHalf': 'İki yarım',
+  'journey.studio.tpl.fullText': 'Görsel ve metin',
+  'journey.studio.tpl.grid9': 'Dokuz',
+  'journey.studio.tpl.mosaic': 'Mozaik',
+  'journey.studio.tpl.bandQuote': 'Arada sözler',
+  'journey.studio.tpl.staggerFour': 'Kaydırılmış dört',
 };
 export default journey;

@@ -455,5 +455,15 @@ const journey: TranslationStrings = {
   'journey.studio.relayoutSpreadNone': 'Ta strona nie pochodzi z wpisu',
   'journey.studio.relayoutBook': 'Cała książka',
   'journey.studio.relayoutBookHint': 'Zastępuje wszystkie strony — cofalne',
+  'journey.studio.tpl.coverFull': 'Na spad',
+  'journey.studio.tpl.coverBand': 'Zdjęcie i pas',
+  'journey.studio.tpl.coverWindow': 'W ramce',
+  'journey.studio.tpl.coverQuiet': 'Tylko tekst',
+  'journey.studio.tpl.coverHalf': 'Dwie połowy',
+  'journey.studio.tpl.fullText': 'Zdjęcie i opowieść',
+  'journey.studio.tpl.grid9': 'Dziewięć',
+  'journey.studio.tpl.mosaic': 'Mozaika',
+  'journey.studio.tpl.bandQuote': 'Słowa pośrodku',
+  'journey.studio.tpl.staggerFour': 'Cztery przesunięte',
 };
 export default journey;

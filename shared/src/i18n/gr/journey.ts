@@ -457,5 +457,15 @@ const journey: TranslationStrings = {
   'journey.studio.relayoutSpreadNone': 'Αυτή η σελίδα δεν προήλθε από καταχώριση',
   'journey.studio.relayoutBook': 'Όλο το βιβλίο',
   'journey.studio.relayoutBookHint': 'Αντικαθιστά κάθε σελίδα — αναιρέσιμο',
+  'journey.studio.tpl.coverFull': 'Ολοσέλιδο',
+  'journey.studio.tpl.coverBand': 'Εικόνα και λωρίδα',
+  'journey.studio.tpl.coverWindow': 'Σε πλαίσιο',
+  'journey.studio.tpl.coverQuiet': 'Μόνο κείμενο',
+  'journey.studio.tpl.coverHalf': 'Δύο μισά',
+  'journey.studio.tpl.fullText': 'Εικόνα και κείμενο',
+  'journey.studio.tpl.grid9': 'Εννέα',
+  'journey.studio.tpl.mosaic': 'Ψηφιδωτό',
+  'journey.studio.tpl.bandQuote': 'Λέξεις ανάμεσα',
+  'journey.studio.tpl.staggerFour': 'Τέσσερις σε κλιμάκωση',
 };
 export default journey;

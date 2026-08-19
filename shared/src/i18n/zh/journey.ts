@@ -453,5 +453,15 @@ const journey: TranslationStrings = {
   'journey.studio.relayoutSpreadNone': '此页不是由条目生成的',
   'journey.studio.relayoutBook': '整本书',
   'journey.studio.relayoutBookHint': '替换所有页面 — 可撤销',
+  'journey.studio.tpl.coverFull': '出血满版',
+  'journey.studio.tpl.coverBand': '图片加色带',
+  'journey.studio.tpl.coverWindow': '加框',
+  'journey.studio.tpl.coverQuiet': '纯文字',
+  'journey.studio.tpl.coverHalf': '上下两半',
+  'journey.studio.tpl.fullText': '图片与故事',
+  'journey.studio.tpl.grid9': '九宫格',
+  'journey.studio.tpl.mosaic': '马赛克',
+  'journey.studio.tpl.bandQuote': '文字居中',
+  'journey.studio.tpl.staggerFour': '四张错落',
 };
 export default journey;

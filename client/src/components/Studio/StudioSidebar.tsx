@@ -9,7 +9,7 @@ import { useStudioStore } from '../../store/studioStore'
 import { formatDate } from '../../utils/formatters'
 import { SpreadFold, SpreadView } from './SpreadView'
 import { photoSrc } from './bookRender'
-import { TEMPLATES, applyTemplate } from './templates'
+import { COVER_TEMPLATES, TEMPLATES, applyTemplate } from './templates'
 import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
 import { PanelHead as Head } from './StudioPanelHead'
 import { StudioElementsPanel } from './StudioElementsPanel'
@@ -482,20 +482,31 @@ function TemplatesPanel({
 
   const list = useElementSize<HTMLDivElement>()
   const CARD_W = Math.max(MIN_PREVIEW_W, list.width - THUMB_CHROME)
-  const scale = useMemo(() => CARD_W / (page.pageWidth * 2 * pxPerMm), [CARD_W, page.pageWidth, pxPerMm])
+  const doc2 = doc
+  const cardIsSingle = (doc2?.spreads[active]?.role ?? 'inner') !== 'inner'
+  // A cover card is one page wide, not two — scaling it as a spread would draw
+  // the layout at half size in the left half of the card.
+  const scale = useMemo(
+    () => CARD_W / (page.pageWidth * (cardIsSingle ? 1 : 2) * pxPerMm),
+    [CARD_W, page.pageWidth, pxPerMm, cardIsSingle],
+  )
 
   if (!spread) return null
   const single = spread.role !== 'inner'
+  /*
+   * The cover has its own set. It used to have none — the panel said covers
+   * are designed by hand, which was true and unhelpful: the cover is the page
+   * people care most about and the one they had no starting point for.
+   */
+  const templates = single ? COVER_TEMPLATES : TEMPLATES
 
   return (
     <>
-      <Head label={t('journey.studio.templates')} count={TEMPLATES.length} />
+      <Head label={t('journey.studio.templates')} count={templates.length} />
       <div className="st-panel-scroll">
-        {single ? (
-          <p className="st-hint">{t('journey.studio.templatesCoverHint')}</p>
-        ) : (
+        {(
           <div className="st-thumbs" ref={list.ref}>
-            {TEMPLATES.map(tpl => {
+            {templates.map(tpl => {
               const slots = tpl.build(page)
               return (
                 <button
@@ -534,10 +545,12 @@ function TemplatesPanel({
                         }}
                       />
                     ))}
-                    <span
-                      className="st-tpl-fold"
-                      style={{ left: page.pageWidth * pxPerMm * scale }}
-                    />
+                    {!single && (
+                      <span
+                        className="st-tpl-fold"
+                        style={{ left: page.pageWidth * pxPerMm * scale }}
+                      />
+                    )}
                   </div>
                   <span className="st-thumb-label">{t(tpl.labelKey)}</span>
                 </button>

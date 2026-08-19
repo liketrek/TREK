@@ -455,5 +455,15 @@ const journey: TranslationStrings = {
   'journey.studio.relayoutSpreadNone': 'Aquesta pàgina no ve d’una entrada',
   'journey.studio.relayoutBook': 'Tot el llibre',
   'journey.studio.relayoutBookHint': 'Reemplaça totes les pàgines — reversible',
+  'journey.studio.tpl.coverFull': 'A sang',
+  'journey.studio.tpl.coverBand': 'Imatge i franja',
+  'journey.studio.tpl.coverWindow': 'Emmarcat',
+  'journey.studio.tpl.coverQuiet': 'Només text',
+  'journey.studio.tpl.coverHalf': 'Dues meitats',
+  'journey.studio.tpl.fullText': 'Imatge i història',
+  'journey.studio.tpl.grid9': 'Nou',
+  'journey.studio.tpl.mosaic': 'Mosaic',
+  'journey.studio.tpl.bandQuote': 'Paraules al mig',
+  'journey.studio.tpl.staggerFour': 'Quatre esglaonades',
 };
 export default journey;

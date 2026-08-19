@@ -455,5 +455,15 @@ const journey: TranslationStrings = {
   'journey.studio.relayoutSpreadNone': 'Этот разворот не из записи',
   'journey.studio.relayoutBook': 'Вся книга',
   'journey.studio.relayoutBookHint': 'Заменит все страницы — обратимо',
+  'journey.studio.tpl.coverFull': 'В обрез',
+  'journey.studio.tpl.coverBand': 'Снимок и полоса',
+  'journey.studio.tpl.coverWindow': 'В рамке',
+  'journey.studio.tpl.coverQuiet': 'Только текст',
+  'journey.studio.tpl.coverHalf': 'Две половины',
+  'journey.studio.tpl.fullText': 'Снимок и рассказ',
+  'journey.studio.tpl.grid9': 'Девять',
+  'journey.studio.tpl.mosaic': 'Мозаика',
+  'journey.studio.tpl.bandQuote': 'Слова посередине',
+  'journey.studio.tpl.staggerFour': 'Четыре со сдвигом',
 };
 export default journey;

@@ -455,5 +455,15 @@ const journey: TranslationStrings = {
   'journey.studio.relayoutSpreadNone': 'Detta uppslag kommer inte från en anteckning',
   'journey.studio.relayoutBook': 'Hela boken',
   'journey.studio.relayoutBookHint': 'Ersätter alla sidor — kan ångras',
+  'journey.studio.tpl.coverFull': 'Utfallande',
+  'journey.studio.tpl.coverBand': 'Bild och band',
+  'journey.studio.tpl.coverWindow': 'Inramad',
+  'journey.studio.tpl.coverQuiet': 'Endast text',
+  'journey.studio.tpl.coverHalf': 'Två halvor',
+  'journey.studio.tpl.fullText': 'Bild och text',
+  'journey.studio.tpl.grid9': 'Nio',
+  'journey.studio.tpl.mosaic': 'Mosaik',
+  'journey.studio.tpl.bandQuote': 'Ord emellan',
+  'journey.studio.tpl.staggerFour': 'Fyra förskjutna',
 };
 export default journey;

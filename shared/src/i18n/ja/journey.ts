@@ -456,5 +456,15 @@ const journey: TranslationStrings = {
   'journey.studio.relayoutSpreadNone': 'このページはエントリー由来ではありません',
   'journey.studio.relayoutBook': '本全体',
   'journey.studio.relayoutBookHint': 'すべてのページを差し替え — 取り消せます',
+  'journey.studio.tpl.coverFull': '裁ち落とし',
+  'journey.studio.tpl.coverBand': '写真と帯',
+  'journey.studio.tpl.coverWindow': '額装',
+  'journey.studio.tpl.coverQuiet': '文字のみ',
+  'journey.studio.tpl.coverHalf': '上下二分割',
+  'journey.studio.tpl.fullText': '写真と本文',
+  'journey.studio.tpl.grid9': '9分割',
+  'journey.studio.tpl.mosaic': 'モザイク',
+  'journey.studio.tpl.bandQuote': '間にことば',
+  'journey.studio.tpl.staggerFour': '4枚ずらし',
 };
 export default journey;

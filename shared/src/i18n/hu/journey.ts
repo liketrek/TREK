@@ -455,5 +455,15 @@ const journey: TranslationStrings = {
   'journey.studio.relayoutSpreadNone': 'Ez az oldal nem bejegyzésből készült',
   'journey.studio.relayoutBook': 'A teljes könyv',
   'journey.studio.relayoutBookHint': 'Minden oldalt lecserél — visszavonható',
+  'journey.studio.tpl.coverFull': 'Kifutó',
+  'journey.studio.tpl.coverBand': 'Kép és sáv',
+  'journey.studio.tpl.coverWindow': 'Keretes',
+  'journey.studio.tpl.coverQuiet': 'Csak szöveg',
+  'journey.studio.tpl.coverHalf': 'Két fél',
+  'journey.studio.tpl.fullText': 'Kép és történet',
+  'journey.studio.tpl.grid9': 'Kilenc',
+  'journey.studio.tpl.mosaic': 'Mozaik',
+  'journey.studio.tpl.bandQuote': 'Szavak középen',
+  'journey.studio.tpl.staggerFour': 'Négy eltolva',
 };
 export default journey;

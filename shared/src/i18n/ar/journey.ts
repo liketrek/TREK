@@ -454,5 +454,15 @@ const journey: TranslationStrings = {
   'journey.studio.relayoutSpreadNone': 'هذه الصفحة ليست من مدخل',
   'journey.studio.relayoutBook': 'الكتاب كامل',
   'journey.studio.relayoutBookHint': 'يستبدل كل الصفحات — يمكن التراجع',
+  'journey.studio.tpl.coverFull': 'بلا حواف',
+  'journey.studio.tpl.coverBand': 'صورة وشريط',
+  'journey.studio.tpl.coverWindow': 'بإطار',
+  'journey.studio.tpl.coverQuiet': 'نص فقط',
+  'journey.studio.tpl.coverHalf': 'نصفان',
+  'journey.studio.tpl.fullText': 'صورة وقصة',
+  'journey.studio.tpl.grid9': 'تسعة',
+  'journey.studio.tpl.mosaic': 'فسيفساء',
+  'journey.studio.tpl.bandQuote': 'كلمات في الوسط',
+  'journey.studio.tpl.staggerFour': 'أربع متدرجة',
 };
 export default journey;

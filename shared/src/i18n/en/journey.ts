@@ -455,5 +455,15 @@ const journey: TranslationStrings = {
   'journey.studio.relayoutSpreadNone': 'This page was not built from an entry',
   'journey.studio.relayoutBook': 'The whole book',
   'journey.studio.relayoutBookHint': 'Replaces every page — undoable',
+  'journey.studio.tpl.coverFull': 'Full bleed',
+  'journey.studio.tpl.coverBand': 'Picture and band',
+  'journey.studio.tpl.coverWindow': 'Framed',
+  'journey.studio.tpl.coverQuiet': 'Type only',
+  'journey.studio.tpl.coverHalf': 'Two halves',
+  'journey.studio.tpl.fullText': 'Picture and story',
+  'journey.studio.tpl.grid9': 'Nine up',
+  'journey.studio.tpl.mosaic': 'Mosaic',
+  'journey.studio.tpl.bandQuote': 'Words between',
+  'journey.studio.tpl.staggerFour': 'Staggered four',
 };
 export default journey;

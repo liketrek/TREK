@@ -455,5 +455,15 @@ const journey: TranslationStrings = {
   'journey.studio.relayoutSpreadNone': 'Esta página no viene de una entrada',
   'journey.studio.relayoutBook': 'Todo el libro',
   'journey.studio.relayoutBookHint': 'Reemplaza todas las páginas — reversible',
+  'journey.studio.tpl.coverFull': 'A sangre',
+  'journey.studio.tpl.coverBand': 'Imagen y franja',
+  'journey.studio.tpl.coverWindow': 'Enmarcado',
+  'journey.studio.tpl.coverQuiet': 'Solo texto',
+  'journey.studio.tpl.coverHalf': 'Dos mitades',
+  'journey.studio.tpl.fullText': 'Imagen e historia',
+  'journey.studio.tpl.grid9': 'Nueve',
+  'journey.studio.tpl.mosaic': 'Mosaico',
+  'journey.studio.tpl.bandQuote': 'Palabras en medio',
+  'journey.studio.tpl.staggerFour': 'Cuatro escalonadas',
 };
 export default journey;

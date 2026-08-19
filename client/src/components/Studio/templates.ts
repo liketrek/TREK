@@ -25,6 +25,15 @@ export interface Template {
   labelKey: string
   /** How many pictures the layout has room for. */
   photoSlots: number
+  /**
+   * Which spreads this arrangement is for.
+   *
+   * A cover is one page rather than two, and it is the one page where the type
+   * is the subject — a layout built for a spread lands half of itself in the
+   * fold, so the two sets have to be kept apart. Everything without this is an
+   * inner layout, which is what all of them were.
+   */
+  role?: 'inner' | 'single'
   /** Draw the frames for a page of this size. */
   build: (page: BookPageSetup) => TemplateSlot[]
 }
@@ -57,6 +66,7 @@ function grid(page: BookPageSetup, cols: number, rows: number, opts: { bleed?: b
   return out
 }
 
+/** The spread layouts. `COVER_TEMPLATES` holds the single-page set. */
 export const TEMPLATES: Template[] = [
   {
     id: 'hero-story',
@@ -148,6 +158,86 @@ export const TEMPLATES: Template[] = [
     },
   },
   {
+    id: 'full-text',
+    labelKey: 'journey.studio.tpl.fullText',
+    photoSlots: 1,
+    build: page => {
+      // A picture that owns the left page and a column of story on the right,
+      // set narrow. The arrangement for an entry with one photograph worth
+      // looking at and something to say about it.
+      const W = page.pageWidth
+      const H = page.pageHeight
+      return [
+        { kind: 'photo', frame: { x: -page.bleed, y: -page.bleed, w: W + page.bleed, h: H + page.bleed * 2 } },
+        { kind: 'meta', frame: { x: W + M, y: H * 0.28, w: W - M * 2, h: 5 } },
+        { kind: 'heading', frame: { x: W + M, y: H * 0.28 + 8, w: W - M * 2, h: 14 } },
+        { kind: 'body', frame: { x: W + M, y: H * 0.28 + 26, w: (W - M * 2) * 0.82, h: H * 0.4 } },
+      ]
+    },
+  },
+  {
+    id: 'grid-9',
+    labelKey: 'journey.studio.tpl.grid9',
+    photoSlots: 9,
+    build: page => grid(page, 3, 3).map(frame => ({ kind: 'photo' as const, frame })),
+  },
+  {
+    id: 'mosaic',
+    labelKey: 'journey.studio.tpl.mosaic',
+    photoSlots: 5,
+    build: page => {
+      const W = page.pageWidth * 2
+      const H = page.pageHeight
+      const availW = W - M * 2 - G * 2
+      const big = availW * 0.5
+      const small = (availW - big) / 2
+      const rowH = (H - M * 2 - G) / 2
+      return [
+        { kind: 'photo', frame: { x: M, y: M, w: big, h: rowH * 2 + G } },
+        { kind: 'photo', frame: { x: M + big + G, y: M, w: small, h: rowH } },
+        { kind: 'photo', frame: { x: M + big + G * 2 + small, y: M, w: small, h: rowH } },
+        { kind: 'photo', frame: { x: M + big + G, y: M + rowH + G, w: small, h: rowH } },
+        { kind: 'photo', frame: { x: M + big + G * 2 + small, y: M + rowH + G, w: small, h: rowH } },
+      ]
+    },
+  },
+  {
+    id: 'band-quote',
+    labelKey: 'journey.studio.tpl.bandQuote',
+    photoSlots: 2,
+    build: page => {
+      // Two pictures with the words between them, set large. For the entry that
+      // said something worth reading twice.
+      const W = page.pageWidth
+      const H = page.pageHeight
+      const band = H * 0.34
+      const top = (H - band) / 2
+      return [
+        { kind: 'photo', frame: { x: -page.bleed, y: -page.bleed, w: W + page.bleed, h: top + page.bleed } },
+        { kind: 'photo', frame: { x: W, y: -page.bleed, w: W + page.bleed, h: top + page.bleed } },
+        { kind: 'heading', frame: { x: M * 2, y: top + band * 0.24, w: W * 2 - M * 4, h: 16 } },
+        { kind: 'body', frame: { x: W * 0.5, y: top + band * 0.62, w: W, h: band * 0.3 } },
+      ]
+    },
+  },
+  {
+    id: 'stagger-four',
+    labelKey: 'journey.studio.tpl.staggerFour',
+    photoSlots: 4,
+    build: page => {
+      // Alternate frames drop, which is what stops four squares in a row
+      // reading as a contact sheet.
+      const W = page.pageWidth * 2
+      const H = page.pageHeight
+      const cw = (W - M * 2 - G * 3) / 4
+      const ch = H * 0.62
+      return [0, 1, 2, 3].map(i => ({
+        kind: 'photo' as const,
+        frame: { x: M + i * (cw + G), y: M + (i % 2 ? H * 0.16 : 0), w: cw, h: ch },
+      }))
+    },
+  },
+  {
     id: 'portrait-pair',
     labelKey: 'journey.studio.tpl.portraitPair',
     photoSlots: 2,
@@ -161,6 +251,83 @@ export const TEMPLATES: Template[] = [
         { kind: 'photo', frame: { x: W + M, y: M, w: pw, h: ph } },
         { kind: 'meta', frame: { x: M, y: H - M - 16, w: pw, h: 5 } },
         { kind: 'body', frame: { x: W + M, y: H - M - 16, w: pw, h: 12 } },
+      ]
+    },
+  },
+]
+
+/**
+ * Layouts for a single page — the cover and the back.
+ *
+ * Kept apart from the spread layouts because a cover is a different problem: it
+ * is one page, the type is the subject rather than a caption to a photograph,
+ * and the arrangements that work are the ones that leave a picture room to be
+ * looked at while a title sits over it legibly. A spread layout applied here
+ * would put half its frames past the edge of the page.
+ */
+export const COVER_TEMPLATES: Template[] = [
+  {
+    id: 'cover-full',
+    labelKey: 'journey.studio.tpl.coverFull',
+    photoSlots: 1,
+    role: 'single',
+    build: page => [
+      { kind: 'photo', frame: { x: -page.bleed, y: -page.bleed, w: page.pageWidth + page.bleed * 2, h: page.pageHeight + page.bleed * 2 } },
+      { kind: 'heading', frame: { x: M, y: page.pageHeight - M - 46, w: page.pageWidth - M * 2, h: 30 } },
+      { kind: 'meta', frame: { x: M, y: page.pageHeight - M - 12, w: page.pageWidth - M * 2, h: 8 } },
+    ],
+  },
+  {
+    id: 'cover-band',
+    labelKey: 'journey.studio.tpl.coverBand',
+    photoSlots: 1,
+    role: 'single',
+    build: page => {
+      // The picture stops short of the foot, and the title sits on the paper
+      // rather than on the photograph — the safest cover there is, because it
+      // is legible whatever the photograph turns out to be.
+      const h = page.pageHeight * 0.68
+      return [
+        { kind: 'photo', frame: { x: -page.bleed, y: -page.bleed, w: page.pageWidth + page.bleed * 2, h: h + page.bleed } },
+        { kind: 'heading', frame: { x: M, y: h + 16, w: page.pageWidth - M * 2, h: 26 } },
+        { kind: 'meta', frame: { x: M, y: h + 44, w: page.pageWidth - M * 2, h: 8 } },
+      ]
+    },
+  },
+  {
+    id: 'cover-window',
+    labelKey: 'journey.studio.tpl.coverWindow',
+    photoSlots: 1,
+    role: 'single',
+    build: page => {
+      const inset = page.pageWidth * 0.13
+      return [
+        { kind: 'photo', frame: { x: inset, y: inset, w: page.pageWidth - inset * 2, h: page.pageHeight - inset * 2.6 } },
+        { kind: 'heading', frame: { x: inset, y: page.pageHeight - inset * 1.4, w: page.pageWidth - inset * 2, h: 20 } },
+      ]
+    },
+  },
+  {
+    id: 'cover-quiet',
+    labelKey: 'journey.studio.tpl.coverQuiet',
+    photoSlots: 0,
+    role: 'single',
+    build: page => [
+      { kind: 'heading', frame: { x: M, y: page.pageHeight * 0.42, w: page.pageWidth - M * 2, h: 28 } },
+      { kind: 'meta', frame: { x: M, y: page.pageHeight * 0.42 + 32, w: page.pageWidth - M * 2, h: 8 } },
+    ],
+  },
+  {
+    id: 'cover-half',
+    labelKey: 'journey.studio.tpl.coverHalf',
+    photoSlots: 2,
+    role: 'single',
+    build: page => {
+      const half = page.pageHeight * 0.5
+      return [
+        { kind: 'photo', frame: { x: -page.bleed, y: -page.bleed, w: page.pageWidth + page.bleed * 2, h: half + page.bleed } },
+        { kind: 'photo', frame: { x: -page.bleed, y: half, w: page.pageWidth + page.bleed * 2, h: page.pageHeight - half + page.bleed } },
+        { kind: 'heading', frame: { x: M, y: half - 34, w: page.pageWidth - M * 2, h: 26 } },
       ]
     },
   },
@@ -209,11 +376,23 @@ export function applyTemplate(spread: BookSpread, tpl: Template, page: BookPageS
   const photos = pool.filter(e => e.kind === 'photo')
   const texts = pool.filter(e => e.kind === 'text')
 
-  // Longest text is the story; the shortest above it tends to be the date line.
-  const byLength = [...texts].sort((a, b) => (b.kind === 'text' ? b.text.length : 0) - (a.kind === 'text' ? a.text.length : 0))
-  const body = byLength[0] ?? null
-  const heading = texts.find(t => t !== body && t.kind === 'text' && t.size >= 14) ?? null
-  const meta = texts.find(t => t !== body && t !== heading) ?? null
+  /*
+   * Which text is the heading, which the story, which the date line.
+   *
+   * Size decides the heading first, and length only sorts what is left. The
+   * other way round — longest is the story, then look for a heading among the
+   * rest — reads a spread with three texts correctly and gets a cover with one
+   * exactly wrong: the single 30pt title becomes "the longest text", so it is
+   * the story, so a cover layout with a heading slot and no body slot has
+   * nowhere to put it and parks the title.
+   */
+  const heading = [...texts]
+    .filter(t => t.kind === 'text' && t.size >= 14)
+    .sort((a, b) => (b.kind === 'text' ? b.size : 0) - (a.kind === 'text' ? a.size : 0))[0] ?? null
+  const rest = texts.filter(t => t !== heading)
+  const body = [...rest]
+    .sort((a, b) => (b.kind === 'text' ? b.text.length : 0) - (a.kind === 'text' ? a.text.length : 0))[0] ?? null
+  const meta = rest.find(t => t !== body) ?? null
 
   let pi = 0
   const out: BookElement[] = []

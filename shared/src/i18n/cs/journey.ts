@@ -455,5 +455,15 @@ const journey: TranslationStrings = {
   'journey.studio.relayoutSpreadNone': 'Tato strana nevznikla ze záznamu',
   'journey.studio.relayoutBook': 'Celá kniha',
   'journey.studio.relayoutBookHint': 'Nahradí všechny strany — lze vrátit',
+  'journey.studio.tpl.coverFull': 'Na spad',
+  'journey.studio.tpl.coverBand': 'Obraz a pruh',
+  'journey.studio.tpl.coverWindow': 'V rámu',
+  'journey.studio.tpl.coverQuiet': 'Jen text',
+  'journey.studio.tpl.coverHalf': 'Dvě poloviny',
+  'journey.studio.tpl.fullText': 'Obraz a text',
+  'journey.studio.tpl.grid9': 'Devět',
+  'journey.studio.tpl.mosaic': 'Mozaika',
+  'journey.studio.tpl.bandQuote': 'Slova uprostřed',
+  'journey.studio.tpl.staggerFour': 'Čtyři přesazené',
 };
 export default journey;

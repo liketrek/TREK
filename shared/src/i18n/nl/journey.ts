@@ -456,5 +456,15 @@ const journey: TranslationStrings = {
   'journey.studio.relayoutSpreadNone': 'Deze pagina komt niet uit een notitie',
   'journey.studio.relayoutBook': 'Het hele boek',
   'journey.studio.relayoutBookHint': 'Vervangt alle pagina’s — ongedaan te maken',
+  'journey.studio.tpl.coverFull': 'Aflopend',
+  'journey.studio.tpl.coverBand': 'Beeld met band',
+  'journey.studio.tpl.coverWindow': 'Omlijst',
+  'journey.studio.tpl.coverQuiet': 'Alleen tekst',
+  'journey.studio.tpl.coverHalf': 'Twee helften',
+  'journey.studio.tpl.fullText': 'Beeld en verhaal',
+  'journey.studio.tpl.grid9': 'Negen',
+  'journey.studio.tpl.mosaic': 'Mozaïek',
+  'journey.studio.tpl.bandQuote': 'Woorden ertussen',
+  'journey.studio.tpl.staggerFour': 'Vier verspringend',
 };
 export default journey;

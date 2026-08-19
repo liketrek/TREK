@@ -455,5 +455,15 @@ const journey: TranslationStrings = {
   'journey.studio.relayoutSpreadNone': 'Trang này không từ mục nhật ký',
   'journey.studio.relayoutBook': 'Toàn bộ sách',
   'journey.studio.relayoutBookHint': 'Thay mọi trang — có thể hoàn tác',
+  'journey.studio.tpl.coverFull': 'Tràn lề',
+  'journey.studio.tpl.coverBand': 'Ảnh và dải',
+  'journey.studio.tpl.coverWindow': 'Có khung',
+  'journey.studio.tpl.coverQuiet': 'Chỉ chữ',
+  'journey.studio.tpl.coverHalf': 'Hai nửa',
+  'journey.studio.tpl.fullText': 'Ảnh và câu chuyện',
+  'journey.studio.tpl.grid9': 'Chín',
+  'journey.studio.tpl.mosaic': 'Khảm',
+  'journey.studio.tpl.bandQuote': 'Chữ ở giữa',
+  'journey.studio.tpl.staggerFour': 'Bốn so le',
 };
 export default journey;
