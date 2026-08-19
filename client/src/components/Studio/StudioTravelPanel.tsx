@@ -3,7 +3,6 @@ import { BOOK_METRICS } from '@trek/shared'
 import { useStudioStore } from '../../store/studioStore'
 import { PanelHead } from './StudioPanelHead'
 import { TravelPreview } from './TravelPreview'
-import { useMapSources } from './mapSources'
 
 /**
  * The journey's own figures, as things you can put on a page.
@@ -91,13 +90,6 @@ export function StudioTravelPanel({
   const spread = doc?.spreads[active]
   const single = !!spread && spread.role !== 'inner'
 
-  // Above the early return below, because hooks are.
-  const mapFrame = {
-    w: Math.min(page.pageWidth, page.pageHeight) * 0.72,
-    h: Math.min(page.pageWidth, page.pageHeight) * 0.72 * 0.78,
-  }
-  const mapSources = useMapSources(mapFrame, stats?.points ?? [])
-
   const centre = (w: number, h: number) => {
     const W = single ? page.pageWidth : page.pageWidth * 2
     return { x: (W - w) / 2, y: (page.pageHeight - h) / 2, w, h }
@@ -153,8 +145,6 @@ export function StudioTravelPanel({
    * is no second description of what a card means.
    */
   const mapSide = Math.min(page.pageWidth, page.pageHeight) * 0.72
-  /** Which outlines a cut map would have to cut against. */
-  const countryCodes = stats.countries.map(c => c.code)
 
   /**
    * One country, as the entry a list would have made of it.
