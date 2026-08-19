@@ -4,6 +4,9 @@ import { bookElementSchema } from '@trek/shared'
 import { render } from '../../helpers/render'
 import { TravelElementView } from '../../../src/components/Studio/TravelElements'
 
+/** The renderer positions from the outside; a bare box is enough here. */
+const box = { position: 'absolute' as const, width: '100mm', height: '80mm' }
+
 /**
  * What the travel elements are drawn in (#1973).
  *
@@ -36,7 +39,7 @@ describe('the default', () => {
   })
 
   it('draws the route in ink on a light map', () => {
-    const { container } = render(<TravelElementView el={mapEl({ style: 'minimal' })} big />)
+    const { container } = render(<TravelElementView el={mapEl({ style: 'minimal' })} frameStyle={box} />)
     expect(strokes(container)).toContain('#111111')
   })
 })
@@ -44,7 +47,7 @@ describe('the default', () => {
 describe('the dark map', () => {
   /* Ink on near-black is a line nobody can see. */
   it('draws the route pale instead', () => {
-    const { container } = render(<TravelElementView el={mapEl({ style: 'dark' })} big />)
+    const { container } = render(<TravelElementView el={mapEl({ style: 'dark' })} frameStyle={box} />)
     expect(strokes(container)[0]).toBe('#f2efe9')
   })
 
@@ -53,7 +56,7 @@ describe('the dark map', () => {
    * when it is a poor choice on a dark map — that is their call to make.
    */
   it('leaves a chosen colour alone', () => {
-    const { container } = render(<TravelElementView el={mapEl({ style: 'dark', accent: '#c2410c' })} big />)
+    const { container } = render(<TravelElementView el={mapEl({ style: 'dark', accent: '#c2410c' })} frameStyle={box} />)
     expect(strokes(container)[0]).toBe('#c2410c')
   })
 })

@@ -172,70 +172,63 @@ function PhotoView({ el, big, print, dropLabel }: {
   const clipId = `c-${el.id}`
   const clipped = el.mask && el.mask !== 'rect'
 
-  // An empty frame is a template's promise: it says where a picture goes before
-  // anyone has chosen which.
-  if (el.photoId == null) {
-    // In the printed book it is nothing at all — a hatch and an instruction on a
-    // page someone paid to have bound would be a defect, and an unfilled frame
-    // has nothing to contribute either.
-    if (print) return null
+  /*
+   * An empty frame is a template's promise: it says where a picture goes before
+   * anyone has chosen which — and it says it *in the frame it will wear*.
+   *
+   * This used to render on its own, ignoring frameStyle entirely, so a Polaroid
+   * placeholder was an ordinary dashed rectangle until a photograph landed in
+   * it and the chin appeared from nowhere. The two branches have been folded
+   * together: the surround is drawn once, and only what goes inside it differs.
+   */
+  const empty = el.photoId == null
 
-    // The label is sized in millimetres so it scales with the zoom exactly as
-    // the page does, and it steps aside on a frame too small to hold it.
-    const fs = Math.max(2.4, Math.min(4.6, side * 0.085))
-    const roomy = side > 22 && el.frame.w > 34
+  // In the printed book an unfilled frame is nothing at all — a hatch and an
+  // instruction on a page someone paid to have bound would be a defect.
+  if (empty && print) return null
 
-    return (
-      <div style={{ ...frameStyle(el), boxSizing: 'border-box' }}>
-        {clipped && (
-          <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden>
-            <defs>
-              <clipPath id={clipId} clipPathUnits="objectBoundingBox">
-                <path d={unitPath(SHAPE_PATHS[el.mask!])} />
-              </clipPath>
-            </defs>
-          </svg>
-        )}
-        <div
+  // The label is sized in millimetres so it scales with the zoom exactly as the
+  // page does, and it steps aside on a frame too small to hold it.
+  const labelSize = Math.max(2.4, Math.min(4.6, side * 0.085))
+  const roomy = side - pad * 2 > 22 && el.frame.w - pad * 2 > 34
+
+  const hatch = (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        background:
+          'repeating-linear-gradient(45deg, rgba(0,0,0,.045) 0 6px, rgba(0,0,0,.02) 6px 12px)',
+        // A dashed border would be cut in half lengthwise by the clip, so a
+        // masked placeholder shows its shape through the hatch alone.
+        border: clipped ? undefined : '1px dashed rgba(0,0,0,.16)',
+        boxSizing: 'border-box',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2mm',
+      }}
+    >
+      {roomy && dropLabel && (
+        <span
           style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: !clipped && el.radius ? `${el.radius}mm` : undefined,
-            clipPath: clipped ? `url(#${clipId})` : undefined,
-            background:
-              'repeating-linear-gradient(45deg, rgba(0,0,0,.045) 0 6px, rgba(0,0,0,.02) 6px 12px)',
-            // A dashed border would be cut in half lengthwise by the clip, so a
-            // masked placeholder shows its shape through the hatch alone.
-            border: clipped ? undefined : '1px dashed rgba(0,0,0,.16)',
-            boxSizing: 'border-box',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '2mm',
+            fontFamily: FONT_STACKS.sans,
+            fontSize: `${labelSize}mm`,
+            fontWeight: 600,
+            letterSpacing: '0.16em',
+            lineHeight: 1.5,
+            textAlign: 'center',
+            textTransform: 'uppercase',
+            color: 'rgba(0,0,0,.34)',
+            whiteSpace: 'pre-line',
+            userSelect: 'none',
           }}
         >
-          {roomy && dropLabel && (
-            <span
-              style={{
-                fontFamily: FONT_STACKS.sans,
-                fontSize: `${fs}mm`,
-                fontWeight: 600,
-                letterSpacing: '0.16em',
-                lineHeight: 1.5,
-                textAlign: 'center',
-                textTransform: 'uppercase',
-                color: 'rgba(0,0,0,.34)',
-                whiteSpace: 'pre-line',
-                userSelect: 'none',
-              }}
-            >
-              {dropLabel}
-            </span>
-          )}
-        </div>
-      </div>
-    )
-  }
+          {dropLabel}
+        </span>
+      )}
+    </div>
+  )
 
   const picture = (
     <div
@@ -250,20 +243,22 @@ function PhotoView({ el, big, print, dropLabel }: {
         clipPath: clipped ? `url(#${clipId})` : undefined,
       }}
     >
-      <img
-        src={photoSrc(el.photoId, big)}
-        alt=""
-        draggable={false}
-        loading="lazy"
-        style={{
-          width: '100%',
-          height: '100%',
-          objectFit: el.fit,
-          objectPosition: `${el.focalX * 100}% ${el.focalY * 100}%`,
-          filter: FILTERS[el.filter],
-          display: 'block',
-        }}
-      />
+      {empty ? hatch : (
+        <img
+          src={photoSrc(el.photoId!, big)}
+          alt=""
+          draggable={false}
+          loading="lazy"
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: el.fit,
+            objectPosition: `${el.focalX * 100}% ${el.focalY * 100}%`,
+            filter: FILTERS[el.filter],
+            display: 'block',
+          }}
+        />
+      )}
     </div>
   )
 

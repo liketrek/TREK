@@ -39,14 +39,45 @@ interface Gesture {
   pointerId: number
 }
 
-function snapTargets(spread: BookSpread, page: BookPageSetup, exclude: Set<string>) {
+export function snapTargets(spread: BookSpread, page: BookPageSetup, exclude: Set<string>) {
   const single = spread.role !== 'inner'
   const w = single ? page.pageWidth : page.pageWidth * 2
   const h = page.pageHeight
 
   const xs = [0, w / 2, w, page.safe, w - page.safe]
   const ys = [0, h / 2, h, page.safe, h - page.safe]
-  if (!single) xs.push(page.pageWidth)
+
+  /*
+   * A spread has four vertical safe lines, not two.
+   *
+   * The renderer draws the safe area per *page*, so a spread shows a dashed
+   * rule inset from each of its four vertical edges — including the two either
+   * side of the fold. Only the outer pair was a snap target, which is why
+   * dragging inwards caught the gutter itself and nothing else: the line you
+   * could see right before it was not something the pointer knew about.
+   */
+  if (!single) {
+    xs.push(
+      page.pageWidth,
+      page.pageWidth - page.safe,
+      page.pageWidth + page.safe,
+    )
+  }
+
+  /*
+   * The centre of each page, and the quarters within it.
+   *
+   * On a spread `w / 2` is the fold, not the middle of anything you are
+   * composing on — a picture centred on its own page has no line to find. The
+   * quarters come along because half of a page is where a two-column split
+   * lands, which is the other measurement people reach for by eye.
+   */
+  const pages = single ? 1 : 2
+  for (let i = 0; i < pages; i++) {
+    const left = i * page.pageWidth
+    xs.push(left + page.pageWidth * 0.25, left + page.pageWidth * 0.5, left + page.pageWidth * 0.75)
+  }
+  ys.push(h * 0.25, h * 0.75)
 
   for (const el of spread.elements) {
     if (exclude.has(el.id)) continue

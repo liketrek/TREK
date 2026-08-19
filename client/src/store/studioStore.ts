@@ -177,11 +177,20 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   addSpread: index => {
     const doc = get().doc
     if (!doc) return
-    // After the given spread, but never past the back cover — a page inserted
-    // behind the back cover is a page nobody would ever see.
+    /*
+     * After the given spread, and inside the covers at both ends.
+     *
+     * The lower bound is not decoration: a book with no inner spreads yet
+     * reports its last inner one as -1, which asked for a page at 0 — in front
+     * of the cover, where it could not be moved back from either, because a
+     * move only ever swaps with another inner spread. The first page of an
+     * empty book is the one this catches.
+     */
+    const cover = doc.spreads.findIndex(sp => sp.role === 'cover')
     const back = doc.spreads.findIndex(sp => sp.role === 'back')
+    const first = cover === -1 ? 0 : cover + 1
     const limit = back === -1 ? doc.spreads.length : back
-    const at = Math.min(index + 1, limit)
+    const at = Math.min(Math.max(index + 1, first), limit)
     get().commit(d => ({
       ...d,
       spreads: [
