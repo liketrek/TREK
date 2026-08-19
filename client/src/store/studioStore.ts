@@ -45,6 +45,16 @@ interface StudioState {
   duplicate: (spreadIndex: number, ids: string[]) => void
   raise: (spreadIndex: number, id: string, to: 'front' | 'back' | 'up' | 'down') => void
 
+  /** Insert an empty spread after `index`, and select it. */
+  addSpread: (index: number) => void
+  /** Copy a spread, contents and all, directly after it. */
+  duplicateSpread: (index: number) => void
+  removeSpread: (index: number) => void
+  /** Move a spread one place towards the front or the back of the book. */
+  moveSpread: (index: number, dir: -1 | 1) => void
+  /** Whether a spread may be moved, deleted or duplicated at all. */
+  canEditSpread: (index: number) => boolean
+
   undo: () => void
   redo: () => void
   canUndo: () => boolean
@@ -148,6 +158,96 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       els.splice(at, 0, el)
       return { ...sp, elements: els }
     })),
+
+  /*
+   * ── Spread management ────────────────────────────────────────────────
+   *
+   * The cover and the back cover are fixed points: a book has exactly one of
+   * each, they are single pages rather than spreads, and the layouts panel
+   * already refuses to touch them. So everything here operates on the inner
+   * spreads between them, and `canEditSpread` is the one place that decides
+   * what counts as inner — the rail, the menu and the store all ask it rather
+   * than each testing `role` for themselves.
+   */
+  canEditSpread: index => {
+    const sp = get().doc?.spreads[index]
+    return !!sp && sp.role === 'inner'
+  },
+
+  addSpread: index => {
+    const doc = get().doc
+    if (!doc) return
+    // After the given spread, but never past the back cover — a page inserted
+    // behind the back cover is a page nobody would ever see.
+    const back = doc.spreads.findIndex(sp => sp.role === 'back')
+    const limit = back === -1 ? doc.spreads.length : back
+    const at = Math.min(index + 1, limit)
+    get().commit(d => ({
+      ...d,
+      spreads: [
+        ...d.spreads.slice(0, at),
+        {
+          id: `sp-${Math.random().toString(36).slice(2, 9)}`,
+          role: 'inner' as const,
+          background: null,
+          elements: [],
+          parked: [],
+          entryId: null,
+        },
+        ...d.spreads.slice(at),
+      ],
+    }))
+    set({ activeSpread: at, selection: [] })
+  },
+
+  duplicateSpread: index => {
+    const doc = get().doc
+    if (!doc || !get().canEditSpread(index)) return
+    const source = doc.spreads[index]
+    const at = index + 1
+    get().commit(d => ({
+      ...d,
+      spreads: [
+        ...d.spreads.slice(0, at),
+        {
+          ...source,
+          id: `sp-${Math.random().toString(36).slice(2, 9)}`,
+          // Fresh ids throughout: two elements sharing one id would confuse
+          // selection and every lookup that follows it.
+          elements: source.elements.map(e => ({ ...e, id: `${e.kind[0]}-${Math.random().toString(36).slice(2, 9)}` })),
+          parked: source.parked.map(e => ({ ...e, id: `${e.kind[0]}-${Math.random().toString(36).slice(2, 9)}` })),
+        },
+        ...d.spreads.slice(at),
+      ],
+    }))
+    set({ activeSpread: at, selection: [] })
+  },
+
+  removeSpread: index => {
+    const doc = get().doc
+    if (!doc || !get().canEditSpread(index)) return
+    get().commit(d => ({ ...d, spreads: d.spreads.filter((_, i) => i !== index) }))
+    // Land on the spread that took its place, or the one before it if the
+    // deleted spread was the last inner one.
+    const next = get().doc?.spreads ?? []
+    set({ activeSpread: Math.min(index, Math.max(0, next.length - 1)), selection: [] })
+  },
+
+  moveSpread: (index, dir) => {
+    const doc = get().doc
+    if (!doc || !get().canEditSpread(index)) return
+    const target = index + dir
+    // Only ever swaps with another inner spread, so the cover and back cover
+    // keep their places without needing to be special-cased anywhere else.
+    if (!get().canEditSpread(target)) return
+    get().commit(d => {
+      const spreads = d.spreads.slice()
+      const [moved] = spreads.splice(index, 1)
+      spreads.splice(target, 0, moved)
+      return { ...d, spreads }
+    })
+    set({ activeSpread: target, selection: [] })
+  },
 
   undo: () => set(s => {
     const prev = s.past[s.past.length - 1]

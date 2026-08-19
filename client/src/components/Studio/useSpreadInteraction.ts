@@ -185,7 +185,6 @@ export function useSpreadInteraction(opts: {
   }, [spread])
 
   const startMove = useCallback((e: React.PointerEvent, el: BookElement) => {
-    if (el.locked) return
     e.stopPropagation()
     const additive = e.shiftKey || e.metaKey || e.ctrlKey
     const ids = selection.includes(el.id)
@@ -193,6 +192,17 @@ export function useSpreadInteraction(opts: {
       : (additive ? [...selection, el.id] : [el.id])
 
     if (additive) { toggleSelect(el.id, true) } else if (!selection.includes(el.id)) { select([el.id]) }
+
+    /*
+     * Locked means "cannot be moved", not "cannot be reached".
+     *
+     * Returning before the selection was made was a dead end: the element could
+     * not be picked, so the inspector never showed it, so the unlock button was
+     * unreachable and the lock could not be undone by any means short of undo.
+     * Selection happens first and then the gesture stops here.
+     */
+    if (el.locked) return
+
     const targets = ids.length ? ids : [el.id]
 
     ;(e.target as Element).setPointerCapture?.(e.pointerId)
