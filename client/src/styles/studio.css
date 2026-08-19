@@ -365,7 +365,18 @@
 .trek-dash .st-work-wrap {
   position: relative;
   min-width: 0;
+  /*
+   * The row is bound, not auto.
+   *
+   * A grid track sized `auto` grows to whatever is in it, and `overflow: auto`
+   * on the child does not stop that — so at 300% the workbench grew to 2400px
+   * inside a 660px window, and the zoom bar, absolutely positioned at the
+   * bottom of this box, went with it. Off the bottom of the screen, taking the
+   * only way back out with it.
+   */
+  min-height: 0;
   display: grid;
+  grid-template-rows: minmax(0, 1fr);
   /* A faint tint so the white sheet reads as an object lying on something. */
   background:
     radial-gradient(120% 90% at 50% 0%, color-mix(in oklch, var(--accent) 5%, transparent) 0%, transparent 60%),
@@ -374,7 +385,10 @@
 
 .trek-dash .st-work {
   overflow: auto;
+  /* Both axes: a grid item defaults to min-content in either direction, and
+     without these it grows instead of scrolling. See the note above. */
   min-width: 0;
+  min-height: 0;
   padding: 40px;
   display: grid;
   place-items: center;
@@ -809,6 +823,9 @@
   position: absolute;
   left: 50%;
   bottom: 18px;
+  /* Above the sheet and above the peer pointers: it is the way back out of a
+     zoom level, and it must never be the thing that is covered. */
+  z-index: 6;
   pointer-events: auto;
   transform: translateX(-50%);
   display: flex;
