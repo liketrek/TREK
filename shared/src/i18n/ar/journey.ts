@@ -464,5 +464,6 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': 'فسيفساء',
   'journey.studio.tpl.bandQuote': 'كلمات في الوسط',
   'journey.studio.tpl.staggerFour': 'أربع متدرجة',
+  'journey.studio.weightMissing': 'هذا الخط لا يوفر هذا الوزن',
 };
 export default journey;

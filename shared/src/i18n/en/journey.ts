@@ -465,5 +465,6 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': 'Mosaic',
   'journey.studio.tpl.bandQuote': 'Words between',
   'journey.studio.tpl.staggerFour': 'Staggered four',
+  'journey.studio.weightMissing': 'This typeface does not ship that weight',
 };
 export default journey;

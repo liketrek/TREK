@@ -29,8 +29,13 @@
     "format:check": "prettier --check \"src/**/*.tsx\" \"src/**/*.css\""
   },
   "dependencies": {
+    "@fontsource/bebas-neue": "^5.3.0",
+    "@fontsource/eb-garamond": "^5.3.0",
     "@fontsource/geist-sans": "^5.2.5",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/lora": "^5.3.0",
     "@fontsource/museomoderno": "^5.3.0",
+    "@fontsource/playfair-display": "^5.3.0",
     "@fontsource/poppins": "^5.2.7",
     "@simplewebauthn/browser": "^13.1.2",
     "@trek/shared": "*",

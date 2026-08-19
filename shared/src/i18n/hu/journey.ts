@@ -465,5 +465,6 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': 'Mozaik',
   'journey.studio.tpl.bandQuote': 'Szavak középen',
   'journey.studio.tpl.staggerFour': 'Négy eltolva',
+  'journey.studio.weightMissing': 'Ennek a betűtípusnak nincs ilyen vastagsága',
 };
 export default journey;

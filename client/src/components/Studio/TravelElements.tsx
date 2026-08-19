@@ -8,6 +8,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { FONT_STACKS } from './bookRender'
+import { fontStack } from './bookFonts'
 import { COUNTRY_SHAPES, countryWorldPath, projectMercator } from './countryShapes'
 import { FLAG_H, FLAG_W, flagBands, flagDisc, flagSpec } from './flags'
 import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
@@ -213,7 +214,7 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
               textAnchor="middle"
               fill={el.color}
               style={{
-                fontFamily: FONT_STACKS[el.font],
+                fontFamily: fontStack(el.font),
                 fontSize: label,
                 fontWeight: 600,
                 letterSpacing: label * 0.06,
@@ -335,7 +336,7 @@ function StatsView({ el, frameStyle }: { el: BookStatsElement; frameStyle: CSSPr
         rowGap: `${round2(gap * 1.35)}mm`,
         alignContent: 'space-evenly',
         justifyItems: 'center',
-        fontFamily: FONT_STACKS[el.font],
+        fontFamily: fontStack(el.font),
         color: el.color,
       }}
     >
@@ -444,7 +445,7 @@ function CountriesView({ el, frameStyle }: { el: BookCountriesElement; frameStyl
         display: 'grid',
         gridTemplateColumns: `repeat(${cols}, 1fr)`,
         alignContent: 'center',
-        fontFamily: FONT_STACKS[el.font],
+        fontFamily: fontStack(el.font),
         color: el.color,
       }}
     >
@@ -613,7 +614,7 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
         alignItems: 'center',
         justifyContent: 'center',
         gap: `${round2(stacked ? small * 0.5 : small * 0.75)}mm`,
-        fontFamily: FONT_STACKS[el.font],
+        fontFamily: fontStack(el.font),
         color: chip ? '#ffffff' : el.color,
         background: chip ? el.accent : undefined,
         border: outline ? `${round2(Math.max(0.18, el.frame.h * 0.022))}mm solid ${rgba(el.color, 0.4)}` : undefined,
@@ -785,7 +786,7 @@ function ListView({ el, frameStyle }: { el: BookListElement; frameStyle: CSSProp
         // has no second column to line up with.
         alignItems: 'flex-start',
         justifyContent: columns ? 'flex-start' : 'center',
-        fontFamily: FONT_STACKS[el.font],
+        fontFamily: fontStack(el.font),
         color: el.color,
         overflow: 'hidden',
       }}

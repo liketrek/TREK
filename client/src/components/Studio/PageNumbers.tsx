@@ -1,5 +1,6 @@
 import type { BookPageSetup, BookSpread } from '@trek/shared'
 import { FONT_STACKS } from './bookRender'
+import { fontStack } from './bookFonts'
 
 /**
  * The folios.
@@ -68,7 +69,7 @@ export function PageNumbers({
               top: `${y}mm`,
               width: `${at.w}mm`,
               textAlign: at.align,
-              fontFamily: FONT_STACKS[cfg.font],
+              fontFamily: fontStack(cfg.font),
               fontSize: `${size}pt`,
               fontWeight: 500,
               letterSpacing: '0.08em',

@@ -465,5 +465,6 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': 'Mozaika',
   'journey.studio.tpl.bandQuote': 'Słowa pośrodku',
   'journey.studio.tpl.staggerFour': 'Cztery przesunięte',
+  'journey.studio.weightMissing': 'Ten krój nie ma tej grubości',
 };
 export default journey;

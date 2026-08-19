@@ -466,5 +466,6 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': 'Mozaïek',
   'journey.studio.tpl.bandQuote': 'Woorden ertussen',
   'journey.studio.tpl.staggerFour': 'Vier verspringend',
+  'journey.studio.weightMissing': 'Dit lettertype heeft die dikte niet',
 };
 export default journey;

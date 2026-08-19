@@ -465,5 +465,6 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': 'Mosaik',
   'journey.studio.tpl.bandQuote': 'Ord emellan',
   'journey.studio.tpl.staggerFour': 'Fyra förskjutna',
+  'journey.studio.weightMissing': 'Det här typsnittet har inte den vikten',
 };
 export default journey;

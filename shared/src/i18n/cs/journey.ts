@@ -465,5 +465,6 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': 'Mozaika',
   'journey.studio.tpl.bandQuote': 'Slova uprostřed',
   'journey.studio.tpl.staggerFour': 'Čtyři přesazené',
+  'journey.studio.weightMissing': 'Toto písmo tento řez nemá',
 };
 export default journey;

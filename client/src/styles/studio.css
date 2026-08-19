@@ -1362,3 +1362,36 @@
   padding-bottom: 7px;
   flex: none;
 }
+
+/* ----------------- font picker ----------------- *
+ * Each family set in itself. A row of chips reading "Poppins / Lora / Bebas" in
+ * the interface font tells you their names and nothing about how they look,
+ * which is the only thing anyone is choosing between.
+ */
+.trek-dash .st-fonts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+}
+.trek-dash .st-font {
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: color-mix(in oklch, var(--surface) 55%, transparent);
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  transition: background .14s, border-color .14s, color .14s;
+}
+.trek-dash .st-font:hover { background: var(--surface); color: var(--ink); }
+.trek-dash .st-font.is-on {
+  color: var(--ink);
+  border-color: color-mix(in oklch, var(--accent) 50%, transparent);
+  background: color-mix(in oklch, var(--accent) 10%, transparent);
+}
+.trek-dash .st-chip:disabled { opacity: .32; cursor: default; }

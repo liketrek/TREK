@@ -465,5 +465,6 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': '모자이크',
   'journey.studio.tpl.bandQuote': '가운데 글',
   'journey.studio.tpl.staggerFour': '네 칸 엇갈림',
+  'journey.studio.weightMissing': '이 서체에는 해당 굵기가 없습니다',
 };
 export default journey;

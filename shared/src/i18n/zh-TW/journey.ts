@@ -463,5 +463,6 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': '馬賽克',
   'journey.studio.tpl.bandQuote': '文字置中',
   'journey.studio.tpl.staggerFour': '四張錯落',
+  'journey.studio.weightMissing': '此字體沒有這個字重',
 };
 export default journey;

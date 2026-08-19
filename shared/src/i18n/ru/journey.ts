@@ -465,5 +465,6 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': 'Мозаика',
   'journey.studio.tpl.bandQuote': 'Слова посередине',
   'journey.studio.tpl.staggerFour': 'Четыре со сдвигом',
+  'journey.studio.weightMissing': 'У этой гарнитуры нет такого начертания',
 };
 export default journey;

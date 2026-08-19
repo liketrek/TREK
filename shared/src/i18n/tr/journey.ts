@@ -465,5 +465,6 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': 'Mozaik',
   'journey.studio.tpl.bandQuote': 'Arada sözler',
   'journey.studio.tpl.staggerFour': 'Kaydırılmış dört',
+  'journey.studio.weightMissing': 'Bu yazı tipinde bu kalınlık yok',
 };
 export default journey;

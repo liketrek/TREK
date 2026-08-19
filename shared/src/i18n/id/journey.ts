@@ -464,5 +464,6 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': 'Mozaik',
   'journey.studio.tpl.bandQuote': 'Kata di tengah',
   'journey.studio.tpl.staggerFour': 'Empat berselang',
+  'journey.studio.weightMissing': 'Huruf ini tidak punya ketebalan itu',
 };
 export default journey;

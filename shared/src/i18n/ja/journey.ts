@@ -466,5 +466,6 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': 'モザイク',
   'journey.studio.tpl.bandQuote': '間にことば',
   'journey.studio.tpl.staggerFour': '4枚ずらし',
+  'journey.studio.weightMissing': 'この書体にこのウェイトはありません',
 };
 export default journey;

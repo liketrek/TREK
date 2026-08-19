@@ -67,6 +67,19 @@ export const BOOK_SHAPES = [
 ] as const;
 export type BookShapeId = (typeof BOOK_SHAPES)[number];
 
+/**
+ * The families a book may be set in.
+ *
+ * `sans`, `serif` and `display` are the three the format started with and are
+ * kept by name, so every document written so far still parses — they now point
+ * at bundled faces rather than at whatever the rendering machine happened to
+ * have installed. See client/src/components/Studio/bookFonts.ts.
+ */
+export const BOOK_FONTS_IDS = [
+  'sans', 'inter', 'serif', 'garamond', 'playfair', 'display', 'bebas',
+] as const;
+export type BookFontFamily = (typeof BOOK_FONTS_IDS)[number];
+
 export const bookFrameSchema = z.object({
   /** Millimetres from the left edge of the spread. Negative means bleed. */
   x: mm,
@@ -127,7 +140,7 @@ export const bookTextElementSchema = z.object({
   ...elementBase,
   kind: z.literal('text'),
   text: z.string().max(8000).default(''),
-  font: z.enum(['sans', 'serif', 'display']).default('sans'),
+  font: z.enum(BOOK_FONTS_IDS).default('sans'),
   /** Points. */
   size: z.number().min(4).max(200).default(11),
   weight: z.union([z.literal(400), z.literal(500), z.literal(600), z.literal(700)]).default(400),
@@ -203,7 +216,7 @@ export const bookShapeElementSchema = z.object({
 
 /** What the travel elements share with text: they are typeset, not drawn. */
 const typeset = {
-  font: z.enum(['sans', 'serif', 'display']).default('sans'),
+  font: z.enum(BOOK_FONTS_IDS).default('sans'),
   color: hex.default('#1a1a1a'),
   /** The one colour that carries emphasis — the figure in a stat, the route on a map. */
   accent: hex.default('#c2410c'),
@@ -397,7 +410,7 @@ export const bookPageNumbersSchema = z.object({
   margin: mm.default(12),
   size: z.number().min(4).max(48).default(8),
   color: hex.default('#8a8578'),
-  font: z.enum(['sans', 'serif', 'display']).default('sans'),
+  font: z.enum(BOOK_FONTS_IDS).default('sans'),
 });
 export type BookPageNumbers = z.infer<typeof bookPageNumbersSchema>;
 

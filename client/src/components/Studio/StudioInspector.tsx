@@ -5,7 +5,8 @@ import {
 } from 'lucide-react'
 import { useRef } from 'react'
 import { useStudioStore } from '../../store/studioStore'
-import { FONT_STACKS, photoSrc } from './bookRender'
+import { photoSrc } from './bookRender'
+import { BOOK_FONTS, BOOK_FONT_ORDER, hasWeight, nearestWeight } from './bookFonts'
 import { FRAME_SHAPES, SHAPE_GROUPS } from './shapes'
 import { ShapeGlyph } from './StudioElementsPanel'
 import { TravelInspector } from './StudioTravelInspector'
@@ -18,12 +19,6 @@ import { Swatches } from './StudioSwatches'
  * nothing else. A panel that lists every property of every element type with
  * most of them greyed out reads as a settings dialog, not as a tool.
  */
-
-const FONTS: { id: 'sans' | 'serif' | 'display'; label: string }[] = [
-  { id: 'sans', label: 'Poppins' },
-  { id: 'serif', label: 'Georgia' },
-  { id: 'display', label: 'MuseoModerno' },
-]
 
 export function StudioInspector({
   spreadIndex,
@@ -176,17 +171,32 @@ export function StudioInspector({
             </Section>
 
             <Section label={t('journey.studio.typography')}>
-              <div className="st-row">
-                {FONTS.map(f => (
-                  <button
-                    key={f.id}
-                    className={`st-chip ${el.font === f.id ? 'is-on' : ''}`}
-                    style={{ fontFamily: FONT_STACKS[f.id] }}
-                    onClick={() => set({ font: f.id })}
-                  >
-                    {f.label}
-                  </button>
-                ))}
+              {/*
+                Each family set in itself, because a list of names tells you
+                nothing about a typeface — and grouped, because "which serif"
+                is a different question from "serif or sans".
+              */}
+              <div className="st-fonts">
+                {BOOK_FONT_ORDER.map(id => {
+                  const font = BOOK_FONTS[id]
+                  return (
+                    <button
+                      key={id}
+                      className={`st-font ${el.font === id ? 'is-on' : ''}`}
+                      style={{ fontFamily: font.stack }}
+                      onClick={() => set({
+                        font: id,
+                        // A family that does not ship this weight would render a
+                        // synthesised bold — a smeared regular in print — so the
+                        // weight moves to the nearest one it really has.
+                        weight: nearestWeight(id, el.weight) as typeof el.weight,
+                      })}
+                      title={font.name}
+                    >
+                      {font.name}
+                    </button>
+                  )
+                })}
               </div>
               <div className="st-grid2" style={{ marginTop: 8 }}>
                 <Num label="pt" value={el.size} min={4} max={200} step={0.5} onChange={v => set({ size: v })} />
@@ -194,7 +204,13 @@ export function StudioInspector({
               </div>
               <div className="st-row" style={{ marginTop: 8 }}>
                 {([400, 500, 600, 700] as const).map(w => (
-                  <button key={w} className={`st-chip ${el.weight === w ? 'is-on' : ''}`} onClick={() => set({ weight: w })}>
+                  <button
+                    key={w}
+                    className={`st-chip ${el.weight === w ? 'is-on' : ''}`}
+                    disabled={!hasWeight(el.font, w)}
+                    title={hasWeight(el.font, w) ? undefined : t('journey.studio.weightMissing')}
+                    onClick={() => set({ weight: w })}
+                  >
                     {w}
                   </button>
                 ))}
