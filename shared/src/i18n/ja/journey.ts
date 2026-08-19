@@ -261,6 +261,19 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.exportLayout': 'レイアウト',
+  'journey.studio.exportPages': '単ページ',
+  'journey.studio.exportPagesHint': '1ページにつき1枚、読み順に並べます。印刷所が求める形式です。',
+  'journey.studio.exportSpreads': '見開き',
+  'journey.studio.exportSpreadsHint': '本を開いたときのまま2ページずつ。閲覧用です。',
+  'journey.studio.exportFinishing': '仕上げ',
+  'journey.studio.exportMarks': 'トンボ',
+  'journey.studio.exportMarksHint': '各辺に{bleed}mmの塗り足しを付け、断裁位置を示します',
+  'journey.studio.exportNote': '{width}×{height}mmの用紙{sheets}枚。印刷ビューはブラウザがPDFにします。',
+  'journey.studio.exportOpen': '印刷ビュー',
+  'journey.studio.exportSave': 'PDFとして保存',
+  'journey.studio.exportPreparing': '準備中',
+  'journey.studio.exportSheetCount': '{count}枚',
   'journey.studio.undo': 'Undo', // en-fallback
   'journey.studio.redo': 'Redo', // en-fallback
   'journey.studio.zoomIn': 'Zoom in', // en-fallback

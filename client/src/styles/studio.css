@@ -1442,3 +1442,114 @@
 .trek-dash .st-spin { animation: st-spin 900ms linear infinite; }
 @keyframes st-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .trek-dash .st-spin { animation: none; } }
+
+/* ── Export dialog (#1973) ────────────────────────────────────────────────
+   Its own prefix rather than `.st-field` and friends: those already mean a
+   labelled row in the toolbar, and one class doing two jobs is how a toolbar
+   tweak silently reflows a dialog. */
+.trek-dash .st-ex {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: color-mix(in oklch, var(--ink) 42%, transparent);
+  backdrop-filter: blur(2px);
+}
+.trek-dash .st-ex-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+.trek-dash .st-ex-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.trek-dash .st-ex-x {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  color: var(--muted);
+}
+.trek-dash .st-ex-x:hover { background: color-mix(in oklch, var(--ink) 8%, transparent); color: var(--ink); }
+.trek-dash .st-ex-body { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+.trek-dash .st-ex-field { display: flex; flex-direction: column; gap: 6px; }
+.trek-dash .st-ex-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.trek-dash .st-ex-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 11px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--muted);
+}
+.trek-dash .st-ex-opt:hover { border-color: color-mix(in oklch, var(--accent) 40%, var(--line)); }
+.trek-dash .st-ex-opt.is-on {
+  border-color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 9%, var(--card));
+  color: var(--ink);
+}
+.trek-dash .st-ex-opt svg { margin-top: 1px; flex: 0 0 auto; }
+.trek-dash .st-ex-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.trek-dash .st-ex-name { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+.trek-dash .st-ex-hint { font-size: 11px; line-height: 1.35; color: var(--muted); }
+.trek-dash .st-ex-note {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.trek-dash .st-ex-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--line);
+}
+.trek-dash .st-ex-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 13px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.trek-dash .st-ex-btn:hover { background: color-mix(in oklch, var(--ink) 6%, var(--card)); }
+.trek-dash .st-ex-btn.is-primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--accent-text, #fff);
+}
+.trek-dash .st-ex-btn.is-primary:hover { filter: brightness(1.06); }
+.trek-dash .st-ex-btn[disabled] { opacity: 0.55; }

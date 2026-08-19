@@ -260,6 +260,19 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.exportLayout': '레이아웃',
+  'journey.studio.exportPages': '낱쪽',
+  'journey.studio.exportPagesHint': '한 쪽에 한 장씩, 읽는 순서대로. 인쇄소가 원하는 형식입니다.',
+  'journey.studio.exportSpreads': '펼침면',
+  'journey.studio.exportSpreadsHint': '책을 펼친 그대로 두 쪽씩. 보기용입니다.',
+  'journey.studio.exportFinishing': '후가공',
+  'journey.studio.exportMarks': '재단선',
+  'journey.studio.exportMarksHint': '각 가장자리에 {bleed}mm 도련을 넣고 자를 위치를 표시합니다',
+  'journey.studio.exportNote': '{width} × {height}mm 용지 {sheets}장. 인쇄 화면은 브라우저가 PDF로 만듭니다.',
+  'journey.studio.exportOpen': '인쇄 화면',
+  'journey.studio.exportSave': 'PDF로 저장',
+  'journey.studio.exportPreparing': '준비 중',
+  'journey.studio.exportSheetCount': '{count}장',
   'journey.studio.undo': 'Undo', // en-fallback
   'journey.studio.redo': 'Redo', // en-fallback
   'journey.studio.zoomIn': 'Zoom in', // en-fallback

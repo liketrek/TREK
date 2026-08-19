@@ -258,6 +258,19 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.exportLayout': '版式',
+  'journey.studio.exportPages': '单页',
+  'journey.studio.exportPagesHint': '每页一张，按阅读顺序排列。印厂要的就是这种。',
+  'journey.studio.exportSpreads': '跨页',
+  'journey.studio.exportSpreadsHint': '一次两页，和翻开书时一样。用来浏览。',
+  'journey.studio.exportFinishing': '后期',
+  'journey.studio.exportMarks': '裁切标记',
+  'journey.studio.exportMarksHint': '每条边加 {bleed} 毫米出血，并标出裁切位置',
+  'journey.studio.exportNote': '{sheets} 张 {width} × {height} 毫米。浏览器会把打印视图转成 PDF。',
+  'journey.studio.exportOpen': '打印视图',
+  'journey.studio.exportSave': '另存为 PDF',
+  'journey.studio.exportPreparing': '正在准备',
+  'journey.studio.exportSheetCount': '{count} 张',
   'journey.studio.undo': 'Undo', // en-fallback
   'journey.studio.redo': 'Redo', // en-fallback
   'journey.studio.zoomIn': 'Zoom in', // en-fallback

@@ -259,6 +259,19 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.exportLayout': 'Tata letak',
+  'journey.studio.exportPages': 'Halaman tunggal',
+  'journey.studio.exportPagesHint': 'Satu lembar per halaman, sesuai urutan baca. Ini yang diminta percetakan.',
+  'journey.studio.exportSpreads': 'Halaman ganda',
+  'journey.studio.exportSpreadsHint': 'Dua halaman sekaligus, seperti buku terbuka. Untuk dibaca.',
+  'journey.studio.exportFinishing': 'Penyelesaian',
+  'journey.studio.exportMarks': 'Tanda potong',
+  'journey.studio.exportMarksHint': 'Menambahkan bleed {bleed} mm di setiap tepi dan menandai tempat pemotongan',
+  'journey.studio.exportNote': '{sheets} lembar {width} × {height} mm. Peramban mengubah tampilan cetak menjadi PDF.',
+  'journey.studio.exportOpen': 'Tampilan cetak',
+  'journey.studio.exportSave': 'Simpan sebagai PDF',
+  'journey.studio.exportPreparing': 'Menyiapkan',
+  'journey.studio.exportSheetCount': '{count} lembar',
   'journey.studio.undo': 'Undo', // en-fallback
   'journey.studio.redo': 'Redo', // en-fallback
   'journey.studio.zoomIn': 'Zoom in', // en-fallback

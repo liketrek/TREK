@@ -259,6 +259,19 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.exportLayout': 'التخطيط',
+  'journey.studio.exportPages': 'صفحات مفردة',
+  'journey.studio.exportPagesHint': 'ورقة واحدة لكل صفحة، بترتيب القراءة. هذا ما تطلبه المطبعة.',
+  'journey.studio.exportSpreads': 'صفحات مزدوجة',
+  'journey.studio.exportSpreadsHint': 'صفحتان معًا، كما يُفتح الكتاب. للقراءة.',
+  'journey.studio.exportFinishing': 'التشطيب',
+  'journey.studio.exportMarks': 'علامات القص',
+  'journey.studio.exportMarksHint': 'يضيف {bleed} مم من الفيض عند كل حافة ويحدد موضع القص',
+  'journey.studio.exportNote': '{sheets} ورقة بقياس {width} × {height} مم. يحوّل المتصفح معاينة الطباعة إلى PDF.',
+  'journey.studio.exportOpen': 'معاينة الطباعة',
+  'journey.studio.exportSave': 'حفظ بصيغة PDF',
+  'journey.studio.exportPreparing': 'جارٍ التحضير',
+  'journey.studio.exportSheetCount': '{count} ورقة',
   'journey.studio.undo': 'Undo', // en-fallback
   'journey.studio.redo': 'Redo', // en-fallback
   'journey.studio.zoomIn': 'Zoom in', // en-fallback

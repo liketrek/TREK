@@ -262,6 +262,19 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.exportLayout': 'Διάταξη',
+  'journey.studio.exportPages': 'Μονές σελίδες',
+  'journey.studio.exportPagesHint': 'Ένα φύλλο ανά σελίδα, με τη σειρά ανάγνωσης. Αυτό θέλει το τυπογραφείο.',
+  'journey.studio.exportSpreads': 'Δισέλιδα',
+  'journey.studio.exportSpreadsHint': 'Δύο σελίδες μαζί, όπως ανοίγει το βιβλίο. Για ανάγνωση.',
+  'journey.studio.exportFinishing': 'Φινίρισμα',
+  'journey.studio.exportMarks': 'Σημάδια κοπής',
+  'journey.studio.exportMarksHint': 'Προσθέτει {bleed} mm μακετών σε κάθε ακμή και σημειώνει πού κόβεται',
+  'journey.studio.exportNote': '{sheets} φύλλα {width} × {height} mm. Ο browser μετατρέπει την προεπισκόπηση εκτύπωσης σε PDF.',
+  'journey.studio.exportOpen': 'Προεπισκόπηση εκτύπωσης',
+  'journey.studio.exportSave': 'Αποθήκευση ως PDF',
+  'journey.studio.exportPreparing': 'Προετοιμασία',
+  'journey.studio.exportSheetCount': '{count} φύλλα',
   'journey.studio.undo': 'Undo', // en-fallback
   'journey.studio.redo': 'Redo', // en-fallback
   'journey.studio.zoomIn': 'Zoom in', // en-fallback

@@ -261,6 +261,19 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.exportLayout': 'Макет',
+  'journey.studio.exportPages': 'Окремі сторінки',
+  'journey.studio.exportPagesHint': 'По одному аркушу на сторінку, у порядку читання. Це потрібно друкарні.',
+  'journey.studio.exportSpreads': 'Розвороти',
+  'journey.studio.exportSpreadsHint': 'Дві сторінки водночас, як розкривається книга. Для читання.',
+  'journey.studio.exportFinishing': 'Оздоблення',
+  'journey.studio.exportMarks': 'Мітки різу',
+  'journey.studio.exportMarksHint': 'Додає {bleed} мм вильоту з кожного краю і позначає лінію різу',
+  'journey.studio.exportNote': '{sheets} аркушів {width} × {height} мм. Браузер перетворює перегляд друку на PDF.',
+  'journey.studio.exportOpen': 'Перегляд друку',
+  'journey.studio.exportSave': 'Зберегти як PDF',
+  'journey.studio.exportPreparing': 'Підготовка',
+  'journey.studio.exportSheetCount': '{count} аркушів',
   'journey.studio.undo': 'Undo', // en-fallback
   'journey.studio.redo': 'Redo', // en-fallback
   'journey.studio.zoomIn': 'Zoom in', // en-fallback

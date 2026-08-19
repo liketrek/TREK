@@ -419,8 +419,15 @@ export function SpreadView({
       style={{
         position: 'absolute',
         inset: 0,
-        background: spread.background ?? '#ffffff',
-        overflow: 'hidden',
+        background: spread.background ?? '#ffffff', // theme-lint-disable — paper, not app chrome
+        /*
+         * On screen the page ends at the trim, so anything past it is clipped.
+         * In print it must not be: the bleed is the part that runs off the edge
+         * and gets cut away, and clipping it here would leave a white hairline
+         * along every edge of the finished book. The sheet does the clipping
+         * instead — see BookSheetsView, whose window is trim plus bleed.
+         */
+        overflow: print ? 'visible' : 'hidden',
       }}
     >
       {spread.elements.map(el => (

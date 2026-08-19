@@ -260,6 +260,19 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.exportLayout': 'Bố cục',
+  'journey.studio.exportPages': 'Trang đơn',
+  'journey.studio.exportPagesHint': 'Mỗi trang một tờ, theo thứ tự đọc. Đây là thứ nhà in cần.',
+  'journey.studio.exportSpreads': 'Trang đôi',
+  'journey.studio.exportSpreadsHint': 'Hai trang một lúc, đúng như khi mở sách. Để đọc.',
+  'journey.studio.exportFinishing': 'Gia công',
+  'journey.studio.exportMarks': 'Dấu cắt',
+  'journey.studio.exportMarksHint': 'Thêm {bleed} mm tràn lề ở mỗi cạnh và đánh dấu chỗ cắt',
+  'journey.studio.exportNote': '{sheets} tờ khổ {width} × {height} mm. Trình duyệt biến bản xem trước thành PDF.',
+  'journey.studio.exportOpen': 'Xem trước khi in',
+  'journey.studio.exportSave': 'Lưu thành PDF',
+  'journey.studio.exportPreparing': 'Đang chuẩn bị',
+  'journey.studio.exportSheetCount': '{count} tờ',
   'journey.studio.undo': 'Undo', // en-fallback
   'journey.studio.redo': 'Redo', // en-fallback
   'journey.studio.zoomIn': 'Zoom in', // en-fallback

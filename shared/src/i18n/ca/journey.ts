@@ -260,6 +260,19 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.exportLayout': 'Disposició',
+  'journey.studio.exportPages': 'Pàgines soltes',
+  'journey.studio.exportPagesHint': 'Un full per pàgina, en ordre de lectura. El que vol una impremta.',
+  'journey.studio.exportSpreads': 'Doble pàgina',
+  'journey.studio.exportSpreadsHint': 'Dues pàgines alhora, tal com s’obre el llibre. Per llegir.',
+  'journey.studio.exportFinishing': 'Acabat',
+  'journey.studio.exportMarks': 'Marques de tall',
+  'journey.studio.exportMarksHint': 'Afegeix {bleed} mm de sagnat a cada vora i marca on s’ha de tallar',
+  'journey.studio.exportNote': '{sheets} fulls de {width} × {height} mm. El navegador converteix la vista d’impressió en un PDF.',
+  'journey.studio.exportOpen': 'Vista d’impressió',
+  'journey.studio.exportSave': 'Desa com a PDF',
+  'journey.studio.exportPreparing': 'S’està preparant',
+  'journey.studio.exportSheetCount': '{count} fulls',
   'journey.studio.undo': 'Undo', // en-fallback
   'journey.studio.redo': 'Redo', // en-fallback
   'journey.studio.zoomIn': 'Zoom in', // en-fallback

@@ -260,6 +260,19 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.exportLayout': 'Rozvržení',
+  'journey.studio.exportPages': 'Jednotlivé stránky',
+  'journey.studio.exportPagesHint': 'Jeden list na stránku, v pořadí čtení. To chce tiskárna.',
+  'journey.studio.exportSpreads': 'Dvojstrany',
+  'journey.studio.exportSpreadsHint': 'Dvě stránky najednou, jak se kniha otevírá. Ke čtení.',
+  'journey.studio.exportFinishing': 'Zpracování',
+  'journey.studio.exportMarks': 'Ořezové značky',
+  'journey.studio.exportMarksHint': 'Přidá {bleed} mm spadávky na každou hranu a označí, kde se řeže',
+  'journey.studio.exportNote': '{sheets} listů {width} × {height} mm. Prohlížeč z náhledu tisku udělá PDF.',
+  'journey.studio.exportOpen': 'Náhled tisku',
+  'journey.studio.exportSave': 'Uložit jako PDF',
+  'journey.studio.exportPreparing': 'Připravuje se',
+  'journey.studio.exportSheetCount': '{count} listů',
   'journey.studio.undo': 'Undo', // en-fallback
   'journey.studio.redo': 'Redo', // en-fallback
   'journey.studio.zoomIn': 'Zoom in', // en-fallback

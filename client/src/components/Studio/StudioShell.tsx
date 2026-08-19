@@ -12,6 +12,7 @@ import { StudioCanvas } from './StudioCanvas'
 import { StudioInspector } from './StudioInspector'
 import { StudioWordmark } from './StudioWordmark'
 import { SaveIndicator } from './SaveIndicator'
+import { StudioExport } from './StudioExport'
 import '../../styles/dashboard.css'
 import '../../styles/studio.css'
 
@@ -30,6 +31,7 @@ export default function StudioShell() {
   const s = useJourneyStudio()
   const navigate = useNavigate()
   const [bookView, setBookView] = useState(true)
+  const [exporting, setExporting] = useState(false)
 
   if (s.isMobile) {
     return createPortal(
@@ -71,7 +73,7 @@ export default function StudioShell() {
         aria-modal="true"
         aria-label={s.t('journey.studio.title')}
       >
-        <StudioBar s={s} bookView={bookView} setBookView={setBookView} />
+        <StudioBar s={s} bookView={bookView} setBookView={setBookView} onExport={() => setExporting(true)} />
 
         <div className="st-body">
           <StudioSidebar
@@ -93,6 +95,15 @@ export default function StudioShell() {
             locale={s.locale}
           />
         </div>
+
+        {exporting && s.doc && (
+          <StudioExport
+            doc={s.doc}
+            title={s.doc.title || s.journey?.title || ''}
+            t={s.t}
+            onClose={() => setExporting(false)}
+          />
+        )}
       </div>
     </>,
     document.body,
@@ -102,8 +113,8 @@ export default function StudioShell() {
 type Studio = ReturnType<typeof useJourneyStudio>
 
 function StudioBar({
-  s, bookView, setBookView,
-}: { s: Studio; bookView: boolean; setBookView: (v: boolean) => void }) {
+  s, bookView, setBookView, onExport,
+}: { s: Studio; bookView: boolean; setBookView: (v: boolean) => void; onExport: () => void }) {
   return (
     <div className="st-bar">
       <button onClick={s.close} className="st-back" title={s.t('journey.studio.backToJourney')}>
@@ -173,7 +184,12 @@ function StudioBar({
         <div className="st-sep" />
 
         <AutoLayoutButton s={s} />
-        <button className="st-tool is-primary" disabled title={s.t('journey.studio.export')}>
+        <button
+          className="st-tool is-primary"
+          onClick={onExport}
+          disabled={!s.doc}
+          title={s.t('journey.studio.export')}
+        >
           <Download size={14} />
           <span className="st-tool-label">{s.t('journey.studio.export')}</span>
         </button>

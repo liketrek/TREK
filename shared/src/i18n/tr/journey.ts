@@ -260,6 +260,19 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.exportLayout': 'Yerleşim',
+  'journey.studio.exportPages': 'Tek sayfa',
+  'journey.studio.exportPagesHint': 'Sayfa başına bir yaprak, okuma sırasında. Matbaanın istediği budur.',
+  'journey.studio.exportSpreads': 'Çift sayfa',
+  'journey.studio.exportSpreadsHint': 'Kitap açıldığı gibi iki sayfa birden. Okumak için.',
+  'journey.studio.exportFinishing': 'Son işlem',
+  'journey.studio.exportMarks': 'Kesim işaretleri',
+  'journey.studio.exportMarksHint': 'Her kenara {bleed} mm taşma payı ekler ve nereden kesileceğini işaretler',
+  'journey.studio.exportNote': '{width} × {height} mm ölçüsünde {sheets} yaprak. Tarayıcı yazdırma görünümünü PDF’e çevirir.',
+  'journey.studio.exportOpen': 'Yazdırma görünümü',
+  'journey.studio.exportSave': 'PDF olarak kaydet',
+  'journey.studio.exportPreparing': 'Hazırlanıyor',
+  'journey.studio.exportSheetCount': '{count} yaprak',
   'journey.studio.undo': 'Undo', // en-fallback
   'journey.studio.redo': 'Redo', // en-fallback
   'journey.studio.zoomIn': 'Zoom in', // en-fallback

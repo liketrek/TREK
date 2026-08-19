@@ -260,6 +260,19 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.exportLayout': 'Elrendezés',
+  'journey.studio.exportPages': 'Önálló oldalak',
+  'journey.studio.exportPagesHint': 'Oldalanként egy ív, olvasási sorrendben. Ezt kéri a nyomda.',
+  'journey.studio.exportSpreads': 'Dupla oldalak',
+  'journey.studio.exportSpreadsHint': 'Egyszerre két oldal, ahogy a könyv kinyílik. Olvasáshoz.',
+  'journey.studio.exportFinishing': 'Kikészítés',
+  'journey.studio.exportMarks': 'Vágójelek',
+  'journey.studio.exportMarksHint': 'Minden élhez {bleed} mm kifutót ad, és megjelöli a vágás helyét',
+  'journey.studio.exportNote': '{sheets} ív, {width} × {height} mm. A böngésző PDF-et készít a nyomtatási nézetből.',
+  'journey.studio.exportOpen': 'Nyomtatási nézet',
+  'journey.studio.exportSave': 'Mentés PDF-ként',
+  'journey.studio.exportPreparing': 'Előkészítés',
+  'journey.studio.exportSheetCount': '{count} ív',
   'journey.studio.undo': 'Undo', // en-fallback
   'journey.studio.redo': 'Redo', // en-fallback
   'journey.studio.zoomIn': 'Zoom in', // en-fallback

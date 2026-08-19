@@ -260,6 +260,19 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.exportLayout': 'Макет',
+  'journey.studio.exportPages': 'Отдельные страницы',
+  'journey.studio.exportPagesHint': 'По одному листу на страницу, в порядке чтения. Это нужно типографии.',
+  'journey.studio.exportSpreads': 'Развороты',
+  'journey.studio.exportSpreadsHint': 'По две страницы сразу, как раскрывается книга. Для чтения.',
+  'journey.studio.exportFinishing': 'Отделка',
+  'journey.studio.exportMarks': 'Метки реза',
+  'journey.studio.exportMarksHint': 'Добавляет {bleed} мм вылета по каждому краю и отмечает линию реза',
+  'journey.studio.exportNote': '{sheets} листов {width} × {height} мм. Браузер превращает предпросмотр печати в PDF.',
+  'journey.studio.exportOpen': 'Предпросмотр печати',
+  'journey.studio.exportSave': 'Сохранить как PDF',
+  'journey.studio.exportPreparing': 'Подготовка',
+  'journey.studio.exportSheetCount': '{count} листов',
   'journey.studio.undo': 'Undo', // en-fallback
   'journey.studio.redo': 'Redo', // en-fallback
   'journey.studio.zoomIn': 'Zoom in', // en-fallback

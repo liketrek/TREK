@@ -260,6 +260,19 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.exportLayout': 'Layout',
+  'journey.studio.exportPages': 'Enkelsidor',
+  'journey.studio.exportPagesHint': 'Ett blad per sida, i läsordning. Det är vad ett tryckeri vill ha.',
+  'journey.studio.exportSpreads': 'Uppslag',
+  'journey.studio.exportSpreadsHint': 'Två sidor i taget, så som boken öppnas. För läsning.',
+  'journey.studio.exportFinishing': 'Efterbehandling',
+  'journey.studio.exportMarks': 'Skärmärken',
+  'journey.studio.exportMarksHint': 'Lägger till {bleed} mm utfall på varje kant och märker ut var det ska skäras',
+  'journey.studio.exportNote': '{sheets} blad på {width} × {height} mm. Webbläsaren gör en PDF av utskriftsvyn.',
+  'journey.studio.exportOpen': 'Utskriftsvy',
+  'journey.studio.exportSave': 'Spara som PDF',
+  'journey.studio.exportPreparing': 'Förbereder',
+  'journey.studio.exportSheetCount': '{count} blad',
   'journey.studio.undo': 'Undo', // en-fallback
   'journey.studio.redo': 'Redo', // en-fallback
   'journey.studio.zoomIn': 'Zoom in', // en-fallback
