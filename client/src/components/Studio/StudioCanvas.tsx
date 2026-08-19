@@ -153,7 +153,7 @@ export function StudioCanvas({
         }}
         onPointerDown={() => select([])}
       >
-        <SpreadView spread={spread} page={page} big={zoom > 0.34} showGuides dropLabel={dropLabel} />
+        <SpreadView spread={spread} page={page} spreadIndex={spreadIndex} big={zoom > 0.34} showGuides dropLabel={dropLabel} />
 
         {/* Hit targets sit above the page so a photo's own <img> never eats the
             gesture, and so a locked element simply is not grabbable. */}

@@ -31,6 +31,16 @@ export type PagePresetId =
   | 'a4-landscape'
   | 'a4-portrait'
   | 'a5-landscape'
+  /**
+   * Any width and height at all.
+   *
+   * The five presets are what CEWE, Saal and Polarsteps actually bind, which
+   * covers almost everyone — but "almost" is doing real work there. A local
+   * printer with a 24 x 18 press, a book meant to sit in a particular shelf,
+   * a format a vendor lists that nobody else does: the picker either has a way
+   * to say that or those books cannot be made here at all.
+   */
+  | 'custom'
 
 function preset(id: PagePresetId, w: number, h: number, labelKey: string): PagePreset {
   return {
@@ -51,13 +61,32 @@ export const PAGE_PRESETS: Record<PagePresetId, PagePreset> = {
   'a4-landscape': preset('a4-landscape', 297, 210, 'journey.studio.formatA4Landscape'),
   'a4-portrait': preset('a4-portrait', 210, 297, 'journey.studio.formatA4Portrait'),
   'a5-landscape': preset('a5-landscape', 210, 148, 'journey.studio.formatA5Landscape'),
+  // The dimensions here are only the starting point the fields open on; the
+  // document keeps whatever the user types.
+  custom: preset('custom', 210, 210, 'journey.studio.formatCustom'),
 }
 
-/** Square first: it is what a photo book usually is. */
+/**
+ * What a page may measure, in millimetres.
+ *
+ * The floor is a passport-sized book; the ceiling is what a large-format press
+ * takes, and also what keeps a spread inside the schema two-decimal
+ * millimetre field without the editor scaling to a smear.
+ */
+export const PAGE_MIN_MM = 60
+export const PAGE_MAX_MM = 500
+
+export function clampPageSize(value: number): number {
+  if (!Number.isFinite(value)) return PAGE_MIN_MM
+  return Math.min(PAGE_MAX_MM, Math.max(PAGE_MIN_MM, Math.round(value * 10) / 10))
+}
+
+/** Square first: it is what a photo book usually is. Custom last, as a way out. */
 export const PAGE_PRESET_ORDER: PagePresetId[] = [
   'square-210',
   'square-300',
   'a4-landscape',
   'a4-portrait',
   'a5-landscape',
+  'custom',
 ]

@@ -1312,3 +1312,53 @@
   border: 1px solid color-mix(in oklch, var(--accent) 26%, transparent);
   flex: none;
 }
+
+/* ----------------- custom trim ----------------- */
+.trek-dash .st-menu-sep {
+  height: 1px;
+  margin: 6px 4px;
+  background: var(--line);
+}
+.trek-dash .st-menu-custom {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 2px 8px 4px;
+}
+.trek-dash .st-menu-custom label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+.trek-dash .st-menu-custom label span {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.trek-dash .st-menu-custom input {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.trek-dash .st-menu-custom input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.trek-dash .st-menu-times,
+.trek-dash .st-menu-unit {
+  font-size: 11px;
+  color: var(--ink-3);
+  padding-bottom: 7px;
+  flex: none;
+}

@@ -5,6 +5,7 @@ import type {
 import { FONT_STACKS, photoSrc } from './bookRender'
 import { HOLED_SHAPES, SHAPE_PATHS, scalePath, unitPath } from './shapes'
 import { TravelElementView } from './TravelElements'
+import { PageNumbers } from './PageNumbers'
 
 /**
  * One spread, drawn.
@@ -390,6 +391,7 @@ export function ElementView({
 export function SpreadView({
   spread,
   page,
+  spreadIndex = 0,
   big = false,
   showGuides = false,
   print = false,
@@ -397,6 +399,12 @@ export function SpreadView({
 }: {
   spread: BookSpread
   page: BookPageSetup
+  /**
+   * Where this spread sits in the book. Only the folios need it — a page
+   * number is the one thing on the page that is a function of position rather
+   * than of the document.
+   */
+  spreadIndex?: number
   big?: boolean
   showGuides?: boolean
   /** The print renderer passes this: no guides, no placeholders, no chrome. */
@@ -418,6 +426,8 @@ export function SpreadView({
       {spread.elements.map(el => (
         <ElementView key={el.id} el={el} big={big} print={print} dropLabel={dropLabel} />
       ))}
+
+      <PageNumbers spread={spread} page={page} spreadIndex={spreadIndex} />
 
       {showGuides && (
         <>

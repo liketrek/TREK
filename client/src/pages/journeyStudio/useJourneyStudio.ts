@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router'
-import type { JourneyStats } from '@trek/shared'
+import type { BookPageNumbers, JourneyStats } from '@trek/shared'
 import { journeyApi } from '../../api/client'
 import { useJourneyStore, type GalleryPhoto, type JourneyEntry, type JourneyPhoto } from '../../store/journeyStore'
 import { useStudioStore } from '../../store/studioStore'
 import { useTranslation } from '../../i18n'
 import { useIsMobile } from '../../hooks/useIsMobile'
-import { PAGE_PRESETS, type PagePresetId } from '../../components/Studio/pagePresets'
-import { buildBook, distributeGallery, type AutoEntry, type AutoPhoto } from '../../components/Studio/autoLayout'
+import { PAGE_PRESETS, clampPageSize, type PagePresetId } from '../../components/Studio/pagePresets'
+import {
+  buildBook, distributeGallery, relayoutSpread,
+  type AutoEntry, type AutoInput, type AutoPhoto,
+} from '../../components/Studio/autoLayout'
 
 /** CSS defines 1in as 96px and 25.4mm, so this factor is exact, not a guess. */
 const PX_PER_MM = 96 / 25.4
@@ -81,6 +84,16 @@ export function useJourneyStudio() {
 
   const workRef = useRef<HTMLDivElement>(null)
   const builtFor = useRef<number | null>(null)
+  /*
+   * What the book was laid out from, kept so it can be laid out again.
+   *
+   * Auto layout used to run exactly once, on open, which made it the one thing
+   * in Studio you could not ask for — a page that came out wrong had to be
+   * rebuilt by hand. Holding the input costs a ref and makes the button
+   * possible; rebuilding it from the journey on every click would be the same
+   * work plus a chance of the two disagreeing.
+   */
+  const autoInput = useRef<AutoInput | null>(null)
 
   const journey = current && current.id === journeyId ? current : null
 
@@ -124,7 +137,7 @@ export function useJourneyStudio() {
     const withPhotos = distributeGallery(entries, gallery)
     const preset = PAGE_PRESETS['square-210']
 
-    loadDoc(buildBook({
+    autoInput.current = {
       locale,
       title: journey.title || '',
       subtitle: journey.subtitle ?? null,
@@ -136,9 +149,11 @@ export function useJourneyStudio() {
         pageHeight: preset.pageHeightMm,
         bleed: preset.bleedMm,
         safe: preset.safeMm,
+        pageNumbers: { show: false, startAt: 2, position: 'outer', margin: 12, size: 8, color: '#8a8578', font: 'sans' },
       },
       stats,
-    }))
+    }
+    loadDoc(buildBook(autoInput.current))
     // `stats` is deliberately not a dependency: the book is laid out once, from
     // the figures as they stood at that moment. Re-running on a later fetch
     // would throw away the user's work — which is the same reason `builtFor`
@@ -190,9 +205,85 @@ export function useJourneyStudio() {
     const p = PAGE_PRESETS[next]
     commit(d => ({
       ...d,
-      page: { ...d.page, preset: p.id, pageWidth: p.pageWidthMm, pageHeight: p.pageHeightMm },
+      page: {
+        ...d.page,
+        preset: p.id,
+        // Switching *to* custom keeps the page it is on: the free size is a way
+        // to adjust the format you have, not a reset to a default nobody chose.
+        pageWidth: next === 'custom' ? d.page.pageWidth : p.pageWidthMm,
+        pageHeight: next === 'custom' ? d.page.pageHeight : p.pageHeightMm,
+      },
     }))
     setAutoFit(true)
+  }, [commit])
+
+  /**
+   * A free trim size.
+   *
+   * Setting either dimension puts the document on the custom preset — a book
+   * that is 210 by 240 is not "square 21" with a typo in it, and leaving the
+   * preset alone would have the picker naming a format the page no longer is.
+   */
+  const setPageSize = useCallback((axis: 'w' | 'h', value: number) => {
+    commit(d => ({
+      ...d,
+      page: {
+        ...d.page,
+        preset: 'custom' as const,
+        pageWidth: axis === 'w' ? clampPageSize(value) : d.page.pageWidth,
+        pageHeight: axis === 'h' ? clampPageSize(value) : d.page.pageHeight,
+      },
+    }))
+    setAutoFit(true)
+  }, [commit])
+
+  /**
+   * Lay out again — one spread, or the whole book.
+   *
+   * Both are ordinary commits, so both undo. That is the difference between an
+   * auto layout you can try and one you have to commit to: the first thing
+   * anyone does with a button like this is press it to see what happens, and
+   * the second is want their page back.
+   *
+   * The page setup is carried over rather than reset. Someone who chose A4 and
+   * turned page numbers on did not ask for that to be undone by a relayout.
+   */
+  const relayoutBook = useCallback(() => {
+    const input = autoInput.current
+    if (!input) return
+    commit(d => ({
+      ...buildBook({ ...input, page: d.page }),
+      title: d.title,
+    }))
+    setActiveSpread(0)
+  }, [commit, setActiveSpread])
+
+  const relayoutCurrentSpread = useCallback(() => {
+    const input = autoInput.current
+    if (!input) return
+    commit(d => {
+      const sp = d.spreads[activeSpread]
+      if (!sp) return d
+      const next = relayoutSpread(sp, { ...input, page: d.page })
+      if (!next) return d
+      return { ...d, spreads: d.spreads.map((x, i) => (i === activeSpread ? next : x)) }
+    })
+    select([])
+  }, [commit, activeSpread, select])
+
+  /** Whether the spread on screen came from an entry, and so can be redone. */
+  const canRelayoutSpread = !!(
+    autoInput.current
+    && doc?.spreads[activeSpread]?.entryId != null
+    && doc.spreads[activeSpread].role === 'inner'
+  )
+
+  /** Page numbers and anything else that belongs to the book rather than a page. */
+  const setPageNumbers = useCallback((patch: Partial<BookPageNumbers>) => {
+    commit(d => ({
+      ...d,
+      page: { ...d.page, pageNumbers: { ...d.page.pageNumbers, ...patch } },
+    }))
   }, [commit])
 
   /** Largest zoom at which the whole spread still fits the workbench. */
@@ -322,6 +413,11 @@ export function useJourneyStudio() {
     page,
     preset,
     setPreset,
+    setPageSize,
+    setPageNumbers,
+    relayoutBook,
+    relayoutCurrentSpread,
+    canRelayoutSpread,
     spread,
     spreadWidthMm,
     activeSpread,

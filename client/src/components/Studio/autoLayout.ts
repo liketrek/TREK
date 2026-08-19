@@ -667,6 +667,27 @@ export function buildBook(input: AutoInput): BookDocument {
 }
 
 /**
+ * Lay one spread out again, from the entry it came from.
+ *
+ * The whole-book version throws away everything; this is for the far more
+ * common "this page came out wrong" — it rebuilds the spread its entry would
+ * produce and leaves every other page alone.
+ *
+ * Returns null for a spread that has no entry behind it: the cover, the back
+ * cover, the summary, the country page and anything added by hand. Those were
+ * not generated from an entry, so there is nothing to regenerate them from, and
+ * silently replacing them with a blank page would be worse than refusing.
+ */
+export function relayoutSpread(spread: BookSpread, input: AutoInput): BookSpread | null {
+  if (spread.role !== 'inner' || spread.entryId == null) return null
+  const entry = input.entries.find(e => e.id === spread.entryId)
+  if (!entry) return null
+  // Its own id is kept, so the pages rail does not scroll and the selection
+  // does not jump — from the outside it is the same page, rearranged.
+  return { ...entrySpread(entry, input), id: spread.id }
+}
+
+/**
  * Hand the journey's loose gallery photos to the entries.
  *
  * Photos that already sit on an entry stay there. The rest are shared out in

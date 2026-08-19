@@ -161,7 +161,7 @@ function PagesPanel({
                         transform: `scale(${scale})`, transformOrigin: 'top left',
                       }}
                     >
-                      <SpreadView spread={sp} page={page} />
+                      <SpreadView spread={sp} page={page} spreadIndex={i} />
                     </div>
                     {bookView && !single && <SpreadFold page={page} scaled={pxPerMm * scale} />}
                   </div>

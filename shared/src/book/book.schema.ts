@@ -376,6 +376,31 @@ export const bookSpreadSchema = z.object({
 });
 export type BookSpread = z.infer<typeof bookSpreadSchema>;
 
+/**
+ * Page numbers.
+ *
+ * Set here, on the document, and filled by the renderer — which is the only
+ * place that knows what number a given page is. Letting pdf-lib stamp them
+ * afterwards would put a different number in the PDF than the one the editor
+ * showed, and a book you cannot proofread on screen is not much of an editor.
+ *
+ * `startAt` exists because the first inner spread is rarely page 1 in the
+ * finished object: the cover is a separate sheet, and some binders count it and
+ * some do not.
+ */
+export const bookPageNumbersSchema = z.object({
+  show: z.boolean().default(false),
+  /** Which number the first inner spread's left page carries. */
+  startAt: z.number().int().min(0).max(9999).default(2),
+  position: z.enum(['outer', 'inner', 'centre']).default('outer'),
+  /** Millimetres from the trim edge. */
+  margin: mm.default(12),
+  size: z.number().min(4).max(48).default(8),
+  color: hex.default('#8a8578'),
+  font: z.enum(['sans', 'serif', 'display']).default('sans'),
+});
+export type BookPageNumbers = z.infer<typeof bookPageNumbersSchema>;
+
 export const bookPageSetupSchema = z.object({
   preset: z.enum(['square-210', 'square-300', 'a4-landscape', 'a4-portrait', 'a5-landscape', 'custom']).default('square-210'),
   /** A single page. A double spread is drawn twice this wide. */
@@ -383,6 +408,7 @@ export const bookPageSetupSchema = z.object({
   pageHeight: mm.default(210),
   bleed: mm.default(3),
   safe: mm.default(5),
+  pageNumbers: bookPageNumbersSchema.default(() => bookPageNumbersSchema.parse({})),
 });
 export type BookPageSetup = z.infer<typeof bookPageSetupSchema>;
 

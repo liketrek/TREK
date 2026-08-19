@@ -1,4 +1,4 @@
-import type { BookElement, BookPageSetup, BookShapeId, JourneyStats } from '@trek/shared'
+import type { BookElement, BookPageNumbers, BookPageSetup, BookShapeId, JourneyStats } from '@trek/shared'
 import {
   AlignCenter, AlignJustify, AlignLeft, AlignRight, ArrowDown, ArrowUp,
   ChevronsDown, ChevronsUp, Lock, Trash2, Unlock,
@@ -29,11 +29,13 @@ export function StudioInspector({
   spreadIndex,
   page,
   stats,
+  setPageNumbers,
   t,
   locale,
 }: {
   spreadIndex: number
   page: BookPageSetup
+  setPageNumbers: (patch: Partial<BookPageNumbers>) => void
   /** Live journey figures, so a travel element can be brought up to date. */
   stats: JourneyStats | null
   t: (k: string) => string
@@ -50,10 +52,75 @@ export function StudioInspector({
   const sel = spread?.elements.filter(e => selection.includes(e.id)) ?? []
 
   if (!sel.length) {
+    /*
+     * Nothing selected, so this is where the *book's* own settings belong.
+     * The panel was showing one line of hint text and nothing else, and page
+     * numbers have nowhere else to go: they are not a property of any element,
+     * because the number a page carries depends on where its spread sits.
+     */
+    const folios = page.pageNumbers
     return (
       <aside className="st-panel st-inspector">
-        <div className="st-panel-head"><span>{t('journey.studio.inspector')}</span></div>
+        <div className="st-panel-head"><span>{t('journey.studio.document')}</span></div>
         <div className="st-panel-scroll">
+          <Section label={t('journey.studio.pageNumbers')}>
+            <div className="st-row">
+              <button
+                className={`st-chip ${folios.show ? 'is-on' : ''}`}
+                onClick={() => setPageNumbers({ show: !folios.show })}
+              >
+                {t(folios.show ? 'journey.studio.pageNumbersOn' : 'journey.studio.pageNumbersOff')}
+              </button>
+            </div>
+
+            {folios.show && (
+              <>
+                <div className="st-row" style={{ marginTop: 8 }}>
+                  {(['outer', 'inner', 'centre'] as const).map(pos => (
+                    <button
+                      key={pos}
+                      className={`st-chip ${folios.position === pos ? 'is-on' : ''}`}
+                      onClick={() => setPageNumbers({ position: pos })}
+                    >
+                      {t(`journey.studio.folio.${pos}`)}
+                    </button>
+                  ))}
+                </div>
+                <div className="st-grid2" style={{ marginTop: 8 }}>
+                  <Num
+                    label={t('journey.studio.folioStart')}
+                    value={folios.startAt}
+                    min={0}
+                    max={9999}
+                    step={1}
+                    onChange={v => setPageNumbers({ startAt: Math.round(v) })}
+                  />
+                  <Num
+                    label="pt"
+                    value={folios.size}
+                    min={4}
+                    max={48}
+                    step={0.5}
+                    onChange={v => setPageNumbers({ size: v })}
+                  />
+                </div>
+                <div style={{ marginTop: 8 }}>
+                  <Num
+                    label={t('journey.studio.folioMargin')}
+                    value={folios.margin}
+                    min={0}
+                    max={60}
+                    step={0.5}
+                    onChange={v => setPageNumbers({ margin: v })}
+                  />
+                </div>
+                <div style={{ marginTop: 8 }}>
+                  <Swatches value={folios.color} onPick={c => setPageNumbers({ color: c })} />
+                </div>
+              </>
+            )}
+          </Section>
+
           <p className="st-hint">{t('journey.studio.inspectorEmpty')}</p>
         </div>
       </aside>

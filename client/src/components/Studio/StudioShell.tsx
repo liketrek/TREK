@@ -6,7 +6,7 @@ import {
   Redo2, Sparkles, Undo2,
 } from 'lucide-react'
 import { useJourneyStudio } from '../../pages/journeyStudio/useJourneyStudio'
-import { PAGE_PRESET_ORDER, PAGE_PRESETS } from './pagePresets'
+import { PAGE_MAX_MM, PAGE_MIN_MM, PAGE_PRESET_ORDER, PAGE_PRESETS } from './pagePresets'
 import { StudioSidebar } from './StudioSidebar'
 import { StudioCanvas } from './StudioCanvas'
 import { StudioInspector } from './StudioInspector'
@@ -83,7 +83,14 @@ export default function StudioShell() {
             locale={s.locale}
           />
           <Workbench s={s} bookView={bookView} />
-          <StudioInspector spreadIndex={s.activeSpread} page={s.page} stats={s.stats} t={s.t} locale={s.locale} />
+          <StudioInspector
+            spreadIndex={s.activeSpread}
+            page={s.page}
+            stats={s.stats}
+            setPageNumbers={s.setPageNumbers}
+            t={s.t}
+            locale={s.locale}
+          />
         </div>
       </div>
     </>,
@@ -156,15 +163,85 @@ function StudioBar({
 
         <div className="st-sep" />
 
-        <button className="st-tool" disabled title={s.t('journey.studio.autoLayout')}>
-          <Sparkles size={14} />
-          <span className="st-tool-label">{s.t('journey.studio.autoLayout')}</span>
-        </button>
+        <AutoLayoutButton s={s} />
         <button className="st-tool is-primary" disabled title={s.t('journey.studio.export')}>
           <Download size={14} />
           <span className="st-tool-label">{s.t('journey.studio.export')}</span>
         </button>
       </div>
+    </div>
+  )
+}
+
+/**
+ * Lay out again — this spread, or the whole book.
+ *
+ * A split button rather than two: they are the same action at two scopes, and
+ * the spread is the one you want nine times out of ten. Rebuilding the whole
+ * book is behind the chevron, where it cannot be hit by accident, and both are
+ * ordinary undo steps.
+ */
+function AutoLayoutButton({ s }: { s: Studio }) {
+  const [open, setOpen] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: PointerEvent) => {
+      if (!box.current?.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); setOpen(false) }
+    }
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey, true)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      document.removeEventListener('keydown', onKey, true)
+    }
+  }, [open])
+
+  return (
+    <div className="st-picker" ref={box}>
+      <button
+        className="st-tool"
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title={s.t('journey.studio.autoLayout')}
+      >
+        <Sparkles size={14} />
+        <span className="st-tool-label">{s.t('journey.studio.autoLayout')}</span>
+        <ChevronDown size={13} style={{ opacity: .5 }} />
+      </button>
+
+      {open && (
+        <div className="st-menu" role="menu">
+          <button
+            className="st-menu-item"
+            role="menuitem"
+            disabled={!s.canRelayoutSpread}
+            onClick={() => { s.relayoutCurrentSpread(); setOpen(false) }}
+          >
+            <span className="st-menu-text">
+              <span className="st-menu-name">{s.t('journey.studio.relayoutSpread')}</span>
+              <span className="st-menu-dim">
+                {s.t(s.canRelayoutSpread ? 'journey.studio.relayoutSpreadHint' : 'journey.studio.relayoutSpreadNone')}
+              </span>
+            </span>
+          </button>
+          <button
+            className="st-menu-item"
+            role="menuitem"
+            onClick={() => { s.relayoutBook(); setOpen(false) }}
+          >
+            <span className="st-menu-text">
+              <span className="st-menu-name">{s.t('journey.studio.relayoutBook')}</span>
+              <span className="st-menu-dim">{s.t('journey.studio.relayoutBookHint')}</span>
+            </span>
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -210,7 +287,11 @@ function FormatPicker({ s }: { s: Studio }) {
         aria-expanded={open}
         aria-label={s.t('journey.studio.format')}
       >
-        <span className="st-tool-label">{s.t(active.labelKey)}</span>
+        <span className="st-tool-label">
+          {s.preset === 'custom'
+            ? `${Math.round(s.page.pageWidth)} × ${Math.round(s.page.pageHeight)} mm`
+            : s.t(active.labelKey)}
+        </span>
         <ChevronDown size={13} style={{ opacity: .5 }} />
       </button>
 
@@ -245,6 +326,43 @@ function FormatPicker({ s }: { s: Studio }) {
               </button>
             )
           })}
+
+          {/*
+            The two fields live under the list rather than behind a "custom"
+            entry that opens a second popover: picking the custom row and then
+            typing into the fields it reveals is two steps for one decision, and
+            typing into them *is* picking custom — the hook switches the preset
+            for you.
+          */}
+          <div className="st-menu-sep" />
+          <div className="st-menu-custom">
+            <label>
+              <span>{s.t('journey.studio.width')}</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={Math.round(s.page.pageWidth * 10) / 10}
+                min={PAGE_MIN_MM}
+                max={PAGE_MAX_MM}
+                step={1}
+                onChange={e => s.setPageSize('w', Number(e.target.value))}
+              />
+            </label>
+            <span className="st-menu-times">×</span>
+            <label>
+              <span>{s.t('journey.studio.height')}</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={Math.round(s.page.pageHeight * 10) / 10}
+                min={PAGE_MIN_MM}
+                max={PAGE_MAX_MM}
+                step={1}
+                onChange={e => s.setPageSize('h', Number(e.target.value))}
+              />
+            </label>
+            <span className="st-menu-unit">mm</span>
+          </div>
         </div>
       )}
     </div>
