@@ -12,16 +12,12 @@ const mocks = vi.hoisted(() => ({
   focusMarker: vi.fn(),
   highlightMarker: vi.fn(),
   captured: {} as Record<string, Record<string, unknown>>,
-  downloadPdf: vi.fn(),
 }));
 
 vi.mock('../../../../src/pages/journeyDetail/useJourneyDetail', () => ({
   useJourneyDetail: () => mocks.detail,
 }));
 
-vi.mock('../../../../src/components/PDF/JourneyBookPDF', () => ({
-  downloadJourneyBookPDF: mocks.downloadPdf,
-}));
 
 vi.mock('../../../../src/components/Journey/JourneyMapAuto', async () => {
   const React = await import('react');
@@ -566,18 +562,17 @@ describe('MJourneyDetail', () => {
     await waitFor(() => expect(screen.queryByTestId('provider-picker')).not.toBeInTheDocument());
   });
 
-  // ── Book export + suggestions on the phone (#1848) ────────────────────────
+  // ── Suggestions on the phone (#1848) ──────────────────────────────────────
 
-  it('FE-MOB-JDET-032: the overflow sheet exports the book in the app language', async () => {
-    const { hook } = setup();
+  /*
+   * No book export on a phone at all. The book is a Studio document now and
+   * Studio is a desktop editor — a phone-sized PDF of something laid out for
+   * print was the old export's answer to a question nobody was asking.
+   */
+  it('FE-MOB-JDET-032: the overflow sheet offers no book export', () => {
+    setup();
     fireEvent.click(screen.getByRole('button', { name: 'files.menu' }));
-    fireEvent.click(screen.getByText('journey.pdf.saveAsPdf'));
-
-    await waitFor(() => expect(mocks.downloadPdf).toHaveBeenCalledWith(
-      hook.current,
-      { t: expect.any(Function), locale: 'en-US' },
-    ));
-    await waitFor(() => expect(screen.queryByText('journey.pdf.saveAsPdf')).not.toBeInTheDocument());
+    expect(screen.queryByText('journey.pdf.saveAsPdf')).not.toBeInTheDocument();
   });
 
   it('FE-MOB-JDET-033: the suggestions switch flips hide_skeletons and persists it', async () => {

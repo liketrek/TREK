@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, MapPin, Grid3x3, Upload, MoreHorizontal, Play, Image, Camera, Download, EyeOff, Settings2 } from 'lucide-react'
+import { ChevronLeft, MapPin, Grid3x3, Upload, MoreHorizontal, Play, Image, Camera, EyeOff, Settings2 } from 'lucide-react'
 import JourneyMap from '../../../components/Journey/JourneyMapAuto'
 import type { JourneyMapAutoHandle } from '../../../components/Journey/JourneyMapAuto'
 import PhotoLightbox from '../../../components/Journey/PhotoLightbox'
@@ -30,7 +30,7 @@ import MJourneySettingsSheet from './MJourneySettingsSheet'
  */
 export default function MJourneyDetail() {
   const {
-    id, navigate, toast, t, locale,
+    id, navigate, toast, t,
     current, loading,
     canEditEntries, canEditJourney,
     view, setView,
@@ -203,14 +203,13 @@ export default function MJourneyDetail() {
   const gallery = current.gallery || []
   const dark = document.documentElement.classList.contains('dark')
 
-  // The book export and the suggestions switch used to be desktop-only (#1848).
-  // They live in the header overflow sheet here, together with the settings
-  // entry, so the header keeps a single "more" affordance.
-  const exportBook = async () => {
-    setShowActionMenu(false)
-    const pdf = await import('../../../components/PDF/JourneyBookPDF')
-    await pdf.downloadJourneyBookPDF(current, { t, locale })
-  }
+  // The suggestions switch used to be desktop-only (#1848). It lives in the
+  // header overflow sheet here, together with the settings entry, so the header
+  // keeps a single "more" affordance.
+  //
+  // There is no book export here any more: the book is a Studio document now,
+  // and Studio is a desktop editor. A phone-sized PDF of a book laid out for
+  // print was the old export's answer to a question nobody was asking.
   const toggleSkeletons = async (next: boolean) => {
     setHideSkeletons(next)
     try {
@@ -378,7 +377,6 @@ export default function MJourneyDetail() {
       {/* Journey actions: book export, suggestions switch, settings */}
       <MSheet open={showActionMenu} onClose={() => setShowActionMenu(false)} variant="bottom" ariaLabel={t('files.menu')}>
         <div className="flex flex-col gap-1 p-[10px]">
-          <MListRow icon={Download} label={t('journey.pdf.saveAsPdf')} onClick={exportBook} />
           <div className="flex items-center gap-[11px] px-[10px] py-[11px]">
             <EyeOff size={16} strokeWidth={2} className="flex-none text-m-muted" />
             <span className="min-w-0 flex-1 truncate text-[0.84375rem] font-semibold">{t('journey.skeletons.hide')}</span>

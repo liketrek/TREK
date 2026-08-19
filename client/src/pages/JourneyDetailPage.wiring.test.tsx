@@ -10,7 +10,6 @@ import JourneyDetailPage from './JourneyDetailPage';
 const mocks = vi.hoisted(() => ({
   detail: {} as Record<string, unknown>,
   captured: {} as Record<string, Record<string, unknown>>,
-  downloadPdf: vi.fn(),
 }));
 
 vi.mock('./journeyDetail/useJourneyDetail', () => ({
@@ -23,9 +22,6 @@ vi.mock('../mobile/screens/journey/MJourneyDetail', () => ({
   default: () => <div data-testid="mobile-detail" />,
 }));
 
-vi.mock('../components/PDF/JourneyBookPDF', () => ({
-  downloadJourneyBookPDF: mocks.downloadPdf,
-}));
 
 vi.mock('../components/Journey/JourneyMapAuto', async () => {
   const React = await import('react');
@@ -155,13 +151,14 @@ describe('JourneyDetailPage wiring', () => {
     expect(hook.navigate).toHaveBeenCalledWith('/journey');
   });
 
-  it('FE-JRN-DETWIRE-004: the download button lazy-loads the PDF book renderer with the app language', async () => {
-    const { hook } = setup();
-    fireEvent.click(screen.getByRole('button', { name: 'journey.pdf.saveAsPdf' }));
-    await waitFor(() => expect(mocks.downloadPdf).toHaveBeenCalledWith(
-      hook.current,
-      { t: expect.any(Function), locale: 'en' },
-    ));
+  /*
+   * The old book export is gone: Studio is the book now, and two exports of the
+   * same thing that disagree about what it looks like is worse than one.
+   */
+  it('FE-JRN-DETWIRE-004: offers Studio where the PDF export used to be', () => {
+    setup();
+    expect(screen.queryByRole('button', { name: 'journey.pdf.saveAsPdf' })).not.toBeInTheDocument();
+    expect(screen.getByText('journey.studio.open')).toBeInTheDocument();
   });
 
   it('FE-JRN-DETWIRE-005: the eye toggle flips hide_skeletons and persists the preference', async () => {
@@ -427,8 +424,7 @@ describe('JourneyDetailPage wiring', () => {
   it('FE-JRN-DETWIRE-025: a non-owner gets the mobile bar without the settings button', () => {
     setup({ isMobile: true, canEditJourney: false });
     expect(screen.queryByRole('button', { name: 'journey.settings.title' })).not.toBeInTheDocument();
-    // Export and the suggestions switch are not owner-only.
-    expect(screen.getByRole('button', { name: 'journey.pdf.saveAsPdf' })).toBeInTheDocument();
+    // The suggestions switch is not owner-only.
     expect(screen.getByRole('button', { name: 'journey.skeletons.hide' })).toBeInTheDocument();
   });
 
@@ -499,15 +495,11 @@ describe('JourneyDetailPage wiring', () => {
     expect(screen.queryByLabelText('journey.detail.jumpToTop')).not.toBeInTheDocument();
   });
 
-  // ── Book export + suggestions below 1024px (#1848) ────────────────────────
+  // ── Suggestions below 1024px (#1848) ──────────────────────────────────────
 
-  it('FE-JRN-DETWIRE-033: the mobile bar exports the book with the app language', async () => {
-    const { hook } = setup({ isMobile: true });
-    fireEvent.click(screen.getByRole('button', { name: 'journey.pdf.saveAsPdf' }));
-    await waitFor(() => expect(mocks.downloadPdf).toHaveBeenCalledWith(
-      hook.current,
-      { t: expect.any(Function), locale: 'en' },
-    ));
+  it('FE-JRN-DETWIRE-033: the narrow bar has no book export either', () => {
+    setup({ isMobile: true });
+    expect(screen.queryByRole('button', { name: 'journey.pdf.saveAsPdf' })).not.toBeInTheDocument();
   });
 
   it('FE-JRN-DETWIRE-034: the mobile bar toggle flips hide_skeletons and persists it', async () => {
@@ -526,9 +518,9 @@ describe('JourneyDetailPage wiring', () => {
     expect(screen.queryByRole('button', { name: 'journey.skeletons.hide' })).not.toBeInTheDocument();
   });
 
-  it('FE-JRN-DETWIRE-036: both actions stay reachable on the mobile gallery tab', () => {
+  it('FE-JRN-DETWIRE-036: the remaining actions stay reachable on the mobile gallery tab', () => {
     setup({ isMobile: true, view: 'gallery' });
-    expect(screen.getByRole('button', { name: 'journey.pdf.saveAsPdf' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'journey.studio.openAria' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'journey.skeletons.hide' })).toBeInTheDocument();
   });
 });

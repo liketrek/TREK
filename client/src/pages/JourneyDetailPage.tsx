@@ -10,7 +10,7 @@ import ConfirmDialog from '../components/shared/ConfirmDialog'
 import EmptyState from '../components/shared/EmptyState'
 import { Outlet } from 'react-router'
 import {
-  ArrowLeft, MoreHorizontal, Download, List, Grid, MapPin,
+  ArrowLeft, MoreHorizontal, List, Grid, MapPin,
   Plus, ChevronUp, ChevronDown, Eye, EyeOff, BookOpen,
 } from 'lucide-react'
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
@@ -80,12 +80,9 @@ function JourneyDetailPageDesktop() {
   const showMobileGallery = isMobile && view === 'gallery'
   const isMobileChromeless = showMobileCombined || showMobileGallery
 
-  // Below 1024px the hero is gone, so its two actions have to live in the
-  // floating bar instead — they were unreachable there until #1848. Only one of
-  // the two hosts is mounted at a time, so both can carry the same labels.
-  const openBookPdf = () => {
-    import('../components/PDF/JourneyBookPDF').then(m => m.downloadJourneyBookPDF(current, { t, locale }))
-  }
+  // Below 1024px the hero is gone, so its actions have to live in the floating
+  // bar instead — they were unreachable there until #1848. Only one of the two
+  // hosts is mounted at a time, so both can carry the same labels.
   const toggleSkeletons = async () => {
     const next = !hideSkeletons
     setHideSkeletons(next)
@@ -175,9 +172,6 @@ function JourneyDetailPageDesktop() {
               className={barButton}
             >
               <BookOpen size={16} />
-            </button>
-            <button onClick={openBookPdf} aria-label={t('journey.pdf.saveAsPdf')} className={barButton}>
-              <Download size={16} />
             </button>
             <button
               onClick={toggleSkeletons}
@@ -269,7 +263,6 @@ function JourneyDetailPageDesktop() {
                       <BookOpen size={14} />
                       {t('journey.studio.open')}
                     </button>
-                    <button onClick={openBookPdf} aria-label={t('journey.pdf.saveAsPdf')} className="w-[34px] h-[34px] rounded-full bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"><Download size={14} /></button>
                     <div className="relative group">
                       <button
                         onClick={toggleSkeletons}
