@@ -196,10 +196,15 @@
   flex-direction: column;
   gap: 2px;
   border-radius: var(--r-sm);
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--sh-lg), var(--glass-highlight);
-  backdrop-filter: blur(30px) saturate(1.8);
+  /* Opaque, unlike the rails and the bar.
+
+     Those float over the workbench, where glass reads as depth. This one opens
+     over the inspector — over words — and at the 42-58% the glass tokens carry
+     when the user has transparency on, the text behind it shows straight
+     through and neither layer can be read. A popover covers what it covers. */
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  box-shadow: var(--sh-lg);
   -webkit-backdrop-filter: blur(30px) saturate(1.8);
   animation: st-menu-in 140ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
@@ -1461,8 +1466,9 @@
 .trek-dash .st-ex-card {
   width: 100%;
   max-width: 380px;
-  background: var(--panel);
-  border: 1px solid var(--line);
+  /* Opaque for the same reason as .st-menu — see there. */
+  background: var(--surface);
+  border: 1px solid var(--line-2);
   border-radius: 14px;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
   overflow: hidden;
@@ -1477,7 +1483,7 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--ink-3);
 }
 .trek-dash .st-ex-x {
   display: grid;
@@ -1485,7 +1491,7 @@
   width: 24px;
   height: 24px;
   border-radius: 7px;
-  color: var(--muted);
+  color: var(--ink-3);
 }
 .trek-dash .st-ex-x:hover { background: color-mix(in oklch, var(--ink) 8%, transparent); color: var(--ink); }
 .trek-dash .st-ex-body { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
@@ -1495,7 +1501,7 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--ink-3);
 }
 .trek-dash .st-ex-opt {
   display: flex;
@@ -1506,24 +1512,24 @@
   text-align: left;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: var(--card);
-  color: var(--muted);
+  background: var(--surface-2);
+  color: var(--ink-2);
 }
 .trek-dash .st-ex-opt:hover { border-color: color-mix(in oklch, var(--accent) 40%, var(--line)); }
 .trek-dash .st-ex-opt.is-on {
   border-color: var(--accent);
-  background: color-mix(in oklch, var(--accent) 9%, var(--card));
+  background: color-mix(in oklch, var(--accent) 9%, var(--surface-2));
   color: var(--ink);
 }
 .trek-dash .st-ex-opt svg { margin-top: 1px; flex: 0 0 auto; }
 .trek-dash .st-ex-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .trek-dash .st-ex-name { font-size: 12.5px; font-weight: 600; color: var(--ink); }
-.trek-dash .st-ex-hint { font-size: 11px; line-height: 1.35; color: var(--muted); }
+.trek-dash .st-ex-hint { font-size: 11px; line-height: 1.35; color: var(--ink-2); }
 .trek-dash .st-ex-note {
   margin: 0;
   font-size: 11px;
   line-height: 1.45;
-  color: var(--muted);
+  color: var(--ink-3);
 }
 .trek-dash .st-ex-foot {
   display: flex;
@@ -1539,13 +1545,13 @@
   height: 32px;
   padding: 0 13px;
   border-radius: 9px;
-  border: 1px solid var(--line);
-  background: var(--card);
+  border: 1px solid var(--line-2);
+  background: var(--surface-2);
   font-size: 12.5px;
   font-weight: 600;
   color: var(--ink);
 }
-.trek-dash .st-ex-btn:hover { background: color-mix(in oklch, var(--ink) 6%, var(--card)); }
+.trek-dash .st-ex-btn:hover { background: color-mix(in oklch, var(--ink) 6%, var(--surface-2)); }
 .trek-dash .st-ex-btn.is-primary {
   border-color: transparent;
   background: var(--accent);

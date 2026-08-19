@@ -96,6 +96,66 @@ describe('the document', () => {
   })
 })
 
+describe('fitting the preview', () => {
+  /*
+   * A spread sheet is over 400 mm across — wider than any preview pane at 1:1 —
+   * and the book used to run off the side, to be read by scrolling sideways.
+   * Only on screen: the print itself stays at full size, or the press gets a
+   * shrunken book.
+   */
+  it('scales the preview down to the pane, and only the preview', () => {
+    open()
+    const html = frame().srcdoc
+    expect(html).toContain('@media screen { .bx-book { zoom: var(--bx-fit, 1); } }')
+    // Nothing in the print block touches the scale.
+    const printBlock = html.slice(html.indexOf('@media print'))
+    expect(printBlock).not.toContain('zoom')
+  })
+
+  it('sets the factor from the pane width once the frame is up', () => {
+    open({ sheetWidth: 426 })
+    const iframe = frame()
+    const root = { style: { setProperty: vi.fn() } }
+    Object.defineProperty(iframe, 'clientWidth', { value: 800, configurable: true })
+    Object.defineProperty(iframe, 'contentDocument', {
+      value: { documentElement: root, images: [], fonts: { ready: Promise.resolve() } },
+      configurable: true,
+    })
+    Object.defineProperty(iframe, 'contentWindow', { value: { print: vi.fn() }, configurable: true })
+
+    iframe.dispatchEvent(new Event('load'))
+
+    // (800 - 32) / (426 mm × 96/25.4) ≈ 0.477
+    const [name, value] = root.style.setProperty.mock.calls[0]
+    expect(name).toBe('--bx-fit')
+    expect(Number(value)).toBeCloseTo(0.477, 2)
+  })
+
+  /* A book smaller than the pane is shown at its real size, not blown up. */
+  it('never enlarges', () => {
+    open({ sheetWidth: 100 })
+    const iframe = frame()
+    const root = { style: { setProperty: vi.fn() } }
+    Object.defineProperty(iframe, 'clientWidth', { value: 1600, configurable: true })
+    Object.defineProperty(iframe, 'contentDocument', {
+      value: { documentElement: root, images: [], fonts: { ready: Promise.resolve() } },
+      configurable: true,
+    })
+    Object.defineProperty(iframe, 'contentWindow', { value: { print: vi.fn() }, configurable: true })
+
+    iframe.dispatchEvent(new Event('load'))
+    expect(root.style.setProperty).toHaveBeenCalledWith('--bx-fit', '1')
+  })
+
+  it('stops listening for resizes when it closes', () => {
+    const remove = vi.spyOn(window, 'removeEventListener')
+    const close = open()
+    close()
+    expect(remove).toHaveBeenCalledWith('resize', expect.any(Function))
+    remove.mockRestore()
+  })
+})
+
 describe('the save button', () => {
   it('starts disabled, because nothing has loaded yet', () => {
     open()

@@ -103,6 +103,19 @@ ${collectStyles()}
    * and a printer margin on top would scale the whole thing down to fit.
    */
   @page { size: ${input.sheetWidth}mm ${input.sheetHeight}mm; margin: 0; }
+  /*
+   * On screen the sheets are scaled to fit the window; on paper they are not.
+   *
+   * A spread sheet is over 400 mm across, which at 1:1 is wider than any
+   * preview pane — the book ran off the side and had to be scrolled sideways to
+   * read it. The --bx-fit factor is set from outside the frame (nothing runs
+   * inside it) and only ever shrinks, so a small book is still shown at its
+   * real size. zoom rather than transform: it scales the layout rather than
+   * painting over it, so the page does not reserve the unscaled height.
+   *
+   * (No backticks in here — this whole stylesheet is a template literal.)
+   */
+  @media screen { .bx-book { zoom: var(--bx-fit, 1); } }
   html, body { margin: 0; padding: 0; background: ${WORKTOP}; }
   .bx-book { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 16px 0; }
   .bx-sheet { box-shadow: 0 2px 12px rgba(0,0,0,0.35); }
@@ -170,14 +183,31 @@ ${collectStyles()}
   overlay.appendChild(card)
   document.body.appendChild(overlay)
 
-  const close = () => overlay.remove()
+  const close = () => { stopFitting(); overlay.remove() }
   overlay.onclick = e => { if (e.target === overlay) close() }
   header.querySelector<HTMLButtonElement>('#bx-close')!.onclick = close
 
   const save = header.querySelector<HTMLButtonElement>('#bx-save')!
   save.onclick = () => { iframe.contentWindow?.print() }
 
+  /** CSS millimetres are defined against 96dpi, so this ratio is exact. */
+  const PX_PER_MM = 96 / 25.4
+
+  /** Shrink the preview until a sheet fits across the pane. Never enlarge. */
+  const fitPreview = () => {
+    const root = iframe.contentDocument?.documentElement
+    if (!root) return
+    const available = iframe.clientWidth - 32
+    if (available <= 0) return
+    const scale = Math.min(1, available / (input.sheetWidth * PX_PER_MM))
+    root.style.setProperty('--bx-fit', String(Math.round(scale * 1000) / 1000))
+  }
+
+  window.addEventListener('resize', fitPreview)
+  const stopFitting = () => window.removeEventListener('resize', fitPreview)
+
   iframe.addEventListener('load', () => {
+    fitPreview()
     void whenReady(iframe).then(() => {
       save.disabled = false
       save.textContent = input.labels.save
