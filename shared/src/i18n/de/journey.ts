@@ -260,6 +260,8 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'Diese Doppelseite ist noch leer',
   'journey.studio.autoLayout': 'Automatisch anordnen',
   'journey.studio.export': 'Exportieren',
+  'journey.studio.day': 'TAG',
+  'journey.studio.stations': 'Stationen',
   'journey.studio.peersHere': 'hier',
   'journey.studio.folioAuto': 'Automatisch',
   'journey.studio.exportLayout': 'Layout',

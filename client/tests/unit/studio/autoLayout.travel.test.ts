@@ -45,6 +45,10 @@ function build(over: Partial<AutoInput> = {}) {
     title: 'Iceland',
     subtitle: null,
     coverPhotoId: null,
+    stationsLabel: 'Stations',
+    dayLabel: 'DAY',
+    summaryLabel: 'Trip summary',
+    countriesLabel: 'Countries',
     entries: [entry()],
     page,
     stats: stats(),
@@ -227,13 +231,18 @@ describe('the entry spreads', () => {
     expect(spread.elements.some(e => e.kind === 'badge')).toBe(false)
   })
 
-  it('keeps a photo entry on its own layout, without the numeral crowding it', () => {
+  /*
+   * The marks came back on purpose. A page carrying a picture, a date numeral
+   * and a day chip is what a printed travel book looks like; the same page with
+   * only the picture is what a document looks like.
+   */
+  it('gives a photo entry the marks that make it a printed page', () => {
     const doc = build({
       entries: [entry({ photos: [{ photoId: 1, width: 4000, height: 3000, caption: null }] })],
     })
     const spread = doc.spreads.find(sp => sp.entryId === 1)!
     expect(spread.elements.some(e => e.kind === 'photo')).toBe(true)
-    expect(spread.elements.some(e => e.kind === 'badge')).toBe(false)
+    expect(spread.elements.some(e => e.kind === 'badge')).toBe(true)
   })
 })
 

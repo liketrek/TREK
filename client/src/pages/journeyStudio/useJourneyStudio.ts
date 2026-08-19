@@ -182,6 +182,39 @@ export function useJourneyStudio() {
     }))
 
     const withPhotos = distributeGallery(entries, gallery)
+
+    /*
+     * Give every entry what the journey's figures know about its stop.
+     *
+     * The entry carries a place name; the stats carry what that name resolved
+     * to — coordinates and a country. Matched by date first and by name second,
+     * because a day usually has one stop and two stops on one day are told
+     * apart by what they are called.
+     *
+     * With these a page can print the flag, the country's outline and the
+     * coordinates, which is most of what makes a printed travel page look like
+     * one rather than like a document.
+     */
+    const points = stats?.points ?? []
+    const dayCount = stats?.days ?? null
+    const first = stats?.start ? Date.parse(`${stats.start}T00:00:00`) : NaN
+    const placed = withPhotos.map(entry => {
+      const point = points.find(p => p.date && entry.date && p.date === entry.date)
+        ?? points.find(p => p.label && entry.location && p.label === entry.location)
+      const at = entry.date ? Date.parse(`${entry.date}T00:00:00`) : NaN
+      const dayNumber = Number.isFinite(at) && Number.isFinite(first)
+        ? Math.floor((at - first) / 86_400_000) + 1
+        : null
+      return {
+        ...entry,
+        lat: point?.lat ?? null,
+        lng: point?.lng ?? null,
+        country: point?.country ?? null,
+        dayNumber: dayNumber && dayNumber > 0 ? dayNumber : null,
+        dayCount,
+      }
+    })
+
     const preset = PAGE_PRESETS['square-210']
 
     autoInput.current = {
@@ -189,7 +222,7 @@ export function useJourneyStudio() {
       title: journey.title || '',
       subtitle: journey.subtitle ?? null,
       coverPhotoId: gallery[0]?.photoId ?? null,
-      entries: withPhotos,
+      entries: placed,
       page: {
         preset: preset.id,
         pageWidth: preset.pageWidthMm,
@@ -199,6 +232,10 @@ export function useJourneyStudio() {
         pageNumbers: bookPageSetupSchema.shape.pageNumbers.parse({}),
       },
       stats,
+      stationsLabel: t('journey.studio.stations'),
+      dayLabel: t('journey.studio.day'),
+      summaryLabel: t('journey.studio.summary'),
+      countriesLabel: t('journey.studio.countries'),
     }
     if (!book.record) loadDoc(buildBook(autoInput.current))
     // `stats` is deliberately not a dependency: the book is laid out once, from

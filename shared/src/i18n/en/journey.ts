@@ -260,6 +260,8 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty',
   'journey.studio.autoLayout': 'Auto layout',
   'journey.studio.export': 'Export',
+  'journey.studio.day': 'DAY',
+  'journey.studio.stations': 'Stations',
   'journey.studio.peersHere': 'here',
   'journey.studio.folioAuto': 'Automatic',
   'journey.studio.exportLayout': 'Layout',

@@ -131,7 +131,7 @@ describe('laying a spread out again', () => {
   const input: AutoInput = {
     locale: 'en', title: 'T', subtitle: null, coverPhotoId: null,
     entries: [{ id: 7, title: 'A day', story: 'Words.', location: 'Here', date: '2026-06-02', photos: [] }],
-    page: page(), stats: null,
+    page: page(), stats: null, stationsLabel: 'Stations', dayLabel: 'DAY', summaryLabel: 'Trip summary', countriesLabel: 'Countries',
   }
 
   it('rebuilds the spread from the entry it came from', () => {

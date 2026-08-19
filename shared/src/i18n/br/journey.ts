@@ -260,6 +260,8 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.day': 'DIA',
+  'journey.studio.stations': 'Etapas',
   'journey.studio.peersHere': 'aqui',
   'journey.studio.folioAuto': 'Automático',
   'journey.studio.exportLayout': 'Layout',
