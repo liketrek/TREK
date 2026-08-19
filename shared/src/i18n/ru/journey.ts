@@ -282,8 +282,13 @@ const journey: TranslationStrings = {
   'journey.studio.zoomIn': 'Zoom in', // en-fallback
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.downloadSpread': 'Скачать этот разворот',
+  'journey.studio.downloadSpreadHint': 'Сохраняет оформление разворота в файл, без фотографий, чтобы поделиться им или использовать снова',
+  'journey.studio.importSpread': 'Импорт',
+  'journey.studio.importSpreadHint': 'Добавляет разворот из скачанного файла оформления',
+  'journey.studio.importSpreadFailed': 'Этот файл не является разворотом TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Designing a book asks for room to work, so Studio is desktop only. Your journey and its PDF export work here as usual.', // en-fallback
+  'journey.studio.desktopOnlyHint': 'Вёрстка книги требует места, поэтому Студия работает только на компьютере, и создание PDF тоже. Всё остальное в путешествии здесь работает как обычно.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback

@@ -282,8 +282,13 @@ const journey: TranslationStrings = {
   'journey.studio.zoomIn': 'Zoom in', // en-fallback
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.downloadSpread': 'Scarica questa doppia pagina',
+  'journey.studio.downloadSpreadHint': 'Salva il progetto di questa doppia pagina come file, senza le foto, per condividerlo o riutilizzarlo',
+  'journey.studio.importSpread': 'Importa',
+  'journey.studio.importSpreadHint': 'Aggiunge una doppia pagina da un file di progetto scaricato',
+  'journey.studio.importSpreadFailed': 'Quel file non è una doppia pagina di TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Designing a book asks for room to work, so Studio is desktop only. Your journey and its PDF export work here as usual.', // en-fallback
+  'journey.studio.desktopOnlyHint': 'Impaginare un libro chiede spazio, perciò Studio è solo da computer, e così anche il PDF. Tutto il resto del tuo viaggio funziona qui come sempre.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback

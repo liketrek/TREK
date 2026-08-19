@@ -30,14 +30,34 @@ export interface Guide {
 export type HandleId = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
 
 interface Gesture {
-  kind: 'move' | 'resize'
+  kind: 'move' | 'resize' | 'rotate'
   handle?: HandleId
   startX: number
   startY: number
   /** Frames as they were when the gesture started, by element id. */
   base: Map<string, BookFrame>
+  /** Rotations as they were, for the turn. */
+  baseRotation?: Map<string, number>
+  /**
+   * Where the turn is measured from and where it started, both in screen
+   * pixels: the centre of the selection, and the angle the pointer stood at
+   * when it was grabbed. Turning by the *difference* is what lets the handle
+   * be picked up anywhere without the element jumping to meet the pointer.
+   */
+  centreX?: number
+  centreY?: number
+  startAngle?: number
   pointerId: number
 }
+
+/** Degrees from a centre to a point, measured the way CSS rotates. */
+function angleAt(cx: number, cy: number, x: number, y: number): number {
+  return (Math.atan2(y - cy, x - cx) * 180) / Math.PI
+}
+
+/** How near an angle has to come to a step before it takes it. */
+const ROTATE_STEP = 15
+const ROTATE_SNAP_DEG = 4
 
 export function snapTargets(spread: BookSpread, page: BookPageSetup, exclude: Set<string>) {
   const single = spread.role !== 'inner'
@@ -112,6 +132,7 @@ export function useSpreadInteraction(opts: {
   const toggleSelect = useStudioStore(s => s.toggleSelect)
   const select = useStudioStore(s => s.select)
   const setFrame = useStudioStore(s => s.setFrame)
+  const setRotation = useStudioStore(s => s.setRotation)
   const beginGesture = useStudioStore(s => s.beginGesture)
   const endGesture = useStudioStore(s => s.endGesture)
 
@@ -144,6 +165,34 @@ export function useSpreadInteraction(opts: {
     const moving = new Set(g.base.keys())
     const { xs, ys } = snapTargets(spread, page, moving)
     const nextGuides: Guide[] = []
+
+    if (g.kind === 'rotate') {
+      /*
+       * Turned by the change in angle, not to the angle under the pointer.
+       *
+       * Taking the pointer's own angle would snap the element to wherever the
+       * handle was grabbed — a quarter turn the moment you touch it. The
+       * difference from where the gesture started is what makes it feel like
+       * holding a corner.
+       */
+      const now = angleAt(g.centreX ?? 0, g.centreY ?? 0, e.clientX, e.clientY)
+      const delta = now - (g.startAngle ?? 0)
+
+      // Held to the nearest 15° unless shift is down, and always within a few
+      // degrees of straight: the angles people actually want are square, a
+      // slight tilt, and whatever the picture beside it is at.
+      for (const [id, base] of g.baseRotation ?? []) {
+        let next = base + delta
+        if (!e.shiftKey) {
+          const stepped = Math.round(next / ROTATE_STEP) * ROTATE_STEP
+          if (Math.abs(next - stepped) <= ROTATE_SNAP_DEG) next = stepped
+        }
+        next = ((next + 180) % 360 + 360) % 360 - 180
+        setRotation(spreadIndex, id, Math.round(next * 10) / 10)
+      }
+      setGuides([])
+      return
+    }
 
     if (g.kind === 'move') {
       // Snap on the union of all moving edges, so a multi-selection lines up as
@@ -206,7 +255,7 @@ export function useSpreadInteraction(opts: {
     }
 
     setGuides(nextGuides)
-  }, [spread, page, pxPerMm, tolMm, setFrame, spreadIndex])
+  }, [spread, page, pxPerMm, tolMm, setFrame, setRotation, spreadIndex])
 
   const framesFor = useCallback((ids: string[]) => {
     const map = new Map<string, BookFrame>()
@@ -248,6 +297,47 @@ export function useSpreadInteraction(opts: {
     setDragging(true)
   }, [selection, toggleSelect, select, beginGesture, framesFor])
 
+  /**
+   * Take hold of the rotation handle.
+   *
+   * The centre comes from the selection's own box rather than from the handle,
+   * so a multi-selection turns as one object around the middle of the group —
+   * which is what a group of things being turned together looks like.
+   */
+  const startRotate = useCallback((e: React.PointerEvent) => {
+    e.stopPropagation()
+    ;(e.target as Element).setPointerCapture?.(e.pointerId)
+    if (!spread) return
+
+    const chosen = spread.elements.filter(el => selection.includes(el.id) && !el.locked)
+    if (chosen.length === 0) return
+
+    const x0 = Math.min(...chosen.map(el => el.frame.x))
+    const x1 = Math.max(...chosen.map(el => el.frame.x + el.frame.w))
+    const y0 = Math.min(...chosen.map(el => el.frame.y))
+    const y1 = Math.max(...chosen.map(el => el.frame.y + el.frame.h))
+
+    // The stage's own box, so the centre is in the same pixels the pointer is.
+    const stage = (e.currentTarget as Element).closest('.st-stage')
+    const rect = stage?.getBoundingClientRect()
+    const centreX = (rect?.left ?? 0) + ((x0 + x1) / 2) * pxPerMm
+    const centreY = (rect?.top ?? 0) + ((y0 + y1) / 2) * pxPerMm
+
+    beginGesture()
+    gesture.current = {
+      kind: 'rotate',
+      startX: e.clientX,
+      startY: e.clientY,
+      base: framesFor(selection),
+      baseRotation: new Map(chosen.map(el => [el.id, el.rotation])),
+      centreX,
+      centreY,
+      startAngle: angleAt(centreX, centreY, e.clientX, e.clientY),
+      pointerId: e.pointerId,
+    }
+    setDragging(true)
+  }, [spread, selection, pxPerMm, beginGesture, framesFor])
+
   const startResize = useCallback((e: React.PointerEvent, handle: HandleId) => {
     e.stopPropagation()
     ;(e.target as Element).setPointerCapture?.(e.pointerId)
@@ -263,5 +353,5 @@ export function useSpreadInteraction(opts: {
     setDragging(true)
   }, [selection, beginGesture, framesFor])
 
-  return { guides, dragging, startMove, startResize, onPointerMove, finish }
+  return { guides, dragging, startMove, startResize, startRotate, onPointerMove, finish }
 }

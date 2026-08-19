@@ -282,8 +282,13 @@ const journey: TranslationStrings = {
   'journey.studio.zoomIn': 'Zoom in', // en-fallback
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.downloadSpread': '이 펼침면 내려받기',
+  'journey.studio.downloadSpreadHint': '이 펼침면의 디자인을 사진 없이 파일로 저장합니다. 공유하거나 다시 쓸 수 있습니다',
+  'journey.studio.importSpread': '가져오기',
+  'journey.studio.importSpreadHint': '내려받은 디자인 파일에서 펼침면을 추가합니다',
+  'journey.studio.importSpreadFailed': '이 파일은 TREK 스튜디오 펼침면이 아닙니다',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Designing a book asks for room to work, so Studio is desktop only. Your journey and its PDF export work here as usual.', // en-fallback
+  'journey.studio.desktopOnlyHint': '책을 만들려면 작업할 공간이 필요해서 스튜디오는 데스크톱에서만 쓸 수 있고, PDF 만들기도 마찬가지입니다. 여정의 나머지 기능은 여기에서도 평소처럼 작동합니다.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback

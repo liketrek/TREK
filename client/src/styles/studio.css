@@ -1649,3 +1649,95 @@
   white-space: nowrap;
 }
 @media (max-width: 1280px) { .trek-dash .st-peer-label { display: none; } }
+
+/* ── The rotation handle (#1973) ──────────────────────────────────────────
+   Held out past the corner rather than sitting on it: a handle on the corner
+   is one you cannot tell from the one that resizes, and this is the gesture
+   where grabbing the wrong one is most annoying to undo. */
+.trek-dash .st-rotate {
+  position: absolute;
+  z-index: 8;
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  color: var(--ink-3);
+  cursor: grab;
+  touch-action: none;
+  /*
+   * The chrome layer and the selection box both let pointers through, so a
+   * click lands on the page underneath rather than on the outline drawn over
+   * it. A handle has to opt back in — without this it is drawn, and looks
+   * exactly right, and cannot be grabbed.
+   */
+  pointer-events: auto;
+  /*
+   * Barely there until it is reached for.
+   *
+   * Four rings around every selection drown out the thing being selected, and
+   * the handles are not what anyone is looking at — they are what the hand
+   * goes to. So: a faint mark that says "something is here", which becomes a
+   * proper button under the pointer. The hit area stays full size either way,
+   * so the quiet version is no harder to grab than the loud one was.
+   */
+  opacity: .28;
+  transition: opacity .12s, background .12s, border-color .12s, color .12s;
+}
+.trek-dash .st-rotate:hover {
+  opacity: 1;
+  background: var(--surface);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: var(--sh-sm);
+}
+.trek-dash .st-rotate:active {
+  cursor: grabbing;
+  opacity: 1;
+  background: var(--surface);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/*
+ * Pushed diagonally clear of the resize handle sharing the corner: the near
+ * edge sits about 6px out, which is far enough that neither is ever grabbed by
+ * accident and near enough to still read as belonging to that corner.
+ */
+.trek-dash .st-rotate.is-nw { transform: translate(-131%, -131%); }
+.trek-dash .st-rotate.is-ne { transform: translate(31%, -131%); }
+.trek-dash .st-rotate.is-se { transform: translate(31%, 31%); }
+.trek-dash .st-rotate.is-sw { transform: translate(-131%, 31%); }
+
+
+/*
+ * Add spread, split with Import.
+ *
+ * The empty page is the common case and keeps the wider half; the import sits
+ * beside it rather than under it, because they are two answers to one question
+ * and a stacked second button reads as a lesser, separate thing.
+ */
+.trek-dash .st-add-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  margin-top: 10px;
+}
+.trek-dash .st-add-row .st-add-page { margin-top: 0; }
+.trek-dash .st-add-page.is-import {
+  width: auto;
+  padding: 0 11px;
+}
+.trek-dash .st-add-error {
+  margin-top: 6px;
+  color: var(--danger, #dc2626);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.trek-dash .st-zoom-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 2px;
+  background: var(--line-2);
+}

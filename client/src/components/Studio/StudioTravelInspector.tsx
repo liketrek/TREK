@@ -5,6 +5,7 @@ import type {
 import { BOOK_METRICS } from '@trek/shared'
 import { isStale, refreshPatch } from './travelRefresh'
 import { Swatches } from './StudioSwatches'
+import { BOOK_FONTS, BOOK_FONT_ORDER, hasWeight, nearestWeight } from './bookFonts'
 import { useMapSources } from './mapSources'
 
 /**
@@ -67,6 +68,53 @@ export function TravelInspector({ el, stats, set, t, Section }: TravelInspectorP
       {el.kind === 'countries' && <CountriesProps el={el} set={set} t={t} Section={Section} />}
       {el.kind === 'badge' && <BadgeProps el={el} set={set} t={t} Section={Section} />}
       {el.kind === 'list' && <ListProps el={el} set={set} t={t} Section={Section} />}
+
+      {/*
+       * Type, for all five alike.
+       *
+       * These elements set their own words — a figure over its caption, a
+       * country's name over its outline — and until now the only thing you
+       * could change about that was the size. A book set in a serif with its
+       * stats block in the default sans is a book with one element in the
+       * wrong typeface and no way to fix it.
+       */}
+      <Section label={t('journey.studio.typography')}>
+        <div className="st-fonts">
+          {BOOK_FONT_ORDER.map(id => {
+            const font = BOOK_FONTS[id]
+            return (
+              <button
+                key={id}
+                className={`st-font ${el.font === id ? 'is-on' : ''}`}
+                style={{ fontFamily: font.stack }}
+                onClick={() => set({
+                  font: id,
+                  // A family that does not ship this weight renders a
+                  // synthesised bold — a smeared regular in print — so the
+                  // weight moves to the nearest one it really has.
+                  weight: nearestWeight(id, el.weight) as typeof el.weight,
+                } as Partial<BookElement>)}
+                title={font.name}
+              >
+                {font.name}
+              </button>
+            )
+          })}
+        </div>
+        <div className="st-row" style={{ marginTop: 8 }}>
+          {([400, 500, 600, 700] as const).map(w => (
+            <button
+              key={w}
+              className={`st-chip ${el.weight === w ? 'is-on' : ''}`}
+              disabled={!hasWeight(el.font, w)}
+              title={hasWeight(el.font, w) ? undefined : t('journey.studio.weightMissing')}
+              onClick={() => set({ weight: w } as Partial<BookElement>)}
+            >
+              {w}
+            </button>
+          ))}
+        </div>
+      </Section>
 
       {/*
        * Colour, for all five alike.

@@ -98,6 +98,17 @@ export function TravelElementView({ el, frameStyle }: { el: BookElement; frameSt
  * a slab of ink for no reason. What distinguishes the four styles is how the
  * land is drawn, which is enough.
  */
+/**
+ * How heavy the type is set, and one step down for the labels under it.
+ *
+ * These elements draw at two levels at once — a figure over its caption, a
+ * country's name over its outline — and the pair has to move together, the way
+ * `textScale` moves their size. Hard-coded 700s meant the only way to lighten a
+ * stats block was to not use one.
+ */
+const heavy = (el: { weight: number }) => el.weight
+const light = (el: { weight: number }) => Math.max(400, el.weight - 100)
+
 const MAP_PALETTES = {
   minimal: { land: '#e9e5dc', border: '#d6d0c4', onDark: false },
   outline: { land: 'transparent', border: '#b9b3a6', onDark: false },
@@ -258,7 +269,7 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
               style={{
                 fontFamily: fontStack(el.font),
                 fontSize: label,
-                fontWeight: 600,
+                fontWeight: light(el),
                 letterSpacing: label * 0.06,
               }}
             >
@@ -441,7 +452,7 @@ function StatsView({ el, frameStyle }: { el: BookStatsElement; frameStyle: CSSPr
             <span
               style={{
                 fontSize: `${round2(figure)}mm`,
-                fontWeight: 700,
+                fontWeight: heavy(el),
                 lineHeight: 1,
                 letterSpacing: '-0.03em',
                 color: el.accent,
@@ -455,7 +466,7 @@ function StatsView({ el, frameStyle }: { el: BookStatsElement; frameStyle: CSSPr
                   the quantity, and pushing it into the label made the label the
                   place you had to look to know what you were reading. */}
               {unit && (
-                <span style={{ fontSize: '0.44em', fontWeight: 600, letterSpacing: '0.02em', marginLeft: '0.14em' }}>
+                <span style={{ fontSize: '0.44em', fontWeight: light(el), letterSpacing: '0.02em', marginLeft: '0.14em' }}>
                   {unit}
                 </span>
               )}
@@ -463,7 +474,7 @@ function StatsView({ el, frameStyle }: { el: BookStatsElement; frameStyle: CSSPr
             <span
               style={{
                 fontSize: `${round2(caption)}mm`,
-                fontWeight: 600,
+                fontWeight: light(el),
                 letterSpacing: '0.16em',
                 textTransform: 'uppercase',
                 lineHeight: 1.4,
@@ -555,7 +566,7 @@ function CountriesView({ el, frameStyle }: { el: BookCountriesElement; frameStyl
               style={{
                 position: 'relative',
                 fontSize: `${name}mm`,
-                fontWeight: 700,
+                fontWeight: heavy(el),
                 letterSpacing: '0.14em',
                 textTransform: 'uppercase',
                 lineHeight: 1.2,
@@ -736,7 +747,7 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
         <span
           style={{
             fontSize: `${round2(el.variant === 'coords' ? small * 1.3 : big)}mm`,
-            fontWeight: 700,
+            fontWeight: heavy(el),
             lineHeight: 1,
             letterSpacing: el.variant === 'coords' ? '0.1em' : '-0.015em',
             fontVariantNumeric: 'tabular-nums',
@@ -752,7 +763,7 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
         <span
           style={{
             fontSize: `${small}mm`,
-            fontWeight: 600,
+            fontWeight: light(el),
             letterSpacing: '0.18em',
             textTransform: 'uppercase',
             lineHeight: 1.3,
@@ -812,7 +823,7 @@ function ListView({ el, frameStyle }: { el: BookListElement; frameStyle: CSSProp
         <span
           style={{
             fontSize: `${round2(heading)}mm`,
-            fontWeight: 700,
+            fontWeight: heavy(el),
             letterSpacing: '0.16em',
             textTransform: 'uppercase',
             lineHeight: 1.3,
@@ -829,7 +840,7 @@ function ListView({ el, frameStyle }: { el: BookListElement; frameStyle: CSSProp
             <span
               style={{
                 fontSize: `${round2(line)}mm`,
-                fontWeight: 700,
+                fontWeight: heavy(el),
                 lineHeight: 1.35,
                 flex: '0 0 auto',
                 color: tone === 'pro' ? el.accent : rgba(el.color, 0.4),

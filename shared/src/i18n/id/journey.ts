@@ -281,8 +281,13 @@ const journey: TranslationStrings = {
   'journey.studio.zoomIn': 'Zoom in', // en-fallback
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.downloadSpread': 'Unduh halaman ganda ini',
+  'journey.studio.downloadSpreadHint': 'Menyimpan desain halaman ganda ini sebagai berkas, tanpa foto, untuk dibagikan atau dipakai lagi',
+  'journey.studio.importSpread': 'Impor',
+  'journey.studio.importSpreadHint': 'Menambahkan halaman ganda dari berkas desain yang diunduh',
+  'journey.studio.importSpreadFailed': 'Berkas itu bukan halaman ganda TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Designing a book asks for room to work, so Studio is desktop only. Your journey and its PDF export work here as usual.', // en-fallback
+  'journey.studio.desktopOnlyHint': 'Menyusun buku butuh ruang kerja, jadi Studio hanya ada di desktop, begitu juga pembuatan PDF. Bagian lain dari perjalananmu tetap berjalan seperti biasa di sini.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback

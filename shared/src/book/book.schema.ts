@@ -218,7 +218,6 @@ export const bookShapeElementSchema = z.object({
 const typeset = {
   font: z.enum(BOOK_FONTS_IDS).default('sans'),
   color: hex.default('#1a1a1a'),
-  /** The one colour that carries emphasis — the figure in a stat, the route on a map. */
   /**
    * The one colour that carries emphasis — the figure in a stat, the route on
    * a map, the fill of a chip.
@@ -233,6 +232,15 @@ const typeset = {
   accent: hex.default('#111111'),
   /** Scales every piece of type in the element at once. 1 is the drawn default. */
   textScale: z.number().min(0.4).max(3).default(1),
+  /**
+   * How heavy the type is set.
+   *
+   * The travel elements draw at several sizes at once — a figure over its
+   * label, a country name over its outline — and this moves all of them
+   * together, the way `textScale` moves their size. Without it the only way to
+   * lighten a stats block was to not use one.
+   */
+  weight: z.union([z.literal(400), z.literal(500), z.literal(600), z.literal(700)]).default(700),
   /** Set when the journey has moved on since these values were taken. */
   stale: z.boolean().default(false),
 };

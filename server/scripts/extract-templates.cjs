@@ -17,7 +17,14 @@ const row = db.prepare('SELECT document FROM journey_books WHERE journey_id = ?'
 db.close()
 if (!row) throw new Error(`no book on journey ${JOURNEY}`)
 
-const doc = JSON.parse(row.document)
+/*
+ * Through the contract on the way in, so a template carries every field the
+ * document has — including any the schema gained since the spread was drawn.
+ * Without it a template written today is missing tomorrow's defaults and does
+ * not typecheck as a BookElement.
+ */
+const { normalizeBookDocument } = require('@trek/shared')
+const doc = normalizeBookDocument(JSON.parse(row.document))
 const PW = doc.page.pageWidth
 const PH = doc.page.pageHeight
 

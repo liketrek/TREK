@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import {
   ChevronDown, ChevronUp, Compass, Copy, Files, ImageIcon, LayoutTemplate, Plus,
-  Search, Shapes, Trash2, X,
+  Search, Shapes, Trash2, Upload, X,
 } from 'lucide-react'
 import type { BookElement, BookPageSetup, JourneyStats } from '@trek/shared'
 import { useElementSize } from '../../hooks/useElementSize'
@@ -14,6 +14,7 @@ import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDe
 import { PanelHead as Head } from './StudioPanelHead'
 import { StudioElementsPanel } from './StudioElementsPanel'
 import { StudioTravelPanel } from './StudioTravelPanel'
+import { MAX_SPREAD_FILE_BYTES, importSpread } from './spreadFile'
 
 /**
  * The left side of Studio: a narrow rail of sections and one wide panel showing
@@ -124,6 +125,7 @@ function PagesPanel({
   const active = useStudioStore(s => s.activeSpread)
   const setActive = useStudioStore(s => s.setActiveSpread)
   const addSpread = useStudioStore(s => s.addSpread)
+  const insertSpread = useStudioStore(s => s.insertSpread)
   const duplicateSpread = useStudioStore(s => s.duplicateSpread)
   const removeSpread = useStudioStore(s => s.removeSpread)
   const moveSpread = useStudioStore(s => s.moveSpread)
@@ -134,6 +136,8 @@ function PagesPanel({
 
   /** Where a new spread would land: after the last inner one. */
   const lastInner = spreads.reduce((last, sp, i) => (sp.role === 'inner' ? i : last), -1)
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [importError, setImportError] = useState<string | null>(null)
 
   return (
     <>
@@ -233,10 +237,50 @@ function PagesPanel({
           })}
         </div>
 
-        <button className="st-add-page" onClick={() => addSpread(lastInner)}>
-          <Plus size={14} />
-          {t('journey.studio.addPage')}
-        </button>
+        {/*
+          Two ways to get a new page: an empty one, or somebody else's design.
+          Side by side because they answer the same question — the import is
+          not a setting buried in a menu, it is the other half of "add".
+        */}
+        <div className="st-add-row">
+          <button className="st-add-page" onClick={() => addSpread(lastInner)}>
+            <Plus size={14} />
+            {t('journey.studio.addPage')}
+          </button>
+          <button
+            className="st-add-page is-import"
+            onClick={() => fileInput.current?.click()}
+            title={t('journey.studio.importSpreadHint')}
+          >
+            <Upload size={14} />
+            {t('journey.studio.importSpread')}
+          </button>
+        </div>
+        <input
+          ref={fileInput}
+          type="file"
+          accept=".json,application/json"
+          hidden
+          onChange={async e => {
+            const file = e.target.files?.[0]
+            // Cleared straight away so choosing the same file twice in a row
+            // still fires a change event the second time.
+            e.target.value = ''
+            if (!file) return
+            setImportError(null)
+            // Checked before reading rather than after: the point of a limit on
+            // a file someone else wrote is not to parse it in the first place.
+            if (file.size > MAX_SPREAD_FILE_BYTES) { setImportError(t('journey.studio.importSpreadFailed')); return }
+            try {
+              const spread = importSpread(JSON.parse(await file.text()), page)
+              if (!spread) { setImportError(t('journey.studio.importSpreadFailed')); return }
+              insertSpread(lastInner, spread)
+            } catch {
+              setImportError(t('journey.studio.importSpreadFailed'))
+            }
+          }}
+        />
+        {importError && <p className="st-add-error">{importError}</p>}
       </div>
     </>
   )

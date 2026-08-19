@@ -12,6 +12,7 @@ import { StudioCanvas } from './StudioCanvas'
 import { StudioInspector } from './StudioInspector'
 import { StudioWordmark } from './StudioWordmark'
 import { SaveIndicator } from './SaveIndicator'
+import { downloadSpread } from './spreadFile'
 import { StudioExport } from './StudioExport'
 import { PeerBadges } from './PeerBadges'
 import { TrimField } from './TrimField'
@@ -411,6 +412,23 @@ function Workbench({ s, bookView }: { s: Studio; bookView: boolean }) {
         </button>
         <button onClick={s.zoomToFit} aria-label={s.t('journey.studio.zoomFit')} title={s.t('journey.studio.zoomFit')}>
           <Maximize2 size={14} />
+        </button>
+        {/*
+          The page, as a file.
+
+          Here rather than in a menu because it belongs to the spread on screen
+          — the zoom bar is the only chrome that is about *this* page rather
+          than about the book. What comes out is the design without the
+          photographs, which is the thing worth passing on.
+        */}
+        <span className="st-zoom-sep" />
+        <button
+          onClick={() => s.spread && downloadSpread(s.spread, s.page, s.journey?.title || 'spread')}
+          disabled={!s.spread}
+          aria-label={s.t('journey.studio.downloadSpread')}
+          title={s.t('journey.studio.downloadSpreadHint')}
+        >
+          <Download size={14} />
         </button>
       </div>
     </div>

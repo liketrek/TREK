@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ChevronsDown, ChevronsUp, Copy, Lock, Trash2, Unlock } from 'lucide-react'
+import { ChevronsDown, ChevronsUp, Copy, Lock, RotateCcw, RotateCw, Trash2, Unlock } from 'lucide-react'
 import type { BookElement, BookPageSetup, BookSpread } from '@trek/shared'
 import { SpreadFold, SpreadView } from './SpreadView'
 import { PeerCursors } from './PeerCursors'
@@ -9,6 +9,20 @@ import { useSpreadInteraction, type HandleId } from './useSpreadInteraction'
 import { useStudioStore } from '../../store/studioStore'
 
 const HANDLES: HandleId[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']
+
+/**
+ * Where the four rotation handles sit, as percentages of the selection box.
+ *
+ * The push diagonally outwards lives in the stylesheet rather than here: it is
+ * a fixed number of screen pixels clear of the resize handle on the same
+ * corner, so it must not scale with the element the way a percentage would.
+ */
+const ROTATE_CORNERS = [
+  { id: 'nw', left: '0%', top: '0%' },
+  { id: 'ne', left: '100%', top: '0%' },
+  { id: 'se', left: '100%', top: '100%' },
+  { id: 'sw', left: '0%', top: '100%' },
+] as const
 
 const HANDLE_POS: Record<HandleId, { left: string; top: string; cursor: string }> = {
   nw: { left: '0%', top: '0%', cursor: 'nwse-resize' },
@@ -63,6 +77,29 @@ export function StudioCanvas({
   const [editing, setEditing] = useState<string | null>(null)
 
   /** Where on the spread, in millimetres, a drop landed. */
+  /**
+   * Turn the selection by a number of degrees.
+   *
+   * Kept in the range a person reads as an angle rather than as a winding
+   * number: -180 to 180, so an element turned all the way round reads as
+   * straight rather than as 360.
+   */
+  const rotateBy = (deg: number) => {
+    commit(d => ({
+      ...d,
+      spreads: d.spreads.map((sp, i) => (i !== spreadIndex ? sp : {
+        ...sp,
+        elements: sp.elements.map(e => {
+          if (!selection.includes(e.id) || e.locked) return e
+          let next = (e.rotation + deg) % 360
+          if (next > 180) next -= 360
+          if (next < -180) next += 360
+          return { ...e, rotation: Math.round(next * 10) / 10 }
+        }),
+      })),
+    }))
+  }
+
   const pointInMm = (e: React.DragEvent) => {
     const r = e.currentTarget.getBoundingClientRect()
     return { x: (e.clientX - r.left) / scaled, y: (e.clientY - r.top) / scaled }
@@ -76,7 +113,7 @@ export function StudioCanvas({
   ) ?? null
   const scaled = pxPerMm * zoom
 
-  const { guides, dragging, startMove, startResize, onPointerMove, finish } = useSpreadInteraction({
+  const { guides, dragging, startMove, startResize, startRotate, onPointerMove, finish } = useSpreadInteraction({
     spread, spreadIndex, page, pxPerMm: scaled,
   })
 
@@ -287,6 +324,34 @@ export function StudioCanvas({
             {/* No resize handles on a locked element: they would offer a drag
                 that is refused, which reads as the editor being broken rather
                 than as the element being locked. */}
+            {/*
+              A rotation handle diagonally outside each corner.
+
+              Four rather than one, because which corner is reachable depends on
+              where the element sits: a handle off the top right alone is under
+              the inspector for anything in the right page's upper half.
+
+              Positioned in percentages of the selection box, so they follow it
+              at any zoom and turn with it once it is turned — the box itself
+              carries the rotation, and everything inside it comes along.
+              
+              Outside the box rather than on it, because a handle on the corner
+              is a handle you cannot tell from the one that resizes — and this
+              is the gesture where grabbing the wrong one is most annoying to
+              undo. Held to 15° steps unless shift is down.
+            */}
+            {sel.length === 1 && !dragging && !el.locked && ROTATE_CORNERS.map(c => (
+              <div
+                key={c.id}
+                className={`st-rotate is-${c.id}`}
+                style={{ left: c.left, top: c.top }}
+                onPointerDown={startRotate}
+                title="Rotate"
+              >
+                <RotateCw size={11} />
+              </div>
+            ))}
+
             {sel.length === 1 && !dragging && !el.locked && HANDLES.map(h => (
               <span
                 key={h}
@@ -328,6 +393,29 @@ export function StudioCanvas({
                   </button>
                 </>
               )}
+              {/*
+                Turn it, a step at a time.
+                
+                Fifteen degrees per press, and a press with shift is one degree
+                for the times it has to line up with something. Steps rather
+                than a handle you drag: a photograph on a page is almost always
+                either square to it or tilted a little on purpose, and dragging
+                a rotation past the angle you wanted and back is a worse way to
+                arrive at either.
+              */}
+              <button
+                onClick={e => rotateBy(e.shiftKey ? -1 : -15)}
+                title="Rotate left"
+              >
+                <RotateCcw size={14} />
+              </button>
+              <button
+                onClick={e => rotateBy(e.shiftKey ? 1 : 15)}
+                title="Rotate right"
+              >
+                <RotateCw size={14} />
+              </button>
+              <span className="st-quickbar-sep" />
               <button
                 onClick={() => commit(d => ({
                   ...d,

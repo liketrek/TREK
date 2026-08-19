@@ -32,7 +32,7 @@ const stats: JourneyStats = {
 
 const frame = { x: 0, y: 0, w: 100, h: 60 }
 const common = { frame, rotation: 0, opacity: 1, locked: false }
-const typeset = { font: 'sans' as const, color: '#1a1a1a', accent: '#c2410c', textScale: 1, stale: false }
+const typeset = { font: 'sans' as const, color: '#1a1a1a', accent: '#111111', textScale: 1, weight: 700 as const, stale: false }
 
 function statsEl(over: Partial<Record<string, unknown>> = {}): BookElement {
   return {

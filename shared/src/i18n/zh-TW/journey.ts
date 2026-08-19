@@ -280,8 +280,13 @@ const journey: TranslationStrings = {
   'journey.studio.zoomIn': 'Zoom in', // en-fallback
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.downloadSpread': '下載這個跨頁',
+  'journey.studio.downloadSpreadHint': '將這個跨頁的設計存成檔案（不含照片），方便分享或再次使用',
+  'journey.studio.importSpread': '匯入',
+  'journey.studio.importSpreadHint': '從下載的設計檔案加入一個跨頁',
+  'journey.studio.importSpreadFailed': '這個檔案不是 TREK Studio 的跨頁',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Designing a book asks for room to work, so Studio is desktop only. Your journey and its PDF export work here as usual.', // en-fallback
+  'journey.studio.desktopOnlyHint': '排一本書需要足夠的空間，所以 Studio 只在電腦上使用，製作 PDF 也是。旅程的其他功能在這裡照常可用。', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback

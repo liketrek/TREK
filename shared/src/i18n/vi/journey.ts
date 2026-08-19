@@ -282,8 +282,13 @@ const journey: TranslationStrings = {
   'journey.studio.zoomIn': 'Zoom in', // en-fallback
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.downloadSpread': 'Tải trang đôi này về',
+  'journey.studio.downloadSpreadHint': 'Lưu thiết kế của trang đôi này thành tệp, không kèm ảnh, để chia sẻ hoặc dùng lại',
+  'journey.studio.importSpread': 'Nhập',
+  'journey.studio.importSpreadHint': 'Thêm một trang đôi từ tệp thiết kế đã tải về',
+  'journey.studio.importSpreadFailed': 'Tệp đó không phải trang đôi của TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Designing a book asks for room to work, so Studio is desktop only. Your journey and its PDF export work here as usual.', // en-fallback
+  'journey.studio.desktopOnlyHint': 'Dàn một cuốn sách cần chỗ để làm việc, nên Studio chỉ có trên máy tính, và việc tạo PDF cũng vậy. Mọi thứ khác của hành trình vẫn dùng bình thường ở đây.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback

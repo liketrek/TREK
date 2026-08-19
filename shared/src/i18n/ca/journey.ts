@@ -282,8 +282,13 @@ const journey: TranslationStrings = {
   'journey.studio.zoomIn': 'Zoom in', // en-fallback
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.downloadSpread': 'Baixa aquesta doble pàgina',
+  'journey.studio.downloadSpreadHint': 'Desa el disseny d\'aquesta doble pàgina com a fitxer, sense les fotos, per compartir-lo o reutilitzar-lo',
+  'journey.studio.importSpread': 'Importa',
+  'journey.studio.importSpreadHint': 'Afegeix una doble pàgina des d\'un fitxer de disseny baixat',
+  'journey.studio.importSpreadFailed': 'Aquest fitxer no és una doble pàgina del TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Designing a book asks for room to work, so Studio is desktop only. Your journey and its PDF export work here as usual.', // en-fallback
+  'journey.studio.desktopOnlyHint': 'Dissenyar un llibre demana espai per treballar, per això l\'Studio només hi és a l\'escriptori, i el PDF també. La resta del teu viatge funciona aquí com sempre.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback

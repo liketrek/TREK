@@ -283,8 +283,13 @@ const journey: TranslationStrings = {
   'journey.studio.zoomIn': 'Zoom in', // en-fallback
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.downloadSpread': 'Завантажити цей розворот',
+  'journey.studio.downloadSpreadHint': 'Зберігає оформлення розвороту у файл, без світлин, щоб поділитися чи використати ще раз',
+  'journey.studio.importSpread': 'Імпорт',
+  'journey.studio.importSpreadHint': 'Додає розворот із завантаженого файлу оформлення',
+  'journey.studio.importSpreadFailed': 'Цей файл не є розворотом TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Designing a book asks for room to work, so Studio is desktop only. Your journey and its PDF export work here as usual.', // en-fallback
+  'journey.studio.desktopOnlyHint': 'Верстка книги потребує місця, тому Студія працює лише на комп\'ютері, і створення PDF теж. Усе інше в подорожі тут працює як завжди.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback

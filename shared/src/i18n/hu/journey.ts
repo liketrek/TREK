@@ -282,8 +282,13 @@ const journey: TranslationStrings = {
   'journey.studio.zoomIn': 'Zoom in', // en-fallback
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.downloadSpread': 'Oldalpár letöltése',
+  'journey.studio.downloadSpreadHint': 'Fájlba menti az oldalpár elrendezését, a fényképek nélkül, megosztáshoz vagy újrafelhasználáshoz',
+  'journey.studio.importSpread': 'Importálás',
+  'journey.studio.importSpreadHint': 'Oldalpár hozzáadása letöltött elrendezésfájlból',
+  'journey.studio.importSpreadFailed': 'Ez a fájl nem TREK Studio oldalpár',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Designing a book asks for room to work, so Studio is desktop only. Your journey and its PDF export work here as usual.', // en-fallback
+  'journey.studio.desktopOnlyHint': 'Egy könyv tördeléséhez hely kell, ezért a Studio csak asztali gépen érhető el, és a PDF is. Az utazás minden más része itt a megszokott módon működik.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback

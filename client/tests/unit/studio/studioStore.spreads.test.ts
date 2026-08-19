@@ -227,3 +227,87 @@ describe('a book with no covers at all', () => {
     expect(store().activeSpread).toBe(0)
   })
 })
+
+describe('inserting a spread that arrived from outside', () => {
+  beforeEach(() => {
+    useStudioStore.getState().load(book(
+      spread('cover', 'cover'),
+      spread('a', 'inner'),
+      spread('back', 'back'),
+    ))
+  })
+
+  const imported = () => spread('from-a-file', 'inner', [el('x'), el('y')])
+
+  it('lands inside the covers and becomes the spread being edited', () => {
+    store().insertSpread(1, imported())
+    expect(roles()).toEqual(['cover', 'inner', 'inner', 'back'])
+    expect(store().activeSpread).toBe(2)
+  })
+
+  it('never lands in front of the cover, whatever index it is given', () => {
+    store().insertSpread(-1, imported())
+    expect(roles()[0]).toBe('cover')
+  })
+
+  it('never lands behind the back cover', () => {
+    store().insertSpread(99, imported())
+    expect(roles()[roles().length - 1]).toBe('back')
+  })
+
+  it('mints fresh ids, so nothing collides with what is already there', () => {
+    store().insertSpread(1, imported())
+    const all = store().doc!.spreads.flatMap(s => s.elements.map(e => e.id))
+    expect(new Set(all).size).toBe(all.length)
+    expect(ids()).not.toContain('from-a-file')
+  })
+
+  it('arrives as an inner spread even if the file claimed otherwise', () => {
+    store().insertSpread(1, { ...imported(), role: 'cover' as const })
+    expect(roles()).toEqual(['cover', 'inner', 'inner', 'back'])
+  })
+
+  it('is one undo step', () => {
+    store().insertSpread(1, imported())
+    store().undo()
+    expect(ids()).toEqual(['cover', 'a', 'back'])
+  })
+})
+
+describe('turning an element', () => {
+  beforeEach(() => {
+    useStudioStore.getState().load(book(spread('a', 'inner', [el('one'), el('two')])))
+  })
+
+  const rotationOf = (id: string) => store().doc!.spreads[0].elements.find(e => e.id === id)!.rotation
+
+  it('turns the one it was given and leaves the rest alone', () => {
+    store().setRotation(0, 'one', 45)
+    expect(rotationOf('one')).toBe(45)
+    expect(rotationOf('two')).toBe(0)
+  })
+
+  /*
+   * A drag calls this on every pointer move. If each call were its own undo
+   * step, undoing a turn would take a hundred presses — so the gesture owns the
+   * step, and this does not touch the stack by itself.
+   */
+  it('is not an undo step on its own', () => {
+    store().setRotation(0, 'one', 45)
+    expect(store().canUndo()).toBe(false)
+  })
+
+  it('is one undo step for the whole gesture', () => {
+    store().beginGesture()
+    for (const deg of [5, 10, 15, 20]) store().setRotation(0, 'one', deg)
+    store().endGesture()
+    expect(rotationOf('one')).toBe(20)
+    store().undo()
+    expect(rotationOf('one')).toBe(0)
+  })
+
+  it('ignores an id that is not on the spread', () => {
+    store().setRotation(0, 'nope', 45)
+    expect(rotationOf('one')).toBe(0)
+  })
+})

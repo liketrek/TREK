@@ -282,8 +282,13 @@ const journey: TranslationStrings = {
   'journey.studio.zoomIn': 'Zoom in', // en-fallback
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.downloadSpread': 'Stáhnout tuto dvoustranu',
+  'journey.studio.downloadSpreadHint': 'Uloží návrh této dvoustrany jako soubor, bez fotografií, ke sdílení nebo dalšímu použití',
+  'journey.studio.importSpread': 'Importovat',
+  'journey.studio.importSpreadHint': 'Přidá dvoustranu ze staženého souboru s návrhem',
+  'journey.studio.importSpreadFailed': 'Tento soubor není dvoustrana z TREK Studia',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Designing a book asks for room to work, so Studio is desktop only. Your journey and its PDF export work here as usual.', // en-fallback
+  'journey.studio.desktopOnlyHint': 'Sazba knihy potřebuje místo, a tak je Studio jen na počítači, stejně jako tvorba PDF. Všechno ostatní z cesty tu funguje jako obvykle.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback

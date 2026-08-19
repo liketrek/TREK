@@ -40,6 +40,13 @@ interface StudioState {
 
   updateElement: (spreadIndex: number, id: string, patch: Partial<BookElement>) => void
   setFrame: (spreadIndex: number, id: string, frame: BookFrame) => void
+  /**
+   * Turn one element, in degrees.
+   *
+   * `apply`, not `commit`, for the same reason setFrame is: a drag is one undo
+   * step, and the gesture that drives this calls it on every pointer move.
+   */
+  setRotation: (spreadIndex: number, id: string, rotation: number) => void
   addElement: (spreadIndex: number, el: BookElement) => void
   removeElements: (spreadIndex: number, ids: string[]) => void
   duplicate: (spreadIndex: number, ids: string[]) => void
@@ -47,6 +54,15 @@ interface StudioState {
 
   /** Insert an empty spread after `index`, and select it. */
   addSpread: (index: number) => void
+  /**
+   * Put a spread that already has contents into the book after `index`.
+   *
+   * Separate from addSpread because the thing being inserted comes from
+   * outside the document — an imported file — and arrives complete. Fresh ids
+   * are minted here rather than trusted from the file: two elements sharing an
+   * id would confuse selection and every lookup after it.
+   */
+  insertSpread: (index: number, spread: BookSpread) => void
   /** Copy a spread, contents and all, directly after it. */
   duplicateSpread: (index: number) => void
   removeSpread: (index: number) => void
@@ -114,6 +130,12 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     replaceSpread(doc, spreadIndex, sp => ({
       ...sp,
       elements: sp.elements.map(e => (e.id === id ? { ...e, frame } : e)),
+    }))),
+
+  setRotation: (spreadIndex, id, rotation) => get().apply(doc =>
+    replaceSpread(doc, spreadIndex, sp => ({
+      ...sp,
+      elements: sp.elements.map(e => (e.id === id ? { ...e, rotation } : e)),
     }))),
 
   addElement: (spreadIndex, el) => get().commit(doc =>
@@ -202,6 +224,31 @@ export const useStudioStore = create<StudioState>((set, get) => ({
           elements: [],
           parked: [],
           entryId: null,
+        },
+        ...d.spreads.slice(at),
+      ],
+    }))
+    set({ activeSpread: at, selection: [] })
+  },
+
+  insertSpread: (index, spread) => {
+    const doc = get().doc
+    if (!doc) return
+    // Same bounds as addSpread: inside the covers at both ends.
+    const cover = doc.spreads.findIndex(sp => sp.role === 'cover')
+    const back = doc.spreads.findIndex(sp => sp.role === 'back')
+    const first = cover === -1 ? 0 : cover + 1
+    const limit = back === -1 ? doc.spreads.length : back
+    const at = Math.min(Math.max(index + 1, first), limit)
+    get().commit(d => ({
+      ...d,
+      spreads: [
+        ...d.spreads.slice(0, at),
+        {
+          ...spread,
+          id: `sp-${Math.random().toString(36).slice(2, 9)}`,
+          role: 'inner' as const,
+          elements: spread.elements.map(e => ({ ...e, id: `${e.kind[0]}-${Math.random().toString(36).slice(2, 9)}` })),
         },
         ...d.spreads.slice(at),
       ],

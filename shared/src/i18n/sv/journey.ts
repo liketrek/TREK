@@ -282,8 +282,13 @@ const journey: TranslationStrings = {
   'journey.studio.zoomIn': 'Zoom in', // en-fallback
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.downloadSpread': 'Ladda ner det här uppslaget',
+  'journey.studio.downloadSpreadHint': 'Sparar uppslagets design som en fil, utan fotografierna, att dela eller återanvända',
+  'journey.studio.importSpread': 'Importera',
+  'journey.studio.importSpreadHint': 'Lägger till ett uppslag från en nedladdad designfil',
+  'journey.studio.importSpreadFailed': 'Filen är inte ett uppslag från TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Designing a book asks for room to work, so Studio is desktop only. Your journey and its PDF export work here as usual.', // en-fallback
+  'journey.studio.desktopOnlyHint': 'Att formge en bok kräver plats, så Studio finns bara på datorn, och det gör pdf:en också. Allt annat i resan fungerar som vanligt här.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback

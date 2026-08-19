@@ -284,8 +284,13 @@ const journey: TranslationStrings = {
   'journey.studio.zoomIn': 'Zoom in', // en-fallback
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.downloadSpread': 'Λήψη αυτού του δισέλιδου',
+  'journey.studio.downloadSpreadHint': 'Αποθηκεύει τη σχεδίαση του δισέλιδου ως αρχείο, χωρίς τις φωτογραφίες, για κοινή χρήση ή επαναχρησιμοποίηση',
+  'journey.studio.importSpread': 'Εισαγωγή',
+  'journey.studio.importSpreadHint': 'Προσθέτει ένα δισέλιδο από αρχείο σχεδίασης που έχετε κατεβάσει',
+  'journey.studio.importSpreadFailed': 'Αυτό το αρχείο δεν είναι δισέλιδο του TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Designing a book asks for room to work, so Studio is desktop only. Your journey and its PDF export work here as usual.', // en-fallback
+  'journey.studio.desktopOnlyHint': 'Η σχεδίαση βιβλίου θέλει χώρο, γι\' αυτό το Studio υπάρχει μόνο στον υπολογιστή, όπως και η δημιουργία του PDF. Όλα τα άλλα του ταξιδιού σου δουλεύουν εδώ κανονικά.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback

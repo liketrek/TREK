@@ -283,8 +283,13 @@ const journey: TranslationStrings = {
   'journey.studio.zoomIn': 'Zoom in', // en-fallback
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.downloadSpread': 'この見開きをダウンロード',
+  'journey.studio.downloadSpreadHint': 'この見開きのデザインを、写真を除いてファイルに保存します。共有や再利用に使えます',
+  'journey.studio.importSpread': '読み込む',
+  'journey.studio.importSpreadHint': 'ダウンロードしたデザインファイルから見開きを追加します',
+  'journey.studio.importSpreadFailed': 'このファイルは TREK Studio の見開きではありません',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Designing a book asks for room to work, so Studio is desktop only. Your journey and its PDF export work here as usual.', // en-fallback
+  'journey.studio.desktopOnlyHint': '本づくりには広さが要るので、Studio はデスクトップ専用です。PDF の作成も同じです。旅の記録のほかの機能は、ここでもこれまでどおり使えます。', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback

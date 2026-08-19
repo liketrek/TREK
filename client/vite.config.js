@@ -225,8 +225,26 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
+  /*
+   * Never pre-bundle the workspace's own contracts.
+   *
+   * `@trek/shared` resolves to shared/dist, which is a build output that changes
+   * whenever a Zod schema does. Pre-bundled, the dev server keeps serving the
+   * copy it optimised at startup: a field added to the document contract is
+   * missing in the browser, `normalizeBookDocument` strips it on load, and the
+   * change you just made vanishes on reload with nothing in the console. It
+   * cost an afternoon twice before anyone worked out it was not the code.
+   */
+  optimizeDeps: {
+    exclude: ['@trek/shared'],
+  },
   server: {
     port: 5173,
+    // And watch the build output, so rebuilding shared reloads the page rather
+    // than leaving a stale module graph behind.
+    watch: {
+      ignored: ['!**/shared/dist/**'],
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:3001',

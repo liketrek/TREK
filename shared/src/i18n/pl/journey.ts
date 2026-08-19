@@ -282,8 +282,13 @@ const journey: TranslationStrings = {
   'journey.studio.zoomIn': 'Zoom in', // en-fallback
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.downloadSpread': 'Pobierz tę rozkładówkę',
+  'journey.studio.downloadSpreadHint': 'Zapisuje projekt tej rozkładówki jako plik, bez zdjęć, do udostępnienia lub ponownego użycia',
+  'journey.studio.importSpread': 'Importuj',
+  'journey.studio.importSpreadHint': 'Dodaje rozkładówkę z pobranego pliku projektu',
+  'journey.studio.importSpreadFailed': 'Ten plik nie jest rozkładówką TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Designing a book asks for room to work, so Studio is desktop only. Your journey and its PDF export work here as usual.', // en-fallback
+  'journey.studio.desktopOnlyHint': 'Składanie książki wymaga miejsca, dlatego Studio działa tylko na komputerze, tak samo jak tworzenie PDF-a. Reszta podróży działa tu jak zwykle.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
