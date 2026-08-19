@@ -248,8 +248,6 @@ const journey: TranslationStrings = {
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.bookName': 'Book name', // en-fallback
-  'journey.studio.namePlaceholder': 'Name your book', // en-fallback
   'journey.studio.format': 'Page format', // en-fallback
   'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
   'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
@@ -318,7 +316,7 @@ const journey: TranslationStrings = {
   'journey.studio.addStory': 'Story', // en-fallback
   'journey.studio.addPlace': 'Place', // en-fallback
   'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'Picture frames', // en-fallback
+  'journey.studio.frames': 'Khung', // en-fallback
   'journey.studio.emptyFrame': 'Empty frame', // en-fallback
   'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
   'journey.studio.shapeKind.line': 'Line', // en-fallback
@@ -349,5 +347,98 @@ const journey: TranslationStrings = {
   'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
   'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
   'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.travel': 'Hành trình',
+  'journey.studio.travelEmpty': 'Số liệu của hành trình này chưa sẵn sàng.',
+  'journey.studio.grids': 'Lưới',
+  'journey.studio.gridHint': 'Lưới đặt một khối khung trống. Kéo ảnh từ Nội dung vào đó.',
+  'journey.studio.lines': 'Đường kẻ',
+  'journey.studio.frameStyles': 'Kiểu khung',
+  'journey.studio.frameShapes': 'Hình khung',
+  'journey.studio.plainFrame': 'Đơn giản',
+  'journey.studio.polaroidFrame': 'Polaroid',
+  'journey.studio.whiteFrame': 'Viền trắng',
+  'journey.studio.shadowFrame': 'Đổ bóng',
+  'journey.studio.filmFrame': 'Phim',
+  'journey.studio.tapeFrame': 'Dán băng',
+  'journey.studio.shapeGroup.basic': 'Cơ bản',
+  'journey.studio.shapeGroup.polygons': 'Đa giác',
+  'journey.studio.shapeGroup.stars': 'Ngôi sao',
+  'journey.studio.shapeGroup.arrows': 'Mũi tên',
+  'journey.studio.shapeGroup.speech': 'Bóng thoại',
+  'journey.studio.shapeGroup.travel': 'Du lịch',
+  'journey.studio.shapeGroup.decor': 'Trang trí',
+  'journey.studio.shapeGroup.banners': 'Băng rôn',
+  'journey.studio.summary': 'Tóm tắt',
+  'journey.studio.tripSummary': 'Tóm tắt chuyến đi',
+  'journey.studio.statsRow': 'Một hàng',
+  'journey.studio.statsFull': 'Tất cả',
+  'journey.studio.routeMap': 'Bản đồ lộ trình',
+  'journey.studio.mapStyle.minimal': 'Tối giản',
+  'journey.studio.mapStyle.outline': 'Đường viền',
+  'journey.studio.mapStyle.paper': 'Giấy',
+  'journey.studio.mapStyle.dark': 'Tối',
+  'journey.studio.countries': 'Quốc gia',
+  'journey.studio.countryList': 'Danh sách quốc gia',
+  'journey.studio.countryGrid': 'Lưới quốc gia',
+  'journey.studio.noCountries': 'Chưa xác định được quốc gia nào cho hành trình này.',
+  'journey.studio.noRoute': 'Chưa có điểm dừng nào có tọa độ.',
+  'journey.studio.marks': 'Dấu',
+  'journey.studio.dateMark': 'Ngày',
+  'journey.studio.dayMark': 'Bộ đếm ngày',
+  'journey.studio.dayWord': 'NGÀY',
+  'journey.studio.coordsMark': 'Tọa độ',
+  'journey.studio.flagMark': 'Cờ',
+  'journey.studio.distanceMark': 'Khoảng cách',
+  'journey.studio.metric.distance': 'Khoảng cách',
+  'journey.studio.metric.days': 'Ngày',
+  'journey.studio.metric.steps': 'Điểm dừng',
+  'journey.studio.metric.photos': 'Ảnh',
+  'journey.studio.metric.countries': 'Quốc gia',
+  'journey.studio.metric.places': 'Địa điểm',
+  'journey.studio.metric.furthest': 'Xa nhất',
+  'journey.studio.kind.map': 'Bản đồ',
+  'journey.studio.kind.stats': 'Số liệu',
+  'journey.studio.kind.countries': 'Quốc gia',
+  'journey.studio.kind.badge': 'Dấu',
+  'journey.studio.mask': 'Cắt theo hình',
+  'journey.studio.maskNone': 'Không',
+  'journey.studio.frameStyle': 'Khung',
+  'journey.studio.mapLayers': 'Lớp',
+  'journey.studio.showLand': 'Quốc gia',
+  'journey.studio.showRoute': 'Lộ trình',
+  'journey.studio.showPins': 'Điểm dừng',
+  'journey.studio.showLabels': 'Nhãn',
+  'journey.studio.units': 'Đơn vị',
+  'journey.studio.metrics': 'Số liệu',
+  'journey.studio.layout': 'Bố cục',
+  'journey.studio.layoutGrid': 'Lưới',
+  'journey.studio.layoutRow': 'Hàng',
+  'journey.studio.layoutColumn': 'Cột',
+  'journey.studio.layoutList': 'Danh sách',
+  'journey.studio.showOutline': 'Đường viền',
+  'journey.studio.showFlag': 'Cờ',
+  'journey.studio.showName': 'Tên',
+  'journey.studio.textScale': 'Cỡ chữ',
+  'journey.studio.accent': 'Màu nhấn',
+  'journey.studio.refresh': 'Cập nhật từ hành trình',
+  'journey.studio.staleHint': 'Hành trình đã thay đổi kể từ khi lấy các số liệu này.',
+  'journey.studio.align': 'Căn chỉnh',
+  'journey.studio.filter.cool': 'Lạnh',
+  'journey.studio.filter.fade': 'Phai màu',
+  'journey.studio.filter.contrast': 'Đậm nét',
+  'journey.studio.strokeStyle': 'Nét',
+  'journey.studio.strokeSolid': 'Liền',
+  'journey.studio.strokeDashed': 'Gạch đứt',
+  'journey.studio.strokeDotted': 'Chấm',
+  'journey.studio.singleFigures': 'Số riêng lẻ',
+  'journey.studio.addPage': 'Thêm trang',
+  'journey.studio.addPageAfter': 'Chèn trang sau trang này',
+  'journey.studio.duplicatePage': 'Nhân bản trang',
+  'journey.studio.deletePage': 'Xóa trang',
+  'journey.studio.movePageUp': 'Chuyển lên trước',
+  'journey.studio.movePageDown': 'Chuyển xuống sau',
+  'journey.studio.beta': 'Beta',
+  'journey.studio.addProsCons': 'Ưu và nhược điểm',
+  'journey.studio.showMarks': 'Dấu',
 };
 export default journey;

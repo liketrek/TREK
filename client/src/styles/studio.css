@@ -137,36 +137,6 @@
   background: var(--surface-2);
 }
 
-.trek-dash .st-name {
-  min-width: 0;
-  flex: 1;
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-}
-.trek-dash .st-name input {
-  min-width: 0;
-  flex: 0 1 auto;
-  width: 100%;
-  max-width: 420px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 9px;
-  padding: 5px 9px;
-  margin-left: -9px;
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--ink);
-  transition: background .18s, border-color .18s;
-}
-.trek-dash .st-name input:hover { background: color-mix(in oklch, var(--ink) 5%, transparent); }
-.trek-dash .st-name input:focus {
-  outline: none;
-  background: var(--surface);
-  border-color: var(--accent);
-}
-
 .trek-dash .st-bar-group {
   display: flex;
   align-items: center;
@@ -498,6 +468,10 @@
 }
 .trek-dash .st-tabs button {
   flex: 1;
+  /* A flex item will not shrink below its own content width unless told to, so
+     `flex: 1` alone does not give equal thirds — the tab with the longest word
+     stays wide and squeezes the others. This is what makes them actually equal. */
+  min-width: 0;
   height: 28px;
   border-radius: 8px;
   font-size: 11.5px;
@@ -505,6 +479,11 @@
   color: var(--ink-3);
   background: color-mix(in oklch, var(--ink) 4%, transparent);
   transition: background .16s, color .16s;
+  /* A label that still will not fit is cut rather than wrapped: a wrapped tab
+     grows taller than the row and knocks the whole strip out of line. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 /* The count is a footnote to the label, not part of it — a badge keeps it from
    competing with the word for the same weight. */
@@ -585,7 +564,18 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.trek-dash .st-badge.is-quiet { background: transparent; color: var(--ink-3); font-weight: 500; padding-left: 2px; }
+/* The date keeps its full width; the place gives way. Both were shrinkable
+   flex items, so a long address ate into the date until it read "Tue, ." —
+   a truncated place is a truncated place, but a truncated date is wrong. */
+.trek-dash .st-entry-meta > .st-badge { flex: none; }
+.trek-dash .st-badge.is-quiet {
+  background: transparent;
+  color: var(--ink-3);
+  font-weight: 500;
+  padding-left: 2px;
+  flex: 0 1 auto;
+  min-width: 0;
+}
 
 /* ----------------- content browser ----------------- */
 .trek-dash .st-photo-grid {
@@ -593,6 +583,8 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 5px;
 }
+/* A message is not a photo: left in a column it wrapped one word per line. */
+.trek-dash .st-photo-grid > .st-hint { grid-column: 1 / -1; }
 .trek-dash .st-photo-cell {
   aspect-ratio: 1;
   border-radius: 8px;
@@ -629,10 +621,25 @@
 }
 .trek-dash .st-tile:hover { background: var(--surface); border-color: var(--line-2); transform: translateY(-1px); }
 
-.trek-dash .st-shape-grid { display: flex; gap: 6px; flex-wrap: wrap; }
+/*
+ * Three across, sharing the panel.
+ *
+ * These were fixed-width tiles in a wrapping flex row, which meant the row
+ * always ended short of the panel edge by whatever did not divide evenly — a
+ * ragged right margin under headings that are themselves full width. A grid of
+ * equal fractions ends flush, the same way the tab strip above it does, and the
+ * tiles get bigger for free, which a drawn shape needs more than an icon does.
+ */
+.trek-dash .st-shape-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
 .trek-dash .st-shape-btn {
-  width: 52px;
-  height: 52px;
+  width: auto;
+  /* Square, so the tile follows the column width instead of pinning it. */
+  aspect-ratio: 1;
+  min-width: 0;
   display: grid;
   place-items: center;
   border-radius: 11px;
@@ -981,4 +988,327 @@
   text-align: center;
   background: var(--bg);
   color: var(--ink);
+}
+
+/* ----------------- shape, frame and grid tiles ----------------- *
+ * Everything below is scoped under .trek-dash for the same reason the rest of
+ * this file is: dashboard.css resets button font, colour, background and
+ * padding at a specificity a bare .st-x loses to, so an unscoped rule silently
+ * does not apply to a <button>.
+ */
+
+/* A drawn shape needs room to be recognisable; a lucide glyph does not. The
+   tile keeps its size and the artwork inside it grows instead. */
+.trek-dash .st-shape-btn.is-glyph { padding: 10px; color: var(--ink-2); }
+.trek-dash .st-shape-btn.is-glyph svg { width: 100%; height: 100%; }
+.trek-dash .st-shape-btn.is-glyph:hover { color: var(--ink); }
+
+.trek-dash .st-shape-btn.is-frame,
+.trek-dash .st-shape-btn.is-map { padding: 8px; }
+
+/* The frame previews stand in for paper and film, so they carry their own
+   colours rather than the app's — see the theme-lint note in the component. */
+.trek-dash .st-frame-glyph {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+}
+.trek-dash .st-frame-glyph-photo {
+  position: absolute;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, #cfe8f7 0%, #e8f2f8 52%, #8fbf59 53%, #5d8f33 100%);
+}
+/* Centred on the corner and mirrored, matching what SpreadView actually draws. */
+.trek-dash .st-frame-glyph-tape {
+  position: absolute;
+  left: -8px;
+  top: -3px;
+  width: 16px;
+  height: 6px;
+  border-radius: 1px;
+  background: rgba(236, 228, 206, .85);
+  transform: rotate(-45deg);
+}
+.trek-dash .st-frame-glyph-tape.is-right {
+  left: auto;
+  right: -8px;
+  transform: rotate(45deg);
+}
+
+/* Grid cards are wider than shape tiles because the thing being shown is a
+   proportion — four cells in a 52px square are indistinguishable from six. */
+.trek-dash .st-grid-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+}
+.trek-dash .st-grid-btn {
+  aspect-ratio: 4 / 3;
+  padding: 5px;
+  border-radius: 9px;
+  background: color-mix(in oklch, var(--surface) 65%, transparent);
+  border: 1px solid var(--line);
+  transition: background .16s, transform .14s, border-color .16s;
+}
+.trek-dash .st-grid-btn:hover {
+  background: var(--surface);
+  border-color: var(--line-2);
+  transform: translateY(-1px);
+}
+.trek-dash .st-grid-preview {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* The cell insets are drawn here rather than in the component so the preview's
+   gap follows the theme's line weight instead of a hardcoded pixel. */
+.trek-dash .st-grid-preview > span {
+  position: absolute;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  background-color: color-mix(in oklch, var(--ink) 20%, transparent);
+  border-radius: 2px;
+}
+.trek-dash .st-grid-btn:hover .st-grid-preview > span {
+  background-color: color-mix(in oklch, var(--accent) 55%, transparent);
+}
+
+/* A stale figure is worth a word, not an alarm: the numbers on the page are
+   still correct, they are just no longer current. */
+.trek-dash .st-stale {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 9px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  background: color-mix(in oklch, var(--warn, #b45309) 12%, transparent);
+}
+
+/* A dense picker for swapping a placed shape or choosing a photo mask. Smaller
+   than the panel tiles on purpose: this is a list you scan for the one you
+   already have in mind, not a gallery you browse. */
+.trek-dash .st-mini-shapes {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  max-height: 168px;
+  overflow-y: auto;
+}
+.trek-dash .st-mini-shape {
+  aspect-ratio: 1;
+  padding: 4px;
+  border-radius: 7px;
+  color: var(--ink-3);
+  border: 1px solid transparent;
+  transition: background .14s, color .14s, border-color .14s;
+}
+.trek-dash .st-mini-shape:hover { background: var(--surface); color: var(--ink); }
+.trek-dash .st-mini-shape.is-on {
+  color: var(--accent);
+  border-color: color-mix(in oklch, var(--accent) 45%, transparent);
+  background: color-mix(in oklch, var(--accent) 10%, transparent);
+}
+.trek-dash .st-mini-shape svg { width: 100%; height: 100%; display: block; }
+/* "No mask" is the absence of a shape, drawn as the plain rectangle a photo is
+   without one — an empty tile would read as a missing icon. */
+.trek-dash .st-mini-none {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 2px;
+  border: 1.5px dashed currentColor;
+  opacity: .6;
+}
+
+/* ----------------- travel cards ----------------- *
+ * Two to a row, each showing the element it places rather than naming it. The
+ * preview sits on paper-white because that is what it will be printed on — a
+ * map or a set of figures previewed on the panel's own translucent surface
+ * would read as lighter than it comes out.
+ */
+.trek-dash .st-travel-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
+  /* Cards keep their own height rather than stretching to the tallest in the
+     row: the preview is the element's own shape, and padding it out to match a
+     neighbour would misrepresent it. */
+  align-items: start;
+}
+/* One to a row, for elements as wide as a spread. */
+.trek-dash .st-travel-grid.is-wide { grid-template-columns: 1fr; }
+.trek-dash .st-travel-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: color-mix(in oklch, var(--surface) 60%, transparent);
+  transition: background .16s, border-color .16s, transform .14s;
+  min-width: 0;
+}
+.trek-dash .st-travel-card:hover {
+  background: var(--surface);
+  border-color: color-mix(in oklch, var(--accent) 40%, var(--line-2));
+  transform: translateY(-1px);
+}
+.trek-dash .st-travel-preview {
+  position: relative;
+  display: block;
+  width: 100%;
+  /* The tile is the frame: an element wider than its card is cropped rather
+     than allowed to run across the neighbouring one. */
+  overflow: hidden;
+  border-radius: 6px;
+  background: #ffffff; /* theme-lint-disable — the preview stands on paper, not on the panel */
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--ink) 7%, transparent);
+}
+.trek-dash .st-travel-card-label {
+  display: block;
+  padding: 0 2px 1px;
+  font-size: 10.5px;
+  line-height: 1.3;
+  font-weight: 500;
+  color: var(--ink-3);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trek-dash .st-travel-card:hover .st-travel-card-label { color: var(--ink-2); }
+
+/* ----------------- page actions ----------------- *
+ * The controls live on the thumbnail, appearing on hover or when the spread is
+ * the one being edited. Always-on they would be five buttons per page down a
+ * 200px rail; behind a menu they would be a click away from something you do
+ * constantly while laying a book out.
+ */
+.trek-dash .st-thumb-row { position: relative; }
+
+.trek-dash .st-thumb-actions {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: color-mix(in oklch, var(--bg) 86%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--sh-sm);
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity .14s, transform .14s;
+  pointer-events: none;
+}
+.trek-dash .st-thumb-row:hover .st-thumb-actions,
+.trek-dash .st-thumb-row:focus-within .st-thumb-actions {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.trek-dash .st-thumb-actions button {
+  display: grid;
+  place-items: center;
+  width: 21px;
+  height: 21px;
+  border-radius: 6px;
+  color: var(--ink-2);
+  transition: background .14s, color .14s, opacity .14s;
+}
+.trek-dash .st-thumb-actions button:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--ink) 9%, transparent);
+  color: var(--ink);
+}
+.trek-dash .st-thumb-actions button:disabled { opacity: .3; }
+.trek-dash .st-thumb-actions button.is-danger:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--danger, #b91c1c) 14%, transparent);
+  color: var(--danger, #b91c1c);
+}
+
+/* The insert point sits in the gap between two spreads and only shows itself
+   when you are over it, so the rail reads as a list of pages rather than as a
+   list of pages and buttons. */
+.trek-dash .st-thumb-insert {
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  transform: translateX(-50%);
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  z-index: 2;
+  color: var(--accent-text, #fff);
+  background: var(--accent);
+  border: 2px solid var(--bg);
+  opacity: 0;
+  transition: opacity .14s;
+}
+.trek-dash .st-thumb-row:hover .st-thumb-insert,
+.trek-dash .st-thumb-insert:focus-visible { opacity: 1; }
+
+.trek-dash .st-add-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 34px;
+  margin-top: 10px;
+  border-radius: 10px;
+  border: 1px dashed var(--line-2);
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 600;
+  transition: background .16s, color .16s, border-color .16s;
+}
+.trek-dash .st-add-page:hover {
+  background: var(--surface);
+  border-color: color-mix(in oklch, var(--accent) 45%, var(--line-2));
+  color: var(--ink);
+}
+
+/* ----------------- brand ----------------- *
+ * The lockup takes the bar's ink through `currentColor`, so it is dark on a
+ * light theme and light on a dark one from one copy of the artwork.
+ */
+.trek-dash .st-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 0 0 auto;
+  color: var(--ink);
+  min-width: 0;
+}
+.trek-dash .st-brand svg { flex: none; }
+
+/* Small, quiet and set apart — a beta mark states a fact about the feature; it
+   is not a call to action and should not read as one. */
+.trek-dash .st-beta {
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 13%, transparent);
+  border: 1px solid color-mix(in oklch, var(--accent) 26%, transparent);
+  flex: none;
 }

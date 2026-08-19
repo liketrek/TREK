@@ -250,8 +250,6 @@ const journey: TranslationStrings = {
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.bookName': 'Book name', // en-fallback
-  'journey.studio.namePlaceholder': 'Name your book', // en-fallback
   'journey.studio.format': 'Page format', // en-fallback
   'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
   'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
@@ -320,7 +318,7 @@ const journey: TranslationStrings = {
   'journey.studio.addStory': 'Story', // en-fallback
   'journey.studio.addPlace': 'Place', // en-fallback
   'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'Picture frames', // en-fallback
+  'journey.studio.frames': 'Πλαίσια', // en-fallback
   'journey.studio.emptyFrame': 'Empty frame', // en-fallback
   'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
   'journey.studio.shapeKind.line': 'Line', // en-fallback
@@ -351,5 +349,98 @@ const journey: TranslationStrings = {
   'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
   'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
   'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.travel': 'Ταξίδι',
+  'journey.studio.travelEmpty': 'Τα στοιχεία αυτού του ταξιδιού δεν είναι ακόμη έτοιμα.',
+  'journey.studio.grids': 'Πλέγματα',
+  'journey.studio.gridHint': 'Ένα πλέγμα τοποθετεί μπλοκ κενών πλαισίων. Σύρετε πάνω τους φωτογραφίες από το Περιεχόμενο.',
+  'journey.studio.lines': 'Γραμμές',
+  'journey.studio.frameStyles': 'Στυλ πλαισίου',
+  'journey.studio.frameShapes': 'Σχήματα πλαισίου',
+  'journey.studio.plainFrame': 'Απλό',
+  'journey.studio.polaroidFrame': 'Polaroid',
+  'journey.studio.whiteFrame': 'Λευκό περιθώριο',
+  'journey.studio.shadowFrame': 'Σκιά',
+  'journey.studio.filmFrame': 'Φιλμ',
+  'journey.studio.tapeFrame': 'Με ταινία',
+  'journey.studio.shapeGroup.basic': 'Βασικά',
+  'journey.studio.shapeGroup.polygons': 'Πολύγωνα',
+  'journey.studio.shapeGroup.stars': 'Αστέρια',
+  'journey.studio.shapeGroup.arrows': 'Βέλη',
+  'journey.studio.shapeGroup.speech': 'Συννεφάκια',
+  'journey.studio.shapeGroup.travel': 'Ταξίδι',
+  'journey.studio.shapeGroup.decor': 'Διακόσμηση',
+  'journey.studio.shapeGroup.banners': 'Πανό',
+  'journey.studio.summary': 'Σύνοψη',
+  'journey.studio.tripSummary': 'Σύνοψη ταξιδιού',
+  'journey.studio.statsRow': 'Μία σειρά',
+  'journey.studio.statsFull': 'Όλα',
+  'journey.studio.routeMap': 'Χάρτης διαδρομής',
+  'journey.studio.mapStyle.minimal': 'Ελάχιστο',
+  'journey.studio.mapStyle.outline': 'Περίγραμμα',
+  'journey.studio.mapStyle.paper': 'Χαρτί',
+  'journey.studio.mapStyle.dark': 'Σκούρο',
+  'journey.studio.countries': 'Χώρες',
+  'journey.studio.countryList': 'Λίστα χωρών',
+  'journey.studio.countryGrid': 'Πλέγμα χωρών',
+  'journey.studio.noCountries': 'Δεν έχουν προσδιοριστεί ακόμη χώρες για αυτό το ταξίδι.',
+  'journey.studio.noRoute': 'Δεν υπάρχουν ακόμη στάσεις με συντεταγμένες.',
+  'journey.studio.marks': 'Σημάνσεις',
+  'journey.studio.dateMark': 'Ημερομηνία',
+  'journey.studio.dayMark': 'Μετρητής ημερών',
+  'journey.studio.dayWord': 'ΗΜΕΡΑ',
+  'journey.studio.coordsMark': 'Συντεταγμένες',
+  'journey.studio.flagMark': 'Σημαία',
+  'journey.studio.distanceMark': 'Απόσταση',
+  'journey.studio.metric.distance': 'Απόσταση',
+  'journey.studio.metric.days': 'Ημέρες',
+  'journey.studio.metric.steps': 'Στάσεις',
+  'journey.studio.metric.photos': 'Φωτογραφίες',
+  'journey.studio.metric.countries': 'Χώρες',
+  'journey.studio.metric.places': 'Τοποθεσίες',
+  'journey.studio.metric.furthest': 'Πιο μακριά',
+  'journey.studio.kind.map': 'Χάρτης',
+  'journey.studio.kind.stats': 'Στοιχεία',
+  'journey.studio.kind.countries': 'Χώρες',
+  'journey.studio.kind.badge': 'Σήμανση',
+  'journey.studio.mask': 'Κοπή σε σχήμα',
+  'journey.studio.maskNone': 'Κανένα',
+  'journey.studio.frameStyle': 'Πλαίσιο',
+  'journey.studio.mapLayers': 'Επίπεδα',
+  'journey.studio.showLand': 'Χώρες',
+  'journey.studio.showRoute': 'Διαδρομή',
+  'journey.studio.showPins': 'Στάσεις',
+  'journey.studio.showLabels': 'Ετικέτες',
+  'journey.studio.units': 'Μονάδες',
+  'journey.studio.metrics': 'Στοιχεία',
+  'journey.studio.layout': 'Διάταξη',
+  'journey.studio.layoutGrid': 'Πλέγμα',
+  'journey.studio.layoutRow': 'Σειρά',
+  'journey.studio.layoutColumn': 'Στήλη',
+  'journey.studio.layoutList': 'Λίστα',
+  'journey.studio.showOutline': 'Περιγράμματα',
+  'journey.studio.showFlag': 'Σημαίες',
+  'journey.studio.showName': 'Ονόματα',
+  'journey.studio.textScale': 'Μέγεθος κειμένου',
+  'journey.studio.accent': 'Τόνος',
+  'journey.studio.refresh': 'Ενημέρωση από το ταξίδι',
+  'journey.studio.staleHint': 'Το ταξίδι άλλαξε από τότε που πάρθηκαν αυτά τα στοιχεία.',
+  'journey.studio.align': 'Στοίχιση',
+  'journey.studio.filter.cool': 'Ψυχρό',
+  'journey.studio.filter.fade': 'Ξεθωριασμένο',
+  'journey.studio.filter.contrast': 'Έντονο',
+  'journey.studio.strokeStyle': 'Περίγραμμα',
+  'journey.studio.strokeSolid': 'Συμπαγές',
+  'journey.studio.strokeDashed': 'Διακεκομμένο',
+  'journey.studio.strokeDotted': 'Με τελείες',
+  'journey.studio.singleFigures': 'Μεμονωμένα στοιχεία',
+  'journey.studio.addPage': 'Προσθήκη σελίδας',
+  'journey.studio.addPageAfter': 'Εισαγωγή σελίδας μετά',
+  'journey.studio.duplicatePage': 'Διπλασιασμός σελίδας',
+  'journey.studio.deletePage': 'Διαγραφή σελίδας',
+  'journey.studio.movePageUp': 'Μετακίνηση νωρίτερα',
+  'journey.studio.movePageDown': 'Μετακίνηση αργότερα',
+  'journey.studio.beta': 'Beta',
+  'journey.studio.addProsCons': 'Υπέρ & Κατά',
+  'journey.studio.showMarks': 'Σήματα',
 };
 export default journey;

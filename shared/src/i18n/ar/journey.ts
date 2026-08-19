@@ -247,8 +247,6 @@ const journey: TranslationStrings = {
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.bookName': 'Book name', // en-fallback
-  'journey.studio.namePlaceholder': 'Name your book', // en-fallback
   'journey.studio.format': 'Page format', // en-fallback
   'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
   'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
@@ -317,7 +315,7 @@ const journey: TranslationStrings = {
   'journey.studio.addStory': 'Story', // en-fallback
   'journey.studio.addPlace': 'Place', // en-fallback
   'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'Picture frames', // en-fallback
+  'journey.studio.frames': 'إطارات', // en-fallback
   'journey.studio.emptyFrame': 'Empty frame', // en-fallback
   'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
   'journey.studio.shapeKind.line': 'Line', // en-fallback
@@ -348,5 +346,98 @@ const journey: TranslationStrings = {
   'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
   'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
   'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.travel': 'الرحلة',
+  'journey.studio.travelEmpty': 'أرقام هذه الرحلة ليست جاهزة بعد.',
+  'journey.studio.grids': 'الشبكات',
+  'journey.studio.gridHint': 'تضع الشبكة مجموعة من الإطارات الفارغة. اسحب الصور إليها من المحتوى.',
+  'journey.studio.lines': 'الخطوط',
+  'journey.studio.frameStyles': 'أنماط الإطار',
+  'journey.studio.frameShapes': 'أشكال الإطار',
+  'journey.studio.plainFrame': 'بسيط',
+  'journey.studio.polaroidFrame': 'بولارويد',
+  'journey.studio.whiteFrame': 'حافة بيضاء',
+  'journey.studio.shadowFrame': 'ظل',
+  'journey.studio.filmFrame': 'فيلم',
+  'journey.studio.tapeFrame': 'بشريط لاصق',
+  'journey.studio.shapeGroup.basic': 'أساسية',
+  'journey.studio.shapeGroup.polygons': 'مضلعات',
+  'journey.studio.shapeGroup.stars': 'نجوم',
+  'journey.studio.shapeGroup.arrows': 'أسهم',
+  'journey.studio.shapeGroup.speech': 'فقاعات كلام',
+  'journey.studio.shapeGroup.travel': 'سفر',
+  'journey.studio.shapeGroup.decor': 'زخرفة',
+  'journey.studio.shapeGroup.banners': 'لافتات',
+  'journey.studio.summary': 'الملخص',
+  'journey.studio.tripSummary': 'ملخص الرحلة',
+  'journey.studio.statsRow': 'صف واحد',
+  'journey.studio.statsFull': 'كل شيء',
+  'journey.studio.routeMap': 'خريطة المسار',
+  'journey.studio.mapStyle.minimal': 'بسيط',
+  'journey.studio.mapStyle.outline': 'مخطط',
+  'journey.studio.mapStyle.paper': 'ورقي',
+  'journey.studio.mapStyle.dark': 'داكن',
+  'journey.studio.countries': 'الدول',
+  'journey.studio.countryList': 'قائمة الدول',
+  'journey.studio.countryGrid': 'شبكة الدول',
+  'journey.studio.noCountries': 'لم تُحدَّد دول لهذه الرحلة بعد.',
+  'journey.studio.noRoute': 'لا توجد محطات بإحداثيات بعد.',
+  'journey.studio.marks': 'العلامات',
+  'journey.studio.dateMark': 'التاريخ',
+  'journey.studio.dayMark': 'عدّاد الأيام',
+  'journey.studio.dayWord': 'اليوم',
+  'journey.studio.coordsMark': 'الإحداثيات',
+  'journey.studio.flagMark': 'العلم',
+  'journey.studio.distanceMark': 'المسافة',
+  'journey.studio.metric.distance': 'المسافة',
+  'journey.studio.metric.days': 'الأيام',
+  'journey.studio.metric.steps': 'المحطات',
+  'journey.studio.metric.photos': 'الصور',
+  'journey.studio.metric.countries': 'الدول',
+  'journey.studio.metric.places': 'الأماكن',
+  'journey.studio.metric.furthest': 'الأبعد',
+  'journey.studio.kind.map': 'خريطة',
+  'journey.studio.kind.stats': 'أرقام',
+  'journey.studio.kind.countries': 'دول',
+  'journey.studio.kind.badge': 'علامة',
+  'journey.studio.mask': 'قص حسب الشكل',
+  'journey.studio.maskNone': 'بدون',
+  'journey.studio.frameStyle': 'إطار',
+  'journey.studio.mapLayers': 'الطبقات',
+  'journey.studio.showLand': 'الدول',
+  'journey.studio.showRoute': 'المسار',
+  'journey.studio.showPins': 'المحطات',
+  'journey.studio.showLabels': 'التسميات',
+  'journey.studio.units': 'الوحدات',
+  'journey.studio.metrics': 'الأرقام',
+  'journey.studio.layout': 'التخطيط',
+  'journey.studio.layoutGrid': 'شبكة',
+  'journey.studio.layoutRow': 'صف',
+  'journey.studio.layoutColumn': 'عمود',
+  'journey.studio.layoutList': 'قائمة',
+  'journey.studio.showOutline': 'المخططات',
+  'journey.studio.showFlag': 'الأعلام',
+  'journey.studio.showName': 'الأسماء',
+  'journey.studio.textScale': 'حجم النص',
+  'journey.studio.accent': 'لون التمييز',
+  'journey.studio.refresh': 'تحديث من الرحلة',
+  'journey.studio.staleHint': 'تغيّرت الرحلة منذ أن أُخذت هذه الأرقام.',
+  'journey.studio.align': 'المحاذاة',
+  'journey.studio.filter.cool': 'بارد',
+  'journey.studio.filter.fade': 'باهت',
+  'journey.studio.filter.contrast': 'قوي',
+  'journey.studio.strokeStyle': 'الحد',
+  'journey.studio.strokeSolid': 'متصل',
+  'journey.studio.strokeDashed': 'متقطع',
+  'journey.studio.strokeDotted': 'منقّط',
+  'journey.studio.singleFigures': 'أرقام مفردة',
+  'journey.studio.addPage': 'إضافة صفحة',
+  'journey.studio.addPageAfter': 'إدراج صفحة بعد هذه',
+  'journey.studio.duplicatePage': 'تكرار الصفحة',
+  'journey.studio.deletePage': 'حذف الصفحة',
+  'journey.studio.movePageUp': 'نقل للأمام',
+  'journey.studio.movePageDown': 'نقل للخلف',
+  'journey.studio.beta': 'Beta',
+  'journey.studio.addProsCons': 'Pros & Cons',
+  'journey.studio.showMarks': 'علامات',
 };
 export default journey;

@@ -248,8 +248,6 @@ const journey: TranslationStrings = {
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.bookName': 'Book name', // en-fallback
-  'journey.studio.namePlaceholder': 'Name your book', // en-fallback
   'journey.studio.format': 'Page format', // en-fallback
   'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
   'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
@@ -318,7 +316,7 @@ const journey: TranslationStrings = {
   'journey.studio.addStory': 'Story', // en-fallback
   'journey.studio.addPlace': 'Place', // en-fallback
   'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'Picture frames', // en-fallback
+  'journey.studio.frames': 'Рамки', // en-fallback
   'journey.studio.emptyFrame': 'Empty frame', // en-fallback
   'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
   'journey.studio.shapeKind.line': 'Line', // en-fallback
@@ -349,5 +347,98 @@ const journey: TranslationStrings = {
   'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
   'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
   'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.travel': 'Путешествие',
+  'journey.studio.travelEmpty': 'Данные этого путешествия ещё не готовы.',
+  'journey.studio.grids': 'Сетки',
+  'journey.studio.gridHint': 'Сетка добавляет блок пустых рамок. Перетащите на них фото из «Содержимого».',
+  'journey.studio.lines': 'Линии',
+  'journey.studio.frameStyles': 'Стили рамки',
+  'journey.studio.frameShapes': 'Формы рамки',
+  'journey.studio.plainFrame': 'Простая',
+  'journey.studio.polaroidFrame': 'Полароид',
+  'journey.studio.whiteFrame': 'Белое поле',
+  'journey.studio.shadowFrame': 'Тень',
+  'journey.studio.filmFrame': 'Плёнка',
+  'journey.studio.tapeFrame': 'На скотче',
+  'journey.studio.shapeGroup.basic': 'Основные',
+  'journey.studio.shapeGroup.polygons': 'Многоугольники',
+  'journey.studio.shapeGroup.stars': 'Звёзды',
+  'journey.studio.shapeGroup.arrows': 'Стрелки',
+  'journey.studio.shapeGroup.speech': 'Выноски',
+  'journey.studio.shapeGroup.travel': 'Путешествие',
+  'journey.studio.shapeGroup.decor': 'Украшения',
+  'journey.studio.shapeGroup.banners': 'Ленты',
+  'journey.studio.summary': 'Сводка',
+  'journey.studio.tripSummary': 'Сводка поездки',
+  'journey.studio.statsRow': 'Одна строка',
+  'journey.studio.statsFull': 'Всё',
+  'journey.studio.routeMap': 'Карта маршрута',
+  'journey.studio.mapStyle.minimal': 'Минимальная',
+  'journey.studio.mapStyle.outline': 'Контур',
+  'journey.studio.mapStyle.paper': 'Бумага',
+  'journey.studio.mapStyle.dark': 'Тёмная',
+  'journey.studio.countries': 'Страны',
+  'journey.studio.countryList': 'Список стран',
+  'journey.studio.countryGrid': 'Сетка стран',
+  'journey.studio.noCountries': 'Для этого путешествия страны пока не определены.',
+  'journey.studio.noRoute': 'Пока нет точек с координатами.',
+  'journey.studio.marks': 'Метки',
+  'journey.studio.dateMark': 'Дата',
+  'journey.studio.dayMark': 'Счётчик дней',
+  'journey.studio.dayWord': 'ДЕНЬ',
+  'journey.studio.coordsMark': 'Координаты',
+  'journey.studio.flagMark': 'Флаг',
+  'journey.studio.distanceMark': 'Расстояние',
+  'journey.studio.metric.distance': 'Расстояние',
+  'journey.studio.metric.days': 'Дни',
+  'journey.studio.metric.steps': 'Точки',
+  'journey.studio.metric.photos': 'Фото',
+  'journey.studio.metric.countries': 'Страны',
+  'journey.studio.metric.places': 'Места',
+  'journey.studio.metric.furthest': 'Дальше всего',
+  'journey.studio.kind.map': 'Карта',
+  'journey.studio.kind.stats': 'Числа',
+  'journey.studio.kind.countries': 'Страны',
+  'journey.studio.kind.badge': 'Метка',
+  'journey.studio.mask': 'Обрезать по форме',
+  'journey.studio.maskNone': 'Нет',
+  'journey.studio.frameStyle': 'Рамка',
+  'journey.studio.mapLayers': 'Слои',
+  'journey.studio.showLand': 'Страны',
+  'journey.studio.showRoute': 'Маршрут',
+  'journey.studio.showPins': 'Точки',
+  'journey.studio.showLabels': 'Подписи',
+  'journey.studio.units': 'Единицы',
+  'journey.studio.metrics': 'Числа',
+  'journey.studio.layout': 'Расположение',
+  'journey.studio.layoutGrid': 'Сетка',
+  'journey.studio.layoutRow': 'Строка',
+  'journey.studio.layoutColumn': 'Столбец',
+  'journey.studio.layoutList': 'Список',
+  'journey.studio.showOutline': 'Контуры',
+  'journey.studio.showFlag': 'Флаги',
+  'journey.studio.showName': 'Названия',
+  'journey.studio.textScale': 'Размер текста',
+  'journey.studio.accent': 'Акцент',
+  'journey.studio.refresh': 'Обновить из путешествия',
+  'journey.studio.staleHint': 'Путешествие изменилось с тех пор, как эти данные были получены.',
+  'journey.studio.align': 'Выравнивание',
+  'journey.studio.filter.cool': 'Холодный',
+  'journey.studio.filter.fade': 'Выцветший',
+  'journey.studio.filter.contrast': 'Контрастный',
+  'journey.studio.strokeStyle': 'Обводка',
+  'journey.studio.strokeSolid': 'Сплошная',
+  'journey.studio.strokeDashed': 'Штриховая',
+  'journey.studio.strokeDotted': 'Пунктирная',
+  'journey.studio.singleFigures': 'Отдельные числа',
+  'journey.studio.addPage': 'Добавить разворот',
+  'journey.studio.addPageAfter': 'Вставить разворот после',
+  'journey.studio.duplicatePage': 'Дублировать разворот',
+  'journey.studio.deletePage': 'Удалить разворот',
+  'journey.studio.movePageUp': 'Переместить раньше',
+  'journey.studio.movePageDown': 'Переместить позже',
+  'journey.studio.beta': 'Beta',
+  'journey.studio.addProsCons': 'Плюсы и минусы',
+  'journey.studio.showMarks': 'Знаки',
 };
 export default journey;

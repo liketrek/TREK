@@ -248,8 +248,6 @@ const journey: TranslationStrings = {
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.bookName': 'Book name', // en-fallback
-  'journey.studio.namePlaceholder': 'Name your book', // en-fallback
   'journey.studio.format': 'Page format', // en-fallback
   'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
   'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
@@ -318,7 +316,7 @@ const journey: TranslationStrings = {
   'journey.studio.addStory': 'Story', // en-fallback
   'journey.studio.addPlace': 'Place', // en-fallback
   'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'Picture frames', // en-fallback
+  'journey.studio.frames': '프레임', // en-fallback
   'journey.studio.emptyFrame': 'Empty frame', // en-fallback
   'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
   'journey.studio.shapeKind.line': 'Line', // en-fallback
@@ -349,5 +347,98 @@ const journey: TranslationStrings = {
   'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
   'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
   'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.travel': '여행',
+  'journey.studio.travelEmpty': '이 여정의 수치가 아직 준비되지 않았습니다.',
+  'journey.studio.grids': '그리드',
+  'journey.studio.gridHint': '그리드는 빈 프레임 묶음을 놓습니다. 콘텐츠에서 사진을 끌어다 놓으세요.',
+  'journey.studio.lines': '선',
+  'journey.studio.frameStyles': '프레임 스타일',
+  'journey.studio.frameShapes': '프레임 모양',
+  'journey.studio.plainFrame': '기본',
+  'journey.studio.polaroidFrame': '폴라로이드',
+  'journey.studio.whiteFrame': '흰 테두리',
+  'journey.studio.shadowFrame': '그림자',
+  'journey.studio.filmFrame': '필름',
+  'journey.studio.tapeFrame': '테이프',
+  'journey.studio.shapeGroup.basic': '기본 도형',
+  'journey.studio.shapeGroup.polygons': '다각형',
+  'journey.studio.shapeGroup.stars': '별',
+  'journey.studio.shapeGroup.arrows': '화살표',
+  'journey.studio.shapeGroup.speech': '말풍선',
+  'journey.studio.shapeGroup.travel': '여행',
+  'journey.studio.shapeGroup.decor': '장식',
+  'journey.studio.shapeGroup.banners': '배너',
+  'journey.studio.summary': '요약',
+  'journey.studio.tripSummary': '여행 요약',
+  'journey.studio.statsRow': '한 줄',
+  'journey.studio.statsFull': '전체',
+  'journey.studio.routeMap': '경로 지도',
+  'journey.studio.mapStyle.minimal': '미니멀',
+  'journey.studio.mapStyle.outline': '윤곽선',
+  'journey.studio.mapStyle.paper': '종이',
+  'journey.studio.mapStyle.dark': '다크',
+  'journey.studio.countries': '국가',
+  'journey.studio.countryList': '국가 목록',
+  'journey.studio.countryGrid': '국가 그리드',
+  'journey.studio.noCountries': '이 여정의 국가가 아직 확인되지 않았습니다.',
+  'journey.studio.noRoute': '좌표가 있는 지점이 아직 없습니다.',
+  'journey.studio.marks': '표시',
+  'journey.studio.dateMark': '날짜',
+  'journey.studio.dayMark': '일수 카운터',
+  'journey.studio.dayWord': 'DAY',
+  'journey.studio.coordsMark': '좌표',
+  'journey.studio.flagMark': '국기',
+  'journey.studio.distanceMark': '거리',
+  'journey.studio.metric.distance': '거리',
+  'journey.studio.metric.days': '일수',
+  'journey.studio.metric.steps': '지점',
+  'journey.studio.metric.photos': '사진',
+  'journey.studio.metric.countries': '국가',
+  'journey.studio.metric.places': '장소',
+  'journey.studio.metric.furthest': '최장 거리',
+  'journey.studio.kind.map': '지도',
+  'journey.studio.kind.stats': '수치',
+  'journey.studio.kind.countries': '국가',
+  'journey.studio.kind.badge': '표시',
+  'journey.studio.mask': '모양으로 자르기',
+  'journey.studio.maskNone': '없음',
+  'journey.studio.frameStyle': '프레임',
+  'journey.studio.mapLayers': '레이어',
+  'journey.studio.showLand': '국가',
+  'journey.studio.showRoute': '경로',
+  'journey.studio.showPins': '지점',
+  'journey.studio.showLabels': '레이블',
+  'journey.studio.units': '단위',
+  'journey.studio.metrics': '수치',
+  'journey.studio.layout': '배치',
+  'journey.studio.layoutGrid': '그리드',
+  'journey.studio.layoutRow': '행',
+  'journey.studio.layoutColumn': '열',
+  'journey.studio.layoutList': '목록',
+  'journey.studio.showOutline': '윤곽선',
+  'journey.studio.showFlag': '국기',
+  'journey.studio.showName': '이름',
+  'journey.studio.textScale': '글자 크기',
+  'journey.studio.accent': '강조색',
+  'journey.studio.refresh': '여정에서 업데이트',
+  'journey.studio.staleHint': '이 수치를 가져온 뒤로 여정이 바뀌었습니다.',
+  'journey.studio.align': '정렬',
+  'journey.studio.filter.cool': '쿨',
+  'journey.studio.filter.fade': '바랜 색',
+  'journey.studio.filter.contrast': '강한 대비',
+  'journey.studio.strokeStyle': '선',
+  'journey.studio.strokeSolid': '실선',
+  'journey.studio.strokeDashed': '파선',
+  'journey.studio.strokeDotted': '점선',
+  'journey.studio.singleFigures': '개별 수치',
+  'journey.studio.addPage': '페이지 추가',
+  'journey.studio.addPageAfter': '뒤에 페이지 삽입',
+  'journey.studio.duplicatePage': '페이지 복제',
+  'journey.studio.deletePage': '페이지 삭제',
+  'journey.studio.movePageUp': '앞으로 이동',
+  'journey.studio.movePageDown': '뒤로 이동',
+  'journey.studio.beta': 'Beta',
+  'journey.studio.addProsCons': '장단점',
+  'journey.studio.showMarks': '기호',
 };
 export default journey;

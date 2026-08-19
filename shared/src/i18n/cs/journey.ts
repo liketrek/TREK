@@ -248,8 +248,6 @@ const journey: TranslationStrings = {
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.bookName': 'Book name', // en-fallback
-  'journey.studio.namePlaceholder': 'Name your book', // en-fallback
   'journey.studio.format': 'Page format', // en-fallback
   'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
   'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
@@ -318,7 +316,7 @@ const journey: TranslationStrings = {
   'journey.studio.addStory': 'Story', // en-fallback
   'journey.studio.addPlace': 'Place', // en-fallback
   'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'Picture frames', // en-fallback
+  'journey.studio.frames': 'Rámečky', // en-fallback
   'journey.studio.emptyFrame': 'Empty frame', // en-fallback
   'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
   'journey.studio.shapeKind.line': 'Line', // en-fallback
@@ -349,5 +347,98 @@ const journey: TranslationStrings = {
   'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
   'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
   'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.travel': 'Cesta',
+  'journey.studio.travelEmpty': 'Čísla této cesty zatím nejsou připravená.',
+  'journey.studio.grids': 'Mřížky',
+  'journey.studio.gridHint': 'Mřížka vloží blok prázdných rámečků. Přetáhněte na ně fotky z Obsahu.',
+  'journey.studio.lines': 'Čáry',
+  'journey.studio.frameStyles': 'Styly rámečku',
+  'journey.studio.frameShapes': 'Tvary rámečku',
+  'journey.studio.plainFrame': 'Jednoduchý',
+  'journey.studio.polaroidFrame': 'Polaroid',
+  'journey.studio.whiteFrame': 'Bílý okraj',
+  'journey.studio.shadowFrame': 'Vržený stín',
+  'journey.studio.filmFrame': 'Film',
+  'journey.studio.tapeFrame': 'Přelepený',
+  'journey.studio.shapeGroup.basic': 'Základní',
+  'journey.studio.shapeGroup.polygons': 'Mnohoúhelníky',
+  'journey.studio.shapeGroup.stars': 'Hvězdy',
+  'journey.studio.shapeGroup.arrows': 'Šipky',
+  'journey.studio.shapeGroup.speech': 'Bubliny',
+  'journey.studio.shapeGroup.travel': 'Cestování',
+  'journey.studio.shapeGroup.decor': 'Dekorace',
+  'journey.studio.shapeGroup.banners': 'Bannery',
+  'journey.studio.summary': 'Přehled',
+  'journey.studio.tripSummary': 'Přehled cesty',
+  'journey.studio.statsRow': 'Jeden řádek',
+  'journey.studio.statsFull': 'Vše',
+  'journey.studio.routeMap': 'Mapa trasy',
+  'journey.studio.mapStyle.minimal': 'Minimální',
+  'journey.studio.mapStyle.outline': 'Obrys',
+  'journey.studio.mapStyle.paper': 'Papír',
+  'journey.studio.mapStyle.dark': 'Tmavá',
+  'journey.studio.countries': 'Země',
+  'journey.studio.countryList': 'Seznam zemí',
+  'journey.studio.countryGrid': 'Mřížka zemí',
+  'journey.studio.noCountries': 'Pro tuto cestu zatím nebyly určeny žádné země.',
+  'journey.studio.noRoute': 'Zatím žádné zastávky se souřadnicemi.',
+  'journey.studio.marks': 'Značky',
+  'journey.studio.dateMark': 'Datum',
+  'journey.studio.dayMark': 'Počítadlo dní',
+  'journey.studio.dayWord': 'DEN',
+  'journey.studio.coordsMark': 'Souřadnice',
+  'journey.studio.flagMark': 'Vlajka',
+  'journey.studio.distanceMark': 'Vzdálenost',
+  'journey.studio.metric.distance': 'Vzdálenost',
+  'journey.studio.metric.days': 'Dny',
+  'journey.studio.metric.steps': 'Zastávky',
+  'journey.studio.metric.photos': 'Fotky',
+  'journey.studio.metric.countries': 'Země',
+  'journey.studio.metric.places': 'Místa',
+  'journey.studio.metric.furthest': 'Nejdále',
+  'journey.studio.kind.map': 'Mapa',
+  'journey.studio.kind.stats': 'Čísla',
+  'journey.studio.kind.countries': 'Země',
+  'journey.studio.kind.badge': 'Značka',
+  'journey.studio.mask': 'Oříznout do tvaru',
+  'journey.studio.maskNone': 'Žádný',
+  'journey.studio.frameStyle': 'Rámeček',
+  'journey.studio.mapLayers': 'Vrstvy',
+  'journey.studio.showLand': 'Země',
+  'journey.studio.showRoute': 'Trasa',
+  'journey.studio.showPins': 'Zastávky',
+  'journey.studio.showLabels': 'Popisky',
+  'journey.studio.units': 'Jednotky',
+  'journey.studio.metrics': 'Čísla',
+  'journey.studio.layout': 'Rozvržení',
+  'journey.studio.layoutGrid': 'Mřížka',
+  'journey.studio.layoutRow': 'Řádek',
+  'journey.studio.layoutColumn': 'Sloupec',
+  'journey.studio.layoutList': 'Seznam',
+  'journey.studio.showOutline': 'Obrysy',
+  'journey.studio.showFlag': 'Vlajky',
+  'journey.studio.showName': 'Názvy',
+  'journey.studio.textScale': 'Velikost písma',
+  'journey.studio.accent': 'Akcent',
+  'journey.studio.refresh': 'Aktualizovat z cesty',
+  'journey.studio.staleHint': 'Cesta se od pořízení těchto čísel změnila.',
+  'journey.studio.align': 'Zarovnání',
+  'journey.studio.filter.cool': 'Studený',
+  'journey.studio.filter.fade': 'Vybledlý',
+  'journey.studio.filter.contrast': 'Výrazný',
+  'journey.studio.strokeStyle': 'Tah',
+  'journey.studio.strokeSolid': 'Plný',
+  'journey.studio.strokeDashed': 'Čárkovaný',
+  'journey.studio.strokeDotted': 'Tečkovaný',
+  'journey.studio.singleFigures': 'Jednotlivá čísla',
+  'journey.studio.addPage': 'Přidat stranu',
+  'journey.studio.addPageAfter': 'Vložit stranu za tuto',
+  'journey.studio.duplicatePage': 'Duplikovat stranu',
+  'journey.studio.deletePage': 'Smazat stranu',
+  'journey.studio.movePageUp': 'Posunout dopředu',
+  'journey.studio.movePageDown': 'Posunout dozadu',
+  'journey.studio.beta': 'Beta',
+  'journey.studio.addProsCons': 'Klady a zápory',
+  'journey.studio.showMarks': 'Značky',
 };
 export default journey;

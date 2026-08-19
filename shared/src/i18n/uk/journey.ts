@@ -249,8 +249,6 @@ const journey: TranslationStrings = {
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.bookName': 'Book name', // en-fallback
-  'journey.studio.namePlaceholder': 'Name your book', // en-fallback
   'journey.studio.format': 'Page format', // en-fallback
   'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
   'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
@@ -319,7 +317,7 @@ const journey: TranslationStrings = {
   'journey.studio.addStory': 'Story', // en-fallback
   'journey.studio.addPlace': 'Place', // en-fallback
   'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'Picture frames', // en-fallback
+  'journey.studio.frames': 'Рамки', // en-fallback
   'journey.studio.emptyFrame': 'Empty frame', // en-fallback
   'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
   'journey.studio.shapeKind.line': 'Line', // en-fallback
@@ -350,5 +348,98 @@ const journey: TranslationStrings = {
   'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
   'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
   'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.travel': 'Подорож',
+  'journey.studio.travelEmpty': 'Дані цієї подорожі ще не готові.',
+  'journey.studio.grids': 'Сітки',
+  'journey.studio.gridHint': 'Сітка додає блок порожніх рамок. Перетягніть на них фото зі «Вмісту».',
+  'journey.studio.lines': 'Лінії',
+  'journey.studio.frameStyles': 'Стилі рамки',
+  'journey.studio.frameShapes': 'Форми рамки',
+  'journey.studio.plainFrame': 'Проста',
+  'journey.studio.polaroidFrame': 'Полароїд',
+  'journey.studio.whiteFrame': 'Біле поле',
+  'journey.studio.shadowFrame': 'Тінь',
+  'journey.studio.filmFrame': 'Плівка',
+  'journey.studio.tapeFrame': 'На скотчі',
+  'journey.studio.shapeGroup.basic': 'Основні',
+  'journey.studio.shapeGroup.polygons': 'Багатокутники',
+  'journey.studio.shapeGroup.stars': 'Зірки',
+  'journey.studio.shapeGroup.arrows': 'Стрілки',
+  'journey.studio.shapeGroup.speech': 'Виноски',
+  'journey.studio.shapeGroup.travel': 'Подорож',
+  'journey.studio.shapeGroup.decor': 'Оздоблення',
+  'journey.studio.shapeGroup.banners': 'Стрічки',
+  'journey.studio.summary': 'Підсумок',
+  'journey.studio.tripSummary': 'Підсумок подорожі',
+  'journey.studio.statsRow': 'Один рядок',
+  'journey.studio.statsFull': 'Усе',
+  'journey.studio.routeMap': 'Карта маршруту',
+  'journey.studio.mapStyle.minimal': 'Мінімальна',
+  'journey.studio.mapStyle.outline': 'Контур',
+  'journey.studio.mapStyle.paper': 'Папір',
+  'journey.studio.mapStyle.dark': 'Темна',
+  'journey.studio.countries': 'Країни',
+  'journey.studio.countryList': 'Список країн',
+  'journey.studio.countryGrid': 'Сітка країн',
+  'journey.studio.noCountries': 'Для цієї подорожі країни ще не визначено.',
+  'journey.studio.noRoute': 'Ще немає зупинок із координатами.',
+  'journey.studio.marks': 'Позначки',
+  'journey.studio.dateMark': 'Дата',
+  'journey.studio.dayMark': 'Лічильник днів',
+  'journey.studio.dayWord': 'ДЕНЬ',
+  'journey.studio.coordsMark': 'Координати',
+  'journey.studio.flagMark': 'Прапор',
+  'journey.studio.distanceMark': 'Відстань',
+  'journey.studio.metric.distance': 'Відстань',
+  'journey.studio.metric.days': 'Дні',
+  'journey.studio.metric.steps': 'Зупинки',
+  'journey.studio.metric.photos': 'Фото',
+  'journey.studio.metric.countries': 'Країни',
+  'journey.studio.metric.places': 'Місця',
+  'journey.studio.metric.furthest': 'Найдалі',
+  'journey.studio.kind.map': 'Карта',
+  'journey.studio.kind.stats': 'Числа',
+  'journey.studio.kind.countries': 'Країни',
+  'journey.studio.kind.badge': 'Позначка',
+  'journey.studio.mask': 'Обрізати за формою',
+  'journey.studio.maskNone': 'Немає',
+  'journey.studio.frameStyle': 'Рамка',
+  'journey.studio.mapLayers': 'Шари',
+  'journey.studio.showLand': 'Країни',
+  'journey.studio.showRoute': 'Маршрут',
+  'journey.studio.showPins': 'Зупинки',
+  'journey.studio.showLabels': 'Підписи',
+  'journey.studio.units': 'Одиниці',
+  'journey.studio.metrics': 'Числа',
+  'journey.studio.layout': 'Розташування',
+  'journey.studio.layoutGrid': 'Сітка',
+  'journey.studio.layoutRow': 'Рядок',
+  'journey.studio.layoutColumn': 'Стовпець',
+  'journey.studio.layoutList': 'Список',
+  'journey.studio.showOutline': 'Контури',
+  'journey.studio.showFlag': 'Прапори',
+  'journey.studio.showName': 'Назви',
+  'journey.studio.textScale': 'Розмір тексту',
+  'journey.studio.accent': 'Акцент',
+  'journey.studio.refresh': 'Оновити з подорожі',
+  'journey.studio.staleHint': 'Подорож змінилася відтоді, як ці дані було отримано.',
+  'journey.studio.align': 'Вирівнювання',
+  'journey.studio.filter.cool': 'Холодний',
+  'journey.studio.filter.fade': 'Вицвілий',
+  'journey.studio.filter.contrast': 'Контрастний',
+  'journey.studio.strokeStyle': 'Обведення',
+  'journey.studio.strokeSolid': 'Суцільна',
+  'journey.studio.strokeDashed': 'Штрихова',
+  'journey.studio.strokeDotted': 'Пунктирна',
+  'journey.studio.singleFigures': 'Окремі числа',
+  'journey.studio.addPage': 'Додати розворот',
+  'journey.studio.addPageAfter': 'Вставити розворот після',
+  'journey.studio.duplicatePage': 'Дублювати розворот',
+  'journey.studio.deletePage': 'Видалити розворот',
+  'journey.studio.movePageUp': 'Перемістити раніше',
+  'journey.studio.movePageDown': 'Перемістити пізніше',
+  'journey.studio.beta': 'Beta',
+  'journey.studio.addProsCons': 'Плюси й мінуси',
+  'journey.studio.showMarks': 'Знаки',
 };
 export default journey;

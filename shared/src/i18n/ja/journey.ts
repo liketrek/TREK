@@ -249,8 +249,6 @@ const journey: TranslationStrings = {
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.bookName': 'Book name', // en-fallback
-  'journey.studio.namePlaceholder': 'Name your book', // en-fallback
   'journey.studio.format': 'Page format', // en-fallback
   'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
   'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
@@ -319,7 +317,7 @@ const journey: TranslationStrings = {
   'journey.studio.addStory': 'Story', // en-fallback
   'journey.studio.addPlace': 'Place', // en-fallback
   'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'Picture frames', // en-fallback
+  'journey.studio.frames': 'フレーム', // en-fallback
   'journey.studio.emptyFrame': 'Empty frame', // en-fallback
   'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
   'journey.studio.shapeKind.line': 'Line', // en-fallback
@@ -350,5 +348,98 @@ const journey: TranslationStrings = {
   'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
   'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
   'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.travel': '旅',
+  'journey.studio.travelEmpty': 'この旅の数値はまだ準備できていません。',
+  'journey.studio.grids': 'グリッド',
+  'journey.studio.gridHint': 'グリッドは空のフレームをまとめて配置します。「コンテンツ」から写真をドラッグしてください。',
+  'journey.studio.lines': '線',
+  'journey.studio.frameStyles': 'フレームのスタイル',
+  'journey.studio.frameShapes': 'フレームの形',
+  'journey.studio.plainFrame': 'なし',
+  'journey.studio.polaroidFrame': 'ポラロイド',
+  'journey.studio.whiteFrame': '白フチ',
+  'journey.studio.shadowFrame': 'ドロップシャドウ',
+  'journey.studio.filmFrame': 'フィルム',
+  'journey.studio.tapeFrame': 'テープ留め',
+  'journey.studio.shapeGroup.basic': '基本',
+  'journey.studio.shapeGroup.polygons': '多角形',
+  'journey.studio.shapeGroup.stars': '星',
+  'journey.studio.shapeGroup.arrows': '矢印',
+  'journey.studio.shapeGroup.speech': '吹き出し',
+  'journey.studio.shapeGroup.travel': '旅',
+  'journey.studio.shapeGroup.decor': '装飾',
+  'journey.studio.shapeGroup.banners': 'バナー',
+  'journey.studio.summary': 'サマリー',
+  'journey.studio.tripSummary': '旅のサマリー',
+  'journey.studio.statsRow': '1行',
+  'journey.studio.statsFull': 'すべて',
+  'journey.studio.routeMap': 'ルートマップ',
+  'journey.studio.mapStyle.minimal': 'ミニマル',
+  'journey.studio.mapStyle.outline': 'アウトライン',
+  'journey.studio.mapStyle.paper': '紙',
+  'journey.studio.mapStyle.dark': 'ダーク',
+  'journey.studio.countries': '国',
+  'journey.studio.countryList': '国リスト',
+  'journey.studio.countryGrid': '国グリッド',
+  'journey.studio.noCountries': 'この旅の国はまだ判定されていません。',
+  'journey.studio.noRoute': '座標のある地点がまだありません。',
+  'journey.studio.marks': 'マーク',
+  'journey.studio.dateMark': '日付',
+  'journey.studio.dayMark': '日数カウンター',
+  'journey.studio.dayWord': 'DAY',
+  'journey.studio.coordsMark': '座標',
+  'journey.studio.flagMark': '国旗',
+  'journey.studio.distanceMark': '距離',
+  'journey.studio.metric.distance': '距離',
+  'journey.studio.metric.days': '日数',
+  'journey.studio.metric.steps': '地点',
+  'journey.studio.metric.photos': '写真',
+  'journey.studio.metric.countries': '国',
+  'journey.studio.metric.places': '場所',
+  'journey.studio.metric.furthest': '最遠',
+  'journey.studio.kind.map': '地図',
+  'journey.studio.kind.stats': '数値',
+  'journey.studio.kind.countries': '国',
+  'journey.studio.kind.badge': 'マーク',
+  'journey.studio.mask': '形で切り抜く',
+  'journey.studio.maskNone': 'なし',
+  'journey.studio.frameStyle': 'フレーム',
+  'journey.studio.mapLayers': 'レイヤー',
+  'journey.studio.showLand': '国',
+  'journey.studio.showRoute': 'ルート',
+  'journey.studio.showPins': '地点',
+  'journey.studio.showLabels': 'ラベル',
+  'journey.studio.units': '単位',
+  'journey.studio.metrics': '数値',
+  'journey.studio.layout': 'レイアウト',
+  'journey.studio.layoutGrid': 'グリッド',
+  'journey.studio.layoutRow': '行',
+  'journey.studio.layoutColumn': '列',
+  'journey.studio.layoutList': 'リスト',
+  'journey.studio.showOutline': '輪郭',
+  'journey.studio.showFlag': '国旗',
+  'journey.studio.showName': '名前',
+  'journey.studio.textScale': '文字サイズ',
+  'journey.studio.accent': 'アクセント',
+  'journey.studio.refresh': '旅から更新',
+  'journey.studio.staleHint': 'これらの数値を取得したあと、旅の内容が変わりました。',
+  'journey.studio.align': '配置',
+  'journey.studio.filter.cool': 'クール',
+  'journey.studio.filter.fade': '色あせ',
+  'journey.studio.filter.contrast': '強め',
+  'journey.studio.strokeStyle': '線',
+  'journey.studio.strokeSolid': '実線',
+  'journey.studio.strokeDashed': '破線',
+  'journey.studio.strokeDotted': '点線',
+  'journey.studio.singleFigures': '単独の数値',
+  'journey.studio.addPage': 'ページを追加',
+  'journey.studio.addPageAfter': 'この後にページを挿入',
+  'journey.studio.duplicatePage': 'ページを複製',
+  'journey.studio.deletePage': 'ページを削除',
+  'journey.studio.movePageUp': '前へ移動',
+  'journey.studio.movePageDown': '後ろへ移動',
+  'journey.studio.beta': 'Beta',
+  'journey.studio.addProsCons': '良かった点・気になった点',
+  'journey.studio.showMarks': '記号',
 };
 export default journey;

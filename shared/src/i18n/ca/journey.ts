@@ -248,8 +248,6 @@ const journey: TranslationStrings = {
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.bookName': 'Book name', // en-fallback
-  'journey.studio.namePlaceholder': 'Name your book', // en-fallback
   'journey.studio.format': 'Page format', // en-fallback
   'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
   'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
@@ -318,7 +316,7 @@ const journey: TranslationStrings = {
   'journey.studio.addStory': 'Story', // en-fallback
   'journey.studio.addPlace': 'Place', // en-fallback
   'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'Picture frames', // en-fallback
+  'journey.studio.frames': 'Marcs', // en-fallback
   'journey.studio.emptyFrame': 'Empty frame', // en-fallback
   'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
   'journey.studio.shapeKind.line': 'Line', // en-fallback
@@ -349,5 +347,98 @@ const journey: TranslationStrings = {
   'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
   'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
   'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.travel': 'Viatge',
+  'journey.studio.travelEmpty': 'Les xifres d’aquest viatge encara no estan a punt.',
+  'journey.studio.grids': 'Graelles',
+  'journey.studio.gridHint': 'Una graella hi posa un bloc de marcs buits. Arrossega-hi fotos des de Contingut.',
+  'journey.studio.lines': 'Línies',
+  'journey.studio.frameStyles': 'Estils de marc',
+  'journey.studio.frameShapes': 'Formes de marc',
+  'journey.studio.plainFrame': 'Senzill',
+  'journey.studio.polaroidFrame': 'Polaroid',
+  'journey.studio.whiteFrame': 'Vora blanca',
+  'journey.studio.shadowFrame': 'Ombra',
+  'journey.studio.filmFrame': 'Pel·lícula',
+  'journey.studio.tapeFrame': 'Amb cinta',
+  'journey.studio.shapeGroup.basic': 'Bàsiques',
+  'journey.studio.shapeGroup.polygons': 'Polígons',
+  'journey.studio.shapeGroup.stars': 'Estrelles',
+  'journey.studio.shapeGroup.arrows': 'Fletxes',
+  'journey.studio.shapeGroup.speech': 'Bafarades',
+  'journey.studio.shapeGroup.travel': 'Viatge',
+  'journey.studio.shapeGroup.decor': 'Decoració',
+  'journey.studio.shapeGroup.banners': 'Banderoles',
+  'journey.studio.summary': 'Resum',
+  'journey.studio.tripSummary': 'Resum del viatge',
+  'journey.studio.statsRow': 'Una fila',
+  'journey.studio.statsFull': 'Tot',
+  'journey.studio.routeMap': 'Mapa del recorregut',
+  'journey.studio.mapStyle.minimal': 'Mínim',
+  'journey.studio.mapStyle.outline': 'Contorn',
+  'journey.studio.mapStyle.paper': 'Paper',
+  'journey.studio.mapStyle.dark': 'Fosc',
+  'journey.studio.countries': 'Països',
+  'journey.studio.countryList': 'Llista de països',
+  'journey.studio.countryGrid': 'Graella de països',
+  'journey.studio.noCountries': 'Encara no s’ha determinat cap país per a aquest viatge.',
+  'journey.studio.noRoute': 'Encara no hi ha parades amb coordenades.',
+  'journey.studio.marks': 'Marques',
+  'journey.studio.dateMark': 'Data',
+  'journey.studio.dayMark': 'Comptador de dies',
+  'journey.studio.dayWord': 'DIA',
+  'journey.studio.coordsMark': 'Coordenades',
+  'journey.studio.flagMark': 'Bandera',
+  'journey.studio.distanceMark': 'Distància',
+  'journey.studio.metric.distance': 'Distància',
+  'journey.studio.metric.days': 'Dies',
+  'journey.studio.metric.steps': 'Parades',
+  'journey.studio.metric.photos': 'Fotos',
+  'journey.studio.metric.countries': 'Països',
+  'journey.studio.metric.places': 'Llocs',
+  'journey.studio.metric.furthest': 'Més lluny',
+  'journey.studio.kind.map': 'Mapa',
+  'journey.studio.kind.stats': 'Xifres',
+  'journey.studio.kind.countries': 'Països',
+  'journey.studio.kind.badge': 'Marca',
+  'journey.studio.mask': 'Retallar en forma',
+  'journey.studio.maskNone': 'Cap',
+  'journey.studio.frameStyle': 'Marc',
+  'journey.studio.mapLayers': 'Capes',
+  'journey.studio.showLand': 'Països',
+  'journey.studio.showRoute': 'Recorregut',
+  'journey.studio.showPins': 'Parades',
+  'journey.studio.showLabels': 'Etiquetes',
+  'journey.studio.units': 'Unitats',
+  'journey.studio.metrics': 'Xifres',
+  'journey.studio.layout': 'Disposició',
+  'journey.studio.layoutGrid': 'Graella',
+  'journey.studio.layoutRow': 'Fila',
+  'journey.studio.layoutColumn': 'Columna',
+  'journey.studio.layoutList': 'Llista',
+  'journey.studio.showOutline': 'Contorns',
+  'journey.studio.showFlag': 'Banderes',
+  'journey.studio.showName': 'Noms',
+  'journey.studio.textScale': 'Mida del text',
+  'journey.studio.accent': 'Accent',
+  'journey.studio.refresh': 'Actualitza des del viatge',
+  'journey.studio.staleHint': 'El viatge ha canviat des que es van prendre aquestes xifres.',
+  'journey.studio.align': 'Alineació',
+  'journey.studio.filter.cool': 'Fred',
+  'journey.studio.filter.fade': 'Esvaït',
+  'journey.studio.filter.contrast': 'Intens',
+  'journey.studio.strokeStyle': 'Traç',
+  'journey.studio.strokeSolid': 'Continu',
+  'journey.studio.strokeDashed': 'Discontinu',
+  'journey.studio.strokeDotted': 'Puntejat',
+  'journey.studio.singleFigures': 'Xifres soltes',
+  'journey.studio.addPage': 'Afegeix una pàgina',
+  'journey.studio.addPageAfter': 'Insereix una pàgina després',
+  'journey.studio.duplicatePage': 'Duplica la pàgina',
+  'journey.studio.deletePage': 'Elimina la pàgina',
+  'journey.studio.movePageUp': 'Mou abans',
+  'journey.studio.movePageDown': 'Mou després',
+  'journey.studio.beta': 'Beta',
+  'journey.studio.addProsCons': 'Pros i contres',
+  'journey.studio.showMarks': 'Marques',
 };
 export default journey;

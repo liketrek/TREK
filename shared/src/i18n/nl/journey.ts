@@ -249,8 +249,6 @@ const journey: TranslationStrings = {
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.bookName': 'Book name', // en-fallback
-  'journey.studio.namePlaceholder': 'Name your book', // en-fallback
   'journey.studio.format': 'Page format', // en-fallback
   'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
   'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
@@ -319,7 +317,7 @@ const journey: TranslationStrings = {
   'journey.studio.addStory': 'Story', // en-fallback
   'journey.studio.addPlace': 'Place', // en-fallback
   'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'Picture frames', // en-fallback
+  'journey.studio.frames': 'Kaders', // en-fallback
   'journey.studio.emptyFrame': 'Empty frame', // en-fallback
   'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
   'journey.studio.shapeKind.line': 'Line', // en-fallback
@@ -350,5 +348,98 @@ const journey: TranslationStrings = {
   'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
   'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
   'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.travel': 'Reis',
+  'journey.studio.travelEmpty': 'De cijfers van deze reis zijn nog niet klaar.',
+  'journey.studio.grids': 'Rasters',
+  'journey.studio.gridHint': 'Een raster plaatst een blok lege kaders. Sleep er foto’s op vanuit Inhoud.',
+  'journey.studio.lines': 'Lijnen',
+  'journey.studio.frameStyles': 'Kaderstijlen',
+  'journey.studio.frameShapes': 'Kadervormen',
+  'journey.studio.plainFrame': 'Eenvoudig',
+  'journey.studio.polaroidFrame': 'Polaroid',
+  'journey.studio.whiteFrame': 'Witte rand',
+  'journey.studio.shadowFrame': 'Slagschaduw',
+  'journey.studio.filmFrame': 'Film',
+  'journey.studio.tapeFrame': 'Geplakt',
+  'journey.studio.shapeGroup.basic': 'Basis',
+  'journey.studio.shapeGroup.polygons': 'Veelhoeken',
+  'journey.studio.shapeGroup.stars': 'Sterren',
+  'journey.studio.shapeGroup.arrows': 'Pijlen',
+  'journey.studio.shapeGroup.speech': 'Tekstballonnen',
+  'journey.studio.shapeGroup.travel': 'Reis',
+  'journey.studio.shapeGroup.decor': 'Decoratie',
+  'journey.studio.shapeGroup.banners': 'Banieren',
+  'journey.studio.summary': 'Overzicht',
+  'journey.studio.tripSummary': 'Reisoverzicht',
+  'journey.studio.statsRow': 'Eén rij',
+  'journey.studio.statsFull': 'Alles',
+  'journey.studio.routeMap': 'Routekaart',
+  'journey.studio.mapStyle.minimal': 'Minimaal',
+  'journey.studio.mapStyle.outline': 'Omtrek',
+  'journey.studio.mapStyle.paper': 'Papier',
+  'journey.studio.mapStyle.dark': 'Donker',
+  'journey.studio.countries': 'Landen',
+  'journey.studio.countryList': 'Landenlijst',
+  'journey.studio.countryGrid': 'Landenraster',
+  'journey.studio.noCountries': 'Nog geen landen bepaald voor deze reis.',
+  'journey.studio.noRoute': 'Nog geen stops met coördinaten.',
+  'journey.studio.marks': 'Markeringen',
+  'journey.studio.dateMark': 'Datum',
+  'journey.studio.dayMark': 'Dagteller',
+  'journey.studio.dayWord': 'DAG',
+  'journey.studio.coordsMark': 'Coördinaten',
+  'journey.studio.flagMark': 'Vlag',
+  'journey.studio.distanceMark': 'Afstand',
+  'journey.studio.metric.distance': 'Afstand',
+  'journey.studio.metric.days': 'Dagen',
+  'journey.studio.metric.steps': 'Stops',
+  'journey.studio.metric.photos': 'Foto’s',
+  'journey.studio.metric.countries': 'Landen',
+  'journey.studio.metric.places': 'Plaatsen',
+  'journey.studio.metric.furthest': 'Verst',
+  'journey.studio.kind.map': 'Kaart',
+  'journey.studio.kind.stats': 'Cijfers',
+  'journey.studio.kind.countries': 'Landen',
+  'journey.studio.kind.badge': 'Markering',
+  'journey.studio.mask': 'Uitsnijden in vorm',
+  'journey.studio.maskNone': 'Geen',
+  'journey.studio.frameStyle': 'Kader',
+  'journey.studio.mapLayers': 'Lagen',
+  'journey.studio.showLand': 'Landen',
+  'journey.studio.showRoute': 'Route',
+  'journey.studio.showPins': 'Stops',
+  'journey.studio.showLabels': 'Labels',
+  'journey.studio.units': 'Eenheden',
+  'journey.studio.metrics': 'Cijfers',
+  'journey.studio.layout': 'Indeling',
+  'journey.studio.layoutGrid': 'Raster',
+  'journey.studio.layoutRow': 'Rij',
+  'journey.studio.layoutColumn': 'Kolom',
+  'journey.studio.layoutList': 'Lijst',
+  'journey.studio.showOutline': 'Omtrekken',
+  'journey.studio.showFlag': 'Vlaggen',
+  'journey.studio.showName': 'Namen',
+  'journey.studio.textScale': 'Tekstgrootte',
+  'journey.studio.accent': 'Accent',
+  'journey.studio.refresh': 'Bijwerken vanuit reis',
+  'journey.studio.staleHint': 'De reis is gewijzigd sinds deze cijfers zijn genomen.',
+  'journey.studio.align': 'Uitlijning',
+  'journey.studio.filter.cool': 'Koel',
+  'journey.studio.filter.fade': 'Vervaagd',
+  'journey.studio.filter.contrast': 'Krachtig',
+  'journey.studio.strokeStyle': 'Lijn',
+  'journey.studio.strokeSolid': 'Doorlopend',
+  'journey.studio.strokeDashed': 'Streepjes',
+  'journey.studio.strokeDotted': 'Stippen',
+  'journey.studio.singleFigures': 'Losse cijfers',
+  'journey.studio.addPage': 'Pagina toevoegen',
+  'journey.studio.addPageAfter': 'Pagina hierna invoegen',
+  'journey.studio.duplicatePage': 'Pagina dupliceren',
+  'journey.studio.deletePage': 'Pagina verwijderen',
+  'journey.studio.movePageUp': 'Naar voren',
+  'journey.studio.movePageDown': 'Naar achteren',
+  'journey.studio.beta': 'Beta',
+  'journey.studio.addProsCons': 'Voor- & nadelen',
+  'journey.studio.showMarks': 'Tekens',
 };
 export default journey;

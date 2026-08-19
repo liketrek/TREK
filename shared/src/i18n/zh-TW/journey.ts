@@ -246,8 +246,6 @@ const journey: TranslationStrings = {
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.bookName': 'Book name', // en-fallback
-  'journey.studio.namePlaceholder': 'Name your book', // en-fallback
   'journey.studio.format': 'Page format', // en-fallback
   'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
   'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
@@ -316,7 +314,7 @@ const journey: TranslationStrings = {
   'journey.studio.addStory': 'Story', // en-fallback
   'journey.studio.addPlace': 'Place', // en-fallback
   'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'Picture frames', // en-fallback
+  'journey.studio.frames': '相框', // en-fallback
   'journey.studio.emptyFrame': 'Empty frame', // en-fallback
   'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
   'journey.studio.shapeKind.line': 'Line', // en-fallback
@@ -347,5 +345,98 @@ const journey: TranslationStrings = {
   'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
   'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
   'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.travel': '旅程',
+  'journey.studio.travelEmpty': '這趟旅程的數據尚未就緒。',
+  'journey.studio.grids': '格線',
+  'journey.studio.gridHint': '格線會放置一組空相框。從「內容」拖曳照片到上面。',
+  'journey.studio.lines': '線條',
+  'journey.studio.frameStyles': '相框樣式',
+  'journey.studio.frameShapes': '相框形狀',
+  'journey.studio.plainFrame': '無',
+  'journey.studio.polaroidFrame': '拍立得',
+  'journey.studio.whiteFrame': '白邊',
+  'journey.studio.shadowFrame': '陰影',
+  'journey.studio.filmFrame': '底片',
+  'journey.studio.tapeFrame': '膠帶',
+  'journey.studio.shapeGroup.basic': '基本',
+  'journey.studio.shapeGroup.polygons': '多邊形',
+  'journey.studio.shapeGroup.stars': '星形',
+  'journey.studio.shapeGroup.arrows': '箭頭',
+  'journey.studio.shapeGroup.speech': '對話框',
+  'journey.studio.shapeGroup.travel': '旅行',
+  'journey.studio.shapeGroup.decor': '裝飾',
+  'journey.studio.shapeGroup.banners': '橫幅',
+  'journey.studio.summary': '總覽',
+  'journey.studio.tripSummary': '旅程總覽',
+  'journey.studio.statsRow': '一列',
+  'journey.studio.statsFull': '全部',
+  'journey.studio.routeMap': '路線地圖',
+  'journey.studio.mapStyle.minimal': '極簡',
+  'journey.studio.mapStyle.outline': '輪廓',
+  'journey.studio.mapStyle.paper': '紙質',
+  'journey.studio.mapStyle.dark': '深色',
+  'journey.studio.countries': '國家',
+  'journey.studio.countryList': '國家清單',
+  'journey.studio.countryGrid': '國家格線',
+  'journey.studio.noCountries': '尚未判定這趟旅程的國家。',
+  'journey.studio.noRoute': '尚無附座標的停留點。',
+  'journey.studio.marks': '標記',
+  'journey.studio.dateMark': '日期',
+  'journey.studio.dayMark': '天數計數',
+  'journey.studio.dayWord': 'DAY',
+  'journey.studio.coordsMark': '座標',
+  'journey.studio.flagMark': '國旗',
+  'journey.studio.distanceMark': '距離',
+  'journey.studio.metric.distance': '距離',
+  'journey.studio.metric.days': '天數',
+  'journey.studio.metric.steps': '停留點',
+  'journey.studio.metric.photos': '照片',
+  'journey.studio.metric.countries': '國家',
+  'journey.studio.metric.places': '地點',
+  'journey.studio.metric.furthest': '最遠',
+  'journey.studio.kind.map': '地圖',
+  'journey.studio.kind.stats': '數據',
+  'journey.studio.kind.countries': '國家',
+  'journey.studio.kind.badge': '標記',
+  'journey.studio.mask': '依形狀裁切',
+  'journey.studio.maskNone': '無',
+  'journey.studio.frameStyle': '相框',
+  'journey.studio.mapLayers': '圖層',
+  'journey.studio.showLand': '國家',
+  'journey.studio.showRoute': '路線',
+  'journey.studio.showPins': '停留點',
+  'journey.studio.showLabels': '標籤',
+  'journey.studio.units': '單位',
+  'journey.studio.metrics': '數據',
+  'journey.studio.layout': '版面',
+  'journey.studio.layoutGrid': '格線',
+  'journey.studio.layoutRow': '列',
+  'journey.studio.layoutColumn': '欄',
+  'journey.studio.layoutList': '清單',
+  'journey.studio.showOutline': '輪廓',
+  'journey.studio.showFlag': '國旗',
+  'journey.studio.showName': '名稱',
+  'journey.studio.textScale': '文字大小',
+  'journey.studio.accent': '強調色',
+  'journey.studio.refresh': '從旅程更新',
+  'journey.studio.staleHint': '自這些數據產生後，旅程已有變動。',
+  'journey.studio.align': '對齊',
+  'journey.studio.filter.cool': '冷色',
+  'journey.studio.filter.fade': '褪色',
+  'journey.studio.filter.contrast': '濃烈',
+  'journey.studio.strokeStyle': '描邊',
+  'journey.studio.strokeSolid': '實線',
+  'journey.studio.strokeDashed': '虛線',
+  'journey.studio.strokeDotted': '點線',
+  'journey.studio.singleFigures': '單一數據',
+  'journey.studio.addPage': '新增頁面',
+  'journey.studio.addPageAfter': '在此後插入頁面',
+  'journey.studio.duplicatePage': '複製頁面',
+  'journey.studio.deletePage': '刪除頁面',
+  'journey.studio.movePageUp': '前移',
+  'journey.studio.movePageDown': '後移',
+  'journey.studio.beta': 'Beta',
+  'journey.studio.addProsCons': '優缺點',
+  'journey.studio.showMarks': '符號',
 };
 export default journey;

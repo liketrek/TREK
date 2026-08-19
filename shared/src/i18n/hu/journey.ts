@@ -248,8 +248,6 @@ const journey: TranslationStrings = {
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.bookName': 'Book name', // en-fallback
-  'journey.studio.namePlaceholder': 'Name your book', // en-fallback
   'journey.studio.format': 'Page format', // en-fallback
   'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
   'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
@@ -318,7 +316,7 @@ const journey: TranslationStrings = {
   'journey.studio.addStory': 'Story', // en-fallback
   'journey.studio.addPlace': 'Place', // en-fallback
   'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'Picture frames', // en-fallback
+  'journey.studio.frames': 'Keretek', // en-fallback
   'journey.studio.emptyFrame': 'Empty frame', // en-fallback
   'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
   'journey.studio.shapeKind.line': 'Line', // en-fallback
@@ -349,5 +347,98 @@ const journey: TranslationStrings = {
   'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
   'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
   'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.travel': 'Utazás',
+  'journey.studio.travelEmpty': 'Ennek az utazásnak a számai még nincsenek készen.',
+  'journey.studio.grids': 'Rácsok',
+  'journey.studio.gridHint': 'A rács üres keretek blokkját helyezi el. Húzz rájuk fotókat a Tartalomból.',
+  'journey.studio.lines': 'Vonalak',
+  'journey.studio.frameStyles': 'Keretstílusok',
+  'journey.studio.frameShapes': 'Keretformák',
+  'journey.studio.plainFrame': 'Egyszerű',
+  'journey.studio.polaroidFrame': 'Polaroid',
+  'journey.studio.whiteFrame': 'Fehér szegély',
+  'journey.studio.shadowFrame': 'Vetett árnyék',
+  'journey.studio.filmFrame': 'Film',
+  'journey.studio.tapeFrame': 'Ragasztószalag',
+  'journey.studio.shapeGroup.basic': 'Alapformák',
+  'journey.studio.shapeGroup.polygons': 'Sokszögek',
+  'journey.studio.shapeGroup.stars': 'Csillagok',
+  'journey.studio.shapeGroup.arrows': 'Nyilak',
+  'journey.studio.shapeGroup.speech': 'Szövegbuborékok',
+  'journey.studio.shapeGroup.travel': 'Utazás',
+  'journey.studio.shapeGroup.decor': 'Dísz',
+  'journey.studio.shapeGroup.banners': 'Szalagok',
+  'journey.studio.summary': 'Összegzés',
+  'journey.studio.tripSummary': 'Utazás összegzése',
+  'journey.studio.statsRow': 'Egy sor',
+  'journey.studio.statsFull': 'Minden',
+  'journey.studio.routeMap': 'Útvonaltérkép',
+  'journey.studio.mapStyle.minimal': 'Minimál',
+  'journey.studio.mapStyle.outline': 'Körvonal',
+  'journey.studio.mapStyle.paper': 'Papír',
+  'journey.studio.mapStyle.dark': 'Sötét',
+  'journey.studio.countries': 'Országok',
+  'journey.studio.countryList': 'Országlista',
+  'journey.studio.countryGrid': 'Országrács',
+  'journey.studio.noCountries': 'Ehhez az utazáshoz még nem határoztunk meg országokat.',
+  'journey.studio.noRoute': 'Még nincs koordinátás megálló.',
+  'journey.studio.marks': 'Jelek',
+  'journey.studio.dateMark': 'Dátum',
+  'journey.studio.dayMark': 'Napszámláló',
+  'journey.studio.dayWord': 'NAP',
+  'journey.studio.coordsMark': 'Koordináták',
+  'journey.studio.flagMark': 'Zászló',
+  'journey.studio.distanceMark': 'Távolság',
+  'journey.studio.metric.distance': 'Távolság',
+  'journey.studio.metric.days': 'Napok',
+  'journey.studio.metric.steps': 'Megállók',
+  'journey.studio.metric.photos': 'Fotók',
+  'journey.studio.metric.countries': 'Országok',
+  'journey.studio.metric.places': 'Helyek',
+  'journey.studio.metric.furthest': 'Legtávolabb',
+  'journey.studio.kind.map': 'Térkép',
+  'journey.studio.kind.stats': 'Számok',
+  'journey.studio.kind.countries': 'Országok',
+  'journey.studio.kind.badge': 'Jel',
+  'journey.studio.mask': 'Formára vágás',
+  'journey.studio.maskNone': 'Nincs',
+  'journey.studio.frameStyle': 'Keret',
+  'journey.studio.mapLayers': 'Rétegek',
+  'journey.studio.showLand': 'Országok',
+  'journey.studio.showRoute': 'Útvonal',
+  'journey.studio.showPins': 'Megállók',
+  'journey.studio.showLabels': 'Feliratok',
+  'journey.studio.units': 'Mértékegység',
+  'journey.studio.metrics': 'Számok',
+  'journey.studio.layout': 'Elrendezés',
+  'journey.studio.layoutGrid': 'Rács',
+  'journey.studio.layoutRow': 'Sor',
+  'journey.studio.layoutColumn': 'Oszlop',
+  'journey.studio.layoutList': 'Lista',
+  'journey.studio.showOutline': 'Körvonalak',
+  'journey.studio.showFlag': 'Zászlók',
+  'journey.studio.showName': 'Nevek',
+  'journey.studio.textScale': 'Szövegméret',
+  'journey.studio.accent': 'Kiemelés',
+  'journey.studio.refresh': 'Frissítés az utazásból',
+  'journey.studio.staleHint': 'Az utazás megváltozott, mióta ezek a számok készültek.',
+  'journey.studio.align': 'Igazítás',
+  'journey.studio.filter.cool': 'Hideg',
+  'journey.studio.filter.fade': 'Fakó',
+  'journey.studio.filter.contrast': 'Erőteljes',
+  'journey.studio.strokeStyle': 'Vonal',
+  'journey.studio.strokeSolid': 'Folytonos',
+  'journey.studio.strokeDashed': 'Szaggatott',
+  'journey.studio.strokeDotted': 'Pontozott',
+  'journey.studio.singleFigures': 'Egyes számok',
+  'journey.studio.addPage': 'Oldal hozzáadása',
+  'journey.studio.addPageAfter': 'Oldal beszúrása ez után',
+  'journey.studio.duplicatePage': 'Oldal duplikálása',
+  'journey.studio.deletePage': 'Oldal törlése',
+  'journey.studio.movePageUp': 'Előrébb',
+  'journey.studio.movePageDown': 'Hátrébb',
+  'journey.studio.beta': 'Beta',
+  'journey.studio.addProsCons': 'Előnyök és hátrányok',
+  'journey.studio.showMarks': 'Jelek',
 };
 export default journey;

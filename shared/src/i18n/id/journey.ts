@@ -247,8 +247,6 @@ const journey: TranslationStrings = {
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.bookName': 'Book name', // en-fallback
-  'journey.studio.namePlaceholder': 'Name your book', // en-fallback
   'journey.studio.format': 'Page format', // en-fallback
   'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
   'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
@@ -317,7 +315,7 @@ const journey: TranslationStrings = {
   'journey.studio.addStory': 'Story', // en-fallback
   'journey.studio.addPlace': 'Place', // en-fallback
   'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'Picture frames', // en-fallback
+  'journey.studio.frames': 'Bingkai', // en-fallback
   'journey.studio.emptyFrame': 'Empty frame', // en-fallback
   'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
   'journey.studio.shapeKind.line': 'Line', // en-fallback
@@ -348,5 +346,98 @@ const journey: TranslationStrings = {
   'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
   'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
   'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.travel': 'Perjalanan',
+  'journey.studio.travelEmpty': 'Angka untuk perjalanan ini belum siap.',
+  'journey.studio.grids': 'Kisi',
+  'journey.studio.gridHint': 'Kisi menempatkan blok bingkai kosong. Seret foto dari Konten ke atasnya.',
+  'journey.studio.lines': 'Garis',
+  'journey.studio.frameStyles': 'Gaya bingkai',
+  'journey.studio.frameShapes': 'Bentuk bingkai',
+  'journey.studio.plainFrame': 'Polos',
+  'journey.studio.polaroidFrame': 'Polaroid',
+  'journey.studio.whiteFrame': 'Tepi putih',
+  'journey.studio.shadowFrame': 'Bayangan',
+  'journey.studio.filmFrame': 'Film',
+  'journey.studio.tapeFrame': 'Berselotip',
+  'journey.studio.shapeGroup.basic': 'Dasar',
+  'journey.studio.shapeGroup.polygons': 'Poligon',
+  'journey.studio.shapeGroup.stars': 'Bintang',
+  'journey.studio.shapeGroup.arrows': 'Panah',
+  'journey.studio.shapeGroup.speech': 'Balon kata',
+  'journey.studio.shapeGroup.travel': 'Perjalanan',
+  'journey.studio.shapeGroup.decor': 'Dekorasi',
+  'journey.studio.shapeGroup.banners': 'Spanduk',
+  'journey.studio.summary': 'Ringkasan',
+  'journey.studio.tripSummary': 'Ringkasan perjalanan',
+  'journey.studio.statsRow': 'Satu baris',
+  'journey.studio.statsFull': 'Semua',
+  'journey.studio.routeMap': 'Peta rute',
+  'journey.studio.mapStyle.minimal': 'Minimal',
+  'journey.studio.mapStyle.outline': 'Garis luar',
+  'journey.studio.mapStyle.paper': 'Kertas',
+  'journey.studio.mapStyle.dark': 'Gelap',
+  'journey.studio.countries': 'Negara',
+  'journey.studio.countryList': 'Daftar negara',
+  'journey.studio.countryGrid': 'Kisi negara',
+  'journey.studio.noCountries': 'Belum ada negara yang ditentukan untuk perjalanan ini.',
+  'journey.studio.noRoute': 'Belum ada perhentian berkoordinat.',
+  'journey.studio.marks': 'Tanda',
+  'journey.studio.dateMark': 'Tanggal',
+  'journey.studio.dayMark': 'Penghitung hari',
+  'journey.studio.dayWord': 'HARI',
+  'journey.studio.coordsMark': 'Koordinat',
+  'journey.studio.flagMark': 'Bendera',
+  'journey.studio.distanceMark': 'Jarak',
+  'journey.studio.metric.distance': 'Jarak',
+  'journey.studio.metric.days': 'Hari',
+  'journey.studio.metric.steps': 'Perhentian',
+  'journey.studio.metric.photos': 'Foto',
+  'journey.studio.metric.countries': 'Negara',
+  'journey.studio.metric.places': 'Tempat',
+  'journey.studio.metric.furthest': 'Terjauh',
+  'journey.studio.kind.map': 'Peta',
+  'journey.studio.kind.stats': 'Angka',
+  'journey.studio.kind.countries': 'Negara',
+  'journey.studio.kind.badge': 'Tanda',
+  'journey.studio.mask': 'Potong ke bentuk',
+  'journey.studio.maskNone': 'Tidak ada',
+  'journey.studio.frameStyle': 'Bingkai',
+  'journey.studio.mapLayers': 'Lapisan',
+  'journey.studio.showLand': 'Negara',
+  'journey.studio.showRoute': 'Rute',
+  'journey.studio.showPins': 'Perhentian',
+  'journey.studio.showLabels': 'Label',
+  'journey.studio.units': 'Satuan',
+  'journey.studio.metrics': 'Angka',
+  'journey.studio.layout': 'Tata letak',
+  'journey.studio.layoutGrid': 'Kisi',
+  'journey.studio.layoutRow': 'Baris',
+  'journey.studio.layoutColumn': 'Kolom',
+  'journey.studio.layoutList': 'Daftar',
+  'journey.studio.showOutline': 'Garis luar',
+  'journey.studio.showFlag': 'Bendera',
+  'journey.studio.showName': 'Nama',
+  'journey.studio.textScale': 'Ukuran teks',
+  'journey.studio.accent': 'Aksen',
+  'journey.studio.refresh': 'Perbarui dari perjalanan',
+  'journey.studio.staleHint': 'Perjalanan telah berubah sejak angka ini diambil.',
+  'journey.studio.align': 'Perataan',
+  'journey.studio.filter.cool': 'Sejuk',
+  'journey.studio.filter.fade': 'Pudar',
+  'journey.studio.filter.contrast': 'Tajam',
+  'journey.studio.strokeStyle': 'Goresan',
+  'journey.studio.strokeSolid': 'Solid',
+  'journey.studio.strokeDashed': 'Putus-putus',
+  'journey.studio.strokeDotted': 'Titik-titik',
+  'journey.studio.singleFigures': 'Angka tunggal',
+  'journey.studio.addPage': 'Tambah halaman',
+  'journey.studio.addPageAfter': 'Sisipkan halaman setelah ini',
+  'journey.studio.duplicatePage': 'Duplikat halaman',
+  'journey.studio.deletePage': 'Hapus halaman',
+  'journey.studio.movePageUp': 'Pindah ke depan',
+  'journey.studio.movePageDown': 'Pindah ke belakang',
+  'journey.studio.beta': 'Beta',
+  'journey.studio.addProsCons': 'Pro & Kontra',
+  'journey.studio.showMarks': 'Tanda',
 };
 export default journey;
