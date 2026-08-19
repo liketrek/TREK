@@ -1,5 +1,4 @@
 import type { BookPageSetup, BookSpread } from '@trek/shared'
-import { FONT_STACKS } from './bookRender'
 import { fontStack } from './bookFonts'
 
 /**

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { BookPageSetup } from '@trek/shared'
 import { GRIDS, defaultGridBox, gridElements } from '../../../src/components/Studio/grids'
+import { bookPageSetupSchema } from '@trek/shared'
 
 /**
  * Photo grids (#1973).
@@ -11,9 +12,9 @@ import { GRIDS, defaultGridBox, gridElements } from '../../../src/components/Stu
  * a grid that has to be dragged before it is any use.
  */
 
-const page: BookPageSetup = {
+const page: BookPageSetup = bookPageSetupSchema.parse({
   preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5,
-}
+})
 
 const box = { x: 0, y: 0, w: 100, h: 100 }
 

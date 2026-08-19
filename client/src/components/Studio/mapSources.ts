@@ -1,3 +1,4 @@
+import type { BookFrame } from '@trek/shared'
 import { useSettingsStore } from '../../store/settingsStore'
 import { attributionFor, staticMapUrl } from './mapTiles'
 
@@ -26,7 +27,7 @@ export interface MapSourceOption {
 /** The default tile template, when the instance has not set its own. */
 const DEFAULT_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 
-export function useMapSources(frame: { w: number; h: number }, points: { lat: number; lng: number }[]): MapSourceOption[] {
+export function useMapSources(frame: BookFrame, points: { lat: number; lng: number }[]): MapSourceOption[] {
   const settings = useSettingsStore(s => s.settings)
 
   const tiles = (settings.map_tile_url || '').trim() || DEFAULT_TILES

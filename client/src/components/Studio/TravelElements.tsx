@@ -7,9 +7,9 @@ import {
   Camera, CalendarDays, Footprints, Globe, MapPin, Navigation, Route,
   type LucideIcon,
 } from 'lucide-react'
-import { FONT_STACKS } from './bookRender'
 import { fontStack } from './bookFonts'
 import { COUNTRY_SHAPES, countryWorldPath, projectMercator } from './countryShapes'
+import { projectOntoTiles, tileView } from './mapTiles'
 import { FLAG_H, FLAG_W, flagBands, flagDisc, flagSpec } from './flags'
 import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
 import { useTranslation } from '../../i18n'
@@ -689,13 +689,17 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
         anyone remembering to add it twice.
       */}
       {(el.variant === 'mood' || el.variant === 'weather') && el.code && (() => {
-        const config = el.variant === 'mood' ? MOOD_CONFIG[el.code] : WEATHER_CONFIG[el.code]
+        // Kept apart rather than narrowed out of one union: only a mood has a
+        // colour of its own, and `'text' in config` types it as unknown.
+        const mood = el.variant === 'mood' ? MOOD_CONFIG[el.code] : null
+        const config = mood ?? WEATHER_CONFIG[el.code]
         if (!config) return null
         const Icon = config.icon
         const size = el.frame.h * 0.46
+        const tint = mood ? mood.text : el.accent
         return (
           <Icon
-            color={el.variant === 'mood' && 'text' in config ? config.text : el.accent}
+            color={tint}
             strokeWidth={1.7}
             style={{ width: `${round2(size)}mm`, height: `${round2(size)}mm`, display: 'block', flex: '0 0 auto' }}
           />

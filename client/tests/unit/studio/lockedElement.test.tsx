@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import type { BookDocument, BookElement } from '@trek/shared'
+import { bookPageSetupSchema } from '@trek/shared'
 import { fireEvent, render } from '../../helpers/render'
 import { StudioCanvas } from '../../../src/components/Studio/StudioCanvas'
 import { useStudioStore } from '../../../src/store/studioStore'
@@ -21,7 +22,7 @@ const shape = (over: Partial<BookElement> = {}): BookElement => ({
   ...over,
 } as BookElement)
 
-const page = { preset: 'square-210' as const, pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }
+const page = bookPageSetupSchema.parse({ preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 })
 
 function load(el: BookElement) {
   useStudioStore.getState().load({

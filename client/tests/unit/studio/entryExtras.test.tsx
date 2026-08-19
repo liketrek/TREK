@@ -3,6 +3,7 @@ import type { BookElement, BookPageSetup, BookSpread } from '@trek/shared'
 import { bookListElementSchema, normalizeBookDocument } from '@trek/shared'
 import { render } from '../../helpers/render'
 import { SpreadView } from '../../../src/components/Studio/SpreadView'
+import { bookPageSetupSchema } from '@trek/shared'
 
 /**
  * Mood, weather and pros & cons (#1973).
@@ -13,9 +14,9 @@ import { SpreadView } from '../../../src/components/Studio/SpreadView'
  * page uses — rather than from a second copy that would drift.
  */
 
-const page: BookPageSetup = {
+const page: BookPageSetup = bookPageSetupSchema.parse({
   preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5,
-}
+})
 
 const typeset = { font: 'sans' as const, color: '#1a1a1a', accent: '#c2410c', textScale: 1, stale: false }
 const common = { rotation: 0, opacity: 1, locked: false, frame: { x: 10, y: 20, w: 90, h: 40 } }

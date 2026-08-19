@@ -10,7 +10,11 @@ import { relayoutSpread, type AutoInput } from '../../../src/components/Studio/a
  * A free trim size, page numbers, and laying out again (#1973).
  */
 
-const page = (over: Partial<BookPageSetup> = {}): BookPageSetup =>
+type PageOver = Partial<Omit<BookPageSetup, 'pageNumbers'>> & {
+  pageNumbers?: Partial<BookPageSetup['pageNumbers']>
+}
+
+const page = (over: PageOver = {}): BookPageSetup =>
   bookPageSetupSchema.parse({ preset: 'square-210', pageWidth: 210, pageHeight: 210, ...over })
 
 const spread = (over: Partial<BookSpread> = {}): BookSpread => ({

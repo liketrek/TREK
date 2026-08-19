@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { BookPageSetup, BookSpread, JourneyStats } from '@trek/shared'
 import { buildBook, type AutoEntry, type AutoInput } from '../../../src/components/Studio/autoLayout'
+import { bookPageSetupSchema } from '@trek/shared'
 
 /**
  * The auto layout, once it knows what the journey adds up to (#1973).
@@ -11,9 +12,9 @@ import { buildBook, type AutoEntry, type AutoInput } from '../../../src/componen
  * someone pays to have printed is worse than a shorter book.
  */
 
-const page: BookPageSetup = {
+const page: BookPageSetup = bookPageSetupSchema.parse({
   preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5,
-}
+})
 
 const entry = (over: Partial<AutoEntry> = {}): AutoEntry => ({
   id: 1, title: 'A day', story: 'Something happened.', location: 'Reykjavík',

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import type { BookElement, BookPageSetup, BookSpread } from '@trek/shared'
 import { render } from '../../helpers/render'
 import { SpreadView } from '../../../src/components/Studio/SpreadView'
+import { bookPageSetupSchema } from '@trek/shared'
 
 /**
  * The page renderer, with the elements added in #1973.
@@ -12,9 +13,9 @@ import { SpreadView } from '../../../src/components/Studio/SpreadView'
  * an element draws at all, and whether it draws in millimetres.
  */
 
-const page: BookPageSetup = {
+const page: BookPageSetup = bookPageSetupSchema.parse({
   preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5,
-}
+})
 
 const frame = { x: 10, y: 20, w: 80, h: 60 }
 const common = { frame, rotation: 0, opacity: 1, locked: false }
