@@ -1,6 +1,8 @@
 import type {
   BookDocument, BookElement, BookMetric, BookPageSetup, BookSpread, JourneyStats,
 } from '@trek/shared'
+import { SPREAD_TEMPLATES } from './bookTemplates.data'
+import { applyTemplate, templateFit } from './applyTemplate'
 
 /**
  * The auto mode: turn a journey into a book.
@@ -1144,6 +1146,40 @@ function sheet(els: BookElement[], entry: AutoEntry, background: string): BookSp
  * alternates for the same reason: a book whose pictures are all on the left is
  * a book you can feel the template through.
  */
+/**
+ * A hand-drawn template for this entry, if one of them fits.
+ *
+ * Tried before the layouts written below, and that order is the point: a page
+ * somebody designed beats a page a function reasoned its way to, every time.
+ * The built-in layouts are what an entry falls back on when no template suits
+ * it — a book of six pictures has nowhere to go in a template drawn for two.
+ *
+ * Rotated by position so a run of similar entries does not come out as a run
+ * of identical pages, which is the failure the built-ins had before them.
+ */
+function templateSpread(entry: AutoEntry, input: AutoInput, index: number): BookSpread | null {
+  if (SPREAD_TEMPLATES.length === 0) return null
+
+  const scored = SPREAD_TEMPLATES
+    .map(t => ({ t, fit: templateFit(t, entry) }))
+    .filter(x => x.fit >= 0)
+    .sort((a, b) => b.fit - a.fit)
+  if (scored.length === 0) return null
+
+  // Everything within a few points of the best is equally suitable, so the
+  // position picks between them rather than the order they happen to be in.
+  const best = scored[0].fit
+  const equals = scored.filter(x => x.fit >= best - 5)
+  const pick = equals[index % equals.length]
+
+  return applyTemplate(pick.t, entry, {
+    page: input.page,
+    locale: input.locale,
+    stats: input.stats,
+    dayLabel: input.dayLabel,
+  })
+}
+
 function entrySpread(entry: AutoEntry, input: AutoInput, index = 0): BookSpread {
   const hand: Hand = index % 2 === 0 ? 'left' : 'right'
   const ctx: EntryContext = { entry, input, index, hand }
@@ -1154,6 +1190,9 @@ function entrySpread(entry: AutoEntry, input: AutoInput, index = 0): BookSpread 
   const story = (entry.story || '').trim()
   // The place page is for a stop nobody wrote about. Words want a page with
   // room for them, even when the pictures have not arrived.
+  const fromTemplate = templateSpread(withPhotos, input, index)
+  if (fromTemplate) return fromTemplate
+
   if (photos.length === 0 && !story) return placeSpread(c)
   // Guarded: an entry can have words and no pictures at all.
   if (photos.length > 0 && isPano(photos[0])) return panoSpread(c)

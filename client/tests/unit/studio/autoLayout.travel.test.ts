@@ -1,4 +1,12 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+
+/*
+ * These cases are about the layouts written in autoLayout.ts, which are what an
+ * entry falls back on when no hand-drawn template suits it. With the real
+ * templates in place they would be testing whichever spread somebody last drew
+ * in Studio — so the set is empty here on purpose.
+ */
+vi.mock('../../../src/components/Studio/bookTemplates.data', () => ({ SPREAD_TEMPLATES: [] }))
 import type { BookPageSetup, BookSpread, JourneyStats } from '@trek/shared'
 import { buildBook, type AutoEntry, type AutoInput } from '../../../src/components/Studio/autoLayout'
 import { bookPageSetupSchema } from '@trek/shared'
