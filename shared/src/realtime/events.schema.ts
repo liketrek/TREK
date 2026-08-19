@@ -286,6 +286,50 @@ export const TREK_WS_EVENTS = {
     payload: z.object({ journeyId: id, version: z.number(), savedBy: id }),
   },
 
+  /**
+   * Who else has this book open.
+   *
+   * Sent to everyone in the book whenever the set changes — someone arrives,
+   * someone leaves, someone's tab dies. The whole list rather than a delta,
+   * because it is a handful of names and a delta protocol would need an
+   * ordering guarantee to be worth anything.
+   */
+  'journey:book:peers': {
+    scope: 'user',
+    payload: z.object({
+      journeyId: id,
+      peers: z.array(z.object({
+        socketId: z.number(),
+        userId: id,
+        username: z.string(),
+        avatar: z.string().nullable().optional(),
+      })),
+    }),
+  },
+
+  /**
+   * Where somebody's pointer is.
+   *
+   * In millimetres on the spread, not pixels on a screen: the two people
+   * looking at a book are at different zoom levels on different monitors, and a
+   * pixel means nothing to the other one. `spreadIndex` is there so a pointer
+   * on page 40 is not drawn on page 2.
+   *
+   * `null` coordinates mean the pointer left the page — the arrow goes away,
+   * and the person stays in the list.
+   */
+  'journey:book:cursor': {
+    scope: 'user',
+    payload: z.object({
+      journeyId: id,
+      socketId: z.number(),
+      userId: id,
+      spreadIndex: z.number().int().min(0),
+      x: z.number().nullable(),
+      y: z.number().nullable(),
+    }),
+  },
+
   // ── Booking import (user-scoped; push() injects jobId + tripId) ─────────
   'import:progress': {
     scope: 'user',

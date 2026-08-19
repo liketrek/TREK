@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { RealtimeGateway } from './realtime.gateway';
 import { EphemeralTokenModule } from '../auth/ephemeral-token.module';
+import { JourneyDomainModule } from '../journey/journey-domain.module';
 
 /**
  * The transport, kept out of RealtimeModule on purpose.
@@ -17,7 +18,9 @@ import { EphemeralTokenModule } from '../auth/ephemeral-token.module';
  * TrekWsAdapter already registered.
  */
 @Module({
-  imports: [EphemeralTokenModule],
+  // JourneyDomainModule for the book rooms: who may open a journey is asked
+  // of the same service the REST routes ask.
+  imports: [EphemeralTokenModule, JourneyDomainModule],
   providers: [RealtimeGateway],
 })
 export class RealtimeGatewayModule {}

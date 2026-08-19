@@ -68,6 +68,7 @@ beforeEach(() => {
   handlers = [
     { message: 'join', callback: (data) => { handled.push(data); return { type: 'joined' }; } },
     { message: 'leave', callback: (data) => { handled.push(data); return undefined; } },
+    { message: 'book:cursor', callback: (data) => { handled.push(data); return undefined; } },
   ];
 });
 
@@ -182,6 +183,51 @@ describe('TrekWsAdapter connection binding', () => {
     const seen: unknown[] = [];
     adapter.bindClientConnect(server as never, (...args: unknown[]) => seen.push(...args));
     expect(seen[1]).toBe(request);
+  });
+});
+
+/**
+ * The pointer exemption (#1973).
+ *
+ * Studio's pointers move about ten times a second per editor, three times what
+ * the tight limit allows on its own — and that limit cannot simply be raised,
+ * because it is what stops a client flooding the process. So there are two
+ * ceilings, and only pointers are exempt from the tight one.
+ */
+describe('TrekWsAdapter pointer budget', () => {
+  it('WSAD-012: lets pointers past the tight limit', () => {
+    const socket = fakeSocket();
+    adapter.bindMessageHandlers(socket as never, handlers as never, transform);
+
+    for (let i = 0; i < 60; i++) socket.emit('message', frame({ type: 'book:cursor', x: i }));
+
+    expect(handled).toHaveLength(60);
+    expect(socket.sent).toHaveLength(0);
+  });
+
+  /* Exempt from the tight limit, not from the ceiling. */
+  it('WSAD-013: cuts a pointer flood off at the outer ceiling', () => {
+    const socket = fakeSocket();
+    adapter.bindMessageHandlers(socket as never, handlers as never, transform);
+
+    for (let i = 0; i < 260; i++) socket.emit('message', frame({ type: 'book:cursor', x: i }));
+
+    expect(handled.length).toBeLessThanOrEqual(200);
+    expect(socket.sent.some((raw) => raw.includes('Rate limit'))).toBe(true);
+  });
+
+  /*
+   * The exemption is for pointers alone. A client sending them cannot use them
+   * to buy itself extra room for anything else.
+   */
+  it('WSAD-014: a pointer flood does not loosen the limit on everything else', () => {
+    const socket = fakeSocket();
+    adapter.bindMessageHandlers(socket as never, handlers as never, transform);
+
+    for (let i = 0; i < 50; i++) socket.emit('message', frame({ type: 'book:cursor', x: i }));
+    for (let i = 0; i < 31; i++) socket.emit('message', frame({ type: 'join', tripId: 7 }));
+
+    expect(socket.sent.some((raw) => raw.includes('Rate limit'))).toBe(true);
   });
 });
 

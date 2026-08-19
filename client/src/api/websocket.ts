@@ -9,6 +9,15 @@ let reconnectDelay = 1000
 const MAX_RECONNECT_DELAY = 30000
 const listeners = new Set<WebSocketListener>()
 const activeTrips = new Set<string>()
+
+/**
+ * Studio books this tab has open, so presence survives a reconnect.
+ *
+ * Same reasoning as `activeTrips`: the server forgets the room when the socket
+ * dies, and without rejoining, everyone else keeps showing a pointer for
+ * somebody who is no longer there.
+ */
+const activeBooks = new Set<string>()
 let shouldReconnect = false
 let refetchCallback: RefetchCallback | null = null
 let mySocketId: string | null = null
@@ -110,6 +119,11 @@ async function connectInternal(_isReconnect = false): Promise<void> {
 
   socket.onopen = () => {
     reconnectDelay = 1000
+    activeBooks.forEach(journeyId => {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'book:join', journeyId }))
+      }
+    })
     if (activeTrips.size > 0) {
       activeTrips.forEach(tripId => {
         if (socket && socket.readyState === WebSocket.OPEN) {
@@ -166,6 +180,7 @@ export function disconnect(): void {
     reconnectTimer = null
   }
   activeTrips.clear()
+  activeBooks.clear()
   if (socket) {
     socket.onclose = null
     socket.close()
@@ -185,6 +200,40 @@ export function leaveTrip(tripId: number | string): void {
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({ type: 'leave', tripId: String(tripId) }))
   }
+}
+
+/**
+ * Open a Studio book — presence and pointers, for as long as the editor is up.
+ */
+export function joinBook(journeyId: number | string): void {
+  activeBooks.add(String(journeyId))
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: 'book:join', journeyId: String(journeyId) }))
+  }
+}
+
+export function leaveBook(journeyId: number | string): void {
+  activeBooks.delete(String(journeyId))
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: 'book:leave', journeyId: String(journeyId) }))
+  }
+}
+
+/**
+ * Where this tab's pointer is, in millimetres on the spread.
+ *
+ * Dropped silently when the socket is not open. A pointer is worth nothing a
+ * moment later, so there is nothing to queue and nothing to retry — the next
+ * one is along in a tenth of a second.
+ */
+export function sendBookCursor(
+  journeyId: number | string,
+  spreadIndex: number,
+  x: number | null,
+  y: number | null,
+): void {
+  if (!socket || socket.readyState !== WebSocket.OPEN) return
+  socket.send(JSON.stringify({ type: 'book:cursor', journeyId: String(journeyId), spreadIndex, x, y }))
 }
 
 export function addListener(fn: WebSocketListener): void {

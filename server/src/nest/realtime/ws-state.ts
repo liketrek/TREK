@@ -23,6 +23,18 @@ export interface TrekWebSocket extends WebSocket {
 }
 
 const rooms = new Map<number, Set<TrekWebSocket>>();
+
+/**
+ * Who has a Studio book open, per journey.
+ *
+ * Separate from the trip rooms above, and separate from "is a contributor
+ * online": a book carries pointers and a presence list, and both are only of
+ * interest to the people actually looking at it. Fanning them out to every
+ * contributor's sockets would send a pointer moving at ten frames a second to
+ * someone reading the journey on their phone.
+ */
+const bookRooms = new Map<number, Set<TrekWebSocket>>();
+const socketBooks = new WeakMap<TrekWebSocket, Set<number>>();
 const socketRooms = new WeakMap<TrekWebSocket, Set<number>>();
 const socketUser = new WeakMap<TrekWebSocket, User>();
 const socketId = new WeakMap<TrekWebSocket, number>();
@@ -79,6 +91,86 @@ export function leaveAllRooms(ws: TrekWebSocket): void {
   const mine = socketRooms.get(ws);
   if (!mine) return;
   for (const tripId of mine) leaveRoom(ws, tripId);
+}
+
+// ── Studio books ──────────────────────────────────────────────────────────
+
+export interface BookPeer {
+  socketId: number;
+  userId: number;
+  username: string;
+  avatar?: string | null;
+}
+
+export function joinBook(ws: TrekWebSocket, journeyId: number): void {
+  if (!bookRooms.has(journeyId)) bookRooms.set(journeyId, new Set());
+  bookRooms.get(journeyId)!.add(ws);
+  if (!socketBooks.has(ws)) socketBooks.set(ws, new Set());
+  socketBooks.get(ws)!.add(journeyId);
+}
+
+export function leaveBook(ws: TrekWebSocket, journeyId: number): void {
+  const room = bookRooms.get(journeyId);
+  if (room) {
+    room.delete(ws);
+    if (room.size === 0) bookRooms.delete(journeyId);
+  }
+  socketBooks.get(ws)?.delete(journeyId);
+}
+
+/** Every book this socket had open — called when the connection goes. */
+export function leaveAllBooks(ws: TrekWebSocket): number[] {
+  const mine = socketBooks.get(ws);
+  if (!mine) return [];
+  const left = [...mine];
+  for (const journeyId of left) leaveBook(ws, journeyId);
+  return left;
+}
+
+/**
+ * Who is in a book, by socket rather than by user.
+ *
+ * One person with two tabs open is two entries on purpose: they have two
+ * pointers, and a list keyed by user could not say which one moved.
+ */
+export function bookPeers(journeyId: number): BookPeer[] {
+  const room = bookRooms.get(journeyId);
+  if (!room) return [];
+  const peers: BookPeer[] = [];
+  for (const ws of room) {
+    if (ws.readyState !== 1) continue;
+    const user = socketUser.get(ws);
+    const sid = socketId.get(ws);
+    if (!user || sid == null) continue;
+    peers.push({ socketId: sid, userId: user.id, username: user.username, avatar: user.avatar ?? null });
+  }
+  return peers;
+}
+
+/**
+ * Send to everyone looking at a book.
+ *
+ * No plugin event sink here, unlike the trip broadcast: a pointer is not
+ * something that happened to the trip, and announcing ten of them a second to
+ * every subscribed plugin would be a firehose of nothing.
+ */
+export function broadcastToBook(
+  journeyId: number,
+  payload: Record<string, unknown>,
+  excludeSid?: number,
+): void {
+  const room = bookRooms.get(journeyId);
+  if (!room || room.size === 0) return;
+  for (const ws of room) {
+    if (ws.readyState !== 1) continue;
+    if (excludeSid != null && socketId.get(ws) === excludeSid) continue;
+    ws.send(JSON.stringify({ journeyId, ...payload }));
+  }
+}
+
+/** The socket's own id, so a handler can name the pointer it is forwarding. */
+export function socketIdOf(ws: TrekWebSocket): number | undefined {
+  return socketId.get(ws);
 }
 
 /**

@@ -13,6 +13,7 @@ import { StudioInspector } from './StudioInspector'
 import { StudioWordmark } from './StudioWordmark'
 import { SaveIndicator } from './SaveIndicator'
 import { StudioExport } from './StudioExport'
+import { PeerBadges } from './PeerBadges'
 import { TrimField } from './TrimField'
 import '../../styles/dashboard.css'
 import '../../styles/studio.css'
@@ -138,6 +139,8 @@ function StudioBar({
         <StudioWordmark style={{ height: 26 }} />
         <span className="st-beta">{s.t('journey.studio.beta')}</span>
       </div>
+
+      <PeerBadges peers={s.peers} t={s.t} />
 
       <SaveIndicator
         state={s.saveState}
@@ -393,6 +396,8 @@ function Workbench({ s, bookView }: { s: Studio; bookView: boolean }) {
           pxPerMm={s.pxPerMm}
           bookView={bookView}
           dropLabel={s.t('journey.studio.dropPhotoHere')}
+          cursors={s.cursors}
+          onCursor={(x, y) => s.moveCursor(s.activeSpread, x, y)}
         />
       </div>
 

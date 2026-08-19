@@ -15,13 +15,40 @@ import { logError } from '../audit/audit-log.logger';
 // flood the process with garbage.
 const WS_MSG_LIMIT = 30; // max messages
 const WS_MSG_WINDOW = 10_000; // per 10 seconds
-const rates = new WeakMap<TrekWebSocket, { count: number; windowStart: number }>();
 
-function withinRate(socket: TrekWebSocket): boolean {
-  let rate = rates.get(socket);
+/**
+ * A second, looser ceiling that every frame counts against.
+ *
+ * Studio's pointers (#1973) move about ten times a second per editor, which is
+ * three times what the limit above allows on its own — and that limit cannot
+ * simply be raised, because it is what stops a client flooding the process with
+ * frames nobody asked for.
+ *
+ * So the frames are counted twice. Everything counts against this ceiling,
+ * before parsing, exactly as before; the tighter limit then applies to
+ * everything except pointers. A client can send a lot of pointers and no more
+ * of anything else than it ever could, and a client sending garbage is still
+ * cut off — just at 200 frames per ten seconds rather than 30, which is a
+ * trade worth naming: those frames are small, and the alternative is either no
+ * live pointers or a limit high enough to be no limit.
+ */
+const WS_BURST_LIMIT = 200;
+
+/** The one message type exempt from the tighter limit. */
+const HIGH_RATE_TYPE = 'book:cursor';
+
+const rates = new WeakMap<TrekWebSocket, { count: number; windowStart: number }>();
+const bursts = new WeakMap<TrekWebSocket, { count: number; windowStart: number }>();
+
+function within(
+  store: WeakMap<TrekWebSocket, { count: number; windowStart: number }>,
+  socket: TrekWebSocket,
+  limit: number,
+): boolean {
+  let rate = store.get(socket);
   if (!rate) {
     rate = { count: 0, windowStart: Date.now() };
-    rates.set(socket, rate);
+    store.set(socket, rate);
   }
   const now = Date.now();
   if (now - rate.windowStart > WS_MSG_WINDOW) {
@@ -30,7 +57,15 @@ function withinRate(socket: TrekWebSocket): boolean {
     return true;
   }
   rate.count++;
-  return rate.count <= WS_MSG_LIMIT;
+  return rate.count <= limit;
+}
+
+function withinRate(socket: TrekWebSocket): boolean {
+  return within(rates, socket, WS_MSG_LIMIT);
+}
+
+function withinBurst(socket: TrekWebSocket): boolean {
+  return within(bursts, socket, WS_BURST_LIMIT);
 }
 
 /**
@@ -132,20 +167,36 @@ export class TrekWsAdapter extends WsAdapter {
     transform: (data: unknown) => Observable<unknown>,
   ): void {
     socket.on('message', (buffer: Buffer) => {
-      if (!withinRate(socket)) {
+      const tooLoud = () => {
         if (socket.readyState === 1) {
           socket.send(JSON.stringify({ type: 'error', message: 'Rate limit exceeded' }));
         }
-        return;
+      };
+
+      // The outer ceiling, before parsing: this is what stops a client flooding
+      // the process, and it counts every frame no matter what is in it.
+      if (!withinBurst(socket)) return tooLoud();
+
+      let message: { type?: unknown } | null = null;
+      try {
+        const parsed = JSON.parse(buffer.toString());
+        if (parsed && typeof parsed === 'object' && typeof parsed.type === 'string') message = parsed;
+      } catch {
+        // Malformed JSON. Still counted below, exactly as before.
       }
 
-      let message: { type?: unknown };
-      try {
-        message = JSON.parse(buffer.toString());
-      } catch {
-        return; // Malformed JSON, ignored exactly as before.
-      }
-      if (!message || typeof message !== 'object' || typeof message.type !== 'string') return;
+      /*
+       * The tighter limit, on everything a pointer is not — malformed JSON and
+       * unknown types included, which is the point of counting them here rather
+       * than only counting what reaches a handler.
+       *
+       * Parsing first costs a JSON.parse on a small frame that the ceiling
+       * above has already let through. That is the price of telling a pointer
+       * from everything else, and it buys the tight limit staying exactly as
+       * tight as it was for every other frame.
+       */
+      if (message?.type !== HIGH_RATE_TYPE && !withinRate(socket)) return tooLoud();
+      if (!message) return;
 
       const handler = handlers.find((h) => h.message === message.type);
       if (!handler) return; // An unknown type is ignored, not an error frame.

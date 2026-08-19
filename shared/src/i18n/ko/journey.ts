@@ -260,6 +260,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.peersHere': '접속 중',
   'journey.studio.folioAuto': '자동',
   'journey.studio.exportLayout': '레이아웃',
   'journey.studio.exportPages': '낱쪽',

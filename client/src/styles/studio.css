@@ -1559,3 +1559,76 @@
 }
 .trek-dash .st-ex-btn.is-primary:hover { filter: brightness(1.06); }
 .trek-dash .st-ex-btn[disabled] { opacity: 0.55; }
+
+/* ── Presence and pointers (#1973) ────────────────────────────────────────
+   The arrow is positioned in the sheet's millimetres and scales itself back
+   out, so it stays one size at every zoom — see PeerCursors.tsx. */
+.trek-dash .st-peer {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  will-change: left, top;
+}
+.trek-dash .st-peer svg { flex: none; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.28)); }
+.trek-dash .st-peer-name {
+  margin-top: 10px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  /* White on every colour in the palette, which is why they were chosen. */
+  color: #ffffff; /* theme-lint-disable — reads on the peer colour, not on app chrome */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.24);
+}
+
+/* One badge rather than loose dots with a word after them: the faces and the
+   label are one statement — who is in here — and a pill says so by holding
+   them together. Same shape as the other pieces of chrome in the bar. */
+.trek-dash .st-peers {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  padding: 0 10px 0 7px;
+  margin-left: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.trek-dash .st-peer-faces { display: inline-flex; align-items: center; }
+.trek-dash .st-peer-dot {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  overflow: hidden;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1;
+  color: #ffffff; /* theme-lint-disable — reads on the peer colour, not on app chrome */
+  /* The ring is the badge's own fill, so the faces read as cut out of it. */
+  border: 1.5px solid var(--surface-2);
+  /* Overlapped, the way a stack of faces reads as a group rather than a list. */
+  margin-right: -7px;
+}
+.trek-dash .st-peer-dot:last-child { margin-right: 0; }
+.trek-dash .st-peer-dot img { width: 100%; height: 100%; object-fit: cover; }
+.trek-dash .st-peer-more {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-3);
+  margin-left: 11px;
+}
+.trek-dash .st-peer-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+@media (max-width: 1280px) { .trek-dash .st-peer-label { display: none; } }

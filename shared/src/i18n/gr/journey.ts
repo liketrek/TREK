@@ -262,6 +262,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.peersHere': 'εδώ',
   'journey.studio.folioAuto': 'Αυτόματα',
   'journey.studio.exportLayout': 'Διάταξη',
   'journey.studio.exportPages': 'Μονές σελίδες',

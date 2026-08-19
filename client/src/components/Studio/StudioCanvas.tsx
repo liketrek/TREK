@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { ChevronsDown, ChevronsUp, Copy, Lock, Trash2, Unlock } from 'lucide-react'
 import type { BookElement, BookPageSetup, BookSpread } from '@trek/shared'
 import { SpreadFold, SpreadView } from './SpreadView'
+import { PeerCursors } from './PeerCursors'
+import type { PeerCursor } from './useBookPresence'
 import { FONT_STACKS } from './bookRender'
 import { useSpreadInteraction, type HandleId } from './useSpreadInteraction'
 import { useStudioStore } from '../../store/studioStore'
@@ -35,6 +37,8 @@ export function StudioCanvas({
   pxPerMm,
   bookView,
   dropLabel,
+  cursors,
+  onCursor,
 }: {
   spread: BookSpread | null
   spreadIndex: number
@@ -43,6 +47,10 @@ export function StudioCanvas({
   pxPerMm: number
   bookView: boolean
   dropLabel: string
+  /** The other editors' pointers, on this spread and elsewhere. */
+  cursors?: PeerCursor[]
+  /** Where this one is, in the spread's millimetres. Null once it leaves. */
+  onCursor?: (x: number | null, y: number | null) => void
 }) {
   const selection = useStudioStore(s => s.selection)
   const select = useStudioStore(s => s.select)
@@ -95,7 +103,15 @@ export function StudioCanvas({
     <div
       className="st-stage"
       style={{ width: sheetW * scaled, height: page.pageHeight * scaled }}
-      onPointerMove={onPointerMove}
+      onPointerMove={e => {
+        onPointerMove(e)
+        if (!onCursor) return
+        const r = e.currentTarget.getBoundingClientRect()
+        onCursor((e.clientX - r.left) / scaled, (e.clientY - r.top) / scaled)
+      }}
+      // Leaving the stage sends null, so the arrow goes rather than sticking
+      // where the pointer happened to cross the edge.
+      onPointerLeave={() => onCursor?.(null, null)}
       onPointerUp={finish}
       onPointerCancel={finish}
       onDragOver={e => {
@@ -154,6 +170,10 @@ export function StudioCanvas({
         onPointerDown={() => select([])}
       >
         <SpreadView spread={spread} page={page} spreadIndex={spreadIndex} big={zoom > 0.34} showGuides dropLabel={dropLabel} />
+
+        {cursors && cursors.length > 0 && (
+          <PeerCursors cursors={cursors} spreadIndex={spreadIndex} zoom={zoom} />
+        )}
 
         {/* Hit targets sit above the page so a photo's own <img> never eats the
             gesture, and so a locked element simply is not grabbable. */}

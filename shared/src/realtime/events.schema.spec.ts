@@ -106,6 +106,11 @@ const FIXTURES: Record<TrekWsEventName, Record<string, unknown>> = {
   'journey:entry:deleted': { journeyId: 3, entryId: 5 },
   'journey:entries:reordered': { journeyId: 3, orderedIds: [5, 4] },
   'journey:book:saved': { journeyId: 7, version: 4, savedBy: 1 },
+  'journey:book:peers': {
+    journeyId: 7,
+    peers: [{ socketId: 3, userId: 2, username: 'ada', avatar: null }],
+  },
+  'journey:book:cursor': { journeyId: 7, socketId: 3, userId: 2, spreadIndex: 0, x: 105.5, y: 60 },
   'journey:contributor:changed': { journeyId: 3, targetUserId: 2, role: 'editor' },
   'import:progress': { jobId: 'j1', tripId: 1, status: 'running', done: 1, total: 3, fileName: 'a.pdf' },
   'import:done': { jobId: 'j1', tripId: 1, result: { items: [] } },
@@ -123,13 +128,16 @@ const DRIFT_VARIANTS: Partial<Record<TrekWsEventName, Record<string, unknown>[]>
   'accommodation:updated': [{}],
   'accommodation:deleted': [{}, { id: 8, linkedReservationId: 6 }],
   'journey:entry:updated': [{ journeyId: 3, entryId: 5 }],
+  'journey:book:peers': [{ journeyId: 7, peers: [] }],
+  // Off the page: the arrow goes, the person stays.
+  'journey:book:cursor': [{ journeyId: 7, socketId: 3, userId: 2, spreadIndex: 4, x: null, y: null }],
 };
 
 describe('@trek/shared realtime event registry', () => {
-  it('WSEVT-REG-001: pins the authoritative inventory counts (65 trip + 29 user = 94)', () => {
+  it('WSEVT-REG-001: pins the authoritative inventory counts (65 trip + 32 user = 97)', () => {
     expect(TREK_WS_TRIP_EVENT_NAMES).toHaveLength(65);
-    expect(TREK_WS_USER_EVENT_NAMES).toHaveLength(30);
-    expect(TREK_WS_EVENT_NAMES).toHaveLength(95);
+    expect(TREK_WS_USER_EVENT_NAMES).toHaveLength(32);
+    expect(TREK_WS_EVENT_NAMES).toHaveLength(97);
   });
 
   it('WSEVT-REG-002: every name is domain:action shaped and outside the reserved plugin: namespace', () => {

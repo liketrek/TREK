@@ -258,6 +258,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
+  'journey.studio.peersHere': '在线',
   'journey.studio.folioAuto': '自动',
   'journey.studio.exportLayout': '版式',
   'journey.studio.exportPages': '单页',

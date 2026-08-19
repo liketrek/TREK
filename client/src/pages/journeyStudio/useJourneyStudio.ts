@@ -6,6 +6,7 @@ import { journeyApi } from '../../api/client'
 import { useJourneyStore, type GalleryPhoto, type JourneyEntry, type JourneyPhoto } from '../../store/journeyStore'
 import { useStudioStore } from '../../store/studioStore'
 import { useBookStore } from '../../components/Studio/useBookStore'
+import { useBookPresence } from '../../components/Studio/useBookPresence'
 import { useTranslation } from '../../i18n'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { PAGE_PRESETS, clampPageSize, type PagePresetId } from '../../components/Studio/pagePresets'
@@ -103,6 +104,15 @@ export function useJourneyStudio() {
   // Pulled out because close() needs it and the store object itself is new on
   // every render — depending on that made the save effect fire per render.
   const { queueSave, saveNow, loaded: bookLoaded } = book
+
+  /*
+   * Who else is in here, and where their pointers are.
+   *
+   * Deliberately unrelated to the saving above: presence is ephemeral and the
+   * document is not, and tangling them would mean a pointer could not move
+   * while a save was in flight.
+   */
+  const presence = useBookPresence(journeyId)
 
   const workRef = useRef<HTMLDivElement>(null)
   const builtFor = useRef<number | null>(null)
@@ -485,6 +495,11 @@ export function useJourneyStudio() {
 
     /** Applying the other side of a conflict replaces the open document. */
     loadDoc,
+
+    /** Everyone else with the book open, and their pointers. */
+    peers: presence.peers,
+    cursors: presence.cursors,
+    moveCursor: presence.moveCursor,
 
     /** Autosave: its state, and the two ways out of a conflict. */
     saveState: book.state,
