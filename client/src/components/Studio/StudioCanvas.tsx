@@ -139,6 +139,7 @@ export function StudioCanvas({
           frame: { x: p.x - w / 2, y: p.y - h / 2, w, h },
           rotation: 0, opacity: 1, locked: false,
           photoId, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 0, filter: 'none',
+          mask: null, frameStyle: 'none',
         } as BookElement)
         select([id])
       }}
@@ -169,7 +170,10 @@ export function StudioCanvas({
               height: `${el.frame.h}mm`,
               transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
               cursor: el.locked ? 'default' : 'move',
-              pointerEvents: el.locked ? 'none' : 'auto',
+              // The target stays live even when locked, or the element could
+              // not be selected — and an element that cannot be selected cannot
+              // be unlocked.
+              pointerEvents: 'auto',
             }}
           />
         ))}
@@ -260,7 +264,10 @@ export function StudioCanvas({
               transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
             }}
           >
-            {sel.length === 1 && !dragging && HANDLES.map(h => (
+            {/* No resize handles on a locked element: they would offer a drag
+                that is refused, which reads as the editor being broken rather
+                than as the element being locked. */}
+            {sel.length === 1 && !dragging && !el.locked && HANDLES.map(h => (
               <span
                 key={h}
                 className={`st-handle ${h.length === 2 ? 'is-corner' : h === 'n' || h === 's' ? 'is-h' : 'is-v'}`}

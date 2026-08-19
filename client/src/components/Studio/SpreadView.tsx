@@ -1,6 +1,10 @@
 import type { CSSProperties } from 'react'
-import type { BookElement, BookPageSetup, BookSpread } from '@trek/shared'
+import type {
+  BookElement, BookPageSetup, BookPhotoElement, BookShapeElement, BookSpread,
+} from '@trek/shared'
 import { FONT_STACKS, photoSrc } from './bookRender'
+import { HOLED_SHAPES, SHAPE_PATHS, scalePath, unitPath } from './shapes'
+import { TravelElementView } from './TravelElements'
 
 /**
  * One spread, drawn.
@@ -27,6 +31,9 @@ function frameStyle(el: BookElement): CSSProperties {
   }
 }
 
+/** Two decimals of a millimetre, matching what the document itself stores. */
+const round2 = (n: number) => Math.round(n * 100) / 100
+
 /** #rrggbb plus an alpha, for the fades a cover panel needs. */
 function hexToRgba(hex: string, alpha: number): string {
   const n = parseInt(hex.slice(1), 16)
@@ -37,34 +44,168 @@ const FILTERS: Record<string, string | undefined> = {
   none: undefined,
   bw: 'grayscale(1) contrast(1.05)',
   warm: 'saturate(1.1) sepia(0.16)',
+  cool: 'saturate(1.05) hue-rotate(-8deg) brightness(1.02)',
+  // Faded, the way a print left in the light goes: lifted blacks, less colour.
+  fade: 'saturate(0.72) contrast(0.88) brightness(1.08)',
+  contrast: 'contrast(1.22) saturate(1.06)',
 }
 
-export function ElementView({
-  el, big, print = false, dropLabel = '',
-}: { el: BookElement; big: boolean; print?: boolean; dropLabel?: string }) {
-  if (el.kind === 'photo') {
-    // An empty frame is a template's promise: it says where a picture goes
-    // before anyone has chosen which.
-    if (el.photoId == null) {
-      // In the printed book it is nothing at all — a hatch and an instruction on
-      // a page someone paid to have bound would be a defect, and an unfilled
-      // frame has nothing to contribute either.
-      if (print) return null
+/**
+ * How much of the frame the decoration around a picture eats, as a fraction of
+ * the shorter side.
+ *
+ * A Polaroid's chin is the reason this is a table rather than one number: the
+ * bottom border is roughly three times the others, and getting that ratio wrong
+ * is the difference between a Polaroid and a photo with a white edge.
+ */
+const FRAME_INSET: Record<string, { pad: number; bottom: number }> = {
+  none: { pad: 0, bottom: 0 },
+  polaroid: { pad: 0.055, bottom: 0.17 },
+  white: { pad: 0.035, bottom: 0.035 },
+  shadow: { pad: 0, bottom: 0 },
+  film: { pad: 0.075, bottom: 0.075 },
+  tape: { pad: 0, bottom: 0 },
+}
 
-      // The label is sized in millimetres so it scales with the zoom exactly as
-      // the page does, and it steps aside on a frame too small to hold it.
-      const side = Math.min(el.frame.w, el.frame.h)
-      const fs = Math.max(2.4, Math.min(4.6, side * 0.085))
-      const roomy = side > 22 && el.frame.w > 34
+/**
+ * A shape, drawn.
+ *
+ * Rectangles and ellipses stay `<div>`s — a box with a corner radius is exactly
+ * what CSS is good at, and those two are what every document written before the
+ * shape library existed contains. Everything else is an SVG path.
+ *
+ * The viewBox is in millimetres and the element is that many millimetres wide,
+ * so one user unit is one millimetre and a stroke width means the same thing on
+ * every side. The path is drawn into a box inset by half the stroke, which puts
+ * the whole stroke inside the frame the editor snapped — the same thing
+ * `box-sizing: border-box` does for the div case, and the reason a snapped edge
+ * and a drawn edge line up.
+ */
+function ShapeView({ el }: { el: BookShapeElement }) {
+  const fill = el.fill ?? 'transparent'
+  const gradientId = `g-${el.id}`
+  const gradient = el.gradient !== 'none' && el.fill
 
-      return (
+  if (el.shape === 'rect' || el.shape === 'ellipse') {
+    const background = !gradient
+      ? fill
+      : `linear-gradient(${el.gradient === 'up' ? 'to top' : 'to bottom'},`
+        + ` ${hexToRgba(el.fill!, 0)} 0%,`
+        + ` ${hexToRgba(el.fill!, 0.55)} 46%,`
+        + ` ${hexToRgba(el.fill!, 1)} 100%)`
+    return (
+      <div
+        style={{
+          ...frameStyle(el),
+          background,
+          border: el.stroke ? `${el.strokeWidth}mm ${el.strokeStyle} ${el.stroke}` : undefined,
+          boxSizing: 'border-box',
+          borderRadius: el.shape === 'ellipse' ? '50%' : el.radius ? `${el.radius}mm` : undefined,
+        }}
+      />
+    )
+  }
+
+  const sw = el.stroke ? el.strokeWidth : 0
+  const w = Math.max(0.01, el.frame.w - sw)
+  const h = Math.max(0.01, el.frame.h - sw)
+  const d = scalePath(SHAPE_PATHS[el.shape], w, h)
+
+  // Proportional to the stroke, so a dashed outline keeps its rhythm whether it
+  // is a hairline on a caption rule or a 2mm band around a cover panel.
+  const dash = el.strokeStyle === 'dashed' ? `${sw * 3} ${sw * 2}`
+    : el.strokeStyle === 'dotted' ? `${sw * 0.01} ${sw * 2}`
+    : undefined
+
+  return (
+    <div style={frameStyle(el)}>
+      <svg
+        width={`${el.frame.w}mm`}
+        height={`${el.frame.h}mm`}
+        viewBox={`0 0 ${el.frame.w} ${el.frame.h}`}
+        style={{ display: 'block', overflow: 'visible' }}
+      >
+        {gradient && (
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1={el.gradient === 'up' ? '1' : '0'} x2="0" y2={el.gradient === 'up' ? '0' : '1'}>
+              <stop offset="0%" stopColor={el.fill!} stopOpacity="0" />
+              <stop offset="46%" stopColor={el.fill!} stopOpacity="0.55" />
+              <stop offset="100%" stopColor={el.fill!} stopOpacity="1" />
+            </linearGradient>
+          </defs>
+        )}
+        <path
+          d={d}
+          transform={sw ? `translate(${sw / 2} ${sw / 2})` : undefined}
+          fill={gradient ? `url(#${gradientId})` : fill}
+          fillRule={HOLED_SHAPES.has(el.shape) ? 'evenodd' : undefined}
+          stroke={el.stroke ?? undefined}
+          strokeWidth={sw || undefined}
+          strokeDasharray={dash}
+          strokeLinecap={el.strokeStyle === 'dotted' ? 'round' : undefined}
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
+  )
+}
+
+/**
+ * A picture — possibly cut to a shape, possibly sitting in something.
+ *
+ * The mask and the decoration are independent on purpose: a heart in a Polaroid
+ * is a silly thing to want and there is no reason to stop anyone wanting it, and
+ * keeping them separate means neither has to know about the other.
+ */
+function PhotoView({ el, big, print, dropLabel }: {
+  el: BookPhotoElement; big: boolean; print: boolean; dropLabel: string
+}) {
+  const deco = FRAME_INSET[el.frameStyle] ?? FRAME_INSET.none
+  const side = Math.min(el.frame.w, el.frame.h)
+  // Rounded to a hundredth of a millimetre — the same precision the document
+  // stores. Without it a fraction of the frame lands in the CSS as
+  // `10.200000000000001mm`, which is not wrong but is float noise in a
+  // stylesheet that a person may well end up reading.
+  const pad = round2(deco.pad * side)
+  const bottom = round2(deco.bottom * side)
+  const clipId = `c-${el.id}`
+  const clipped = el.mask && el.mask !== 'rect'
+
+  // An empty frame is a template's promise: it says where a picture goes before
+  // anyone has chosen which.
+  if (el.photoId == null) {
+    // In the printed book it is nothing at all — a hatch and an instruction on a
+    // page someone paid to have bound would be a defect, and an unfilled frame
+    // has nothing to contribute either.
+    if (print) return null
+
+    // The label is sized in millimetres so it scales with the zoom exactly as
+    // the page does, and it steps aside on a frame too small to hold it.
+    const fs = Math.max(2.4, Math.min(4.6, side * 0.085))
+    const roomy = side > 22 && el.frame.w > 34
+
+    return (
+      <div style={{ ...frameStyle(el), boxSizing: 'border-box' }}>
+        {clipped && (
+          <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden>
+            <defs>
+              <clipPath id={clipId} clipPathUnits="objectBoundingBox">
+                <path d={unitPath(SHAPE_PATHS[el.mask!])} />
+              </clipPath>
+            </defs>
+          </svg>
+        )}
         <div
           style={{
-            ...frameStyle(el),
-            borderRadius: el.radius ? `${el.radius}mm` : undefined,
+            position: 'absolute',
+            inset: 0,
+            borderRadius: !clipped && el.radius ? `${el.radius}mm` : undefined,
+            clipPath: clipped ? `url(#${clipId})` : undefined,
             background:
               'repeating-linear-gradient(45deg, rgba(0,0,0,.045) 0 6px, rgba(0,0,0,.02) 6px 12px)',
-            border: '1px dashed rgba(0,0,0,.16)',
+            // A dashed border would be cut in half lengthwise by the clip, so a
+            // masked placeholder shows its shape through the hatch alone.
+            border: clipped ? undefined : '1px dashed rgba(0,0,0,.16)',
             boxSizing: 'border-box',
             display: 'flex',
             alignItems: 'center',
@@ -91,53 +232,131 @@ export function ElementView({
             </span>
           )}
         </div>
-      )
-    }
-    return (
-      <div style={{ ...frameStyle(el), overflow: 'hidden', borderRadius: el.radius ? `${el.radius}mm` : undefined }}>
-        <img
-          src={photoSrc(el.photoId, big)}
-          alt=""
-          draggable={false}
-          loading="lazy"
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: el.fit,
-            objectPosition: `${el.focalX * 100}% ${el.focalY * 100}%`,
-            filter: FILTERS[el.filter],
-            display: 'block',
-          }}
-        />
       </div>
     )
   }
 
-  if (el.kind === 'shape') {
-    const fill = el.fill ?? 'transparent'
-    const background = el.gradient === 'none' || !el.fill
-      ? fill
-      : `linear-gradient(${el.gradient === 'up' ? 'to top' : 'to bottom'},`
-        + ` ${hexToRgba(el.fill, 0)} 0%,`
-        + ` ${hexToRgba(el.fill, 0.55)} 46%,`
-        + ` ${hexToRgba(el.fill, 1)} 100%)`
-    return (
-      <div
+  const picture = (
+    <div
+      style={{
+        position: 'absolute',
+        left: `${pad}mm`,
+        top: `${pad}mm`,
+        right: `${pad}mm`,
+        bottom: `${bottom || pad}mm`,
+        overflow: 'hidden',
+        borderRadius: !clipped && el.radius ? `${el.radius}mm` : undefined,
+        clipPath: clipped ? `url(#${clipId})` : undefined,
+      }}
+    >
+      <img
+        src={photoSrc(el.photoId, big)}
+        alt=""
+        draggable={false}
+        loading="lazy"
         style={{
-          ...frameStyle(el),
-          background,
-          border: el.stroke ? `${el.strokeWidth}mm solid ${el.stroke}` : undefined,
-          // A stroke has to sit inside the frame, or the drawn shape would be
-          // wider than the box the editor snapped and the print would not match.
-          boxSizing: 'border-box',
-          borderRadius: el.shape === 'ellipse' ? '50%' : el.radius ? `${el.radius}mm` : undefined,
-          // A triangle is a clip, not a border trick: the old CSS border hack
-          // cannot take a fill gradient or a stroke, and its size does not follow
-          // the frame the way everything else here does.
-          clipPath: el.shape === 'triangle' ? 'polygon(50% 0%, 100% 100%, 0% 100%)' : undefined,
+          width: '100%',
+          height: '100%',
+          objectFit: el.fit,
+          objectPosition: `${el.focalX * 100}% ${el.focalY * 100}%`,
+          filter: FILTERS[el.filter],
+          display: 'block',
         }}
       />
-    )
+    </div>
+  )
+
+  return (
+    <div
+      style={{
+        ...frameStyle(el),
+        background: el.frameStyle === 'polaroid' || el.frameStyle === 'white' ? '#ffffff'
+          : el.frameStyle === 'film' ? '#141414'
+          : undefined,
+        // A photograph lying on a page, rather than printed into it. Soft and
+        // low: a hard shadow reads as a UI card, not as paper.
+        boxShadow: el.frameStyle === 'shadow' || el.frameStyle === 'polaroid'
+          ? '0 1.2mm 3mm rgba(0,0,0,.22)'
+          : undefined,
+      }}
+    >
+      {clipped && (
+        <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden>
+          <defs>
+            <clipPath id={clipId} clipPathUnits="objectBoundingBox">
+              <path d={unitPath(SHAPE_PATHS[el.mask!])} />
+            </clipPath>
+          </defs>
+        </svg>
+      )}
+
+      {picture}
+
+      {/* Sprocket holes. Drawn as a repeating gradient rather than as elements
+          so the count follows the width instead of being fixed at a size that
+          only looks right on one frame. */}
+      {el.frameStyle === 'film' && [0, 1].map(row => (
+        <div
+          key={row}
+          style={{
+            position: 'absolute',
+            left: `${pad * 0.35}mm`,
+            right: `${pad * 0.35}mm`,
+            [row ? 'bottom' : 'top']: `${pad * 0.22}mm`,
+            height: `${pad * 0.42}mm`,
+            background: 'repeating-linear-gradient(90deg,'
+              + ` #f4f4f4 0 ${pad * 0.5}mm, transparent ${pad * 0.5}mm ${pad * 1.1}mm)`,
+          }}
+        />
+      ))}
+
+      {/* Two strips of tape, held at an angle across opposite corners. */}
+      {/*
+        Two strips, one over each top corner, each centred *on* its corner so it
+        overhangs the picture evenly on both sides — which is what a piece of
+        tape does. Offsetting by a fraction of the strip instead left them
+        sitting beside the corners rather than across them.
+      */}
+      {el.frameStyle === 'tape' && ([-1, 1] as const).map(dir => {
+        const tapeW = side * 0.26
+        const tapeH = side * 0.075
+        return (
+          <div
+            key={dir}
+            style={{
+              position: 'absolute',
+              [dir < 0 ? 'left' : 'right']: `${round2(-tapeW / 2)}mm`,
+              top: `${round2(-tapeH / 2)}mm`,
+              width: `${round2(tapeW)}mm`,
+              height: `${round2(tapeH)}mm`,
+              background: 'rgba(236,228,206,.82)',
+              boxShadow: '0 .3mm .6mm rgba(0,0,0,.12)',
+              // Away from the corner on each side: anticlockwise on the left,
+              // clockwise on the right, so the pair reads as symmetric.
+              transform: `rotate(${dir * 45}deg)`,
+            }}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
+export function ElementView({
+  el, big, print = false, dropLabel = '',
+}: { el: BookElement; big: boolean; print?: boolean; dropLabel?: string }) {
+  if (el.kind === 'photo') {
+    return <PhotoView el={el} big={big} print={print} dropLabel={dropLabel} />
+  }
+
+  if (el.kind === 'shape') return <ShapeView el={el} />
+
+  if (el.kind !== 'text') {
+    // map, stats, countries, badge — the elements drawn from the journey's own
+    // figures. They live in their own file because they are a different kind of
+    // drawing: type and vector graphics laid out from data, rather than one box
+    // with one property set.
+    return <TravelElementView el={el} frameStyle={frameStyle(el)} />
   }
 
   return (

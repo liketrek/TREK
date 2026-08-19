@@ -235,6 +235,11 @@ export function applyTemplate(spread: BookSpread, tpl: Template, page: BookPageS
         focalY: src && src.kind === 'photo' ? src.focalY : 0.5,
         radius: src && src.kind === 'photo' ? src.radius : 0,
         filter: src && src.kind === 'photo' ? src.filter : 'none',
+        // The cut and the decoration travel with the picture. A layout change
+        // rearranges a page; it is not a reason for a photograph to come out of
+        // its Polaroid.
+        mask: src && src.kind === 'photo' ? src.mask : null,
+        frameStyle: src && src.kind === 'photo' ? src.frameStyle : 'none',
       } as BookElement)
       continue
     }
