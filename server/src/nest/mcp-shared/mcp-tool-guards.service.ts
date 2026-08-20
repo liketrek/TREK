@@ -19,15 +19,41 @@ export class McpToolGuardsService {
     private readonly realtime: RealtimeService,
   ) {}
 
-  safeBroadcast(tripId: number, event: string, payload: Record<string, unknown>): void {
+  /**
+   * Broadcast a tool's change to the trip room.
+   *
+   * `onlyUserIds` scopes delivery the way the REST routes already scope theirs:
+   * pass the users who may see the thing that changed, and the event is sent to
+   * those users' sockets rather than to everyone in the room. Omitting it keeps
+   * the room-wide behaviour, which is right for anything the whole trip shares.
+   *
+   * It is optional rather than required because most tools change something
+   * everybody can see — but a tool that touches a restricted row and forgets it
+   * pushes that row onto every other member's screen, which is #1976: a private
+   * packing item, ticked off through MCP, landed in every other member's
+   * IndexedDB and stayed there.
+   */
+  safeBroadcast(tripId: number, event: string, payload: Record<string, unknown>, onlyUserIds?: number[] | null): void {
     try {
       // Legacy MCP call sites pass event names as plain strings; route through
       // the facade's implementation signature (its typed overloads are for new
       // call sites). Runtime is a pure pass-through to src/websocket's
       // broadcast, so the 100+ per-file vi.mock stubs keep intercepting.
-      (this.realtime.broadcast as (t: number | string, e: string, p: Record<string, unknown>) => void)(
-        tripId, event, { ...payload, _source: 'mcp' },
-      );
+      const send = this.realtime.broadcast as (
+        t: number | string, e: string, p: Record<string, unknown>, sid?: number | string, uid?: number,
+      ) => void;
+      const body = { ...payload, _source: 'mcp' };
+
+      // Room-wide, and called with three arguments exactly as before: the
+      // facade preserves its caller's arity, and padding the optionals with
+      // explicit undefineds would change what every existing mock records.
+      if (onlyUserIds == null) {
+        send(tripId, event, body);
+        return;
+      }
+      for (const uid of new Set(onlyUserIds)) {
+        if (uid != null) send(tripId, event, body, undefined, uid);
+      }
     } catch (err) {
       console.error(`[MCP] broadcast failed for ${event}:`, (err as Error | undefined)?.message ?? err);
     }

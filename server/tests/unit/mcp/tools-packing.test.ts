@@ -438,3 +438,111 @@ describe('Resource: trek://trips/{tripId}/packing/bags', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Private items over MCP (#1976)
+// ---------------------------------------------------------------------------
+
+/**
+ * A restricted packing item, changed through a tool, must reach only the people
+ * who may see it.
+ *
+ * The REST and RPC surfaces have scoped this since #858 — they go through
+ * emitToViewers, which hands the event to the owner and the recipients. The MCP
+ * tools broadcast to the whole trip room instead, so asking an assistant to
+ * tick off something on your own list pushed that row to every other member.
+ *
+ * It did not stop at the wire either: the client stores what arrives
+ * (remoteEventHandler -> putPackingItem -> bulkPut) with no owner check, and the
+ * offline read path returns every cached row for the trip. So the leaked item
+ * stayed in the other member's IndexedDB and rendered whenever their next read
+ * fell back to the cache.
+ *
+ * These cases pin the wire, which is where it has to be fixed: a room-wide call
+ * still takes three arguments, so nothing about a shared item changes.
+ */
+describe('a restricted packing item over MCP', () => {
+  const makePrivate = (itemId: number, ownerId: number) =>
+    testDb.prepare('UPDATE packing_items SET is_private = 1, owner_id = ? WHERE id = ?').run(ownerId, itemId);
+
+  it('is ticked off for its owner alone, not for the whole trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createPackingItem(testDb, trip.id);
+    makePrivate(item.id, user.id);
+
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'toggle_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id, checked: true },
+      });
+    });
+
+    // The assertion that would have caught the leak: a fifth argument naming
+    // the only user this may reach.
+    expect(broadcastMock).toHaveBeenCalledWith(
+      trip.id, 'packing:updated', expect.any(Object), undefined, user.id,
+    );
+    expect(broadcastMock).not.toHaveBeenCalledWith(trip.id, 'packing:updated', expect.any(Object));
+  });
+
+  it('is renamed for its owner alone', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createPackingItem(testDb, trip.id);
+    makePrivate(item.id, user.id);
+
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'update_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id, name: 'Insulin pens' },
+      });
+    });
+
+    expect(broadcastMock).toHaveBeenCalledWith(
+      trip.id, 'packing:updated', expect.any(Object), undefined, user.id,
+    );
+    expect(broadcastMock).not.toHaveBeenCalledWith(trip.id, 'packing:updated', expect.any(Object));
+  });
+
+  /*
+   * The delete carries only an id, which looks harmless — but it names an id
+   * the other members were never told about, and it removes a row from their
+   * store that a leak had put there. Scoped the same way, from the row the
+   * delete hands back.
+   */
+  it('is deleted for its owner alone', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createPackingItem(testDb, trip.id);
+    makePrivate(item.id, user.id);
+
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'delete_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id },
+      });
+    });
+
+    expect(broadcastMock).toHaveBeenCalledWith(
+      trip.id, 'packing:deleted', expect.any(Object), undefined, user.id,
+    );
+    expect(broadcastMock).not.toHaveBeenCalledWith(trip.id, 'packing:deleted', expect.any(Object));
+  });
+
+  it('still tells the whole room about a shared one, unchanged', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createPackingItem(testDb, trip.id);
+
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'toggle_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id, checked: true },
+      });
+    });
+
+    // Three arguments exactly, which is what every other packing case asserts.
+    expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:updated', expect.any(Object));
+  });
+});
