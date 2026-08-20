@@ -45,6 +45,7 @@ const packing: TranslationStrings = {
   'packing.saveAsTemplate': 'Şablon olarak kaydet',
   'packing.templateName': 'Şablon adı',
   'packing.templateSaved': 'Paket listesi şablon olarak kaydedildi',
+  'packing.templateReplaceConfirm': 'A template named "{name}" already exists. Replace its contents?',
   'packing.bags': 'Çantalar',
   'packing.noBag': 'Atanmamış',
   'packing.totalWeight': 'Toplam ağırlık',

@@ -45,6 +45,7 @@ const packing: TranslationStrings = {
   'packing.saveAsTemplate': 'Uložit jako šablonu',
   'packing.templateName': 'Název šablony',
   'packing.templateSaved': 'Seznam balení uložen jako šablona',
+  'packing.templateReplaceConfirm': 'A template named "{name}" already exists. Replace its contents?',
   'packing.bags': 'Zavazadla',
   'packing.noBag': 'Nepřiřazeno',
   'packing.totalWeight': 'Celková váha',

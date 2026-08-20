@@ -467,7 +467,25 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
       new PackingController(svc).saveAsTemplate(admin, '5', 'Before departure', 'Before departure', 'personal');
       expect(saveAsTemplate).toHaveBeenCalledWith('5', admin.id, 'Before departure', {
         category: 'Before departure', visibility: 'personal',
+      }, false);
+    });
+
+    it('returns 409 with a stable error code when the template name already exists', () => {
+      const conflict = { conflict: true as const, id: 8, name: 'Before departure' };
+      const svc = makeService({ saveAsTemplate: vi.fn().mockReturnValue(conflict) } as Partial<PackingService>);
+      expect(thrown(() => new PackingController(svc).saveAsTemplate(admin, '5', 'Before departure'))).toEqual({
+        status: 409,
+        body: { error: 'Template already exists', code: 'TEMPLATE_EXISTS', template: conflict },
       });
+    });
+
+    it('forwards overwrite when replacing a category template', () => {
+      const saveAsTemplate = vi.fn().mockReturnValue({ id: 8, name: 'Before departure', overwritten: true });
+      const svc = makeService({ saveAsTemplate } as Partial<PackingService>);
+      new PackingController(svc).saveAsTemplate(admin, '5', 'Before departure', 'Before departure', 'personal', true);
+      expect(saveAsTemplate).toHaveBeenCalledWith('5', admin.id, 'Before departure', {
+        category: 'Before departure', visibility: 'personal',
+      }, true);
     });
   });
 

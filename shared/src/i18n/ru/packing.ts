@@ -43,6 +43,7 @@ const packing: TranslationStrings = {
   'packing.saveAsTemplate': 'Сохранить как шаблон',
   'packing.templateName': 'Название шаблона',
   'packing.templateSaved': 'Список вещей сохранён как шаблон',
+  'packing.templateReplaceConfirm': 'A template named "{name}" already exists. Replace its contents?',
   'packing.noMembers': 'Нет участников',
   'packing.bags': 'Багаж',
   'packing.noBag': 'Не назначено',

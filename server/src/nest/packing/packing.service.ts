@@ -130,9 +130,9 @@ export class PackingService {
     return svc.applyTemplate(tripId, templateId, visibility, ownerId);
   }
 
-  saveAsTemplate(tripId: string, userId: number, name: string, scope?: { category: string; visibility: 'common' | 'personal' }) {
-    return scope
-      ? svc.saveAsTemplate(tripId, userId, name, scope)
+  saveAsTemplate(tripId: string, userId: number, name: string, scope?: { category: string; visibility: 'common' | 'personal' }, overwrite = false) {
+    return scope || overwrite
+      ? svc.saveAsTemplate(tripId, userId, name, scope, overwrite)
       : svc.saveAsTemplate(tripId, userId, name);
   }
 

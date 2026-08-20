@@ -42,6 +42,7 @@ const packing: TranslationStrings = {
   'packing.saveAsTemplate': '儲存為範本',
   'packing.templateName': '範本名稱',
   'packing.templateSaved': '行李清單已儲存為範本',
+  'packing.templateReplaceConfirm': '已存在名為「{name}」的範本。要取代其內容嗎？',
   'packing.noMembers': '無成員',
   'packing.bags': '行李',
   'packing.noBag': '未分配',

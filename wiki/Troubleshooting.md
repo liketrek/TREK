@@ -59,6 +59,22 @@ With `ADMIN_EMAIL` and `ADMIN_PASSWORD` set, the admin is created with exactly t
 
 ---
 
+## iOS PWA says "Invalid email or password" but desktop login works
+
+First confirm that the desktop is performing a fresh login rather than reusing an existing session: open a private browser window and sign in again at the exact URL used to install the iOS PWA.
+
+If the fresh desktop login succeeds, open **Admin Panel → Audit**, attempt one iOS login, and refresh the audit log. The `user.login_failed` entry identifies which part failed without recording the password:
+
+- `unknown_email` — the submitted email did not match an account. Check for whitespace and confirm both devices use the same TREK URL and database.
+- `wrong_password` — the server found the account, but the submitted password bytes did not match its stored hash. iOS AutoFill may hold an older value or a visually identical value containing different Unicode characters.
+- `oidc_only` — the account must use the configured SSO provider instead of password login.
+
+For `wrong_password`, open TREK directly in iPhone Safari before troubleshooting the installed PWA. Manually type the password without AutoFill or copy/paste. If that succeeds, update the TREK entry in Apple's **Passwords** app, then reopen or reinstall the PWA. Arc or another desktop browser's password store does not necessarily synchronize with Apple Passwords.
+
+If manual entry still fails, change the password from a working authenticated session, use ordinary ASCII characters for the diagnostic attempt, and test the new password in Safari immediately. Never put a real password in logs, screenshots, support messages, or URL parameters.
+
+---
+
 ## WebSocket not connecting / real-time sync broken
 
 **Cause:** Your reverse proxy is not forwarding WebSocket upgrade headers on the `/ws` path.
@@ -142,6 +158,41 @@ Add this to the `location /` block (or the specific backup route). See [Reverse 
 ```bash
 sudo chown -R 1000:1000 ./data ./uploads
 ```
+
+---
+
+## `better-sqlite3.node` has an incompatible architecture
+
+**Symptoms:** Tests or local startup fail in `dlopen` with a message such as
+`have 'arm64', need 'x86_64'`, or the reverse.
+
+**Cause:** `better-sqlite3` contains a native binary. Its architecture must
+match the Node.js process architecture; switching between a native Apple
+Silicon Node installation and an x86_64/Rosetta installation can leave an
+incompatible binary in `node_modules`.
+
+Check both architectures:
+
+```bash
+node -p 'process.arch'
+file node_modules/better-sqlite3/build/Release/better_sqlite3.node
+```
+
+Rebuild the module for the currently active Node installation:
+
+```bash
+npm rebuild better-sqlite3 --build-from-source
+```
+
+Then verify that the module loads before rerunning the affected tests:
+
+```bash
+node -e "const Database=require('better-sqlite3'); const db=new Database(':memory:'); console.log(db.prepare('select 1 as ok').get()); db.close()"
+```
+
+Avoid alternating between arm64 and x86_64 Node processes in the same working
+tree. If both are required, use separate checkouts or reinstall native modules
+after switching architectures.
 
 ---
 

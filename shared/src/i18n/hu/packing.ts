@@ -45,6 +45,7 @@ const packing: TranslationStrings = {
   'packing.saveAsTemplate': 'Mentés sablonként',
   'packing.templateName': 'Sablon neve',
   'packing.templateSaved': 'Csomaglista elmentve sablonként',
+  'packing.templateReplaceConfirm': 'A template named "{name}" already exists. Replace its contents?',
   'packing.bags': 'Táskák',
   'packing.noBag': 'Nincs hozzárendelve',
   'packing.totalWeight': 'Összsúly',

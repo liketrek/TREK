@@ -659,4 +659,40 @@ describe('Packing — apply-template, bag members, save-as-template', () => {
     expect(res.status).toBe(201);
     expect(res.body.template).toMatchObject({ name: 'Before departure', categoryCount: 1, itemCount: 1 });
   });
+
+  it('PACK-017g — duplicate template requires confirmation and overwrite preserves its id', async () => {
+    const { user } = createUser(testDb, { role: 'admin' });
+    const trip = createTrip(testDb, user.id);
+    const insert = testDb.prepare(`
+      INSERT INTO packing_items (trip_id, name, category, checked, sort_order, is_private, owner_id)
+      VALUES (?, ?, 'Before departure', 0, ?, 1, ?)
+    `);
+    insert.run(trip.id, 'Turn off AC', 0, user.id);
+
+    const first = await request(app)
+      .post(`/api/trips/${trip.id}/packing/save-as-template`)
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Before departure', category: 'Before departure', visibility: 'personal' });
+    expect(first.status).toBe(201);
+
+    testDb.prepare('DELETE FROM packing_items WHERE trip_id = ?').run(trip.id);
+    insert.run(trip.id, 'Lock the door', 0, user.id);
+    insert.run(trip.id, 'Close the windows', 1, user.id);
+
+    const conflict = await request(app)
+      .post(`/api/trips/${trip.id}/packing/save-as-template`)
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'before departure', category: 'Before departure', visibility: 'personal' });
+    expect(conflict.status).toBe(409);
+    expect(conflict.body).toMatchObject({ code: 'TEMPLATE_EXISTS', template: { id: first.body.template.id } });
+
+    const replaced = await request(app)
+      .post(`/api/trips/${trip.id}/packing/save-as-template`)
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Before departure', category: 'Before departure', visibility: 'personal', overwrite: true });
+    expect(replaced.status).toBe(201);
+    expect(replaced.body.template).toMatchObject({
+      id: first.body.template.id, itemCount: 2, categoryCount: 1, overwritten: true,
+    });
+  });
 });

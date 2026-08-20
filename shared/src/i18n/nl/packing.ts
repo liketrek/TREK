@@ -43,6 +43,7 @@ const packing: TranslationStrings = {
   'packing.saveAsTemplate': 'Opslaan als sjabloon',
   'packing.templateName': 'Sjabloonnaam',
   'packing.templateSaved': 'Inpaklijst opgeslagen als sjabloon',
+  'packing.templateReplaceConfirm': 'A template named "{name}" already exists. Replace its contents?',
   'packing.noMembers': 'Geen leden',
   'packing.bags': 'Bagage',
   'packing.noBag': 'Niet toegewezen',

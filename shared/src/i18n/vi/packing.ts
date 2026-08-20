@@ -45,6 +45,7 @@ const packing: TranslationStrings = {
   'packing.saveAsTemplate': 'Lưu dưới dạng mẫu',
   'packing.templateName': 'Tên mẫu',
   'packing.templateSaved': 'Danh sách đóng gói được lưu dưới dạng mẫu',
+  'packing.templateReplaceConfirm': 'A template named "{name}" already exists. Replace its contents?',
   'packing.bags': 'Túi xách',
   'packing.noBag': 'Chưa được chỉ định',
   'packing.totalWeight': 'Tổng trọng lượng',

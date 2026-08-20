@@ -429,6 +429,7 @@ export function saveAsTemplate(
   userId: number,
   templateName: string,
   scope?: { category: string; visibility: 'common' | 'personal' },
+  overwrite = false,
 ) {
   let items: { name: string; category: string }[];
   if (scope?.visibility === 'personal') {
@@ -455,26 +456,39 @@ export function saveAsTemplate(
 
   if (items.length === 0) return null;
 
-  const result = db.prepare('INSERT INTO packing_templates (name, created_by) VALUES (?, ?)').run(templateName, userId);
-  const templateId = result.lastInsertRowid;
+  const existing = db.prepare(
+    'SELECT id, name FROM packing_templates WHERE name = ? COLLATE NOCASE ORDER BY id LIMIT 1'
+  ).get(templateName) as { id: number; name: string } | undefined;
+  if (existing && !overwrite) return { conflict: true as const, id: existing.id, name: existing.name };
 
-  const categories = [...new Set(items.map(i => i.category || 'Other'))];
-  const catIdMap = new Map<string, number | bigint>();
+  return db.transaction(() => {
+    let templateId: number | bigint;
+    if (existing) {
+      templateId = existing.id;
+      db.prepare('DELETE FROM packing_template_categories WHERE template_id = ?').run(templateId);
+      db.prepare('UPDATE packing_templates SET name = ?, created_by = ? WHERE id = ?').run(templateName, userId, templateId);
+    } else {
+      templateId = db.prepare('INSERT INTO packing_templates (name, created_by) VALUES (?, ?)').run(templateName, userId).lastInsertRowid;
+    }
 
-  for (let i = 0; i < categories.length; i++) {
-    const catResult = db.prepare('INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, ?, ?)').run(templateId, categories[i], i);
-    catIdMap.set(categories[i], catResult.lastInsertRowid);
-  }
+    const categories = [...new Set(items.map(i => i.category || 'Other'))];
+    const catIdMap = new Map<string, number | bigint>();
+    for (let i = 0; i < categories.length; i++) {
+      const catResult = db.prepare('INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, ?, ?)').run(templateId, categories[i], i);
+      catIdMap.set(categories[i], catResult.lastInsertRowid);
+    }
 
-  const itemsByCategory = new Map<string, number>();
-  for (const item of items) {
-    const catId = catIdMap.get(item.category || 'Other')!;
-    const order = itemsByCategory.get(item.category || 'Other') || 0;
-    db.prepare('INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, ?)').run(catId, item.name, order);
-    itemsByCategory.set(item.category || 'Other', order + 1);
-  }
+    const itemsByCategory = new Map<string, number>();
+    for (const item of items) {
+      const category = item.category || 'Other';
+      const catId = catIdMap.get(category)!;
+      const order = itemsByCategory.get(category) || 0;
+      db.prepare('INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, ?)').run(catId, item.name, order);
+      itemsByCategory.set(category, order + 1);
+    }
 
-  return { id: Number(templateId), name: templateName, categoryCount: categories.length, itemCount: items.length };
+    return { id: Number(templateId), name: templateName, categoryCount: categories.length, itemCount: items.length, overwritten: !!existing };
+  })();
 }
 
 // ── Category Assignees ─────────────────────────────────────────────────────

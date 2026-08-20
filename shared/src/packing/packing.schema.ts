@@ -146,6 +146,7 @@ export const packingSaveTemplateRequestSchema = z.object({
   name: z.string().min(1),
   category: z.string().min(1).optional(),
   visibility: z.enum(['common', 'personal']).optional(),
+  overwrite: z.boolean().optional(),
 });
 export type PackingSaveTemplateRequest = z.infer<typeof packingSaveTemplateRequestSchema>;
 

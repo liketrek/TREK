@@ -44,6 +44,7 @@ const packing: TranslationStrings = {
   'packing.saveAsTemplate': 'حفظ كقالب',
   'packing.templateName': 'اسم القالب',
   'packing.templateSaved': 'تم حفظ قائمة الحقائب كقالب',
+  'packing.templateReplaceConfirm': 'A template named "{name}" already exists. Replace its contents?',
   'packing.bags': 'أمتعة',
   'packing.noBag': 'غير معيّن',
   'packing.totalWeight': 'الوزن الإجمالي',

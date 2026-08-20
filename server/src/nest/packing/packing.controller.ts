@@ -387,6 +387,7 @@ export class PackingController {
     @Body('name') name?: string,
     @Body('category') category?: string,
     @Body('visibility') requestedVisibility?: 'common' | 'personal',
+    @Body('overwrite') overwrite?: boolean,
   ) {
     this.requireTrip(tripId, user);
     if (user.role !== 'admin') {
@@ -398,11 +399,14 @@ export class PackingController {
     const scope = category?.trim()
       ? { category: category.trim(), visibility: requestedVisibility === 'personal' ? 'personal' as const : 'common' as const }
       : undefined;
-    const template = scope
-      ? this.packing.saveAsTemplate(tripId, user.id, name.trim(), scope)
+    const template = scope || overwrite
+      ? this.packing.saveAsTemplate(tripId, user.id, name.trim(), scope, overwrite === true)
       : this.packing.saveAsTemplate(tripId, user.id, name.trim());
     if (!template) {
       throw new HttpException({ error: 'No items to save' }, 400);
+    }
+    if ('conflict' in template) {
+      throw new HttpException({ error: 'Template already exists', code: 'TEMPLATE_EXISTS', template }, 409);
     }
     return { template };
   }

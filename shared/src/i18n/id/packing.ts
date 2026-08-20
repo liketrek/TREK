@@ -45,6 +45,7 @@ const packing: TranslationStrings = {
   'packing.saveAsTemplate': 'Simpan sebagai template',
   'packing.templateName': 'Nama template',
   'packing.templateSaved': 'Daftar bawaan disimpan sebagai template',
+  'packing.templateReplaceConfirm': 'A template named "{name}" already exists. Replace its contents?',
   'packing.bags': 'Tas',
   'packing.noBag': 'Belum ditugaskan',
   'packing.totalWeight': 'Total berat',

@@ -43,6 +43,7 @@ const packing: TranslationStrings = {
   'packing.saveAsTemplate': 'Desa com a plantilla',
   'packing.templateName': 'Nom de la plantilla',
   'packing.templateSaved': "Llista d'equipatge desada com a plantilla",
+  'packing.templateReplaceConfirm': 'A template named "{name}" already exists. Replace its contents?',
   'packing.noMembers': 'Sense membres',
   'packing.bags': 'Equipatge',
   'packing.noBag': 'Sense assignar',

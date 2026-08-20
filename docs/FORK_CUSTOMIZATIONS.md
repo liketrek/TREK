@@ -1,5 +1,9 @@
 # Fork customizations to preserve
 
+See [PWA Icon Design and Release](PWA_ICON_DESIGN_AND_RELEASE.md) for the
+approved TREK app-icon direction, asset-generation pipeline, iOS cache-busting
+requirements, and deployment verification checklist.
+
 This file is the preservation checklist for `syyangv/TREK`. Review every item
 when syncing from upstream. A clean merge is not sufficient evidence that these
 behaviors survived.
@@ -22,9 +26,20 @@ See [CI/CD deployment](ci-cd-phase-3-4-deployment.md) and
 ## Vacay and Obsidian
 
 - Preserve the Vacay addon and its read-only Obsidian Yearly Glance import.
+- Planned leave is imported directly from the vault's `请假计划.md` Markdown
+  table (`Date | Type | Note`); Yearly Glance renders this source but is not a
+  runtime dependency for Vacay. Treat `Type`, never title, color, or emoji, as
+  the category authority. Supported values are `PTO`, `病假`, and `公共假期`.
+- Keep the vault mounted read-only. Reconciliation may update TREK's derived
+  Vacay rows, but must never modify `请假计划.md` or any Obsidian note.
 - Preserve PTO, sick-leave, and public-holiday mappings and their locale keys.
 - Vacay must default to the current configured calendar year, not the highest
   configured year.
+- When a Vacay year is added, each user's base annual entitlement must inherit
+  from the preceding year. The inherited `vacation_days` value is separate from
+  `carried_over`; use 30 only when no preceding user-year configuration exists.
+- Carry-over recalculation may update `carried_over` on an existing year, but it
+  must not overwrite a base entitlement that the user configured for that year.
 - Verify imported entries, company holidays, user entitlements, and existing
   persisted data after an upstream sync.
 
@@ -56,7 +71,9 @@ See [PWA implementation handoff](pwa-template-handoff.md).
 - [ ] Login and authenticated navigation work.
 - [ ] Existing database records and uploads remain present.
 - [ ] Vacay opens on the current year and existing entries remain visible.
-- [ ] Obsidian Yearly Glance data imports without destructive writes.
+- [ ] `请假计划.md` future PTO and holiday rows import by `Type`, while
+  unrelated Yearly Glance events such as flights do not become PTO.
+- [ ] Obsidian/Yearly Glance data imports without destructive writes.
 - [ ] PWA installs and an update produces the reload banner.
 - [ ] Offline map cache is retained across a PWA update.
 - [ ] Main CI, strict i18n parity, Docker smoke, Helm, and security gates pass.
@@ -64,4 +81,3 @@ See [PWA implementation handoff](pwa-template-handoff.md).
 - [ ] Private production `/api/health` returns `{"status":"ok"}`.
 
 Update this document in the same PR whenever a new fork-only behavior is added.
-

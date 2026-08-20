@@ -453,8 +453,8 @@ export const packingApi = {
   saveAsTemplate: (
     tripId: number | string,
     name: string,
-    scope?: Pick<PackingSaveTemplateRequest, 'category' | 'visibility'>,
-  ) => apiClient.post(`/trips/${tripId}/packing/save-as-template`, { name, ...scope } satisfies PackingSaveTemplateRequest).then(r => r.data),
+    options?: Pick<PackingSaveTemplateRequest, 'category' | 'visibility' | 'overwrite'>,
+  ) => apiClient.post(`/trips/${tripId}/packing/save-as-template`, { name, ...options } satisfies PackingSaveTemplateRequest).then(r => r.data),
   setBagMembers: (tripId: number | string, bagId: number, userIds: number[]) => apiClient.put(`/trips/${tripId}/packing/bags/${bagId}/members`, { user_ids: userIds } satisfies PackingBagMembersRequest).then(r => r.data),
   listBags: (tripId: number | string) => apiClient.get(`/trips/${tripId}/packing/bags`).then(r => r.data),
   createBag: (tripId: number | string, data: PackingCreateBagRequest) => apiClient.post(`/trips/${tripId}/packing/bags`, data).then(r => r.data),

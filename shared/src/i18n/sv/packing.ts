@@ -44,6 +44,7 @@ const packing: TranslationStrings = {
   'packing.saveAsTemplate': 'Spara som mall',
   'packing.templateName': 'Mallnamn',
   'packing.templateSaved': 'Packlista sparad som mall',
+  'packing.templateReplaceConfirm': 'A template named "{name}" already exists. Replace its contents?',
   'packing.bags': 'Väskor',
   'packing.noBag': 'Ej tilldelad',
   'packing.totalWeight': 'Totalvikt',

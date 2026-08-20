@@ -45,6 +45,7 @@ const packing: TranslationStrings = {
   'packing.saveAsTemplate': 'Αποθήκευση ως πρότυπο',
   'packing.templateName': 'Όνομα προτύπου',
   'packing.templateSaved': 'Η λίστα αποσκευών αποθηκεύτηκε ως πρότυπο',
+  'packing.templateReplaceConfirm': 'A template named "{name}" already exists. Replace its contents?',
   'packing.bags': 'Τσάντες',
   'packing.noBag': 'Χωρίς ανάθεση',
   'packing.totalWeight': 'Συνολικό βάρος',

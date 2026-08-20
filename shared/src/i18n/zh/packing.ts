@@ -42,6 +42,7 @@ const packing: TranslationStrings = {
   'packing.saveAsTemplate': '保存为模板',
   'packing.templateName': '模板名称',
   'packing.templateSaved': '行李清单已保存为模板',
+  'packing.templateReplaceConfirm': '已存在名为“{name}”的模板。要替换其内容吗？',
   'packing.noMembers': '无成员',
   'packing.bags': '行李',
   'packing.noBag': '未分配',
