@@ -10,7 +10,7 @@ import { useTranslation } from '../../i18n'
 import { budgetApi } from '../../api/client'
 import { useExchangeRates } from '../../hooks/useExchangeRates'
 import { useIsMobile } from '../../hooks/useIsMobile'
-import { formatMoney, currencyDecimals, currencyLocale, localizeAmountInput } from '../../utils/formatters'
+import { formatMoney, currencyDecimals, currencyLocale, localizeAmountInput, cleanAmount } from '../../utils/formatters'
 import { downloadBlob } from '../../utils/fileDownload'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
@@ -1020,7 +1020,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const [day, setDay] = useState(editing?.expense_date || new Date().toISOString().slice(0, 10))
   const [note, setNote] = useState(() => readUserNote(editing))
   const [total, setTotal] = useState<string>(() => {
-    if (editing) return editing.total_price ? String(editing.total_price) : ''
+    if (editing) return editing.total_price ? String(cleanAmount(editing.total_price)) : ''
     if (prefill?.amount != null) return String(prefill.amount)
     return ''
   })

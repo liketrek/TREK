@@ -52,6 +52,23 @@ export function splitLegacyTicketNote(
  * converted(Σ). `factor === 1` (the display currency IS the trip currency, the
  * common case) is the identity and never touches a float.
  */
+/**
+ * Add money in whole cents, not in floats (#1964).
+ *
+ * A total that does not divide evenly is split into parts that are each exact
+ * to the cent — 163.21 across two people is 81.61 and 81.60 — but adding those
+ * two doubles gives 163.20999999999998, and that is what got written back over
+ * the clean total the client sent. It then surfaced anywhere the number is
+ * printed without Intl doing the rounding: the expense form when reopened, the
+ * mobile cost sheet, and the price stamped onto a linked booking.
+ *
+ * This is the same rule the settlement maths in this file already follows
+ * (toTripCents), applied to the one arithmetic that had been left in euros.
+ */
+function sumMoney(amounts: number[]): number {
+  return amounts.reduce((a, v) => a + Math.round(v * 100), 0) / 100;
+}
+
 function allocateDisplayCents(cents: number[], factor: number): number[] {
   if (factor === 1) return [...cents];
   const exact = cents.map(c => c * factor);
@@ -145,12 +162,13 @@ export class BudgetService {
     this.db.run('DELETE FROM budget_item_payers WHERE budget_item_id = ?', itemId);
     const insert = this.db.prepare('INSERT OR IGNORE INTO budget_item_payers (budget_item_id, user_id, amount) VALUES (?, ?, ?)');
     const known = this.rosterMemberIds(tripId, payers.map(p => p.user_id));
-    let total = 0;
+    const accepted: number[] = [];
     for (const p of payers) {
       if (!(p.amount > 0) || !known.has(p.user_id)) continue;
       insert.run(itemId, p.user_id, p.amount);
-      total += p.amount;
+      accepted.push(p.amount);
     }
+    const total = sumMoney(accepted);
     this.db.run('UPDATE budget_items SET total_price = ? WHERE id = ?', total, itemId);
     return total;
   }
@@ -348,7 +366,7 @@ export class BudgetService {
 
       // total_price is derived from explicit payers when given; otherwise the caller
       // value (planning entries, or a bill no one has paid yet).
-      const payerTotal = (data.payers || []).reduce((a, p) => a + (p.amount > 0 ? p.amount : 0), 0);
+      const payerTotal = sumMoney((data.payers || []).filter(p => p.amount > 0).map(p => p.amount));
       const total = data.payers && data.payers.length > 0 ? payerTotal : (data.total_price || 0);
 
       const knownMembers = data.members ? this.rosterMemberIds(tripId, data.members.map(m => m.user_id)) : null;
@@ -1013,7 +1031,10 @@ export class BudgetService {
       );
       if (!reservation) return;
       const meta = reservation.metadata ? JSON.parse(reservation.metadata) : {};
-      meta.price = String(totalPrice);
+      // Cent-clean, so a booking never inherits float noise from the expense
+      // it is linked to — and so a row stamped before #1964 heals on the next
+      // edit. The panels print this string as it stands.
+      meta.price = String(Math.round(totalPrice * 100) / 100);
       this.db.run('UPDATE reservations SET metadata = ? WHERE id = ?', JSON.stringify(meta), reservation.id);
       const updatedRes = this.db.get('SELECT * FROM reservations WHERE id = ?', reservation.id);
       this.realtime.broadcast(tripId, 'reservation:updated', { reservation: updatedRes }, socketId);

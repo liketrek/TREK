@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { FileText, Pencil, Trash2 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { RES_ICONS } from '../../../../components/Planner/DayPlanSidebar.constants'
-import { splitReservationDateTime, formatTime } from '../../../../utils/formatters'
+import { splitReservationDateTime, formatTime, cleanAmountText } from '../../../../utils/formatters'
 import { openFile } from '../../../../utils/fileDownload'
 import { useTranslation } from '../../../../i18n'
 import type { Reservation } from '../../../../types'
@@ -128,7 +128,7 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
   if (meta.platform) metaCells.push({ label: t('reservations.meta.platform'), value: meta.platform })
   if (meta.seat) metaCells.push({ label: t('reservations.meta.seat'), value: meta.seat + (meta.class ? ` · ${meta.class}` : '') })
   if (meta.price != null && meta.price !== '') {
-    metaCells.push({ label: t('reservations.price'), value: `${meta.price}${meta.priceCurrency ? ` ${meta.priceCurrency}` : ''}` })
+    metaCells.push({ label: t('reservations.price'), value: `${cleanAmountText(meta.price)}${meta.priceCurrency ? ` ${meta.priceCurrency}` : ''}` })
   }
 
   const files = (planner.files || []).filter(

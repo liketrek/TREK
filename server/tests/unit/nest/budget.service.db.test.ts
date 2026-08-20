@@ -685,3 +685,91 @@ describe('post-fold quirk fixes', () => {
     expect(cat).toBeUndefined();
   });
 });
+
+/**
+ * The total an uneven split writes back (#1964).
+ *
+ * The client splits in whole cents, which is right — 163.21 across two people
+ * is 81.61 and 81.60. The server then discarded the total it was sent and
+ * re-derived it by adding those two as doubles, which lands on
+ * 163.20999999999998, and that is what went into the row.
+ *
+ * Everything that reaches Intl was fine, which is why it looked like a display
+ * quirk in only some places. It was not: the stored number was wrong, and the
+ * expense form showed it back the moment the item was reopened.
+ */
+describe('an expense whose split leaves a remainder', () => {
+  const totalOf = (itemId: number) =>
+    (testDb.prepare('SELECT total_price FROM budget_items WHERE id = ?').get(itemId) as { total_price: number }).total_price;
+
+  it('stores the total the parts add up to, not the float they land on', () => {
+    const { user: alice } = createUser(testDb);
+    const { user: bob } = createUser(testDb);
+    const trip = createTrip(testDb, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+
+    const item = budget.createBudgetItem(trip.id, {
+      name: 'Flight',
+      payers: [{ user_id: alice.id, amount: 81.61 }, { user_id: bob.id, amount: 81.60 }],
+      members: [{ user_id: alice.id }, { user_id: bob.id }],
+    });
+
+    // The assertion that fails on the old code, with exactly the reported number.
+    expect(totalOf(item.id)).toBe(163.21);
+    expect(String(totalOf(item.id))).toBe('163.21');
+  });
+
+  it('does the same when the payers are replaced on an update', () => {
+    const { user: alice } = createUser(testDb);
+    const { user: bob } = createUser(testDb);
+    const trip = createTrip(testDb, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+
+    const item = budget.createBudgetItem(trip.id, { name: 'Hotel', total_price: 10, members: [{ user_id: alice.id }] });
+    budget.updateBudgetItem(item.id, trip.id, {
+      payers: [{ user_id: alice.id, amount: 81.61 }, { user_id: bob.id, amount: 81.60 }],
+    });
+
+    expect(totalOf(item.id)).toBe(163.21);
+  });
+
+  /*
+   * Three ways is the harder case: 100.00 becomes 33.34 + 33.33 + 33.33, and
+   * two of those additions drift.
+   */
+  it('holds across a three-way split too', () => {
+    const { user: alice } = createUser(testDb);
+    const { user: bob } = createUser(testDb);
+    const { user: carol } = createUser(testDb);
+    const trip = createTrip(testDb, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+    addTripMember(testDb, trip.id, carol.id);
+
+    const item = budget.createBudgetItem(trip.id, {
+      name: 'Dinner',
+      payers: [
+        { user_id: alice.id, amount: 33.34 },
+        { user_id: bob.id, amount: 33.33 },
+        { user_id: carol.id, amount: 33.33 },
+      ],
+      members: [{ user_id: alice.id }, { user_id: bob.id }, { user_id: carol.id }],
+    });
+
+    expect(totalOf(item.id)).toBe(100);
+  });
+
+  it('leaves a total that needs no cleaning exactly as it was', () => {
+    const { user: alice } = createUser(testDb);
+    const { user: bob } = createUser(testDb);
+    const trip = createTrip(testDb, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+
+    const item = budget.createBudgetItem(trip.id, {
+      name: 'Taxi',
+      payers: [{ user_id: alice.id, amount: 12.5 }, { user_id: bob.id, amount: 12.5 }],
+      members: [{ user_id: alice.id }, { user_id: bob.id }],
+    });
+
+    expect(totalOf(item.id)).toBe(25);
+  });
+})

@@ -22,7 +22,7 @@ import type { ViewContribution } from '../../api/client'
 import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginContributions'
 import { usePluginStore, type ActivePlugin } from '../../store/pluginStore'
 import PluginFrame from '../Plugins/PluginFrame'
-import { splitReservationDateTime, formatTime } from '../../utils/formatters'
+import { splitReservationDateTime, formatTime, cleanAmountText } from '../../utils/formatters'
 import { getFlightLegs, getTrainLegs } from '../../utils/flightLegs'
 import EmptyState from '../shared/EmptyState'
 import { TravelerAvatarRow, TravelerFilterAvatars } from './TravelerPicker'
@@ -378,7 +378,7 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
           if (meta.train_number) cells.push({ label: t('reservations.meta.trainNumber'), value: meta.train_number })
           if (meta.platform) cells.push({ label: t('reservations.meta.platform'), value: meta.platform })
           if (meta.seat) cells.push({ label: t('reservations.meta.seat'), value: meta.seat + (meta.class ? ` · ${meta.class}` : '') })
-          if (meta.price != null && meta.price !== '') cells.push({ label: t('reservations.price'), value: `${meta.price}${meta.priceCurrency ? ' ' + meta.priceCurrency : ''}` })
+          if (meta.price != null && meta.price !== '') cells.push({ label: t('reservations.price'), value: `${cleanAmountText(meta.price)}${meta.priceCurrency ? ' ' + meta.priceCurrency : ''}` })
           if (meta.check_in_time) cells.push({ label: t('reservations.meta.checkIn'), value: formatTime(meta.check_in_time, locale, timeFormat) + (meta.check_in_end_time ? ` – ${formatTime(meta.check_in_end_time, locale, timeFormat)}` : '') })
           if (meta.check_out_time) cells.push({ label: t('reservations.meta.checkOut'), value: formatTime(meta.check_out_time, locale, timeFormat) })
           if (cells.length === 0) return null

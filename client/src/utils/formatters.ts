@@ -86,6 +86,34 @@ export function localizeAmountInput(value: string | number | null | undefined, c
 }
 
 /**
+ * The same amount, without the float noise an uneven split leaves behind (#1964).
+ *
+ * A total that does not divide evenly is split into parts that are each exact
+ * to the cent, but adding those parts back up in floating point does not land
+ * on the total: 81.61 + 81.60 is 163.20999999999998. Anything that reaches
+ * formatMoney is fine, since Intl rounds — this is for the places that print a
+ * number as it stands, which is where the reporter saw it: the expense form
+ * when reopened, and the price stamped onto a linked booking.
+ *
+ * In cents, matching the server's own money arithmetic rather than the
+ * currency's decimal count, so the two agree on what a clean value is.
+ */
+export function cleanAmount(value: number): number {
+  return Math.round(value * 100) / 100
+}
+
+/**
+ * A price held as free text, tidied only when it really is a number. Import
+ * writes whatever the confirmation said into this field, so anything that does
+ * not parse is passed through untouched rather than mangled into NaN.
+ */
+export function cleanAmountText(value: string | number | null | undefined): string {
+  if (value == null) return ''
+  const n = Number(value)
+  return Number.isFinite(n) && String(value).trim() !== '' ? String(cleanAmount(n)) : String(value)
+}
+
+/**
  * Locale- and currency-correct money formatting via Intl: the symbol position,
  * thousands/decimal separators and decimal count all follow the user's locale
  * and the currency itself (e.g. de-DE EUR → "1.234,56 €", en-US USD → "$1,234.56",

@@ -9,7 +9,7 @@ import { useTranslation } from '../../../../i18n'
 import { useToast } from '../../../../components/shared/Toast'
 import { useTripStore } from '../../../../store/tripStore'
 import { useExchangeRates } from '../../../../hooks/useExchangeRates'
-import { formatMoney, localizeAmountInput } from '../../../../utils/formatters'
+import { formatMoney, localizeAmountInput, cleanAmount } from '../../../../utils/formatters'
 import { SYMBOLS, SPLIT_COLORS, currenciesWith } from '../../../../components/Budget/BudgetPanel.constants'
 import { COST_CATEGORY_LIST, catMeta } from '../../../../components/Budget/costsCategories'
 import { calculateTicketShares, hasTicketSplit, NOTE_MAX, readTicketItems, readUserNote, splitEqualShares, writeTicketItems, type TicketItem } from '../../../../components/Budget/CostsPanel.helpers'
@@ -74,7 +74,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   const [currency, setCurrency] = useState((editing?.currency || base).toUpperCase())
   const [day, setDay] = useState(editing?.expense_date || new Date().toISOString().slice(0, 10))
   const [total, setTotal] = useState<string>(() => {
-    if (editing) return editing.total_price ? String(editing.total_price) : ''
+    if (editing) return editing.total_price ? String(cleanAmount(editing.total_price)) : ''
     if (prefill?.amount != null) return String(prefill.amount)
     return ''
   })
