@@ -258,7 +258,7 @@ function findFileByName(root: string, fileName: string): string | null {
 }
 
 function leavePlanHolidays(vaultPath: string, year: number): ObsidianHoliday[] {
-  let filePath: string | null = null;
+  let filePath: string | null;
   try {
     filePath = findFileByName(vaultPath, LEAVE_PLAN_FILE_NAME);
   } catch {
