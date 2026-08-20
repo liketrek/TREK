@@ -424,10 +424,34 @@ export function applyTemplate(
 
 // ── Save as Template ──────────────────────────────────────────────────────
 
-export function saveAsTemplate(tripId: string | number, userId: number, templateName: string) {
-  const items = db.prepare(
-    'SELECT name, category FROM packing_items WHERE trip_id = ? ORDER BY sort_order ASC'
-  ).all(tripId) as { name: string; category: string }[];
+export function saveAsTemplate(
+  tripId: string | number,
+  userId: number,
+  templateName: string,
+  scope?: { category: string; visibility: 'common' | 'personal' },
+) {
+  let items: { name: string; category: string }[];
+  if (scope?.visibility === 'personal') {
+    items = db.prepare(`
+      SELECT name, category FROM packing_items
+      WHERE trip_id = ? AND category = ? AND is_private = 1
+        AND (owner_id = ? OR EXISTS (
+          SELECT 1 FROM packing_item_recipients r
+          WHERE r.item_id = packing_items.id AND r.user_id = ?
+        ))
+      ORDER BY sort_order ASC
+    `).all(tripId, scope.category, userId, userId) as { name: string; category: string }[];
+  } else if (scope) {
+    items = db.prepare(`
+      SELECT name, category FROM packing_items
+      WHERE trip_id = ? AND category = ? AND COALESCE(is_private, 0) = 0
+      ORDER BY sort_order ASC
+    `).all(tripId, scope.category) as { name: string; category: string }[];
+  } else {
+    items = db.prepare(
+      'SELECT name, category FROM packing_items WHERE trip_id = ? ORDER BY sort_order ASC'
+    ).all(tripId) as { name: string; category: string }[];
+  }
 
   if (items.length === 0) return null;
 

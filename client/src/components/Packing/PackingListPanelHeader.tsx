@@ -6,7 +6,7 @@ import type { PackingState } from './usePackingListPanel'
 export function PackingHeader(S: PackingState) {
   const {
     inlineHeader, t, items, abgehakt, fortschritt, canEdit, isAdmin,
-    showSaveTemplate, saveTemplateName, setSaveTemplateName, handleSaveAsTemplate, setShowSaveTemplate,
+    showSaveTemplate, saveTemplateName, setSaveTemplateName, handleSaveAsTemplate, handleOpenSaveTemplate, handleCancelSaveTemplate,
     setShowImportModal, handleClearChecked, availableTemplates, templateDropdownRef,
     showTemplateDropdown, setShowTemplateDropdown, applyingTemplate, handleApplyTemplate,
     bagTrackingEnabled, showBagModal, setShowBagModal,
@@ -32,12 +32,12 @@ export function PackingHeader(S: PackingState) {
                 type="text" autoFocus
                 value={saveTemplateName}
                 onChange={e => setSaveTemplateName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleSaveAsTemplate(); if (e.key === 'Escape') { setShowSaveTemplate(false); setSaveTemplateName('') } }}
+                onKeyDown={e => { if (e.key === 'Enter') handleSaveAsTemplate(); if (e.key === 'Escape') handleCancelSaveTemplate() }}
                 placeholder={t('packing.templateName')}
                 style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', padding: '5px 10px', borderRadius: 99, border: '1px solid var(--border-primary)', outline: 'none', fontFamily: 'inherit', width: 140, background: 'var(--bg-card)', color: 'var(--text-primary)' }}
               />
               <button onClick={handleSaveAsTemplate} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: '#10b981' }}><Check size={14} /></button>
-              <button onClick={() => { setShowSaveTemplate(false); setSaveTemplateName('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-faint)' }}><X size={14} /></button>
+              <button onClick={handleCancelSaveTemplate} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-faint)' }}><X size={14} /></button>
             </div>
           )}
           {inlineHeader && canEdit && (
@@ -98,7 +98,7 @@ export function PackingHeader(S: PackingState) {
             </div>
           )}
           {inlineHeader && canEdit && isAdmin && items.length > 0 && !showSaveTemplate && (
-            <button onClick={() => setShowSaveTemplate(true)} style={{
+            <button onClick={() => handleOpenSaveTemplate()} style={{
               display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 99,
               border: '1px solid var(--border-primary)', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
               background: 'var(--bg-card)', color: 'var(--text-muted)',

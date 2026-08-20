@@ -460,6 +460,15 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
       });
       expect(saveAsTemplate).toHaveBeenCalledWith('5', admin.id, 'My template');
     });
+
+    it('passes a personal category scope when saving one list as a template', () => {
+      const saveAsTemplate = vi.fn().mockReturnValue({ id: 8, name: 'Before departure' });
+      const svc = makeService({ saveAsTemplate } as Partial<PackingService>);
+      new PackingController(svc).saveAsTemplate(admin, '5', 'Before departure', 'Before departure', 'personal');
+      expect(saveAsTemplate).toHaveBeenCalledWith('5', admin.id, 'Before departure', {
+        category: 'Before departure', visibility: 'personal',
+      });
+    });
   });
 
   describe('category assignees', () => {

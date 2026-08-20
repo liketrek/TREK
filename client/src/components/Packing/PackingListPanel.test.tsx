@@ -749,6 +749,34 @@ describe('PackingListPanel', () => {
     await waitFor(() => expect(savedTemplateName).toBe('My Template'));
   });
 
+  it('FE-COMP-PACKING-046b: category menu saves only that personal list as a template', async () => {
+    seedStore(useAuthStore, { user: buildAdmin(), isAuthenticated: true });
+    const user = userEvent.setup();
+    let savedBody: Record<string, unknown> = {};
+    server.use(
+      http.post('/api/trips/1/packing/save-as-template', async ({ request }) => {
+        savedBody = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ template: { id: 1, name: savedBody.name } });
+      }),
+    );
+    const items = [buildPackingItem({ is_private: 1, name: 'Turn off AC', category: 'Before departure' })];
+    const { container } = render(<PackingListPanel tripId={1} items={items} />);
+
+    const moreBtn = container.querySelector('svg.lucide-more-horizontal')?.closest('button');
+    expect(moreBtn).toBeTruthy();
+    await user.click(moreBtn!);
+    const saveActions = await screen.findAllByText('Save as template');
+    await user.click(saveActions[saveActions.length - 1]);
+
+    const nameInput = await screen.findByPlaceholderText('Template name');
+    expect(nameInput).toHaveValue('Before departure');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => expect(savedBody).toMatchObject({
+      name: 'Before departure', category: 'Before departure', visibility: 'personal',
+    }));
+  });
+
   it('FE-COMP-PACKING-047: bag picker in item row opens when clicked with bag tracking enabled', async () => {
     const user = userEvent.setup();
     server.use(
