@@ -110,8 +110,10 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
       height: 'var(--nav-h)',
       transition: 'background 240ms cubic-bezier(0.23,1,0.32,1), backdrop-filter 240ms cubic-bezier(0.23,1,0.32,1), box-shadow 240ms cubic-bezier(0.23,1,0.32,1)',
     }} className="hidden md:flex items-center px-4 gap-4 fixed top-0 left-0 right-0 z-[200]">
-      {/* Left side */}
-      <div className="flex items-center gap-3 min-w-0">
+      {/* Left side. flex-1 basis-0, matching the action cluster on the right, so
+          the tab pill between them sits in the middle of the bar rather than
+          being centred on top of both (#1983). */}
+      <div className="flex items-center gap-3 min-w-0 flex-1 basis-0">
         {showBack && (
           <button onClick={onBack}
             className="trek-back-btn p-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm flex-shrink-0 text-content-muted"
@@ -137,14 +139,27 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
         )}
       </div>
 
-      {/* Centred liquid-glass tab menu (design handoff). Absolutely positioned so
-          the left brand block and the right action cluster keep their layout. */}
+      {/* Centred liquid-glass tab menu (design handoff).
+          
+          In the flow, between two equally weighted flex columns, rather than
+          absolutely positioned on the centre of the bar. Out of the flow it had
+          no relationship to its neighbours at all: its width grows with every
+          enabled addon and every page plugin, and once it outgrew the free
+          space in the middle it simply ran underneath the logo on one side and
+          the user menu on the other (#1983). The only adaptation was a fixed
+          1024px breakpoint that drops the labels, which was tuned for two or
+          three addons and cannot know about plugins.
+          
+          Now the three columns share the bar, so overlap is not something that
+          can happen: the pill takes the width it needs and the columns beside
+          it give way. min-w-0 lets it shrink past its content and scroll rather
+          than push the actions off the bar. */}
       {(globalAddons.length > 0 || pagePlugins.length > 0) && !tripTitle && (
         <div
-          className="trek-nav-pill"
+          className="trek-nav-pill min-w-0"
           style={{
-            position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
-            display: 'flex', gap: 4, padding: 4, borderRadius: 14,
+            display: 'flex', gap: 4, padding: 4, borderRadius: 14, flexShrink: 1,
+            overflowX: 'auto', scrollbarWidth: 'none',
             background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
             backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)',
             border: `1px solid ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'}`,
@@ -192,8 +207,11 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
         />
       )}
 
-      {/* Spacer */}
-      <div className="flex-1" />
+      {/* Right side. Same weight as the left column, so whatever is between them
+          is centred on the bar (#1983). Was a bare flex-1 spacer followed by
+          loose siblings, which centred nothing and left the pill to fend for
+          itself on top of them. */}
+      <div className="flex items-center gap-4 flex-1 basis-0 min-w-0 justify-end">
 
       {/* Share button */}
       {onShare && (
@@ -324,6 +342,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
           )}
         </div>
       )}
+      </div>
     </nav>
   )
 }

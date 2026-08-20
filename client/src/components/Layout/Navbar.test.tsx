@@ -559,3 +559,63 @@ describe('Navbar styling and menu details', () => {
     document.documentElement.classList.remove('trek-theme-transitioning');
   });
 });
+
+/**
+ * The bar's three columns (#1983).
+ *
+ * The tab pill was absolutely positioned on the centre of the bar, so it had no
+ * relationship to what sat beside it. Its width grows with every enabled addon
+ * and every page plugin, and once it outgrew the free space in the middle it
+ * ran underneath the logo on one side and the user menu on the other. The only
+ * adaptation was a fixed 1024px breakpoint that drops the labels, tuned when
+ * two or three addons was the whole story and blind to plugins entirely.
+ *
+ * These check the shape rather than pixels, because that is where the defect
+ * was: three columns in the flow cannot overlap, whatever ends up in them, and
+ * no measurement has to be right for that to hold. jsdom reports every width as
+ * zero, so an assertion on how wide anything is would pass for the wrong reason.
+ */
+describe('Navbar layout (#1983)', () => {
+  const withAddons = (n: number) => {
+    const addons = Array.from({ length: n }, (_, i) => ({
+      id: `addon${i}`, name: `Addon ${i}`, icon: 'CalendarDays', type: 'global' as const, enabled: true,
+    }));
+    server.use(http.get('/api/addons', () => HttpResponse.json({ addons })));
+    seedStore(useAddonStore, { addons });
+  };
+
+  it('keeps the tab pill in the flow rather than floating over its neighbours', () => {
+    withAddons(4);
+    const { container } = render(<Navbar />);
+    const pill = container.querySelector('.trek-nav-pill') as HTMLElement;
+    expect(pill).toBeTruthy();
+    // The assertion that would have caught the overlap.
+    expect(pill.style.position).not.toBe('absolute');
+  });
+
+  it('gives the columns either side of it equal weight, so it stays centred', () => {
+    withAddons(4);
+    const { container } = render(<Navbar />);
+    const nav = container.querySelector('nav') as HTMLElement;
+    const columns = Array.from(nav.children).filter(c => c.classList.contains('flex-1'));
+    // Left brand column and right action cluster, both flex-1 basis-0.
+    expect(columns).toHaveLength(2);
+    for (const c of columns) expect(c.classList.contains('basis-0')).toBe(true);
+  });
+
+  it('lets the pill shrink instead of pushing the actions off the bar', () => {
+    withAddons(8);
+    const { container } = render(<Navbar />);
+    const pill = container.querySelector('.trek-nav-pill') as HTMLElement;
+    expect(pill.classList.contains('min-w-0')).toBe(true);
+    expect(pill.style.overflowX).toBe('auto');
+  });
+
+  it('still renders every addon as a reachable link, however many there are', () => {
+    withAddons(8);
+    render(<Navbar />);
+    for (let i = 0; i < 8; i++) {
+      expect(screen.getByRole('link', { name: new RegExp(`Addon ${i}`, 'i') })).toBeInTheDocument();
+    }
+  });
+});
