@@ -935,7 +935,8 @@ describe('MapView bounds fitting', () => {
     rerender(<MapView places={places} dayPlaces={places} fitKey={2} hasDayDetail />)
 
     expect(mapMock.fitBounds).toHaveBeenCalled()
-    const opts = mapMock.fitBounds.mock.calls.at(-1)?.[1] as { paddingBottomRight?: [number, number] }
+    const calls = mapMock.fitBounds.mock.calls
+    const opts = calls[calls.length - 1]?.[1] as { paddingBottomRight?: [number, number] }
     expect(opts?.paddingBottomRight?.[1]).toBe(280)
 
     // Long enough that the old 300ms nudge would have fired by now.
@@ -951,7 +952,8 @@ describe('MapView bounds fitting', () => {
     const { rerender } = render(<MapView places={places} dayPlaces={places} fitKey={1} />)
     rerender(<MapView places={places} dayPlaces={places} fitKey={2} />)
 
-    const opts = mapMock.fitBounds.mock.calls.at(-1)?.[1] as { paddingBottomRight?: [number, number] }
+    const calls = mapMock.fitBounds.mock.calls
+    const opts = calls[calls.length - 1]?.[1] as { paddingBottomRight?: [number, number] }
     expect(opts?.paddingBottomRight?.[1]).toBe(60)
   })
 
