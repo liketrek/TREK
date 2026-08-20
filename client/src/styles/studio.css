@@ -327,6 +327,56 @@
 }
 .trek-dash .st-panel-scroll { overflow-y: auto; overflow-x: hidden; padding: 0 12px 14px; min-height: 0; }
 
+/* ----------------- inspector: the head ----------------- */
+/*
+ * The panel's own title, and the three things you do to what it is about.
+ *
+ * It is set larger and darker than a section label on purpose: those were the
+ * same small capitals in the same grey, so a panel with eight groups had nine
+ * headings that all looked alike and no top.
+ */
+.trek-dash .st-inspector-head { padding: 12px 12px 10px; text-transform: none; letter-spacing: 0; }
+.trek-dash .st-inspector-head .st-what {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.trek-dash .st-inspector-head .st-what em {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--ink) 8%, transparent);
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+.trek-dash .st-head-acts { display: flex; align-items: center; gap: 2px; flex: none; }
+.trek-dash .st-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  color: var(--ink-3);
+  transition: background .14s, color .14s;
+}
+.trek-dash .st-act:hover { background: color-mix(in oklch, var(--ink) 8%, transparent); color: var(--ink); }
+.trek-dash .st-act.is-on { color: var(--accent); background: color-mix(in oklch, var(--accent) 12%, transparent); }
+.trek-dash .st-act.is-danger:hover { background: color-mix(in oklch, #e11d48 16%, transparent); color: #e11d48; } /* theme-lint-disable — destructive, not a scheme colour */
+.trek-dash .st-act:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent-soft), 0 0 0 3px var(--accent); }
+
 /* ----------------- page thumbnails ----------------- */
 .trek-dash .st-thumbs { display: flex; flex-direction: column; gap: 10px; }
 .trek-dash .st-thumb {
@@ -863,16 +913,117 @@
 }
 
 /* ----------------- inspector controls ----------------- */
-.trek-dash .st-section { padding: 12px 2px 14px; border-bottom: 1px solid var(--line); }
+/* ----------------- inspector: sections ----------------- */
+/*
+ * A section is a question, and its head is the way to fold the answer away.
+ * The whole head is the target rather than a caret nobody can hit, and the
+ * label is a shade darker than it was: it used to be set in exactly the same
+ * small capitals as the panel's own title, which left the panel with two
+ * levels of heading that looked like one.
+ */
+/*
+ * Two shapes share this class, and they carry their padding differently.
+ *
+ * A plain section is a heading with things under it, written as markup in the
+ * panels — the shape browser, the travel cards — and it has always padded
+ * itself. A folding section moves that padding onto its own head and body, so
+ * a folded one collapses to the height of its heading instead of leaving an
+ * empty band behind.
+ *
+ * The rebuild moved the padding onto the head and body and forgot the twelve
+ * plain sections still written by hand, which lost their air and left every
+ * heading in the panels sitting on the block above it.
+ */
+.trek-dash .st-section { padding: 14px 2px 18px; border-bottom: 1px solid var(--line); }
 .trek-dash .st-section:last-of-type { border-bottom: 0; }
+.trek-dash .st-section.is-fold { padding: 0 2px; }
+.trek-dash .st-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 13px 2px 11px;
+  color: var(--ink-3);
+  transition: color .14s;
+}
+.trek-dash .st-section-head:hover { color: var(--ink); }
+.trek-dash .st-section-head:hover .st-section-label { color: inherit; }
 .trek-dash .st-section-label {
   font-size: 10.5px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.11em;
+  /*
+   * Quieter than what it heads, and quieter than the panel's own title.
+   * `inherit` was wrong twice over: in a folding head it happened to pick up
+   * the right grey, and in the twelve hand-written sections it picked up full
+   * ink, which made every group heading in the left-hand panels louder than
+   * the title above them.
+   */
   color: var(--ink-3);
-  margin-bottom: 9px;
+  /*
+   * A heading needs room before what it heads. In a folding section the head's
+   * own padding provides it, so that one takes it back off below — otherwise
+   * the gap would be counted twice and the panel would drift the other way.
+   */
+  margin-bottom: 10px;
 }
+.trek-dash .st-section-head .st-section-label { margin-bottom: 0; }
+.trek-dash .st-section-caret { flex: none; opacity: 0.5; transition: transform .18s, opacity .14s; }
+.trek-dash .st-section-head:hover .st-section-caret { opacity: 1; }
+.trek-dash .st-section.is-folded .st-section-caret { transform: rotate(-90deg); }
+.trek-dash .st-section-body { padding: 0 2px 17px; }
+/* Specific enough to beat `.st-hint`, which is declared later in this file
+   and was quietly winning with its own 6px top padding. */
+.trek-dash .st-section-body > .st-section-hint { padding: 0 0 8px; }
+
+/* ----------------- inspector: one labelled line ----------------- */
+/*
+ * The label carries the *role* — accent, text, icon — which is the thing three
+ * identical swatch rows under three identical headings could never say.
+ */
+.trek-dash .st-line { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.trek-dash .st-line + .st-line { margin-top: 8px; }
+.trek-dash .st-line.is-wide { display: block; }
+.trek-dash .st-line-label {
+  flex: none;
+  width: 52px;
+  font-size: 11px;
+  color: var(--ink-3);
+  line-height: 1.25;
+}
+.trek-dash .st-line.is-wide .st-line-label { display: block; margin-bottom: 7px; width: auto; }
+.trek-dash .st-line-body { flex: 1; min-width: 0; }
+
+/* ----------------- inspector: a switch on its own line ----------------- */
+.trek-dash .st-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0;
+}
+.trek-dash .st-switch + .st-switch { border-top: 1px solid var(--line); }
+.trek-dash .st-switch-label { font-size: 12px; color: var(--ink-2); min-width: 0; }
+
+/* ----------------- inspector: a number with its unit ----------------- */
+.trek-dash .st-num { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.trek-dash .st-num-label { flex: none; font-size: 11px; color: var(--ink-3); min-width: 13px; }
+.trek-dash .st-num-box { position: relative; flex: 1; min-width: 0; display: flex; }
+.trek-dash .st-num-box .st-input { padding-right: 26px; }
+/* The unit sits inside the field, so the number and what it is in read as one
+   value rather than as a field with a word next to it. */
+.trek-dash .st-num-unit {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
 
 .trek-dash .st-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .trek-dash .st-row { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -926,14 +1077,36 @@
 .trek-dash .st-chip:hover { background: color-mix(in oklch, var(--ink) 10%, transparent); color: var(--ink); }
 .trek-dash .st-chip.is-on { background: var(--accent); color: var(--accent-text, #fff); }
 .trek-dash .st-chip.is-icon { width: 27px; padding: 0; }
+/*
+ * Choose-several, which is a different question from choose-one and has to
+ * look like it: an outline that fills only with the tick, so a set of seven
+ * with three in it reads as three ticks rather than as three of something.
+ */
+.trek-dash .st-chip.is-pick {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  padding: 0 10px 0 9px;
+}
+.trek-dash .st-chip.is-pick:hover { background: color-mix(in oklch, var(--ink) 6%, transparent); }
+.trek-dash .st-chip.is-pick.is-on {
+  background: color-mix(in oklch, var(--accent) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--accent) 45%, transparent);
+  color: var(--ink);
+}
 .trek-dash .st-chip.is-danger:hover { background: color-mix(in oklch, #e11d48 18%, transparent); color: #e11d48; }
 .trek-dash .st-chip:focus { outline: none; }
 .trek-dash .st-chip:focus-visible { box-shadow: 0 0 0 2px var(--accent-soft), 0 0 0 3px var(--accent); }
 
-.trek-dash .st-swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+/*
+ * Ten swatches on one line, which needs the whole panel width rather than what
+ * is left beside a label — so the colour rows are `wide`, with the role above
+ * them. Measured rather than guessed: the body is 261px, and 10 at 22px with
+ * 4px between them is 256.
+ */
+.trek-dash .st-swatches { display: flex; flex-wrap: wrap; gap: 4px; }
 .trek-dash .st-swatch {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 7px;
   border: 1px solid var(--line-2);
   box-shadow: var(--sh-xs);
@@ -1177,6 +1350,22 @@
   background: color-mix(in oklch, var(--surface) 60%, transparent);
   transition: background .16s, border-color .16s, transform .14s;
   min-width: 0;
+}
+/*
+ * The one to reach for, said with a ring.
+ *
+ * The label sits in a grid cell about eighty pixels wide, where a word like
+ * "recommended" is two lines of ellipsis and reads as noise. Green because it
+ * is the one colour a reader already takes as "this one is fine" without being
+ * told, and it is deliberately not the accent: the accent is what the user
+ * picked for their book, and it changes.
+ */
+.trek-dash .st-travel-card.is-recommended {
+  border-color: color-mix(in oklch, #16a34a 55%, transparent); /* theme-lint-disable — a recommendation, not a scheme colour */
+  box-shadow: 0 0 0 1px color-mix(in oklch, #16a34a 30%, transparent); /* theme-lint-disable */
+}
+.trek-dash .st-travel-card.is-recommended:hover {
+  border-color: color-mix(in oklch, #16a34a 80%, transparent); /* theme-lint-disable */
 }
 .trek-dash .st-travel-card:hover {
   background: var(--surface);
