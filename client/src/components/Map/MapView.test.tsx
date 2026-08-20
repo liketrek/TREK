@@ -916,7 +916,17 @@ describe('MapView live location', () => {
 })
 
 describe('MapView bounds fitting', () => {
-  it('FE-COMP-MAPVIEW-065: a day-detail fit nudges the map down once the animation ran (#1348)', async () => {
+  /*
+   * The day fit used to compensate for the day panel twice: once through the
+   * padding, and again 300ms later with panBy([0, 150]) (#1348). On a route
+   * running north to south the fit is height-bound, so the northernmost stop
+   * lands exactly on the top padding line and the nudge then pushed it off the
+   * canvas — the map framed everything and then drifted upwards (#1982).
+   *
+   * So this case is the inverse of what it used to assert: the padding does the
+   * work, and nothing moves the camera afterwards.
+   */
+  it('FE-COMP-MAPVIEW-065: a day-detail fit reserves the panel in its padding and then leaves the camera alone (#1348, #1982)', async () => {
     const places = [
       buildMapPlace({ id: 1, lat: 48, lng: 2 }),
       buildMapPlace({ id: 2, lat: 48.2, lng: 2.2 }),
@@ -925,7 +935,24 @@ describe('MapView bounds fitting', () => {
     rerender(<MapView places={places} dayPlaces={places} fitKey={2} hasDayDetail />)
 
     expect(mapMock.fitBounds).toHaveBeenCalled()
-    await waitFor(() => expect(mapMock.panBy).toHaveBeenCalledWith([0, 150], { animate: true }), { timeout: 2000 })
+    const opts = mapMock.fitBounds.mock.calls.at(-1)?.[1] as { paddingBottomRight?: [number, number] }
+    expect(opts?.paddingBottomRight?.[1]).toBe(280)
+
+    // Long enough that the old 300ms nudge would have fired by now.
+    await new Promise(r => setTimeout(r, 600))
+    expect(mapMock.panBy).not.toHaveBeenCalled()
+  })
+
+  it('FE-COMP-MAPVIEW-065b: reserves only the small margin when no day panel is open (#1982)', () => {
+    const places = [
+      buildMapPlace({ id: 1, lat: 48, lng: 2 }),
+      buildMapPlace({ id: 2, lat: 48.2, lng: 2.2 }),
+    ]
+    const { rerender } = render(<MapView places={places} dayPlaces={places} fitKey={1} />)
+    rerender(<MapView places={places} dayPlaces={places} fitKey={2} />)
+
+    const opts = mapMock.fitBounds.mock.calls.at(-1)?.[1] as { paddingBottomRight?: [number, number] }
+    expect(opts?.paddingBottomRight?.[1]).toBe(60)
   })
 
   it('FE-COMP-MAPVIEW-066: a fitKey that never changed is not re-fitted', async () => {

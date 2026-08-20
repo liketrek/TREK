@@ -269,7 +269,6 @@ function MapController({ center, zoom }: MapControllerProps) {
 // finished computing asynchronously — re-fit once more to include the full route
 // polyline, so a route that bulges past its stops stays in view (#1128).
 interface BoundsControllerProps {
-  hasDayDetail?: boolean
   places: Place[]
   routeCoords: [number, number][]
   fitKey: number
@@ -278,7 +277,7 @@ interface BoundsControllerProps {
   framedOnMount?: boolean
 }
 
-function BoundsController({ places, routeCoords, fitKey, paddingOpts, hasDayDetail, framedOnMount = false }: BoundsControllerProps) {
+function BoundsController({ places, routeCoords, fitKey, paddingOpts, framedOnMount = false }: BoundsControllerProps) {
   const map = useMap()
   const prevFitKey = useRef(-1)
   const awaitingRoute = useRef(false)
@@ -289,13 +288,24 @@ function BoundsController({ places, routeCoords, fitKey, paddingOpts, hasDayDeta
     try {
       const bounds = L.latLngBounds(coords)
       if (bounds.isValid()) {
+        /*
+         * The padding already reserves the day panel's height at the bottom
+         * (paddingBox), so the fit puts the day's stops above it. There used to
+         * be a second, manual nudge 300ms later — panBy([0, 150]) — from the
+         * same change that introduced the padding, and the two compensated for
+         * the same panel twice.
+         *
+         * On a route that runs north to south the fit is height-bound, which
+         * puts the northernmost stop exactly on the top padding line; the nudge
+         * then pushed it off the canvas. The map appeared to frame everything
+         * correctly and then drift upwards, which is what the report describes
+         * (#1982). MapViewGL never had the nudge, so this also brings the two
+         * renderers back into agreement.
+         */
         map.fitBounds(bounds, { ...paddingOpts, maxZoom: 16, animate: true })
-        if (hasDayDetail) {
-          setTimeout(() => map.panBy([0, 150], { animate: true }), 300)
-        }
       }
     } catch {}
-  }, [map, paddingOpts, hasDayDetail])
+  }, [map, paddingOpts])
 
   // New fitKey (initial trip fit or a day selection): fit to the destinations now
   // and arm a one-shot re-fit for when the route arrives.
@@ -827,7 +837,7 @@ export const MapView = memo(function MapView({
       />
 
       <MapController center={center} zoom={zoom} />
-      <BoundsController places={dayPlaces.length > 0 ? dayPlaces : places} routeCoords={dayPlaces.length > 0 ? routeCoords : []} fitKey={fitKey} paddingOpts={paddingOpts} hasDayDetail={hasDayDetail} framedOnMount={initialView.framed} />
+      <BoundsController places={dayPlaces.length > 0 ? dayPlaces : places} routeCoords={dayPlaces.length > 0 ? routeCoords : []} fitKey={fitKey} paddingOpts={paddingOpts} framedOnMount={initialView.framed} />
       <SelectionController places={places} selectedPlaceId={selectedPlaceId} dayPlaces={dayPlaces} paddingOpts={paddingOpts} />
       <MapClickHandler onClick={onMapClick} />
       <MapContextMenuHandler onContextMenu={onMapContextMenu} />
