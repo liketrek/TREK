@@ -27,7 +27,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vites
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createPlace, createReservation } from '../../helpers/factories';
+import { createUser, createTrip, createPlace, createReservation, addTripMember } from '../../helpers/factories';
 import { AtlasService } from '../../../src/nest/atlas/atlas.service';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 
@@ -224,5 +224,111 @@ describe('travel-stats quirk fixes', () => {
     testDb.prepare('INSERT INTO places (trip_id, name, lat, lng) VALUES (?, ?, ?, ?)').run(trip.id, 'Null Island', 0, 0);
     const stats = atlas.getTravelStats(user.id);
     expect(stats.coords).toContainEqual({ lat: 0, lng: 0 });
+  });
+});
+
+/**
+ * Whose trip it is, and whose flight (#1966).
+ *
+ * 4.0 lets a booking name the people it is for (#1517), and the figures never
+ * read that: they scoped by trip membership, so on a shared trip everyone was
+ * credited with everyone's flights. Two people flying to the same place from
+ * different cities each got both departures, and the countries each of them had
+ * "visited" included the other's.
+ *
+ * The rule has a second half that matters more than the first: a booking with
+ * nobody named on it still counts for everyone. Every reservation made before
+ * 4.0 looks exactly like that, so without it this would have taken the flown
+ * distance of every existing install to zero.
+ */
+describe('personal figures on a shared trip (#1966)', () => {
+  const PAST_START = '2023-05-01';
+  const PAST_END = '2023-05-10';
+
+  const endpoint = (reservationId: number, role: 'from' | 'to', sequence: number, lat: number, lng: number, code: string) =>
+    testDb.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, lat, lng, code) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(reservationId, role, sequence, `Endpoint ${sequence}`, lat, lng, code);
+
+  const assignTo = (reservationId: number, userId: number) =>
+    testDb.prepare('INSERT INTO reservation_travelers (reservation_id, user_id) VALUES (?, ?)').run(reservationId, userId);
+
+  /** A shared trip: A flies Rome→New York, B flies Mexico City→New York. */
+  function sharedTrip() {
+    const { user: alice } = createUser(testDb);
+    const { user: bob } = createUser(testDb);
+    const trip = createTrip(testDb, alice.id, { title: 'Shared', start_date: PAST_START, end_date: PAST_END });
+    addTripMember(testDb, trip.id, bob.id);
+
+    const fromRome = createReservation(testDb, trip.id, { type: 'flight', title: 'FCO-JFK' });
+    endpoint(fromRome.id, 'from', 0, 41.8003, 12.2389, 'FCO');
+    endpoint(fromRome.id, 'to', 1, 40.6413, -73.7781, 'JFK');
+
+    const fromMexico = createReservation(testDb, trip.id, { type: 'flight', title: 'MEX-JFK' });
+    endpoint(fromMexico.id, 'from', 0, 19.4363, -99.0721, 'MEX');
+    endpoint(fromMexico.id, 'to', 1, 40.6413, -73.7781, 'JFK');
+
+    return { alice, bob, trip, fromRome, fromMexico };
+  }
+
+  it('credits each traveler with their own flight only', () => {
+    const { alice, bob, fromRome, fromMexico } = sharedTrip();
+    assignTo(fromRome.id, alice.id);
+    assignTo(fromMexico.id, bob.id);
+
+    const a = atlas.getTravelStats(alice.id);
+    const b = atlas.getTravelStats(bob.id);
+
+    // Rome to New York is a good deal further than Mexico City to New York, so
+    // equal distances would mean both are still counting both flights.
+    expect(a.totalDistanceKm).toBeGreaterThan(0);
+    expect(b.totalDistanceKm).toBeGreaterThan(0);
+    expect(a.totalDistanceKm).not.toBe(b.totalDistanceKm);
+  });
+
+  it('does not stamp another traveler s departure country on your passport', () => {
+    const { alice, bob, fromRome, fromMexico } = sharedTrip();
+    assignTo(fromRome.id, alice.id);
+    assignTo(fromMexico.id, bob.id);
+
+    // Alice never went through Mexico.
+    expect(atlas.getTravelStats(alice.id).countries).not.toContain('MX');
+    expect(atlas.getTravelStats(bob.id).countries).not.toContain('IT');
+  });
+
+  /*
+   * The case that keeps this from being a breaking change. The assignment table
+   * is empty on every install upgrading from 3.4.1.
+   */
+  it('still counts a booking nobody is named on, for everyone on the trip', () => {
+    const { alice, bob } = sharedTrip();
+
+    const a = atlas.getTravelStats(alice.id);
+    const b = atlas.getTravelStats(bob.id);
+    expect(a.totalDistanceKm).toBeGreaterThan(0);
+    expect(a.totalDistanceKm).toBe(b.totalDistanceKm);
+  });
+
+  it('counts a booking they are both named on, once for each of them', () => {
+    const { alice, bob, fromRome, fromMexico } = sharedTrip();
+    assignTo(fromRome.id, alice.id);
+    assignTo(fromRome.id, bob.id);
+    assignTo(fromMexico.id, alice.id);
+    assignTo(fromMexico.id, bob.id);
+
+    const a = atlas.getTravelStats(alice.id);
+    const b = atlas.getTravelStats(bob.id);
+    expect(a.totalDistanceKm).toBe(b.totalDistanceKm);
+    expect(a.countries).toEqual(b.countries);
+  });
+
+  it('leaves a traveler assigned nothing with the unassigned bookings only', () => {
+    const { alice, bob, fromRome } = sharedTrip();
+    assignTo(fromRome.id, bob.id);
+
+    // Alice keeps the Mexico flight (nobody named) but loses the Rome one.
+    const a = atlas.getTravelStats(alice.id);
+    expect(a.countries).not.toContain('IT');
+    expect(a.totalDistanceKm).toBeGreaterThan(0);
   });
 });

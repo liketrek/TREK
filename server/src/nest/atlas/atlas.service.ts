@@ -337,9 +337,10 @@ export class AtlasService {
     FROM reservation_endpoints e
     JOIN reservations r ON e.reservation_id = r.id
     WHERE r.trip_id IN (${tripIds.map(() => '?').join(',')}) AND e.role IN ('from', 'to')
+      AND ${AtlasService.TRAVELER_OWNS}
   `,
       )
-      .all(...tripIds) as EndpointRow[];
+      .all(...tripIds, userId) as EndpointRow[];
 
     // A layover the traveler never left is only marked 'stop' while both its legs sit in
     // one booking. Split over two bookings it is a plain 'to' plus 'from' at the same
@@ -1004,7 +1005,8 @@ export class AtlasService {
     WHERE (t.user_id = ? OR tm.user_id = ?) AND e.role IN ('from', 'to')
       AND COALESCE(t.start_date, t.end_date) IS NOT NULL
       AND COALESCE(t.start_date, t.end_date) <= date('now')
-  `, userId, userId);
+      AND ${AtlasService.TRAVELER_OWNS}
+  `, userId, userId, userId);
     const transfers = transferEndpointIds(
       endpointRows.filter(e => e.reservation_type === 'flight' && e.reservation_status !== 'cancelled')
     );
@@ -1043,6 +1045,25 @@ export class AtlasService {
    * between consecutive points are added up so multi-stop flights count
    * correctly.
    */
+  /**
+   * Whether a reservation counts toward one person's own travel figures.
+   *
+   * It does when they are named on it (#1517 assigns members and guests to
+   * bookings), and it does when nobody is named at all — an unassigned booking
+   * still belongs to the whole trip, which is what every reservation made
+   * before 4.0 looks like.
+   *
+   * That second half is what keeps this from being a breaking change: the
+   * assignment table is empty on any install upgrading from 3.4.1, and a plain
+   * join would have taken those users' flown distance to zero overnight. With
+   * no assignments anywhere the result is identical to before (#1966).
+   *
+   * Binds ONE parameter, the user id, and expects the reservation aliased `r`.
+   */
+  private static readonly TRAVELER_OWNS = `
+    (NOT EXISTS (SELECT 1 FROM reservation_travelers rt WHERE rt.reservation_id = r.id)
+     OR EXISTS (SELECT 1 FROM reservation_travelers rt WHERE rt.reservation_id = r.id AND rt.user_id = ?))`;
+
   private flightDistanceKm(userId: number): number {
     const rows = this.db.all<{ reservation_id: number; lat: number; lng: number }>(`
       SELECT re.reservation_id, re.lat, re.lng
@@ -1053,8 +1074,9 @@ export class AtlasService {
       WHERE (t.user_id = ? OR tm.user_id IS NOT NULL)
         AND r.type = 'flight'
         AND r.status != 'cancelled'
+        AND ${AtlasService.TRAVELER_OWNS}
       ORDER BY re.reservation_id, re.sequence
-    `, userId, userId);
+    `, userId, userId, userId);
 
     let total = 0;
     let prev: { id: number; lat: number; lng: number } | null = null;
