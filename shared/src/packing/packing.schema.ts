@@ -144,6 +144,8 @@ export type PackingBagMembersRequest = z.infer<typeof packingBagMembersRequestSc
 
 export const packingSaveTemplateRequestSchema = z.object({
   name: z.string().min(1),
+  category: z.string().min(1).optional(),
+  visibility: z.enum(['common', 'personal']).optional(),
 });
 export type PackingSaveTemplateRequest = z.infer<typeof packingSaveTemplateRequestSchema>;
 

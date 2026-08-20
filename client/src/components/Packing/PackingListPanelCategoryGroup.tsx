@@ -4,7 +4,7 @@ import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import {
   Trash2, Plus, ChevronDown, ChevronRight,
-  X, Pencil, Check, MoreHorizontal, CheckCheck, RotateCcw, UserPlus,
+  X, Pencil, Check, MoreHorizontal, CheckCheck, RotateCcw, UserPlus, FolderPlus,
 } from 'lucide-react'
 import type { PackingItem, PackingBag } from '../../types'
 import { katColor } from './packingListPanel.helpers'
@@ -39,9 +39,11 @@ interface KategorieGruppeProps {
   onClone?: (id: number) => void
   onJoin?: (id: number) => void
   onLeave?: (id: number, userId: number) => void
+  isAdmin?: boolean
+  onSaveAsTemplate?: (category: string) => void
 }
 
-export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, onDeleteAll, onDeleteItem, onAddItem, assignees, tripMembers, onSetAssignees, bagTrackingEnabled, bags, onCreateBag, canEdit = true, allItems, onReorder, currentUserId, onSetSharing, onClone, onJoin, onLeave }: KategorieGruppeProps) {
+export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, onDeleteAll, onDeleteItem, onAddItem, assignees, tripMembers, onSetAssignees, bagTrackingEnabled, bags, onCreateBag, canEdit = true, allItems, onReorder, currentUserId, onSetSharing, onClone, onJoin, onLeave, isAdmin = false, onSaveAsTemplate }: KategorieGruppeProps) {
   const [offen, setOffen] = useState(true)
   const [dragId, setDragId] = useState<number | null>(null)
   const [overId, setOverId] = useState<number | null>(null)
@@ -252,6 +254,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
               <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowMenu(false)} />
               <div style={{ position: 'fixed', right: rect ? window.innerWidth - rect.right : 0, top: rect ? rect.bottom + 4 : 0, zIndex: 100, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', padding: 4, minWidth: 170 }}>
                 {canEdit && <MenuItem icon={<Pencil size={13} />} label={t('packing.menuRename')} onClick={() => { setEditingName(true); setShowMenu(false) }} />}
+                {canEdit && isAdmin && onSaveAsTemplate && <MenuItem icon={<FolderPlus size={13} />} label={t('packing.saveAsTemplate')} onClick={() => { onSaveAsTemplate(kategorie); setShowMenu(false) }} />}
                 <MenuItem icon={<CheckCheck size={13} />} label={t('packing.menuCheckAll')} onClick={() => { handleCheckAll(); setShowMenu(false) }} />
                 <MenuItem icon={<RotateCcw size={13} />} label={t('packing.menuUncheckAll')} onClick={() => { handleUncheckAll(); setShowMenu(false) }} />
                 {canEdit && <>

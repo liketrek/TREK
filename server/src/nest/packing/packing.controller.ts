@@ -385,6 +385,8 @@ export class PackingController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Body('name') name?: string,
+    @Body('category') category?: string,
+    @Body('visibility') requestedVisibility?: 'common' | 'personal',
   ) {
     this.requireTrip(tripId, user);
     if (user.role !== 'admin') {
@@ -393,7 +395,12 @@ export class PackingController {
     if (!name?.trim()) {
       throw new HttpException({ error: 'Template name is required' }, 400);
     }
-    const template = this.packing.saveAsTemplate(tripId, user.id, name.trim());
+    const scope = category?.trim()
+      ? { category: category.trim(), visibility: requestedVisibility === 'personal' ? 'personal' as const : 'common' as const }
+      : undefined;
+    const template = scope
+      ? this.packing.saveAsTemplate(tripId, user.id, name.trim(), scope)
+      : this.packing.saveAsTemplate(tripId, user.id, name.trim());
     if (!template) {
       throw new HttpException({ error: 'No items to save' }, 400);
     }

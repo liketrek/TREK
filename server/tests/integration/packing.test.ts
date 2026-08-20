@@ -639,4 +639,24 @@ describe('Packing — apply-template, bag members, save-as-template', () => {
     expect(res.body.templates.some((t: { name: string }) => t.name === 'Shared Template')).toBe(true);
     expect(res.body.templates[0]).toHaveProperty('item_count');
   });
+
+  it('PACK-017f — POST /save-as-template can scope to one personal category', async () => {
+    const { user } = createUser(testDb, { role: 'admin' });
+    const trip = createTrip(testDb, user.id);
+    const insert = testDb.prepare(`
+      INSERT INTO packing_items (trip_id, name, category, checked, sort_order, is_private, owner_id)
+      VALUES (?, ?, ?, 0, ?, ?, ?)
+    `);
+    insert.run(trip.id, 'Turn off AC', 'Before departure', 0, 1, user.id);
+    insert.run(trip.id, 'Shared key', 'Before departure', 1, 0, null);
+    insert.run(trip.id, 'Passport', 'Remember to bring', 2, 1, user.id);
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/packing/save-as-template`)
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Before departure', category: 'Before departure', visibility: 'personal' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.template).toMatchObject({ name: 'Before departure', categoryCount: 1, itemCount: 1 });
+  });
 });

@@ -272,6 +272,7 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   const [applyingTemplate, setApplyingTemplate] = useState(false)
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
   const [saveTemplateName, setSaveTemplateName] = useState('')
+  const [saveTemplateScope, setSaveTemplateScope] = useState<{ category: string; visibility: 'common' | 'personal' } | null>(null)
   const [showImportModal, setShowImportModal] = useState(false)
   const [importText, setImportText] = useState('')
   const lastHandledImportSignal = useRef(openImportSignal)
@@ -295,6 +296,8 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
 
   useEffect(() => {
     if (saveTemplateSignal !== lastHandledSaveSignal.current && saveTemplateSignal > 0) {
+      setSaveTemplateScope(null)
+      setSaveTemplateName('')
       setShowSaveTemplate(true)
     }
     lastHandledSaveSignal.current = saveTemplateSignal
@@ -332,14 +335,27 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   const handleSaveAsTemplate = async () => {
     if (!saveTemplateName.trim()) return
     try {
-      await packingApi.saveAsTemplate(tripId, saveTemplateName.trim())
+      await packingApi.saveAsTemplate(tripId, saveTemplateName.trim(), saveTemplateScope ?? undefined)
       toast.success(t('packing.templateSaved'))
       setShowSaveTemplate(false)
       setSaveTemplateName('')
+      setSaveTemplateScope(null)
       packingApi.listTemplates(tripId).then(d => setAvailableTemplates(d.templates || [])).catch(() => {})
     } catch {
       toast.error(t('common.error'))
     }
+  }
+
+  const handleOpenSaveTemplate = (category?: string) => {
+    setSaveTemplateScope(category ? { category, visibility: view } : null)
+    setSaveTemplateName(category || '')
+    setShowSaveTemplate(true)
+  }
+
+  const handleCancelSaveTemplate = () => {
+    setShowSaveTemplate(false)
+    setSaveTemplateName('')
+    setSaveTemplateScope(null)
   }
 
   const handleBulkImport = async () => {
@@ -384,7 +400,7 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
     availableTemplates, showTemplateDropdown, setShowTemplateDropdown, applyingTemplate,
     showSaveTemplate, setShowSaveTemplate, saveTemplateName, setSaveTemplateName,
     showImportModal, setShowImportModal, importText, setImportText,
-    csvInputRef, templateDropdownRef, handleApplyTemplate, handleSaveAsTemplate, parseImportLines, handleBulkImport, handleCsvFile,
+    csvInputRef, templateDropdownRef, handleApplyTemplate, handleSaveAsTemplate, handleOpenSaveTemplate, handleCancelSaveTemplate, parseImportLines, handleBulkImport, handleCsvFile,
   }
 }
 

@@ -100,6 +100,31 @@ describe('saveAsTemplate', () => {
 
     expect(result).toBeNull();
   });
+
+  it('PACK-SVC-003: saves only the selected category from the personal view', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order, is_private, owner_id) VALUES (?, ?, ?, 0, ?, ?, ?)')
+      .run(trip.id, 'Turn off AC', 'Before departure', 0, 1, user.id);
+    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order, is_private, owner_id) VALUES (?, ?, ?, 0, ?, ?, ?)')
+      .run(trip.id, 'Shared key', 'Before departure', 1, 0, null);
+    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order, is_private, owner_id) VALUES (?, ?, ?, 0, ?, ?, ?)')
+      .run(trip.id, 'Passport', 'Remember to bring', 2, 1, user.id);
+
+    const result = saveAsTemplate(trip.id, user.id, 'Before departure', {
+      category: 'Before departure', visibility: 'personal',
+    });
+
+    expect(result).toMatchObject({ categoryCount: 1, itemCount: 1 });
+    const savedItems = testDb.prepare(`
+      SELECT ti.name, tc.name AS category
+      FROM packing_template_items ti
+      JOIN packing_template_categories tc ON tc.id = ti.category_id
+      WHERE tc.template_id = ?
+    `).all(result!.id);
+    expect(savedItems).toEqual([{ name: 'Turn off AC', category: 'Before departure' }]);
+  });
 });
 
 // ── listTemplates ───────────────────────────────────────────────────────────────
