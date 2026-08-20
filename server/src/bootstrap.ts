@@ -111,10 +111,31 @@ export async function buildApp(): Promise<INestApplication> {
   const rawBodyKeeper = (req: Request, _res: Response, buffer: Buffer) => {
     if (Buffer.isBuffer(buffer)) (req as Request & { rawBody?: Buffer }).rawBody = buffer;
   };
+  /*
+   * ── Why one route gets a larger body than the rest ───────────────────
+   *
+   * A hundred kilobytes is the right ceiling for an API of forms and ids, and
+   * it is the wrong one for a photo book. A Studio document is sent WHOLE on
+   * every autosave — deliberately, see book-store.schema.ts, because a patch
+   * protocol would need an ordering guarantee and a merge rule per field — and
+   * the contract already caps it at 150 spreads of 60 elements. A real book of
+   * a fortnight's journey is well past a hundred kilobytes before anybody asks
+   * for road geometry, and what the ceiling produces is not an error message
+   * but a save that quietly fails and an editor that says "not saved" without
+   * saying why.
+   *
+   * So the book route, and only the book route, is measured against the size a
+   * book can actually be. Everything else keeps the tighter limit.
+   */
+  const bookBody = express.json({ limit: '8mb', verify: rawBodyKeeper });
   const json = express.json({ limit: '100kb', verify: rawBodyKeeper });
   const urlencoded = express.urlencoded({ limit: '100kb', extended: true, verify: rawBodyKeeper });
   const isMcp = (req: Request) => req.path === '/mcp' || req.path === '/mcp/';
+  const isBookWrite = (req: Request) =>
+    req.method === 'PUT' && /^\/api\/journeys\/\d+\/book$/.test(req.path);
+
   instance.use(function jsonParser(req: Request, res: Response, next: NextFunction) {
+    if (isBookWrite(req)) return bookBody(req, res, next);
     return isMcp(req) ? next() : json(req, res, next);
   });
   instance.use(function urlencodedParser(req: Request, res: Response, next: NextFunction) {
