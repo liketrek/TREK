@@ -157,13 +157,25 @@ export default function BackgroundTasksWidget() {
                 // Restored from a reload; items are being re-fetched (see the poll backstop).
                 <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 1 }}>{t('reservations.import.parsing')}</div>
               ) : task.items.length > 0 ? (
-                <button
-                  onClick={() => review(task)}
-                  className="bg-accent text-accent-text"
-                  style={{ marginTop: 4, border: 'none', borderRadius: 8, padding: '4px 12px', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
-                >
-                  {t('common.import')}
-                </button>
+                <div>
+                  <button
+                    onClick={() => review(task)}
+                    className="bg-accent text-accent-text"
+                    style={{ marginTop: 4, border: 'none', borderRadius: 8, padding: '4px 12px', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    {t('common.import')}
+                  </button>
+                  {/* A partly-understood import warns too. Warnings used to be
+                      shown only when nothing at all was found, so anything the
+                      parse could not place — a station it could not locate, say
+                      (#1969) — was dropped without a word on exactly the imports
+                      that did produce something. */}
+                  {(task.warnings?.length ?? 0) > 0 && (
+                    <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: '#b45309', marginTop: 3, whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 96, overflowY: 'auto' }}>
+                      {task.warnings!.join('\n')}
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div>
                   <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 1 }}>

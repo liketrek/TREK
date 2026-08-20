@@ -64,6 +64,72 @@ export class BookingImportService {
    *  - force-ai:          LLM on every file (kitinerary skipped)
    * LLM-derived items are flagged needs_review. Per-file AI usage is reported.
    */
+  /**
+   * Give a transport's endpoints coordinates, so they survive the save.
+   *
+   * kitinerary and the LLM name stations, stops, terminals and rental desks but
+   * rarely geo-locate them — only airports come with coordinates, from the
+   * mapper's own airport table. `reservation_endpoints.lat`/`lng` are NOT NULL,
+   * so `saveEndpoints` drops anything without them. That guard is right; what
+   * was missing is this step on the path the clients actually take.
+   *
+   * It lived in confirm() alone, which nothing calls: both the desktop planner
+   * and mobile go preview -> review form -> ordinary save. So an endpoint the
+   * extractor had named appeared in the review step's From -> To summary and
+   * then vanished on save, with nothing shown and nothing logged (#1969).
+   *
+   * The query ladder matches the venue lookup above: name plus the booking's
+   * location first, then the location alone, then the bare name. Name-only is
+   * exactly what fails for a desk label like "Curbside Pickup Counter 7", so it
+   * comes last rather than first.
+   *
+   * Answers are cached for the length of one preview: a multi-leg train repeats
+   * its station names, and this lane is rate limited to roughly one request a
+   * second. Returns the names it could not place, for the caller to warn about
+   * rather than dropping them silently.
+   */
+  private async geocodeEndpoints(
+    endpoints: { name?: string | null; lat?: number | null; lng?: number | null }[] | undefined,
+    context: { location?: string | null; address?: string | null },
+    cache: Map<string, { lat: number; lng: number } | null>,
+  ): Promise<string[]> {
+    if (!Array.isArray(endpoints)) return [];
+    const unresolved: string[] = [];
+
+    for (const ep of endpoints) {
+      if (ep.lat != null && ep.lng != null) continue;
+      if (!ep.name) continue;
+
+      const key = ep.name.toLowerCase();
+      if (cache.has(key)) {
+        const hit = cache.get(key);
+        if (hit) { ep.lat = hit.lat; ep.lng = hit.lng; } else { unresolved.push(ep.name); }
+        continue;
+      }
+
+      const queries = [
+        context.location ? `${ep.name} ${context.location}` : null,
+        context.address ? `${ep.name} ${context.address}` : null,
+        ep.name,
+      ].filter((q): q is string => !!q);
+
+      let found: { lat: number; lng: number } | null = null;
+      try {
+        for (const q of queries) {
+          const hit = (await this.maps.searchNominatim(q, undefined, 'background'))[0];
+          if (hit?.lat != null && hit?.lng != null) { found = { lat: hit.lat, lng: hit.lng }; break; }
+        }
+      } catch {
+        // geocoding failure is non-fatal — the endpoint stays, and is warned about
+      }
+
+      cache.set(key, found);
+      if (found) { ep.lat = found.lat; ep.lng = found.lng; } else { unresolved.push(ep.name); }
+    }
+
+    return unresolved;
+  }
+
   async preview(
     files: Express.Multer.File[],
     mode: BookingImportMode,
@@ -78,6 +144,10 @@ export class BookingImportService {
 
     const allItems: ParsedBookingItem[] = [];
     const allWarnings: string[] = [];
+    // One lookup per distinct endpoint name across the whole preview: a
+    // multi-leg train repeats its stations, and this lane allows about one
+    // request a second.
+    const geoCache = new Map<string, { lat: number; lng: number } | null>();
     const fileReports: BookingImportFileReport[] = [];
 
     let processed = 0;
@@ -111,6 +181,22 @@ export class BookingImportService {
         const { items, warnings } = mapReservations(kiItems, file.originalname);
         // LLM extraction is less certain than kitinerary — always flag for review.
         if (aiUsed) for (const it of items) it.needs_review = true;
+
+        // Locate the endpoints here, on the path the clients take, rather than
+        // in confirm() where the code used to sit and nothing reached it.
+        for (const it of items) {
+          const missed = await this.geocodeEndpoints(
+            (it as { endpoints?: { name?: string | null; lat?: number | null; lng?: number | null }[] }).endpoints,
+            { location: (it as { location?: string | null }).location, address: (it as { _venue?: { address?: string | null } })._venue?.address },
+            geoCache,
+          );
+          // Kept on the item rather than filtered, so it is still editable in the
+          // review form, and said out loud rather than disappearing on save.
+          for (const name of missed) {
+            allWarnings.push(`${file.originalname}: could not locate "${name}" — set it manually before saving`);
+          }
+        }
+
         allItems.push(...items);
         allWarnings.push(...warnings);
       }
@@ -133,6 +219,7 @@ export class BookingImportService {
     socketId: string | undefined,
   ): Promise<BookingImportConfirmResponse> {
     const created: Reservation[] = [];
+    const confirmGeoCache = new Map<string, { lat: number; lng: number } | null>();
 
     for (const item of items) {
       try {
@@ -178,23 +265,16 @@ export class BookingImportService {
           this.realtime.broadcast(tripId, 'place:created', { place }, socketId);
         }
 
-        // Geocode transport endpoints (stations/stops/terminals/rental desks) that
-        // arrived without coords, so the route draws and map pins appear. The LLM
-        // and kitinerary rarely supply geo for non-airport endpoints.
+        // The same lookup preview() runs, through the same helper. On anything
+        // that came from a preview this is a no-op, since the endpoints already
+        // carry coordinates; it stays because this route can also be called
+        // with items that never went through one.
         if (Array.isArray(reservationData.endpoints)) {
-          for (const ep of reservationData.endpoints) {
-            if ((ep.lat == null || ep.lng == null) && ep.name) {
-              try {
-                const hit = (await this.maps.searchNominatim(ep.name, undefined, 'background'))[0];
-                if (hit?.lat != null && hit?.lng != null) {
-                  ep.lat = hit.lat;
-                  ep.lng = hit.lng;
-                }
-              } catch {
-                // geocoding failure is non-fatal
-              }
-            }
-          }
+          await this.geocodeEndpoints(
+            reservationData.endpoints,
+            { location: (reservationData as { location?: string | null }).location, address: _venue?.address },
+            confirmGeoCache,
+          );
           // Persist only coord'd endpoints (reservation_endpoints needs lat/lng);
           // ungeocodable ones still appeared in the preview's From→To.
           reservationData.endpoints = reservationData.endpoints.filter((ep) => ep.lat != null && ep.lng != null);

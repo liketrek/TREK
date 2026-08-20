@@ -189,7 +189,7 @@ function mapTrain(r: KiReservation, source: ParsedBookingItem['source']): Parsed
   const endpoints: ParsedEndpoint[] = [];
   const dc = coords(t.departureStation?.geo);
   const ac = coords(t.arrivalStation?.geo);
-  // Push named endpoints even without coords — confirm() geocodes them later.
+  // Push named endpoints even without coords — preview() geocodes them (#1969).
   if (t.departureStation?.name) endpoints.push({ role: 'from', sequence: 0, name: depName, code: null, lat: dc?.lat ?? null, lng: dc?.lng ?? null, timezone: null, local_time: depTime, local_date: depDate });
   if (t.arrivalStation?.name) endpoints.push({ role: 'to', sequence: 1, name: arrName, code: null, lat: ac?.lat ?? null, lng: ac?.lng ?? null, timezone: null, local_time: arrTime, local_date: arrDate });
 
@@ -293,7 +293,7 @@ function mapRentalCar(r: KiReservation, source: ParsedBookingItem['source']): Pa
   const drc = coords(dropoff?.geo);
   const venue: ParsedVenue | undefined = pickup?.name ? { name: pickup.name, ...(pc ?? {}), address: formatAddress(pickup.address) ?? undefined } : undefined;
 
-  // Pickup → return as from/to endpoints (coords optional; confirm() geocodes).
+  // Pickup → return as from/to endpoints (coords optional; preview() geocodes).
   const { date: puDate, time: puTime } = splitIso(r.pickupTime);
   const { date: doDate, time: doTime } = splitIso(r.dropoffTime);
   const endpoints: ParsedEndpoint[] = [];

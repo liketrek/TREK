@@ -133,4 +133,21 @@ describe('BackgroundTasksWidget', () => {
       expect(reservationsApi.importBookingAsync).toHaveBeenCalledTimes(1)
     })
   })
+
+  /*
+   * Warnings used to appear only when nothing at all was found, so a partly
+   * understood import dropped whatever it could not place without a word — a
+   * station the geocoder could not locate, say (#1969), whose endpoint then
+   * disappeared on save.
+   */
+  it('shows the warnings on a job that did produce items', () => {
+    const warning = 'voucher.pdf: could not locate "Curbside Pickup Counter 7" — set it manually before saving'
+    useBackgroundTasksStore.setState({
+      tasks: [task({ items: [{ id: 1 } as never], warnings: [warning] })],
+    })
+    render(<BackgroundTasksWidget />)
+    expect(screen.getByText(new RegExp('Curbside Pickup Counter 7'))).toBeInTheDocument()
+    // and the import button is still there — the job did find something
+    expect(screen.getByRole('button', { name: /import/i })).toBeInTheDocument()
+  })
 })
