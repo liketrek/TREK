@@ -94,11 +94,11 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
 
   // Split by the active view (#858): Common = group pool (is_private 0), Personal =
   // my own + shared-to-me (is_private 1, already filtered to me by the server).
+  // Omitted privacy metadata (is_private === undefined, e.g. legacy/optional
+  // callers before the API hydrates the sharing fields) keeps its established
+  // common classification rather than being reclassified.
   const viewItems = useMemo(
-    // Treat omitted privacy metadata as personal for backwards-compatible
-    // callers that construct PackingItem values before the API has hydrated
-    // the sharing fields. Server responses always provide 0/1 here.
-    () => items.filter(i => (view === 'common' ? i.is_private === 0 : i.is_private !== 0)),
+    () => items.filter(i => (view === 'common' ? !i.is_private : !!i.is_private)),
     [items, view],
   )
 

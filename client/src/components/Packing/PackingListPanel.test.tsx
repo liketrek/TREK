@@ -65,8 +65,8 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-004: shows items from props grouped by category', () => {
     const items = [
-      buildPackingItem({ name: 'Passport', category: 'Documents' }),
-      buildPackingItem({ name: 'Charger', category: 'Electronics' }),
+      buildPackingItem({ is_private: 1, name: 'Passport', category: 'Documents' }),
+      buildPackingItem({ is_private: 1, name: 'Charger', category: 'Electronics' }),
     ];
     render(<PackingListPanel tripId={1} items={items} />);
     expect(screen.getByText('Passport')).toBeInTheDocument();
@@ -75,7 +75,7 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-005: shows category group headers', () => {
     const items = [
-      buildPackingItem({ name: 'Toothbrush', category: 'Hygiene' }),
+      buildPackingItem({ is_private: 1, name: 'Toothbrush', category: 'Hygiene' }),
     ];
     render(<PackingListPanel tripId={1} items={items} />);
     expect(screen.getByText('Hygiene')).toBeInTheDocument();
@@ -83,8 +83,8 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-006: shows progress count in subtitle', () => {
     const items = [
-      buildPackingItem({ name: 'Item1', checked: 1 }),
-      buildPackingItem({ name: 'Item2', checked: 0 }),
+      buildPackingItem({ is_private: 1, name: 'Item1', checked: 1 }),
+      buildPackingItem({ is_private: 1, name: 'Item2', checked: 0 }),
     ];
     render(<PackingListPanel tripId={1} items={items} />);
     expect(screen.getByText(/1 of 2 packed/i)).toBeInTheDocument();
@@ -92,7 +92,7 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-007: shows progress bar for packed items', () => {
     const items = [
-      buildPackingItem({ name: 'Item1', checked: 1 }),
+      buildPackingItem({ is_private: 1, name: 'Item1', checked: 1 }),
     ];
     render(<PackingListPanel tripId={1} items={items} />);
     // 1/1 = 100% packed shows "All packed!"
@@ -101,7 +101,7 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-008: items without category are grouped under default category', () => {
     const items = [
-      buildPackingItem({ name: 'Sunscreen', category: null }),
+      buildPackingItem({ is_private: 1, name: 'Sunscreen', category: null }),
     ];
     render(<PackingListPanel tripId={1} items={items} />);
     expect(screen.getByText('Sunscreen')).toBeInTheDocument();
@@ -111,7 +111,7 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-009: clicking Add item reveals input form', async () => {
     const user = userEvent.setup();
-    const items = [buildPackingItem({ name: 'Shorts', category: 'Clothing' })];
+    const items = [buildPackingItem({ is_private: 1, name: 'Shorts', category: 'Clothing' })];
     render(<PackingListPanel tripId={1} items={items} />);
     // Click "Add item" button to reveal input
     await user.click(screen.getByText('Add item'));
@@ -120,7 +120,7 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-010: typing in add item input and pressing Enter calls POST', async () => {
     const user = userEvent.setup();
-    const existingItem = buildPackingItem({ name: 'Existing', category: 'Clothing' });
+    const existingItem = buildPackingItem({ is_private: 1, name: 'Existing', category: 'Clothing' });
     let postCalled = false;
     let postBody: Record<string, unknown> | null = null;
     server.use(
@@ -141,21 +141,21 @@ describe('PackingListPanel', () => {
   });
 
   it('FE-COMP-PACKING-011: checked item has checked state visually (1=checked)', () => {
-    const items = [buildPackingItem({ name: 'Packed Item', checked: 1 })];
+    const items = [buildPackingItem({ is_private: 1, name: 'Packed Item', checked: 1 })];
     render(<PackingListPanel tripId={1} items={items} />);
     expect(screen.getByText('Packed Item')).toBeInTheDocument();
   });
 
   it('FE-COMP-PACKING-012: unchecked item renders in open state', () => {
-    const items = [buildPackingItem({ name: 'Unpacked Item', checked: 0 })];
+    const items = [buildPackingItem({ is_private: 1, name: 'Unpacked Item', checked: 0 })];
     render(<PackingListPanel tripId={1} items={items} />);
     expect(screen.getByText('Unpacked Item')).toBeInTheDocument();
   });
 
   it('FE-COMP-PACKING-013: multiple categories render independently', () => {
     const items = [
-      buildPackingItem({ name: 'Shirt', category: 'Clothing' }),
-      buildPackingItem({ name: 'Passport', category: 'Documents' }),
+      buildPackingItem({ is_private: 1, name: 'Shirt', category: 'Clothing' }),
+      buildPackingItem({ is_private: 1, name: 'Passport', category: 'Documents' }),
     ];
     render(<PackingListPanel tripId={1} items={items} />);
     expect(screen.getByText('Clothing')).toBeInTheDocument();
@@ -179,7 +179,7 @@ describe('PackingListPanel', () => {
     const user = userEvent.setup();
     // Uncategorized item: deleting it is a plain DELETE (a custom category's last
     // item is instead converted to a placeholder — see FE-COMP-PACKING-070).
-    const item = buildPackingItem({ id: 99, name: 'To Remove', category: null });
+    const item = buildPackingItem({ is_private: 1, id: 99, name: 'To Remove', category: null });
     let deleteCalled = false;
     server.use(
       http.delete('/api/trips/1/packing/99', () => {
@@ -206,8 +206,8 @@ describe('PackingListPanel', () => {
   it('FE-COMP-PACKING-018: filtering to Done hides unchecked items', async () => {
     const user = userEvent.setup();
     const items = [
-      buildPackingItem({ name: 'Done Item', checked: 1, category: 'Test' }),
-      buildPackingItem({ name: 'Open Item', checked: 0, category: 'Test' }),
+      buildPackingItem({ is_private: 1, name: 'Done Item', checked: 1, category: 'Test' }),
+      buildPackingItem({ is_private: 1, name: 'Open Item', checked: 0, category: 'Test' }),
     ];
     render(<PackingListPanel tripId={1} items={items} />);
     await user.click(screen.getByText('Done'));
@@ -218,8 +218,8 @@ describe('PackingListPanel', () => {
   it('FE-COMP-PACKING-019: filtering to Open hides checked items', async () => {
     const user = userEvent.setup();
     const items = [
-      buildPackingItem({ name: 'Done Item', checked: 1, category: 'Test' }),
-      buildPackingItem({ name: 'Open Item', checked: 0, category: 'Test' }),
+      buildPackingItem({ is_private: 1, name: 'Done Item', checked: 1, category: 'Test' }),
+      buildPackingItem({ is_private: 1, name: 'Open Item', checked: 0, category: 'Test' }),
     ];
     render(<PackingListPanel tripId={1} items={items} />);
     await user.click(screen.getByText('Open'));
@@ -230,7 +230,7 @@ describe('PackingListPanel', () => {
   it('FE-COMP-PACKING-020: renders empty filter message when filter yields nothing', async () => {
     const user = userEvent.setup();
     const items = [
-      buildPackingItem({ name: 'Open Item', checked: 0, category: 'Test' }),
+      buildPackingItem({ is_private: 1, name: 'Open Item', checked: 0, category: 'Test' }),
     ];
     render(<PackingListPanel tripId={1} items={items} />);
     await user.click(screen.getByText('Done'));
@@ -239,7 +239,7 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-023: inline edit item name via pencil icon calls PUT', async () => {
     const user = userEvent.setup();
-    const item = buildPackingItem({ id: 42, name: 'Sunscreen', category: 'Toiletries' });
+    const item = buildPackingItem({ is_private: 1, id: 42, name: 'Sunscreen', category: 'Toiletries' });
     let patchBody: Record<string, unknown> | null = null;
     server.use(
       http.put('/api/trips/1/packing/42', async ({ request }) => {
@@ -266,7 +266,7 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-024: toggle item checked state calls PUT', async () => {
     const user = userEvent.setup();
-    const item = buildPackingItem({ id: 50, name: 'Shorts', checked: 0, category: 'Clothing' });
+    const item = buildPackingItem({ is_private: 1, id: 50, name: 'Shorts', checked: 0, category: 'Clothing' });
     let patchBody: Record<string, unknown> | null = null;
     server.use(
       http.put('/api/trips/1/packing/50', async ({ request }) => {
@@ -286,8 +286,8 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-025: "Check all" bulk action calls PUT for all unchecked items', async () => {
     const user = userEvent.setup();
-    const item1 = buildPackingItem({ id: 60, name: 'Item1', checked: 0, category: 'TestCat' });
-    const item2 = buildPackingItem({ id: 61, name: 'Item2', checked: 0, category: 'TestCat' });
+    const item1 = buildPackingItem({ is_private: 1, id: 60, name: 'Item1', checked: 0, category: 'TestCat' });
+    const item2 = buildPackingItem({ is_private: 1, id: 61, name: 'Item2', checked: 0, category: 'TestCat' });
     const patchedIds: number[] = [];
     server.use(
       http.put('/api/trips/1/packing/:itemId', ({ params }) => {
@@ -313,7 +313,7 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-026: quantity input change calls PUT with new quantity', async () => {
     const user = userEvent.setup();
-    const item = buildPackingItem({ id: 70, name: 'T-Shirts', quantity: 2, category: 'Clothing' });
+    const item = buildPackingItem({ is_private: 1, id: 70, name: 'T-Shirts', quantity: 2, category: 'Clothing' });
     let patchBody: Record<string, unknown> | null = null;
     server.use(
       http.put('/api/trips/1/packing/70', async ({ request }) => {
@@ -353,7 +353,7 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-028: category group collapse hides items, expand shows them', async () => {
     const user = userEvent.setup();
-    const item = buildPackingItem({ name: 'Sunscreen', category: 'Toiletries' });
+    const item = buildPackingItem({ is_private: 1, name: 'Sunscreen', category: 'Toiletries' });
     const { container } = render(<PackingListPanel tripId={1} items={[item]} />);
 
     // Item is visible initially
@@ -398,8 +398,8 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-031: "Uncheck All" bulk action calls PUT to uncheck checked items', async () => {
     const user = userEvent.setup();
-    const item1 = buildPackingItem({ id: 80, name: 'ItemA', checked: 1, category: 'Gear' });
-    const item2 = buildPackingItem({ id: 81, name: 'ItemB', checked: 1, category: 'Gear' });
+    const item1 = buildPackingItem({ is_private: 1, id: 80, name: 'ItemA', checked: 1, category: 'Gear' });
+    const item2 = buildPackingItem({ is_private: 1, id: 81, name: 'ItemB', checked: 1, category: 'Gear' });
     const patchedIds: number[] = [];
     server.use(
       http.put('/api/trips/1/packing/:itemId', ({ params }) => {
@@ -433,7 +433,7 @@ describe('PackingListPanel', () => {
         })
       )
     );
-    const item = buildPackingItem({ name: 'Passport', category: 'Documents' });
+    const item = buildPackingItem({ is_private: 1, name: 'Passport', category: 'Documents' });
     const { container } = render(<PackingListPanel tripId={1} items={[item]} />);
 
     // UserPlus assignee button should appear in the category header
@@ -481,7 +481,7 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-035: category rename via context menu calls PUT', async () => {
     const user = userEvent.setup();
-    const item = buildPackingItem({ id: 90, name: 'Shirt', category: 'Clothing' });
+    const item = buildPackingItem({ is_private: 1, id: 90, name: 'Shirt', category: 'Clothing' });
     let putBody: Record<string, unknown> | null = null;
     server.use(
       http.put('/api/trips/1/packing/90', async ({ request }) => {
@@ -518,7 +518,7 @@ describe('PackingListPanel', () => {
         })
       )
     );
-    const item = buildPackingItem({ name: 'Camera', category: 'Electronics' });
+    const item = buildPackingItem({ is_private: 1, name: 'Camera', category: 'Electronics' });
     const { container } = render(<PackingListPanel tripId={1} items={[item]} />);
 
     // Wait for members to load, then click the UserPlus button
@@ -680,7 +680,7 @@ describe('PackingListPanel', () => {
         HttpResponse.json({ bags: [] })
       )
     );
-    const items = [buildPackingItem({ name: 'Laptop', category: 'Tech' })];
+    const items = [buildPackingItem({ is_private: 1, name: 'Laptop', category: 'Tech' })];
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
     // Wait for bag tracking to enable (weight input 'g' label appears)
@@ -695,8 +695,8 @@ describe('PackingListPanel', () => {
   it('FE-COMP-PACKING-045: "Remove checked" button appears when checked items exist', async () => {
     const user = userEvent.setup();
     const items = [
-      buildPackingItem({ name: 'Done1', checked: 1, category: 'Test' }),
-      buildPackingItem({ name: 'Done2', checked: 1, category: 'Test' }),
+      buildPackingItem({ is_private: 1, name: 'Done1', checked: 1, category: 'Test' }),
+      buildPackingItem({ is_private: 1, name: 'Done2', checked: 1, category: 'Test' }),
     ];
     server.use(
       http.delete('/api/trips/1/packing/:itemId', () => HttpResponse.json({ success: true }))
@@ -759,7 +759,7 @@ describe('PackingListPanel', () => {
         HttpResponse.json({ bags: [{ id: 3, name: 'Carry-on', color: '#ec4899', weight_limit_grams: null, members: [] }] })
       )
     );
-    const items = [buildPackingItem({ name: 'Laptop', category: 'Tech' })];
+    const items = [buildPackingItem({ is_private: 1, name: 'Laptop', category: 'Tech' })];
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
     // Wait for bag tracking to enable (Package icon button in item row)
@@ -832,7 +832,7 @@ describe('PackingListPanel', () => {
         return HttpResponse.json({ item: buildPackingItem({ id: itemId }) });
       })
     );
-    const items = [buildPackingItem({ id: itemId, name: 'Camera', category: 'Electronics' })];
+    const items = [buildPackingItem({ is_private: 1, id: itemId, name: 'Camera', category: 'Electronics' })];
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
     // Wait for weight input to appear (bag tracking enabled)
@@ -853,8 +853,8 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-050: ArtikelZeile category change picker opens on dot button click', async () => {
     const user = userEvent.setup();
-    const item = buildPackingItem({ name: 'Camera', category: 'Electronics' });
-    const item2 = buildPackingItem({ name: 'Passport', category: 'Documents' });
+    const item = buildPackingItem({ is_private: 1, name: 'Camera', category: 'Electronics' });
+    const item2 = buildPackingItem({ is_private: 1, name: 'Passport', category: 'Documents' });
     const { container } = render(<PackingListPanel tripId={1} items={[item, item2]} />);
 
     // The category change picker is triggered by a small dot button (no title)
@@ -888,7 +888,7 @@ describe('PackingListPanel', () => {
         return HttpResponse.json({ item: buildPackingItem({ id: itemId }) });
       })
     );
-    const items = [buildPackingItem({ id: itemId, name: 'Shoes', category: 'Clothing' })];
+    const items = [buildPackingItem({ is_private: 1, id: itemId, name: 'Shoes', category: 'Clothing' })];
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
     // Wait for bag tracking to enable (Package icon appears)
@@ -914,7 +914,7 @@ describe('PackingListPanel', () => {
         HttpResponse.json({ assignees: { Electronics: [{ user_id: 2, username: 'alice', avatar: null }] } })
       )
     );
-    const item = buildPackingItem({ name: 'Camera', category: 'Electronics' });
+    const item = buildPackingItem({ is_private: 1, name: 'Camera', category: 'Electronics' });
     render(<PackingListPanel tripId={1} items={[item]} />);
 
     // The assignee chip shows the first letter of username
@@ -991,8 +991,8 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-037: delete category via context menu calls DELETE for all items', async () => {
     const user = userEvent.setup();
-    const item1 = buildPackingItem({ id: 100, name: 'Rope', category: 'Gear' });
-    const item2 = buildPackingItem({ id: 101, name: 'Map', category: 'Gear' });
+    const item1 = buildPackingItem({ is_private: 1, id: 100, name: 'Rope', category: 'Gear' });
+    const item2 = buildPackingItem({ is_private: 1, id: 101, name: 'Map', category: 'Gear' });
     const deletedIds: number[] = [];
     server.use(
       http.delete('/api/trips/1/packing/:itemId', ({ params }) => {
@@ -1015,7 +1015,7 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-056: pressing Enter in quantity input commits value', async () => {
     const user = userEvent.setup();
-    const item = buildPackingItem({ id: 71, name: 'Socks', quantity: 3, category: 'Clothing' });
+    const item = buildPackingItem({ is_private: 1, id: 71, name: 'Socks', quantity: 3, category: 'Clothing' });
     let putBody: Record<string, unknown> | null = null;
     server.use(
       http.put('/api/trips/1/packing/71', async ({ request }) => {
@@ -1035,7 +1035,7 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-057: clicking unchecked item name enters inline edit mode', async () => {
     const user = userEvent.setup();
-    const item = buildPackingItem({ id: 73, name: 'Jacket', checked: 0, category: 'Clothing' });
+    const item = buildPackingItem({ is_private: 1, id: 73, name: 'Jacket', checked: 0, category: 'Clothing' });
     render(<PackingListPanel tripId={1} items={[item]} />);
 
     // Click the item name span (not the Rename button — the name span itself)
@@ -1050,8 +1050,8 @@ describe('PackingListPanel', () => {
   });
 
   it('FE-COMP-PACKING-058: selecting a different category in picker calls PUT with new category', async () => {
-    const itemA = buildPackingItem({ id: 74, name: 'Camera', category: 'Electronics' });
-    const itemB = buildPackingItem({ id: 75, name: 'Passport', category: 'Documents' });
+    const itemA = buildPackingItem({ is_private: 1, id: 74, name: 'Camera', category: 'Electronics' });
+    const itemB = buildPackingItem({ is_private: 1, id: 75, name: 'Passport', category: 'Documents' });
     let putBody: Record<string, unknown> | null = null;
     server.use(
       http.put('/api/trips/1/packing/74', async ({ request }) => {
@@ -1087,7 +1087,7 @@ describe('PackingListPanel', () => {
         return HttpResponse.json({ assignees: [{ user_id: 2, username: 'alice', avatar: null }] });
       })
     );
-    const item = buildPackingItem({ name: 'Tripod', category: 'Electronics' });
+    const item = buildPackingItem({ is_private: 1, name: 'Tripod', category: 'Electronics' });
     const { container } = render(<PackingListPanel tripId={1} items={[item]} />);
 
     // Wait for members to load
@@ -1122,7 +1122,7 @@ describe('PackingListPanel', () => {
         return HttpResponse.json({ assignees: [] });
       })
     );
-    const item = buildPackingItem({ name: 'Camera', category: 'Electronics' });
+    const item = buildPackingItem({ is_private: 1, name: 'Camera', category: 'Electronics' });
     render(<PackingListPanel tripId={1} items={[item]} />);
 
     // Wait for the assignee chip to appear
@@ -1337,7 +1337,7 @@ describe('PackingListPanel', () => {
         HttpResponse.json({ bags: [{ id: 12, name: 'Day Pack', color: '#ec4899', weight_limit_grams: null, members: [] }] })
       )
     );
-    const items = [buildPackingItem({ name: 'Camera', category: 'Electronics' })];
+    const items = [buildPackingItem({ is_private: 1, name: 'Camera', category: 'Electronics' })];
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
     // Wait for the BagCard to render in the sidebar
@@ -1382,7 +1382,7 @@ describe('PackingListPanel', () => {
         return HttpResponse.json({ members: [{ user_id: 3, username: 'carol', avatar: null }] });
       })
     );
-    const items = [buildPackingItem({ name: 'Laptop', category: 'Tech' })];
+    const items = [buildPackingItem({ is_private: 1, name: 'Laptop', category: 'Tech' })];
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
     // Wait for the BagCard to render and tripMembers to load
@@ -1421,7 +1421,7 @@ describe('PackingListPanel', () => {
         HttpResponse.json({ item: buildPackingItem({ id: 150 }) })
       )
     );
-    const items = [buildPackingItem({ id: 150, name: 'Sunglasses', category: 'Accessories' })];
+    const items = [buildPackingItem({ is_private: 1, id: 150, name: 'Sunglasses', category: 'Accessories' })];
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
     // Wait for Package icon (bag button in item row)
@@ -1466,7 +1466,7 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-070: deleting the last item of a custom category converts the row to a placeholder so the category persists in place (#1289)', async () => {
     const user = userEvent.setup();
-    const item = buildPackingItem({ id: 99, name: 'Tent', category: 'Camping Gear' });
+    const item = buildPackingItem({ is_private: 1, id: 99, name: 'Tent', category: 'Camping Gear' });
     // handleDeleteItem decides "last in category" from the rendered list.
     seedStore(useTripStore, { packingItems: [item] });
     let deleted = false;
@@ -1492,7 +1492,7 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-071: deleting the placeholder row deletes it, dismissing the empty category (#1289)', async () => {
     const user = userEvent.setup();
-    const placeholder = buildPackingItem({ id: 5, name: '...', category: 'Camping Gear' });
+    const placeholder = buildPackingItem({ is_private: 1, id: 5, name: '...', category: 'Camping Gear' });
     seedStore(useTripStore, { packingItems: [placeholder] });
     let deleted = false;
     let converted = false;
@@ -1517,7 +1517,7 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-072: adding an item to an empty category reuses the placeholder row instead of appending (#1289)', async () => {
     const user = userEvent.setup();
-    const placeholder = buildPackingItem({ id: 5, name: '...', category: 'Camping Gear' });
+    const placeholder = buildPackingItem({ is_private: 1, id: 5, name: '...', category: 'Camping Gear' });
     seedStore(useTripStore, { packingItems: [placeholder] });
     let posted = false;
     let putBody: Record<string, unknown> | null = null;
