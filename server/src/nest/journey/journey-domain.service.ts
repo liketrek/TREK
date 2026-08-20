@@ -889,20 +889,32 @@ export class JourneyDomainService {
     if (!this.canAccessJourney(journeyId, userId)) return null;
 
     const entryRows = this.db.prepare(`
-      SELECT id, title, location_name, location_lat, location_lng, entry_date
+      SELECT id, title, location_name, location_lat, location_lng, entry_date, source_trip_id
         FROM journey_entries
        WHERE journey_id = ?
        ORDER BY entry_date ASC, sort_order ASC, id ASC
     `).all(journeyId) as {
       id: number; title: string | null; location_name: string | null;
       location_lat: number | null; location_lng: number | null; entry_date: string | null;
+      source_trip_id: number | null;
     }[];
 
-    const tripDates = this.db.prepare(`
-      SELECT t.start_date AS start, t.end_date AS end
+    /*
+     * The trips themselves, named and dated.
+     *
+     * Ordered by the trip's own start date: `journey_trips` had a `sort_order`
+     * for one migration and has not had one since 87, so the link row carries
+     * no order to read. Undated trips sort last rather than first, where an
+     * empty string would otherwise put them.
+     */
+    const tripRows = this.db.prepare(`
+      SELECT t.id, t.title, t.start_date AS start, t.end_date AS end
         FROM journey_trips jt JOIN trips t ON t.id = jt.trip_id
        WHERE jt.journey_id = ?
-    `).all(journeyId) as { start: string | null; end: string | null }[];
+       ORDER BY t.start_date IS NULL, t.start_date ASC, t.id ASC
+    `).all(journeyId) as { id: number; title: string | null; start: string | null; end: string | null }[];
+
+    const tripDates = tripRows.map(t => ({ start: t.start, end: t.end }));
 
     // Ordered the way the trip is walked: by day, then by the order within it.
     // A place can be assigned to more than one day (a hotel across three nights
@@ -910,7 +922,7 @@ export class JourneyDomainService {
     // one row per place at its earliest day — otherwise the route would visit
     // the hotel three times and the distance would count those legs.
     const placeRows = this.db.prepare(`
-      SELECT p.id, p.name, p.lat, p.lng,
+      SELECT p.id, p.name, p.lat, p.lng, p.trip_id AS tripId,
              MIN(d.date) AS day,
              MIN(da.order_index) AS ord
         FROM journey_trips jt
@@ -921,7 +933,7 @@ export class JourneyDomainService {
        GROUP BY p.id
        ORDER BY day IS NULL, day ASC, ord ASC, p.id ASC
     `).all(journeyId) as {
-      id: number; name: string | null; lat: number | null; lng: number | null;
+      id: number; name: string | null; lat: number | null; lng: number | null; tripId: number | null;
       day: string | null; ord: number | null;
     }[];
 
@@ -934,6 +946,41 @@ export class JourneyDomainService {
     const photoCount = this.db
       .prepare('SELECT COUNT(*) AS n FROM journey_photos WHERE journey_id = ?')
       .get(journeyId) as { n: number };
+
+    /*
+     * ── A photograph per stop, for a map that marks them with pictures ───
+     *
+     * The truthful source is the junction: the photos somebody actually
+     * attached to that entry, earliest first, videos excluded because a video
+     * poster inside a four-millimetre circle is not a photograph.
+     */
+    const entryPhotoRows = this.db.prepare(`
+      SELECT jep.entry_id AS entryId, gp.photo_id AS photoId
+        FROM journey_entry_photos jep
+        JOIN journey_photos gp ON gp.id = jep.journey_photo_id
+        JOIN trek_photos tp ON tp.id = gp.photo_id
+       WHERE gp.journey_id = ?
+         AND (tp.media_type IS NULL OR tp.media_type = 'image')
+       ORDER BY jep.entry_id ASC, jep.sort_order ASC, gp.sort_order ASC, gp.id ASC
+    `).all(journeyId) as { entryId: number; photoId: number }[];
+
+    const photoByEntry = new Map<number, number>();
+    for (const r of entryPhotoRows) if (!photoByEntry.has(r.entryId)) photoByEntry.set(r.entryId, r.photoId);
+
+    /*
+     * ── And no second tier, deliberately ─────────────────────────────────
+     *
+     * The obvious fallback is to hand the journey's gallery out in blocks, the
+     * way the auto layout hands photographs to pages, so that a journey with
+     * fifty-seven pictures and an empty junction still gets pictures on its
+     * map. It was written that way first and it was wrong: a marker at
+     * Akureyri showing a photograph taken in Vík is a caption that lies, and a
+     * map is exactly where a reader trusts that a picture is OF the place it
+     * sits on.
+     *
+     * So a stop shows its own first photograph or it shows a number. The
+     * number is not a degraded state; it is the honest one.
+     */
 
     // The cached country per place, for whichever of them Atlas has seen.
     const cachedCountry = new Map<number, string>();
@@ -963,6 +1010,8 @@ export class JourneyDomainService {
         label: e.title || e.location_name || '',
         date: e.entry_date ?? null,
         country: countryAt(e.location_lat as number, e.location_lng as number),
+        tripId: e.source_trip_id ?? null,
+        photoId: photoByEntry.get(e.id) ?? null,
       }));
 
     const points: StatsInputPoint[] = fromEntries.length
@@ -975,7 +1024,25 @@ export class JourneyDomainService {
           label: p.name || '',
           date: p.day ?? null,
           country: countryAt(p.lat as number, p.lng as number, p.id),
+          tripId: p.tripId ?? null,
+          // A trip place carries `image_url`, which is a provider photo behind
+          // its own attribution rather than a trek_photos id. It must not be
+          // smuggled into a field the book will print as one of the journey's
+          // own pictures.
+          photoId: null,
         }));
+
+    /*
+     * How many of the route's stops each trip owns.
+     *
+     * Counted rather than assumed: a linked trip whose entries nobody wrote,
+     * or whose places carry no coordinates, contributes nothing to the line and
+     * offering a map of it would produce an empty frame.
+     */
+    const perTrip = new Map<number, number>();
+    for (const p of points) {
+      if (p.tripId != null) perTrip.set(p.tripId, (perTrip.get(p.tripId) ?? 0) + 1);
+    }
 
     return computeJourneyStats({
       journeyId,
@@ -985,6 +1052,13 @@ export class JourneyDomainService {
       places: placeCount?.n ?? 0,
       tripDates,
       countryNames: countryNamesFor(points),
+      trips: tripRows.map(t => ({
+        id: t.id,
+        title: t.title || '',
+        start: t.start,
+        end: t.end,
+        points: perTrip.get(t.id) ?? 0,
+      })),
     });
   }
 

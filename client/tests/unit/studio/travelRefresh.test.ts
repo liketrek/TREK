@@ -23,9 +23,10 @@ const stats: JourneyStats = {
     { code: 'IS', name: 'Iceland', places: 14, firstVisit: '2026-06-02' },
   ],
   points: [
-    { lat: 64.14, lng: -21.94, label: 'Reykjavík', date: '2026-06-02', country: 'IS' },
-    { lat: 65.68, lng: -18.12, label: 'Akureyri', date: '2026-06-06', country: 'IS' },
+    { lat: 64.14, lng: -21.94, label: 'Reykjavík', date: '2026-06-02', country: 'IS', tripId: null, photoId: null },
+    { lat: 65.68, lng: -18.12, label: 'Akureyri', date: '2026-06-06', country: 'IS', tripId: null, photoId: null },
   ],
+  trips: [],
   start: '2026-06-02',
   end: '2026-06-15',
 }
@@ -193,10 +194,12 @@ describe('refreshPatch', () => {
     expect((patch as { countries: string[] }).countries).toEqual(['IS'])
   })
 
-  it('carries only lat, lng and label onto the map, not the whole stats point', () => {
+  it('carries only what a map draws with, not the whole stats point', () => {
     const patch = refreshPatch(mapEl({ points: [] }), stats)!
+    // The date, the country and the trip stay behind; the photograph comes
+    // along because a marker can be a picture of the stop.
     expect((patch as { points: object[] }).points[0]).toEqual({
-      lat: 64.14, lng: -21.94, label: 'Reykjavík',
+      lat: 64.14, lng: -21.94, label: 'Reykjavík', photoId: null,
     })
   })
 

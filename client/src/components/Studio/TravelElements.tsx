@@ -73,7 +73,30 @@ function typeSize(el: TravelElement, base: number): number {
 const round2 = (n: number) => Math.round(n * 100) / 100
 /** Tile geometry, kept finer than the rest: see the note where it is used. */
 const round3 = (n: number) => Math.round(n * 1000) / 1000
-const TILE_OVERLAP = 0.12
+
+/**
+ * How far each tile is drawn past its own square, in millimetres.
+ *
+ * ── Why it is this large, and why it is a fraction ───────────────────────
+ *
+ * A tile boundary that lands mid-pixel leaves a hairline of paper showing
+ * through the map, and the eye finds it immediately: it reads as a fold or a
+ * scratch rather than as rounding. Drawing each tile slightly larger than its
+ * spacing closes that, and costs nothing, because the strip that overlaps is
+ * the same picture the neighbour draws there anyway.
+ *
+ * It used to be a flat twelve hundredths of a millimetre, which is about half a
+ * device pixel at 1:1 — and the editor does not draw at 1:1. The page is
+ * scaled, so at a third of full size that overlap is a sixth of a pixel and the
+ * seams come back, which is exactly when a map is full of them: a page-sized
+ * satellite map is a hundred and fifty tiles, so it has some three hundred
+ * internal edges to get wrong.
+ *
+ * Four percent of a tile survives every zoom the canvas offers, and the floor
+ * covers the case of a tile drawn very small. The element clips, so the
+ * overhang at the last row and column never shows.
+ */
+const tileOverlapMm = (size: number) => Math.max(0.8, size * 0.04)
 
 /** #rrggbb plus an alpha. */
 function rgba(hex: string, alpha: number): string {
@@ -81,8 +104,13 @@ function rgba(hex: string, alpha: number): string {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
 }
 
-export function TravelElementView({ el, frameStyle }: { el: BookElement; frameStyle: CSSProperties }) {
-  if (el.kind === 'map') return <MapView el={el} frameStyle={frameStyle} />
+export function TravelElementView({ el, frameStyle, big = false }: {
+  el: BookElement
+  frameStyle: CSSProperties
+  /** Drawn at a size worth fetching real imagery for, rather than as a thumbnail. */
+  big?: boolean
+}) {
+  if (el.kind === 'map') return <MapView el={el} frameStyle={frameStyle} big={big} />
   if (el.kind === 'stats') return <StatsView el={el} frameStyle={frameStyle} />
   if (el.kind === 'countries') return <CountriesView el={el} frameStyle={frameStyle} />
   if (el.kind === 'badge') return <BadgeView el={el} frameStyle={frameStyle} />
@@ -166,18 +194,24 @@ function routeInk(accent: string, onDark: boolean): string {
  * than a fixed number of millimetres, which keeps the margin looking the same
  * whether the map is 40mm across or 300.
  */
-function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProperties }) {
+function MapView({ el, frameStyle, big = false }: {
+  el: BookMapElement
+  frameStyle: CSSProperties
+  /** False in a thumbnail, where a page of imagery would be a page of waste. */
+  big?: boolean
+}) {
   const palette = MAP_PALETTES[el.style]
   // Per element: two cut maps on one spread sharing a stencil would both be cut
   // to whichever of them rendered last.
   const clipId = `st-clip-${el.id}`
   const ink = routeInk(el.accent, palette.onDark)
+  /** Whether the ground under the line is a photograph rather than paper. */
+  const imagery = el.source === 'tiles' || el.source === 'static'
   /*
    * Country outlines are the vector map's *subject*; over real imagery they are
    * a second coastline drawn on top of the one in the picture. So they are only
    * drawn when there is no picture underneath.
    */
-  const imagery = el.source === 'tiles' || el.source === 'static'
   /*
    * The outlines are needed for two different jobs, and only one of them is
    * drawing. As a picture they are the vector map's subject, and over real
@@ -208,6 +242,13 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
    * down with it, in a renderer that also has to run for print.
    */
   const path = el.path ?? []
+  /*
+   * The roads, one per leg, `null` where a leg has none. Read the same
+   * defensive way `path` is: an element built by hand and cast rather than
+   * parsed genuinely has the field missing, and `.length` on undefined takes
+   * the whole spread down in a renderer that also has to run for print.
+   */
+  const roads = el.roads ?? []
   const trail = path.map(seg => seg.map(([lat, lng]) => projectMercator(lng, lat)))
 
   /*
@@ -245,6 +286,109 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
       maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y)
     }
   }
+  /*
+   * A road wanders well outside the box around the two stops it joins — that is
+   * the whole point of drawing it. Fitted to the stops alone, the interesting
+   * part of it would be outside the frame.
+   */
+  for (const road of roads) {
+    if (!road) continue
+    for (const [lat, lng] of road) {
+      const q = projectMercator(lng, lat)
+      minX = Math.min(minX, q.x); minY = Math.min(minY, q.y)
+      maxX = Math.max(maxX, q.x); maxY = Math.max(maxY, q.y)
+    }
+  }
+
+  /*
+   * ── The bow ───────────────────────────────────────────────────────────
+   *
+   * A straight line between two stops a continent apart is a claim about the
+   * journey that is plainly false, and a shallow curve is how printed maps have
+   * always said "this part was a flight". Two gates decide how much:
+   *
+   * **How far it was, in kilometres.** A fact about the journey rather than
+   * about the zoom, so two cafes four kilometres apart stay straight at every
+   * size and Tokyo to Los Angeles bows at every size. Ramped smoothly from
+   * 150km to 15000km rather than switched at a threshold, or a route would have
+   * one leg visibly curved and its neighbour dead straight.
+   *
+   * **Which way it runs.** A meridian is a great circle *and* a straight line
+   * in Mercator, so bowing a due north-south leg draws a detour that never
+   * happened. The east-west share of the leg damps it.
+   *
+   * The direction is poleward from the route's MEAN latitude, decided once for
+   * the element: per leg, a chain crossing the equator would flip sides halfway
+   * along and read as random rather than as drawn.
+   */
+  const bowed = el.routeArc === 'bow' && trail.length === 0 && points.length > 1
+
+  /** Kilometres between two coordinates, for the ramp. */
+  const km = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+    const r = (d: number) => (d * Math.PI) / 180
+    const dLat = r(b.lat - a.lat)
+    const dLng = r(b.lng - a.lng)
+    const h = Math.sin(dLat / 2) ** 2
+      + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLng / 2) ** 2
+    return 12742 * Math.asin(Math.min(1, Math.sqrt(h)))
+  }
+
+  const meanLat = el.points.length
+    ? el.points.reduce((sum, p) => sum + p.lat, 0) / el.points.length
+    : 0
+
+  /**
+   * How far each leg bows, as a share of its own chord, and which way.
+   *
+   * A fraction rather than a distance, so the same numbers are right on a 40mm
+   * inset and a 400mm spread — what the eye reads is the angle the line leaves
+   * its marker at, and that is scale free.
+   */
+  const bows: { k: number; nx: number; ny: number }[] = bowed
+    ? el.points.slice(0, -1).map((a, i) => {
+      const b = el.points[i + 1]
+      const pa = projectMercator(a.lng, a.lat)
+      const pb = projectMercator(b.lng, b.lat)
+      const dx = pb.x - pa.x
+      const dy = pb.y - pa.y
+      const d = Math.hypot(dx, dy)
+      if (d < 1e-6) return { k: 0, nx: 0, ny: 0 }
+
+      const u = Math.min(1, Math.max(0, Math.log(km(a, b) / 150) / Math.log(10)))
+      const ramp = u * u * (3 - 2 * u)
+      // How much of the leg runs east-west, which is where a bow is truthful.
+      const eastWest = 0.35 + 0.65 * Math.abs(dx / d)
+
+      // The normal, turned to point away from the equator side the route is on.
+      let nx = -dy / d
+      let ny = dx / d
+      const poleward = meanLat >= 0 ? -1 : 1
+      if (Math.abs(ny) < 1e-9) {
+        // A due north-south leg has no poleward side; break the tie east.
+        nx = Math.abs(nx)
+      } else if (Math.sign(ny) !== poleward) {
+        nx = -nx
+        ny = -ny
+      }
+      return { k: 0.07 * ramp * eastWest, nx, ny }
+    })
+    : []
+
+  /*
+   * The apexes join the extent before it is fitted. Without this the tile
+   * window and the vector fit are both cut to the straight chords, and a bowed
+   * leg is clipped by the very frame it was fitted to.
+   */
+  bows.forEach((bow, i) => {
+    if (!bow.k) return
+    const a = points[i]
+    const b = points[i + 1]
+    const d = Math.hypot(b.x - a.x, b.y - a.y)
+    const ax = (a.x + b.x) / 2 + bow.k * d * bow.nx
+    const ay = (a.y + b.y) / 2 + bow.k * d * bow.ny
+    minX = Math.min(minX, ax); maxX = Math.max(maxX, ax)
+    minY = Math.min(minY, ay); maxY = Math.max(maxY, ay)
+  })
 
   const empty = !Number.isFinite(minX)
   if (empty) { minX = -1; minY = -1; maxX = 1; maxY = 1 }
@@ -280,6 +424,36 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
   minX = cx - spanX / 2; maxX = cx + spanX / 2
   minY = cy - spanY / 2; maxY = cy + spanY / 2
 
+  /*
+   * ── The window takes the frame's proportions ─────────────────────────
+   *
+   * Two fits used to disagree about what the map was of. The outlines and the
+   * route were *contained* in the frame — fitted whole, with air on the long
+   * side — while the imagery *covered* it, because a map with a strip of paper
+   * down one edge is not a map. On a frame whose shape did not match the
+   * route's, those are different windows, and the tiles won: the picture filled
+   * the box and the route ran off the top of it. Drag a map narrow enough and
+   * the line simply left the page.
+   *
+   * Widening the window to the frame's own proportions makes the two the same
+   * window. Cover and contain agree by construction, the route is inside
+   * whatever shape the element is dragged to, and the imagery still reaches
+   * every edge — it just shows a little more ground on the short side, which is
+   * what the extra room was always going to be filled with.
+   */
+  const aspect = W / H
+  const haveW = maxX - minX
+  const haveH = maxY - minY
+  if (haveW / haveH < aspect) {
+    const want = haveH * aspect
+    minX = cx - want / 2
+    maxX = cx + want / 2
+  } else {
+    const want = haveW / aspect
+    minY = cy - want / 2
+    maxY = cy + want / 2
+  }
+
   const scale = Math.min(W / (maxX - minX), H / (maxY - minY))
   const offX = (W - (maxX - minX) * scale) / 2 - minX * scale
   const offY = (H - (maxY - minY) * scale) / 2 - minY * scale
@@ -295,6 +469,68 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
   const routeWidth = Math.max(0.3, Math.min(W, H) * 0.0075)
   const pin = Math.max(0.35, Math.min(W, H) * 0.0085)
   const label = typeSize(el, 0.035)
+
+  /*
+   * ── The drawn treatment ───────────────────────────────────────────────
+   *
+   * A separate scale from the plain one above, because it is a different
+   * drawing rather than the same drawing recoloured. Fractions of the shorter
+   * side with a floor and a ceiling: the floor keeps a 40mm inset from losing
+   * the line, and the ceiling is what the plain route is missing — `routeWidth`
+   * has no upper bound and reaches 1.6mm on a page, which is part of why the
+   * current map reads as plotted rather than as drawn.
+   *
+   * The line lands at about a third of a marker's radius, which is the ratio
+   * the printed reference holds at every size.
+   */
+  const S = Math.min(W, H)
+  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+  const drawn = el.routeStyle === 'drawn'
+  const coreW = clamp(S * 0.0055, 0.32, 1.3)
+  const casingW = coreW * 1.9
+  const beadR = clamp(coreW * 3.1, 1.7, 4.8)
+  const beadRing = beadR * 0.2
+  const dotR = coreW * 1.5
+  /*
+   * A numbered stop is bigger than a dot and smaller than a photograph: it has
+   * to hold two digits legibly at page size without competing with the pictures
+   * beside it.
+   */
+  const numR = clamp(coreW * 2.2, 1.3, 3.4)
+  /*
+   * The digit reads against the marker's own fill rather than against the page,
+   * so it inverts with it: dark on a light line, light on a dark one. Measured
+   * the same way the marks decide their ink.
+   */
+  const numInk = brightness(el.accent) > 0.55 ? '#1c1b19' : '#ffffff' // theme-lint-disable — print ink
+  const dashOn = coreW * 2.4
+  const dashOff = coreW * 1.8
+
+  /*
+   * ── Why the colours key on the ground rather than on the accent ───────
+   *
+   * One route crosses near-black bathymetry and bright desert in the same
+   * picture, so no single colour works: what works is a light line with a dark
+   * edge under it over imagery, and the same idea inverted over pale paper.
+   * Keying it on what is underneath means any accent the user picks stays
+   * legible, instead of the panel having to warn them off half the palette.
+   */
+  const lightGround = imagery || palette.onDark
+  /*
+   * The line is the element's accent, full stop — which is why a map placed
+   * over imagery is given a white accent rather than being special-cased here.
+   * Guessing "the accent is still the default, so I will override it" cannot
+   * tell a colour somebody chose from one a constructor happened to write, and
+   * the moment it guesses wrong the user has a control that does nothing.
+   *
+   * The casing is the part that reads the ground: a dark halo under a light
+   * line over photography, a light halo under a dark line on pale paper. That
+   * is what keeps one route legible across near-black sea and bright desert in
+   * the same picture, whatever colour the line itself is.
+   */
+  const coreInk = el.accent
+  const casingInk = lightGround ? '#000000' : '#ffffff' // theme-lint-disable — a halo, not app chrome
+  const casingAlpha = lightGround ? 0.3 : 0.55
 
   /*
    * Real imagery, when the element was placed with a source that has some.
@@ -322,7 +558,7 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
       maxLat: topLeft.lat,
       maxLng: bottomRight.lng,
       minLat: bottomRight.lat,
-    })
+    }, big ? 'print' : 'preview')
     : null
 
   /*
@@ -348,7 +584,165 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
   const trailOnScreen = tiled
     ? path.map(seg => seg.map(([lat, lng]) => projectOntoTiles(tiled, lng, lat)))
     : trail.map(seg => seg.map(p => at(p.x, p.y)))
-  const lines = trailOnScreen.length ? trailOnScreen : (route.length > 1 ? [route] : [])
+  /*
+   * ── What the plain line is made of ────────────────────────────────────
+   *
+   * A recorded track wins outright, as it always has. Otherwise the stop chain,
+   * cut at every leg that has a road so the road can be drawn in its place —
+   * without that cut, a journey with roads for three legs of twelve would print
+   * the three and silently drop the other nine, which is what `path` does today
+   * when it only covers part of a trip.
+   */
+  const roadOnScreen = (leg: number) => {
+    const road = roads[leg]
+    if (!road || road.length < 2) return null
+    return road.map(([lat, lng]) => {
+      const q = projectMercator(lng, lat)
+      return tiled ? projectOntoTiles(tiled, lng, lat) : at(q.x, q.y)
+    })
+  }
+
+  const chain: { x: number; y: number }[][] = []
+  if (route.length > 1) {
+    let run: { x: number; y: number }[] = [route[0]]
+    for (let i = 0; i < route.length - 1; i++) {
+      const road = roadOnScreen(i)
+      if (road) {
+        if (run.length > 1) chain.push(run)
+        chain.push(road)
+        run = [route[i + 1]]
+      } else {
+        run.push(route[i + 1])
+      }
+    }
+    if (run.length > 1) chain.push(run)
+  }
+
+  const lines = trailOnScreen.length ? trailOnScreen : chain
+
+  /*
+   * ── The drawn line, as path strings ───────────────────────────────────
+   *
+   * One strand per contiguous run. A recorded track is always straight
+   * segments and always solid: bowing a line somebody actually walked, or
+   * dashing it, would be drawing a journey that did not happen. The inferred
+   * stop chain is where the bows and the dashes live.
+   *
+   * The bow is faded out a second time here, in millimetres. `bows` decided how
+   * much a leg curves as a share of its own chord, which is a fact about the
+   * journey; this is the fact about the page, and it stops a 40mm inset from
+   * showing a hairline wobble that reads as a wobble rather than as a curve.
+   */
+  const strands: { d: string; dash?: string }[] = []
+  if (drawn) {
+    if (trailOnScreen.length) {
+      for (const seg of trailOnScreen) {
+        if (seg.length < 2) continue
+        strands.push({ d: `M${seg.map(pt => `${round2(pt.x)} ${round2(pt.y)}`).join(' L')}` })
+      }
+    } else if (route.length > 1) {
+      // Straight legs join into one strand; each bowed leg is its own, so it
+      // can be dashed without dashing its neighbours.
+      let run: string[] = []
+      const flush = () => {
+        if (run.length > 1) strands.push({ d: `M${run.join(' L')}` })
+        run = []
+      }
+      for (let i = 0; i < route.length - 1; i++) {
+        const a = route[i]
+        const b = route[i + 1]
+
+        /*
+         * A leg somebody asked the roads for is drawn as the road, solid and
+         * unbowed: it is the way that was actually taken, so neither the curve
+         * nor the dash — both of which mean "inferred" — belongs on it.
+         */
+        const road = roads[i]
+        if (road && road.length > 1) {
+          flush()
+          const onScreen = road.map(([lat, lng]) => {
+            const q = projectMercator(lng, lat)
+            return tiled ? projectOntoTiles(tiled, lng, lat) : at(q.x, q.y)
+          })
+          strands.push({ d: `M${onScreen.map(pt => `${round2(pt.x)} ${round2(pt.y)}`).join(' L')}` })
+          continue
+        }
+
+        const bow = bows[i]
+        const dmm = Math.hypot(b.x - a.x, b.y - a.y)
+        let sag = bow ? bow.k * dmm : 0
+        if (sag > 0) {
+          // Below about a stroke width the curve is not read as one.
+          const v = Math.min(1, Math.max(0, (sag - coreW * 0.6) / coreW))
+          sag *= v * v * (3 - 2 * v)
+        }
+        if (!sag) {
+          if (!run.length) run.push(`${round2(a.x)} ${round2(a.y)}`)
+          run.push(`${round2(b.x)} ${round2(b.y)}`)
+          continue
+        }
+        flush()
+        /*
+         * A quadratic reaches only half way to its control point at the middle,
+         * which is why the apex is doubled here — the same arithmetic the shape
+         * paths already rely on.
+         */
+        const cxp = (a.x + b.x) / 2 + 2 * sag * bow.nx
+        const cyp = (a.y + b.y) / 2 + 2 * sag * bow.ny
+        const d = `M${round2(a.x)} ${round2(a.y)} Q${round2(cxp)} ${round2(cyp)} ${round2(b.x)} ${round2(b.y)}`
+        if (el.routeDash === 'arcs') {
+          /*
+           * Phase-fitted, so every leg ends on a whole dash at its marker
+           * rather than on a stub. Butt caps: a round cap swells each dash by a
+           * full stroke width and closes the gaps it was drawn for.
+           */
+          const arcLen = dmm * (1 + (8 / 3) * (sag / dmm) ** 2)
+          const n = Math.max(1, Math.round(arcLen / (dashOn + dashOff)))
+          const fit = arcLen / (n * (dashOn + dashOff))
+          strands.push({ d, dash: `${round2(dashOn * fit)} ${round2(dashOff * fit)}` })
+        } else {
+          strands.push({ d })
+        }
+      }
+      flush()
+    }
+  }
+
+  /*
+   * ── Which stops carry a photograph ────────────────────────────────────
+   *
+   * Walked in order, carrying the last bead's position: a stop closer than a
+   * bead's width to the one before it becomes a dot instead. That is what
+   * produces the reference's string of beads that touch and overlap slightly,
+   * rather than a solid caterpillar of overlapping discs — and nothing is
+   * dropped, so the shape of the route survives whatever the spacing does.
+   *
+   * The two ends always keep their picture when they have one: they are where
+   * a reader looks first.
+   */
+  const beads: { i: number; x: number; y: number; photo: number | null }[] = []
+  let numbered = false
+  if (drawn) {
+    // Too small to carry photographs at all: a bead wider than a twelfth of the
+    // frame is a picture with a map around it.
+    const roomForPhotos = el.pinStyle === 'photo' && big && beadR * 2 <= S * 0.16
+    /*
+     * Numbers stand in for the photographs that are not there, so they belong
+     * to the photo treatment alone. A map asked for dots gets dots, and a
+     * thumbnail gets dots too: two digits at 130px is a smudge.
+     */
+    numbered = el.pinStyle === 'photo' && big && numR * 2 <= S * 0.12
+    let last: { x: number; y: number } | null = null
+    route.forEach((pt, i) => {
+      const photoId = (el.points[i] as { photoId?: number | null } | undefined)?.photoId ?? null
+      const isEnd = i === 0 || i === route.length - 1
+      const room = !last || Math.hypot(pt.x - last.x, pt.y - last.y) >= beadR * 1.15
+      const bead = roomForPhotos && photoId != null && (isEnd || room)
+      if (bead) last = { x: pt.x, y: pt.y }
+      beads.push({ i, x: pt.x, y: pt.y, photo: bead ? photoId : null })
+    })
+  }
+  const anyBead = beads.some(b => b.photo != null)
 
   return (
     <div style={{ ...frameStyle, overflow: 'hidden' }}>
@@ -357,14 +751,9 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
 
         Each tile is placed rather than flowed: a grid of images with no gaps
         between them is not something CSS layout gives you for free at
-        fractional millimetre sizes.
-
-        They are drawn a little larger than their spacing on purpose. A tile
-        boundary that lands mid-pixel leaves a hairline of white paper showing
-        through the map, and the eye finds it immediately — it reads as a fold
-        or a scratch rather than as rounding. A tenth of a millimetre of
-        overlap costs nothing (the overlapping strip is the same picture) and
-        closes the seam at every zoom and every print size.
+        fractional millimetre sizes. They are drawn past their own square on
+        purpose — see `tileOverlapMm`, which is what keeps the seams closed at
+        every zoom the canvas offers.
       */}
       {tiled && !cutToLand && tiled.tiles.map(t => (
         <img
@@ -376,8 +765,8 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
             position: 'absolute',
             left: `${round3(tiled.originX + t.x * tiled.size)}mm`,
             top: `${round3(tiled.originY + t.y * tiled.size)}mm`,
-            width: `${round3(tiled.size + TILE_OVERLAP)}mm`,
-            height: `${round3(tiled.size + TILE_OVERLAP)}mm`,
+            width: `${round3(tiled.size + tileOverlapMm(tiled.size))}mm`,
+            height: `${round3(tiled.size + tileOverlapMm(tiled.size))}mm`,
             display: 'block',
           }}
         />
@@ -408,6 +797,18 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
         width={`${W}mm`}
         height={`${H}mm`}
         viewBox={`0 0 ${W} ${H}`}
+        /*
+         * Accuracy over speed, everywhere on this map.
+         *
+         * The default lets a browser trade geometric precision for drawing
+         * speed once a picture gets busy, and a route with two hundred stops
+         * over a hundred and fifty tiles is busy. What that trade costs is
+         * exactly what a printed line must not lose: a bowed leg goes faceted
+         * and a bead's ring goes lumpy. Nothing here is a filter, so the whole
+         * drawing stays vector into the PDF and the press resolves it, not the
+         * browser.
+         */
+        shapeRendering="geometricPrecision"
         style={{ display: 'block', position: 'relative' }}
       >
         {/*
@@ -417,6 +818,30 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
           else: the outlines below draw themselves normally when the map is a
           rectangle, and become the edge of the picture when it is not.
         */}
+        {/*
+          A stencil per bead, in the map's own millimetres.
+
+          Its own `defs` rather than a shared one: the block below belongs to
+          cutting the map to a coastline and only exists when that is on, and a
+          stencil nested inside a condition that has nothing to do with it is
+          how the photographs came out square — the clip-path pointed at an id
+          that was never written, so `slice` showed the corners it was supposed
+          to cut off.
+
+          User space rather than the tidier fractional stencil, because a
+          fractional clip on an `<image>` is applied against a box browsers
+          disagree about, and a silent no-op looks exactly like the bug above.
+        */}
+        {anyBead && (
+          <defs>
+            {beads.filter(m => m.photo != null).map(m => (
+              <clipPath key={m.i} id={`st-bead-${el.id}-${m.i}`} clipPathUnits="userSpaceOnUse">
+                <circle cx={m.x} cy={m.y} r={beadR} />
+              </clipPath>
+            ))}
+          </defs>
+        )}
+
         {cutToLand && (
           <defs>
             <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
@@ -443,8 +868,8 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
                 href={t.url}
                 x={round3(tiled.originX + t.x * tiled.size)}
                 y={round3(tiled.originY + t.y * tiled.size)}
-                width={round3(tiled.size + TILE_OVERLAP)}
-                height={round3(tiled.size + TILE_OVERLAP)}
+                width={round3(tiled.size + tileOverlapMm(tiled.size))}
+                height={round3(tiled.size + tileOverlapMm(tiled.size))}
                 preserveAspectRatio="none"
               />
             ))}
@@ -474,7 +899,7 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
           />
         ))}
 
-        {el.showRoute && lines.map((seg, i) => seg.length > 1 && (
+        {el.showRoute && !drawn && lines.map((seg, i) => seg.length > 1 && (
           <polyline
             key={i}
             points={seg.map(p => `${round2(p.x)},${round2(p.y)}`).join(' ')}
@@ -486,7 +911,49 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
           />
         ))}
 
-        {el.showPins && route.map((p, i) => (
+        {/*
+          The drawn line: two strokes, casing first.
+
+          Not a filter. A drop shadow does survive the print round trip, but a
+          filtered subtree is rasterised into the PDF at whatever resolution the
+          browser picks, which is the one thing the millimetres-in-the-DOM design
+          exists to avoid. Two stacked paths give the same faint dark edge and
+          stay vector all the way to the press.
+
+          All the casings before any core, never leg by leg: interleaved, the
+          casing of one leg overprints the core of the last one at the joint.
+        */}
+        {el.showRoute && drawn && strands.length > 0 && (
+          <>
+            {strands.map((strand, i) => (
+              <path
+                key={`c${i}`}
+                d={strand.d}
+                fill="none"
+                stroke={casingInk}
+                strokeOpacity={casingAlpha}
+                strokeWidth={casingW}
+                strokeLinecap={strand.dash ? 'butt' : 'round'}
+                strokeLinejoin="round"
+                strokeDasharray={strand.dash}
+              />
+            ))}
+            {strands.map((strand, i) => (
+              <path
+                key={`s${i}`}
+                d={strand.d}
+                fill="none"
+                stroke={coreInk}
+                strokeWidth={coreW}
+                strokeLinecap={strand.dash ? 'butt' : 'round'}
+                strokeLinejoin="round"
+                strokeDasharray={strand.dash}
+              />
+            ))}
+          </>
+        )}
+
+        {el.showPins && !drawn && route.map((p, i) => (
           <circle
             key={i}
             cx={p.x}
@@ -498,6 +965,100 @@ function MapView({ el, frameStyle }: { el: BookMapElement; frameStyle: CSSProper
             stroke={ink}
             strokeWidth={routeWidth * 0.6}
           />
+        ))}
+
+        {/*
+          The drawn markers: a small round photograph where there is one, a dot
+          where there is not.
+
+          The dot is the designed state rather than a failure — a printed route
+          with a few plain marks between the pictures reads as a route, while
+          one with empty rings reads as a bug. The white disc under the picture
+          is also what a photograph that fails to load degrades to, so the paper
+          shows a deliberate marker rather than a hole.
+        */}
+        {el.showPins && drawn && beads.map(m => (
+          m.photo != null ? (
+            <g key={m.i}>
+              {/* The shadow, as two translucent discs rather than a filter. */}
+              <circle cx={m.x} cy={m.y + coreW * 0.3} r={beadR + coreW * 0.55} fill="#000000" fillOpacity={0.1} />
+              <circle cx={m.x} cy={m.y + coreW * 0.15} r={beadR + coreW * 0.25} fill="#000000" fillOpacity={0.16} />
+              <circle cx={m.x} cy={m.y} r={beadR} fill="#ffffff" />
+              {/*
+                Always the thumbnail, never photoSrc(id, big): `big` is true in
+                print, and a full-size original to fill a seven-millimetre
+                circle is several megabytes per stop for detail no press can
+                resolve.
+              */}
+              <image
+                href={`/api/photos/${m.photo}/thumbnail`}
+                x={round2(m.x - beadR)}
+                y={round2(m.y - beadR)}
+                width={round2(beadR * 2)}
+                height={round2(beadR * 2)}
+                preserveAspectRatio="xMidYMid slice"
+                clipPath={`url(#st-bead-${el.id}-${m.i})`}
+              />
+              <circle
+                cx={m.x}
+                cy={m.y}
+                r={beadR - beadRing / 2}
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth={beadRing}
+              />
+            </g>
+          ) : numbered ? (
+            /*
+              A stop with no photograph of its own, numbered.
+
+              The alternative was to hand it a picture from somewhere else in
+              the journey, which is what this did first and which is a caption
+              that lies: a marker at Akureyri showing a photograph taken in Vík
+              is wrong in the one place a reader most trusts that a picture is
+              OF what it sits on. A number says what the map actually knows —
+              this is the fourth stop — and reads as deliberate rather than as
+              something missing.
+            */
+            <g key={m.i}>
+              <circle cx={m.x} cy={m.y + coreW * 0.2} r={numR + coreW * 0.35} fill="#000000" fillOpacity={0.14} />
+              <circle
+                cx={m.x}
+                cy={m.y}
+                r={numR}
+                fill={coreInk}
+                stroke={casingInk}
+                strokeOpacity={casingAlpha}
+                strokeWidth={coreW * 0.5}
+              />
+              <text
+                x={m.x}
+                y={m.y + numR * 0.36}
+                textAnchor="middle"
+                fill={numInk}
+                style={{
+                  fontFamily: fontStack(el.font),
+                  fontSize: `${round2(numR * 1.15)}px`,
+                  fontWeight: 700,
+                  letterSpacing: '-0.02em',
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {m.i + 1}
+              </text>
+            </g>
+          ) : (
+            <circle
+              key={m.i}
+              cx={m.x}
+              cy={m.y}
+              r={dotR}
+              fill={coreInk}
+              stroke={casingInk}
+              strokeOpacity={casingAlpha}
+              strokeWidth={dotR * 0.22}
+            />
+          )
         ))}
 
         {el.showLabels && points.map((p, i) => {
@@ -914,6 +1475,26 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
   const chip = el.style === 'chip'
   const outline = el.style === 'outline'
 
+  /*
+   * What the mark shows, and what colour its picture is.
+   *
+   * Read as `!== false` rather than as a truth test: a badge dropped from a
+   * panel is built by hand and cast, so it never passes through the contract's
+   * defaults until the book has been saved and read back. An absent flag has to
+   * mean what it meant before the flag existed.
+   */
+  const showIcon = el.showIcon !== false
+  const showLabel = el.showLabel !== false
+  const iconTint = (automatic: string) => (el.autoIconColor === false ? el.iconColor : automatic)
+  /*
+   * A mark with no words is a pictogram, and a pictogram should fill its box.
+   * Beside a label the icon is a share of the height; on its own it takes four
+   * fifths of whichever side is shorter, so a wide mark grows into the space
+   * the words left and a narrow one stays inside its own edges rather than
+   * bleeding over them.
+   */
+  const iconScale = showLabel ? 0.46 : Math.min(el.frame.w, el.frame.h) / el.frame.h * 0.8
+
   return (
     <div
       style={{
@@ -937,7 +1518,9 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
         overflow: 'hidden',
       }}
     >
-      {el.variant === 'flag' && el.code && <FlagMark code={el.code} size={el.frame.h * 0.5} />}
+      {el.variant === 'flag' && el.code && showIcon && (
+        <FlagMark code={el.code} size={el.frame.h * (showLabel ? 0.5 : iconScale)} />
+      )}
 
       {/*
         Mood and weather come from the journal entry, and they are drawn with
@@ -945,15 +1528,22 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
         rather than re-listed, so a mood added to TREK appears here without
         anyone remembering to add it twice.
       */}
-      {(el.variant === 'mood' || el.variant === 'weather') && el.code && (() => {
+      {(el.variant === 'mood' || el.variant === 'weather') && el.code && showIcon && (() => {
         // Kept apart rather than narrowed out of one union: only a mood has a
         // colour of its own, and `'text' in config` types it as unknown.
         const mood = el.variant === 'mood' ? MOOD_CONFIG[el.code] : null
         const config = mood ?? WEATHER_CONFIG[el.code]
         if (!config) return null
         const Icon = config.icon
-        const size = el.frame.h * 0.46
-        const tint = mood ? mood.text : el.accent
+        const size = el.frame.h * iconScale
+        /*
+         * Automatic is the journal's own palette for a mood and the element's
+         * accent for the weather. Note the colour has to be passed rather than
+         * inherited: lucide writes it onto the SVG's stroke, so `currentColor`
+         * from the wrapper never reaches it — which is why the Colour swatch
+         * appeared to do nothing to a mood icon.
+         */
+        const tint = iconTint(mood ? mood.text : el.accent)
         return (
           <Icon
             color={tint}
@@ -963,18 +1553,21 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
         )
       })()}
 
-      {el.variant === 'country' && shape && (
-        <svg
-          width={`${round2((el.frame.h * 0.72 * shape.w) / shape.h)}mm`}
-          height={`${round2(el.frame.h * 0.72)}mm`}
-          viewBox={`0 0 ${shape.w} ${shape.h}`}
-          style={{ display: 'block', flex: '0 0 auto' }}
-        >
-          <path d={shape.d} fill={el.accent} />
-        </svg>
-      )}
+      {el.variant === 'country' && shape && showIcon && (() => {
+        const h = el.frame.h * (showLabel ? 0.72 : iconScale)
+        return (
+          <svg
+            width={`${round2((h * shape.w) / shape.h)}mm`}
+            height={`${round2(h)}mm`}
+            viewBox={`0 0 ${shape.w} ${shape.h}`}
+            style={{ display: 'block', flex: '0 0 auto' }}
+          >
+            <path d={shape.d} fill={iconTint(el.accent)} />
+          </svg>
+        )
+      })()}
 
-      {el.text && (
+      {el.text && showLabel && (
         <span
           style={{
             fontSize: `${round2(el.variant === 'coords' ? small * 1.3 : big)}mm`,
@@ -990,7 +1583,7 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
         </span>
       )}
 
-      {el.sub && (
+      {el.sub && showLabel && (
         <span
           style={{
             fontSize: `${small}mm`,

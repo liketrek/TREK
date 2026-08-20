@@ -3,6 +3,10 @@ import { BOOK_METRICS } from '@trek/shared'
 import { useStudioStore } from '../../store/studioStore'
 import { PanelHead } from './StudioPanelHead'
 import { TravelPreview } from './TravelPreview'
+import { formatBookCoords } from './entryText'
+import { routeFor } from './travelRefresh'
+import { useMapSources } from './mapSources'
+import { fetchRoads } from './roadRoute'
 
 /**
  * The journey's own figures, as things you can put on a page.
@@ -47,27 +51,27 @@ function formatDistance(metres: number, locale: string): string {
   return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(metres / 1000)} km`
 }
 
-/**
- * Degrees and minutes with a hemisphere letter, the way a chart labels a
- * position. The decimal form is what a machine reads; this is for a page
- * someone is holding.
- */
-function formatCoords(lat: number, lng: number): string {
-  const part = (v: number, pos: string, neg: string) => {
-    const deg = Math.floor(Math.abs(v))
-    const min = Math.round((Math.abs(v) - deg) * 60)
-    return `${deg}°${String(min).padStart(2, '0')}'${v >= 0 ? pos : neg}`
-  }
-  return `${part(lat, 'N', 'S')} ${part(lng, 'E', 'W')}`
-}
-
-function Card({ label, onClick, children }: {
+function Card({ label, onClick, children, recommended = false, title }: {
   label: string
   onClick: () => void
+  /**
+   * Marked as the one to reach for, with a ring rather than with words.
+   *
+   * The label sits in a grid cell about eighty pixels wide, where "Satellite ·
+   * recommended" is two lines of ellipsis. A ring says the same thing in no
+   * space at all, and the tooltip carries the word for anyone who wonders why
+   * this card looks different.
+   */
+  recommended?: boolean
+  title?: string
   children: React.ReactNode
 }) {
   return (
-    <button className="st-travel-card" onClick={onClick} title={label}>
+    <button
+      className={`st-travel-card ${recommended ? 'is-recommended' : ''}`}
+      onClick={onClick}
+      title={title ? `${label} — ${title}` : label}
+    >
       {children}
       <span className="st-travel-card-label">{label}</span>
     </button>
@@ -85,6 +89,7 @@ export function StudioTravelPanel({
   locale: string
 }) {
   const addElement = useStudioStore(s => s.addElement)
+  const updateElement = useStudioStore(s => s.updateElement)
   const active = useStudioStore(s => s.activeSpread)
   const doc = useStudioStore(s => s.doc)
   const spread = doc?.spreads[active]
@@ -94,6 +99,23 @@ export function StudioTravelPanel({
     const W = single ? page.pageWidth : page.pageWidth * 2
     return { x: (W - w) / 2, y: (page.pageHeight - h) / 2, w, h }
   }
+
+  const mapSide = Math.min(page.pageWidth, page.pageHeight) * 0.72
+
+  /*
+   * The imagery this instance can reach, so the relief card below places a map
+   * that already has its template and its credit rather than an empty one the
+   * user then has to point at a source.
+   *
+   * Asked for above the empty-state return, and not beside the card that reads
+   * it: a journey whose figures are still loading renders this panel once with
+   * no stats at all, and a hook that only runs on the second render is a hook
+   * count that changes between them.
+   */
+  const sources = useMapSources(
+    { x: 0, y: 0, w: mapSide, h: mapSide * 0.78 },
+    (stats?.points ?? []).map(p => ({ lat: p.lat, lng: p.lng })),
+  )
 
   if (!stats) {
     return (
@@ -144,7 +166,13 @@ export function StudioTravelPanel({
    * click places it, so the preview and the result are the same object — there
    * is no second description of what a card means.
    */
-  const mapSide = Math.min(page.pageWidth, page.pageHeight) * 0.72
+  /** The linked trips that actually put stops on the route. */
+  const tripsWithRoute = (stats.trips ?? []).filter(t => t.points > 0)
+
+  /* Satellite first: the recommendation should not be the second thing read. */
+  const imagery = sources
+    .filter(s => s.id === 'relief' || s.id === 'satellite')
+    .sort((a, b) => (a.id === 'satellite' ? -1 : b.id === 'satellite' ? 1 : 0))
 
   /**
    * One country, as the entry a list would have made of it.
@@ -172,22 +200,44 @@ export function StudioTravelPanel({
     url = '',
     attribution = '',
     clip: 'rect' | 'country' = 'rect',
-  ): BookElement => ({
+    /** Null is the whole journey; a trip id is a map of that trip alone. */
+    tripId: number | null = null,
+  ): BookElement => {
+    const route = routeFor(stats, tripId)
+    return {
     ...base, id: uid('mp'), kind: 'map',
     frame: centre(mapSide, mapSide * 0.78),
-    style, source, tileUrl: url, attribution, zoom: null, clip,
+    style, source, tileUrl: url, attribution, zoom: null, clip, tripId,
+    /*
+     * White over a photograph, ink on paper. The accent IS the line, so this is
+     * how a satellite map arrives drawn the way the reference draws it, while
+     * the colour stays something the user can change afterwards.
+     */
+    accent: source === 'tiles' || source === 'static' ? '#ffffff' : base.accent,
     showLand: true, showRoute: true, showPins: true, showLabels: false,
-    countries: stats.countries.map(c => c.code),
-    points: stats.points.map(p => ({ lat: p.lat, lng: p.lng, label: p.label })),
+    /*
+     * A map placed today gets the drawn treatment; the contract defaults to the
+     * plain line so that every book made before this existed opens unchanged.
+     * Set explicitly rather than inherited because this object is cast, not
+     * parsed.
+     */
+    routeStyle: 'drawn', routeArc: 'bow', routeDash: 'arcs', pinStyle: 'photo',
+    countries: tripId == null
+      ? stats.countries.map(c => c.code)
+      : [...new Set(route.map(p => p.country).filter((c): c is string => !!c))],
+    points: route.map(p => ({ lat: p.lat, lng: p.lng, label: p.label, photoId: p.photoId ?? null })),
     /*
      * Frozen into the element, like every other travel figure: a page that
      * fetches its own route at print time is a page that changes when someone
      * edits the trip, and prints empty when the export runs signed out.
      */
     path,
-    fitPadding: 0.18,
+    // Empty until somebody asks for the roads; see roadRoute.ts.
+    roads: [],
+    fitPadding: 0.5,
     fitToCountries: true,
-  } as BookElement)
+    } as BookElement
+  }
 
   /*
    * A mark is placed at the size that suits what it holds.
@@ -216,6 +266,7 @@ export function StudioTravelPanel({
     const [fw, fh] = MARK_SIZE[variant] ?? [0.24, 0.08]
     return {
       ...base, id: uid('bd'), kind: 'badge', autoColor: true,
+      showIcon: true, showLabel: true, autoIconColor: true, iconColor: '#111111',
       frame: centre(page.pageWidth * fw, page.pageHeight * fh),
       variant, text, sub, code, style,
     } as BookElement
@@ -236,7 +287,32 @@ export function StudioTravelPanel({
   } as BookElement)
 
   /** Place a copy — the previewed element keeps its own id for React. */
-  const place = (el: BookElement) => addElement(active, { ...el, id: uid(el.kind[0]) } as BookElement)
+  const place = (el: BookElement) => {
+    const placed = { ...el, id: uid(el.kind[0]) } as BookElement
+    addElement(active, placed)
+
+    /*
+     * A map arrives following the roads.
+     *
+     * Asked for after the element is on the page rather than before, so the map
+     * appears at once and the line firms up a moment later: a panel that sat
+     * there for fifteen seconds after a click would read as broken, and the
+     * straight line it starts with is the one it would have had anyway.
+     *
+     * Legs long enough to have been flights are never sent (see roadRoute.ts),
+     * the router's own cache answers a second placement of the same journey for
+     * free, and a failure leaves the leg exactly as it was.
+     */
+    if (placed.kind === 'map' && placed.points.length > 1) {
+      void fetchRoads(placed.points.map(pt => ({ lat: pt.lat, lng: pt.lng })))
+        .then(roads => {
+          if (roads.some(r => r && r.length > 1)) {
+            updateElement(active, placed.id, { roads } as Partial<BookElement>)
+          }
+        })
+        .catch(() => { /* No roads is a state the map already draws. */ })
+    }
+  }
 
   const first = stats.points[0] ?? null
   const firstCountry = stats.countries[0] ?? null
@@ -256,7 +332,7 @@ export function StudioTravelPanel({
   })
   if (first) {
     marks.push({
-      el: badgeEl('coords', formatCoords(first.lat, first.lng), first.label, null),
+      el: badgeEl('coords', formatBookCoords(first.lat, first.lng), first.label, null),
       label: t('journey.studio.coordsMark'),
     })
   }
@@ -302,8 +378,74 @@ export function StudioTravelPanel({
                     </Card>
                   )
                 })}
+                {/*
+                  The two imagery maps, as cards rather than as settings.
+
+                  They were reachable only by placing an outline map and then
+                  changing its source in the inspector, which is a thing nobody
+                  finds. They are different pictures, not variants of one: relief
+                  is land shaded in its own colours against a dark sea, drawn at
+                  a scale that suits a continent, and satellite is the ground
+                  itself, which is what a page about one country wants.
+                */}
+                {imagery.map(src => (
+                  <Card
+                    key={src.id}
+                    /*
+                     * Satellite is marked rather than merely listed. The three
+                     * imagery options are not equals: relief stops at about six
+                     * hundred metres to the pixel, which is a continent's worth
+                     * of detail and a smudge at country size, and the outlines
+                     * are a diagram. For the page most people are making —
+                     * a route across one or two countries — this is the one
+                     * that prints, and saying so beats letting them find out
+                     * after the book is bound.
+                     */
+                    label={t(src.labelKey)}
+                    recommended={src.id === 'satellite'}
+                    title={src.id === 'satellite' ? t('journey.studio.recommended') : undefined}
+                    onClick={() => place(mapEl('minimal', 'tiles', src.url, src.attribution))}
+                  >
+                    <TravelPreview
+                      el={mapEl('minimal', 'tiles', src.url, src.attribution)}
+                      minHeight={62}
+                      maxHeight={80}
+                    />
+                  </Card>
+                ))}
               </div>
 
+              {/*
+                A map per trip, for a journey made of more than one.
+
+                Two trips printed as a single route draw a line from the last
+                stop of the first to the first stop of the second, which is
+                usually the longest leg on the page and one nobody travelled.
+                Offered rather than imposed: some journeys really are one route
+                across several trips, and those still get the map above.
+
+                Only trips that have stops on the route are listed — a linked
+                trip nobody wrote about would place an empty frame.
+              */}
+              {tripsWithRoute.length > 1 && (
+                <div style={{ marginTop: 12 }}>
+                  <div className="st-section-label">{t('journey.studio.mapPerTrip')}</div>
+                  <div className="st-travel-grid">
+                    {tripsWithRoute.map(trip => {
+                      const el = mapEl('minimal', 'vector', '', '', 'rect', trip.id)
+                      return (
+                        <Card
+                          key={trip.id}
+                          label={trip.title || t('journey.studio.untitled')}
+                          onClick={() => place(el)}
+                        >
+                          <TravelPreview el={el} minHeight={62} maxHeight={80} />
+                        </Card>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <p className="st-hint">{t('journey.studio.noRoute')}</p>

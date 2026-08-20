@@ -68,11 +68,77 @@ export function projectOntoTiles(view: TileView, lng: number, lat: number): { x:
   }
 }
 
-/** How many tiles across a printed map may use, before it is not worth it. */
-const MAX_TILES = 8 * 8
+/**
+ * How many tiles a printed map may use.
+ *
+ * Sixteen across rather than eight, and the number is chosen by arithmetic
+ * rather than by taste. Each zoom level quarters the ground a tile covers, so
+ * the grid quadruples: a page-sized map lands at 7x9 tiles, and the step that
+ * would make it sharp enough to print needs 13x17 — 221. A budget of 144 stops
+ * one level short of a printable page, every time, which is the worst place to
+ * stop.
+ *
+ * What it costs is requests, once, cached by the browser between the editor
+ * and the print run. What it buys is the element most likely to fill a whole
+ * page, at a resolution a print shop will take.
+ */
+const MAX_TILES = 16 * 16
+
+/**
+ * What a thumbnail is worth fetching.
+ *
+ * The same map is drawn in three places at three sizes: the page, the sheet the
+ * press gets, and a 130px tile in the pages rail or the travel panel. Cutting
+ * the small ones to print resolution would mean a couple of hundred requests
+ * for a picture the size of a postage stamp, every time the panel opens — and
+ * against NASA or OpenStreetMap that is not merely wasteful, it is the bulk
+ * fetching their policies ask people not to do.
+ *
+ * `big` already travels down the render tree for exactly this kind of decision;
+ * the photo views use it to pick a thumbnail over a full-size image.
+ */
+const PREVIEW_TILES = 4 * 4
+const PREVIEW_TILE_MM = 90
+
+/**
+ * What a tile is worth drawing at, in millimetres.
+ *
+ * ── The bug this constant exists to fix ──────────────────────────────────
+ *
+ * The zoom used to be chosen so the route spanned the frame and nothing else,
+ * which by construction put about two tiles across the picture whatever its
+ * physical size. A route across Iceland on a 210mm page came back as 256x512
+ * pixels stretched over the sheet: seventeen dots per inch, on paper that
+ * holds three hundred. It looked exactly like what it was — a screenshot of a
+ * web map, enlarged.
+ *
+ * A tile is 256 pixels, or 512 when the source offers `{r}`. Holding one to
+ * about 22mm therefore asks for roughly 300dpi, which is what a print shop
+ * wants and the point past which more tiles buy nothing a reader can see.
+ */
+const TILE_MM_AT_PRINT = 22
 
 /** Shard letters for templates that still carry `{s}`. */
 const TILE_SHARDS = ['a', 'b', 'c']
+
+/**
+ * How far in a source can actually be asked to go.
+ *
+ * Matched on the host, the same way the attribution is: a template carries no
+ * capabilities of its own, and asking a source for a zoom it does not have
+ * answers with an error image rather than with a picture. NASA's imagery stops
+ * at 8, which is about 600 metres to the pixel — plenty for a country and not
+ * enough for a city, which is the honest limit of that source.
+ */
+export function maxZoomFor(template: string): number {
+  const url = template.toLowerCase()
+  if (url.includes('gibs.earthdata.nasa.gov')) return 8
+  // Sentinel-2 is a ten-metre sensor; past 16 the tiles are enlargements of
+  // pixels rather than more picture.
+  if (url.includes('tiles.maps.eox.at')) return 16
+  if (url.includes('arcgisonline')) return 17
+  return 19
+}
 
 /**
  * Which tiles cover a set of points, and where to draw them.
@@ -97,6 +163,11 @@ export function tileView(
    * wrong towns.
    */
   extent?: { minLng: number; minLat: number; maxLng: number; maxLat: number },
+  /**
+   * How much this drawing is worth. `preview` is a thumbnail: a handful of
+   * tiles, deliberately soft, because nobody prints the pages rail.
+   */
+  quality: 'print' | 'preview' = 'print',
 ): TileView | null {
   if (!template || (!points.length && !extent)) return null
 
@@ -178,10 +249,38 @@ export function tileView(
     y1 = Math.ceil(cy * scale + halfH) - 1
   }
 
-  // Back off until the grid is a size worth printing. A 12x12 grid is 144
-  // requests for a picture 60mm across.
   layOut()
-  while (zoom > 0 && (x1 - x0 + 1) * (y1 - y0 + 1) > MAX_TILES) {
+
+  /*
+   * Up, then down.
+   *
+   * Up first: while a tile is being drawn larger than it is worth, and the
+   * source has a level left, and the extra level still fits inside the grid
+   * budget, take it. Each level halves the millimetres a tile covers, so this
+   * converges in a handful of steps.
+   *
+   * Then the old back-off, unchanged, because a fixed zoom or a very long
+   * route can still ask for more tiles than are worth fetching.
+   */
+  const budget = quality === 'preview' ? PREVIEW_TILES : MAX_TILES
+  const targetTileMm = quality === 'preview' ? PREVIEW_TILE_MM : TILE_MM_AT_PRINT
+
+  const ceiling = fixedZoom ?? maxZoomFor(template)
+  while (zoom < ceiling && size > targetTileMm) {
+    const before = { zoom, size, x0, x1, y0, y1 }
+    zoom += 1
+    layOut()
+    if ((x1 - x0 + 1) * (y1 - y0 + 1) > budget) {
+      // One level too far: put it back rather than leaving the grid over budget.
+      zoom = before.zoom
+      size = before.size
+      x0 = before.x0; x1 = before.x1; y0 = before.y0; y1 = before.y1
+      scale = 2 ** zoom
+      break
+    }
+  }
+
+  while (zoom > 0 && (x1 - x0 + 1) * (y1 - y0 + 1) > budget) {
     zoom -= 1
     layOut()
   }
@@ -205,7 +304,13 @@ export function tileView(
           // Longitude wraps, so a route across the antimeridian keeps its tiles.
           .replace('{x}', String(wrap(x)))
           .replace('{y}', String(y))
-          .replace('{r}', '')
+          /*
+           * `{r}` is the retina placeholder, and a template only carries it
+           * when its source really serves 512px tiles. It used to be replaced
+           * with nothing, which threw that away and asked for a quarter of the
+           * pixels for the same number of requests.
+           */
+          .replace('{r}', '@2x')
           /*
            * The shard letter, chosen from the tile's own coordinates.
            *
@@ -225,6 +330,24 @@ export function tileView(
 }
 
 /**
+ * How sharp this grid will actually print, in dots per inch.
+ *
+ * Worth showing rather than hiding. Every raster source has a level past which
+ * no more detail exists — NASA's relief stops at about 600 metres to the pixel
+ * — and when a map is asked for a smaller area than its source can resolve,
+ * the picture does not fail, it just goes soft. On screen that is invisible.
+ * On a printed page it is the difference between a map and a smudge, and by
+ * then the book is bound.
+ *
+ * A print shop wants 300. Anything from about 150 is passable on matte stock.
+ * Below that, the honest answer is a different source or a wider view.
+ */
+export function printDpi(view: TileView, template: string): number {
+  const px = template.includes('{r}') ? 512 : 256
+  return Math.round(px / (view.size / 25.4))
+}
+
+/**
  * The credit a tile source requires.
  *
  * Matched on the host rather than configured, so an instance pointing at its
@@ -239,6 +362,9 @@ export function attributionFor(template: string): string {
   if (url.includes('stadiamaps')) return '© Stadia Maps © OpenStreetMap'
   if (url.includes('carto')) return '© CARTO © OpenStreetMap'
   if (url.includes('esri') || url.includes('arcgisonline')) return '© Esri'
+  if (url.includes('gibs.earthdata.nasa.gov')) return 'NASA EOSDIS GIBS'
+  // The wording CC BY 4.0 asks for: who made it, and what it is made of.
+  if (url.includes('tiles.maps.eox.at')) return 'Sentinel-2 cloudless © EOX (CC BY 4.0)'
   return ''
 }
 

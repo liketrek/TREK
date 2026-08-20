@@ -49,19 +49,52 @@ export function isStale(el: BookElement, stats: JourneyStats | null): boolean {
     return el.codes.join(',') !== stats.countries.map(c => c.code).join(',')
   }
   if (el.kind === 'map') {
+    // Against the route this map is of, which is not always the whole journey.
+    const live = routeFor(stats, el.tripId)
     // The route is compared by shape rather than element-by-element: a
     // four-hundred-point deep-equal on every render would cost more than it
     // could ever catch, and a changed route almost always changes its length or
     // one of its ends.
-    if (el.points.length !== stats.points.length) return true
+    if (el.points.length !== live.length) return true
     if (!el.points.length) return false
     const a = el.points[0]
-    const b = stats.points[0]
+    const b = live[0]
     const y = el.points[el.points.length - 1]
-    const z = stats.points[stats.points.length - 1]
-    return a.lat !== b.lat || a.lng !== b.lng || y.lat !== z.lat || y.lng !== z.lng
+    const z = live[live.length - 1]
+    if (a.lat !== b.lat || a.lng !== b.lng || y.lat !== z.lat || y.lng !== z.lng) return true
+
+    /*
+     * And whether the photographs moved.
+     *
+     * A marker draws the entry's own first picture, so adding one to an entry
+     * changes the map without moving a single stop — the shape test above would
+     * never notice, and the only way to get the picture onto the page was to
+     * delete the map and place it again.
+     *
+     * Compared in full rather than by its ends, unlike the coordinates: a photo
+     * added to the middle of a journey is the ordinary case, where a stop added
+     * to the middle is not. It is a few hundred numbers joined into a string,
+     * which costs nothing next to the render it happens in.
+     */
+    const shown = el.points.map(p => p.photoId ?? 0).join(',')
+    const now = live.map(p => p.photoId ?? 0).join(',')
+    return shown !== now
   }
   return false
+}
+
+/**
+ * The stops a map of this scope should draw.
+ *
+ * `null` is the journey entire. A trip id narrows it to that trip's own stops,
+ * which is the difference between a book with one map of everywhere and a book
+ * with a page per trip — and, on a journey made of two trips, the difference
+ * between a route and a route with an eight-hundred-kilometre ruler line across
+ * the middle of it joining two places nobody travelled between.
+ */
+export function routeFor(stats: JourneyStats, tripId: number | null): JourneyStats['points'] {
+  if (tripId == null) return stats.points
+  return stats.points.filter(p => p.tripId === tripId)
 }
 
 /**
@@ -92,10 +125,16 @@ export function refreshPatch(el: BookElement, stats: JourneyStats): Partial<Book
   }
 
   if (el.kind === 'map') {
+    const live = routeFor(stats, el.tripId)
     return {
       stale: false,
-      countries: stats.countries.map(c => c.code),
-      points: stats.points.map(p => ({ lat: p.lat, lng: p.lng, label: p.label })),
+      // Only the countries this map's own stops fall in: a map of one trip that
+      // listed every country in the journey would outline places it does not
+      // show.
+      countries: el.tripId == null
+        ? stats.countries.map(c => c.code)
+        : [...new Set(live.map(p => p.country).filter((c): c is string => !!c))],
+      points: live.map(p => ({ lat: p.lat, lng: p.lng, label: p.label, photoId: p.photoId ?? null })),
     } as Partial<BookElement>
   }
 

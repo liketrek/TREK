@@ -329,7 +329,10 @@ describe('computeJourneyStats', () => {
       points: [point({ lat: 64, lng: -22, label: 'Reykjavík', date: '2026-06-02', country: 'IS' })],
     });
     expect(stats.points[0]).toEqual({
-      lat: 64, lng: -22, label: 'Reykjavík', date: '2026-06-02', country: 'IS',
+      // `tripId` is null when the stop came from an entry nobody linked to a
+      // trip, which is every stop here — the field is what lets a book print a
+      // map of one trip out of several.
+      lat: 64, lng: -22, label: 'Reykjavík', date: '2026-06-02', country: 'IS', tripId: null, photoId: null,
     });
   });
 
@@ -357,6 +360,7 @@ describe('computeJourneyStats', () => {
       furthest: 0,
       countries: [],
       points: [],
+      trips: [],
       start: null,
       end: null,
     });

@@ -49,13 +49,16 @@ describe('tileView', () => {
   })
 
   /*
-   * A 12×12 grid is 144 requests for a picture 60mm across. The zoom backs off
-   * until the grid is a size worth printing.
+   * The budget is 16×16. It was 8×8, which sounds thriftier and was not: every
+   * zoom level quarters the ground a tile covers, so a page-sized map lands at
+   * 7×9 and the step that makes it printable needs 13×17. A budget of 64, or
+   * even 144, stops one level short of a page worth printing — see
+   * mapPrintResolution.test.ts, which pins the dots per inch this buys.
    */
   it('never asks for more tiles than a printed map can use', () => {
     for (const z of [null, 19]) {
       const view = tileView(iceland, frame, OSM, z)!
-      expect(view.tiles.length, `zoom ${z}`).toBeLessThanOrEqual(64)
+      expect(view.tiles.length, `zoom ${z}`).toBeLessThanOrEqual(256)
     }
   })
 

@@ -33,8 +33,48 @@ export const journeyStatsPointSchema = z.object({
   date: z.string().nullable(),
   /** ISO-3166-1 alpha-2, resolved from the coordinates. */
   country: z.string().length(2).nullable(),
+  /**
+   * Which trip this stop belongs to, when the journey knows.
+   *
+   * A journey is a collection of trips, and a book of one is not always a book
+   * of all of them: three countries over two trips printed as a single route
+   * draws a line between the last stop of one and the first of the next, which
+   * is a journey nobody made. With the trip on every point, Studio can offer a
+   * map per trip as well as a map of the whole thing, and the line stops where
+   * the trip stopped.
+   *
+   * Null for a stop that came from an entry nobody linked to a trip.
+   */
+  tripId: z.number().int().positive().nullable().default(null),
+  /**
+   * One representative photograph from this stop, when it has one.
+   *
+   * For a map that marks its stops with pictures rather than with dots. Null is
+   * the ordinary case rather than a failure — a printed route with a few plain
+   * dots between the photographs reads correctly, and it is what a stop nobody
+   * photographed honestly is.
+   */
+  photoId: z.number().int().positive().nullable().default(null),
 });
 export type JourneyStatsPoint = z.infer<typeof journeyStatsPointSchema>;
+
+/**
+ * The trips behind a journey, named.
+ *
+ * Only what a panel needs to offer a choice: which trips there are, what they
+ * are called, and when they ran. Ordered the way the journey reads, by start
+ * date, because `journey_trips` has carried no order of its own since the
+ * column was dropped in migration 87.
+ */
+export const journeyStatsTripSchema = z.object({
+  id: z.number().int().positive(),
+  title: z.string(),
+  start: z.string().nullable(),
+  end: z.string().nullable(),
+  /** How many of the route's stops fall on this trip. */
+  points: z.number().int().nonnegative(),
+});
+export type JourneyStatsTrip = z.infer<typeof journeyStatsTripSchema>;
 
 export const journeyStatsCountrySchema = z.object({
   code: z.string().length(2),
@@ -69,6 +109,8 @@ export const journeyStatsSchema = z.object({
   countries: z.array(journeyStatsCountrySchema).max(200),
   /** The route, in order, capped at what a printed line can resolve. */
   points: z.array(journeyStatsPointSchema).max(400),
+  /** The trips this journey is made of, for a map of one of them. */
+  trips: z.array(journeyStatsTripSchema).max(200).default([]),
   /** ISO dates, null when nothing in the journey is dated. */
   start: z.string().nullable(),
   end: z.string().nullable(),

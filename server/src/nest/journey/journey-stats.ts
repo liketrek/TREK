@@ -1,4 +1,4 @@
-import type { JourneyStats, JourneyStatsCountry, JourneyStatsPoint } from '@trek/shared';
+import type { JourneyStats, JourneyStatsCountry, JourneyStatsPoint, JourneyStatsTrip } from '@trek/shared';
 
 /**
  * What a journey adds up to — the arithmetic, with no database and no Nest.
@@ -23,6 +23,10 @@ export interface StatsInputPoint {
   /** ISO date, when the stop has one. */
   date: string | null;
   country: string | null;
+  /** The trip this stop belongs to, when the journey knows. */
+  tripId?: number | null;
+  /** One photograph from this stop, for a map that marks it with a picture. */
+  photoId?: number | null;
 }
 
 const rad = (deg: number) => (deg * Math.PI) / 180;
@@ -160,6 +164,8 @@ export interface StatsInput {
   /** Dates from the trips, used when the entries carry none. */
   tripDates: { start: string | null; end: string | null }[];
   countryNames: Record<string, string>;
+  /** The trips themselves, so a book can print a map of one of them. */
+  trips?: JourneyStatsTrip[];
 }
 
 /**
@@ -198,6 +204,20 @@ export function computeJourneyStats(input: StatsInput): JourneyStats {
       label: p.label,
       date: p.date,
       country: p.country,
+      tripId: p.tripId ?? null,
+      photoId: p.photoId ?? null,
+    })),
+    /*
+     * Counted after thinning, not before.
+     *
+     * `thinRoute` drops every n-th stop on a long route, so a trip that had
+     * forty stops and kept nine has nine on the map. A panel offering "Iceland
+     * (40)" and then drawing nine would be counting something the reader
+     * cannot see.
+     */
+    trips: (input.trips ?? []).map(t => ({
+      ...t,
+      points: points.filter(p => p.tripId === t.id).length,
     })),
     start,
     end,
