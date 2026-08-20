@@ -209,6 +209,36 @@ describe('AnthropicClient', () => {
     expect(body.tools[0].name).toBe('emit_reservations');
   });
 
+  /*
+   * The model does not always send its tool input as the array the schema
+   * declares — sometimes it sends the same thing JSON-encoded, in one of two
+   * shapes. The old check only accepted arrays, so a good extraction was
+   * discarded and the import reported "no reservations found" with nothing in
+   * the log: exactly what a document containing no booking produces. Whether it
+   * happened came down to how the model serialised that particular call, so the
+   * same file behaved differently between attempts (#1968).
+   */
+  it('reads a tool input the model sent as a stringified array', async () => {
+    mockFetch(() =>
+      jsonResponse({ stop_reason: 'tool_use', content: [{ type: 'tool_use', name: 'emit_reservations', input: { reservations: JSON.stringify([{ '@type': 'LodgingReservation' }]) } }] }),
+    );
+    expect(await new AnthropicClient().extract(baseInput)).toEqual([{ '@type': 'LodgingReservation' }]);
+  });
+
+  it('reads one the model stringified and wrapped again', async () => {
+    mockFetch(() =>
+      jsonResponse({ stop_reason: 'tool_use', content: [{ type: 'tool_use', name: 'emit_reservations', input: { reservations: JSON.stringify({ reservations: [{ '@type': 'FlightReservation' }] }) } }] }),
+    );
+    expect(await new AnthropicClient().extract(baseInput)).toEqual([{ '@type': 'FlightReservation' }]);
+  });
+
+  it('still answers empty when the tool input really is not a list', async () => {
+    mockFetch(() =>
+      jsonResponse({ stop_reason: 'tool_use', content: [{ type: 'tool_use', name: 'emit_reservations', input: { reservations: 'no bookings in this document' } }] }),
+    );
+    expect(await new AnthropicClient().extract(baseInput)).toEqual([]);
+  });
+
   it('throws on a refusal stop_reason', async () => {
     mockFetch(() => jsonResponse({ stop_reason: 'refusal', content: [] }));
     await expect(new AnthropicClient().extract(baseInput)).rejects.toThrow(/declined/i);

@@ -1,6 +1,6 @@
 import type { LlmExtractionClient, LlmExtractionInput } from '../llm-provider.interface';
 import { isNuExtractModel, buildNuExtractUserText, nuExtractToKiReservations } from './nuextract';
-import { parseLenientJson } from '../lenient-json';
+import { parseLenientJson, toReservationList } from '../lenient-json';
 import { safeFetchLlm } from '../../../utils/ssrfGuard';
 
 // Generous: a local CPU model (Ollama, no GPU) may cold-load several GB and then
@@ -136,10 +136,5 @@ const USER_TEXT = 'Extract every travel reservation from the following document 
 
 /** Tolerant parse: strip code fences, JSON(5).parse, pull `reservations`. `[]` on failure. */
 function parseReservations(content: string | undefined | null): Record<string, unknown>[] {
-  const parsed = parseLenientJson(content);
-  if (Array.isArray(parsed)) return parsed as Record<string, unknown>[];
-  if (parsed && typeof parsed === 'object' && Array.isArray((parsed as { reservations?: unknown }).reservations)) {
-    return (parsed as { reservations: Record<string, unknown>[] }).reservations;
-  }
-  return [];
+  return toReservationList(parseLenientJson(content));
 }
