@@ -830,7 +830,8 @@ describe('DayPlanSidebar', () => {
     render(<DayPlanSidebar {...makeDefaultProps({
       days: [day], places, assignments: assigns, selectedDayId: 10, onReorder,
     })} />)
-    // Find the Optimize button (contains 'optimize' text)
+    // Found by its accessible name — the button is icon-only since #1981, so
+    // the label lives on aria-label rather than in the button's text.
     const optimizeBtn = screen.getByRole('button', { name: /optimize/i })
     await user.click(optimizeBtn)
     await waitFor(() => expect(onReorder).toHaveBeenCalledWith(10, expect.any(Array)))
@@ -4200,4 +4201,48 @@ describe('reordering the day plan with a finger (#1616)', () => {
       teardown()
     }
   })
+})
+
+/**
+ * The day's route-tools row (#1981).
+ *
+ * Every button in it hands the day somewhere: show the route, open it in Google
+ * Maps, open it in CoMaps, reorder it. Two of those were already icon-only; the
+ * other two carried labels on `flex: 1` with `padding: '6px 0'`, which is no
+ * horizontal padding at all. That was survivable until CoMaps added a fifth
+ * button to the row, at which point the optimize label sat hard against both
+ * edges of its own button.
+ *
+ * It is icon-only now, which is also what keeps the row from crowding again the
+ * next time something is added to it.
+ */
+describe('the day route-tools row', () => {
+  const dayWithTwoStops = () => {
+    const places = [
+      buildPlace({ id: 1, name: 'A', lat: 48.85, lng: 2.35 }),
+      buildPlace({ id: 2, name: 'B', lat: 48.86, lng: 2.36 }),
+    ]
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    return {
+      days: [day], places, selectedDayId: 10,
+      assignments: {
+        '10': [
+          buildAssignment({ id: 1, day_id: 10, order_index: 0, place: places[0] }),
+          buildAssignment({ id: 2, day_id: 10, order_index: 1, place: places[1] }),
+        ],
+      },
+    }
+  }
+
+  it('keeps the optimize action reachable by name without printing it', () => {
+    render(<DayPlanSidebar {...makeDefaultProps(dayWithTwoStops())} />)
+    const btn = screen.getByRole('button', { name: /optimize/i })
+    // The assertion that pins the change: named, but no visible label.
+    expect(btn).toBeInTheDocument()
+    expect(btn.textContent?.trim()).toBe('')
+    expect(btn.getAttribute('title')).toBeTruthy()
+  })
+
+  /* The click itself is already pinned by FE-PLANNER-DAYPLAN-038 above, which
+     finds the button the same way. */
 })

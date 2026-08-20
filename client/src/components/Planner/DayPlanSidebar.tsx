@@ -2609,13 +2609,24 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         >
                           <Compass size={14} strokeWidth={2} />
                         </button>
-                        <button onClick={() => handleOptimize(day.id)} className="bg-surface-hover text-content-secondary" style={{
-                          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                          padding: '6px 0', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, borderRadius: 8, border: 'none',
-                          cursor: 'pointer', fontFamily: 'inherit',
-                        }}>
-                          <RotateCcw size={12} strokeWidth={2} />
-                          {t('dayplan.optimize')}
+                        {/* Icon-only, like the two map hand-offs beside it (#1981). It
+                            was the one button here carrying a label with no room for
+                            it: `flex: 1` alongside `padding: '6px 0'` meant the text
+                            sat against both edges as soon as the row filled up, and
+                            the row gained a button when CoMaps arrived. The label
+                            stays as the accessible name and the tooltip. */}
+                        <button
+                          onClick={() => handleOptimize(day.id)}
+                          aria-label={t('dayplan.optimize')}
+                          title={t('dayplan.optimize')}
+                          className="bg-surface-hover text-content-secondary"
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            padding: '6px 10px', borderRadius: 8, border: 'none',
+                            cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                          }}
+                        >
+                          <RotateCcw size={14} strokeWidth={2} />
                         </button>
                         <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-faint)', flexShrink: 0 }}>
                           {routeProfileOptions.map(p => {
