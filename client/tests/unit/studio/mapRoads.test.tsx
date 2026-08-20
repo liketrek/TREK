@@ -168,4 +168,51 @@ describe('what gets asked for', () => {
     const roads = await fetchRoads([{ lat: 52.5, lng: 13.4 }, { lat: 52.4, lng: 13.1 }])
     expect(roads).toEqual([null])
   })
+
+  /*
+   * A router answers a long drive with thousands of points, at a precision no
+   * press can resolve, and all of it is stored in the document. That is not a
+   * tidiness problem: the book is saved as one body, and a route kept whole is
+   * what pushed a real book past the body limit and left the editor showing
+   * "not saved" with no way forward.
+   *
+   * Thinned evenly rather than by cutting a run out of the middle, because a
+   * road's shape is the reason to draw it at all — losing the middle would
+   * straighten exactly the bends somebody wanted to see.
+   */
+  it('thins a long answer, keeping both ends and the shape between them', async () => {
+    const many: [number, number][] = Array.from({ length: 900 }, (_, i) => [
+      52.5 - i * 0.001,
+      13.4 + i * 0.001,
+    ])
+    vi.mocked(calculateRouteWithLegs).mockResolvedValue({
+      coordinates: many, distance: 1, duration: 1, legs: [],
+    } as never)
+
+    const roads = await fetchRoads([{ lat: 52.5, lng: 13.4 }, { lat: 51.6, lng: 14.3 }])
+    const leg = roads[0]!
+    expect(leg).not.toBeNull()
+    expect(leg.length).toBe(120)
+
+    // Both ends survive, so the line still meets the stops it runs between.
+    expect(leg[0]).toEqual([52.5, 13.4])
+    expect(leg[leg.length - 1]).toEqual([51.601, 14.299])
+
+    // Evenly spaced: no two consecutive points sit further apart than one step.
+    const gaps = leg.slice(1).map((p, i) => Math.abs(p[0] - leg[i][0]))
+    expect(Math.max(...gaps) - Math.min(...gaps)).toBeLessThan(0.002)
+  })
+
+  it('leaves a leg the press can already resolve exactly as it came', async () => {
+    const few: [number, number][] = Array.from({ length: 40 }, (_, i) => [
+      52.5 - i * 0.01,
+      13.4 + i * 0.01,
+    ])
+    vi.mocked(calculateRouteWithLegs).mockResolvedValue({
+      coordinates: few, distance: 1, duration: 1, legs: [],
+    } as never)
+
+    const roads = await fetchRoads([{ lat: 52.5, lng: 13.4 }, { lat: 52.1, lng: 13.8 }])
+    expect(roads[0]!.length).toBe(40)
+  })
 })
