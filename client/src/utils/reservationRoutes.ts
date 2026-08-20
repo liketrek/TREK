@@ -1,8 +1,15 @@
 import type { Reservation } from '../types'
 
-/** A reservation is routable on the map once it has at least two ordered endpoints (from/to/stop). */
-export function isRoutableReservation(r: Pick<Reservation, 'endpoints'>): boolean {
-  return (r.endpoints || []).length >= 2
+/**
+ * A reservation is routable on the map once it has at least two ordered
+ * endpoints (from/to/stop).
+ *
+ * Total in its argument, because it is handed straight to Array.filter over a
+ * list this module does not own. It used to guard the property but not the
+ * element, so one undefined entry took the whole trip planner down (#1979).
+ */
+export function isRoutableReservation(r: Pick<Reservation, 'endpoints'> | null | undefined): boolean {
+  return (r?.endpoints || []).length >= 2
 }
 
 export interface RouteVisibilityOptions {
