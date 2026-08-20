@@ -60,7 +60,9 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
   const [clearCheckedSignal, setClearCheckedSignal] = useState(0)
   const [saveTemplateSignal, setSaveTemplateSignal] = useState(0)
   const [addTodoSignal, setAddTodoSignal] = useState(0)
-  const [packingView, setPackingView] = useState<'common' | 'personal'>('common')
+  // Keep the page-controlled entry point aligned with the standalone panel's
+  // default. The selected view is deliberately not persisted.
+  const [packingView, setPackingView] = useState<'common' | 'personal'>('personal')
   const { t } = useTranslation()
   const isAdmin = useAuthStore(s => s.user?.role === 'admin')
 

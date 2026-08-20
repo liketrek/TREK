@@ -8,8 +8,8 @@ import type { PackingState } from './usePackingListPanel'
  */
 export function PackingViewTabs(S: PackingState) {
   const { view, setView, filter, setFilter, t, items } = S
-  const commonCount = items.filter(i => !i.is_private).length
-  const personalCount = items.filter(i => !!i.is_private).length
+  const commonCount = items.filter(i => i.is_private === 0).length
+  const personalCount = items.filter(i => i.is_private !== 0).length
 
   const pillBase: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 12px', borderRadius: 999,

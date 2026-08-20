@@ -122,10 +122,12 @@ describe('PackingListPanel', () => {
     const user = userEvent.setup();
     const existingItem = buildPackingItem({ name: 'Existing', category: 'Clothing' });
     let postCalled = false;
+    let postBody: Record<string, unknown> | null = null;
     server.use(
       http.post('/api/trips/1/packing', async ({ request }) => {
         postCalled = true;
         const body = await request.json() as Record<string, unknown>;
+        postBody = body;
         const item = buildPackingItem({ name: String(body.name), category: String(body.category) });
         return HttpResponse.json({ item });
       })
@@ -135,6 +137,7 @@ describe('PackingListPanel', () => {
     const addInput = screen.getByPlaceholderText('Item name...');
     await user.type(addInput, 'T-Shirt{Enter}');
     await waitFor(() => expect(postCalled).toBe(true));
+    expect(postBody).toMatchObject({ visibility: 'personal' });
   });
 
   it('FE-COMP-PACKING-011: checked item has checked state visually (1=checked)', () => {
@@ -1195,6 +1198,7 @@ describe('PackingListPanel', () => {
     );
     render(<PackingListPanel tripId={1} items={[]} />);
 
+    await user.click(await screen.findByText('Shared'));
     await user.click(await screen.findByText('Apply template'));
     await user.click(await screen.findByText('Beach Trip'));
 
@@ -1548,14 +1552,26 @@ describe('PackingListPanel', () => {
     ];
     render(<PackingListPanel tripId={1} items={items} />);
 
-    // Default view = Common pool → only the shared item.
-    expect(await screen.findByText('Group tent')).toBeInTheDocument();
-    expect(screen.queryByText('My diary')).not.toBeInTheDocument();
-
-    // Switch to "My list" → only the personal item.
-    await userEvent.click(screen.getByText('My list'));
+    // Default view = My list → only the personal item.
     expect(await screen.findByText('My diary')).toBeInTheDocument();
     expect(screen.queryByText('Group tent')).not.toBeInTheDocument();
+
+    // Switch to the shared list → only the shared item.
+    await userEvent.click(screen.getByText('Shared'));
+    expect(await screen.findByText('Group tent')).toBeInTheDocument();
+    expect(screen.queryByText('My diary')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-PACKING-082: starts in My list even when it has no items', async () => {
+    const user = userEvent.setup();
+    const sharedItem = buildPackingItem({ name: 'Shared tent', is_private: 0 });
+    render(<PackingListPanel tripId={1} items={[sharedItem]} />);
+
+    expect(screen.queryByText('Shared tent')).not.toBeInTheDocument();
+    expect(screen.getByText('No items match this filter')).toBeInTheDocument();
+
+    await user.click(screen.getByText('Shared'));
+    expect(await screen.findByText('Shared tent')).toBeInTheDocument();
   });
 
   it('FE-COMP-PACKING-081: a shared-to-me item shows the "by <bringer>" badge in My list', async () => {
