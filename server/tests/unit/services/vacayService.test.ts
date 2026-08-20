@@ -478,6 +478,23 @@ describe('addYear', () => {
     // 10 vacation days - 3 used = 7 carried over
     expect(userYear?.carried_over).toBe(7);
   });
+
+  it('VACAY-SVC-029B: inherits the previous year annual allowance', () => {
+    const { user, plan } = setupUserWithPlan();
+    const currentYear = new Date().getFullYear();
+    const nextYear = currentYear + 1;
+    testDb.prepare(`
+      UPDATE vacay_user_years SET vacation_days = 33
+      WHERE user_id = ? AND plan_id = ? AND year = ?
+    `).run(user.id, plan.id, currentYear);
+
+    addYear(plan.id, nextYear, undefined);
+
+    const userYear = testDb
+      .prepare('SELECT vacation_days FROM vacay_user_years WHERE user_id = ? AND plan_id = ? AND year = ?')
+      .get(user.id, plan.id, nextYear) as { vacation_days: number };
+    expect(userYear.vacation_days).toBe(33);
+  });
 });
 
 describe('deleteYear', () => {
@@ -748,7 +765,7 @@ describe('getStats', () => {
     expect(stats[0].remaining).toBe(28);
   });
 
-  it('VACAY-SVC-045B: Obsidian 公共假期 days count against annual leave allowance', () => {
+  it('VACAY-SVC-045B: Obsidian PTO and 公共假期 count against annual leave allowance', () => {
     const { user, plan } = setupUserWithPlan();
     obsidianMock.loadObsidianPublicHolidaysForYear.mockReturnValue([
       { date: '2025-10-01', note: 'Obsidian 公共假期' },
@@ -759,6 +776,28 @@ describe('getStats', () => {
 
     expect(stats[0].used).toBe(1);
     expect(stats[0].remaining).toBe(29);
+
+    obsidianMock.loadObsidianPublicHolidaysForYear.mockReturnValue([
+      { date: '2025-10-02', note: 'Obsidian PTO' },
+    ]);
+    const ptoStats = getStats(plan.id, 2025);
+    expect(ptoStats[0].used).toBe(1);
+    expect(ptoStats[0].remaining).toBe(29);
+  });
+
+  it('VACAY-SVC-045C: Obsidian leave only counts against the plan owner', () => {
+    const { user: owner, plan } = setupUserWithPlan();
+    const { user: member } = createUser(testDb);
+    insertMember(plan.id, member.id, 'accepted');
+    obsidianMock.loadObsidianPublicHolidaysForYear.mockReturnValue([
+      { date: '2025-08-05', note: 'Obsidian PTO' },
+    ]);
+
+    const stats = getStats(plan.id, 2025);
+
+    expect(stats.find(stat => stat.user_id === owner.id)?.used).toBe(1);
+    expect(stats.find(stat => stat.user_id === member.id)?.used).toBe(0);
+    expect(stats.find(stat => stat.user_id === member.id)?.remaining).toBe(30);
   });
 });
 

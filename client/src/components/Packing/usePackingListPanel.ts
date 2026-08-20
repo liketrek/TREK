@@ -47,9 +47,12 @@ export interface PackingListPanelProps {
  */
 export function usePackingList({ tripId, items, openImportSignal = 0, clearCheckedSignal = 0, saveTemplateSignal = 0, inlineHeader = true, view: viewProp, onViewChange }: PackingListPanelProps) {
   const [filter, setFilter] = useState('alle') // 'alle' | 'offen' | 'erledigt'
-  // Three-tier sharing (#858): 'common' = the group pool (where existing items
-  // live — non-breaking), 'personal' = my own list (private + shared-to-me).
-  const [ownView, setOwnView] = useState<'common' | 'personal'>('common')
+  // Three-tier sharing (#858): 'common' = the group pool, 'personal' = my own
+  // list (private + shared-to-me).
+  // Every packing-list entry point starts in the current user's list. This is
+  // intentionally local state: switching views is a session concern, not a
+  // persisted trip preference.
+  const [ownView, setOwnView] = useState<'common' | 'personal'>('personal')
   const view = viewProp ?? ownView
   const setView = onViewChange ?? setOwnView
   const [addingCategory, setAddingCategory] = useState(false)
@@ -91,6 +94,9 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
 
   // Split by the active view (#858): Common = group pool (is_private 0), Personal =
   // my own + shared-to-me (is_private 1, already filtered to me by the server).
+  // Omitted privacy metadata (is_private === undefined, e.g. legacy/optional
+  // callers before the API hydrates the sharing fields) keeps its established
+  // common classification rather than being reclassified.
   const viewItems = useMemo(
     () => items.filter(i => (view === 'common' ? !i.is_private : !!i.is_private)),
     [items, view],

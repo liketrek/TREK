@@ -8,8 +8,9 @@ shared/dist/
 server/public/*
 !server/public/.gitkeep
 
-# Generated PWA icons (built from SVG via prebuild)
+# Generated PWA icons (built from the versioned PNG master via prebuild)
 client/public/icons/*.png
+!client/public/icons/icon-master-1024.png
 
 # Database
 *.db

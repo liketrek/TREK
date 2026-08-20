@@ -9,6 +9,7 @@ import {
 const YEARLY_GLANCE_DATA_PATH = '.obsidian/plugins/yearly-glance/data.json';
 const DAILY_NOTES_DATA_PATH = '.obsidian/daily-notes.json';
 const PERIODIC_NOTES_DATA_PATH = '.obsidian/plugins/periodic-notes/data.json';
+const LEAVE_PLAN_FILE_NAME = '请假计划.md';
 
 const OBSIDIAN_HOLIDAY_NOTES = {
   PTO: 'Obsidian PTO',
@@ -24,6 +25,14 @@ type DailyNoteSettings = {
 type ObsidianHoliday = {
   date: string;
   note: string;
+};
+
+type YearlyGlanceEvent = {
+  text?: unknown;
+  emoji?: unknown;
+  duration?: unknown;
+  dateArr?: unknown;
+  eventDate?: unknown;
 };
 
 function readJson(filePath: string): unknown {
@@ -185,6 +194,95 @@ function holidayNoteForJiaqiValue(value: string): string | null {
   return null;
 }
 
+function isoDate(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(value);
+  return match?.[1] ?? null;
+}
+
+function uiEventHolidayNote(event: YearlyGlanceEvent): string | null {
+  const text = typeof event.text === 'string' ? event.text.trim() : '';
+  const explicit = holidayNoteForJiaqiValue(text);
+  if (explicit) return explicit;
+  if (/病假|\bsick(?: leave)?\b/i.test(text)) return OBSIDIAN_HOLIDAY_NOTES.病假;
+  if (/公共假期|\bpublic holiday\b/i.test(text)) return OBSIDIAN_HOLIDAY_NOTES.公共假期;
+  if (/假期|休假|年假|\b(?:pto|vacation|annual leave)\b/i.test(text)) {
+    return OBSIDIAN_HOLIDAY_NOTES.PTO;
+  }
+  return null;
+}
+
+function yearlyGlanceUiHolidays(configData: unknown, year: number): ObsidianHoliday[] {
+  const data = asRecord(asRecord(configData)?.data);
+  const events = Array.isArray(data?.customEvents) ? data.customEvents : [];
+  const holidays: ObsidianHoliday[] = [];
+
+  for (const rawEvent of events) {
+    const event = asRecord(rawEvent) as YearlyGlanceEvent | null;
+    if (!event) continue;
+    const note = uiEventHolidayNote(event);
+    if (!note) continue;
+
+    const dates = Array.isArray(event.dateArr) ? event.dateArr.map(isoDate).filter((date): date is string => date !== null) : [];
+    const eventDate = asRecord(event.eventDate);
+    const startDate = dates[0] ?? isoDate(eventDate?.isoDate);
+    if (!startDate) continue;
+
+    const duration = typeof event.duration === 'number' && Number.isInteger(event.duration) && event.duration > 0
+      ? event.duration
+      : 1;
+    const expandedDates = dates.length > 1 ? dates : Array.from({ length: duration }, (_, offset) => {
+      const date = new Date(`${startDate}T00:00:00Z`);
+      date.setUTCDate(date.getUTCDate() + offset);
+      return date.toISOString().slice(0, 10);
+    });
+    for (const date of expandedDates) {
+      if (date.startsWith(`${year}-`)) holidays.push({ date, note });
+    }
+  }
+  return holidays;
+}
+
+function findFileByName(root: string, fileName: string): string | null {
+  const entries = fs.readdirSync(root, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.name === '.obsidian' || entry.name.startsWith('.trash')) continue;
+    const entryPath = path.join(root, entry.name);
+    if (entry.isFile() && entry.name === fileName) return entryPath;
+    if (entry.isDirectory()) {
+      const found = findFileByName(entryPath, fileName);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function leavePlanHolidays(vaultPath: string, year: number): ObsidianHoliday[] {
+  let filePath: string | null;
+  try {
+    filePath = findFileByName(vaultPath, LEAVE_PLAN_FILE_NAME);
+  } catch {
+    return [];
+  }
+  if (!filePath) return [];
+
+  const rows = fs.readFileSync(filePath, 'utf8').split(/\r?\n/).filter(line => line.trim().startsWith('|'));
+  if (rows.length < 3) return [];
+  const headers = rows[0].split('|').slice(1, -1).map(cell => cell.trim().toLowerCase());
+  const dateIndex = headers.indexOf('date');
+  const typeIndex = headers.indexOf('type');
+  if (dateIndex < 0 || typeIndex < 0) return [];
+
+  const holidays: ObsidianHoliday[] = [];
+  for (const row of rows.slice(2)) {
+    const cells = row.split('|').slice(1, -1).map(cell => cell.trim());
+    const date = isoDate(cells[dateIndex]);
+    const note = holidayNoteForJiaqiValue(cells[typeIndex] ?? '');
+    if (date?.startsWith(`${year}-`) && note) holidays.push({ date, note });
+  }
+  return holidays;
+}
+
 export function getObsidianPublicHolidayNote(): string {
   return OBSIDIAN_HOLIDAY_NOTES.公共假期;
 }
@@ -201,12 +299,17 @@ export function loadObsidianPublicHolidaysForYear(year: number): ObsidianHoliday
   const vaultPath = normalizeVaultPath();
   if (!vaultPath) return [];
 
-  const config = yearlyGlanceConfig(vaultPath);
+  const yearlyGlanceData = readJson(path.join(vaultPath, YEARLY_GLANCE_DATA_PATH));
+  const config = asRecord(asRecord(yearlyGlanceData)?.config);
   const source = getString(config, 'dailyNoteSource') ?? 'daily-notes';
   const settings = dailyNotesSettings(vaultPath, source, config);
   if (!settings) return [];
 
-  const holidays: ObsidianHoliday[] = [];
+  const holidays = [
+    ...yearlyGlanceUiHolidays(yearlyGlanceData, year),
+    ...leavePlanHolidays(vaultPath, year),
+  ];
+  const holidayByDate = new Map(holidays.map(holiday => [holiday.date, holiday]));
   const start = Date.UTC(year, 0, 1);
   const days = new Date(Date.UTC(year, 1, 29)).getUTCMonth() === 1 ? 366 : 365;
 
@@ -224,8 +327,9 @@ export function loadObsidianPublicHolidaysForYear(year: number): ObsidianHoliday
     const note = parseJiaqiValues(markdown)
       .map(holidayNoteForJiaqiValue)
       .find((value): value is string => value !== null);
-    if (note) holidays.push({ date: dateStr, note });
+    // A Daily Note is the more explicit source and wins over a UI-only event.
+    if (note) holidayByDate.set(dateStr, { date: dateStr, note });
   }
 
-  return holidays;
+  return [...holidayByDate.values()].sort((a, b) => a.date.localeCompare(b.date));
 }

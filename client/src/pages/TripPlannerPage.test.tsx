@@ -103,12 +103,16 @@ vi.mock('../components/Files/FileManager', () => ({
   },
 }));
 
+const capturedPackingListPanelProps: { current: Record<string, any> } = { current: {} };
 vi.mock('../components/Budget/CostsPanel', () => ({
   default: () => React.createElement('div', { 'data-testid': 'costs-panel' }),
 }));
 
 vi.mock('../components/Packing/PackingListPanel', () => ({
-  default: () => React.createElement('div', { 'data-testid': 'packing-list-panel' }),
+  default: (props: Record<string, any>) => {
+    capturedPackingListPanelProps.current = props;
+    return React.createElement('div', { 'data-testid': 'packing-list-panel' });
+  },
 }));
 
 vi.mock('../components/Todo/TodoListPanel', () => ({
@@ -244,6 +248,7 @@ beforeEach(() => {
   capturedTripMembersModalProps.current = {};
   capturedFileManagerProps.current = {};
   capturedPlaceInspectorProps.current = {};
+  capturedPackingListPanelProps.current = {};
   seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
 });
 
@@ -440,6 +445,8 @@ describe('TripPlannerPage', () => {
       await waitFor(() => {
         expect(screen.getByTestId('packing-list-panel')).toBeInTheDocument();
       });
+
+      expect(capturedPackingListPanelProps.current.view).toBe('personal');
     });
   });
 
