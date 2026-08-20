@@ -11,9 +11,10 @@ import { useTranslation } from '../../i18n'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { PAGE_PRESETS, clampPageSize, type PagePresetId } from '../../components/Studio/pagePresets'
 import {
-  buildBook, distributeGallery, relayoutSpread,
+  buildBook, distributeGallery, emptyBook, relayoutSpread,
   type AutoEntry, type AutoInput, type AutoPhoto,
 } from '../../components/Studio/autoLayout'
+import { resolveBindings } from '../../components/Studio/resolveBindings'
 
 /** CSS defines 1in as 96px and 25.4mm, so this factor is exact, not a guess. */
 const PX_PER_MM = 96 / 25.4
@@ -165,6 +166,47 @@ export function useJourneyStudio() {
 
   const journey = current && current.id === journeyId ? current : null
 
+  /** The journey's own material, for the content browser. */
+  const source = useMemo(() => ({
+    entries: (journey?.entries || [])
+      .filter((e: JourneyEntry) => !!(
+        e.title || e.story || e.location_name || e.mood || e.weather
+        || e.pros_cons?.pros?.length || e.pros_cons?.cons?.length
+        // A stop that was only checked into still has two things a page can
+        // use: the day it happened and where on earth it was.
+        || e.entry_date || (e.location_lat != null && e.location_lng != null)
+      ))
+      .map((e: JourneyEntry) => ({
+        id: e.id,
+        title: e.title ?? null,
+        story: e.story ?? null,
+        location: e.location_name ?? null,
+        date: e.entry_date ?? null,
+        lat: e.location_lat ?? null,
+        lng: e.location_lng ?? null,
+        // What the entry recorded beyond its story: how the day felt, what the
+        // weather did, and what was worth and not worth it.
+        mood: e.mood ?? null,
+        weather: e.weather ?? null,
+        pros: e.pros_cons?.pros?.filter(Boolean) ?? [],
+        cons: e.pros_cons?.cons?.filter(Boolean) ?? [],
+      })),
+    photos: (journey?.gallery || []).map((p: GalleryPhoto) => ({
+      photoId: p.photo_id,
+      caption: p.caption ?? null,
+    })),
+    // Which entry a photo hangs on, so a search for a place finds its pictures
+    // even though a picture carries no words of its own.
+    photoEntries: (() => {
+      const map: Record<number, string> = {}
+      for (const e of (journey?.entries || []) as JourneyEntry[]) {
+        const words = [e.title, e.location_name].filter(Boolean).join(' ').toLowerCase()
+        for (const p of e.photos || []) map[p.photo_id] = words
+      }
+      return map
+    })(),
+  }), [journey])
+
   useEffect(() => {
     if (!Number.isFinite(journeyId)) return
     if (!current || current.id !== journeyId) void loadJourney(journeyId)
@@ -186,10 +228,30 @@ export function useJourneyStudio() {
      * button needs it.
      */
     if (book.record) {
-      // Already normalised by useBookStore, and deliberately the same object it
-      // holds — see `synced` there, which is what keeps opening a book from
-      // counting as an edit.
-      loadDoc(book.record.document)
+      /*
+       * Already normalised by useBookStore, and deliberately the same object it
+       * holds — see `synced` there, which is what keeps opening a book from
+       * counting as an edit.
+       *
+       * Opening is also where a bound element catches up with the journal, and
+       * the only place it can be: resolving inside useBookStore would rewrite
+       * the very object `synced` compares against, and every open — every
+       * incoming remote save, every conflict — would become a save. Here it
+       * runs once per journey, and when it did change something the ordinary
+       * autosave writes that back exactly once. resolveBindings returns the
+       * document it was given when nothing moved, which is what keeps the
+       * common case free.
+       */
+      loadDoc(resolveBindings(
+        book.record.document,
+        {
+          title: journey.title || '',
+          subtitle: journey.subtitle ?? null,
+          entries: source.entries,
+          photos: source.photos,
+        },
+        locale,
+      ))
     }
 
     // A skeleton entry is a place pulled in from a trip that nobody has written
@@ -268,18 +330,30 @@ export function useJourneyStudio() {
         pageNumbers: bookPageSetupSchema.shape.pageNumbers.parse({}),
       },
       stats,
+      // The recorded track, when the journey has one. It is fetched in the same
+      // hook and used to stop here, which left auto-laid books drawing a ruler
+      // line over a route somebody had actually walked.
+      path,
       stationsLabel: t('journey.studio.stations'),
       dayLabel: t('journey.studio.day'),
       summaryLabel: t('journey.studio.summary'),
       countriesLabel: t('journey.studio.countries'),
     }
-    if (!book.record) loadDoc(buildBook(autoInput.current))
+    /*
+     * A journey with no book yet gets an empty one, not a laid-out one.
+     *
+     * `autoInput` is still built above, because the Auto layout menu needs it
+     * the moment somebody asks — which is the point: the layout is now offered
+     * rather than applied, and a first page somebody chose beats a whole book
+     * they have to take apart.
+     */
+    if (!book.record) loadDoc(emptyBook(autoInput.current))
     // `stats` is deliberately not a dependency: the book is laid out once, from
     // the figures as they stood at that moment. Re-running on a later fetch
     // would throw away the user's work — which is the same reason `builtFor`
     // exists for the journey itself.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [journey, statsSettled, book.loaded, book.record, loadDoc, locale])
+  }, [journey, statsSettled, book.loaded, book.record, loadDoc, locale, source])
 
   /*
    * What the journey adds up to, for the travel elements.
@@ -358,6 +432,25 @@ export function useJourneyStudio() {
    * that is 210 by 240 is not "square 21" with a typo in it, and leaving the
    * preset alone would have the picker naming a format the page no longer is.
    */
+  /**
+   * What the press needs around the page.
+   *
+   * Both were fixed at the values a photo-book vendor most often asks for, 3mm
+   * of bleed and a 5mm safe margin, and neither had a control — which is fine
+   * right up until somebody's printer asks for 5 and 10, and then the book
+   * cannot be made here at all. The trim size already answers that question for
+   * the page itself; this answers it for the edges.
+   *
+   * The ceilings are generous rather than typical: 20mm of bleed is more than
+   * any press asks for, and a safe margin worth a third of a small page is
+   * already a design decision rather than a printer's requirement.
+   */
+  const setPageEdge = useCallback((which: 'bleed' | 'safe', value: number) => {
+    const limit = which === 'bleed' ? 20 : 40
+    const clamped = Math.min(limit, Math.max(0, Math.round(value * 10) / 10))
+    commit(d => ({ ...d, page: { ...d.page, [which]: clamped } }))
+  }, [commit])
+
   const setPageSize = useCallback((axis: 'w' | 'h', value: number) => {
     commit(d => ({
       ...d,
@@ -518,41 +611,6 @@ export function useJourneyStudio() {
     return () => window.removeEventListener('keydown', onKey)
   }, [selection, select, close, undo, redo])
 
-  /** The journey's own material, for the content browser. */
-  const source = useMemo(() => ({
-    entries: (journey?.entries || [])
-      .filter((e: JourneyEntry) => !!(
-        e.title || e.story || e.location_name || e.mood || e.weather
-        || e.pros_cons?.pros?.length || e.pros_cons?.cons?.length
-      ))
-      .map((e: JourneyEntry) => ({
-        id: e.id,
-        title: e.title ?? null,
-        story: e.story ?? null,
-        location: e.location_name ?? null,
-        date: e.entry_date ?? null,
-        // What the entry recorded beyond its story: how the day felt, what the
-        // weather did, and what was worth and not worth it.
-        mood: e.mood ?? null,
-        weather: e.weather ?? null,
-        pros: e.pros_cons?.pros?.filter(Boolean) ?? [],
-        cons: e.pros_cons?.cons?.filter(Boolean) ?? [],
-      })),
-    photos: (journey?.gallery || []).map((p: GalleryPhoto) => ({
-      photoId: p.photo_id,
-      caption: p.caption ?? null,
-    })),
-    // Which entry a photo hangs on, so a search for a place finds its pictures
-    // even though a picture carries no words of its own.
-    photoEntries: (() => {
-      const map: Record<number, string> = {}
-      for (const e of (journey?.entries || []) as JourneyEntry[]) {
-        const words = [e.title, e.location_name].filter(Boolean).join(' ').toLowerCase()
-        for (const p of e.photos || []) map[p.photo_id] = words
-      }
-      return map
-    })(),
-  }), [journey])
 
   const coverUrl = journey?.cover_image
     ? (journey.cover_image.startsWith('/uploads/') ? journey.cover_image : `/uploads/${journey.cover_image}`)
@@ -580,6 +638,7 @@ export function useJourneyStudio() {
     preset,
     setPreset,
     setPageSize,
+    setPageEdge,
     setPageNumbers,
     relayoutBook,
     relayoutCurrentSpread,
