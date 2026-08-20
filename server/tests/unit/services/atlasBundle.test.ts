@@ -51,4 +51,31 @@ describe('Atlas admin1 region bundle (#1217)', () => {
       expect(new Set(f.map(r => r.properties.iso_3166_2)).size).toBe(f.length);
     }
   });
+
+  /*
+   * geoBoundaries' GBR ADM1 is the four constituent countries, so a bundle built
+   * from it has no polygon below "England" — a London borough marked as visited
+   * has nothing to light up, and every English place reports "England" (#1974).
+   * The builder ships GB at ADM2 for exactly that reason.
+   *
+   * This is the guard that would have caught it when it landed in 3.1.0: four
+   * features for a whole country is not a region layer, it is a country layer
+   * with extra steps.
+   */
+  it('ATLAS-BUNDLE-004 — Great Britain ships below the constituent-country level (#1974)', () => {
+    const gb = regions('GB');
+    expect(gb.length, 'GB must ship counties and boroughs, not the four nations').toBeGreaterThan(50);
+    expect(new Set(gb.map(r => r.properties.iso_3166_2)).size, 'GB region codes must be unique').toBe(gb.length);
+  });
+
+  it('ATLAS-BUNDLE-005 — the London boroughs are in it (#1974)', () => {
+    const names = new Set(
+      (features as unknown as { properties: { iso_a2: string | null; name?: string } }[])
+        .filter(f => f.properties.iso_a2 === 'GB')
+        .map(f => (f.properties.name || '').toLowerCase()),
+    );
+    for (const borough of ['camden', 'westminster', 'hackney', 'islington']) {
+      expect(names.has(borough), `${borough} should be a region of its own`).toBe(true);
+    }
+  });
 });

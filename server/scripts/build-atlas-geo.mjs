@@ -49,6 +49,22 @@ const RETRIES = 3
 // what restores the dropped territories (Greenland, Falklands, French Guiana, …).
 const A3_TO_A2 = {"ABW":"AW", "AFG":"AF", "AGO":"AO", "AIA":"AI", "ALA":"AX", "ALB":"AL", "AND":"AD", "ARE":"AE", "ARG":"AR", "ARM":"AM", "ASM":"AS", "ATA":"AQ", "ATF":"TF", "ATG":"AG", "AUS":"AU", "AUT":"AT", "AZE":"AZ", "BDI":"BI", "BEL":"BE", "BEN":"BJ", "BES":"BQ", "BFA":"BF", "BGD":"BD", "BGR":"BG", "BHR":"BH", "BHS":"BS", "BIH":"BA", "BLM":"BL", "BLR":"BY", "BLZ":"BZ", "BMU":"BM", "BOL":"BO", "BRA":"BR", "BRB":"BB", "BRN":"BN", "BTN":"BT", "BVT":"BV", "BWA":"BW", "CAF":"CF", "CAN":"CA", "CCK":"CC", "CHE":"CH", "CHL":"CL", "CHN":"CN", "CIV":"CI", "CMR":"CM", "COD":"CD", "COG":"CG", "COK":"CK", "COL":"CO", "COM":"KM", "CPV":"CV", "CRI":"CR", "CUB":"CU", "CUW":"CW", "CXR":"CX", "CYM":"KY", "CYP":"CY", "CZE":"CZ", "DEU":"DE", "DJI":"DJ", "DMA":"DM", "DNK":"DK", "DOM":"DO", "DZA":"DZ", "ECU":"EC", "EGY":"EG", "ERI":"ER", "ESH":"EH", "ESP":"ES", "EST":"EE", "ETH":"ET", "FIN":"FI", "FJI":"FJ", "FLK":"FK", "FRA":"FR", "FRO":"FO", "FSM":"FM", "GAB":"GA", "GBR":"GB", "GEO":"GE", "GGY":"GG", "GHA":"GH", "GIB":"GI", "GIN":"GN", "GLP":"GP", "GMB":"GM", "GNB":"GW", "GNQ":"GQ", "GRC":"GR", "GRD":"GD", "GRL":"GL", "GTM":"GT", "GUF":"GF", "GUM":"GU", "GUY":"GY", "HKG":"HK", "HMD":"HM", "HND":"HN", "HRV":"HR", "HTI":"HT", "HUN":"HU", "IDN":"ID", "IMN":"IM", "IND":"IN", "IOT":"IO", "IRL":"IE", "IRN":"IR", "IRQ":"IQ", "ISL":"IS", "ISR":"IL", "ITA":"IT", "JAM":"JM", "JEY":"JE", "JOR":"JO", "JPN":"JP", "KAZ":"KZ", "KEN":"KE", "KGZ":"KG", "KHM":"KH", "KIR":"KI", "KNA":"KN", "KOR":"KR", "KWT":"KW", "LAO":"LA", "LBN":"LB", "LBR":"LR", "LBY":"LY", "LCA":"LC", "LIE":"LI", "LKA":"LK", "LSO":"LS", "LTU":"LT", "LUX":"LU", "LVA":"LV", "MAC":"MO", "MAF":"MF", "MAR":"MA", "MCO":"MC", "MDA":"MD", "MDG":"MG", "MDV":"MV", "MEX":"MX", "MHL":"MH", "MKD":"MK", "MLI":"ML", "MLT":"MT", "MMR":"MM", "MNE":"ME", "MNG":"MN", "MNP":"MP", "MOZ":"MZ", "MRT":"MR", "MSR":"MS", "MTQ":"MQ", "MUS":"MU", "MWI":"MW", "MYS":"MY", "MYT":"YT", "NAM":"NA", "NCL":"NC", "NER":"NE", "NFK":"NF", "NGA":"NG", "NIC":"NI", "NIU":"NU", "NLD":"NL", "NOR":"NO", "NPL":"NP", "NRU":"NR", "NZL":"NZ", "OMN":"OM", "PAK":"PK", "PAN":"PA", "PCN":"PN", "PER":"PE", "PHL":"PH", "PLW":"PW", "PNG":"PG", "POL":"PL", "PRI":"PR", "PRK":"KP", "PRT":"PT", "PRY":"PY", "PSE":"PS", "PYF":"PF", "QAT":"QA", "REU":"RE", "ROU":"RO", "RUS":"RU", "RWA":"RW", "SAU":"SA", "SDN":"SD", "SEN":"SN", "SGP":"SG", "SGS":"GS", "SHN":"SH", "SJM":"SJ", "SLB":"SB", "SLE":"SL", "SLV":"SV", "SMR":"SM", "SOM":"SO", "SPM":"PM", "SRB":"RS", "SSD":"SS", "STP":"ST", "SUR":"SR", "SVK":"SK", "SVN":"SI", "SWE":"SE", "SWZ":"SZ", "SXM":"SX", "SYC":"SC", "SYR":"SY", "TCA":"TC", "TCD":"TD", "TGO":"TG", "THA":"TH", "TJK":"TJ", "TKL":"TK", "TKM":"TM", "TLS":"TL", "TON":"TO", "TTO":"TT", "TUN":"TN", "TUR":"TR", "TUV":"TV", "TWN":"TW", "TZA":"TZ", "UGA":"UG", "UKR":"UA", "UMI":"UM", "URY":"UY", "USA":"US", "UZB":"UZ", "VAT":"VA", "VCT":"VC", "VEN":"VE", "VGB":"VG", "VIR":"VI", "VNM":"VN", "VUT":"VU", "WLF":"WF", "WSM":"WS", "XKX":"XK", "YEM":"YE", "ZAF":"ZA", "ZMB":"ZM", "ZWE":"ZW"}
 
+/**
+ * Countries whose sub-national level is not the one everybody else's ADM1 is.
+ *
+ * geoBoundaries' GBR ADM1 is the four constituent countries — England, Scotland,
+ * Wales, Northern Ireland — so an atlas built from it has no polygon below
+ * "England", and a London borough marked as visited has nothing to light up
+ * (#1974). Its ADM2 is the 216 counties and unitary authorities, which is the
+ * granularity the rest of the world gets from ADM1 and the granularity the
+ * pre-3.1.0 Natural Earth layer had.
+ *
+ * Deliberately a short, hand-picked list. ADM2 everywhere would multiply the
+ * bundle several times over for no gain: for most countries ADM1 already is the
+ * level people think in.
+ */
+const ADM_LEVEL = { GBR: 'ADM2' }
+
 const COUNTRIES = Object.keys(A3_TO_A2) // every ISO alpha-3 code (ADM1 fetch list)
 
 // Cache raw downloads so re-runs (e.g. to tune simplification) don't re-fetch ~360 files.
@@ -216,7 +232,7 @@ async function main() {
 
   // ADM1 (sub-national regions) — per-country gbOpen (carries ISO 3166-2 `shapeISO`).
   console.log('[atlas-geo] downloading ADM1 (regions)…')
-  const adm1Raw = await pool(COUNTRIES, a3 => fetchGeo(MEDIA(a3, 'ADM1')))
+  const adm1Raw = await pool(COUNTRIES, a3 => fetchGeo(MEDIA(a3, ADM_LEVEL[a3] || 'ADM1')))
   const adm1Features = []
   let withCodes = 0
   COUNTRIES.forEach((a3, idx) => {

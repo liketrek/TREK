@@ -963,9 +963,9 @@ export async function reverseGeocodeRegion(lat: number, lng: number, placeAddres
 
   // Only reached when the bundle's own polygons for this country don't cover the point at
   // all (coastal/simplification gaps) — a genuinely rare miss. Nominatim's coarse address
-  // level (state/province) is what the bundle actually carries; the former GB "rescue" to a
-  // finer county/borough level targeted the old Natural Earth polygons and produced a code
-  // the current geoBoundaries bundle can never match, so it was removed.
+  // level (state/province) is what the bundle carries for most countries; GB is the
+  // exception and ships at county/borough level (#1974), which is also what its old
+  // Natural Earth polygons had.
   const address = await fetchNominatimAddress(lat, lng, 8);
   if (!address) return null; // transient failure — leave uncached so a later call retries
   const info = buildRegionInfo(address, false);

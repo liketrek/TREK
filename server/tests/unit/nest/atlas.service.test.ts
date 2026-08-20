@@ -973,10 +973,11 @@ describe('getVisitedRegions', () => {
   });
 
   it('ATLAS-UNIT-021: a GB place resolves against the bundled admin1 polygon without calling Nominatim', async () => {
-    // The shipped geoBoundaries bundle only carries GB's 4 constituent countries
-    // (England/Scotland/Wales/Northern Ireland) — no county/borough level. Resolving
-    // Old Trafford's coordinates directly against those polygons lands on GB-ENG, the
-    // same feature the client highlights, with no reverse-geocode round trip at all.
+    // GB ships at ADM2 since #1974 — the 216 counties and unitary authorities,
+    // rather than the four constituent countries geoBoundaries calls ADM1.
+    // Old Trafford's coordinates therefore land on Trafford itself, which is
+    // both the feature the client highlights and the level a person thinks in;
+    // still with no reverse-geocode round trip at all.
     const mockFetch = vi.fn();
     vi.stubGlobal('fetch', mockFetch);
 
@@ -992,8 +993,10 @@ describe('getVisitedRegions', () => {
 
     expect(mockFetch).not.toHaveBeenCalled();
     expect(result.regions['GB']).toBeDefined();
-    const codes = result.regions['GB'].map((r: any) => r.code);
-    expect(codes).toContain('GB-ENG');
+    const names = result.regions['GB'].map((r: any) => (r.name || '').toLowerCase());
+    // Below the constituent-country level: the borough, not the nation.
+    expect(names).not.toContain('england');
+    expect(names.some((n: string) => n.includes('trafford'))).toBe(true);
   });
 
   it('ATLAS-UNIT-022: a place whose Nominatim region level is finer than the bundle (Spain province vs autonomous community) still resolves to a bundle-matching feature', async () => {
