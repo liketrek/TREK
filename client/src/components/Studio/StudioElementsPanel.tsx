@@ -1,21 +1,25 @@
-import { useState } from 'react'
-import { Minus, Quote, Square } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Minus, Quote, Search, Square, X } from 'lucide-react'
 import type { BookElement, BookPageSetup, BookShapeId } from '@trek/shared'
 import { useStudioStore } from '../../store/studioStore'
 import { FRAME_SHAPES, HOLED_SHAPES, SHAPE_GROUPS, SHAPE_PATHS } from './shapes'
 import { GRIDS, defaultGridBox, gridElements } from './grids'
 import { PanelHead } from './StudioPanelHead'
+import { FEATURED_ICONS, iconComponent, iconLabel, searchIcons } from './iconLibrary'
 
 /**
  * Everything you can add that does not come from the journey: type, shapes,
- * picture frames and photo grids.
+ * picture frames, photo grids and the icon set.
  *
- * Three tabs rather than three more entries on the rail. They are all the same
+ * Four tabs rather than four more entries on the rail. They are all the same
  * kind of answer to "what do I put on this page", and a rail long enough to
  * hold them separately stops being faster to hit than a word would be.
  */
 
 const uid = (p: string) => `${p}-${Math.random().toString(36).slice(2, 9)}`
+
+/** How many icons the grid draws at a time. Two screens' worth at four across. */
+const ICON_PAGE = 120
 
 type FrameStyle = 'none' | 'polaroid' | 'white' | 'shadow' | 'film' | 'tape'
 
@@ -74,8 +78,35 @@ function FrameStyleGlyph({ style }: { style: FrameStyle }) {
   )
 }
 
+function IconCell({ name, onPick }: { name: string; onPick: (name: string) => void }) {
+  const Icon = iconComponent(name)
+  return (
+    <button
+      className="st-shape-btn is-glyph"
+      onClick={() => onPick(name)}
+      aria-label={name}
+      title={iconLabel(name)}
+    >
+      <Icon strokeWidth={1.7} />
+    </button>
+  )
+}
+
 export function StudioElementsPanel({ page, t }: { page: BookPageSetup; t: (k: string) => string }) {
-  const [tab, setTab] = useState<'shapes' | 'frames' | 'grids'>('shapes')
+  const [tab, setTab] = useState<'shapes' | 'frames' | 'grids' | 'icons'>('shapes')
+  const [iconQuery, setIconQuery] = useState('')
+  /*
+   * How much of the library is on screen.
+   *
+   * Fourteen hundred icons is fourteen hundred React components, each a
+   * forwardRef around several SVG nodes, and rendering them all costs about a
+   * second of blocked main thread on the first click of the tab — for a grid
+   * whose first two rows are all anybody sees. So it grows as it is scrolled,
+   * and a search resets it: the results of a search are short, and starting
+   * them part-drawn would be wrong.
+   */
+  const [iconLimit, setIconLimit] = useState(ICON_PAGE)
+  const iconTail = useRef<HTMLDivElement>(null)
   const addElement = useStudioStore(s => s.addElement)
   const commit = useStudioStore(s => s.commit)
   const select = useStudioStore(s => s.select)
@@ -130,6 +161,22 @@ export function StudioElementsPanel({ page, t }: { page: BookPageSetup; t: (k: s
     } as BookElement)
   }
 
+  /**
+   * An icon, placed as a square.
+   *
+   * Square because that is what it is: unlike a shape, an icon keeps its
+   * proportions inside whatever frame it is given, so a rectangle would only
+   * pad it with air on two sides.
+   */
+  const addIcon = (name: string) => {
+    const side = Math.min(page.pageWidth, page.pageHeight) * 0.18
+    addElement(active, {
+      id: uid('i'), kind: 'icon', frame: centre(side, side),
+      rotation: 0, opacity: 1, locked: false,
+      name, color: '#111827', lineWidth: 2,
+    } as BookElement)
+  }
+
   /** An empty frame, cut to a shape and waiting for a picture. */
   const addFrame = (mask: BookShapeId | null, frameStyle: FrameStyle = 'none') => {
     const side = Math.min(page.pageWidth, page.pageHeight) * 0.45
@@ -144,6 +191,26 @@ export function StudioElementsPanel({ page, t }: { page: BookPageSetup; t: (k: s
     } as BookElement)
   }
 
+  const matchedIcons = useMemo(() => searchIcons(iconQuery), [iconQuery])
+  const shownIcons = useMemo(() => matchedIcons.slice(0, iconLimit), [matchedIcons, iconLimit])
+
+  /*
+   * Grow the grid when its foot comes into view.
+   *
+   * An observer rather than a scroll handler: the panel is the scroller, the
+   * foot is the thing that matters, and asking the browser to tell us when they
+   * meet costs nothing per frame.
+   */
+  useEffect(() => {
+    const tail = iconTail.current
+    if (!tail) return
+    const io = new IntersectionObserver(entries => {
+      if (entries.some(e => e.isIntersecting)) setIconLimit(n => n + ICON_PAGE)
+    })
+    io.observe(tail)
+    return () => io.disconnect()
+  }, [shownIcons.length, matchedIcons.length])
+
   return (
     <>
       <PanelHead label={t('journey.studio.elements')} />
@@ -157,6 +224,9 @@ export function StudioElementsPanel({ page, t }: { page: BookPageSetup; t: (k: s
         </button>
         <button className={tab === 'grids' ? 'is-on' : ''} onClick={() => setTab('grids')}>
           {t('journey.studio.grids')}
+        </button>
+        <button className={tab === 'icons' ? 'is-on' : ''} onClick={() => setTab('icons')}>
+          {t('journey.studio.icons')}
         </button>
       </div>
 
@@ -317,6 +387,54 @@ export function StudioElementsPanel({ page, t }: { page: BookPageSetup; t: (k: s
               ))}
             </div>
             <p className="st-hint" style={{ paddingTop: 8 }}>{t('journey.studio.gridHint')}</p>
+          </div>
+        )}
+
+        {tab === 'icons' && (
+          <div className="st-section">
+            {/*
+              The search sits inside the scroller rather than above the tab
+              strip, unlike the Content panel's: that one filters both of its
+              tabs, this one belongs to a single tab, and hanging it above the
+              strip would make the strip move when you switch away from it.
+            */}
+            <div className="st-search" style={{ margin: '0 0 10px' }}>
+              <Search size={14} />
+              <input
+                value={iconQuery}
+                onChange={e => { setIconQuery(e.target.value); setIconLimit(ICON_PAGE) }}
+                placeholder={t('journey.studio.searchIcons')}
+                aria-label={t('journey.studio.searchIcons')}
+                spellCheck={false}
+              />
+              {iconQuery && (
+                <button onClick={() => { setIconQuery(''); setIconLimit(ICON_PAGE) }} aria-label={t('common.clear')}>
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+            {/* The shelf, until somebody searches. */}
+            {!iconQuery && (
+              <>
+                <div className="st-section-label">{t('journey.studio.iconsForTravel')}</div>
+                <div className="st-shape-grid" style={{ marginBottom: 14 }}>
+                  {FEATURED_ICONS.map(name => (
+                    <IconCell key={name} name={name} onPick={addIcon} />
+                  ))}
+                </div>
+                <div className="st-section-label">{t('journey.studio.iconsAll')}</div>
+              </>
+            )}
+            <div className="st-shape-grid">
+              {shownIcons.map(name => (
+                <IconCell key={name} name={name} onPick={addIcon} />
+              ))}
+            </div>
+            {/* What the observer below watches for. */}
+            {shownIcons.length < matchedIcons.length && <div ref={iconTail} style={{ height: 1 }} />}
+            {!matchedIcons.length && (
+              <p className="st-hint" style={{ paddingTop: 8 }}>{t('journey.studio.noMatches')}</p>
+            )}
           </div>
         )}
       </div>

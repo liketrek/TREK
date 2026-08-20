@@ -1,8 +1,9 @@
 import type { CSSProperties } from 'react'
 import type {
-  BookElement, BookPageSetup, BookPhotoElement, BookShapeElement, BookSpread,
+  BookElement, BookIconElement, BookPageSetup, BookPhotoElement, BookShapeElement, BookSpread,
 } from '@trek/shared'
 import { FONT_STACKS, photoSrc } from './bookRender'
+import { iconComponent } from './iconLibrary'
 import { HOLED_SHAPES, SHAPE_PATHS, scalePath, unitPath } from './shapes'
 import { TravelElementView } from './TravelElements'
 import { PageNumbers } from './PageNumbers'
@@ -197,8 +198,18 @@ function PhotoView({ el, big, print, dropLabel }: {
       style={{
         position: 'absolute',
         inset: 0,
+        /*
+         * Opaque, and that is the point.
+         *
+         * The hatch used to be laid over nothing, so an empty frame showed
+         * whatever was behind it and every attempt to arrange a shape *under*
+         * one looked like it had done nothing: the frame appeared to sit at the
+         * bottom of the stack no matter where it was, right up until a
+         * photograph landed in it and it suddenly covered things. A frame is a
+         * promise that a picture goes here, and a picture is not see-through.
+         */
         background:
-          'repeating-linear-gradient(45deg, rgba(0,0,0,.045) 0 6px, rgba(0,0,0,.02) 6px 12px)',
+          'repeating-linear-gradient(45deg, rgba(0,0,0,.055) 0 6px, rgba(0,0,0,.025) 6px 12px), #ffffff', // theme-lint-disable — paper, not app chrome
         // A dashed border would be cut in half lengthwise by the clip, so a
         // masked placeholder shows its shape through the hatch alone.
         border: clipped ? undefined : '1px dashed rgba(0,0,0,.16)',
@@ -338,6 +349,31 @@ function PhotoView({ el, big, print, dropLabel }: {
   )
 }
 
+/**
+ * A lucide drawing, at the size the frame gives it.
+ *
+ * Kept proportional rather than stretched to the box. A shape is scaled by
+ * moving its points and looks deliberate at any ratio; a stroked icon does not
+ * — a stretched compass reads as a mistake — so it sits centred in whatever
+ * rectangle it was given, which is also what the handles then appear to do.
+ *
+ * The stroke follows the drawing rather than staying a fixed width, because an
+ * icon set 60mm across with a hairline is a diagram, not a mark. `lineWidth` is
+ * the weight against lucide's own 24-unit grid, exactly as the icons are drawn.
+ */
+function IconView({ el }: { el: BookIconElement }) {
+  const Icon = iconComponent(el.name)
+  return (
+    <div style={{ ...frameStyle(el), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Icon
+        color={el.color}
+        strokeWidth={el.lineWidth}
+        style={{ width: '100%', height: '100%', display: 'block' }}
+      />
+    </div>
+  )
+}
+
 export function ElementView({
   el, big, print = false, dropLabel = '',
 }: { el: BookElement; big: boolean; print?: boolean; dropLabel?: string }) {
@@ -347,12 +383,16 @@ export function ElementView({
 
   if (el.kind === 'shape') return <ShapeView el={el} />
 
+  // Above the catch-all below, which routes everything that is not text into
+  // the travel elements and draws null for anything they do not know.
+  if (el.kind === 'icon') return <IconView el={el} />
+
   if (el.kind !== 'text') {
     // map, stats, countries, badge — the elements drawn from the journey's own
     // figures. They live in their own file because they are a different kind of
     // drawing: type and vector graphics laid out from data, rather than one box
     // with one property set.
-    return <TravelElementView el={el} frameStyle={frameStyle(el)} />
+    return <TravelElementView el={el} frameStyle={frameStyle(el)} big={big} />
   }
 
   return (

@@ -9,6 +9,8 @@ import { useStudioStore } from '../../store/studioStore'
 import { formatDate } from '../../utils/formatters'
 import { SpreadFold, SpreadView } from './SpreadView'
 import { photoSrc } from './bookRender'
+import { formatBookCoords, formatBookDate, type CoordFormat } from './entryText'
+import { coordValue } from './resolveBindings'
 import { COVER_TEMPLATES, TEMPLATES, applyTemplate } from './templates'
 import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
 import { PanelHead as Head } from './StudioPanelHead'
@@ -36,6 +38,9 @@ export interface JourneySource {
     story: string | null
     location: string | null
     date: string | null
+    /** Where the stop is, when the entry recorded one. Null on a written-only entry. */
+    lat: number | null
+    lng: number | null
     mood: string | null
     weather: string | null
     pros: string[]
@@ -338,14 +343,39 @@ function ContentPanel({
     } as BookElement)
   }
 
-  const dropText = (value: string, size: number, weight: 400 | 700, entryId: number, kind: 'entry.title' | 'entry.story' | 'entry.location' | 'entry.date') => {
-    const w = page.pageWidth - 32
+  /**
+   * One piece of the entry, dropped on the page and still attached to it.
+   *
+   * `format` is what separates a place name from a set of coordinates: both
+   * read the entry's location, and which of the two gets printed is a property
+   * of the binding rather than a second source — see the contract. `width`
+   * exists because a line of coordinates arriving inside a full-column
+   * selection rectangle looks like a bug; only the short marks pass it.
+   */
+  const dropText = (
+    value: string,
+    size: number,
+    weight: 400 | 700,
+    entryId: number,
+    kind: 'entry.title' | 'entry.story' | 'entry.location' | 'entry.date',
+    opts: { format?: CoordFormat; width?: number; value?: string } = {},
+  ) => {
+    const w = opts.width ?? page.pageWidth - 32
     addElement(active, {
       id: uid('t'), kind: 'text', frame: centre(w, size * 0.4 + 10),
       rotation: 0, opacity: 1, locked: false,
       text: value, font: 'sans', size, weight, italic: false,
       align: 'left', leading: weight === 700 ? 1.1 : 1.55, tracking: weight === 700 ? -0.02 : 0,
-      color: '#1a1a1a', binding: { source: kind, entryId }, overridden: false,
+      color: '#1a1a1a',
+      binding: {
+        source: kind,
+        entryId,
+        ...(opts.format ? { format: opts.format } : {}),
+        // The fact behind the words, for the marks whose words are formatted —
+        // see `value` in the contract.
+        ...(opts.value ? { value: opts.value } : {}),
+      },
+      overridden: false,
     } as BookElement)
   }
 
@@ -364,6 +394,8 @@ function ContentPanel({
   const dropMark = (variant: 'mood' | 'weather', code: string, label: string) =>
     addElement(active, {
       ...base, id: uid('bd'), kind: 'badge', autoColor: true,
+      // Set here as well as in the contract: this object is cast, not parsed.
+      showIcon: true, showLabel: true, autoIconColor: true, iconColor: '#111111',
       frame: centre(page.pageWidth * 0.22, page.pageHeight * 0.062),
       variant, text: label, sub: '', code, style: 'plain',
     } as BookElement)
@@ -471,6 +503,33 @@ function ContentPanel({
                   {e.location && (
                     <button className="st-chip" onClick={() => dropText(e.location!, 8, 700, e.id, 'entry.location')}>
                       {t('journey.studio.addPlace')}
+                    </button>
+                  )}
+                  {/*
+                    The day and the point. Both are set the way the rest of the
+                    book sets them — the long date, coordinates in degrees — so a
+                    mark placed here and one the auto layout placed read alike.
+                  */}
+                  {e.date && (
+                    <button
+                      className="st-chip"
+                      onClick={() => dropText(
+                        formatBookDate(e.date!, locale), 8, 700, e.id, 'entry.date',
+                        { width: page.pageWidth * 0.36, value: e.date! },
+                      )}
+                    >
+                      {t('journey.studio.dateMark')}
+                    </button>
+                  )}
+                  {e.lat != null && e.lng != null && (
+                    <button
+                      className="st-chip"
+                      onClick={() => dropText(
+                        formatBookCoords(e.lat!, e.lng!, 'dms'), 8, 700, e.id, 'entry.location',
+                        { format: 'dms', width: page.pageWidth * 0.36, value: coordValue(e.lat!, e.lng!) },
+                      )}
+                    >
+                      {t('journey.studio.coordsMark')}
                     </button>
                   )}
                   {/*
