@@ -5,7 +5,7 @@ import { FileText, Info, Clock, MapPin, Navigation, Train, Plane, Bus, Car, Ship
 import { accommodationsApi, mapsApi, pluginsApi } from '../../api/client'
 import type { Trip, Day, Place, Category, AssignmentsMap, DayNote } from '../../types'
 import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
-import { hidesOnMiddleDay } from '../../utils/dayMerge'
+import { hidesOnMiddleDay, getTransportForDay, getMergedItems, getSpanPhase, getDisplayTimeForDay } from '../../utils/dayMerge'
 import { safeHexColor } from '../../utils/safeColor'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import { formatMoney, formatMoneySum, splitReservationDateTime, type MoneyEntry } from '../../utils/formatters'
@@ -209,22 +209,19 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
   const fxRates = needsFx ? await fetchExchangeRates(tripCur) : null
   const totalCostLabel = formatMoneySum(allCostEntries, tripCur, loc || 'en', fxRates)
 
-  // Span helpers for multi-day transport (mirrors DayPlanSidebar logic)
-  const pdfGetDayOrder = (d: Day) => d.day_number
-  const pdfGetSpanPhase = (r: any, dayId: number): 'single' | 'start' | 'middle' | 'end' => {
-    const startId = r.day_id
-    const endId = r.end_day_id ?? startId
-    if (!startId || startId === endId) return 'single'
-    if (dayId === startId) return 'start'
-    if (dayId === endId) return 'end'
-    return 'middle'
-  }
-  const pdfGetDisplayTime = (r: any, dayId: number): string | null => {
-    const phase = pdfGetSpanPhase(r, dayId)
-    if (phase === 'end') return r.reservation_end_time || null
-    if (phase === 'middle') return null
-    return r.reservation_time || null
-  }
+  /*
+   * The span label is the only PDF-specific piece left here. Everything else
+   * about how a day is ordered — which transports belong to it, what time each
+   * one shows, where it sits among the places — comes from utils/dayMerge, the
+   * same functions the day plan itself uses (#1978).
+   *
+   * There used to be a second implementation in this file. It ordered by
+   * `day_plan_position`, which is one global number per booking, seeded from
+   * whichever day happened to render first; on any other day of a span it
+   * pointed at the wrong slot, and when it was still null the export fell back
+   * to the order the API returned. That is why the PDF was right some of the
+   * time and swapped two bookings the rest of it.
+   */
   const pdfGetSpanLabel = (r: any, phase: string): string | null => {
     if (phase === 'single') return null
     if (r.type === 'flight') return tr(`reservations.span.${phase === 'start' ? 'departure' : phase === 'end' ? 'arrival' : 'inTransit'}`)
@@ -234,47 +231,43 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
     if (r.type === 'parking') return tr(`reservations.span.${phase === 'start' ? 'dropOff' : phase === 'end' ? 'pickup' : 'ongoing'}`)
     return tr(`reservations.span.${phase === 'start' ? 'start' : phase === 'end' ? 'end' : 'ongoing'}`)
   }
-  const pdfGetTransportForDay = (dayId: number) => (reservations || []).filter(r => {
-    if (r.type === 'hotel') return false
-    const startId = r.day_id
-    const endId = r.end_day_id ?? startId
-    if (startId == null) return false
-    if (endId !== startId) {
-      const startDay = sorted.find(d => d.id === startId)
-      const endDay = sorted.find(d => d.id === endId)
-      const thisDay = sorted.find(d => d.id === dayId)
-      if (!startDay || !endDay || !thisDay) return false
-      return pdfGetDayOrder(thisDay) >= pdfGetDayOrder(startDay) && pdfGetDayOrder(thisDay) <= pdfGetDayOrder(endDay)
-    }
-    return startId === dayId
-  })
-
   // Build day HTML
   const daysHtml = sorted.map((day, di) => {
-    const assigned = assignments[String(day.id)] || []
-    const notes = (dayNotes || []).filter(n => n.day_id === day.id)
+    const assigned = (assignments[String(day.id)] || []).slice()
+      .sort((a: any, b: any) => (a.order_index ?? 0) - (b.order_index ?? 0))
+    const notes = (dayNotes || []).filter(n => n.day_id === day.id).slice()
+      .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
     const cost = dayCost(assignments, day.id, loc, tripCur, fxRates)
 
-    // Reservations for this day (hotel rendered via accommodations block; car middle-phase rendered in sidebar header only,
-    // a multi-day parking's middle days nowhere at all)
-    const dayReservations = pdfGetTransportForDay(day.id)
-      .filter(r => !(r.type === 'car' && pdfGetSpanPhase(r, day.id) === 'middle'))
-      .filter(r => !hidesOnMiddleDay(r, day.id))
-
-    const merged = []
-    assigned.forEach(a => merged.push({ type: 'place', k: a.order_index ?? 0, data: a }))
-    notes.forEach(n    => merged.push({ type: 'note',  k: n.sort_order ?? 0, data: n }))
-    dayReservations.forEach(r => {
-      const pos = r.day_positions?.[day.id] ?? r.day_positions?.[String(day.id)] ?? r.day_plan_position ?? (merged.length > 0 ? Math.max(...merged.map(m => m.k)) + 0.5 : 0.5)
-      merged.push({ type: 'reservation', k: pos, data: r })
+    // Assembled exactly the way DayPlanSidebar assembles it, so the page and the
+    // print cannot disagree about what order a day is in.
+    const dayTransports = getTransportForDay({
+      reservations: reservations || [],
+      dayId: day.id,
+      dayAssignmentIds: assigned.map((a: any) => a.id),
+      days: sorted,
     })
-    merged.sort((a, b) => a.k - b.k)
+
+    // Hotels come out in the accommodations block, a rental car's middle days
+    // appear only in the sidebar header, and a multi-day parking's middle days
+    // nowhere at all.
+    const merged = getMergedItems({
+      dayAssignments: assigned,
+      dayNotes: notes,
+      dayTransports,
+      dayId: day.id,
+    }).filter(item => {
+      if (item.type !== 'transport') return true
+      const r: any = item.data
+      if (r.type === 'car' && getSpanPhase(r, day.id) === 'middle') return false
+      return !hidesOnMiddleDay(r, day.id)
+    })
 
     let pi = 0
     const itemsHtml = merged.length === 0
       ? `<div class="empty-day">${escHtml(tr('dayplan.emptyDay'))}</div>`
       : merged.map(item => {
-          if (item.type === 'reservation') {
+          if (item.type === 'transport') {
             const r = item.data
             const meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata || '{}') : (r.metadata || {})
             const icon = reservationIconSvg(r.type)
@@ -282,7 +275,30 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
             let subtitle = ''
             // Flights render one subtitle line per leg (see below); everything else is a single line.
             let subtitleLines: string[] = []
-            if (r.type === 'flight') {
+            /*
+             * A multi-leg booking arrives as one item per leg now, the way the
+             * day plan shows it, because the shared merge expands legs so each
+             * one can sit at its own time among the day's places. Previously
+             * the export printed a single row with every leg as a subtitle
+             * line, which put the second leg's departure next to the first
+             * leg's clock.
+             */
+            if (r.__leg) {
+              const l = r.__leg
+              // The segment's own booking code, which the leg object does not
+              // carry — read back from the booking by index. At the gate that is
+              // the code the airline asks for (#1943), so losing it here would
+              // have been a real regression for a stopover flight.
+              const source = (r.type === 'train' ? getTrainLegs(r) : getFlightLegs(r))[l.index]
+              subtitleLines = [[
+                l.airline, l.flight_number, l.train_number,
+                l.platform ? `Gl. ${l.platform}` : '',
+                l.seat ? `Seat ${l.seat}` : '',
+                (l.from || l.to) ? [l.from, l.to].filter(Boolean).join(' → ') : '',
+                source?.confirmation_number,
+              ].filter(Boolean).join(' · ')].filter(Boolean)
+            }
+            else if (r.type === 'flight') {
               const legs = getFlightLegs(r)
               if (legs.length > 1) {
                 // Multi-leg: one line per leg so every flight number + segment route is
@@ -324,9 +340,9 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
             else if (r.type === 'tour') subtitle = [meta.operator].filter(Boolean).join(' · ')
             if (subtitleLines.length === 0 && subtitle) subtitleLines = [subtitle]
             const locationLine = r.location || meta.location || ''
-            const phase = pdfGetSpanPhase(r, day.id)
+            const phase = getSpanPhase(r, day.id)
             const spanLabel = pdfGetSpanLabel(r, phase)
-            const displayTime = pdfGetDisplayTime(r, day.id)
+            const displayTime = getDisplayTimeForDay(r, day.id)
             // Start and end, the way the day plan draws it (#1310). Without the
             // landing time a flight reads as an open-ended block and the reader
             // cannot tell how much of the day is left for anything else.

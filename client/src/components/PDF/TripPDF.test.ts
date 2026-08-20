@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw'
 import { downloadTripPDF } from './TripPDF'
 import { server } from '../../../tests/helpers/msw/server'
 import { clearExchangeRateCache } from '../../hooks/useExchangeRates'
+import { getMergedItems, getTransportForDay } from '../../utils/dayMerge'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -1094,5 +1095,116 @@ describe('page breaks between days (#1292)', () => {
     // Scoped: a day that starts its own page cannot strand a header.
     const at = html.indexOf('.day-section { break-inside: avoid')
     expect(html.slice(at - 10, at)).toContain('.pdf-flow ')
+  })
+})
+
+/**
+ * The order a day prints in (#1978).
+ *
+ * The export used to order a day by itself, on `day_plan_position` — one global
+ * number per booking, auto-seeded from whichever day happened to render first.
+ * On any other day of a span it therefore pointed at the wrong slot, and where
+ * it was still null the export fell back to the order the API returned rows in.
+ * That is why the same trip printed correctly some of the time and swapped two
+ * bookings the rest of it, and why adding a place and removing it again "fixed"
+ * it: the reseed happened to land on the day being looked at.
+ *
+ * It now goes through utils/dayMerge, the same functions the day plan uses, so
+ * the two cannot disagree. These cases are written from the plan's rules rather
+ * than from the old implementation's.
+ */
+describe('a printed day follows the plan (#1978)', () => {
+  const d1 = { id: 21, day_number: 1, title: 'Day One', date: '2025-06-01' } as any
+  const d2 = { id: 22, day_number: 2, title: 'Day Two', date: '2025-06-02' } as any
+  const srcdoc = () => getIframe()!.srcdoc
+
+  /** Where each needle first appears, so order can be asserted without parsing. */
+  const positions = (html: string, needles: string[]) => needles.map(n => html.indexOf(n))
+
+  it('orders the day by the clock, not by the order the API sent rows in', async () => {
+    await downloadTripPDF({
+      ...minimalArgs,
+      trip: { id: 21, title: 'Order Trip', description: null, cover_image: null } as any,
+      days: [d1],
+      // As the API returns them: reservation_time ASC with nulls first.
+      reservations: [
+        { id: 1, title: 'Untimed Transfer', type: 'transfer', day_id: 21, reservation_time: null },
+        { id: 2, title: 'Evening Train', type: 'train', day_id: 21, reservation_time: '2025-06-01T19:30' },
+        { id: 3, title: 'Morning Flight', type: 'flight', day_id: 21, reservation_time: '2025-06-01T07:15' },
+      ],
+    })
+    const [morning, evening] = positions(srcdoc(), ['Morning Flight', 'Evening Train'])
+    expect(morning).toBeGreaterThan(-1)
+    expect(evening).toBeGreaterThan(-1)
+    expect(morning).toBeLessThan(evening)
+  })
+
+  /*
+   * The reported shape: a booking on the last day of a span whose global
+   * position was seeded from a busier earlier day, which sank it below
+   * everything on the day it actually belongs to.
+   */
+  it('ignores a global position seeded from another day', async () => {
+    await downloadTripPDF({
+      ...minimalArgs,
+      trip: { id: 22, title: 'Span Trip', description: null, cover_image: null } as any,
+      days: [d1, d2],
+      reservations: [
+        {
+          id: 4, title: 'Car Return', type: 'car', day_id: 21, end_day_id: 22,
+          reservation_time: '2025-06-01T10:00', reservation_end_time: '2025-06-02T09:00',
+          // Seeded from day one, where five places had already been placed.
+          day_plan_position: 5,
+        },
+        { id: 5, title: 'Late Flight', type: 'flight', day_id: 22, reservation_time: '2025-06-02T18:00' },
+      ],
+    })
+    const html = srcdoc()
+    // On day two the 09:00 return comes before the 18:00 flight, whatever the
+    // stale global position says.
+    const [ret, flight] = positions(html, ['Car Return', 'Late Flight'])
+    expect(ret).toBeGreaterThan(-1)
+    expect(flight).toBeGreaterThan(-1)
+    expect(ret).toBeLessThan(flight)
+  })
+
+  /*
+   * The strongest form of the same claim: whatever the plan would show, the
+   * print shows, in that order. Asserted against getMergedItems itself rather
+   * than against a hand-written expectation, so the two cannot drift apart
+   * again without this failing.
+   */
+  it('prints a mixed day in exactly the order the plan merges it', async () => {
+    const reservations = [
+      { id: 8, title: 'Untimed Transfer', type: 'transfer', day_id: 21, reservation_time: null },
+      { id: 9, title: 'Evening Train', type: 'train', day_id: 21, reservation_time: '2025-06-01T19:30' },
+      { id: 10, title: 'Morning Flight', type: 'flight', day_id: 21, reservation_time: '2025-06-01T07:15' },
+    ]
+    const dayAssignments = [
+      { id: 100, day_id: 21, order_index: 0, place: { id: 1, name: 'Museum', place_time: '11:00' } },
+      { id: 101, day_id: 21, order_index: 1, place: { id: 2, name: 'Market', place_time: '16:00' } },
+    ]
+
+    await downloadTripPDF({
+      ...minimalArgs,
+      trip: { id: 24, title: 'Mixed Trip', description: null, cover_image: null } as any,
+      days: [d1],
+      assignments: { '21': dayAssignments } as any,
+      reservations,
+    })
+    const html = srcdoc()
+
+    const expected = getMergedItems({
+      dayAssignments,
+      dayNotes: [],
+      dayTransports: getTransportForDay({
+        reservations, dayId: 21, dayAssignmentIds: dayAssignments.map(a => a.id), days: [d1],
+      }),
+      dayId: 21,
+    }).map(item => (item.type === 'place' ? item.data.place.name : item.data.title))
+
+    const seen = expected.map(name => html.indexOf(name))
+    for (const at of seen) expect(at).toBeGreaterThan(-1)
+    expect(seen).toEqual([...seen].sort((a, b) => a - b))
   })
 })
