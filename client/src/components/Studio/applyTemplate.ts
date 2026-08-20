@@ -1,5 +1,7 @@
 import type { BookElement, BookPageSetup, BookSpread, JourneyStats } from '@trek/shared'
 import type { SpreadTemplate } from './bookTemplates.data'
+import { formatBookCoords, formatBookDate } from './entryText'
+import { coordValue } from './resolveBindings'
 
 /**
  * Laying an entry out on a template somebody drew.
@@ -131,10 +133,27 @@ export function applyTemplate(
 
     if (out.kind === 'text' && out.binding) {
       const source = out.binding.source
+      const format = out.binding.format
+      // What the words were made from, where they were made rather than copied.
+      let value: string | undefined
       if (source === 'entry.title') out.text = heading
       else if (source === 'entry.story') out.text = story
-      else if (source === 'entry.date') out.text = formatDate(entry.date, ctx.locale)
-      out.binding = { ...out.binding, entryId: entry.id }
+      else if (source === 'entry.date') {
+        out.text = formatBookDate(entry.date, ctx.locale)
+        value = entry.date ?? undefined
+      }
+      // The place, as its name or as its point — see the `format` note in the
+      // contract. A stop the entry cannot answer keeps the words the template
+      // was drawn with, the same bargain fillBadge makes below.
+      else if (source === 'entry.location') {
+        if (format && entry.lat != null && entry.lng != null) {
+          out.text = formatBookCoords(entry.lat, entry.lng, format)
+          value = coordValue(entry.lat, entry.lng)
+        } else if (!format && entry.location) {
+          out.text = entry.location
+        }
+      }
+      out.binding = { ...out.binding, entryId: entry.id, ...(value ? { value } : {}) }
     }
 
     if (out.kind === 'photo' && out.photoId == null) {
@@ -188,7 +207,7 @@ function fillBadge(el: BookElement & { kind: 'badge' }, entry: TemplateEntry, ct
     el.text = `${ctx.dayLabel} ${entry.dayNumber}`
   }
   if (el.variant === 'coords' && entry.lat != null && entry.lng != null) {
-    el.text = coords(entry.lat, entry.lng)
+    el.text = formatBookCoords(entry.lat, entry.lng)
   }
   if ((el.variant === 'flag' || el.variant === 'country') && entry.country) {
     el.code = entry.country
@@ -213,26 +232,6 @@ function countryName(code: string, ctx: TemplateContext): string {
   } catch {
     return known?.name ?? code
   }
-}
-
-/** Degrees, minutes and seconds, the way a place page prints them. */
-function coords(lat: number, lng: number): string {
-  const dms = (v: number, pos: string, neg: string) => {
-    const hemisphere = v >= 0 ? pos : neg
-    const abs = Math.abs(v)
-    const deg = Math.floor(abs)
-    const min = Math.floor((abs - deg) * 60)
-    const sec = Math.round((((abs - deg) * 60) - min) * 60)
-    return `${deg}° ${min}' ${sec}" ${hemisphere}`
-  }
-  return `${dms(lat, 'N', 'S')}   ${dms(lng, 'E', 'W')}`
-}
-
-function formatDate(iso: string | null, locale: string): string {
-  if (!iso) return ''
-  const d = new Date(`${iso}T00:00:00`)
-  if (Number.isNaN(d.getTime())) return ''
-  return d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100

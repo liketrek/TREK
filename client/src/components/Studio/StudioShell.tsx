@@ -94,6 +94,7 @@ export default function StudioShell() {
             spreadIndex={s.activeSpread}
             page={s.page}
             stats={s.stats}
+            source={s.source}
             setPageNumbers={s.setPageNumbers}
             t={s.t}
             locale={s.locale}
@@ -377,6 +378,35 @@ function FormatPicker({ s }: { s: Studio }) {
               label={s.t('journey.studio.height')}
               value={s.page.pageHeight}
               onCommit={v => s.setPageSize('h', v)}
+            />
+            <span className="st-menu-unit">mm</span>
+          </div>
+
+          {/*
+            What the press takes off, and what it must not print into.
+
+            Under the trim size because they answer the same question — how big
+            is this book, really — and because a vendor states all three in one
+            breath. They were fixed at 3 and 5, which is what most photo-book
+            printers ask for and is useless to the one that asks for 5 and 10.
+          */}
+          <div className="st-menu-custom">
+            <TrimField
+              label={s.t('journey.studio.bleed')}
+              value={s.page.bleed}
+              min={0}
+              max={20}
+              step={0.5}
+              onCommit={v => s.setPageEdge('bleed', v)}
+            />
+            <span className="st-menu-times" />
+            <TrimField
+              label={s.t('journey.studio.safeArea')}
+              value={s.page.safe}
+              min={0}
+              max={40}
+              step={0.5}
+              onCommit={v => s.setPageEdge('safe', v)}
             />
             <span className="st-menu-unit">mm</span>
           </div>

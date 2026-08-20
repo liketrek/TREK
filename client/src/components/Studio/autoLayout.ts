@@ -3,6 +3,7 @@ import type {
 } from '@trek/shared'
 import { SPREAD_TEMPLATES } from './bookTemplates.data'
 import { applyTemplate, templateFit } from './applyTemplate'
+import { formatBookCoords, formatBookDate } from './entryText'
 
 /**
  * The auto mode: turn a journey into a book.
@@ -84,6 +85,16 @@ export interface AutoInput {
   stationsLabel: string
   /** The word before a day number on a chip — "DAY 5". Already translated. */
   dayLabel: string
+  /**
+   * The real geometry of the route, when the journey has any.
+   *
+   * GPX and KML imports are the only thing in TREK that stores an actual path
+   * — every other route is a straight line between stops. The editor already
+   * fetches it for the Travel panel; an auto-laid-out book used to hard-code an
+   * empty array here and throw it away, which is why the one journey with a
+   * recorded track still printed a map drawn with a ruler.
+   */
+  path?: [number, number][][]
   /** "TRIP SUMMARY" over the figures. */
   summaryLabel: string
   /** "COUNTRIES" over the outlines. */
@@ -243,15 +254,24 @@ function mapEl(
     showRoute: true,
     showPins: true,
     showLabels: false,
+    // The drawn line, for the same reason the panel places one: the contract
+    // stays plain so old books do not change, and new books look like a book.
+    routeStyle: 'drawn',
+    routeArc: 'bow',
+    routeDash: 'arcs',
+    pinStyle: 'photo',
     countries: stats.countries.map(c => c.code),
-    points: stats.points.map(pt => ({ lat: pt.lat, lng: pt.lng, label: pt.label })),
+    points: stats.points.map(pt => ({
+      lat: pt.lat, lng: pt.lng, label: pt.label, photoId: pt.photoId ?? null,
+    })),
     /*
      * The fields the contract would default for a parsed element, spelled out
      * because this one is cast. `path` in particular is read as an array while
      * the map draws, so leaving it out is not a cosmetic difference.
      */
     path: [],
-    fitPadding: 0.18,
+    roads: [],
+    fitPadding: 0.5,
     fitToCountries: true,
     clip: 'rect',
     ...opts,
@@ -300,6 +320,10 @@ function badgeEl(
     // apply: left out, a mark reads as having been given a colour, and a chip
     // draws its words in ink on an ink-coloured capsule.
     autoColor: true,
+    showIcon: true,
+    showLabel: true,
+    autoIconColor: true,
+    iconColor: INK,
     ...opts,
   } as BookElement
 }
@@ -338,16 +362,8 @@ function coordsMark(
   lng: number | null | undefined,
 ): BookElement | null {
   if (lat == null || lng == null) return null
-  const dms = (v: number, positive: string, negative: string) => {
-    const hemisphere = v >= 0 ? positive : negative
-    const abs = Math.abs(v)
-    const deg = Math.floor(abs)
-    const min = Math.floor((abs - deg) * 60)
-    const sec = Math.round((((abs - deg) * 60) - min) * 60)
-    return `${deg}° ${min}' ${sec}" ${hemisphere}`
-  }
   return badgeEl(frame, 'coords', {
-    text: `${dms(lat, 'N', 'S')}   ${dms(lng, 'E', 'W')}`,
+    text: formatBookCoords(lat, lng),
   }, { style: 'plain', textScale: 0.7 })
 }
 
@@ -425,15 +441,22 @@ function placeMap(
     id: uid('mp'),
     kind: 'map',
     frame,
-    points: [{ lat: entry.lat, lng: entry.lng, label: entry.location ?? '' }],
+    points: [{ lat: entry.lat, lng: entry.lng, label: entry.location ?? '', photoId: null }],
     countries: entry.country ? [entry.country] : (stats?.countries.map(c => c.code) ?? []),
     style: 'minimal',
     source: 'vector',
     tileUrl: '',
     attribution: '',
     zoom: 5,
+    // Deliberately the plain treatment: this is one dot on a country outline,
+    // and a bowed casing around a single stop would be decoration.
+    routeStyle: 'plain',
+    routeArc: 'straight',
+    routeDash: 'solid',
+    pinStyle: 'dot',
     path: [],
-    fitPadding: 0.18,
+    roads: [],
+    fitPadding: 0.5,
     /*
      * This one is the "where in the world was this" mark beside an entry, so it
      * wants the country whole with a dot in it — the opposite of the route map,
@@ -464,13 +487,6 @@ function dateMark(iso: string | null, locale: string, frame: { x: number; y: num
     text: String(d.getDate()),
     sub: d.toLocaleDateString(locale, { month: 'long' }).toUpperCase(),
   }, { style: 'stacked' })
-}
-
-function formatDate(iso: string | null, locale: string): string {
-  if (!iso) return ''
-  const d = new Date(iso + 'T00:00:00')
-  if (Number.isNaN(d.getTime())) return ''
-  return d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 /** A full-bleed frame: out past the trim on every side the page is cut on. */
@@ -569,11 +585,13 @@ function stationsSpread(entries: AutoEntry[], input: AutoInput, label: string): 
     const w = W - m * 2
     column.forEach((entry, i) => {
       const y = top + i * step
-      const date = formatDate(entry.date, input.locale)
+      const date = formatBookDate(entry.date, input.locale)
       if (date) {
+        // Set in small caps, so the words on the page are not the words in the
+        // journal — and a bound element has to hold exactly its source or
+        // opening the book would quietly rewrite it. See resolveBindings.ts.
         els.push(text({ x, y, w: w * 0.32, h: 5 }, date.toUpperCase(), {
           size: 7, weight: 600, tracking: 0.1, color: '#a09a8e', // theme-lint-disable — book ink, not app chrome
-          binding: { source: 'entry.date', entryId: entry.id },
         }))
       }
       const name = entry.title || entry.location || ''
@@ -699,16 +717,17 @@ function headingBlock(
   const ink = opts.ink ?? '#141414' // theme-lint-disable — book ink, not app chrome
   const muted = opts.muted ?? '#8a8578' // theme-lint-disable — book ink, not app chrome
   const heading = entry.title || entry.location || ''
-  const meta = [formatDate(entry.date, input.locale), entry.location].filter(Boolean).join('  ·  ')
+  const meta = [formatBookDate(entry.date, input.locale), entry.location].filter(Boolean).join('  ·  ')
   let cy = y
 
   if (meta || heading) {
     els.push(shape({ x, y: cy - 6, w: Math.min(14, w * 0.18), h: 0.5 }, ACCENT))
   }
   if (meta) {
+    // Two facts run together and upper-cased: neither the date nor the place as
+    // the journal holds them, so this line is not bound to either.
     els.push(text({ x, y: cy, w, h: 5 }, meta.toUpperCase(), {
       size: 7.5, weight: 600, tracking: 0.14, color: muted,
-      binding: { source: 'entry.date', entryId: entry.id },
     }))
     cy += 8
   }
@@ -1290,7 +1309,9 @@ function summarySpread(input: AutoInput): BookSpread | null {
   const els: BookElement[] = []
 
   if (stats.points.length >= 2) {
-    els.push(mapEl({ x: m, y: m, w: W - m * 2, h: H - m * 2 }, stats))
+    // With the recorded track, when the journey has one: the editor fetches it
+    // and this was the line that threw it away.
+    els.push(mapEl({ x: m, y: m, w: W - m * 2, h: H - m * 2 }, stats, { path: input.path ?? [] }))
   }
 
   // Which figures are worth the space: everything the journey actually has.
@@ -1431,7 +1452,7 @@ function backSpread(input: AutoInput): BookSpread {
     .filter((d): d is string => !!d)
     .sort()
   const span = dates.length
-    ? [formatDate(dates[0], input.locale), formatDate(dates[dates.length - 1], input.locale)].filter(Boolean).join(' — ')
+    ? [formatBookDate(dates[0], input.locale), formatBookDate(dates[dates.length - 1], input.locale)].filter(Boolean).join(' — ')
     : ''
 
   els.push(shape({ x: -page.bleed, y: -page.bleed, w: page.pageWidth + page.bleed * 2, h: page.pageHeight + page.bleed * 2 }, '#141414')) // theme-lint-disable — book ink, not app chrome
@@ -1532,6 +1553,31 @@ export function buildBook(input: AutoInput): BookDocument {
     title: input.title,
     page: input.page,
     spreads: spreads.slice(0, 150),
+  }
+}
+
+/**
+ * A book nobody has laid out yet.
+ *
+ * What a journey with no book now opens on. It used to open on the auto layout,
+ * which was generous and wrong: it decided what the book was before its author
+ * had said anything, and everything after that was undoing rather than making.
+ * The layout is still one click away, on the Auto layout menu, and it reads
+ * very differently when it is offered than when it has already happened.
+ *
+ * The covers are here rather than left out because a book has them and there is
+ * no other way to add one: the pages rail only inserts inner spreads, between
+ * the two. Empty, though, in the same way the page between them is.
+ */
+export function emptyBook(input: AutoInput): BookDocument {
+  const blank = (role: BookSpread['role']): BookSpread => ({
+    id: uid('sp'), role, background: null, elements: [], parked: [], entryId: null,
+  })
+  return {
+    version: 1,
+    title: input.title,
+    page: input.page,
+    spreads: [blank('cover'), blank('inner'), blank('back')],
   }
 }
 

@@ -8,7 +8,7 @@ import { describe, it, expect, vi } from 'vitest'
  */
 vi.mock('../../../src/components/Studio/bookTemplates.data', () => ({ SPREAD_TEMPLATES: [] }))
 import type { BookPageSetup, BookSpread, JourneyStats } from '@trek/shared'
-import { buildBook, type AutoEntry, type AutoInput } from '../../../src/components/Studio/autoLayout'
+import { buildBook, emptyBook, type AutoEntry, type AutoInput } from '../../../src/components/Studio/autoLayout'
 import { bookPageSetupSchema } from '@trek/shared'
 
 /**
@@ -39,9 +39,10 @@ const stats = (over: Partial<JourneyStats> = {}): JourneyStats => ({
   furthest: 408_000,
   countries: [{ code: 'IS', name: 'Iceland', places: 14, firstVisit: '2026-06-02' }],
   points: [
-    { lat: 64.14, lng: -21.94, label: 'Reykjavík', date: '2026-06-02', country: 'IS' },
-    { lat: 65.68, lng: -18.12, label: 'Akureyri', date: '2026-06-06', country: 'IS' },
+    { lat: 64.14, lng: -21.94, label: 'Reykjavík', date: '2026-06-02', country: 'IS', tripId: null, photoId: null },
+    { lat: 65.68, lng: -18.12, label: 'Akureyri', date: '2026-06-06', country: 'IS', tripId: null, photoId: null },
   ],
+  trips: [],
   start: '2026-06-02',
   end: '2026-06-15',
   ...over,
@@ -275,5 +276,55 @@ describe('the document as a whole', () => {
     expect(last(doc.spreads).role).toBe('back')
     expect(doc.spreads.filter(sp => sp.role === 'cover')).toHaveLength(1)
     expect(doc.spreads.filter(sp => sp.role === 'back')).toHaveLength(1)
+  })
+})
+
+/**
+ * What a journey with no book opens on (#1973).
+ *
+ * The auto layout used to run on first open, which decided what the book was
+ * before its author had said anything. It is now on the Auto layout menu and
+ * this is what takes its place: a book with nothing on its pages, and both
+ * covers present because the pages rail can only ever insert between them.
+ */
+describe('an empty book', () => {
+  const input: AutoInput = {
+    locale: 'en',
+    title: 'Iceland',
+    subtitle: null,
+    coverPhotoId: null,
+    stationsLabel: 'Stations',
+    dayLabel: 'DAY',
+    summaryLabel: 'Trip summary',
+    countriesLabel: 'Countries',
+    entries: [entry()],
+    page,
+    stats: stats(),
+  }
+
+  it('has a cover, a page and a back cover, and nothing on any of them', () => {
+    const doc = emptyBook(input)
+    expect(doc.spreads.map(s => s.role)).toEqual(['cover', 'inner', 'back'])
+    expect(doc.spreads.every(s => s.elements.length === 0)).toBe(true)
+    expect(doc.spreads.every(s => s.background === null)).toBe(true)
+  })
+
+  it('carries the journey title and the page setup it was given', () => {
+    const doc = emptyBook(input)
+    expect(doc.title).toBe('Iceland')
+    expect(doc.page.pageWidth).toBe(page.pageWidth)
+  })
+
+  it('gives every spread its own id', () => {
+    const ids = emptyBook(input).spreads.map(s => s.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  /*
+   * The layout is still there, on the menu. This is the difference between
+   * offering it and having already applied it.
+   */
+  it('is what the auto layout replaces when somebody asks for it', () => {
+    expect(buildBook(input).spreads.length).toBeGreaterThan(emptyBook(input).spreads.length)
   })
 })
