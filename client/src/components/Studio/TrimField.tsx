@@ -18,11 +18,23 @@ import { PAGE_MAX_MM, PAGE_MIN_MM } from './pagePresets'
  * book, not the one they had.
  */
 export function TrimField({
-  label, value, onCommit,
+  label, value, onCommit, min = PAGE_MIN_MM, max = PAGE_MAX_MM, step = 1,
 }: {
   label: string
   value: number
   onCommit: (mm: number) => void
+  /**
+   * The range this particular measurement lives in.
+   *
+   * Defaulted to the page's own, which is what the field was built for. The
+   * bleed and the safe margin are millimetres of the same kind and want the
+   * same field, but a floor of 60mm would make a 3mm bleed untypeable and its
+   * arrows useless — the range is a property of the measurement, not of the
+   * control.
+   */
+  min?: number
+  max?: number
+  step?: number
 }) {
   const [draft, setDraft] = useState<string | null>(null)
   const shown = draft ?? String(Math.round(value * 10) / 10)
@@ -41,16 +53,16 @@ export function TrimField({
         type="number"
         inputMode="decimal"
         value={shown}
-        min={PAGE_MIN_MM}
-        max={PAGE_MAX_MM}
-        step={1}
+        min={min}
+        max={max}
+        step={step}
         onChange={e => {
           const raw = e.target.value
           setDraft(raw)
           // Anything already usable goes straight through, so the arrows and a
           // fully typed number both take effect without waiting for a blur.
           const n = Number(raw)
-          if (raw !== '' && Number.isFinite(n) && n >= PAGE_MIN_MM && n <= PAGE_MAX_MM) {
+          if (raw !== '' && Number.isFinite(n) && n >= min && n <= max) {
             setDraft(null)
             onCommit(n)
           }

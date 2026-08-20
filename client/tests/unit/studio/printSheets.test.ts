@@ -46,6 +46,24 @@ describe('the document', () => {
     expect(frame().srcdoc).toContain('@page { size: 224mm 303mm; margin: 0; }')
   })
 
+  /*
+   * Hyphenation is off in every browser until the language is known, so a
+   * heading the editor had broken as "Lorem ip-sum" printed unbroken, ran past
+   * its frame and was clipped. The editor's own lang is what makes the export
+   * agree with what was proofread.
+   */
+  it('carries the app language over, which is what lets the export hyphenate', () => {
+    document.documentElement.lang = 'de'
+    open()
+    expect(frame().srcdoc).toContain('<html lang="de">')
+  })
+
+  it('falls back to English rather than leaving the language unsaid', () => {
+    document.documentElement.lang = ''
+    open()
+    expect(frame().srcdoc).toContain('<html lang="en">')
+  })
+
   it('puts the sheets in the body', () => {
     open({ html: '<div class="bx-sheet">page one</div>' })
     expect(frame().srcdoc).toContain('<body><div class="bx-sheet">page one</div></body>')

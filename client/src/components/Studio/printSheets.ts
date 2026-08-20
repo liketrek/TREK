@@ -113,8 +113,21 @@ function escapeText(value: string): string {
  * photographs were.
  */
 export function printSheets(input: PrintSheetsInput): () => void {
+  /*
+   * The document's language, carried over from the editor.
+   *
+   * Not decoration: `hyphens: auto` does nothing at all until the browser knows
+   * which language's rules to break the words by, and it reads that from the
+   * nearest `lang`. Without it a heading the editor had set as "Lorem ip-sum"
+   * came out unhyphenated in the export, ran past its own frame and was clipped
+   * — the one place where what you proofread and what you print disagreed.
+   * TranslationContext sets this on the app, so taking it from there is what
+   * makes the two agree by construction rather than by a second setting.
+   */
+  const lang = document.documentElement.lang || 'en'
+
   const doc = `<!doctype html>
-<html>
+<html lang="${escapeAttr(lang)}">
 <head>
 <meta charset="utf-8">
 <title>${escapeText(input.title)}</title>
@@ -254,16 +267,34 @@ async function whenReady(iframe: HTMLIFrameElement): Promise<void> {
   const doc = iframe.contentDocument
   if (!win || !doc) return
 
-  const images = Array.from(doc.images).map(img =>
-    img.complete
-      ? Promise.resolve()
-      : new Promise<void>(resolve => {
-          // A picture that will not load must not hold the button hostage —
-          // better a book with one gap than a dialog that never finishes.
-          img.addEventListener('load', () => resolve(), { once: true })
-          img.addEventListener('error', () => resolve(), { once: true })
-        }),
-  )
+  const settle = (el: Element) => new Promise<void>(resolve => {
+    // A picture that will not load must not hold the button hostage — better a
+    // book with one gap than a dialog that never finishes.
+    el.addEventListener('load', () => resolve(), { once: true })
+    el.addEventListener('error', () => resolve(), { once: true })
+  })
 
-  await Promise.all([...images, doc.fonts?.ready ?? Promise.resolve()])
+  const images = Array.from(doc.images).map(img => (img.complete ? Promise.resolve() : settle(img)))
+
+  /*
+   * The photographs inside the map's markers are SVG `<image>`, which
+   * `doc.images` does not collect and which has no `complete` to ask, so there
+   * is nothing to do but wait on the events. Missing them meant a book could go
+   * to print with its route beads still blank.
+   */
+  const svgImages = Array.from(doc.querySelectorAll?.('image') ?? []).map(settle)
+
+  /*
+   * And a ceiling over the lot. Without `complete` to fall back on there is no
+   * way to tell a picture that is still coming from one whose events already
+   * fired before this ran, and a Save button that never enables is worse than a
+   * marker that prints blank.
+   */
+  const wait = win.setTimeout?.bind(win) ?? setTimeout
+  const ceiling = new Promise<void>(resolve => { wait(resolve, 8000) })
+
+  await Promise.race([
+    Promise.all([...images, ...svgImages, doc.fonts?.ready ?? Promise.resolve()]),
+    ceiling,
+  ])
 }
