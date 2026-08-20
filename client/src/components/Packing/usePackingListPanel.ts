@@ -333,9 +333,21 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   }
 
   const handleSaveAsTemplate = async () => {
-    if (!saveTemplateName.trim()) return
+    const name = saveTemplateName.trim()
+    if (!name) return
     try {
-      await packingApi.saveAsTemplate(tripId, saveTemplateName.trim(), saveTemplateScope ?? undefined)
+      try {
+        await packingApi.saveAsTemplate(tripId, name, saveTemplateScope ?? undefined)
+      } catch (error) {
+        const response = (error as { response?: { status?: number; data?: { code?: string } } }).response
+        const isTemplateConflict = response?.status === 409 && response.data?.code === 'TEMPLATE_EXISTS'
+        if (!isTemplateConflict) throw error
+        if (!window.confirm(t('packing.templateReplaceConfirm', { name }))) return
+        await packingApi.saveAsTemplate(tripId, name, {
+          ...(saveTemplateScope ?? {}),
+          overwrite: true,
+        })
+      }
       toast.success(t('packing.templateSaved'))
       setShowSaveTemplate(false)
       setSaveTemplateName('')

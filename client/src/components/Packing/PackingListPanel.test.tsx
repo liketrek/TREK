@@ -777,6 +777,41 @@ describe('PackingListPanel', () => {
     }));
   });
 
+  it('FE-COMP-PACKING-046c: confirms and replaces an existing category template', async () => {
+    seedStore(useAuthStore, { user: buildAdmin(), isAuthenticated: true });
+    const user = userEvent.setup();
+    const requests: Record<string, unknown>[] = [];
+    server.use(
+      http.post('/api/trips/1/packing/save-as-template', async ({ request }) => {
+        const body = await request.json() as Record<string, unknown>;
+        requests.push(body);
+        if (!body.overwrite) {
+          return HttpResponse.json(
+            { error: 'Template already exists', code: 'TEMPLATE_EXISTS', template: { id: 1, name: 'Before departure' } },
+            { status: 409 },
+          );
+        }
+        return HttpResponse.json({ template: { id: 1, name: body.name, overwritten: true } });
+      }),
+    );
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const items = [buildPackingItem({ is_private: 1, name: 'Lock the door', category: 'Before departure' })];
+    const { container } = render(<PackingListPanel tripId={1} items={items} />);
+
+    const moreBtn = container.querySelector('svg.lucide-more-horizontal')?.closest('button');
+    await user.click(moreBtn!);
+    const saveActions = await screen.findAllByText('Save as template');
+    await user.click(saveActions[saveActions.length - 1]);
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => expect(requests).toHaveLength(2));
+    expect(confirmSpy).toHaveBeenCalledWith('A template named "Before departure" already exists. Replace its contents?');
+    expect(requests[1]).toMatchObject({
+      name: 'Before departure', category: 'Before departure', visibility: 'personal', overwrite: true,
+    });
+    confirmSpy.mockRestore();
+  });
+
   it('FE-COMP-PACKING-047: bag picker in item row opens when clicked with bag tracking enabled', async () => {
     const user = userEvent.setup();
     server.use(

@@ -125,6 +125,49 @@ describe('saveAsTemplate', () => {
     `).all(result!.id);
     expect(savedItems).toEqual([{ name: 'Turn off AC', category: 'Before departure' }]);
   });
+
+  it('PACK-SVC-004: reports a case-insensitive name conflict without changing the existing template', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, ?, 0, 0)')
+      .run(trip.id, 'Original item', 'Original');
+    const original = saveAsTemplate(trip.id, user.id, 'Before Departure')!;
+
+    testDb.prepare('DELETE FROM packing_items WHERE trip_id = ?').run(trip.id);
+    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, ?, 0, 0)')
+      .run(trip.id, 'Replacement item', 'Replacement');
+    const conflict = saveAsTemplate(trip.id, user.id, 'before departure');
+
+    expect(conflict).toEqual({ conflict: true, id: original.id, name: 'Before Departure' });
+    const savedItems = testDb.prepare(`
+      SELECT ti.name FROM packing_template_items ti
+      JOIN packing_template_categories tc ON tc.id = ti.category_id
+      WHERE tc.template_id = ?
+    `).all(original.id);
+    expect(savedItems).toEqual([{ name: 'Original item' }]);
+  });
+
+  it('PACK-SVC-005: overwrites template contents transactionally while preserving its id', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, ?, 0, 0)')
+      .run(trip.id, 'Original item', 'Original');
+    const original = saveAsTemplate(trip.id, user.id, 'Before departure')!;
+
+    testDb.prepare('DELETE FROM packing_items WHERE trip_id = ?').run(trip.id);
+    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, ?, 0, 0)')
+      .run(trip.id, 'Replacement item', 'Replacement');
+    const replaced = saveAsTemplate(trip.id, user.id, 'Before departure', undefined, true);
+
+    expect(replaced).toMatchObject({ id: original.id, itemCount: 1, categoryCount: 1, overwritten: true });
+    const savedItems = testDb.prepare(`
+      SELECT ti.name, tc.name AS category FROM packing_template_items ti
+      JOIN packing_template_categories tc ON tc.id = ti.category_id
+      WHERE tc.template_id = ?
+    `).all(original.id);
+    expect(savedItems).toEqual([{ name: 'Replacement item', category: 'Replacement' }]);
+    expect(testDb.prepare('SELECT COUNT(*) AS count FROM packing_templates').get()).toEqual({ count: 1 });
+  });
 });
 
 // ── listTemplates ───────────────────────────────────────────────────────────────

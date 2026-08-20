@@ -45,6 +45,7 @@ const packing: TranslationStrings = {
   'packing.saveAsTemplate': 'Als Vorlage speichern',
   'packing.templateName': 'Vorlagenname',
   'packing.templateSaved': 'Packliste als Vorlage gespeichert',
+  'packing.templateReplaceConfirm': 'A template named "{name}" already exists. Replace its contents?',
   'packing.bags': 'Gepäck',
   'packing.noBag': 'Nicht zugeordnet',
   'packing.totalWeight': 'Gesamtgewicht',

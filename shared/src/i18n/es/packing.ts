@@ -44,6 +44,7 @@ const packing: TranslationStrings = {
   'packing.saveAsTemplate': 'Guardar como plantilla',
   'packing.templateName': 'Nombre de la plantilla',
   'packing.templateSaved': 'Lista de equipaje guardada como plantilla',
+  'packing.templateReplaceConfirm': 'A template named "{name}" already exists. Replace its contents?',
   'packing.noMembers': 'Sin miembros',
   'packing.bags': 'Equipaje',
   'packing.noBag': 'Sin asignar',

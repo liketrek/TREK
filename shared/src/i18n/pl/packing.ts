@@ -36,6 +36,7 @@ const packing: TranslationStrings = {
   'packing.saveAsTemplate': 'Zapisz jako szablon',
   'packing.templateName': 'Nazwa szablonu',
   'packing.templateSaved': 'Lista pakowania zapisana jako szablon',
+  'packing.templateReplaceConfirm': 'A template named "{name}" already exists. Replace its contents?',
   'packing.noMembers': 'Brak członków podróży',
   'packing.addItem': 'Dodaj przedmiot',
   'packing.addItemPlaceholder': 'Nazwa przedmiotu...',

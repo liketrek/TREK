@@ -45,6 +45,7 @@ const packing: TranslationStrings = {
   'packing.saveAsTemplate': 'Salva come modello',
   'packing.templateName': 'Nome modello',
   'packing.templateSaved': 'Lista bagagli salvata come modello',
+  'packing.templateReplaceConfirm': 'A template named "{name}" already exists. Replace its contents?',
   'packing.bags': 'Valigie',
   'packing.noBag': 'Non assegnato',
   'packing.totalWeight': 'Peso totale',
