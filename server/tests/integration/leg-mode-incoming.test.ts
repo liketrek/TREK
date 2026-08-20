@@ -43,8 +43,9 @@ describe('incoming_leg_transport_mode migration', () => {
     //
     // >>> Appending a migration? Re-point the "undo" below at whatever yours
     // >>> does. That is the whole maintenance cost of this guard. The current
-    // >>> trailing slot creates journey_books (the TREK Studio document store,
-    // >>> #1973), so undoing it means dropping that table and its index.
+    // >>> trailing slot clears the GB rows out of place_regions, because the
+    // >>> atlas bundle now carries Great Britain at county/borough level and
+    // >>> the cached GB-ENG rows would otherwise never be re-derived (#1974).
     const upgraded = new Database(':memory:');
     upgraded.exec('PRAGMA foreign_keys = ON');
     createTables(upgraded);
@@ -52,22 +53,30 @@ describe('incoming_leg_transport_mode migration', () => {
 
     const { version } = upgraded.prepare('SELECT version FROM schema_version').get() as { version: number };
 
-    upgraded.exec('DROP INDEX IF EXISTS idx_journey_books_journey');
-    upgraded.exec('DROP TABLE IF EXISTS journey_books');
-    expect(
-      upgraded.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'journey_books'").get()
-    ).toBeUndefined();
+    // Put back exactly what that migration exists to remove: a stale cache row
+    // pointing at the constituent-country polygon, plus one for another country
+    // that must survive untouched.
+    upgraded.exec(`
+      INSERT INTO users (id, username, email, password_hash) VALUES (900, 'u', 'u@e.test', 'x');
+      INSERT INTO trips (id, user_id, title) VALUES (900, 900, 'Trip');
+      INSERT INTO places (id, trip_id, name) VALUES (9001, 900, 'Camden Market');
+      INSERT INTO places (id, trip_id, name) VALUES (9002, 900, 'Sagrada Familia');
+      INSERT INTO place_regions (place_id, country_code, region_code, region_name)
+        VALUES (9001, 'GB', 'GB-ENG', 'England'), (9002, 'ES', 'ES-CT', 'Catalunya');
+    `);
 
     upgraded.prepare('UPDATE schema_version SET version = ?').run(version - 1);
 
     runMigrations(upgraded);
 
+    // The assertion that proves the trailing slot ran.
     expect(
-      upgraded.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'journey_books'").get()
-    ).toEqual({ name: 'journey_books' });
+      upgraded.prepare("SELECT place_id FROM place_regions WHERE country_code = 'GB'").get()
+    ).toBeUndefined();
+    // ...and that it kept to its own country.
     expect(
-      upgraded.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_journey_books_journey'").get()
-    ).toEqual({ name: 'idx_journey_books_journey' });
+      upgraded.prepare("SELECT region_code FROM place_regions WHERE place_id = 9002").get()
+    ).toEqual({ region_code: 'ES-CT' });
     expect(upgraded.prepare('SELECT version FROM schema_version').get()).toEqual({ version });
     upgraded.close();
   });
