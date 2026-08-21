@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react'
 import {
-  Bookmark, Check, CheckCheck, CheckCircle2, ListChecks, Loader2, MapPin, MoreHorizontal, Plus,
+  Bookmark, Check, CheckCheck, CheckCircle2, Download, ListChecks, Loader2, MapPin, Plus,
   SlidersHorizontal, Tag, Trash2, X,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
@@ -172,7 +172,7 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
               aria-label={t('mobileTrip.importPlaces')}
               className="flex h-10 w-10 flex-none items-center justify-center rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-muted"
             >
-              <MoreHorizontal size={16} strokeWidth={2} />
+              <Download size={16} strokeWidth={2} />
             </button>
           )}
         </div>

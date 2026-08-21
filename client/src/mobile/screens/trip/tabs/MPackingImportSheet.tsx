@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Upload } from 'lucide-react'
+import { FileDown } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import { Eyebrow, FIELD_AREA_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
 import { packingApi } from '../../../../api/client'
@@ -74,7 +74,7 @@ export default function MPackingImportSheet({ planner, open, onClose }: MPacking
           onClick={() => fileInputRef.current?.click()}
           className="mt-2 flex items-center gap-[6px] rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[13px] py-[7px] text-[0.75rem] font-semibold text-m-muted"
         >
-          <Upload size={12} strokeWidth={2.2} />
+          <FileDown size={12} strokeWidth={2.2} />
           {t('packing.importCsv')}
         </button>
 

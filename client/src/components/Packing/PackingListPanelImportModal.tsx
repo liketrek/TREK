@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { Upload } from 'lucide-react'
+import { FileDown } from 'lucide-react'
 import type { PackingState } from './usePackingListPanel'
 
 export function BulkImportModal(S: PackingState) {
@@ -48,7 +48,7 @@ export function BulkImportModal(S: PackingState) {
               border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none',
               fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', cursor: 'pointer', fontFamily: 'inherit',
             }}>
-              <Upload size={11} /> {t('packing.importCsv')}
+              <FileDown size={11} /> {t('packing.importCsv')}
             </button>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>

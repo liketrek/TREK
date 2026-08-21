@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Check, Upload } from 'lucide-react'
+import { Check, FileDown } from 'lucide-react'
 import { placesApi } from '../../../../api/client'
 import { Eyebrow, FormSheetFooter } from './PlSheetChrome'
 import type { TripPlanner } from '../MTripShell'
@@ -170,7 +170,7 @@ export default function ImpFileStep({ planner, onBack, onDone }: ImpFileStepProp
           onClick={() => inputRef.current?.click()}
           className="mt-3 flex min-h-[88px] w-full flex-col items-center justify-center gap-[6px] rounded-[14px] border-[1.5px] border-dashed border-[color:var(--m-trackoff)] p-4"
         >
-          <Upload size={17} strokeWidth={1.9} className="text-m-faint" />
+          <FileDown size={17} strokeWidth={1.9} className="text-m-faint" />
           {files.length > 0 ? (
             <span className="break-all text-center text-[0.78125rem] font-semibold text-m-ink">
               {files.map(f => f.name).join(', ')}
