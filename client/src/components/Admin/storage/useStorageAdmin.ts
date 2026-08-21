@@ -199,7 +199,12 @@ export function useStorageAdmin(genericError: string): StorageAdmin {
     async (category: string, to: string): Promise<string | null> => {
       try {
         await adminApi.startStorageMigration(category, to)
-        void refreshState().catch(() => {})
+        // Awaited (unlike cancelMigration/startBackfill/cancelBackfill): the
+        // queue effect's in-flight lock releases as soon as this promise
+        // resolves, so admin.state must already reflect the just-started
+        // migration by then — otherwise the next queued candidate can
+        // dequeue and POST before the server has confirmed this one.
+        await refreshState().catch(() => {})
         return null
       } catch (err: unknown) {
         return getApiErrorMessage(err, genericError)

@@ -79,6 +79,14 @@ export default function AdminStoragePanel(): React.ReactElement {
   // first time `admin.state` changes afterward — never touched otherwise, so
   // unrelated state changes (the backfill poll included) are no-ops here.
   const pendingPromptCheck = useRef<Map<string, number> | null>(null)
+  // Synchronous single-flight lock for the queue effect below: `admin.state`
+  // only reflects a just-started migration once startMigration's awaited
+  // refreshState() resolves, so `setMigrationQueue(rest)` re-firing the
+  // effect synchronously (still against the pre-POST `admin.state`) would
+  // otherwise dequeue and POST the next candidate before the server has
+  // confirmed the first — a ref (not state) so the guard is visible on that
+  // very next synchronous re-render, not just after a state-driven one.
+  const migrationStartInFlight = useRef(false)
 
   useEffect(() => {
     if (!pendingPromptCheck.current || !admin.state) return
@@ -92,13 +100,19 @@ export default function AdminStoragePanel(): React.ReactElement {
   // Queued category migrations run strictly sequentially: once a slot opens
   // (no migration currently running), dequeue the next candidate and start
   // it. Depends on admin.state so a poll landing a terminal status re-fires
-  // this without any user interaction.
+  // this without any user interaction. The in-flight lock closes the race
+  // where setMigrationQueue(rest) re-fires this effect synchronously while
+  // admin.state still shows the pre-POST world — without it, the next
+  // candidate could dequeue and POST before the first is server-confirmed.
   useEffect(() => {
     if (migrationQueue.length === 0 || !admin.state) return
+    if (migrationStartInFlight.current) return
     if (admin.state.migrations.some((m) => m.status === 'running')) return
     const [next, ...rest] = migrationQueue
+    migrationStartInFlight.current = true
     setMigrationQueue(rest)
     void admin.startMigration(next!.category, next!.to).then((error) => {
+      migrationStartInFlight.current = false
       if (error) toast.error(error)
     })
   }, [migrationQueue, admin.state])
@@ -467,7 +481,7 @@ export default function AdminStoragePanel(): React.ReactElement {
                     <button
                       className="text-xs underline text-content-secondary mt-1"
                       style={LINK_BUTTON_STYLE}
-                      onClick={() => handleCancelMigration(m)}
+                      onClick={() => void handleCancelMigration(m)}
                     >
                       {t('storage.migrate.cancel')}
                     </button>

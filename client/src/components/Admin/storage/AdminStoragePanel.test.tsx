@@ -633,11 +633,18 @@ describe('AdminStoragePanel', () => {
     // Held 'running' until the test explicitly flips this — deterministic,
     // unlike counting poll ticks against the 50ms test interval.
     let firstDone = false;
+    let postCount = 0;
     server.use(
       http.put('/api/admin/storage', () => HttpResponse.json(savedState)),
       http.post('/api/admin/storage/migrations', async ({ request }) => {
+        postCount += 1;
         const body = (await request.json()) as { category: StorageCategory; to: string };
         migrationPosts.push(body);
+        // Pins the single-flight fix: the second POST must never arrive
+        // before the first migration is server-confirmed terminal — a
+        // regression here means the queue's synchronous re-fire raced ahead
+        // of admin.state showing the first as done.
+        if (postCount === 2) expect(firstDone).toBe(true);
         return HttpResponse.json({ started: true });
       }),
       http.get('/api/admin/storage', () => {
@@ -665,15 +672,18 @@ describe('AdminStoragePanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Move existing objects' }));
     await screen.findByText('Storage configuration saved');
 
-    await waitFor(() => expect(migrationPosts).toHaveLength(1));
+    await waitFor(() => expect(postCount).toBe(1));
     expect(migrationPosts[0]!.category).toBe('files');
-    // The second must not fire while the first is still running, no matter
-    // how many poll ticks elapse.
+    // At the moment the first POST arrives, exactly one POST has happened —
+    // and the second must not fire while the first is still running, no
+    // matter how many poll ticks elapse.
+    expect(postCount).toBe(1);
     await new Promise((r) => setTimeout(r, 200));
-    expect(migrationPosts).toHaveLength(1);
-    // Once the first turns terminal, the second is dequeued.
+    expect(postCount).toBe(1);
+    // Once the first turns terminal, the second is dequeued — the POST
+    // handler's own assertion (above) pins that it never arrives early.
     firstDone = true;
-    await waitFor(() => expect(migrationPosts).toHaveLength(2), { timeout: 2000 });
+    await waitFor(() => expect(postCount).toBe(2), { timeout: 2000 });
     expect(migrationPosts[1]!.category).toBe('journey');
   });
 
