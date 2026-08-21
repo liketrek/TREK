@@ -178,13 +178,21 @@ describe('shouldDrawMorningLeg', () => {
     expect(shouldDrawMorningLeg(bookends, checkInDay, { isPlace: true, time: '15:00' })).toBe(true)
   })
 
-  it('does NOT draw on a check-in day when time info is missing (#1597)', () => {
+  it('does NOT draw on a check-in day when the stop is untimed but check-in is not (#1597)', () => {
     // An un-timed first place on an arrival day ("Home" before driving out) cannot prove
     // you were at the hotel yet, so no hotel → first-stop leg — mirroring the evening rule.
     const bookends = { morning: into({ check_in: '15:00' }), morningIsSleptHere: false }
     expect(shouldDrawMorningLeg(bookends, checkInDay, { isPlace: true, time: null })).toBe(false)
+  })
+
+  it('DOES draw on a check-in day when the stay records no check-in time (#2009)', () => {
+    // Nothing to clear, so nothing to fail: the hotel picker leaves the time blank
+    // by default, and treating that as proof against left the loop open every time.
     const noCheckIn = { morning: into({ check_in: null }), morningIsSleptHere: false }
-    expect(shouldDrawMorningLeg(noCheckIn, checkInDay, { isPlace: true, time: '19:00' })).toBe(false)
+    expect(shouldDrawMorningLeg(noCheckIn, checkInDay, { isPlace: true, time: '19:00' })).toBe(true)
+    expect(shouldDrawMorningLeg(noCheckIn, checkInDay, { isPlace: true, time: null })).toBe(true)
+    // A transport arrival is still not a hotel departure (#1321).
+    expect(shouldDrawMorningLeg(noCheckIn, checkInDay, { isPlace: false, time: '19:00' })).toBe(false)
   })
 
   it('does NOT draw on a check-in day for a transport arrival (not a place, #1321)', () => {
@@ -222,11 +230,17 @@ describe('shouldDrawEveningLeg', () => {
     expect(shouldDrawEveningLeg(bookends, checkOutDay, { isPlace: true, time: '11:00' })).toBe(true)
   })
 
-  it('does NOT draw on a check-out day when the place or hotel has no time', () => {
+  it('does NOT draw on a check-out day when the stop is untimed but check-out is not', () => {
     const bookends = { evening: out({ check_out: '11:00' }), eveningIsOvernight: false }
     expect(shouldDrawEveningLeg(bookends, checkOutDay, { isPlace: true, time: null })).toBe(false)
+  })
+
+  it('DOES draw on a check-out day when the stay records no check-out time (#2009)', () => {
     const noCheckOut = { evening: out({ check_out: null }), eveningIsOvernight: false }
-    expect(shouldDrawEveningLeg(noCheckOut, checkOutDay, { isPlace: true, time: '09:00' })).toBe(false)
+    expect(shouldDrawEveningLeg(noCheckOut, checkOutDay, { isPlace: true, time: '09:00' })).toBe(true)
+    expect(shouldDrawEveningLeg(noCheckOut, checkOutDay, { isPlace: true, time: null })).toBe(true)
+    // An evening transport departure is still not a drive back to the hotel (S7).
+    expect(shouldDrawEveningLeg(noCheckOut, checkOutDay, { isPlace: false, time: '09:00' })).toBe(false)
   })
 
   it('does NOT draw on a check-out day for a transport departure (not a place, S7)', () => {

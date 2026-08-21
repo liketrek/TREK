@@ -73,8 +73,14 @@ export const shouldDrawMorningLeg = (
   const m = bookends.morning
   if (!m || m.start_day_id !== day.id || !firstStop?.isPlace) return false
   const checkIn = parseTimeToMinutes(m.check_in)
+  // No check-in time on the stay means there is no bar to clear, and "no
+  // information" was being read as "proof against" — which silently opened the
+  // loop at the start of every arrival day, since the hotel picker leaves the
+  // time blank by default (#2009). With a time set, #1465 still holds: an
+  // earlier stop is a place you reached before the hotel and draws no leg.
+  if (checkIn == null) return true
   const stop = parseTimeToMinutes(firstStop.time)
-  return checkIn != null && stop != null && stop >= checkIn
+  return stop != null && stop >= checkIn
 }
 
 // Mirror of shouldDrawMorningLeg for the last-stop → hotel evening leg. It is a real drive when
@@ -91,8 +97,11 @@ export const shouldDrawEveningLeg = (
   const e = bookends.evening
   if (!e || e.end_day_id !== day.id || !lastStop?.isPlace) return false
   const checkOut = parseTimeToMinutes(e.check_out)
+  // Mirror of the morning rule: with no check-out time recorded there is nothing
+  // to have missed, so the return leg is drawn and the loop closes (#2009).
+  if (checkOut == null) return true
   const stop = parseTimeToMinutes(lastStop.time)
-  return checkOut != null && stop != null && stop <= checkOut
+  return stop != null && stop <= checkOut
 }
 
 export const isDayInAccommodationRange = (
