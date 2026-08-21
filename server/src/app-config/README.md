@@ -71,12 +71,9 @@ TRANSIT_API_URL, LOG_LEVEL*, ALLOW_INTERNAL_NETWORK*, DEFAULT_LANGUAGE,
 TREK_DB_FILE, TREK_DB_JOURNAL_MODE, TREK_DB_SYNCHRONOUS, ENCRYPTION_KEY**.
 (* frozen today because the consuming module captures it at import; tests that
 override these set them at file top, before the SUT import.)
-(** ENCRYPTION_KEY is boot-stable only for the cipher key material itself —
+(** ENCRYPTION_KEY is boot-stable for the cipher key material itself —
 `src/config.ts` resolves and freezes it at process start, per the exemption
-below. `security.encryptionKeySet` (the storage admin-config encryption gate)
-is a *different* read of the same variable: `deriveSecurity()` reads it live
-via `readEnv()`/`RuntimeEnvService`, so a value set after boot is observed on
-the next call — it does not retroactively unlock the frozen cipher.)
+below.)
 
 **Runtime-toggled** (read live on every access via `readEnv()` /
 `RuntimeEnvService`; tests mutate these mid-lifetime):

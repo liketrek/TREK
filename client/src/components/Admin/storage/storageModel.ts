@@ -1,7 +1,5 @@
 import {
-  MASKED_SETTING_VALUE,
   STORAGE_CATEGORIES,
-  storageSecretFields,
   type StorageAdminState,
   type StorageBackend,
   type StorageCategory,
@@ -49,14 +47,6 @@ export function mirrorsReferencing(draft: StorageConfig, name: string): string[]
   return draft.backends
     .filter((b) => b.type === 'mirror' && (b.options.primary === name || b.options.replicas.includes(name)))
     .map((b) => b.name)
-}
-
-/** True when a secret-kind field holds a non-empty value that is not the mask sentinel. */
-export function hasPlaintextSecret(backend: { type: StorageBackend['type']; options: Record<string, unknown> }): boolean {
-  return storageSecretFields(backend.type).some((field) => {
-    const value = backend.options[field]
-    return typeof value === 'string' && value !== '' && value !== MASKED_SETTING_VALUE
-  })
 }
 
 /** Replace by name in place, or append. Never mutates. */

@@ -58,19 +58,17 @@ const S3_OPTIONS = {
   timeoutMs: 30000,
 };
 
-/** Real registry + real service over the in-memory DB; env stub toggles the key. */
-function makeService(opts: { encryptionKeySet?: boolean; uploadsRoot?: string } = {}) {
+/** Real registry + real service over the in-memory DB. */
+function makeService(opts: { uploadsRoot?: string } = {}) {
   const uploadsRoot = opts.uploadsRoot ?? makeTmpDir();
   setSetting(BACKENDS_KEY, JSON.stringify([{ name: 'uploads-local', type: 'local', options: { root: uploadsRoot } }]));
-  const env = {
-    env: () => ({ paths: {}, security: { encryptionKeySet: opts.encryptionKeySet ?? true } }),
-  } as unknown as RuntimeEnvService;
+  const env = { env: () => ({ paths: {} }) } as unknown as RuntimeEnvService;
   const registry = new StorageRegistryService(db, env, new StorageEventsService());
   registry.onModuleInit();
   const storage = new StorageService(registry);
   const jobs = new StorageJobsService(registry);
   const stats = new StorageStatsService(storage, db);
-  const service = new StorageAdminService(db, registry, storage, env, jobs, stats);
+  const service = new StorageAdminService(db, registry, storage, jobs, stats);
   return { service, registry, uploadsRoot, stats };
 }
 
@@ -103,7 +101,6 @@ describe('StorageAdminService.state', () => {
     expect(uploads.categories).not.toContain('backups');
     expect(state.backends.find((b) => b.name === 'backups-local')).toMatchObject({ source: 'built-in' });
     expect(state.categories.backups).toEqual({ backend: 'backups-local', source: 'default' });
-    expect(state.encryptionReady).toBe(true);
     expect(state.seedFilePresent).toBe(false);
     expect(state.health).toEqual({ replicaFailures: [] });
   });
@@ -189,21 +186,21 @@ describe('StorageAdminService.applyConfig', () => {
     expect(readRow(BACKENDS_KEY)).toBe(before);
   });
 
-  it('STORADM-014 plaintext secret without ENCRYPTION_KEY → error naming the variable, nothing persisted', () => {
-    const { service, uploadsRoot } = makeService({ encryptionKeySet: false });
-    const before = readRow(BACKENDS_KEY);
-    expect(() =>
-      service.applyConfig(configWith(uploadsRoot, {
-        backends: [{ name: 'off-box', type: 's3', options: S3_OPTIONS }],
-        categories: {},
-      })),
-    ).toThrow(/ENCRYPTION_KEY/);
-    expect(readRow(BACKENDS_KEY)).toBe(before);
+  it('STORADM-014 a plaintext secret saves without an explicit ENCRYPTION_KEY and is still encrypted at rest', () => {
+    // No key-presence gate: the implicit key covers encryption when ENCRYPTION_KEY is unset.
+    const { service, uploadsRoot } = makeService();
+    service.applyConfig(configWith(uploadsRoot, {
+      backends: [{ name: 'off-box', type: 's3', options: S3_OPTIONS }],
+      categories: {},
+    }));
+    const stored = JSON.parse(readRow(BACKENDS_KEY)!) as Array<{ name: string; options: Record<string, string> }>;
+    const offBox = stored.find((b) => b.name === 'off-box')!;
+    expect(offBox.options.secretAccessKey.startsWith('enc:v1:')).toBe(true);
   });
 
-  it('STORADM-015 an encrypted (mask-echoed or enc:v1:) secret saves fine WITHOUT ENCRYPTION_KEY set', () => {
-    // The gate is about NEW plaintext material only — resaving stored ciphertext must not lock admins out.
-    const { service, uploadsRoot } = makeService({ encryptionKeySet: false });
+  it('STORADM-015 an encrypted (mask-echoed or enc:v1:) secret resaves fine', () => {
+    // Resaving stored ciphertext must not lock admins out.
+    const { service, uploadsRoot } = makeService();
     service.applyConfig(configWith(uploadsRoot, {
       backends: [{ name: 'off-box', type: 's3', options: { ...S3_OPTIONS, secretAccessKey: encrypt_api_key('sk') } }],
       categories: { backups: 'off-box' },

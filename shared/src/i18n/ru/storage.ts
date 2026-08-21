@@ -52,8 +52,6 @@ const storage: TranslationStrings = {
   'storage.form.apply': 'Применить',
   'storage.form.cancel': 'Отмена',
   'storage.form.duplicateName': 'Бэкенд с названием {name} уже существует',
-  'storage.form.encryptionBanner':
-    'ENCRYPTION_KEY не задан на сервере. Задайте его явно, чтобы сохранять бэкенды хранилища с учётными данными — сохранение отключено, пока присутствует секрет в открытом виде.',
   'storage.categories.title': 'Категории',
   'storage.categories.default': 'по умолчанию',
   'storage.categories.reassignWarning':

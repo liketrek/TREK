@@ -5,7 +5,7 @@ import {
   type StorageBackendTypeId,
   type StorageConfig,
 } from '@trek/shared';
-import { decrypt_api_key, is_encrypted_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { StorageBackendError } from './storage.types';
 
 /**
@@ -16,11 +16,6 @@ import { StorageBackendError } from './storage.types';
  * Pure functions — the registry's seed import and the admin service share
  * them.
  */
-
-export interface PlaintextSecret {
-  backend: string;
-  field: string;
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -33,20 +28,6 @@ function mapSecrets(backend: StorageBackend, fn: (value: unknown, field: string)
   const options: Record<string, unknown> = { ...backend.options };
   for (const field of fields) options[field] = fn(options[field], field);
   return { ...backend, options } as StorageBackend;
-}
-
-/** Secret fields whose value is neither empty nor an enc:v1: envelope. */
-export function listPlaintextSecrets(config: StorageConfig): PlaintextSecret[] {
-  const found: PlaintextSecret[] = [];
-  for (const backend of config.backends) {
-    for (const field of storageSecretFields(backend.type)) {
-      const value = (backend.options as Record<string, unknown>)[field];
-      if (typeof value === 'string' && value !== '' && !is_encrypted_api_key(value)) {
-        found.push({ backend: backend.name, field });
-      }
-    }
-  }
-  return found;
 }
 
 /**
@@ -69,14 +50,6 @@ export function assertNoMaskSentinels(config: StorageConfig): void {
       }
     }
   }
-}
-
-/** Fail-closed refusal text: the implicit key persisted in the data directory is not accepted for credentials — it rides inside backups. */
-export function encryptionGateError(secret: PlaintextSecret): string {
-  return (
-    `backend '${secret.backend}' has a plaintext secret '${secret.field}' but ENCRYPTION_KEY is not set — ` +
-    'set ENCRYPTION_KEY explicitly to save credentialed storage backends (the implicit key persisted in the data directory is not accepted: it rides inside backups)'
-  );
 }
 
 /** Encrypt every secret field (idempotent — enc:v1: values pass through unchanged). */

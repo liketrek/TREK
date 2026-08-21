@@ -63,8 +63,6 @@ const storage: TranslationStrings = {
   'storage.form.apply': 'Apply',
   'storage.form.cancel': 'Cancel',
   'storage.form.duplicateName': 'A backend named {name} already exists',
-  'storage.form.encryptionBanner':
-    'ENCRYPTION_KEY is not set on the server. Set it explicitly to save credentialed storage backends — saving is disabled while a plaintext secret is present.',
 
   // Category map
   'storage.categories.title': 'Categories',

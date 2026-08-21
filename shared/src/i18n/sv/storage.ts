@@ -51,8 +51,6 @@ const storage: TranslationStrings = {
   'storage.form.apply': 'Tillämpa',
   'storage.form.cancel': 'Avbryt',
   'storage.form.duplicateName': 'En backend med namnet {name} finns redan',
-  'storage.form.encryptionBanner':
-    'ENCRYPTION_KEY är inte inställd på servern. Ange den explicit för att spara lagringsbackender med autentiseringsuppgifter — sparning är inaktiverad så länge en hemlighet i klartext finns.',
   'storage.categories.title': 'Kategorier',
   'storage.categories.default': 'standard',
   'storage.categories.reassignWarning':

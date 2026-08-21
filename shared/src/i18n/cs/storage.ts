@@ -50,8 +50,6 @@ const storage: TranslationStrings = {
   'storage.form.apply': 'Použít',
   'storage.form.cancel': 'Zrušit',
   'storage.form.duplicateName': 'Backend s názvem {name} již existuje',
-  'storage.form.encryptionBanner':
-    'ENCRYPTION_KEY není na serveru nastavena. Nastavte ji explicitně, chcete-li ukládat úložné backendy s přihlašovacími údaji — ukládání je zakázáno, dokud je přítomno tajemství v čistém textu.',
   'storage.categories.title': 'Kategorie',
   'storage.categories.default': 'výchozí',
   'storage.categories.reassignWarning':

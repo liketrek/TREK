@@ -50,8 +50,6 @@ const storage: TranslationStrings = {
   'storage.form.apply': '適用',
   'storage.form.cancel': 'キャンセル',
   'storage.form.duplicateName': '{name}という名前のバックエンドは既に存在します',
-  'storage.form.encryptionBanner':
-    'サーバーにENCRYPTION_KEYが設定されていません。認証情報付きのストレージバックエンドを保存するには明示的に設定してください — 平文のシークレットが存在する間、保存は無効になります。',
   'storage.categories.title': 'カテゴリ',
   'storage.categories.default': 'デフォルト',
   'storage.categories.reassignWarning':

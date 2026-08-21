@@ -52,8 +52,6 @@ const storage: TranslationStrings = {
   'storage.form.apply': 'Εφαρμογή',
   'storage.form.cancel': 'Ακύρωση',
   'storage.form.duplicateName': 'Υπάρχει ήδη ένα backend με το όνομα {name}',
-  'storage.form.encryptionBanner':
-    'Το ENCRYPTION_KEY δεν έχει οριστεί στον διακομιστή. Όρισέ το ρητά για να αποθηκεύσεις backends αποθήκευσης με διαπιστευτήρια — η αποθήκευση είναι απενεργοποιημένη όσο υπάρχει μυστικό σε απλό κείμενο.',
   'storage.categories.title': 'Κατηγορίες',
   'storage.categories.default': 'προεπιλογή',
   'storage.categories.reassignWarning':

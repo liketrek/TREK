@@ -13,7 +13,6 @@ import {
   deriveBackup,
   deriveNet,
   derivePaths,
-  deriveSecurity,
   deriveAll,
 } from '../../../src/app-config/derive';
 
@@ -232,14 +231,6 @@ describe('derivePaths', () => {
   });
 });
 
-describe('deriveSecurity', () => {
-  it('encryptionKeySet only for a non-blank explicit ENCRYPTION_KEY', () => {
-    expect(deriveSecurity({}).encryptionKeySet).toBe(false);
-    expect(deriveSecurity({ ENCRYPTION_KEY: '   ' }).encryptionKeySet).toBe(false);
-    expect(deriveSecurity({ ENCRYPTION_KEY: 'k' }).encryptionKeySet).toBe(true);
-  });
-});
-
 describe('deriveAll', () => {
   it('assembles every namespace', () => {
     const env = deriveAll({ PORT: '4000', DEMO_MODE: 'true' });
@@ -247,7 +238,7 @@ describe('deriveAll', () => {
     expect(env.demo.enabled).toBe(true);
     for (const ns of [
       'app', 'http', 'session', 'demo', 'adminBootstrap', 'oidc', 'smtp', 'mcp',
-      'plugins', 'webauthn', 'integrations', 'backup', 'db', 'paths', 'security', 'net',
+      'plugins', 'webauthn', 'integrations', 'backup', 'db', 'paths', 'net',
     ] as const) {
       expect(env[ns]).toBeDefined();
     }

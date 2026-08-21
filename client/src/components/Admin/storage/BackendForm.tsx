@@ -8,7 +8,6 @@ import {
 } from '@trek/shared'
 import { useTranslation } from '../../../i18n'
 import CustomSelect from '../../shared/CustomSelect'
-import { hasPlaintextSecret } from './storageModel'
 
 type FieldValues = Record<string, string | string[]>
 
@@ -32,7 +31,6 @@ interface BackendFormProps {
   initial: StorageBackend | null
   /** Every defined backend name — mirror-target options and the duplicate pre-check. */
   backendNames: string[]
-  encryptionReady: boolean
   /**
    * Present on non-mirror backends: renders the Mirror-targets composer
    * (replicas-on-primary — panel-supplied chrome, never a registry field).
@@ -56,7 +54,6 @@ const INPUT_CLASS =
 export default function BackendForm({
   initial,
   backendNames,
-  encryptionReady,
   mirror,
   onCommit,
   onCancel,
@@ -78,7 +75,6 @@ export default function BackendForm({
     return typeof value === 'string' && value.trim() !== ''
   }
   const duplicate = name.trim() !== (initial?.name ?? '') && backendNames.includes(name.trim())
-  const blocked = hasPlaintextSecret({ type, options: values }) && !encryptionReady
   const canApply =
     name.trim() !== '' && !duplicate && fields.every((f) => !f.required || filled(f))
 
@@ -240,27 +236,18 @@ export default function BackendForm({
       )}
 
       <div className="flex items-center gap-3">
-        {blocked ? (
-          <p
-            role="alert"
-            className="text-sm rounded-lg border px-3 py-2 border-edge bg-surface-secondary text-content"
-          >
-            {t('storage.form.encryptionBanner')}
-          </p>
-        ) : (
-          <button
-            onClick={apply}
-            disabled={!canApply}
-            style={{
-              padding: '8px 20px', borderRadius: 10, cursor: canApply ? 'pointer' : 'default',
-              fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600,
-              border: '2px solid var(--text-primary)', background: 'var(--bg-hover)',
-              color: 'var(--text-primary)', opacity: canApply ? 1 : 0.5,
-            }}
-          >
-            {t('storage.form.apply')}
-          </button>
-        )}
+        <button
+          onClick={apply}
+          disabled={!canApply}
+          style={{
+            padding: '8px 20px', borderRadius: 10, cursor: canApply ? 'pointer' : 'default',
+            fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600,
+            border: '2px solid var(--text-primary)', background: 'var(--bg-hover)',
+            color: 'var(--text-primary)', opacity: canApply ? 1 : 0.5,
+          }}
+        >
+          {t('storage.form.apply')}
+        </button>
         <button
           onClick={onCancel}
           style={{

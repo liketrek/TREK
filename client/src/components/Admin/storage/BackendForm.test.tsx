@@ -14,7 +14,6 @@ function renderForm(overrides: Partial<FormProps> = {}) {
     <BackendForm
       initial={null}
       backendNames={NAMES}
-      encryptionReady
       onCommit={onCommit}
       onCancel={onCancel}
       {...overrides}
@@ -61,13 +60,12 @@ describe('BackendForm', () => {
     );
   });
 
-  it('FE-ADMIN-STORF-005: a typed plaintext secret with encryption not ready replaces Apply with the ENCRYPTION_KEY banner', () => {
-    renderForm({ initial: S3_INITIAL, encryptionReady: false });
-    // The untouched mask is fine — Apply still offered.
+  it('FE-ADMIN-STORF-005: a typed plaintext secret keeps Apply offered (no encryption-key gate)', () => {
+    renderForm({ initial: S3_INITIAL });
     expect(screen.getByRole('button', { name: 'Apply' })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/Secret access key/), { target: { value: 'sk-new' } });
-    expect(screen.queryByRole('button', { name: 'Apply' })).not.toBeInTheDocument();
-    expect(screen.getByRole('alert').textContent).toContain('ENCRYPTION_KEY');
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('FE-ADMIN-STORF-006: Apply stays disabled until name and every required field are filled', () => {

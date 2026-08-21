@@ -6,8 +6,8 @@
  * real. Covers auth (401), the admin gate (403), managed-mode refusal (403,
  * the first e2e to assert it — ManagedGuard is otherwise only wired in
  * AppModule), the GET/PUT/test happy paths, the 400 envelope for both a
- * semantic registry refusal and a Zod pipe rejection, secret masking/
- * encryption/redaction, and the encryption-gate 400 naming ENCRYPTION_KEY.
+ * semantic registry refusal and a Zod pipe rejection, and secret masking/
+ * encryption/redaction (including without an explicit ENCRYPTION_KEY).
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
@@ -47,9 +47,9 @@ vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: (
 // The audit domain is DI-native: writeAudit runs for real against the temp db's
 // audit_log table; only the file logger is silenced.
 vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
-// apiKeyCrypto imports ENCRYPTION_KEY from here for the cipher; deriveSecurity
-// (encryptionReady / the encryption gate) reads the RAW process.env var live,
-// so beforeAll/afterAll manage that separately below. JWT_SECRET must also be
+// apiKeyCrypto imports ENCRYPTION_KEY from here for the cipher; the raw
+// process.env var is managed separately in beforeAll/afterAll for the
+// no-explicit-key case (STORE2E-007). JWT_SECRET must also be
 // supplied — jwt-verify.ts (JwtAuthGuard) and the harness's signSession both
 // import it from this same module, so mocking the module wholesale requires
 // keeping both consistent.
@@ -126,7 +126,6 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
     const names = (res.body.backends as Array<{ name: string; source: string }>).map((b) => [b.name, b.source]);
     expect(names).toEqual(expect.arrayContaining([['uploads-local', 'built-in'], ['backups-local', 'built-in']]));
     expect(Object.keys(res.body.categories)).toHaveLength(8);
-    expect(res.body.encryptionReady).toBe(true);
     expect(res.body.seedFilePresent).toBe(false);
     expect(res.body.health).toEqual({ replicaFailures: [] });
   });
@@ -180,7 +179,7 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
     expect(res.body.error).toBeDefined();
   });
 
-  it('STORE2E-007 PUT with a plaintext secret and no ENCRYPTION_KEY → 400 naming the variable', async () => {
+  it('STORE2E-007 PUT with a plaintext secret and no explicit ENCRYPTION_KEY saves, encrypted at rest', async () => {
     delete process.env.ENCRYPTION_KEY;
     try {
       const res = await request(server)
@@ -196,8 +195,15 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
           ],
           categories: {},
         });
-      expect(res.status).toBe(400);
-      expect(String(res.body.error)).toContain('ENCRYPTION_KEY');
+      expect(res.status).toBe(200);
+      // The secret never comes back and never persists in the clear.
+      const offBox = (res.body.backends as Array<{ name: string; options: Record<string, string> }>).find(
+        (b) => b.name === 'off-box',
+      )!;
+      expect(offBox.options.secretAccessKey).not.toBe('sk');
+      const row = db.prepare("SELECT value FROM app_settings WHERE key = 'storage.backends'").get() as { value: string };
+      expect(row.value).not.toContain('"sk"');
+      expect(row.value).toContain('enc:v1:');
     } finally {
       process.env.ENCRYPTION_KEY = 'e2e-storage-key';
     }

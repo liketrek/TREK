@@ -9,12 +9,7 @@ import { MirrorDriver, type ReplicaFailure } from './drivers/mirror.driver';
 import { S3Driver } from './drivers/s3.driver';
 import { StorageEventsService } from './storage-events.service';
 import { DEFAULT_BACKUPS_ROOT, DEFAULT_UPLOADS_ROOT, GLOBAL_TEMP_DIR, SEED_CONFIG_PATH } from './storage-paths';
-import {
-  assertNoMaskSentinels,
-  encryptStorageSecrets,
-  encryptionGateError,
-  listPlaintextSecrets,
-} from './storage-secrets';
+import { assertNoMaskSentinels, encryptStorageSecrets } from './storage-secrets';
 import {
   SERVED_CATEGORIES,
   STORAGE_CATEGORIES,
@@ -225,10 +220,6 @@ export class StorageRegistryService implements OnModuleInit {
     const config = parsed.data;
     try {
       assertNoMaskSentinels(config);
-      const plaintext = listPlaintextSecrets(config);
-      if (plaintext.length > 0 && !this.env.env().security.encryptionKeySet) {
-        throw new StorageBackendError(encryptionGateError(plaintext[0]!));
-      }
       this.preview({ backends: config.backends, categories: config.categories });
     } catch (err) {
       return fail(err instanceof Error ? err.message : String(err));

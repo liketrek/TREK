@@ -519,12 +519,13 @@ box everything lives on local disk (`uploads/` and `data/backups`). From
 - **Usage**: per-category and per-backend object counts and sizes, scanned
   nightly and on demand.
 
-Storing credentialed backends requires `ENCRYPTION_KEY` to be set explicitly —
-secrets are encrypted at rest, and the panel refuses to save a plaintext
-secret without it. On an existing install that has been running without an
-explicit key, do not just set a new one — that would orphan already-stored
-secrets; use the key-rotation procedure (see *Rotating the Encryption Key*
-under Updating) to move to an explicit key first.
+Backend credentials are encrypted at rest. Without an explicit
+`ENCRYPTION_KEY` the implicit key from the data directory is used — that
+works, but the implicit key rides inside backups, so setting `ENCRYPTION_KEY`
+explicitly is recommended for credentialed backends. On an existing install
+that has been running without an explicit key, do not just set a new one —
+that would orphan already-stored secrets; use the key-rotation procedure (see
+*Rotating the Encryption Key* under Updating) to move to an explicit key.
 
 Notes and limits: reassigning a populated category does not move its existing
 objects (new writes go to the new backend, old objects stay); media categories
@@ -545,8 +546,8 @@ data directory — it is imported **once**, on the first boot that has no
 stored storage configuration, and loudly ignored afterwards:
 
 ```jsonc
-// storage-config.json — secrets may be plaintext (encrypted on import;
-// requires ENCRYPTION_KEY) or already-encrypted enc:v1: values.
+// storage-config.json — secrets may be plaintext (encrypted on import)
+// or already-encrypted enc:v1: values.
 {
   "backends": [
     { "name": "off-site", "type": "s3", "options": {

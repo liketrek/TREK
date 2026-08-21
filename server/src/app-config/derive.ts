@@ -260,19 +260,6 @@ export function derivePaths(raw: RawEnv) {
   };
 }
 
-/**
- * Security posture (spec: docs/superpowers/specs/2026-08-19-storage-admin-config-design.md).
- * encryptionKeySet is true only when ENCRYPTION_KEY is explicitly set — the
- * silent JWT-derived fallback (config.ts) is deliberately NOT reflected here:
- * saving a credentialed storage backend fails closed on the fallback, naming
- * the variable. (deriveBackup.encryptionKeyFromEnv answers a different
- * question — whether the key file must ride inside backup archives — and
- * stays untouched.)
- */
-export function deriveSecurity(raw: RawEnv) {
-  return { encryptionKeySet: Boolean(raw.ENCRYPTION_KEY?.trim()) };
-}
-
 export function deriveNet(raw: RawEnv) {
   return {
     allowInternalNetwork: parseBool(raw.ALLOW_INTERNAL_NETWORK) === true,
@@ -297,7 +284,6 @@ export function deriveAll(raw: RawEnv) {
     backup: deriveBackup(raw),
     db: deriveDb(raw),
     paths: derivePaths(raw),
-    security: deriveSecurity(raw),
     net: deriveNet(raw),
   };
 }

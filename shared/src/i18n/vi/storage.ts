@@ -51,8 +51,6 @@ const storage: TranslationStrings = {
   'storage.form.apply': 'Áp dụng',
   'storage.form.cancel': 'Hủy',
   'storage.form.duplicateName': 'Đã tồn tại backend có tên {name}',
-  'storage.form.encryptionBanner':
-    'ENCRYPTION_KEY chưa được đặt trên máy chủ. Đặt rõ ràng để lưu các backend lưu trữ có thông tin xác thực — việc lưu bị vô hiệu hóa khi còn tồn tại một bí mật ở dạng văn bản thuần.',
   'storage.categories.title': 'Danh mục',
   'storage.categories.default': 'mặc định',
   'storage.categories.reassignWarning':

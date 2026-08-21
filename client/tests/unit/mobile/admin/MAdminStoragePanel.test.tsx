@@ -28,7 +28,6 @@ function baseState(overrides: Partial<StorageAdminState> = {}): StorageAdminStat
       backups: { backend: 'backups-local', source: 'default' },
     },
     health: { replicaFailures: [] },
-    encryptionReady: true,
     seedFilePresent: false,
     usage: null,
     backfills: [],
@@ -83,14 +82,14 @@ describe('MAdminStoragePanel', () => {
     expect((putBody as { categories: Record<string, string> }).categories.files).toBe('off-box');
   });
 
-  it('FE-MOB-MSTOR-003: a typed plaintext secret without encryption replaces Apply with the ENCRYPTION_KEY banner', async () => {
-    await renderPanel(baseState({ encryptionReady: false }));
+  it('FE-MOB-MSTOR-003: a typed plaintext secret keeps Apply offered (no encryption-key gate)', async () => {
+    await renderPanel();
     fireEvent.click(within(screen.getByTestId('m-storage-backend-off-box')).getByRole('button', { name: 'Edit' }));
     fireEvent.change(screen.getByPlaceholderText('us-east-1'), { target: { value: 'eu-west-1' } }); // sanity: form is open
     const secret = screen.getByDisplayValue(MASKED_SETTING_VALUE);
     fireEvent.change(secret, { target: { value: 'sk-new' } });
-    expect(screen.queryByRole('button', { name: 'Apply' })).not.toBeInTheDocument();
-    expect(screen.getByRole('alert').textContent).toContain('ENCRYPTION_KEY');
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('FE-MOB-MSTOR-004: a 400 renders the server message verbatim', async () => {

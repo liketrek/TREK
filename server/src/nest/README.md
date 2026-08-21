@@ -139,12 +139,12 @@ tools, which never pass through an HTTP guard. In the five domains piloted for
   `storage.service.ts` is the facade every byte-path uses.
   `storage-admin.{controller,service}.ts` (+ `storage-secrets.ts`,
   `storage-probe.ts`) carry `api/admin/storage`: masked GET of the effective
-  world, full-document PUT (unmask → encryption gate → preview → encrypt →
-  one transaction → reload → audit), and per-target test probes with
-  ephemeral drivers. Secrets live `enc:v1:`-encrypted inside the
-  `storage.backends` JSON; saving plaintext secrets requires an explicit
-  `ENCRYPTION_KEY` (`security.encryptionKeySet`). The client presents mirrors
-  as replicas-on-primary; the wire keeps explicit mirror backends.
+  world, full-document PUT (unmask → preview → encrypt → one transaction →
+  reload → audit), and per-target test probes with ephemeral drivers. Secrets
+  live `enc:v1:`-encrypted inside the `storage.backends` JSON (the implicit
+  key covers installs without an explicit `ENCRYPTION_KEY`). The client
+  presents mirrors as replicas-on-primary; the wire keeps explicit mirror
+  backends.
 - `memories/photo-provider.ts` + `providers/` — the PhotoProvider seam (#584).
   Dispatch to a photo backend was a `switch (photo.provider)` in three places
   (`photo-resolver.service.ts` twice, `journey-public.controller.ts` once, where

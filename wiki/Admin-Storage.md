@@ -97,12 +97,15 @@ includes the legacy photo library.
 
 ## Secrets and encryption
 
-Backend credentials (the S3 secret access key) are stored encrypted. Saving a
-credentialed backend requires the `ENCRYPTION_KEY` environment variable to be
-set explicitly — without it the panel shows a notice instead of the save
-button. See [[Encryption Key Rotation|Encryption-Key-Rotation]] for changing
-the key later. Saved secrets display as a masked placeholder; leaving the mask untouched
-when editing keeps the stored value.
+Backend credentials (the S3 secret access key) are stored encrypted. Setting
+the `ENCRYPTION_KEY` environment variable explicitly is recommended — without
+it the implicit key persisted in the data directory is used, which works but
+rides inside backup archives (someone holding a backup can decrypt the
+secrets it contains). If you later move from the implicit key to an explicit
+one, follow [[Encryption Key Rotation|Encryption-Key-Rotation]] — setting a
+new key directly would orphan already-stored secrets. Saved secrets display
+as a masked placeholder; leaving the mask untouched when editing keeps the
+stored value.
 
 ## Provisioning at first boot (seed file)
 

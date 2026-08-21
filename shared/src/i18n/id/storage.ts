@@ -52,8 +52,6 @@ const storage: TranslationStrings = {
   'storage.form.apply': 'Terapkan',
   'storage.form.cancel': 'Batal',
   'storage.form.duplicateName': 'Backend bernama {name} sudah ada',
-  'storage.form.encryptionBanner':
-    'ENCRYPTION_KEY belum diatur di server. Atur secara eksplisit untuk menyimpan backend penyimpanan berkredensial — penyimpanan dinonaktifkan selama ada rahasia teks-polos.',
   'storage.categories.title': 'Kategori',
   'storage.categories.default': 'default',
   'storage.categories.reassignWarning':

@@ -49,8 +49,6 @@ const storage: TranslationStrings = {
   'storage.form.apply': '应用',
   'storage.form.cancel': '取消',
   'storage.form.duplicateName': '名为 {name} 的后端已存在',
-  'storage.form.encryptionBanner':
-    '服务器未设置 ENCRYPTION_KEY。请显式设置它以保存带凭据的存储后端 — 存在明文密钥时保存将被禁用。',
   'storage.categories.title': '分类',
   'storage.categories.default': '默认',
   'storage.categories.reassignWarning': '现有对象不会移动：新对象会进入新分配的后端，旧对象保留在原处。',

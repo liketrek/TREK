@@ -51,8 +51,6 @@ const storage: TranslationStrings = {
   'storage.form.apply': 'Uygula',
   'storage.form.cancel': 'İptal',
   'storage.form.duplicateName': '{name} adlı bir arka uç zaten var',
-  'storage.form.encryptionBanner':
-    'Sunucuda ENCRYPTION_KEY ayarlanmamış. Kimlik bilgisi içeren depolama arka uçlarını kaydetmek için bunu açıkça ayarlayın — düz metin bir gizli anahtar mevcut olduğu sürece kaydetme devre dışıdır.',
   'storage.categories.title': 'Kategoriler',
   'storage.categories.default': 'varsayılan',
   'storage.categories.reassignWarning':

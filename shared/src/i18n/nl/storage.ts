@@ -52,8 +52,6 @@ const storage: TranslationStrings = {
   'storage.form.apply': 'Toepassen',
   'storage.form.cancel': 'Annuleren',
   'storage.form.duplicateName': 'Er bestaat al een backend met de naam {name}',
-  'storage.form.encryptionBanner':
-    'ENCRYPTION_KEY is niet ingesteld op de server. Stel deze expliciet in om opslag-backends met inloggegevens op te slaan — opslaan is uitgeschakeld zolang er een geheim in platte tekst aanwezig is.',
   'storage.categories.title': 'Categorieën',
   'storage.categories.default': 'standaard',
   'storage.categories.reassignWarning':

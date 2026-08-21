@@ -68,7 +68,7 @@ function makeWorld() {
     ]),
   );
   setSetting('storage.categories', JSON.stringify({ backups: 'm' }));
-  const env = { env: () => ({ paths: {}, security: { encryptionKeySet: true } }) } as unknown as RuntimeEnvService;
+  const env = { env: () => ({ paths: {} }) } as unknown as RuntimeEnvService;
   const registry = new StorageRegistryService(db, env, new StorageEventsService());
   registry.onModuleInit();
   const storage = new StorageService(registry);

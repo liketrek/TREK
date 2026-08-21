@@ -256,7 +256,6 @@ export const storageAdminStateSchema = z.object({
     z.object({ backend: z.string().min(1), source: storageCategorySourceSchema }),
   ),
   health: z.object({ replicaFailures: z.array(storageReplicaFailureSchema) }),
-  encryptionReady: z.boolean(),
   seedFilePresent: z.boolean(),
   usage: storageUsageSchema.nullable(),
   backfills: z.array(storageBackfillStatusSchema),

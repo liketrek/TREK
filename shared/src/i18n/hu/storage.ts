@@ -52,8 +52,6 @@ const storage: TranslationStrings = {
   'storage.form.apply': 'Alkalmaz',
   'storage.form.cancel': 'Mégse',
   'storage.form.duplicateName': 'Már létezik {name} nevű backend',
-  'storage.form.encryptionBanner':
-    'Az ENCRYPTION_KEY nincs beállítva a szerveren. Állítsd be explicit módon, hogy hitelesítő adatokkal rendelkező tárhely-backendeket menthess — a mentés le van tiltva, amíg egyszerű szöveges titok van jelen.',
   'storage.categories.title': 'Kategóriák',
   'storage.categories.default': 'alapértelmezett',
   'storage.categories.reassignWarning':

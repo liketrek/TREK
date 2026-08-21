@@ -57,7 +57,7 @@ function makeWorld() {
       { name: 'backups-local', type: 'local', options: { root: backupsRoot } },
     ]),
   );
-  const env = { env: () => ({ paths: {}, security: { encryptionKeySet: true } }) } as unknown as RuntimeEnvService;
+  const env = { env: () => ({ paths: {} }) } as unknown as RuntimeEnvService;
   const registry = new StorageRegistryService(db, env, new StorageEventsService());
   registry.onModuleInit();
   const storage = new StorageService(registry);

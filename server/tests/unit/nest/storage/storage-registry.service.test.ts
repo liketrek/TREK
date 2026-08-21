@@ -58,13 +58,10 @@ interface EnvPaths {
   placePhotoDir?: string;
 }
 
-function makeEnvStub(
-  initial: EnvPaths,
-  security: { encryptionKeySet: boolean } = { encryptionKeySet: true },
-): { env: RuntimeEnvService } {
+function makeEnvStub(initial: EnvPaths): { env: RuntimeEnvService } {
   const paths = initial;
   return {
-    env: { env: () => ({ paths, security }) } as unknown as RuntimeEnvService,
+    env: { env: () => ({ paths }) } as unknown as RuntimeEnvService,
   };
 }
 
@@ -83,7 +80,6 @@ interface RegistryOpts {
   /** Extra storage.backends entries, appended after the uploads-local override. */
   backends?: unknown[];
   categories?: Record<string, string>;
-  encryptionKeySet?: boolean;
 }
 
 /**
@@ -96,10 +92,7 @@ function makeRegistry(opts: RegistryOpts = {}) {
   const uploadsRoot = opts.uploadsRoot ?? makeTmpDir();
   setSetting('storage.backends', JSON.stringify([uploadsOverride(uploadsRoot), ...(opts.backends ?? [])]));
   if (opts.categories) setSetting('storage.categories', JSON.stringify(opts.categories));
-  const stub = makeEnvStub(
-    { placePhotoDir: opts.placePhotoDir },
-    { encryptionKeySet: opts.encryptionKeySet ?? true },
-  );
+  const stub = makeEnvStub({ placePhotoDir: opts.placePhotoDir });
   const registry = new StorageRegistryService(db, stub.env, new StorageEventsService());
   if (opts.boot !== false) registry.onModuleInit();
   return { registry, uploadsRoot, setUploadsRoot: (root: string) => rewriteUploadsOverride(root) };
@@ -478,8 +471,8 @@ describe('seed-once storage-config.json import', () => {
   }
 
   /** A registry with NO storage.* rows (makeRegistry seeds an override row, so build raw). */
-  function makeUnseededRegistry(opts: { encryptionKeySet?: boolean } = {}) {
-    const stub = makeEnvStub({}, { encryptionKeySet: opts.encryptionKeySet ?? true });
+  function makeUnseededRegistry() {
+    const stub = makeEnvStub({});
     return new StorageRegistryService(db, stub.env, new StorageEventsService());
   }
 
@@ -565,7 +558,7 @@ describe('seed-once storage-config.json import', () => {
     );
   });
 
-  it('SEED-007 plaintext secrets without ENCRYPTION_KEY abort boot naming the variable', () => {
+  it('SEED-007 a plaintext-secret seed imports without an explicit ENCRYPTION_KEY and encrypts at rest', () => {
     writeSeed(
       JSON.stringify({
         backends: [
@@ -583,9 +576,13 @@ describe('seed-once storage-config.json import', () => {
         categories: {},
       }),
     );
-    const registry = makeUnseededRegistry({ encryptionKeySet: false });
-    expect(() => registry.onModuleInit()).toThrow(/ENCRYPTION_KEY/);
-    expect(readRow('storage.backends')).toBeUndefined(); // nothing persisted on abort
+    const registry = makeUnseededRegistry();
+    registry.onModuleInit();
+    // No key-presence gate: the implicit key covers encryption when
+    // ENCRYPTION_KEY is unset, and the plaintext never persists.
+    const row = readRow('storage.backends')!;
+    expect(row).not.toContain('sk-seed');
+    expect(row).toContain('enc:v1:');
   });
 
   it('SEED-008 a mask sentinel in the seed file aborts boot', () => {
@@ -622,7 +619,7 @@ describe('seed-once storage-config.json import', () => {
     expect(second.resolve('backups').backendName).toBe('nas');
   });
 
-  it('SEED-010 an all-encrypted seed imports without ENCRYPTION_KEY (the gate is plaintext-only)', () => {
+  it('SEED-010 an all-encrypted seed imports and keeps its ciphertext byte-for-byte', () => {
     const cipher = encrypt_api_key('sk-seed');
     writeSeed(
       JSON.stringify({
@@ -641,10 +638,10 @@ describe('seed-once storage-config.json import', () => {
         categories: { backups: 'off-box' },
       }),
     );
-    const registry = makeUnseededRegistry({ encryptionKeySet: false });
+    const registry = makeUnseededRegistry();
     registry.onModuleInit();
-    // enc:v1: values are not "plaintext secrets" — the key-presence gate must
-    // not fire, and the ciphertext must persist byte-for-byte (idempotent encrypt).
+    // enc:v1: values pass through the idempotent encrypt — the ciphertext
+    // must persist byte-for-byte.
     expect(registry.resolve('backups').driver).toBeInstanceOf(S3Driver);
     expect(readRow('storage.backends')).toContain(cipher);
   });

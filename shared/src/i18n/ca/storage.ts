@@ -51,8 +51,6 @@ const storage: TranslationStrings = {
   'storage.form.apply': 'Aplicar',
   'storage.form.cancel': 'Cancel·lar',
   'storage.form.duplicateName': 'Ja existeix un backend anomenat {name}',
-  'storage.form.encryptionBanner':
-    "ENCRYPTION_KEY no està definida al servidor. Defineix-la explícitament per desar backends d'emmagatzematge amb credencials — el desament està desactivat mentre hi hagi un secret en text pla.",
   'storage.categories.title': 'Categories',
   'storage.categories.default': 'predeterminada',
   'storage.categories.reassignWarning':

@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import { Injectable } from '@nestjs/common';
 import type { StorageAdminState, StorageBackend, StorageConfig, StorageTestResponse, StorageUsage } from '@trek/shared';
 import { DatabaseService } from '../database/database.service';
-import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import {
   BACKENDS_KEY,
   CATEGORIES_KEY,
@@ -13,9 +12,7 @@ import { SEED_CONFIG_PATH } from './storage-paths';
 import {
   assertNoMaskSentinels,
   decryptBackendSecrets,
-  encryptionGateError,
   encryptStorageSecrets,
-  listPlaintextSecrets,
   maskBackendOptions,
   unmaskStorageConfig,
 } from './storage-secrets';
@@ -28,9 +25,8 @@ import { StorageStatsService } from './storage-stats.service';
  * Owner of the api/admin/storage read/write pipelines (spec:
  * docs/superpowers/specs/2026-08-19-storage-admin-config-design.md, Server).
  * Reads render from the registry's live snapshot; writes run
- * unmask → encryption gate → preview → encrypt → persist → reload, so an
- * admin save either fully applies or changes nothing — never the boot-time
- * silent fallback.
+ * unmask → preview → encrypt → persist → reload, so an admin save either
+ * fully applies or changes nothing — never the boot-time silent fallback.
  */
 @Injectable()
 export class StorageAdminService {
@@ -38,7 +34,6 @@ export class StorageAdminService {
     private readonly db: DatabaseService,
     private readonly registry: StorageRegistryService,
     private readonly storage: StorageService,
-    private readonly env: RuntimeEnvService,
     private readonly jobs: StorageJobsService,
     private readonly stats: StorageStatsService,
   ) {}
@@ -59,7 +54,6 @@ export class StorageAdminService {
       })),
       categories: snapshot.categories,
       health: { replicaFailures: this.storage.health().replicaFailures.map((f) => ({ ...f })) },
-      encryptionReady: this.env.env().security.encryptionKeySet,
       seedFilePresent: fs.existsSync(SEED_CONFIG_PATH),
       usage: this.stats.readUsage(),
       backfills: this.jobs.statuses(),
@@ -91,10 +85,6 @@ export class StorageAdminService {
     // submitted in a non-secret field would otherwise pass through untouched
     // and get persisted verbatim as garbage-in.
     assertNoMaskSentinels(unmasked);
-    const plaintext = listPlaintextSecrets(unmasked);
-    if (plaintext.length > 0 && !this.env.env().security.encryptionKeySet) {
-      throw new StorageBackendError(encryptionGateError(plaintext[0]!));
-    }
     this.registry.preview({ backends: unmasked.backends, categories: unmasked.categories });
     const encrypted = encryptStorageSecrets(unmasked);
     this.db.transaction(() => {

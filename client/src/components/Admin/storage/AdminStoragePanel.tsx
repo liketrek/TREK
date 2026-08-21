@@ -389,7 +389,6 @@ export default function AdminStoragePanel(): React.ReactElement {
           <BackendForm
             initial={editing.initial}
             backendNames={backendNames}
-            encryptionReady={state.encryptionReady}
             mirror={editing.mirror}
             onCommit={commitBackend}
             onCancel={() => setEditing(null)}

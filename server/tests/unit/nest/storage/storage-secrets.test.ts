@@ -10,9 +10,7 @@ import {
 import {
   assertNoMaskSentinels,
   decryptBackendSecrets,
-  encryptionGateError,
   encryptStorageSecrets,
-  listPlaintextSecrets,
   maskBackendOptions,
   redactStorageSecrets,
   unmaskStorageConfig,
@@ -40,23 +38,6 @@ const LOCAL_ONLY: StorageConfig = {
   categories: {},
 };
 
-describe('listPlaintextSecrets', () => {
-  it('finds plaintext secrets, skips encrypted ones and secretless types', () => {
-    expect(listPlaintextSecrets(s3Config('sk-plain'))).toEqual([{ backend: 'off-box', field: 'secretAccessKey' }]);
-    expect(listPlaintextSecrets(s3Config(encrypt_api_key('sk')))).toEqual([]);
-    expect(listPlaintextSecrets(LOCAL_ONLY)).toEqual([]);
-  });
-});
-
-describe('encryptionGateError', () => {
-  it('names ENCRYPTION_KEY, the backend, and the field', () => {
-    const message = encryptionGateError({ backend: 'off-box', field: 'secretAccessKey' });
-    expect(message).toContain('ENCRYPTION_KEY');
-    expect(message).toContain("'off-box'");
-    expect(message).toContain("'secretAccessKey'");
-    expect(message).toContain('not accepted');
-  });
-});
 
 describe('encryptStorageSecrets', () => {
   it('encrypts plaintext secrets and round-trips through decrypt', () => {

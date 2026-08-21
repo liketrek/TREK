@@ -50,8 +50,6 @@ const storage: TranslationStrings = {
   'storage.form.apply': '적용',
   'storage.form.cancel': '취소',
   'storage.form.duplicateName': '{name}이라는 이름의 백엔드가 이미 존재합니다',
-  'storage.form.encryptionBanner':
-    '서버에 ENCRYPTION_KEY가 설정되어 있지 않습니다. 자격 증명이 있는 스토리지 백엔드를 저장하려면 명시적으로 설정하세요 — 평문 비밀이 있는 동안 저장이 비활성화됩니다.',
   'storage.categories.title': '카테고리',
   'storage.categories.default': '기본값',
   'storage.categories.reassignWarning':

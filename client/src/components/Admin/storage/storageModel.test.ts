@@ -10,7 +10,6 @@ import {
 import {
   categoriesPointingAt,
   foldBackends,
-  hasPlaintextSecret,
   mirrorsReferencing,
   primaryNameOf,
   removeBackend,
@@ -49,7 +48,6 @@ const STATE: StorageAdminState = {
     backups: { backend: 'backups-local', source: 'default' },
   },
   health: { replicaFailures: [] },
-  encryptionReady: true,
   seedFilePresent: false,
   usage: null,
   backfills: [],
@@ -84,19 +82,6 @@ describe('remove pre-check helpers', () => {
   });
 });
 
-describe('hasPlaintextSecret', () => {
-  const s3 = (secretAccessKey: string) => ({
-    type: 's3' as const,
-    options: { endpoint: 'http://x', bucket: 'b', accessKeyId: 'ak', secretAccessKey },
-  });
-
-  it('FE-ADMIN-STORM-004: mask and empty are not plaintext; anything else is; local never is', () => {
-    expect(hasPlaintextSecret(s3(MASKED_SETTING_VALUE))).toBe(false);
-    expect(hasPlaintextSecret(s3(''))).toBe(false);
-    expect(hasPlaintextSecret(s3('sk-plain'))).toBe(true);
-    expect(hasPlaintextSecret({ type: 'local', options: { root: '/x' } })).toBe(false);
-  });
-});
 
 describe('draft edits', () => {
   const draft: StorageConfig = {

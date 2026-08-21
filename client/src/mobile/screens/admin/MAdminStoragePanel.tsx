@@ -18,7 +18,6 @@ import {
   adoptedMirrorFor,
   effectiveCategoryMap,
   foldBackends,
-  hasPlaintextSecret,
   primaryNameOf,
   removeBackend,
   removeBackendAndMirrors,
@@ -56,14 +55,12 @@ const categoryNames = (t: (key: string) => string, ids: readonly string[]): stri
 function MBackendForm({
   initial,
   backendNames,
-  encryptionReady,
   mirror,
   onCommit,
   onCancel,
 }: {
   initial: StorageBackend | null
   backendNames: string[]
-  encryptionReady: boolean
   mirror: { candidates: string[]; initialTargets: string[] }
   onCommit: (backend: StorageBackend, mirrorTargets: string[]) => void
   onCancel: () => void
@@ -85,7 +82,6 @@ function MBackendForm({
     return typeof value === 'string' && value.trim() !== ''
   }
   const duplicate = name.trim() !== (initial?.name ?? '') && backendNames.includes(name.trim())
-  const blocked = hasPlaintextSecret({ type, options: values }) && !encryptionReady
   const canApply = name.trim() !== '' && !duplicate && fields.every((f) => !f.required || filled(f))
 
   const apply = () => {
@@ -228,15 +224,9 @@ function MBackendForm({
       </MAdminField>
 
       <div className="flex items-center gap-2">
-        {blocked ? (
-          <p role="alert" className="font-geist text-[0.625rem] leading-relaxed text-m-muted">
-            {t('storage.form.encryptionBanner')}
-          </p>
-        ) : (
-          <MAdminButton onClick={apply} disabled={!canApply}>
-            {t('storage.form.apply')}
-          </MAdminButton>
-        )}
+        <MAdminButton onClick={apply} disabled={!canApply}>
+          {t('storage.form.apply')}
+        </MAdminButton>
         <MAdminButton variant="ghost" onClick={onCancel}>
           {t('storage.form.cancel')}
         </MAdminButton>
@@ -617,7 +607,6 @@ export default function MAdminStoragePanel(): React.ReactElement {
         <MBackendForm
           initial={editing.initial}
           backendNames={backendNames}
-          encryptionReady={state.encryptionReady}
           mirror={editing.mirror}
           onCommit={commitBackend}
           onCancel={() => setEditing(null)}

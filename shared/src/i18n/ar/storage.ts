@@ -50,8 +50,6 @@ const storage: TranslationStrings = {
   'storage.form.apply': 'تطبيق',
   'storage.form.cancel': 'إلغاء',
   'storage.form.duplicateName': 'توجد بالفعل واجهة خلفية باسم {name}',
-  'storage.form.encryptionBanner':
-    'لم يتم تعيين ENCRYPTION_KEY على الخادم. عيّنه صراحةً لحفظ واجهات التخزين الخلفية التي تحتوي على بيانات اعتماد — يُعطَّل الحفظ طالما هناك سر بنص عادي.',
   'storage.categories.title': 'الفئات',
   'storage.categories.default': 'الافتراضية',
   'storage.categories.reassignWarning':
