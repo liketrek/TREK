@@ -527,10 +527,16 @@ that has been running without an explicit key, do not just set a new one —
 that would orphan already-stored secrets; use the key-rotation procedure (see
 *Rotating the Encryption Key* under Updating) to move to an explicit key.
 
-Notes and limits: reassigning a populated category does not move its existing
-objects (new writes go to the new backend, old objects stay); media categories
-on S3 work but every served byte proxies through the server (no HTTP Range on
-the proxy path); AWS buckets with Object-Lock or checksum-requiring policies
+Notes and limits: reassigning a populated category prompts to move its
+existing objects — accepting copies everything to the new backend, flips the
+category, then sweeps any writes that raced the copy; source objects are kept
+(not deleted) and reported as reclaimable (count + size) to reclaim manually;
+declining routes only new writes to the new backend, leaving old objects in
+place as before. Only one storage job (a mirror sync or a category migration)
+runs at a time, cancelling before the flip is always safe, and a failed copy
+never flips the category; media categories on S3 work but every served byte
+proxies through the server (no HTTP Range on the proxy path); AWS buckets
+with Object-Lock or checksum-requiring policies
 reject the server's uploads; self-hosted endpoints (MinIO/Garage) should be
 addressed by IP or `localhost` unless configured for virtual-hosted buckets.
 The legacy `/uploads/photos` directory from older TREK versions is still

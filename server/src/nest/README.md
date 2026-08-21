@@ -144,7 +144,8 @@ tools, which never pass through an HTTP guard. In the five domains piloted for
   live `enc:v1:`-encrypted inside the `storage.backends` JSON (the implicit
   key covers installs without an explicit `ENCRYPTION_KEY`). The client
   presents mirrors as replicas-on-primary; the wire keeps explicit mirror
-  backends.
+  backends. `storage-jobs.service.ts` runs backfill and category-migration
+  jobs (one at a time, TTL'd statuses).
 - `memories/photo-provider.ts` + `providers/` — the PhotoProvider seam (#584).
   Dispatch to a photo backend was a `switch (photo.provider)` in three places
   (`photo-resolver.service.ts` twice, `journey-public.controller.ts` once, where

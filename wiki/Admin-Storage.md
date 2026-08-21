@@ -77,15 +77,36 @@ assigned to exactly one backend:
 | TREK photo cache | `photos-trek` | Cached photos from the TREK photo service used by Memories — re-fetchable, safe to lose |
 | Backups | `backups` | Server backup archives created by the Backup panel or schedule |
 
-Reassigning a category changes where **new** objects go — existing objects do
-not move and keep being served from wherever they already are. The panel
-shows this warning inline when you change an assignment. Replicating the
-Google photo cache or Place images is flagged as not recommended — both hold
-content that is re-fetchable or provider-derived.
+Reassigning a category changes where **new** objects go. If the category
+already holds objects, the panel asks first: **Move existing objects** copies
+everything to the new backend, switches the category, then sweeps any writes
+that raced the copy; **Just route new writes** keeps the previous behavior —
+new objects go to the new backend, existing ones stay put and keep being
+served from wherever they already are. Replicating the Google photo cache or
+Place images is flagged as not recommended — both hold content that is
+re-fetchable or provider-derived.
 
 The legacy `/uploads/photos` directory written by older TREK versions is not
 a category: its files are still served and included in backups, but nothing
 writes there anymore and it cannot be reassigned.
+
+### Moving a category's objects
+
+A category migration shares its one-at-a-time slot with mirror syncs (see
+*Replication* above) — starting a move while a sync (or another move) is
+running is refused, and vice versa. Progress (done/total, copied/skipped/
+failed) shows inline with a cancel button.
+
+Cancelling before the category switches is completely safe: nothing has
+changed yet, the copy just stops. A failed copy behaves the same way — the
+category is never switched if any object failed to copy. Once the switch has
+happened, the delta sweep (catching writes that landed on the old backend
+while the copy was running) always runs to completion, even if you cancel.
+
+The old objects are **not** deleted when a move finishes — that's what the
+reclaimable line means (`N objects (size) remain on <backend> — reclaim
+manually`). It's left behind on purpose so you can confirm the new backend
+looks right before removing it yourself.
 
 ## Usage
 
