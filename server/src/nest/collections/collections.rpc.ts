@@ -83,11 +83,14 @@ export class CollectionsRpc {
   }
 
   @PluginMethod('collections.deletePlace', { permission: 'db:write:collections' })
-  deletePlace(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async deletePlace(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireCollectionsUser(ctx, 'writes');
     const placeId = num(params.placeId, 'placeId');
     this.requireCollectionsAddon();
-    this.mapCollectionError(() => this.collections.deletePlace(userId, placeId, undefined));
+    // deletePlace is async (it deletes the underlying storage object): await it so a
+    // refusal actually reaches the plugin as RESOURCE_FORBIDDEN/BAD_PARAMS instead of
+    // being dropped as an unhandled rejection while this returns {deleted: true} anyway.
+    await this.mapCollectionError(() => this.collections.deletePlace(userId, placeId, undefined));
     return { deleted: true };
   }
 
@@ -102,10 +105,17 @@ export class CollectionsRpc {
     this.guards.requireAddon(ADDON_IDS.COLLECTIONS, 'collections');
   }
 
-  /** The service's status-tagged errors, mapped onto the RPC error taxonomy. */
-  private mapCollectionError<T>(fn: () => T): T {
+  /**
+   * The service's status-tagged errors, mapped onto the RPC error taxonomy.
+   *
+   * Async-aware: `deletePlace` is async (it deletes the underlying storage object),
+   * while `create`/`update`/`savePlace`/`copyToTrip` stay sync. Awaiting inside always
+   * works for both — a sync throw from `fn()` is caught by this function's own
+   * try/catch same as an awaited rejection — so every caller goes through one path.
+   */
+  private async mapCollectionError<T>(fn: () => T | Promise<T>): Promise<T> {
     try {
-      return fn();
+      return await fn();
     } catch (e) {
       const status = (e as { status?: number })?.status;
       const msg = e instanceof Error ? e.message : 'collection error';

@@ -39,6 +39,11 @@ function spyService(calls: string[], name: string) {
         if (prop === 'votePoll' || prop === 'createMessage') return { error: null, poll: {}, message: {} };
         if (prop === 'listEntries') return [];
         if (prop === 'getActivePlanId') return 1;
+        // collections.deletePlace is async in production (it deletes a storage
+        // object); a promise-returning double here pins the fix that awaits it —
+        // an un-awaited call would leave an unhandled rejection unnoticed by every
+        // assertion below.
+        if (name === 'collections' && prop === 'deletePlace') return Promise.resolve(undefined);
         if (String(prop).startsWith('delete')) return true;
         if (String(prop).startsWith('list')) return [];
         return { id: 1 };

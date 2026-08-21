@@ -52,7 +52,11 @@ function build(overrides: {
     new AtlasRpc({ listVisitedCountries: vi.fn(() => []), listManuallyVisitedRegions: vi.fn(() => []), bucketList: vi.fn(() => []), markCountry: vi.fn(), unmarkCountry: vi.fn(), markRegion: vi.fn(), unmarkRegion: vi.fn(), createBucketItem: vi.fn(() => ({})), deleteBucketItem: vi.fn(() => true), ...overrides.atlas } as never, guards),
     new VacayRpc({ getPlanData: vi.fn(() => ({})), getActivePlanId: vi.fn(() => 1), toggleEntry: vi.fn(() => ({})), toggleCompanyHoliday: vi.fn(() => ({})), ...overrides.vacay } as never, guards),
     new JournalRpc({ listJourneys: vi.fn(() => []), listEntries: vi.fn(() => []), createEntry: vi.fn(() => ({})), updateEntry: vi.fn(() => ({})), deleteEntry: vi.fn(() => true), createJourney: vi.fn(() => ({})), deleteJourney: vi.fn(() => true), ...overrides.journey } as never, guards),
-    new CollectionsRpc({ listCollections: vi.fn(() => []), getCollection: vi.fn(() => ({})), createCollection: vi.fn(() => ({})), updateCollection: vi.fn(() => ({})), savePlace: vi.fn(() => ({})), copyToTrip: vi.fn(() => ({})), deletePlace: vi.fn(() => undefined), ...overrides.collections } as never, guards),
+    // deletePlace is async in production, so its double returns a promise: an
+    // un-awaited call in the RPC handler would let a rejection sail past
+    // mapCollectionError as an unhandled rejection while the handler still replied
+    // {deleted: true}.
+    new CollectionsRpc({ listCollections: vi.fn(() => []), getCollection: vi.fn(() => ({})), createCollection: vi.fn(() => ({})), updateCollection: vi.fn(() => ({})), savePlace: vi.fn(() => ({})), copyToTrip: vi.fn(() => ({})), deletePlace: vi.fn(() => Promise.resolve(undefined)), ...overrides.collections } as never, guards),
   ]);
   const granted = new Set([
     'db:read:collab', 'db:write:collab', 'db:read:journal', 'db:write:journal',
@@ -192,6 +196,16 @@ describe('addon-gated domains validate their input', () => {
     // rather than being dressed up as a permission problem.
     const host = build({ collections: { deletePlace: vi.fn(() => { throw new Error('disk on fire'); }) } });
     expect(err(await host.dispatch(req('collections.deletePlace', { placeId: 1 }), 42))).toMatchObject({ code: 'HOST_ERROR', message: 'disk on fire' });
+  });
+
+  it('ADDONERR-009b a refused collections delete is ForbiddenResource, not {deleted: true}', async () => {
+    // deletePlace is async, so a status-tagged rejection has to be awaited before the
+    // handler decides what to reply — an un-awaited call would let this rejection
+    // become an unhandled promise rejection while the RPC still answered {deleted: true}.
+    const host = build({ collections: { deletePlace: vi.fn(() => Promise.reject(statusError(403, 'not your collection'))) } });
+    const res = await host.dispatch(req('collections.deletePlace', { placeId: 1 }), 42);
+    expect(res.ok).toBe(false);
+    expect(err(res)).toMatchObject({ code: 'RESOURCE_FORBIDDEN', message: 'not your collection' });
   });
 
   it('ADDONERR-010 collections reject a payload the shared schema refuses', async () => {

@@ -67,7 +67,7 @@ export class PlacesRpc {
   }
 
   @PluginMethod('places.update', { permission: 'db:write:places' })
-  update(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async update(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const tripId = num(params.tripId, 'tripId');
     const placeId = num(params.placeId, 'placeId');
     const actor = this.guards.requireActor(ctx, 'place');
@@ -76,7 +76,10 @@ export class PlacesRpc {
     this.guards.capStrings(parsed.data as Record<string, unknown>, PLACE_STR_LIMITS);
     capUrls(parsed.data as Record<string, unknown>);
     this.guards.requireTripEdit(tripId, actor, PLACE_EDIT_ACTION);
-    const place = this.places.update(String(tripId), String(placeId), parsed.data as PlaceUpdateInput);
+    // update is async (it may delete a superseded storage object): await it so the
+    // null-refusal check compares against the resolved place, not an always-truthy
+    // Promise, and the broadcast below carries the actual place.
+    const place = await this.places.update(String(tripId), String(placeId), parsed.data as PlaceUpdateInput);
     if (place === null) throw new ForbiddenResource(`no place ${placeId} on trip ${tripId}`);
     this.realtime.broadcast(tripId, 'place:updated', { place });
     this.mirrorJourneys(() => this.journey.onPlaceUpdated(placeId));
@@ -84,7 +87,7 @@ export class PlacesRpc {
   }
 
   @PluginMethod('places.delete', { permission: 'db:write:places' })
-  delete(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async delete(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const tripId = num(params.tripId, 'tripId');
     const placeId = num(params.placeId, 'placeId');
     const actor = this.guards.requireActor(ctx, 'place');
@@ -101,7 +104,9 @@ export class PlacesRpc {
     this.mirrorJourneys(() => this.journey.onPlaceDeleted(placeId));
     // The link is gone once the place is, so read it first (#1298).
     const expenseIds = this.places.linkedExpenseIds(tripId, [placeId]);
-    if (!this.places.remove(String(tripId), String(placeId))) {
+    // remove is async (it deletes the place's storage object): await it so the
+    // refusal check sees the resolved boolean, not an always-truthy Promise.
+    if (!(await this.places.remove(String(tripId), String(placeId)))) {
       throw new ForbiddenResource(`no place ${placeId} on trip ${tripId}`);
     }
     this.realtime.broadcast(tripId, 'place:deleted', { placeId });

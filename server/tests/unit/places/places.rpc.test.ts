@@ -32,11 +32,15 @@ const req = (method: string, params: Record<string, unknown> = {}): RpcRequest =
  * signature in front of the mock, and the cases below read .mock off these methods.
  */
 function build(opts: { canEdit?: boolean; journeyThrows?: boolean } = {}) {
+  // update/remove are async in production (they may delete a storage object), so the
+  // doubles return promises: an un-awaited call in the RPC handler would compare a
+  // Promise against null/false instead of the resolved value, and these mocks pin
+  // that regression down rather than papering over it with a synchronous return.
   const places = {
     create: vi.fn((_t: string, i: Record<string, unknown>) => ({ id: 10, ...i })),
-    update: vi.fn((_t: string, id: string) => (id === '7' ? { id: 7, name: 'updated' } : null)),
+    update: vi.fn((_t: string, id: string) => Promise.resolve(id === '7' ? { id: 7, name: 'updated' } : null)),
     get: vi.fn((_t: string, id: string) => (id === '7' ? { id: 7 } : undefined)),
-    remove: vi.fn((_t: string, id: string) => id === '7'),
+    remove: vi.fn((_t: string, id: string) => Promise.resolve(id === '7')),
     linkedExpenseIds: vi.fn(() => []),
   };
   const journey = {
@@ -146,5 +150,28 @@ describe('PlacesRpc', () => {
 
   it('PLACES-RPC-010 the class is listed in its module providers', () => {
     expectRegisteredProvider(PlacesModule, PlacesRpc);
+  });
+
+  it('PLACES-RPC-011 an update broadcasts the resolved place, not the pending promise', async () => {
+    const f = build();
+    const host = f.host('db:write:places');
+    const res = await host.dispatch(req('places.update', { tripId: 1, placeId: 7, input: { name: 'x' } }), 42);
+    expect(res.ok).toBe(true);
+    expect((res as { result: unknown }).result).toEqual({ id: 7, name: 'updated' });
+    // Not a Promise instance and not [object Promise] — the broadcast payload is the
+    // awaited place, exactly what a client-side listener would expect to render.
+    expect(f.realtime.broadcast).toHaveBeenCalledWith(1, 'place:updated', { place: { id: 7, name: 'updated' } });
+  });
+
+  it('PLACES-RPC-012 a delete that the service refuses is ForbiddenResource, not {deleted: true}', async () => {
+    const f = build();
+    // place.get finds it (it exists), but the actual delete comes back false — the
+    // race the null/false-vs-Promise bug used to paper over by always being truthy.
+    f.places.remove.mockImplementationOnce(() => Promise.resolve(false));
+    const res = (await f.host('db:write:places').dispatch(req('places.delete', { tripId: 1, placeId: 7 }), 42)) as RpcError;
+    expect(res.ok).toBe(false);
+    expect(res.error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(res.error.message).toBe('no place 7 on trip 1');
+    expect(f.realtime.broadcast).not.toHaveBeenCalled();
   });
 });
