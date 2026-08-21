@@ -425,6 +425,103 @@ describe('PlaceInspector', () => {
     expect(screen.getByText('Museum Ticket')).toBeTruthy();
   });
 
+  it('FE-PLANNER-INSPECTOR-030b: the linked reservation opens its editor (#2012)', () => {
+    const onEditReservation = vi.fn();
+    const reservation = buildReservation({ title: 'Museum Ticket', status: 'confirmed', assignment_id: 99 } as any);
+    const assignmentInDay = [{ id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null }];
+    render(
+      <PlaceInspector
+        {...defaultProps}
+        selectedDayId={1}
+        selectedAssignmentId={99}
+        assignments={{ '1': assignmentInDay }}
+        reservations={[reservation]}
+        onEditReservation={onEditReservation}
+      />
+    );
+    const strip = screen.getByText('Museum Ticket').closest('[role="button"]') as HTMLElement;
+    expect(strip).toBeTruthy();
+    fireEvent.click(strip);
+    expect(onEditReservation).toHaveBeenCalledWith(reservation);
+  });
+
+  it('FE-PLANNER-INSPECTOR-030e: a transport booking goes to the transport editor (#2012)', () => {
+    const onEditTransport = vi.fn();
+    const onEditReservation = vi.fn();
+    // A ferry is a transport, and ReservationModal has no transport type to hold it.
+    const reservation = buildReservation({ title: 'Ferry to Corfu', status: 'pending', type: 'ferry', assignment_id: 99 } as any);
+    const assignmentInDay = [{ id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null }];
+    render(
+      <PlaceInspector
+        {...defaultProps}
+        selectedDayId={1}
+        selectedAssignmentId={99}
+        assignments={{ '1': assignmentInDay }}
+        reservations={[reservation]}
+        onEditTransport={onEditTransport}
+        onEditReservation={onEditReservation}
+      />
+    );
+    fireEvent.click(screen.getByText('Ferry to Corfu').closest('[role="button"]') as HTMLElement);
+    expect(onEditTransport).toHaveBeenCalledWith(reservation);
+    expect(onEditReservation).not.toHaveBeenCalled();
+  });
+
+  it('FE-PLANNER-INSPECTOR-030f: no transport handler means no affordance on a transport (#2012)', () => {
+    // A member who may edit bookings but not days must not get a button that no-ops.
+    const reservation = buildReservation({ title: 'Ferry to Corfu', status: 'pending', type: 'ferry', assignment_id: 99 } as any);
+    const assignmentInDay = [{ id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null }];
+    render(
+      <PlaceInspector
+        {...defaultProps}
+        selectedDayId={1}
+        selectedAssignmentId={99}
+        assignments={{ '1': assignmentInDay }}
+        reservations={[reservation]}
+        onEditReservation={vi.fn()}
+      />
+    );
+    expect(screen.getByText('Ferry to Corfu').closest('[role="button"]')).toBeNull();
+  });
+
+  it('FE-PLANNER-INSPECTOR-030c: Enter and Space open it too (#2012)', () => {
+    const onEditReservation = vi.fn();
+    const reservation = buildReservation({ title: 'Museum Ticket', status: 'confirmed', assignment_id: 99 } as any);
+    const assignmentInDay = [{ id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null }];
+    render(
+      <PlaceInspector
+        {...defaultProps}
+        selectedDayId={1}
+        selectedAssignmentId={99}
+        assignments={{ '1': assignmentInDay }}
+        reservations={[reservation]}
+        onEditReservation={onEditReservation}
+      />
+    );
+    const strip = screen.getByText('Museum Ticket').closest('[role="button"]') as HTMLElement;
+    expect(strip.getAttribute('tabindex')).toBe('0');
+    fireEvent.keyDown(strip, { key: 'Enter' });
+    fireEvent.keyDown(strip, { key: ' ' });
+    expect(onEditReservation).toHaveBeenCalledTimes(2);
+  });
+
+  it('FE-PLANNER-INSPECTOR-030d: without a handler the strip stays a read-only summary', () => {
+    const reservation = buildReservation({ title: 'Museum Ticket', status: 'confirmed', assignment_id: 99 } as any);
+    const assignmentInDay = [{ id: 99, place, day_id: 1, place_id: place.id, order_index: 0, notes: null }];
+    render(
+      <PlaceInspector
+        {...defaultProps}
+        selectedDayId={1}
+        selectedAssignmentId={99}
+        assignments={{ '1': assignmentInDay }}
+        reservations={[reservation]}
+      />
+    );
+    // A viewer with no edit right gets no target, and no misleading pointer.
+    expect(screen.getByText('Museum Ticket').closest('[role="button"]')).toBeNull();
+    expect(screen.getByText('Museum Ticket')).toBeTruthy();
+  });
+
   // ── Participants ───────────────────────────────────────────────────────────
 
   it('FE-PLANNER-INSPECTOR-031: participants section shown when tripMembers > 1 and selectedAssignmentId is set', () => {

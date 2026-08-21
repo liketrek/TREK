@@ -279,6 +279,22 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
   // coarse — a hybrid laptop loads drag-drop-touch instead.
   useTouchDragBridge(isTouch && !isMobile)
 
+  // The place inspector's booking strip opens the editor the booking belongs to.
+  // Handed over as undefined when the right is missing, so the strip stays a
+  // read-only summary rather than a button that does nothing (#2012).
+  const openLinkedTransport = can('day_edit', trip) ? (reservation: Reservation) => {
+    setEditingTransport(reservation)
+    setTransportModalDayId(reservation.day_id ?? null)
+    setTransportModalAutomated(false)
+    setShowTransportModal(true)
+    setMobileSidebarOpen(null)
+  } : undefined
+  const openLinkedReservation = can('reservation_edit', trip) ? (reservation: Reservation) => {
+    setEditingReservation(reservation)
+    setShowReservationModal(true)
+    setMobileSidebarOpen(null)
+  } : undefined
+
   const poi = usePoiExplore()
   const [glMap, setGlMap] = useState<CompassMap | null>(null)
   const poiPillEnabled = useSettingsStore(s => s.settings.map_poi_pill_enabled) !== false
@@ -594,6 +610,8 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
 
             {selectedPlace && !isMobile && (
               <PlaceInspector
+                onEditTransport={openLinkedTransport}
+                onEditReservation={openLinkedReservation}
                 place={selectedPlace}
                 categories={categories}
                 days={days}
@@ -634,6 +652,8 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
               <div className="bg-[rgba(0,0,0,0.3)]" style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 'var(--bottom-nav-h)' }} onClick={() => setSelectedPlaceId(null)}>
                 <div style={{ width: '100%', maxHeight: '85vh' }} onClick={e => e.stopPropagation()}>
                   <PlaceInspector
+                    onEditTransport={openLinkedTransport}
+                    onEditReservation={openLinkedReservation}
                     place={selectedPlace}
                     categories={categories}
                     days={days}
