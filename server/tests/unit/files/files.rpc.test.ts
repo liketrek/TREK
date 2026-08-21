@@ -6,11 +6,9 @@
  * blocklist, the size cap, the demo-mode refusal, and that each operation asks for
  * its own permission rather than one shared domain action.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { expectRegisteredProvider } from '../../helpers/module-providers';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
+import { Readable } from 'node:stream';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
 import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
@@ -21,14 +19,14 @@ import type { RealtimeService } from '../../../src/nest/realtime/realtime.servic
 import type { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import type { StorageService } from '../../../src/nest/storage/storage.service';
+import { StorageNotFoundError } from '../../../src/nest/storage/storage.types';
 import type { RpcRequest, RpcError, RpcResponse } from '../../../src/nest/plugins/protocol/envelope';
 import { makeDeps } from '../../helpers/rpc-host-deps';
 
 const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({ k: 'req', id: 'x', method, params });
 
 const b64 = (s: string) => Buffer.from(s).toString('base64');
-
-let tmpDir: string;
 
 /** File 2 sits on trip 1, which belongs to user 42. */
 function build(opts: { file?: Record<string, unknown> | undefined; foreign?: string | null; allow?: (a: string) => boolean } = {}) {
@@ -38,7 +36,6 @@ function build(opts: { file?: Record<string, unknown> | undefined; foreign?: str
     getFileById: vi.fn((id: number) =>
       id === 2 ? (opts.file ?? { filename: 'visa.pdf', original_name: 'visa.pdf', mime_type: 'application/pdf', file_size: 2, deleted_at: null }) : undefined,
     ),
-    resolveFilePath: vi.fn((name: string) => ({ resolved: path.join(tmpDir, name), safe: true })),
     findForeignLinkTarget: vi.fn(() => opts.foreign ?? null),
     createFile: vi.fn((_t: number, meta: Record<string, unknown>) => ({ id: 130, ...meta })),
     createFileLink: vi.fn(() => [{ file_id: 2 }]),
@@ -53,16 +50,17 @@ function build(opts: { file?: Record<string, unknown> | undefined; foreign?: str
     checkPermission: vi.fn((action: string) => (opts.allow ? opts.allow(action) : true)),
   } as unknown as PermissionsService;
   const guards = new PluginGuards(db, permissions, { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService);
-  const rpc = new FilesRpc(files, realtime, db, guards);
+  const storage = {
+    getStream: vi.fn(async () => ({
+      stream: Readable.from(Buffer.from('hi')),
+      stat: { key: 'visa.pdf', size: 2, mtimeMs: 0 },
+    })),
+    put: vi.fn(async () => undefined),
+  } as unknown as StorageService & Record<string, ReturnType<typeof vi.fn>>;
+  const rpc = new FilesRpc(files, realtime, db, guards, storage);
   const host = (...grants: string[]) => new PluginRpcHost('p', new Set(grants), makeDeps(), createTestPluginRegistry([rpc]));
-  return { files, realtime, permissions, host };
+  return { files, realtime, permissions, storage, host };
 }
-
-beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'trek-files-rpc-'));
-  fs.writeFileSync(path.join(tmpDir, 'visa.pdf'), 'hi');
-});
-afterEach(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
 
 describe('FilesRpc reads', () => {
   it('FILES-RPC-001 files.list is membership-checked and excludes the trash', async () => {
@@ -93,15 +91,40 @@ describe('FilesRpc reads', () => {
     const f = build({ file: { filename: 'visa.pdf', original_name: 'visa.pdf', mime_type: null, file_size: 400 * 1024 * 1024, deleted_at: null } });
     const res = (await f.host('db:read:files:content').dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42)) as RpcError;
     expect(res.error.code).toBe('BAD_PARAMS');
-    // The path is never even resolved for an oversized file.
-    expect(f.files.resolveFilePath).not.toHaveBeenCalled();
+    // The storage layer is never even asked for an oversized file.
+    expect(f.storage.getStream).not.toHaveBeenCalled();
   });
 
-  it('FILES-RPC-005 a path outside the uploads root is refused', async () => {
+  it('FILES-RPC-005 a missing storage object gets the accessibility envelope, not a raw error', async () => {
     const f = build();
-    (f.files.resolveFilePath as ReturnType<typeof vi.fn>).mockReturnValueOnce({ resolved: '/etc/passwd', safe: false });
+    (f.storage.getStream as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new StorageNotFoundError('files/visa.pdf'));
     const res = (await f.host('db:read:files:content').dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42)) as RpcError;
     expect(res.error.message).toBe('file path is not accessible');
+  });
+
+  it('FILES-RPC-005b an object whose stat exceeds the cap is refused before buffering', async () => {
+    const f = build();
+    const stream = Readable.from(Buffer.from('hi'));
+    (f.storage.getStream as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      stream, stat: { key: 'visa.pdf', size: 11 * 1024 * 1024, mtimeMs: 0 },
+    });
+    const res = (await f.host('db:read:files:content').dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42)) as RpcError;
+    expect(res.error.code).toBe('BAD_PARAMS');
+    expect(res.error.message).toBe('file too large to read (>10485760 bytes); use the download UI');
+    expect(stream.destroyed).toBe(true);
+  });
+
+  it('FILES-RPC-005c a stream that outgrows its stat is aborted mid-read', async () => {
+    const f = build();
+    // stat claims 2 bytes; the stream actually yields 10MB+1 — a lying driver
+    // must not push an oversized payload through the IPC pipe.
+    const big = Readable.from([Buffer.alloc(6 * 1024 * 1024), Buffer.alloc(6 * 1024 * 1024)]);
+    (f.storage.getStream as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      stream: big, stat: { key: 'visa.pdf', size: 2, mtimeMs: 0 },
+    });
+    const res = (await f.host('db:read:files:content').dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42)) as RpcError;
+    expect(res.error.message).toBe('file too large to read');
+    expect(big.destroyed).toBe(true);
   });
 });
 
@@ -221,7 +244,8 @@ describe('FilesRpc writes', () => {
         findForeignLinkTarget: vi.fn(() => null),
         createFile: vi.fn(() => ({ id: 130 })),
       } as unknown as FilesService;
-      const rpc = new FilesRpc(files, { broadcast: vi.fn() } as unknown as RealtimeService, db, guards);
+      const storage = { getStream: vi.fn(), put: vi.fn(async () => undefined) } as unknown as StorageService;
+      const rpc = new FilesRpc(files, { broadcast: vi.fn() } as unknown as RealtimeService, db, guards, storage);
       const host = new PluginRpcHost('p', new Set(['db:write:files']), makeDeps(), createTestPluginRegistry([rpc]));
       const input = { name: 'a.pdf', content_base64: b64('x') };
       const denied = (await host.dispatch(req('files.create', { tripId: 1, input }), 9)) as RpcError;

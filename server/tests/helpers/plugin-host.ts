@@ -122,7 +122,7 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
     new TodoRpc(todos, realtime, guards),
     new DayNotesRpc(dayNotes, realtime, guards),
     new PackingRpc(packing, realtime, guards),
-    new FilesRpc(files, realtime, dbs, guards),
+    new FilesRpc(files, realtime, dbs, guards, generalStorage),
     new PlacesRpc(places, journey, realtime, guards),
     new DaysRpc(days, realtime, guards),
     new AccommodationsRpc(accommodations, realtime, guards),
