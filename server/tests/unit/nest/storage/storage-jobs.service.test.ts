@@ -302,6 +302,23 @@ describe('StorageJobsService migrations', () => {
     expect(registryCategoriesRow().files).toBe('uploads-local');
   });
 
+  it('MIG-007 a cancel landing after the copy loop but before the flip ends cancelled, categories row untouched', async () => {
+    // Deterministic route (no timing race): an EMPTY category never enters
+    // either copy loop, so the only place a cancel can be observed is the
+    // guard between the failed-check and the flip. `cancelMigration` is
+    // called synchronously right after `startMigration` returns — the
+    // detached runMigration's first `for await` suspends on a microtask
+    // before doing any work, so this synchronous call always lands the
+    // cancel flag before the async function resumes.
+    const { jobs } = makeMigrationWorld(); // 'files' has zero objects
+    jobs.startMigration('files', 'dest-local');
+    expect(jobs.cancelMigration('files')).toBe(true);
+
+    const final = await waitTerminal(jobs, 'files');
+    expect(final.status).toBe('cancelled');
+    expect(registryCategoriesRow().files).toBe('uploads-local'); // never flipped
+  });
+
   it('MIG-004 validations: 400s, 404, and 409 against a running backfill (and vice versa)', async () => {
     const { storage, jobs } = makeMigrationBackfillWorld();
     expect(() => jobs.startMigration('files', 'uploads-local')).toThrow(MigrationRequestError); // to === current
@@ -430,5 +447,59 @@ describe('StorageJobsService.cancelJobsForMissingBackends', () => {
     jobs.cancelJobsForMissingBackends();
     const final = await waitTerminal(jobs, 'files');
     expect(final.status).toBe('cancelled');
+  });
+
+  it('JOBS-022 cancels a running migration re-routed to a third, still-defined backend (route no longer matches `from`)', async () => {
+    const { storage, jobs, registry } = makeMigrationWorld(); // 'files' -> 'uploads-local'; 'dest-local' is the target
+    for (let i = 0; i < 100; i++) await storage.put('files', `f${i}.txt`, Readable.from('x'.repeat(100_000)));
+    jobs.startMigration('files', 'dest-local');
+    await waitFor(() => jobs.migrationStatuses().some((m) => m.category === 'files' && m.done >= 1), 5000, 1);
+
+    // A config save re-routes 'files' to a THIRD backend — both the
+    // migration's own from ('uploads-local') and to ('dest-local') backends
+    // still exist (the migration's already-resolved source driver instance
+    // is unaffected by the roots below — the in-flight guarantee), so the
+    // existing missing-backend check wouldn't catch this.
+    setSetting(
+      'storage.backends',
+      JSON.stringify([
+        { name: 'uploads-local', type: 'local', options: { root: makeTmpDir() } },
+        { name: 'backups-local', type: 'local', options: { root: makeTmpDir() } },
+        { name: 'dest-local', type: 'local', options: { root: makeTmpDir() } },
+        { name: 'third-local', type: 'local', options: { root: makeTmpDir() } },
+      ]),
+    );
+    setSetting('storage.categories', JSON.stringify({ files: 'third-local' }));
+    registry.reload();
+
+    jobs.cancelJobsForMissingBackends();
+    const final = await waitTerminal(jobs, 'files');
+    expect(final.status).toBe('cancelled');
+    expect(registryCategoriesRow().files).toBe('third-local'); // the save's reroute stands — no flip
+  });
+
+  it('JOBS-023 a save that does not touch the migrating category leaves it running', async () => {
+    const { storage, jobs, registry } = makeMigrationWorld();
+    for (let i = 0; i < 100; i++) await storage.put('files', `f${i}.txt`, Readable.from('x'.repeat(100_000)));
+    jobs.startMigration('files', 'dest-local');
+    await waitFor(() => jobs.migrationStatuses().some((m) => m.category === 'files' && m.done >= 1), 5000, 1);
+
+    // A save that touches an unrelated category only — 'files' route is untouched.
+    setSetting(
+      'storage.backends',
+      JSON.stringify([
+        { name: 'uploads-local', type: 'local', options: { root: makeTmpDir() } },
+        { name: 'backups-local', type: 'local', options: { root: makeTmpDir() } },
+        { name: 'dest-local', type: 'local', options: { root: makeTmpDir() } },
+      ]),
+    );
+    // Re-declare the original mapping unchanged (files still on uploads-local).
+    setSetting('storage.categories', JSON.stringify({ files: 'uploads-local' }));
+
+    jobs.cancelJobsForMissingBackends();
+    expect(jobs.migrationStatuses().find((m) => m.category === 'files')!.status).toBe('running');
+
+    expect(jobs.cancelMigration('files')).toBe(true); // clean up
+    await waitTerminal(jobs, 'files');
   });
 });

@@ -178,6 +178,13 @@ export class StorageRegistryService implements OnModuleInit {
    * validator rather than re-parsing the raw row by hand.
    */
   assignCategory(category: StorageCategory, backend: string): void {
+    // Belt-and-braces alongside the migration job's own pre-flip cancel guard:
+    // never persist a category pointing at a backend that doesn't exist in
+    // the current snapshot (e.g. a config save removed it mid-migration).
+    const names = new Set(this.state?.snapshot.backends.map((b) => b.name) ?? []);
+    if (!names.has(backend)) {
+      throw new StorageBackendError(`cannot assign '${category}' to unknown backend '${backend}'`);
+    }
     const stored = new Map(parseCategoryMap(this.readSettings().categories));
     stored.set(category, backend);
     const next = Object.fromEntries(stored);

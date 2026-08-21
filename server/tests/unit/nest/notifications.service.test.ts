@@ -414,6 +414,23 @@ describe('send() — in-app notification content', () => {
     expect(notifs[0].text_key).toBe('notif.replica_failure.textSuppressed');
     expect(notifs[1].text_key).toBe('notif.replica_failure.text');
   });
+
+  it('NOTIF-RF-003 a missing suppressed param is NOT treated as suppressed (truthy guard, not just !== "0")', async () => {
+    const { user: admin } = createAdmin(testDb);
+    setNotificationChannels(testDb, 'none');
+
+    await send({
+      event: 'replica_failure',
+      actorId: null,
+      scope: 'admin',
+      targetId: 0,
+      params: { backend: 'minio', op: 'put', key: 'trips/1/c.jpg', error: 'ECONNRESET' },
+    });
+
+    const notifs = getInAppNotifications(admin.id);
+    expect(notifs.length).toBe(1);
+    expect(notifs[0].text_key).toBe('notif.replica_failure.text');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

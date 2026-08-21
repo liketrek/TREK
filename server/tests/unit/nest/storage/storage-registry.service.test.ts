@@ -336,6 +336,39 @@ describe('StorageRegistryService reload', () => {
   });
 });
 
+// ── assignCategory ────────────────────────────────────────────────────────────
+
+describe('StorageRegistryService assignCategory', () => {
+  it('REG-ASSIGN-001 throws on an unknown backend and persists nothing (belt-and-braces alongside the migration job\'s own guard)', () => {
+    const { registry } = makeRegistry();
+    const before = testDb.prepare("SELECT value FROM app_settings WHERE key = 'storage.categories'").get() as
+      | { value: string }
+      | undefined;
+
+    expect(() => registry.assignCategory('files', 'ghost-backend')).toThrow(
+      "cannot assign 'files' to unknown backend 'ghost-backend'",
+    );
+
+    const after = testDb.prepare("SELECT value FROM app_settings WHERE key = 'storage.categories'").get() as
+      | { value: string }
+      | undefined;
+    expect(after).toEqual(before); // no write happened
+    expect(registry.snapshot().categories.files.backend).toBe('uploads-local'); // unchanged
+  });
+
+  it('REG-ASSIGN-002 assigns and persists when the backend exists', () => {
+    const { registry } = makeRegistry({ backends: [{ name: 'dest-local', type: 'local', options: { root: makeTmpDir() } }] });
+
+    registry.assignCategory('files', 'dest-local');
+
+    expect(registry.snapshot().categories.files.backend).toBe('dest-local');
+    const row = testDb.prepare("SELECT value FROM app_settings WHERE key = 'storage.categories'").get() as {
+      value: string;
+    };
+    expect((JSON.parse(row.value) as Record<string, string>).files).toBe('dest-local');
+  });
+});
+
 // ── replica-failure health ────────────────────────────────────────────────────
 
 describe('StorageRegistryService replica health', () => {

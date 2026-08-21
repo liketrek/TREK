@@ -212,9 +212,14 @@ export class StorageJobsService {
    * for a migration, whose from OR to backend is gone) ends 'cancelled'
    * instead of running invisibly against stale driver refs (spec, polish item
    * 3) — the resolved driver instances stay valid (the in-flight guarantee),
-   * only their backend name has fallen out of the config. A cancelled
-   * migration pre-flip is harmless (MIG-003's guarantee); post-flip the flag
-   * is never read again because the sweep phase always runs to completion.
+   * only their backend name has fallen out of the config. Also cancels a
+   * running migration whose category route no longer matches its `from` —
+   * a save can re-route the category to a THIRD, still-defined backend
+   * without either of the migration's own backends disappearing, and letting
+   * the migration run to completion would flip the category back onto a
+   * backend the operator just moved it away from. A cancelled migration
+   * pre-flip is harmless (MIG-003's guarantee); post-flip the flag is never
+   * read again because the sweep phase always runs to completion.
    */
   cancelJobsForMissingBackends(): void {
     const names = new Set(this.registry.snapshot().backends.map((b) => b.name));
@@ -224,7 +229,13 @@ export class StorageJobsService {
     }
     for (const migration of this.migrations.values()) {
       if (migration.status.status !== 'running') continue;
-      if (!names.has(migration.status.from) || !names.has(migration.status.to)) migration.cancelled = true;
+      if (!names.has(migration.status.from) || !names.has(migration.status.to)) {
+        migration.cancelled = true;
+        continue;
+      }
+      if (this.registry.resolve(migration.status.category).backendName !== migration.status.from) {
+        migration.cancelled = true;
+      }
     }
   }
 
@@ -280,6 +291,16 @@ export class StorageJobsService {
         error: `${s().failed} object(s) failed to copy — category not flipped`,
         finishedAt: Date.now(),
       };
+      return;
+    }
+    // Close the last-object cancel window: the per-iteration check above only
+    // fires at the TOP of each copy iteration, so a cancel landing after the
+    // last object's await (or an empty category, which never enters the loop
+    // at all) would otherwise reach the flip unchecked. Everything from here
+    // to assignCategory() below is one synchronous stretch, so this is the
+    // last point a cancel can still be honored before the flip.
+    if (job.cancelled) {
+      job.status = { ...s(), status: 'cancelled', finishedAt: Date.now() };
       return;
     }
     // Phase 2: flip — the job, not the save, owns this.

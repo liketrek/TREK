@@ -213,7 +213,7 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
   replica_failure: {
     inAppType: 'navigate',
     titleKey: 'notif.replica_failure.title',
-    textKey: (p) => (p.suppressed !== '0' ? 'notif.replica_failure.textSuppressed' : 'notif.replica_failure.text'),
+    textKey: (p) => (p.suppressed && p.suppressed !== '0' ? 'notif.replica_failure.textSuppressed' : 'notif.replica_failure.text'),
     navigateTextKey: 'notif.action.view',
     navigateTarget: () => '/admin?tab=storage',
   },
