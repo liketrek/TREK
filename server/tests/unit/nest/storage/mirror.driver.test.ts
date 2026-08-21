@@ -126,15 +126,22 @@ describe('MirrorDriver specifics', () => {
     expect(await readAll(fx.mirror, 'backup-4.zip')).toBe('mirrored');
   });
 
-  it('does NOT fall back on a simple primary miss', async () => {
+  it('falls back to a replica on a plain primary miss (binding decision: a read succeeds if ANY member holds it)', async () => {
     const fx = track(makeMirror());
-    // Plant the object only on the replica: a primary miss must stay a miss.
+    // Plant the object only on the replica: per the widened invariant a
+    // primary miss now DOES consult replicas, for both getStream and stat.
     await fx.replica.put('only-on-replica.zip', Readable.from('ghost'));
     const replicaGet = vi.spyOn(fx.replica, 'getStream');
 
-    await expect(fx.mirror.getStream('only-on-replica.zip')).rejects.toBeInstanceOf(StorageNotFoundError);
-    expect(replicaGet).not.toHaveBeenCalled();
-    expect(await fx.mirror.stat('only-on-replica.zip')).toBeNull();
+    expect(await readAll(fx.mirror, 'only-on-replica.zip')).toBe('ghost');
+    expect(replicaGet).toHaveBeenCalled();
+    expect((await fx.mirror.stat('only-on-replica.zip'))?.size).toBe('ghost'.length);
+  });
+
+  it('stays a genuine miss when neither the primary nor any replica holds the object', async () => {
+    const fx = track(makeMirror());
+    await expect(fx.mirror.getStream('nowhere.zip')).rejects.toBeInstanceOf(StorageNotFoundError);
+    expect(await fx.mirror.stat('nowhere.zip')).toBeNull();
   });
 
   it('falls back for stat and list on primary error', async () => {
@@ -180,6 +187,70 @@ describe('MirrorDriver specifics', () => {
     vi.spyOn(fx.primary, 'put').mockRejectedValueOnce(new StorageBackendError('nope'));
     await expect(fx.mirror.put('backup-9.zip', Readable.from('fail'))).rejects.toThrow();
     expect(fs.readdirSync(fx.spool)).toEqual([]);
+  });
+});
+
+describe('MirrorDriver.stat null-continue fallback loop', () => {
+  interface TriFixture {
+    mirror: MirrorDriver;
+    primary: LocalDriver;
+    replicaA: LocalDriver;
+    replicaB: LocalDriver;
+    dirs: string[];
+  }
+
+  function makeTriMirror(): TriFixture {
+    const p = makeLocal('primary-local');
+    const a = makeLocal('replica-a');
+    const b = makeLocal('replica-b');
+    const spool = makeTmpDir();
+    const mirror = new MirrorDriver({
+      id: 'tri-mirror',
+      primary: p.driver,
+      replicas: [a.driver, b.driver],
+      tempDir: () => spool,
+    });
+    return { mirror, primary: p.driver, replicaA: a.driver, replicaB: b.driver, dirs: [p.root, a.root, b.root, spool] };
+  }
+
+  const cleanups: string[] = [];
+  afterEach(() => {
+    vi.restoreAllMocks();
+    while (cleanups.length) fs.rmSync(cleanups.pop()!, { recursive: true, force: true });
+  });
+
+  it('a replica returning null does not short-circuit the search — the next replica still gets a look', async () => {
+    const fx = makeTriMirror();
+    cleanups.push(...fx.dirs);
+    await fx.replicaB.put('deep.zip', Readable.from('found on b'));
+    vi.spyOn(fx.primary, 'stat').mockRejectedValueOnce(new StorageBackendError('primary io error'));
+    const statA = vi.spyOn(fx.replicaA, 'stat');
+
+    const result = await fx.mirror.stat('deep.zip');
+
+    expect(result?.size).toBe('found on b'.length);
+    expect(statA).toHaveBeenCalled(); // replicaA WAS consulted (and missed) before replicaB answered
+  });
+
+  it('a replica that itself errors during the search is treated as a miss, not a hard failure', async () => {
+    const fx = makeTriMirror();
+    cleanups.push(...fx.dirs);
+    await fx.replicaB.put('deep-2.zip', Readable.from('found on b again'));
+    vi.spyOn(fx.primary, 'stat').mockRejectedValueOnce(new StorageBackendError('primary io error'));
+    vi.spyOn(fx.replicaA, 'stat').mockRejectedValueOnce(new StorageBackendError('replica-a unreachable'));
+
+    const result = await fx.mirror.stat('deep-2.zip');
+
+    expect(result?.size).toBe('found on b again'.length);
+  });
+
+  it('rethrows the remembered primary error only when every replica also misses', async () => {
+    const fx = makeTriMirror();
+    cleanups.push(...fx.dirs);
+    const boom = new StorageBackendError('primary io error');
+    vi.spyOn(fx.primary, 'stat').mockRejectedValueOnce(boom);
+
+    await expect(fx.mirror.stat('nowhere.zip')).rejects.toBe(boom);
   });
 });
 

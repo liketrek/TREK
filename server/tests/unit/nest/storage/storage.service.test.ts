@@ -76,6 +76,44 @@ function makeStreamOnlyFixture(contents: string): Fixture & { driverCalls: strin
   return { ...fx, storage: new StorageService(registry), driverCalls };
 }
 
+/**
+ * A driver whose `getLocalPath` resolves to a path that is NOT on disk, but
+ * whose `getStream` still succeeds — the façade-level stand-in for a
+ * MirrorDriver whose primary lost the file (failed delete, disk hiccup, …)
+ * while a replica still holds it. `getLocalPath` on MirrorDriver only ever
+ * consults the primary (mirror.driver.ts), so the façade must never trust
+ * that path as proof of presence — it has to fs-check it and fall through to
+ * the stream branch (which is what actually reaches the replica) when it's
+ * gone.
+ */
+function makeGhostLocalPathFixture(contents: string): Fixture & { driverCalls: string[] } {
+  const fx = makeFixture('files/');
+  const driverCalls: string[] = [];
+  const bytes = Buffer.from(contents);
+  const stat: ObjectStat = { key: 'files/ghost.bin', size: bytes.length, mtimeMs: 1 };
+  const ghostPath = path.join(fx.root, 'files', 'ghost.bin'); // resolvable, but never written
+  const driver: StorageDriver = {
+    id: 'stub-ghost-local',
+    put: async () => undefined,
+    getStream: async (key: string) => {
+      driverCalls.push(`getStream:${key}`);
+      return { stream: Readable.from(bytes), stat: { ...stat, key } };
+    },
+    stat: async (key: string) => ({ ...stat, key }), // the composite still resolves the object
+    delete: async () => undefined,
+    list: async function* () {
+      yield* [] as ObjectStat[];
+    },
+    getLocalPath: () => ghostPath,
+  };
+  const registry = {
+    resolve: (): ResolvedCategory => ({ driver, keyPrefix: 'files/', backendName: 'stub-ghost-local' }),
+    tempDir: () => fx.tempDir,
+    replicaFailures: () => fx.failures,
+  } as unknown as StorageRegistryService;
+  return { ...fx, storage: new StorageService(registry), driverCalls };
+}
+
 afterEach(() => {
   while (tmpDirs.length) fs.rmSync(tmpDirs.pop()!, { recursive: true, force: true });
 });
@@ -174,6 +212,20 @@ describe('StorageService withLocalFile', () => {
       }),
     ).rejects.toThrow('processing failed');
     expect(fs.existsSync(seenPath)).toBe(false); // cleaned up on throw too
+  });
+
+  it('falls through to the stream branch when getLocalPath resolves but the file is not actually on disk', async () => {
+    // Composite-driver stand-in (task C9-i): the façade must fs-check the
+    // local path itself rather than trust driver.stat() as "the file is at
+    // localPath" — driver.stat here still says present (a replica has it).
+    const fx = makeGhostLocalPathFixture('replica bytes');
+
+    const result = await fx.storage.withLocalFile('files', 'ghost.bin', async (absPath) =>
+      fs.readFileSync(absPath, 'utf8'),
+    );
+
+    expect(result).toBe('replica bytes');
+    expect(fx.driverCalls).toEqual(['getStream:files/ghost.bin']); // reached the stream branch
   });
 });
 
@@ -306,6 +358,22 @@ describe('StorageService sendToResponse', () => {
     expect(mock.headers['Content-Length']).toBe(String('streamed body'.length));
     expect(mock.headers['Content-Type']).toBe('image/jpeg');
     expect(await mock.body()).toBe('streamed body');
+  });
+
+  it('falls through to the stream branch when getLocalPath resolves but the file is not actually on disk', async () => {
+    // Composite-driver stand-in (task C9-i): sendToResponse must not use
+    // driver.stat() as "the file is at localPath" — it fs-checks localPath
+    // itself, and on absence falls through to the branch that actually
+    // reaches a MirrorDriver's replica.
+    const fx = makeGhostLocalPathFixture('replica bytes');
+    const mock = makeRes();
+
+    await fx.storage.sendToResponse('files', 'ghost.bin', mock.res, { contentType: 'image/jpeg' });
+
+    expect(mock.sendFileCalls).toEqual([]); // the local path was never trusted
+    expect(fx.driverCalls).toEqual(['getStream:files/ghost.bin']);
+    expect(mock.headers['Content-Type']).toBe('image/jpeg');
+    expect(await mock.body()).toBe('replica bytes');
   });
 
   // Local (res.sendFile) branch: a client abort mid-download surfaces

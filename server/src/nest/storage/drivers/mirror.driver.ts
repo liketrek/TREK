@@ -51,8 +51,17 @@ export interface BackfillResult extends BackfillProgress {
  *
  * Writes hit the primary first and must succeed; replica failures are
  * reported through `onReplicaFailure` (surfaced as health status), never
- * thrown. Reads fall back to replicas only when the primary ERRORS — a plain
- * miss stays a miss, replicas are copies, not a search path.
+ * thrown. Reads honor one invariant: a read succeeds if ANY member — primary
+ * or any replica — holds the object. `getStream` and `stat` both fall back
+ * to replicas on a primary miss (`StorageNotFoundError` / a `null` stat) as
+ * well as a primary infra error; only a deterministic `StorageInvalidKeyError`
+ * never triggers fallback (every member would reject the same key). Fallback
+ * is READ-ONLY and never resurrects anything: a hit found on a replica is
+ * NOT written back to the primary (or to any other replica that missed it).
+ * The object stays absent everywhere the read didn't find it — closing that
+ * staleness window (a primary that failed a delete, or is genuinely missing
+ * an object a replica still has) is a later sync-sweep's job, not this
+ * driver's.
  */
 export class MirrorDriver implements StorageDriver {
   readonly id: string;
@@ -123,19 +132,50 @@ export class MirrorDriver implements StorageDriver {
     try {
       return await this.primary.getStream(key, range);
     } catch (err) {
-      if (!shouldFallback(err)) throw err;
+      // Widened per the "ANY member holds it" invariant: a primary
+      // StorageNotFoundError now falls through to the replicas too, not just
+      // an infra error. Only StorageInvalidKeyError skips fallback — every
+      // member rejects the same key deterministically, so trying them is
+      // pointless. `fromReplicas`' catch-and-continue is safe to reuse here
+      // (unlike for `stat` below): a replica miss THROWS StorageNotFoundError,
+      // so the loop naturally moves on to the next replica.
+      if (err instanceof StorageInvalidKeyError) throw err;
       return this.fromReplicas((replica) => replica.getStream(key, range), err);
     }
   }
 
+  /**
+   * Stat-specific fallback loop — deliberately NOT `fromReplicas`. `stat`
+   * signals a miss by returning `null`, not by throwing, so a naive
+   * catch-and-continue would treat a replica's clean miss as a "success" and
+   * stop searching right there. Here `null` explicitly means "keep looking":
+   * primary hit returns immediately; a primary infra error is remembered but
+   * doesn't stop the search; replicas are tried in order and the first
+   * non-null answer wins; an unreachable/erroring replica is treated the
+   * same as a miss (keep looking); if nothing answers, the remembered
+   * primary error is rethrown, else the result is a genuine `null`.
+   */
   async stat(key: string): Promise<ObjectStat | null> {
     assertValidKey(key);
+    let primaryErr: unknown;
     try {
-      return await this.primary.stat(key);
+      const primaryStat = await this.primary.stat(key);
+      if (primaryStat !== null) return primaryStat;
     } catch (err) {
       if (!shouldFallback(err)) throw err;
-      return this.fromReplicas((replica) => replica.stat(key), err);
+      primaryErr = err;
     }
+    for (const replica of this.replicas) {
+      let replicaStat: ObjectStat | null;
+      try {
+        replicaStat = await replica.stat(key);
+      } catch {
+        continue; // unreachable/erroring replica — keep looking
+      }
+      if (replicaStat !== null) return replicaStat;
+    }
+    if (primaryErr !== undefined) throw primaryErr;
+    return null;
   }
 
   async delete(key: string): Promise<void> {
@@ -274,7 +314,15 @@ export class MirrorDriver implements StorageDriver {
   }
 }
 
-/** Fall back only on real errors — never on a miss (or a bad key, which is deterministic). */
+/**
+ * Used by `list()`'s primary-error branch and by `stat()`'s primary-error
+ * branch: fall back only on a real (infra) error, never on a deterministic
+ * bad-key rejection. `StorageNotFoundError` is excluded too, though it's
+ * moot for `stat` (the contract signals a miss via `null`, never a throw) —
+ * `getStream`, which DOES throw `StorageNotFoundError` on a miss, uses its
+ * own inline check instead so a primary miss can fall through to replicas
+ * per the "ANY member holds it" invariant.
+ */
 function shouldFallback(err: unknown): boolean {
   return !(err instanceof StorageNotFoundError || err instanceof StorageInvalidKeyError);
 }

@@ -10,7 +10,6 @@ import { assertValidKey } from './storage-keys';
 import { StorageRegistryService } from './storage-registry.service';
 import {
   isClientAbortError,
-  StorageNotFoundError,
   type ByteRange,
   type LocalTempFile,
   type ObjectStat,
@@ -105,16 +104,20 @@ export class StorageService {
    * root-relative res.sendFile form — absolute paths resolve against the
    * rewritten req.url under the ExpressAdapter and spuriously 404
    * (files-download.controller.ts) — which brings etag/range/conditional-GET
-   * for free. Path-less (remote) backends stream-pipe. A miss throws
-   * StorageNotFoundError: the caller owns the route's miss contract
+   * for free. Path-less (remote) drivers, and a local path whose file has
+   * vanished from disk (checked via `localPathIfPresent`, never trusted from
+   * `getLocalPath` alone), both fall through to the stream branch — for a
+   * MirrorDriver that reaches a replica that still holds the object, for a
+   * plain LocalDriver a genuine miss (`getStream` throws
+   * StorageNotFoundError, same as always — one extra driver call). A miss
+   * throws StorageNotFoundError: the caller owns the route's miss contract
    * (404 envelope, 204-empty, or next()).
    */
   async sendToResponse(category: ServedCategory, name: string, res: Response, opts?: SendOptions): Promise<void> {
     const { driver, key } = this.resolve(category, name);
 
-    const localPath = driver.getLocalPath?.(key) ?? null;
+    const localPath = this.localPathIfPresent(driver, key);
     if (localPath !== null) {
-      if (!(await driver.stat(key))) throw new StorageNotFoundError(key);
       this.applyHeaders(res, opts);
       await new Promise<void>((resolve, reject) => {
         res.sendFile(path.basename(localPath), { root: path.dirname(localPath) }, (err) => {
@@ -160,16 +163,17 @@ export class StorageService {
 
   /**
    * Hand a consumer (Jimp, zip packing, Immich push, …) a real filesystem
-   * path: the local fast-path when the driver has one, else download to
-   * tempDir() and clean up afterwards — exactly the branch a remote driver
-   * will exercise.
+   * path: the local fast-path when the driver has one AND the file is
+   * actually on disk (`localPathIfPresent`), else download to tempDir() and
+   * clean up afterwards — the same fall-through `sendToResponse` uses, and
+   * exactly the branch a remote driver (or a local path gone missing) will
+   * exercise.
    */
   async withLocalFile<T>(category: ServedCategory, name: string, fn: (absPath: string) => Promise<T>): Promise<T> {
     const { driver, key } = this.resolve(category, name);
 
-    const localPath = driver.getLocalPath?.(key) ?? null;
+    const localPath = this.localPathIfPresent(driver, key);
     if (localPath !== null) {
-      if (!(await driver.stat(key))) throw new StorageNotFoundError(key);
       return fn(localPath);
     }
 
@@ -195,9 +199,7 @@ export class StorageService {
    */
   async getLocalPathOrNull(category: ServedCategory, name: string): Promise<string | null> {
     const { driver, key } = this.resolve(category, name);
-    const localPath = driver.getLocalPath?.(key) ?? null;
-    if (localPath === null) return null;
-    return fs.existsSync(localPath) ? localPath : null;
+    return this.localPathIfPresent(driver, key);
   }
 
   /** Replica failures from mirror backends — logged there, surfaced here. */
@@ -210,6 +212,21 @@ export class StorageService {
     const key = keyPrefix + name;
     assertValidKey(key);
     return { driver, keyPrefix, key };
+  }
+
+  /**
+   * The shared local-fast-path gate for sendToResponse/withLocalFile/
+   * getLocalPathOrNull: a driver's `getLocalPath` alone is never trusted as
+   * proof the object is at that path — composite drivers (MirrorDriver)
+   * resolve it against the primary ONLY, and even a plain local driver's
+   * path can vanish between listing and this call. Null here means "no
+   * usable local path" for any reason; callers fall through to the stream
+   * branch, which is what actually consults a MirrorDriver's replicas.
+   */
+  private localPathIfPresent(driver: StorageDriver, key: string): string | null {
+    const localPath = driver.getLocalPath?.(key) ?? null;
+    if (localPath === null) return null;
+    return fs.existsSync(localPath) ? localPath : null;
   }
 
   private applyHeaders(res: Response, opts?: SendOptions): void {
