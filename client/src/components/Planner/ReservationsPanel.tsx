@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
@@ -705,6 +705,14 @@ interface ReservationsPanelProps {
   tripMembers?: TripMember[]
 }
 
+/** The empty state's call-to-action buttons — same shape as the toolbar's. */
+const CTA_STYLE: CSSProperties = {
+  appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+  display: 'inline-flex', alignItems: 'center', gap: 6,
+  padding: '9px 14px', borderRadius: 10,
+  fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
+}
+
 export default function ReservationsPanel({ tripId, reservations, days, assignments, files = [], onAdd, onImport, bookingImportAvailable, onAirTrailImport, airTrailAvailable, onEdit, onDelete, onNavigateToFiles, titleKey = 'reservations.title', addManualKey = 'reservations.addManual', contributionView = 'reservations', tripMembers = [] }: ReservationsPanelProps) {
   const { t, locale } = useTranslation()
   const can = useCanDo()
@@ -928,7 +936,32 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px 80px' }} className="max-md:!px-4 max-md:!pt-4">
         {total === 0 && reservations.length === 0 ? (
-          <EmptyState scene={contributionView === 'transports' ? 'transport' : 'bookings'} title={t('reservations.empty')} />
+          <EmptyState
+            scene={contributionView === 'transports' ? 'transport' : 'bookings'}
+            title={t('reservations.empty')}
+            // On a fresh trip the toolbar controls sit far right above an empty
+            // page, so the import in particular went unnoticed (#2007).
+            action={canEdit ? (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button onClick={onAdd} className="bg-accent text-accent-text" style={CTA_STYLE}>
+                  <Plus size={14} strokeWidth={2} />
+                  {t(addManualKey)}
+                </button>
+                {onImport && bookingImportAvailable && (
+                  <button onClick={onImport} className="bg-surface-card text-content" style={{ ...CTA_STYLE, border: '1px solid var(--border-primary)' }}>
+                    <Download size={14} strokeWidth={2} />
+                    {t('reservations.import.cta')}
+                  </button>
+                )}
+                {onAirTrailImport && airTrailAvailable && (
+                  <button onClick={onAirTrailImport} className="bg-surface-secondary text-content" style={{ ...CTA_STYLE, border: '1px solid var(--border-primary)' }}>
+                    <Plane size={14} strokeWidth={2} />
+                    {t('reservations.airtrail.cta')}
+                  </button>
+                )}
+              </div>
+            ) : undefined}
+          />
         ) : total === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <p className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{t('places.noneFound')}</p>
