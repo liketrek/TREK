@@ -111,5 +111,18 @@ const storage: TranslationStrings = {
   'storage.usage.refresh': '새로고침',
   'storage.usage.compute': '지금 계산',
   'storage.usage.legacyNote': '기존 사진 라이브러리 포함',
+
+  // Category migration (copy → flip → delta sweep)
+  'storage.migrate.promptTitle': '기존 객체를 새 백엔드로 이동할까요?',
+  'storage.migrate.promptLine': '{category}: {from}에서 {to}(으)로 {objects}개 객체 ({size})',
+  'storage.migrate.promptLineUnknown': '{category}: 크기 알 수 없음 (아직 사용량 스캔 안 됨) {from}에서 {to}(으)로',
+  'storage.migrate.move': '기존 객체 이동',
+  'storage.migrate.routeOnly': '새 쓰기만 전환',
+  'storage.migrate.running': '{category} 이동 중… {done}/{total}',
+  'storage.migrate.done': '이동 완료: {copied}개 복사, {skipped}개 건너뜀',
+  'storage.migrate.failed': '이동 실패: {error} — 카테고리가 전환되지 않았습니다',
+  'storage.migrate.cancelled': '이동이 취소되었습니다 — 아무것도 전환되지 않았습니다',
+  'storage.migrate.reclaimable': '{objects}개 객체 ({size})가 {from}에 남아 있습니다 — 수동으로 회수하세요',
+  'storage.migrate.cancel': '이동 취소',
 };
 export default storage;

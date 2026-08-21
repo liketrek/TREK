@@ -9,6 +9,7 @@ import {
 } from '@trek/shared';
 import {
   categoriesPointingAt,
+  computeMigrationCandidates,
   foldBackends,
   mirrorsReferencing,
   primaryNameOf,
@@ -18,6 +19,7 @@ import {
   replicaOfPrimaries,
   setMirrorTargets,
   settingsDocumentOf,
+  stripCategories,
   upsertBackend,
   usageByBackend,
 } from './storageModel';
@@ -255,5 +257,47 @@ describe('usageByBackend', () => {
 
   it('FE-ADMIN-STORM-017: null usage yields null', () => {
     expect(usageByBackend({ ...STATE, usage: null }, settingsDocumentOf(STATE))).toBeNull();
+  });
+});
+
+describe('computeMigrationCandidates', () => {
+  it('FE-ADMIN-STORM-018: lists changed categories with usage counts; zero-object ones are excluded; null usage keeps them with null counts', () => {
+    const state: StorageAdminState = {
+      ...STATE,
+      usage: {
+        computedAt: 1,
+        categories: {
+          files: { objects: 3, bytes: 300 },
+          journey: { objects: 0, bytes: 0 },
+        } as Record<StorageCategory, { objects: number; bytes: number }>,
+        legacyPhotos: { objects: 0, bytes: 0 },
+      },
+    };
+    const base = settingsDocumentOf(state);
+    const draft: StorageConfig = {
+      ...base,
+      categories: { ...base.categories, files: 'off-box', journey: 'off-box', avatars: 'off-box' },
+    };
+    const candidates = computeMigrationCandidates(draft, state);
+    expect(candidates).toEqual([
+      { category: 'files', from: 'uploads-local', to: 'off-box', objects: 3, bytes: 300 },
+      { category: 'avatars', from: 'uploads-local', to: 'off-box', objects: null, bytes: null },
+    ]);
+  });
+
+  it('FE-ADMIN-STORM-019: stripCategories restores the saved assignment for exactly the named categories', () => {
+    const base = settingsDocumentOf(STATE);
+    const draft: StorageConfig = {
+      ...base,
+      categories: { ...base.categories, files: 'off-box', covers: 'uploads-local' },
+    };
+
+    const strippedFiles = stripCategories(draft, STATE, ['files']);
+    expect(strippedFiles.categories.files).toBeUndefined(); // default-sourced: saved value is "no override"
+    expect(strippedFiles.categories.covers).toBe('uploads-local'); // untouched — not in the strip list
+
+    const strippedCovers = stripCategories(draft, STATE, ['covers']);
+    expect(strippedCovers.categories.covers).toBe('off-box'); // settings-sourced saved value restored explicitly
+    expect(strippedCovers.categories.files).toBe('off-box'); // untouched — not in the strip list
   });
 });

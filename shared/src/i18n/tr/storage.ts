@@ -115,5 +115,18 @@ const storage: TranslationStrings = {
   'storage.usage.refresh': 'Yenile',
   'storage.usage.compute': 'Şimdi hesapla',
   'storage.usage.legacyNote': 'eski fotoğraf kitaplığını içerir',
+
+  // Category migration (copy → flip → delta sweep)
+  'storage.migrate.promptTitle': 'Mevcut nesneler yeni arka uca taşınsın mı?',
+  'storage.migrate.promptLine': '{category}: {from} konumundan {to} konumuna {objects} nesne ({size})',
+  'storage.migrate.promptLineUnknown': '{category}: bilinmeyen boyut (henüz kullanım taraması yapılmadı) {from} konumundan {to} konumuna',
+  'storage.migrate.move': 'Mevcut nesneleri taşı',
+  'storage.migrate.routeOnly': 'Yalnızca yeni yazmaları yönlendir',
+  'storage.migrate.running': '{category} taşınıyor… {done}/{total}',
+  'storage.migrate.done': 'Taşıma tamamlandı: {copied} kopyalandı, {skipped} atlandı',
+  'storage.migrate.failed': 'Taşıma başarısız oldu: {error} — kategori değiştirilmedi',
+  'storage.migrate.cancelled': 'Taşıma iptal edildi — hiçbir şey değiştirilmedi',
+  'storage.migrate.reclaimable': '{objects} nesne ({size}) {from} üzerinde kalıyor — manuel olarak geri kazanın',
+  'storage.migrate.cancel': 'Taşımayı iptal et',
 };
 export default storage;

@@ -116,5 +116,18 @@ const storage: TranslationStrings = {
   'storage.usage.refresh': 'Actualitza',
   'storage.usage.compute': 'Calcula ara',
   'storage.usage.legacyNote': 'inclou la biblioteca de fotos antiga',
+
+  // Category migration (copy → flip → delta sweep)
+  'storage.migrate.promptTitle': 'Vols moure els objectes existents al nou backend?',
+  'storage.migrate.promptLine': '{category}: {objects} objectes ({size}) de {from} a {to}',
+  'storage.migrate.promptLineUnknown': "{category}: mida desconeguda (encara no s'ha calculat l'ús) de {from} a {to}",
+  'storage.migrate.move': 'Mou els objectes existents',
+  'storage.migrate.routeOnly': 'Només enruta les escriptures noves',
+  'storage.migrate.running': 'Movent {category}… {done}/{total}',
+  'storage.migrate.done': 'Trasllat finalitzat: {copied} copiats, {skipped} omesos',
+  'storage.migrate.failed': "Ha fallat el trasllat: {error} — la categoria no s'ha canviat",
+  'storage.migrate.cancelled': "Trasllat cancel·lat — no s'ha canviat res",
+  'storage.migrate.reclaimable': "{objects} objectes ({size}) romanen a {from} — recupera'ls manualment",
+  'storage.migrate.cancel': 'Cancel·la el trasllat',
 };
 export default storage;

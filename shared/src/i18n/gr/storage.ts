@@ -118,5 +118,18 @@ const storage: TranslationStrings = {
   'storage.usage.refresh': 'Ανανέωση',
   'storage.usage.compute': 'Υπολογισμός τώρα',
   'storage.usage.legacyNote': 'περιλαμβάνει την παλιά βιβλιοθήκη φωτογραφιών',
+
+  // Category migration (copy → flip → delta sweep)
+  'storage.migrate.promptTitle': 'Μετακίνηση των υπαρχόντων αντικειμένων στο νέο backend;',
+  'storage.migrate.promptLine': '{category}: {objects} αντικείμενα ({size}) από {from} σε {to}',
+  'storage.migrate.promptLineUnknown': '{category}: άγνωστο μέγεθος (δεν έχει γίνει ακόμα σάρωση χρήσης) από {from} σε {to}',
+  'storage.migrate.move': 'Μετακίνηση υπαρχόντων αντικειμένων',
+  'storage.migrate.routeOnly': 'Δρομολόγηση μόνο των νέων εγγραφών',
+  'storage.migrate.running': 'Μετακίνηση {category}… {done}/{total}',
+  'storage.migrate.done': 'Η μετακίνηση ολοκληρώθηκε: {copied} αντιγράφηκαν, {skipped} παραλείφθηκαν',
+  'storage.migrate.failed': 'Η μετακίνηση απέτυχε: {error} — η κατηγορία δεν άλλαξε',
+  'storage.migrate.cancelled': 'Η μετακίνηση ακυρώθηκε — τίποτα δεν άλλαξε',
+  'storage.migrate.reclaimable': '{objects} αντικείμενα ({size}) παραμένουν στο {from} — ανάκτησέ τα χειροκίνητα',
+  'storage.migrate.cancel': 'Ακύρωση μετακίνησης',
 };
 export default storage;

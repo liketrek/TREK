@@ -115,5 +115,18 @@ const storage: TranslationStrings = {
   'storage.usage.refresh': 'Segarkan',
   'storage.usage.compute': 'Hitung sekarang',
   'storage.usage.legacyNote': 'termasuk pustaka foto lama',
+
+  // Category migration (copy → flip → delta sweep)
+  'storage.migrate.promptTitle': 'Pindahkan objek yang ada ke backend baru?',
+  'storage.migrate.promptLine': '{category}: {objects} objek ({size}) dari {from} ke {to}',
+  'storage.migrate.promptLineUnknown': '{category}: ukuran tidak diketahui (penggunaan belum dipindai) dari {from} ke {to}',
+  'storage.migrate.move': 'Pindahkan objek yang ada',
+  'storage.migrate.routeOnly': 'Hanya arahkan penulisan baru',
+  'storage.migrate.running': 'Memindahkan {category}… {done}/{total}',
+  'storage.migrate.done': 'Pemindahan selesai: {copied} disalin, {skipped} dilewati',
+  'storage.migrate.failed': 'Pemindahan gagal: {error} — kategori tidak diubah',
+  'storage.migrate.cancelled': 'Pemindahan dibatalkan — tidak ada yang diubah',
+  'storage.migrate.reclaimable': '{objects} objek ({size}) masih tersisa di {from} — ambil kembali secara manual',
+  'storage.migrate.cancel': 'Batalkan pemindahan',
 };
 export default storage;

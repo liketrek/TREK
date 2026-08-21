@@ -113,5 +113,18 @@ const storage: TranslationStrings = {
   'storage.usage.refresh': '更新',
   'storage.usage.compute': '今すぐ計算',
   'storage.usage.legacyNote': '従来の写真ライブラリを含む',
+
+  // Category migration (copy → flip → delta sweep)
+  'storage.migrate.promptTitle': '既存のオブジェクトを新しいバックエンドに移動しますか？',
+  'storage.migrate.promptLine': '{category}: {from}から{to}へ {objects}件のオブジェクト（{size}）',
+  'storage.migrate.promptLineUnknown': '{category}: サイズ不明（使用量スキャン未実施）{from}から{to}へ',
+  'storage.migrate.move': '既存のオブジェクトを移動',
+  'storage.migrate.routeOnly': '新規書き込みのみ切り替える',
+  'storage.migrate.running': '{category}を移動中… {done}/{total}',
+  'storage.migrate.done': '移動完了: {copied}件コピー、{skipped}件スキップ',
+  'storage.migrate.failed': '移動に失敗しました: {error} — カテゴリは切り替えられませんでした',
+  'storage.migrate.cancelled': '移動をキャンセルしました — 何も切り替えられていません',
+  'storage.migrate.reclaimable': '{objects}件のオブジェクト（{size}）が{from}に残っています — 手動で回収してください',
+  'storage.migrate.cancel': '移動をキャンセル',
 };
 export default storage;

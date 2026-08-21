@@ -115,5 +115,18 @@ const storage: TranslationStrings = {
   'storage.usage.refresh': 'Odśwież',
   'storage.usage.compute': 'Oblicz teraz',
   'storage.usage.legacyNote': 'obejmuje starą bibliotekę zdjęć',
+
+  // Category migration (copy → flip → delta sweep)
+  'storage.migrate.promptTitle': 'Przenieść istniejące obiekty do nowego backendu?',
+  'storage.migrate.promptLine': '{category}: {objects} obiektów ({size}) z {from} do {to}',
+  'storage.migrate.promptLineUnknown': '{category}: nieznany rozmiar (wykorzystanie jeszcze nie obliczone) z {from} do {to}',
+  'storage.migrate.move': 'Przenieś istniejące obiekty',
+  'storage.migrate.routeOnly': 'Przekieruj tylko nowe zapisy',
+  'storage.migrate.running': 'Przenoszenie {category}… {done}/{total}',
+  'storage.migrate.done': 'Przenoszenie zakończone: {copied} skopiowanych, {skipped} pominiętych',
+  'storage.migrate.failed': 'Przenoszenie nie powiodło się: {error} — kategoria nie została przełączona',
+  'storage.migrate.cancelled': 'Przenoszenie anulowane — nic nie zostało przełączone',
+  'storage.migrate.reclaimable': '{objects} obiektów ({size}) pozostaje na {from} — odzyskaj ręcznie',
+  'storage.migrate.cancel': 'Anuluj przenoszenie',
 };
 export default storage;

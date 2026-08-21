@@ -116,5 +116,18 @@ const storage: TranslationStrings = {
   'storage.usage.refresh': 'Vernieuwen',
   'storage.usage.compute': 'Nu berekenen',
   'storage.usage.legacyNote': 'inclusief de oude fotobibliotheek',
+
+  // Category migration (copy → flip → delta sweep)
+  'storage.migrate.promptTitle': 'Bestaande objecten naar de nieuwe backend verplaatsen?',
+  'storage.migrate.promptLine': '{category}: {objects} objecten ({size}) van {from} naar {to}',
+  'storage.migrate.promptLineUnknown': '{category}: onbekende grootte (gebruik nog niet gescand) van {from} naar {to}',
+  'storage.migrate.move': 'Bestaande objecten verplaatsen',
+  'storage.migrate.routeOnly': 'Alleen nieuwe schrijfacties omleiden',
+  'storage.migrate.running': '{category} verplaatsen… {done}/{total}',
+  'storage.migrate.done': 'Verplaatsen voltooid: {copied} gekopieerd, {skipped} overgeslagen',
+  'storage.migrate.failed': 'Verplaatsen mislukt: {error} — de categorie is niet omgezet',
+  'storage.migrate.cancelled': 'Verplaatsen geannuleerd — er is niets omgezet',
+  'storage.migrate.reclaimable': '{objects} objecten ({size}) blijven op {from} — handmatig terugwinnen',
+  'storage.migrate.cancel': 'Verplaatsen annuleren',
 };
 export default storage;

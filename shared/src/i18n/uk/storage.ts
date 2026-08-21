@@ -115,5 +115,18 @@ const storage: TranslationStrings = {
   'storage.usage.refresh': 'Оновити',
   'storage.usage.compute': 'Обчислити зараз',
   'storage.usage.legacyNote': 'включає стару фотобібліотеку',
+
+  // Category migration (copy → flip → delta sweep)
+  'storage.migrate.promptTitle': "Перенести наявні об'єкти на новий бекенд?",
+  'storage.migrate.promptLine': "{category}: {objects} об'єктів ({size}) з {from} до {to}",
+  'storage.migrate.promptLineUnknown': '{category}: невідомий розмір (використання ще не проскановано) з {from} до {to}',
+  'storage.migrate.move': "Перенести наявні об'єкти",
+  'storage.migrate.routeOnly': 'Перенаправити лише нові записи',
+  'storage.migrate.running': 'Перенесення {category}… {done}/{total}',
+  'storage.migrate.done': 'Перенесення завершено: {copied} скопійовано, {skipped} пропущено',
+  'storage.migrate.failed': 'Перенесення не вдалося: {error} — категорію не перемкнуто',
+  'storage.migrate.cancelled': 'Перенесення скасовано — нічого не перемкнуто',
+  'storage.migrate.reclaimable': "{objects} об'єктів ({size}) залишаються на {from} — звільніть вручну",
+  'storage.migrate.cancel': 'Скасувати перенесення',
 };
 export default storage;

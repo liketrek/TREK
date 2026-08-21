@@ -112,5 +112,18 @@ const storage: TranslationStrings = {
   'storage.usage.refresh': 'Obnovit',
   'storage.usage.compute': 'Vypočítat nyní',
   'storage.usage.legacyNote': 'zahrnuje starší fotoknihovnu',
+
+  // Category migration (copy → flip → delta sweep)
+  'storage.migrate.promptTitle': 'Přesunout stávající objekty do nového backendu?',
+  'storage.migrate.promptLine': '{category}: {objects} objektů ({size}) z {from} do {to}',
+  'storage.migrate.promptLineUnknown': '{category}: neznámá velikost (využití ještě nebylo vypočteno) z {from} do {to}',
+  'storage.migrate.move': 'Přesunout stávající objekty',
+  'storage.migrate.routeOnly': 'Pouze směrovat nové zápisy',
+  'storage.migrate.running': 'Přesouvání {category}… {done}/{total}',
+  'storage.migrate.done': 'Přesun dokončen: {copied} zkopírováno, {skipped} přeskočeno',
+  'storage.migrate.failed': 'Přesun selhal: {error} — kategorie nebyla přepnuta',
+  'storage.migrate.cancelled': 'Přesun zrušen — nic nebylo přepnuto',
+  'storage.migrate.reclaimable': '{objects} objektů ({size}) zůstává na {from} — uvolněte ručně',
+  'storage.migrate.cancel': 'Zrušit přesun',
 };
 export default storage;

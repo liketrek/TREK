@@ -112,5 +112,18 @@ const storage: TranslationStrings = {
   'storage.usage.refresh': 'تحديث',
   'storage.usage.compute': 'احسب الآن',
   'storage.usage.legacyNote': 'يشمل مكتبة الصور القديمة',
+
+  // Category migration (copy → flip → delta sweep)
+  'storage.migrate.promptTitle': 'هل تريد نقل الكائنات الحالية إلى الواجهة الخلفية الجديدة؟',
+  'storage.migrate.promptLine': '{category}: {objects} كائن ({size}) من {from} إلى {to}',
+  'storage.migrate.promptLineUnknown': '{category}: حجم غير معروف (لم يُجرَ فحص استخدام بعد) من {from} إلى {to}',
+  'storage.migrate.move': 'نقل الكائنات الحالية',
+  'storage.migrate.routeOnly': 'توجيه الكتابات الجديدة فقط',
+  'storage.migrate.running': 'جارٍ نقل {category}… {done}/{total}',
+  'storage.migrate.done': 'اكتمل النقل: تم نسخ {copied}، وتخطي {skipped}',
+  'storage.migrate.failed': 'فشل النقل: {error} — لم يتم تبديل الفئة',
+  'storage.migrate.cancelled': 'تم إلغاء النقل — لم يتم تبديل أي شيء',
+  'storage.migrate.reclaimable': '{objects} كائن ({size}) لا تزال على {from} — استرجعها يدويًا',
+  'storage.migrate.cancel': 'إلغاء النقل',
 };
 export default storage;

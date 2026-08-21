@@ -117,5 +117,18 @@ const storage: TranslationStrings = {
   'storage.usage.refresh': 'Обновить',
   'storage.usage.compute': 'Рассчитать сейчас',
   'storage.usage.legacyNote': 'включает старую библиотеку фото',
+
+  // Category migration (copy → flip → delta sweep)
+  'storage.migrate.promptTitle': 'Перенести существующие объекты на новый бэкенд?',
+  'storage.migrate.promptLine': '{category}: {objects} объектов ({size}) из {from} в {to}',
+  'storage.migrate.promptLineUnknown': '{category}: неизвестный размер (использование ещё не просканировано) из {from} в {to}',
+  'storage.migrate.move': 'Перенести существующие объекты',
+  'storage.migrate.routeOnly': 'Перенаправить только новые записи',
+  'storage.migrate.running': 'Перенос {category}… {done}/{total}',
+  'storage.migrate.done': 'Перенос завершён: {copied} скопировано, {skipped} пропущено',
+  'storage.migrate.failed': 'Перенос не удался: {error} — категория не была переключена',
+  'storage.migrate.cancelled': 'Перенос отменён — ничего не было переключено',
+  'storage.migrate.reclaimable': '{objects} объектов ({size}) остаются на {from} — освободите вручную',
+  'storage.migrate.cancel': 'Отменить перенос',
 };
 export default storage;

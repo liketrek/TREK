@@ -21,11 +21,14 @@ export interface StorageAdmin {
   saving: boolean
   testResults: StorageTestResults
   setDraft: (next: StorageConfig) => void
-  save: () => Promise<boolean>
+  /** PUTs `overrideDraft ?? draft` — an override lets a caller strip categories from the wire body without staging them (and marking dirty) via setDraft. */
+  save: (overrideDraft?: StorageConfig) => Promise<boolean>
   test: (backend: StorageBackend) => Promise<void>
   /** null on success; the verbatim server error otherwise. */
   startBackfill: (mirrorName: string) => Promise<string | null>
   cancelBackfill: (mirrorName: string) => Promise<string | null>
+  startMigration: (category: string, to: string) => Promise<string | null>
+  cancelMigration: (category: string) => Promise<string | null>
   refreshStats: () => Promise<string | null>
 }
 
@@ -95,21 +98,25 @@ export function useStorageAdmin(genericError: string): StorageAdmin {
     setDirty(true)
   }, [])
 
-  const save = useCallback(async (): Promise<boolean> => {
-    if (!draft) return false
-    setSaving(true)
-    setSaveError(null)
-    try {
-      // The response is the fresh effective world, never the request echo.
-      applyState(await adminApi.updateStorage(draft))
-      return true
-    } catch (err: unknown) {
-      setSaveError(getApiErrorMessage(err, genericError))
-      return false
-    } finally {
-      setSaving(false)
-    }
-  }, [draft, applyState, genericError])
+  const save = useCallback(
+    async (overrideDraft?: StorageConfig): Promise<boolean> => {
+      const body = overrideDraft ?? draft
+      if (!body) return false
+      setSaving(true)
+      setSaveError(null)
+      try {
+        // The response is the fresh effective world, never the request echo.
+        applyState(await adminApi.updateStorage(body))
+        return true
+      } catch (err: unknown) {
+        setSaveError(getApiErrorMessage(err, genericError))
+        return false
+      } finally {
+        setSaving(false)
+      }
+    },
+    [draft, applyState, genericError],
+  )
 
   const test = useCallback(
     async (backend: StorageBackend): Promise<void> => {
@@ -146,10 +153,14 @@ export function useStorageAdmin(genericError: string): StorageAdmin {
     if (!dirtyRef.current) setDraftState(settingsDocumentOf(next))
   }, [])
 
-  // While any backfill is running, poll GET state so progress/counts advance
-  // without the operator refreshing the page.
+  // While any backfill or category migration is running, poll GET state so
+  // progress/counts advance without the operator refreshing the page.
   useEffect(() => {
-    if (!state?.backfills.some((b) => b.status === 'running')) return
+    if (
+      !state?.backfills.some((b) => b.status === 'running') &&
+      !state?.migrations.some((m) => m.status === 'running')
+    )
+      return
     const iv = setInterval(() => {
       // A transient poll failure is retried on the next tick — it must never
       // surface as a toast or interrupt the operator's in-progress edit.
@@ -184,6 +195,32 @@ export function useStorageAdmin(genericError: string): StorageAdmin {
     [refreshState, genericError],
   )
 
+  const startMigration = useCallback(
+    async (category: string, to: string): Promise<string | null> => {
+      try {
+        await adminApi.startStorageMigration(category, to)
+        void refreshState().catch(() => {})
+        return null
+      } catch (err: unknown) {
+        return getApiErrorMessage(err, genericError)
+      }
+    },
+    [refreshState, genericError],
+  )
+
+  const cancelMigration = useCallback(
+    async (category: string): Promise<string | null> => {
+      try {
+        await adminApi.cancelStorageMigration(category)
+        void refreshState().catch(() => {})
+        return null
+      } catch (err: unknown) {
+        return getApiErrorMessage(err, genericError)
+      }
+    },
+    [refreshState, genericError],
+  )
+
   const refreshStats = useCallback(async (): Promise<string | null> => {
     try {
       const usage = await adminApi.refreshStorageStats()
@@ -208,6 +245,8 @@ export function useStorageAdmin(genericError: string): StorageAdmin {
     test,
     startBackfill,
     cancelBackfill,
+    startMigration,
+    cancelMigration,
     refreshStats,
   }
 }

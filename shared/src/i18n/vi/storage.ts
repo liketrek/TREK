@@ -115,5 +115,18 @@ const storage: TranslationStrings = {
   'storage.usage.refresh': 'Làm mới',
   'storage.usage.compute': 'Tính ngay',
   'storage.usage.legacyNote': 'bao gồm thư viện ảnh cũ',
+
+  // Category migration (copy → flip → delta sweep)
+  'storage.migrate.promptTitle': 'Di chuyển các đối tượng hiện có sang backend mới?',
+  'storage.migrate.promptLine': '{category}: {objects} đối tượng ({size}) từ {from} sang {to}',
+  'storage.migrate.promptLineUnknown': '{category}: không rõ dung lượng (chưa quét mức sử dụng) từ {from} sang {to}',
+  'storage.migrate.move': 'Di chuyển các đối tượng hiện có',
+  'storage.migrate.routeOnly': 'Chỉ định tuyến các ghi mới',
+  'storage.migrate.running': 'Đang di chuyển {category}… {done}/{total}',
+  'storage.migrate.done': 'Di chuyển hoàn tất: {copied} đã sao chép, {skipped} đã bỏ qua',
+  'storage.migrate.failed': 'Di chuyển thất bại: {error} — danh mục chưa được chuyển đổi',
+  'storage.migrate.cancelled': 'Đã hủy di chuyển — chưa có gì được chuyển đổi',
+  'storage.migrate.reclaimable': '{objects} đối tượng ({size}) vẫn còn trên {from} — hãy thu hồi thủ công',
+  'storage.migrate.cancel': 'Hủy di chuyển',
 };
 export default storage;

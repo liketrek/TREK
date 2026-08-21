@@ -113,5 +113,18 @@ const storage: TranslationStrings = {
   'storage.usage.refresh': 'Uppdatera',
   'storage.usage.compute': 'Beräkna nu',
   'storage.usage.legacyNote': 'inkluderar det äldre fotobiblioteket',
+
+  // Category migration (copy → flip → delta sweep)
+  'storage.migrate.promptTitle': 'Flytta befintliga objekt till den nya backend?',
+  'storage.migrate.promptLine': '{category}: {objects} objekt ({size}) från {from} till {to}',
+  'storage.migrate.promptLineUnknown': '{category}: okänd storlek (användning inte skannad än) från {from} till {to}',
+  'storage.migrate.move': 'Flytta befintliga objekt',
+  'storage.migrate.routeOnly': 'Dirigera bara nya skrivningar',
+  'storage.migrate.running': 'Flyttar {category}… {done}/{total}',
+  'storage.migrate.done': 'Flytt klar: {copied} kopierade, {skipped} överhoppade',
+  'storage.migrate.failed': 'Flytt misslyckades: {error} — kategorin byttes inte',
+  'storage.migrate.cancelled': 'Flytt avbruten — inget byttes',
+  'storage.migrate.reclaimable': '{objects} objekt ({size}) finns kvar på {from} — återvinn manuellt',
+  'storage.migrate.cancel': 'Avbryt flytt',
 };
 export default storage;

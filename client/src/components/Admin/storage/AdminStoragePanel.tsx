@@ -1,6 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Activity, FolderTree, HardDrive } from 'lucide-react'
-import { STORAGE_CATEGORIES, type StorageBackend, type StorageCategory, type StorageTestResponse } from '@trek/shared'
+import {
+  STORAGE_CATEGORIES,
+  type StorageBackend,
+  type StorageCategory,
+  type StorageMigrationStatus,
+  type StorageTestResponse,
+} from '@trek/shared'
 import { useTranslation } from '../../../i18n'
 import { formatBytes } from '../../../utils/formatBytes'
 import { relativeTime } from '../../../utils/relativeTime'
@@ -12,6 +18,7 @@ import BackendForm, { type BackendFormMirrorProps } from './BackendForm'
 import {
   CACHE_CATEGORIES,
   adoptedMirrorFor,
+  computeMigrationCandidates,
   effectiveCategoryMap,
   foldBackends,
   primaryNameOf,
@@ -21,9 +28,11 @@ import {
   replicaOfPrimaries,
   settingsDocumentOf,
   setMirrorTargets,
+  stripCategories,
   upsertBackend,
   usageByBackend,
   type FoldedBackendRow,
+  type MigrationCandidate,
 } from './storageModel'
 import { useStorageAdmin } from './useStorageAdmin'
 
@@ -63,6 +72,8 @@ export default function AdminStoragePanel(): React.ReactElement {
   } | null>(null)
   const [confirmRemove, setConfirmRemove] = useState<{ name: string; degenerate: boolean } | null>(null)
   const [syncPrompt, setSyncPrompt] = useState<string | null>(null)
+  const [migratePrompt, setMigratePrompt] = useState<MigrationCandidate[] | null>(null)
+  const [migrationQueue, setMigrationQueue] = useState<MigrationCandidate[]>([])
   // Set by `save` right before it calls admin.save(): the pre-save mirror
   // target count per row name. Consumed (and cleared) by the effect below the
   // first time `admin.state` changes afterward — never touched otherwise, so
@@ -77,6 +88,20 @@ export default function AdminStoragePanel(): React.ReactElement {
     const grown = afterRows.find((r) => r.mirrorTargets.length > (before.get(r.name) ?? 0))
     if (grown) setSyncPrompt(grown.name)
   }, [admin.state])
+
+  // Queued category migrations run strictly sequentially: once a slot opens
+  // (no migration currently running), dequeue the next candidate and start
+  // it. Depends on admin.state so a poll landing a terminal status re-fires
+  // this without any user interaction.
+  useEffect(() => {
+    if (migrationQueue.length === 0 || !admin.state) return
+    if (admin.state.migrations.some((m) => m.status === 'running')) return
+    const [next, ...rest] = migrationQueue
+    setMigrationQueue(rest)
+    void admin.startMigration(next!.category, next!.to).then((error) => {
+      if (error) toast.error(error)
+    })
+  }, [migrationQueue, admin.state])
 
   if (admin.loading) {
     return <p className="text-sm italic p-4 text-content-faint">{t('storage.loading')}</p>
@@ -150,15 +175,51 @@ export default function AdminStoragePanel(): React.ReactElement {
     admin.setDraft({ ...draft, categories })
   }
 
-  const save = async () => {
-    // Snapshot the LAST-CONFIRMED (pre-save `state`'s own fold, not the
-    // in-progress `draft`) mirror target counts; the effect above compares
-    // them against the fresh post-save state to detect newly-added
-    // replicas. Folding `draft` here would already include the unsaved
-    // edit and mask the very growth this is meant to detect.
+  // Snapshot the LAST-CONFIRMED (pre-save `state`'s own fold, not the
+  // in-progress `draft`) mirror target counts; the effect above compares
+  // them against the fresh post-save state to detect newly-added
+  // replicas. Folding `draft` here would already include the unsaved
+  // edit and mask the very growth this is meant to detect.
+  const snapshotMirrorTargets = (): Map<string, number> => {
     const { rows: beforeRows } = foldBackends(state, settingsDocumentOf(state))
-    pendingPromptCheck.current = new Map(beforeRows.map((r) => [r.name, r.mirrorTargets.length]))
+    return new Map(beforeRows.map((r) => [r.name, r.mirrorTargets.length]))
+  }
+
+  const doPlainSave = async () => {
+    pendingPromptCheck.current = snapshotMirrorTargets()
     if (await admin.save()) toast.success(t('storage.saved'))
+    else pendingPromptCheck.current = null
+  }
+
+  const moveAndSave = async (candidates: MigrationCandidate[]) => {
+    pendingPromptCheck.current = snapshotMirrorTargets()
+    const ok = await admin.save(stripCategories(draft, state, candidates.map((c) => c.category)))
+    if (ok) {
+      setMigrationQueue(candidates)
+      toast.success(t('storage.saved'))
+    } else {
+      pendingPromptCheck.current = null
+    }
+    setMigratePrompt(null)
+  }
+
+  const routeOnlySave = async () => {
+    setMigratePrompt(null)
+    await doPlainSave()
+  }
+
+  const save = async () => {
+    const candidates = computeMigrationCandidates(draft, state)
+    if (candidates.length > 0) {
+      setMigratePrompt(candidates)
+      return
+    }
+    await doPlainSave()
+  }
+
+  const handleCancelMigration = async (m: StorageMigrationStatus) => {
+    const error = await admin.cancelMigration(m.category)
+    if (error) toast.error(error)
   }
 
   const testResultFor = (key: string): StorageTestResponse | 'running' | undefined => admin.testResults[key]
@@ -385,6 +446,59 @@ export default function AdminStoragePanel(): React.ReactElement {
           })}
         </div>
 
+        {state.migrations.length > 0 && (
+          <div className="space-y-3 mt-3">
+            {state.migrations.map((m) => (
+              <div
+                key={m.category}
+                data-testid={`storage-migration-${m.category}`}
+                className="rounded-xl border p-4 border-edge-secondary"
+              >
+                <p className="text-sm font-semibold text-content">{t(`storage.category.${m.category}`)}</p>
+                {m.status === 'running' ? (
+                  <>
+                    <p className="text-xs mt-1 text-content-faint">
+                      {t('storage.migrate.running', {
+                        category: t(`storage.category.${m.category}`),
+                        done: String(m.done),
+                        total: String(m.total),
+                      })}
+                    </p>
+                    <button
+                      className="text-xs underline text-content-secondary mt-1"
+                      style={LINK_BUTTON_STYLE}
+                      onClick={() => handleCancelMigration(m)}
+                    >
+                      {t('storage.migrate.cancel')}
+                    </button>
+                  </>
+                ) : m.status === 'done' ? (
+                  <>
+                    <p className="text-xs mt-1 text-content-faint">
+                      {t('storage.migrate.done', { copied: String(m.copied), skipped: String(m.skipped) })}
+                    </p>
+                    {m.reclaimable && (
+                      <p className="text-xs mt-1 text-content-faint">
+                        {t('storage.migrate.reclaimable', {
+                          objects: String(m.reclaimable.objects),
+                          size: formatBytes(m.reclaimable.bytes),
+                          from: m.from,
+                        })}
+                      </p>
+                    )}
+                  </>
+                ) : m.status === 'failed' ? (
+                  <p className="text-xs mt-1 text-content-faint">
+                    {t('storage.migrate.failed', { error: m.error ?? '' })}
+                  </p>
+                ) : (
+                  <p className="text-xs mt-1 text-content-faint">{t('storage.migrate.cancelled')}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         {editing ? (
           <BackendForm
             initial={editing.initial}
@@ -482,6 +596,44 @@ export default function AdminStoragePanel(): React.ReactElement {
         </button>
         {admin.dirty && <span className="text-xs text-content-faint">{t('storage.unsaved')}</span>}
       </div>
+      {migratePrompt && (
+        <div className="rounded-lg border px-3 py-2 mt-2 border-edge bg-surface-secondary" role="alertdialog">
+          <p className="text-sm text-content">{t('storage.migrate.promptTitle')}</p>
+          {migratePrompt.map((c) => (
+            <p key={c.category} className="text-xs mt-1 text-content-secondary">
+              {c.objects === null
+                ? t('storage.migrate.promptLineUnknown', {
+                    category: t(`storage.category.${c.category}`),
+                    from: c.from,
+                    to: c.to,
+                  })
+                : t('storage.migrate.promptLine', {
+                    category: t(`storage.category.${c.category}`),
+                    objects: String(c.objects),
+                    size: formatBytes(c.bytes ?? 0),
+                    from: c.from,
+                    to: c.to,
+                  })}
+            </p>
+          ))}
+          <div className="flex items-center gap-3 mt-2">
+            <button
+              className="text-xs underline text-content-secondary"
+              style={LINK_BUTTON_STYLE}
+              onClick={() => void moveAndSave(migratePrompt)}
+            >
+              {t('storage.migrate.move')}
+            </button>
+            <button
+              className="text-xs underline text-content-secondary"
+              style={LINK_BUTTON_STYLE}
+              onClick={() => void routeOnlySave()}
+            >
+              {t('storage.migrate.routeOnly')}
+            </button>
+          </div>
+        </div>
+      )}
       {admin.saveError && (
         <p role="alert" className="text-sm mt-2 text-content">
           {admin.saveError}

@@ -316,3 +316,57 @@ export function usageByBackend(
   add(primaryNameOf(state, draft, 'uploads-local'), state.usage.legacyPhotos)
   return sums
 }
+
+// ── Category migration (copy → flip → delta sweep) ────────────────────────────
+
+/** One reassigned category the operator might want to move existing objects for. */
+export interface MigrationCandidate {
+  category: StorageCategory
+  from: string
+  to: string
+  /** null when usage was never scanned — the prompt still fires, with an unknown-size line. */
+  objects: number | null
+  bytes: number | null
+}
+
+/**
+ * Every category whose effective (draft-over-state) PRIMARY backend differs
+ * from what's currently saved — normalized through `primaryNameOf` so simply
+ * wrapping (or unwrapping) a mirror around the same primary never counts as
+ * a candidate; mirroring is the existing sync/backfill flow, not a category
+ * migration. Zero-object categories (usage present, 0 objects) are excluded —
+ * nothing to move; null usage (never scanned) keeps the category as a
+ * candidate with null counts, per spec ("unknown still prompts").
+ */
+export function computeMigrationCandidates(draft: StorageConfig, state: StorageAdminState): MigrationCandidate[] {
+  const effective = effectiveCategoryMap(state, draft)
+  const candidates: MigrationCandidate[] = []
+  for (const category of STORAGE_CATEGORIES) {
+    const from = primaryNameOf(state, draft, state.categories[category]!.backend) // exhaustive by schema contract
+    const to = primaryNameOf(state, draft, effective[category])
+    if (from === to) continue
+    const usage = state.usage?.categories[category]
+    candidates.push({ category, from, to, objects: usage ? usage.objects : null, bytes: usage ? usage.bytes : null })
+  }
+  return candidates.filter((c) => c.objects !== 0)
+}
+
+/**
+ * Revert exactly the named categories in `draft` back to what's currently
+ * saved in `saved` — same default/settings convention as the rest of this
+ * file (drop the override when the saved entry is default-sourced, write the
+ * explicit backend name otherwise). Every other draft edit is untouched.
+ */
+export function stripCategories(
+  draft: StorageConfig,
+  saved: StorageAdminState,
+  categories: StorageCategory[],
+): StorageConfig {
+  const next = { ...draft.categories }
+  for (const category of categories) {
+    const savedEntry = saved.categories[category]! // exhaustive by schema contract
+    if (savedEntry.source === 'default') delete next[category]
+    else next[category] = savedEntry.backend
+  }
+  return { ...draft, categories: next }
+}

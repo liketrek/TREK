@@ -116,5 +116,18 @@ const storage: TranslationStrings = {
   'storage.usage.refresh': 'Aggiorna',
   'storage.usage.compute': 'Calcola ora',
   'storage.usage.legacyNote': 'include la libreria foto precedente',
+
+  // Category migration (copy → flip → delta sweep)
+  'storage.migrate.promptTitle': 'Spostare gli oggetti esistenti nel nuovo backend?',
+  'storage.migrate.promptLine': '{category}: {objects} oggetti ({size}) da {from} a {to}',
+  'storage.migrate.promptLineUnknown': '{category}: dimensione sconosciuta (utilizzo non ancora calcolato) da {from} a {to}',
+  'storage.migrate.move': 'Sposta oggetti esistenti',
+  'storage.migrate.routeOnly': 'Instrada solo le nuove scritture',
+  'storage.migrate.running': 'Spostamento di {category}… {done}/{total}',
+  'storage.migrate.done': 'Spostamento completato: {copied} copiati, {skipped} saltati',
+  'storage.migrate.failed': 'Spostamento non riuscito: {error} — la categoria non è stata cambiata',
+  'storage.migrate.cancelled': 'Spostamento annullato — nulla è stato cambiato',
+  'storage.migrate.reclaimable': '{objects} oggetti ({size}) restano su {from} — recuperali manualmente',
+  'storage.migrate.cancel': 'Annulla spostamento',
 };
 export default storage;

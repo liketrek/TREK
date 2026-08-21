@@ -116,5 +116,18 @@ const storage: TranslationStrings = {
   'storage.usage.refresh': 'Frissítés',
   'storage.usage.compute': 'Számítás most',
   'storage.usage.legacyNote': 'tartalmazza a régi fotókönyvtárat',
+
+  // Category migration (copy → flip → delta sweep)
+  'storage.migrate.promptTitle': 'Áthelyezed a meglévő objektumokat az új backendre?',
+  'storage.migrate.promptLine': '{category}: {objects} objektum ({size}) innen: {from} ide: {to}',
+  'storage.migrate.promptLineUnknown': '{category}: ismeretlen méret (a használat még nincs kiszámítva) innen: {from} ide: {to}',
+  'storage.migrate.move': 'Meglévő objektumok áthelyezése',
+  'storage.migrate.routeOnly': 'Csak az új írások irányítása',
+  'storage.migrate.running': '{category} áthelyezése… {done}/{total}',
+  'storage.migrate.done': 'Áthelyezés kész: {copied} másolva, {skipped} kihagyva',
+  'storage.migrate.failed': 'Az áthelyezés sikertelen: {error} — a kategória nem lett átváltva',
+  'storage.migrate.cancelled': 'Áthelyezés megszakítva — semmi sem lett átváltva',
+  'storage.migrate.reclaimable': '{objects} objektum ({size}) marad a(z) {from} helyen — kézzel szabadítsd fel',
+  'storage.migrate.cancel': 'Áthelyezés megszakítása',
 };
 export default storage;

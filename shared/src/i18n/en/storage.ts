@@ -128,5 +128,18 @@ const storage: TranslationStrings = {
   'storage.usage.refresh': 'Refresh',
   'storage.usage.compute': 'Compute now',
   'storage.usage.legacyNote': 'includes the legacy photo library',
+
+  // Category migration (copy → flip → delta sweep)
+  'storage.migrate.promptTitle': 'Move existing objects to the new backend?',
+  'storage.migrate.promptLine': '{category}: {objects} objects ({size}) from {from} to {to}',
+  'storage.migrate.promptLineUnknown': '{category}: unknown size (no usage scan yet) from {from} to {to}',
+  'storage.migrate.move': 'Move existing objects',
+  'storage.migrate.routeOnly': 'Just route new writes',
+  'storage.migrate.running': 'Moving {category}… {done}/{total}',
+  'storage.migrate.done': 'Move finished: {copied} copied, {skipped} skipped',
+  'storage.migrate.failed': 'Move failed: {error} — the category was not switched',
+  'storage.migrate.cancelled': 'Move cancelled — nothing was switched',
+  'storage.migrate.reclaimable': '{objects} objects ({size}) remain on {from} — reclaim manually',
+  'storage.migrate.cancel': 'Cancel move',
 };
 export default storage;

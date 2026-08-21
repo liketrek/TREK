@@ -105,5 +105,18 @@ const storage: TranslationStrings = {
   'storage.usage.refresh': '重新整理',
   'storage.usage.compute': '立即計算',
   'storage.usage.legacyNote': '包含舊版相片庫',
+
+  // Category migration (copy → flip → delta sweep)
+  'storage.migrate.promptTitle': '要將現有物件移動到新的後端嗎？',
+  'storage.migrate.promptLine': '{category}：從 {from} 到 {to} 共 {objects} 個物件（{size}）',
+  'storage.migrate.promptLineUnknown': '{category}：大小未知（尚未掃描用量）從 {from} 到 {to}',
+  'storage.migrate.move': '移動現有物件',
+  'storage.migrate.routeOnly': '僅路由新寫入',
+  'storage.migrate.running': '正在移動 {category}… {done}/{total}',
+  'storage.migrate.done': '移動完成：已複製 {copied}，已略過 {skipped}',
+  'storage.migrate.failed': '移動失敗：{error} — 該分類未切換',
+  'storage.migrate.cancelled': '移動已取消 — 未切換任何內容',
+  'storage.migrate.reclaimable': '{objects} 個物件（{size}）仍保留在 {from} 上 — 請手動回收',
+  'storage.migrate.cancel': '取消移動',
 };
 export default storage;
