@@ -415,7 +415,7 @@ export default function AdminStoragePanel(): React.ReactElement {
       </Section>
 
       <Section title={t('storage.categories.title')} icon={FolderTree}>
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
           {STORAGE_CATEGORIES.map((category) => {
             // The admin state's category record is exhaustive by schema contract.
             const stateEntry = state.categories[category]!
