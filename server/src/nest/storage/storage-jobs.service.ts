@@ -159,6 +159,11 @@ export class StorageJobsService {
     if (this.anyJobRunning()) {
       throw new BackfillBusyError('a sync is already running — one storage job at a time');
     }
+    // The DESTINATION prefix, computed for `to` before the flip — may differ
+    // from `current.keyPrefix` (audit #8: a mode-A '' source migrating onto a
+    // prefixed backend must land its objects under that backend's real
+    // prefix, or the registry can never resolve them again post-flip).
+    const destPrefix = this.registry.keyPrefixFor(category, to);
 
     const job: ActiveMigration = {
       cancelled: false,
@@ -177,7 +182,7 @@ export class StorageJobsService {
     };
     this.migrations.set(category, job);
     // Detached, driver instances resolved above (in-flight guarantee, same as backfill).
-    void this.runMigration(job, current.driver, target, current.keyPrefix)
+    void this.runMigration(job, current.driver, target, current.keyPrefix, destPrefix)
       .catch((err: unknown) => {
         job.status = {
           ...job.status,
@@ -240,17 +245,22 @@ export class StorageJobsService {
   }
 
   /** Copy one needy object source→target via a spool file; returns false on a counted failure. */
-  private async copyObject(source: StorageDriver, target: StorageDriver, key: string): Promise<boolean> {
+  private async copyObject(
+    source: StorageDriver,
+    target: StorageDriver,
+    sourceKey: string,
+    destKey: string,
+  ): Promise<boolean> {
     const file = path.join(GLOBAL_TEMP_DIR, randomUUID());
     try {
-      const { stream } = await source.getStream(key);
+      const { stream } = await source.getStream(sourceKey);
       await pipeline(stream, fs.createWriteStream(file)); // source errors RETHROW (abort → failed)
     } catch (err) {
       await fs.promises.rm(file, { force: true });
       throw err;
     }
     try {
-      await target.put(key, fs.createReadStream(file), { contentType: contentTypeFor(key) });
+      await target.put(destKey, fs.createReadStream(file), { contentType: contentTypeFor(destKey) });
       return true;
     } catch {
       return false; // per-object failure: counted, blocks the flip
@@ -263,25 +273,34 @@ export class StorageJobsService {
     job: ActiveMigration,
     source: StorageDriver,
     target: StorageDriver,
-    prefix: string,
+    sourcePrefix: string,
+    destPrefix: string,
   ): Promise<void> {
     const s = () => job.status;
+    // Rewrite a source key onto the destination backend's own prefix (audit
+    // #8): equal prefixes make this the identity function — byte-identical
+    // to pre-fix behavior — but a mode-A ('' prefix) source landing on a
+    // prefixed destination (or vice versa) now lands at a key the registry
+    // will actually resolve post-flip, instead of silently keeping the
+    // source's prefix verbatim.
+    const destKeyFor = (sourceKey: string): string => destPrefix + sourceKey.slice(sourcePrefix.length);
     // Phase 1a: honest total.
-    for await (const _stat of source.list(prefix)) job.status = { ...s(), total: s().total + 1 };
+    for await (const _stat of source.list(sourcePrefix)) job.status = { ...s(), total: s().total + 1 };
     // Phase 1b: copy.
-    for await (const stat of source.list(prefix)) {
+    for await (const stat of source.list(sourcePrefix)) {
       if (job.cancelled) {
         job.status = { ...s(), status: 'cancelled', finishedAt: Date.now() };
         return;
       }
       const done = s().done + 1;
       job.status = { ...s(), done, total: Math.max(s().total, done) };
-      const existing = await target.stat(stat.key);
+      const destKey = destKeyFor(stat.key);
+      const existing = await target.stat(destKey);
       if (existing && existing.size === stat.size) {
         job.status = { ...s(), skipped: s().skipped + 1 };
         continue;
       }
-      if (await this.copyObject(source, target, stat.key)) job.status = { ...s(), copied: s().copied + 1 };
+      if (await this.copyObject(source, target, stat.key, destKey)) job.status = { ...s(), copied: s().copied + 1 };
       else job.status = { ...s(), failed: s().failed + 1 };
     }
     if (s().failed > 0) {
@@ -305,16 +324,19 @@ export class StorageJobsService {
     }
     // Phase 2: flip — the job, not the save, owns this.
     this.registry.assignCategory(s().category, s().to);
-    // Phase 3: delta sweep + reclaimable tally. Cancellation is ignored here (bounded).
+    // Phase 3: delta sweep + reclaimable tally. Cancellation is ignored here
+    // (bounded). Reclaimable stays SOURCE-keyed — it counts what's left to
+    // reclaim on the old backend, not where it landed on the new one.
     const reclaimable = { objects: 0, bytes: 0 };
-    for await (const stat of source.list(prefix)) {
+    for await (const stat of source.list(sourcePrefix)) {
       reclaimable.objects += 1;
       reclaimable.bytes += stat.size;
-      const existing = await target.stat(stat.key);
+      const destKey = destKeyFor(stat.key);
+      const existing = await target.stat(destKey);
       if (existing && existing.size === stat.size) continue;
       const done = s().done + 1;
       job.status = { ...s(), done, total: Math.max(s().total, done) };
-      if (await this.copyObject(source, target, stat.key)) job.status = { ...s(), copied: s().copied + 1 };
+      if (await this.copyObject(source, target, stat.key, destKey)) job.status = { ...s(), copied: s().copied + 1 };
       else job.status = { ...s(), failed: s().failed + 1 }; // sweep failure: reported, flip already happened
     }
     job.status = { ...s(), status: 'done', total: s().done, reclaimable, finishedAt: Date.now() };

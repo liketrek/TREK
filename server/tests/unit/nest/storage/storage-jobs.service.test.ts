@@ -108,6 +108,33 @@ function makeMigrationWorld() {
   return { registry, storage, jobs, uploadsRoot, destRoot };
 }
 
+/**
+ * A registry with TREK_PLACE_PHOTO_DIR set, so 'photos-google' defaults to
+ * the bare-key mode-A backend 'place-photos-local' (audit #8's source shape),
+ * plus an unassigned 'dest-local' target that uses the normal prefixed
+ * (mode-B) layout for every other backend.
+ */
+function makePhotosGoogleMigrationWorld() {
+  const uploadsRoot = makeTmpDir();
+  const backupsRoot = makeTmpDir();
+  const placePhotoRoot = makeTmpDir();
+  const destRoot = makeTmpDir();
+  setSetting(
+    'storage.backends',
+    JSON.stringify([
+      { name: 'uploads-local', type: 'local', options: { root: uploadsRoot } },
+      { name: 'backups-local', type: 'local', options: { root: backupsRoot } },
+      { name: 'dest-local', type: 'local', options: { root: destRoot } },
+    ]),
+  );
+  const env = { env: () => ({ paths: { placePhotoDir: placePhotoRoot } }) } as unknown as RuntimeEnvService;
+  const registry = new StorageRegistryService(db, env, new StorageEventsService());
+  registry.onModuleInit();
+  const storage = new StorageService(registry);
+  const jobs = new StorageJobsService(registry);
+  return { registry, storage, jobs, placePhotoRoot, destRoot };
+}
+
 /** Combines the migration world's 'dest-local' target with the backfill world's routed mirror 'm'. */
 function makeMigrationBackfillWorld() {
   const uploadsRoot = makeTmpDir();
@@ -381,6 +408,83 @@ describe('StorageJobsService migrations', () => {
     const final = await waitTerminal(jobs, 'files');
     expect(final.status).toBe('done'); // sweep failures don't undo a completed flip
     expect(final.failed).toBeGreaterThanOrEqual(1);
+    expect(registryCategoriesRow().files).toBe('dest-local');
+  });
+
+  it('MIG-008 photos-google mode-A (bare "" prefix) migrating to a prefixed backend rewrites destination keys (audit #8)', async () => {
+    const { storage, jobs, placePhotoRoot, destRoot } = makePhotosGoogleMigrationWorld();
+    await storage.put('photos-google', 'abc.jpg', Readable.from('img-a'));
+    await storage.put('photos-google', 'sub/def.jpg', Readable.from('img-b'));
+
+    jobs.startMigration('photos-google', 'dest-local');
+    const final = await waitTerminal(jobs, 'photos-google');
+
+    expect(final.status).toBe('done');
+    expect(final.copied).toBe(2);
+    expect(final.failed).toBe(0);
+    // Source stayed bare-keyed (mode A) — untouched.
+    expect(fs.existsSync(path.join(placePhotoRoot, 'abc.jpg'))).toBe(true);
+    expect(fs.existsSync(path.join(placePhotoRoot, 'sub', 'def.jpg'))).toBe(true);
+    // Destination lands under the category's normal prefixed (mode-B) layout —
+    // NOT at the bare source key, which the registry would never resolve.
+    expect(fs.existsSync(path.join(destRoot, 'photos', 'google', 'abc.jpg'))).toBe(true);
+    expect(fs.existsSync(path.join(destRoot, 'photos', 'google', 'sub', 'def.jpg'))).toBe(true);
+    expect(fs.existsSync(path.join(destRoot, 'abc.jpg'))).toBe(false); // not left at the bare source key
+    expect(registryCategoriesRow()['photos-google']).toBe('dest-local');
+  });
+
+  it('MIG-009 the skip-check on a rewritten-prefix migration stats the DESTINATION key, not the source key', async () => {
+    const { storage, jobs, destRoot } = makePhotosGoogleMigrationWorld();
+    await storage.put('photos-google', 'abc.jpg', Readable.from('same-bytes'));
+    // Pre-populate the destination at the REWRITTEN key with matching size —
+    // if the skip-check mistakenly stat'd the bare source key on the target,
+    // it would find nothing and copy instead of skipping.
+    fs.mkdirSync(path.join(destRoot, 'photos', 'google'), { recursive: true });
+    fs.writeFileSync(path.join(destRoot, 'photos', 'google', 'abc.jpg'), 'same-bytes');
+
+    jobs.startMigration('photos-google', 'dest-local');
+    const final = await waitTerminal(jobs, 'photos-google');
+
+    expect(final.status).toBe('done');
+    expect(final.skipped).toBeGreaterThanOrEqual(1);
+    expect(final.copied).toBe(0);
+    expect(registryCategoriesRow()['photos-google']).toBe('dest-local');
+  });
+
+  it('MIG-010 the delta sweep rewrites a raced object\'s destination key too', async () => {
+    const { storage, jobs, placePhotoRoot, destRoot } = makePhotosGoogleMigrationWorld();
+    const big = 'x'.repeat(2_000_000);
+    await storage.put('photos-google', 'a.jpg', Readable.from(big));
+
+    jobs.startMigration('photos-google', 'dest-local');
+    await waitFor(
+      () => jobs.migrationStatuses().some((m) => m.category === 'photos-google' && m.total > 0),
+      5000,
+      1,
+    );
+    // Race a second bare-keyed object in after enumeration but before the copy
+    // phase settles — the delta sweep must pick it up and rewrite its key too.
+    fs.writeFileSync(path.join(placePhotoRoot, 'raced.jpg'), 'raced-bytes');
+
+    const final = await waitTerminal(jobs, 'photos-google');
+    expect(final.status).toBe('done');
+    expect(fs.existsSync(path.join(destRoot, 'photos', 'google', 'a.jpg'))).toBe(true);
+    expect(fs.existsSync(path.join(destRoot, 'photos', 'google', 'raced.jpg'))).toBe(true);
+    expect(registryCategoriesRow()['photos-google']).toBe('dest-local');
+  });
+
+  it('MIG-011 equal-prefix migrations (files -> dest-local) stay byte-identical: destination key equals the source key', async () => {
+    const { storage, jobs, destRoot } = makeMigrationWorld();
+    await storage.put('files', 'a.txt', Readable.from('aaa'));
+
+    jobs.startMigration('files', 'dest-local');
+    const final = await waitTerminal(jobs, 'files');
+
+    expect(final.status).toBe('done');
+    expect(final.copied).toBe(1);
+    // Both source and destination use the same 'files/' prefix — the key is
+    // unchanged, exactly today's pre-fix behavior.
+    expect(fs.existsSync(path.join(destRoot, 'files', 'a.txt'))).toBe(true);
     expect(registryCategoriesRow().files).toBe('dest-local');
   });
 });

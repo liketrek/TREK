@@ -165,6 +165,19 @@ export class StorageRegistryService implements OnModuleInit {
     return GLOBAL_TEMP_DIR;
   }
 
+  /**
+   * The key-prefix a category resolves to ON A GIVEN BACKEND — the same rule
+   * build() applies when assigning categories to the CURRENT config, exposed
+   * standalone so a caller can ask "what prefix would this category use on
+   * backend X" without X being the category's current assignment. The
+   * category migration job is exactly that caller: it must compute the
+   * DESTINATION prefix (on `to`, before the flip) while `resolve()` can only
+   * ever answer for the backend a category is assigned to right now.
+   */
+  keyPrefixFor(category: ServedCategory, backendName: string): string {
+    return category === 'photos-google' && backendName === 'place-photos-local' ? '' : CATEGORY_PREFIXES[category];
+  }
+
   /** Driver instance for a defined backend, assigned or not; null when unknown. */
   driverByName(name: string): StorageDriver | null {
     if (!this.state) return null;
@@ -334,9 +347,7 @@ export class StorageRegistryService implements OnModuleInit {
     // 4. Category prefixes (photos-google mode decided from the final map).
     const categories = new Map<ServedCategory, { backendName: string; keyPrefix: string }>();
     for (const [category, backendName] of categoryBackends) {
-      const keyPrefix =
-        category === 'photos-google' && backendName === 'place-photos-local' ? '' : CATEGORY_PREFIXES[category];
-      categories.set(category, { backendName, keyPrefix });
+      categories.set(category, { backendName, keyPrefix: this.keyPrefixFor(category, backendName) });
     }
 
     // 5. Instantiate drivers: locals first (each ensures its own dirs; spool

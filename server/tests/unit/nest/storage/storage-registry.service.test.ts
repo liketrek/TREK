@@ -208,6 +208,32 @@ describe('StorageRegistryService defaults', () => {
   });
 });
 
+// ── keyPrefixFor (extracted for the category-migration job) ───────────────────
+
+describe('StorageRegistryService keyPrefixFor', () => {
+  it('returns the plain category prefix regardless of which backend is asked', () => {
+    const { registry } = makeRegistry();
+    expect(registry.keyPrefixFor('files', 'uploads-local')).toBe('files/');
+    expect(registry.keyPrefixFor('files', 'some-other-backend')).toBe('files/');
+    expect(registry.keyPrefixFor('backups', 'backups-local')).toBe('');
+    expect(registry.keyPrefixFor('covers', 'anything')).toBe('covers/');
+  });
+
+  it('photos-google is bare-key (mode A) ONLY on place-photos-local; every other backend gets the prefixed mode-B layout', () => {
+    const { registry } = makeRegistry();
+    expect(registry.keyPrefixFor('photos-google', 'place-photos-local')).toBe('');
+    expect(registry.keyPrefixFor('photos-google', 'uploads-local')).toBe('photos/google/');
+    expect(registry.keyPrefixFor('photos-google', 'dest-local')).toBe('photos/google/');
+  });
+
+  it('agrees with resolve() for the category\'s CURRENT backend — no drift between the two rules', () => {
+    const photoDir = makeTmpDir();
+    const { registry } = makeRegistry({ placePhotoDir: photoDir });
+    const resolved = registry.resolve('photos-google');
+    expect(registry.keyPrefixFor('photos-google', resolved.backendName)).toBe(resolved.keyPrefix);
+  });
+});
+
 // ── settings merge + validation ───────────────────────────────────────────────
 
 describe('StorageRegistryService settings', () => {
