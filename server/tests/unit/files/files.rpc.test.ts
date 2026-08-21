@@ -23,7 +23,7 @@ import type { DatabaseService } from '../../../src/nest/database/database.servic
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import type { StorageService } from '../../../src/nest/storage/storage.service';
-import { StorageNotFoundError } from '../../../src/nest/storage/storage.types';
+import { StorageNotFoundError, StorageInvalidKeyError } from '../../../src/nest/storage/storage.types';
 import type { RpcRequest, RpcError, RpcResponse } from '../../../src/nest/plugins/protocol/envelope';
 import { makeDeps } from '../../helpers/rpc-host-deps';
 
@@ -101,6 +101,13 @@ describe('FilesRpc reads', () => {
   it('FILES-RPC-005 a missing storage object gets the accessibility envelope, not a raw error', async () => {
     const f = build();
     (f.storage.getStream as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new StorageNotFoundError('files/visa.pdf'));
+    const res = (await f.host('db:read:files:content').dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42)) as RpcError;
+    expect(res.error.message).toBe('file path is not accessible');
+  });
+
+  it('FILES-RPC-005d an invalid storage key gets the accessibility envelope, not a raw error', async () => {
+    const f = build();
+    (f.storage.getStream as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new StorageInvalidKeyError('..'));
     const res = (await f.host('db:read:files:content').dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42)) as RpcError;
     expect(res.error.message).toBe('file path is not accessible');
   });

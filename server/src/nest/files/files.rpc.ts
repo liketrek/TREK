@@ -13,7 +13,7 @@ import { isDemoEmail } from '../common/demo';
 import { BLOCKED_EXTENSIONS } from './files.constants';
 import { FilesService } from './files.service';
 import { StorageService } from '../storage/storage.service';
-import { StorageNotFoundError, type ObjectStat } from '../storage/storage.types';
+import { StorageNotFoundError, StorageInvalidKeyError, type ObjectStat } from '../storage/storage.types';
 
 /** Files use three separate rights, one per operation, unlike every other domain. */
 const UPLOAD_ACTION = 'file_upload';
@@ -94,7 +94,9 @@ export class FilesRpc {
     try {
       ({ stream, stat } = await this.storage.getStream('files', pathMod.basename(file.filename)));
     } catch (err) {
-      if (err instanceof StorageNotFoundError) throw new ForbiddenResource('file path is not accessible');
+      if (err instanceof StorageNotFoundError || err instanceof StorageInvalidKeyError) {
+        throw new ForbiddenResource('file path is not accessible');
+      }
       throw err;
     }
     // Re-checked against the OBJECT, not the DB row: file_size can drift.
