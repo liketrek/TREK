@@ -30,6 +30,17 @@ export interface ObjectStat {
   key: string;
   size: number;
   mtimeMs: number;
+  /**
+   * The backend's own entity tag when it has one — S3 returns it on every
+   * HEAD/GET. Always a wire-ready HTTP entity-tag (quoted, `W/`-prefixed if
+   * weak): the opaque value is the backend's, but a driver may re-add the
+   * quotes its SDK stripped (see s3.driver.ts's normalizeEtag). Optional
+   * because a filesystem has no such concept — the serving path then derives
+   * express/send's weak `W/"<size>-<mtime>"` tag instead (http-serving.ts).
+   * Never synthesized by a driver, so "absent" always means "the backend
+   * didn't say".
+   */
+  etag?: string;
 }
 
 /** Inclusive byte range, `fs.createReadStream` semantics; `end` omitted = to EOF. */

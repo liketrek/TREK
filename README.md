@@ -535,7 +535,9 @@ declining routes only new writes to the new backend, leaving old objects in
 place as before. Only one storage job (a mirror sync or a category migration)
 runs at a time, cancelling before the flip is always safe, and a failed copy
 never flips the category; media categories on S3 work but every served byte
-proxies through the server (no HTTP Range on the proxy path); AWS buckets
+proxies through the server — the proxy answers conditional GETs (ETag /
+Last-Modified) and a single `Range` request, while a multi-range request is
+answered with the full object; AWS buckets
 with Object-Lock or checksum-requiring policies
 reject the server's uploads; self-hosted endpoints (MinIO/Garage) should be
 addressed by IP or `localhost` unless configured for virtual-hosted buckets.

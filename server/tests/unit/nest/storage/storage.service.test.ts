@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { EventEmitter } from 'node:events';
 import { PassThrough, Readable } from 'node:stream';
 import type { Response } from 'express';
 import { LocalDriver } from '../../../../src/nest/storage/drivers/local.driver';
@@ -11,6 +12,7 @@ import { StorageService } from '../../../../src/nest/storage/storage.service';
 import {
   StorageInvalidKeyError,
   StorageNotFoundError,
+  type ByteRange,
   type ObjectStat,
   type StorageDriver,
 } from '../../../../src/nest/storage/storage.types';
@@ -271,10 +273,16 @@ describe('StorageService getLocalPathOrNull', () => {
 });
 
 interface MockRes {
-  res: Response & { headersSent: boolean };
+  res: Response & { headersSent: boolean; statusCode: number };
   sendFileCalls: Array<{ name: string; root: string }>;
   headers: Record<string, string>;
   body: () => Promise<string>;
+}
+
+/** What the serving path reads off `res.req` — express always populates it. */
+interface ReqInit {
+  method?: string;
+  headers?: Record<string, string | string[]>;
 }
 
 // Real headersSent semantics (mirroring http.ServerResponse): flips true on
@@ -284,7 +292,7 @@ interface MockRes {
 // would hide a regression where the gate stops actually gating (see CRITICAL
 // finding on task C3 review: the pre-fix code swallowed a pre-header S3
 // source ECONNRESET as if it were a client abort).
-function makeRes(): MockRes {
+function makeRes(req: ReqInit = {}): MockRes {
   const sink = new PassThrough();
   const sendFileCalls: Array<{ name: string; root: string }> = [];
   const headers: Record<string, string> = {};
@@ -292,7 +300,41 @@ function makeRes(): MockRes {
   sink.on('data', (c: Buffer) => collected.push(c));
   const res = Object.assign(sink, {
     headersSent: false,
+    statusCode: 200,
+    // The remote branch reads res.req for method + conditional/Range headers,
+    // exactly as the local branch's res.sendFile already does. It must be a
+    // real EventEmitter: node's end-of-stream (which pipeline() drives) treats
+    // a `.req` on the destination as an http request and cleans up listeners
+    // on it — a plain object literal there throws
+    // "stream.req.removeListener is not a function" out of pipeline.
+    req: Object.assign(new EventEmitter(), { method: req.method ?? 'GET', headers: req.headers ?? {} }),
     setHeader: (key: string, value: string) => {
+      // Node's real ServerResponse.setHeader THROWS ERR_INVALID_CHAR on a
+      // control character in the value. Reproduced here because it is
+      // reachable in production: Content-Disposition is built from
+      // client-supplied filenames (files-download.controller.ts feeds it
+      // multer's originalname), so a name carrying a CR/LF makes staging
+      // fail mid-serve — a mock that silently accepts anything would hide
+      // the resource leak that failure can cause.
+      if (/[\r\n]/.test(String(value))) {
+        throw Object.assign(new Error(`Invalid character in header content ["${key}"]`), {
+          code: 'ERR_INVALID_CHAR',
+        });
+      }
+      headers[key] = value;
+      return res;
+    },
+    // Node's getHeader is case-insensitive; the serving path uses it to see
+    // whether the CALLER already staged a Content-Type (trek-photo-cache
+    // does, for its extension-less `.bin` objects), so the mock must be too
+    // — a case-sensitive lookup here would hide a real precedence bug.
+    getHeader: (key: string): string | undefined => {
+      const found = Object.keys(headers).find((name) => name.toLowerCase() === key.toLowerCase());
+      return found === undefined ? undefined : headers[found];
+    },
+    // express's res.set — the form every caller actually uses to stage
+    // headers before handing the response to sendToResponse.
+    set: (key: string, value: string) => {
       headers[key] = value;
       return res;
     },
@@ -525,6 +567,372 @@ describe('StorageService sendToResponse', () => {
 
       await expect(pending).rejects.toThrow('disk read error');
     });
+  });
+});
+
+// Remote-serving parity (task C4). The local branch inherits express send's
+// content-type / ETag / Last-Modified / conditional-GET / Range / HEAD
+// machinery from res.sendFile; a path-less backend has none of it, so the
+// stream branch has to reproduce the same contract from one pre-flight stat.
+// This suite pins the wiring — the state machine itself is proved in
+// http-serving.test.ts.
+describe('StorageService sendToResponse — remote serving parity', () => {
+  const MTIME = 5000;
+  const LAST_MODIFIED = new Date(MTIME).toUTCString();
+  const BODY = 'abcdefghij'; // 10 bytes: indices 0-9
+
+  interface ServingFixture {
+    storage: StorageService;
+    getStreamCalls: Array<{ key: string; range?: ByteRange }>;
+    statCalls: string[];
+    /** Whether the most recently opened driver stream was destroyed. */
+    streamDestroyed: () => boolean;
+  }
+
+  function makeServingFixture(
+    opts: { body?: string; mtimeMs?: number; etag?: string; missing?: boolean; vanishesBeforeGet?: boolean } = {},
+  ): ServingFixture {
+    const tempDir = makeTmpDir();
+    const bytes = Buffer.from(opts.body ?? BODY);
+    const base: ObjectStat = {
+      key: 'photo.jpg',
+      size: bytes.length,
+      mtimeMs: opts.mtimeMs ?? MTIME,
+      etag: opts.etag,
+    };
+    const getStreamCalls: Array<{ key: string; range?: ByteRange }> = [];
+    const statCalls: string[] = [];
+    let destroyed = false;
+    const driver: StorageDriver = {
+      id: 'stub-serving',
+      put: async () => undefined,
+      getStream: async (key: string, range?: ByteRange) => {
+        getStreamCalls.push({ key, range });
+        // `vanishesBeforeGet` is the stat→get delete race: the pre-flight stat
+        // resolved, the object was gone by the time the body was opened.
+        if (opts.missing || opts.vanishesBeforeGet) throw new StorageNotFoundError(key);
+        const slice = range ? bytes.subarray(range.start, (range.end ?? bytes.length - 1) + 1) : bytes;
+        // The returned stream stands in for an open S3 socket / fd: whoever
+        // takes it owns closing it, so destruction has to be observable.
+        const stream = Readable.from(slice);
+        const origDestroy = stream.destroy.bind(stream);
+        stream.destroy = ((err?: Error) => {
+          destroyed = true;
+          return origDestroy(err);
+        }) as typeof stream.destroy;
+        return { stream, stat: { ...base, key } };
+      },
+      stat: async (key: string) => {
+        statCalls.push(key);
+        return opts.missing ? null : { ...base, key };
+      },
+      delete: async () => undefined,
+      list: async function* () {
+        yield* [] as ObjectStat[];
+      },
+      // no getLocalPath — the universal fallback branch
+    };
+    const registry = {
+      resolve: (): ResolvedCategory => ({ driver, keyPrefix: '', backendName: 'stub-serving' }),
+      tempDir: () => tempDir,
+      replicaFailures: () => [],
+    } as unknown as StorageRegistryService;
+    return { storage: new StorageService(registry), getStreamCalls, statCalls, streamDestroyed: () => destroyed };
+  }
+
+  describe('content type', () => {
+    it('defaults Content-Type from the key extension', async () => {
+      const fx = makeServingFixture();
+      const mock = makeRes();
+      await fx.storage.sendToResponse('photos-trek', 'photo.jpg', mock.res);
+      expect(mock.headers['Content-Type']).toBe('image/jpeg');
+    });
+
+    it('falls back to application/octet-stream for an unknown extension', async () => {
+      const fx = makeServingFixture();
+      const mock = makeRes();
+      await fx.storage.sendToResponse('photos-trek', 'blob.weird', mock.res);
+      expect(mock.headers['Content-Type']).toBe('application/octet-stream');
+    });
+
+    it('lets an explicit opts.contentType win over the derived one', async () => {
+      const fx = makeServingFixture();
+      const mock = makeRes();
+      await fx.storage.sendToResponse('photos-trek', 'photo.jpg', mock.res, {
+        contentType: 'image/webp',
+        disposition: 'attachment; filename="p.webp"',
+      });
+      expect(mock.headers['Content-Type']).toBe('image/webp');
+      expect(mock.headers['Content-Disposition']).toBe('attachment; filename="p.webp"');
+    });
+
+    it('keeps a Content-Type the caller staged on the response itself', async () => {
+      // trek-photo-cache.service.ts's exact shape: its objects are
+      // extension-less `.bin` blobs whose real type lives in a meta table, so
+      // it res.set()s the type and passes no opts. Deriving over that would
+      // ship every S3-backed cached thumbnail as application/octet-stream.
+      const fx = makeServingFixture();
+      const mock = makeRes();
+      mock.res.set('Content-Type', 'image/webp');
+      mock.res.set('Cache-Control', 'public, max-age=3600');
+
+      await fx.storage.sendToResponse('photos-trek', 'cached.bin', mock.res);
+
+      expect(mock.headers['Content-Type']).toBe('image/webp');
+      expect(mock.headers['Cache-Control']).toBe('public, max-age=3600');
+      expect(await mock.body()).toBe(BODY);
+    });
+
+    it('lets opts.contentType override even a staged header', async () => {
+      const fx = makeServingFixture();
+      const mock = makeRes();
+      mock.res.set('Content-Type', 'image/webp');
+
+      await fx.storage.sendToResponse('photos-trek', 'cached.bin', mock.res, { contentType: 'image/avif' });
+
+      expect(mock.headers['Content-Type']).toBe('image/avif');
+    });
+  });
+
+  describe('validators', () => {
+    it('emits the driver ETag, Last-Modified and Accept-Ranges', async () => {
+      const fx = makeServingFixture({ etag: '"s3tag"' });
+      const mock = makeRes();
+      await fx.storage.sendToResponse('photos-trek', 'photo.jpg', mock.res);
+      expect(mock.headers['ETag']).toBe('"s3tag"');
+      expect(mock.headers['Last-Modified']).toBe(LAST_MODIFIED);
+      expect(mock.headers['Accept-Ranges']).toBe('bytes');
+      expect(mock.headers['Content-Length']).toBe('10');
+      expect(await mock.body()).toBe(BODY);
+    });
+
+    it('derives a weak size-mtime ETag when the driver has none', async () => {
+      const fx = makeServingFixture();
+      const mock = makeRes();
+      await fx.storage.sendToResponse('photos-trek', 'photo.jpg', mock.res);
+      expect(mock.headers['ETag']).toBe(`W/"a-${MTIME.toString(16)}"`);
+    });
+
+    it('emits NO ETag and NO Last-Modified when the backend reports mtimeMs 0', async () => {
+      // S3-compatible backends can answer without a LastModified; a 1970
+      // header would be "fresh forever" to any revalidating client.
+      const fx = makeServingFixture({ mtimeMs: 0 });
+      const mock = makeRes();
+      await fx.storage.sendToResponse('photos-trek', 'photo.jpg', mock.res);
+      expect(mock.headers['ETag']).toBeUndefined();
+      expect(mock.headers['Last-Modified']).toBeUndefined();
+      expect(await mock.body()).toBe(BODY); // still served, just uncached
+    });
+  });
+
+  describe('conditional GET', () => {
+    it('answers 304 to a matching If-None-Match with validators, no body and no getStream', async () => {
+      const fx = makeServingFixture({ etag: '"s3tag"' });
+      const mock = makeRes({ headers: { 'if-none-match': '"s3tag"' } });
+
+      await fx.storage.sendToResponse('photos-trek', 'photo.jpg', mock.res);
+
+      expect(mock.res.statusCode).toBe(304);
+      expect(mock.headers['ETag']).toBe('"s3tag"');
+      expect(mock.headers['Last-Modified']).toBe(LAST_MODIFIED);
+      expect(mock.headers['Content-Length']).toBeUndefined();
+      expect(mock.headers['Content-Type']).toBeUndefined();
+      expect(fx.getStreamCalls).toEqual([]); // the whole point: one HEAD, zero bytes fetched
+      expect(fx.statCalls).toEqual(['photo.jpg']);
+      expect(await mock.body()).toBe('');
+    });
+
+    it('answers 304 to an If-Modified-Since at or after the mtime', async () => {
+      const fx = makeServingFixture();
+      const mock = makeRes({ headers: { 'if-modified-since': LAST_MODIFIED } });
+
+      await fx.storage.sendToResponse('photos-trek', 'photo.jpg', mock.res);
+
+      expect(mock.res.statusCode).toBe(304);
+      expect(fx.getStreamCalls).toEqual([]);
+    });
+
+    it('serves 200 when the If-None-Match tag is stale', async () => {
+      const fx = makeServingFixture({ etag: '"s3tag"' });
+      const mock = makeRes({ headers: { 'if-none-match': '"old"' } });
+
+      await fx.storage.sendToResponse('photos-trek', 'photo.jpg', mock.res);
+
+      expect(mock.res.statusCode).toBe(200);
+      expect(await mock.body()).toBe(BODY);
+    });
+  });
+
+  describe('range requests', () => {
+    it('answers 206 with Content-Range, the adjusted length, and passes the range to the driver', async () => {
+      const fx = makeServingFixture({ etag: '"s3tag"' });
+      const mock = makeRes({ headers: { range: 'bytes=2-5' } });
+
+      await fx.storage.sendToResponse('photos-trek', 'photo.jpg', mock.res);
+
+      expect(mock.res.statusCode).toBe(206);
+      expect(mock.headers['Content-Range']).toBe('bytes 2-5/10');
+      expect(mock.headers['Content-Length']).toBe('4');
+      expect(mock.headers['Accept-Ranges']).toBe('bytes');
+      expect(fx.getStreamCalls).toEqual([{ key: 'photo.jpg', range: { start: 2, end: 5 } }]);
+      expect(await mock.body()).toBe('cdef');
+    });
+
+    it('resolves an open-ended range against the pre-stat size', async () => {
+      const fx = makeServingFixture();
+      const mock = makeRes({ headers: { range: 'bytes=7-' } });
+
+      await fx.storage.sendToResponse('photos-trek', 'photo.jpg', mock.res);
+
+      expect(mock.headers['Content-Range']).toBe('bytes 7-9/10');
+      expect(fx.getStreamCalls[0].range).toEqual({ start: 7, end: 9 });
+      expect(await mock.body()).toBe('hij');
+    });
+
+    it('clamps an end past EOF instead of asking the driver for bytes that do not exist', async () => {
+      const fx = makeServingFixture();
+      const mock = makeRes({ headers: { range: 'bytes=8-9999' } });
+
+      await fx.storage.sendToResponse('photos-trek', 'photo.jpg', mock.res);
+
+      expect(mock.headers['Content-Range']).toBe('bytes 8-9/10');
+      expect(fx.getStreamCalls[0].range).toEqual({ start: 8, end: 9 });
+    });
+
+    it('resolves a suffix range from the pre-stat size (the reason the path stats first)', async () => {
+      const fx = makeServingFixture();
+      const mock = makeRes({ headers: { range: 'bytes=-3' } });
+
+      await fx.storage.sendToResponse('photos-trek', 'photo.jpg', mock.res);
+
+      expect(mock.res.statusCode).toBe(206);
+      expect(mock.headers['Content-Range']).toBe('bytes 7-9/10');
+      expect(fx.getStreamCalls[0].range).toEqual({ start: 7, end: 9 });
+      expect(await mock.body()).toBe('hij');
+    });
+
+    it('answers 416 with Content-Range bytes */size and never touches the driver body', async () => {
+      const fx = makeServingFixture();
+      const mock = makeRes({ headers: { range: 'bytes=50-60' } });
+
+      await fx.storage.sendToResponse('photos-trek', 'photo.jpg', mock.res);
+
+      expect(mock.res.statusCode).toBe(416);
+      expect(mock.headers['Content-Range']).toBe('bytes */10');
+      expect(fx.getStreamCalls).toEqual([]);
+      expect(await mock.body()).toBe('');
+    });
+
+    it('serves the full 200 for a multi-range or malformed Range (no multipart/byteranges)', async () => {
+      for (const range of ['bytes=0-1,4-5', 'bytes=abc']) {
+        const fx = makeServingFixture();
+        const mock = makeRes({ headers: { range } });
+
+        await fx.storage.sendToResponse('photos-trek', 'photo.jpg', mock.res);
+
+        expect(mock.res.statusCode).toBe(200);
+        expect(mock.headers['Content-Range']).toBeUndefined();
+        expect(mock.headers['Content-Length']).toBe('10');
+        expect(fx.getStreamCalls[0].range).toBeUndefined();
+        expect(await mock.body()).toBe(BODY);
+      }
+    });
+
+    it('honours a strong If-Range match and ignores the range on a mismatch', async () => {
+      const hit = makeServingFixture({ etag: '"s3tag"' });
+      const hitRes = makeRes({ headers: { range: 'bytes=2-5', 'if-range': '"s3tag"' } });
+      await hit.storage.sendToResponse('photos-trek', 'photo.jpg', hitRes.res);
+      expect(hitRes.res.statusCode).toBe(206);
+
+      const miss = makeServingFixture({ etag: '"s3tag"' });
+      const missRes = makeRes({ headers: { range: 'bytes=2-5', 'if-range': '"changed"' } });
+      await miss.storage.sendToResponse('photos-trek', 'photo.jpg', missRes.res);
+      expect(missRes.res.statusCode).toBe(200);
+      expect(missRes.headers['Content-Length']).toBe('10');
+      expect(await missRes.body()).toBe(BODY);
+    });
+  });
+
+  describe('HEAD', () => {
+    it('sends the full headers with no body and no getStream call', async () => {
+      const fx = makeServingFixture({ etag: '"s3tag"' });
+      const mock = makeRes({ method: 'HEAD' });
+
+      await fx.storage.sendToResponse('photos-trek', 'photo.jpg', mock.res);
+
+      expect(mock.res.statusCode).toBe(200);
+      expect(mock.headers['Content-Length']).toBe('10');
+      expect(mock.headers['Content-Type']).toBe('image/jpeg');
+      expect(mock.headers['ETag']).toBe('"s3tag"');
+      expect(mock.headers['Accept-Ranges']).toBe('bytes');
+      expect(fx.getStreamCalls).toEqual([]);
+      expect(await mock.body()).toBe('');
+    });
+
+    it('answers a ranged HEAD with 206 headers, still without fetching bytes', async () => {
+      const fx = makeServingFixture();
+      const mock = makeRes({ method: 'HEAD', headers: { range: 'bytes=2-5' } });
+
+      await fx.storage.sendToResponse('photos-trek', 'photo.jpg', mock.res);
+
+      expect(mock.res.statusCode).toBe(206);
+      expect(mock.headers['Content-Range']).toBe('bytes 2-5/10');
+      expect(mock.headers['Content-Length']).toBe('4');
+      expect(fx.getStreamCalls).toEqual([]);
+      expect(await mock.body()).toBe('');
+    });
+  });
+
+  it('destroys the already-opened stream when header staging throws (no leaked S3 socket)', async () => {
+    // The body opens before headers are staged, so staging is now the last
+    // thing that can fail with a live stream in hand — and it CAN fail:
+    // res.setHeader raises ERR_INVALID_CHAR on a control character, and
+    // files-download.controller.ts builds Content-Disposition out of
+    // multer's client-supplied originalname. Nothing pipes the stream on
+    // that path, so nothing else would ever close it.
+    const fx = makeServingFixture();
+    const mock = makeRes();
+
+    await expect(
+      fx.storage.sendToResponse('photos-trek', 'photo.jpg', mock.res, {
+        disposition: 'attachment; filename="evil\r\nX-Injected: 1"',
+      }),
+    ).rejects.toMatchObject({ code: 'ERR_INVALID_CHAR' });
+
+    expect(fx.getStreamCalls).toHaveLength(1); // the body WAS opened…
+    expect(fx.streamDestroyed()).toBe(true); // …and closed again before the throw escaped
+    expect(mock.res.headersSent).toBe(false);
+  });
+
+  it('leaves the response pristine when getStream fails after a ranged decision', async () => {
+    // The stat→get delete race on a Range request. A caller that recovers on
+    // the SAME response object — trek-photo-cache.service.ts falls back to a
+    // cache miss on `StorageNotFoundError && !res.headersSent`, and
+    // photo-resolver.service.ts then re-serves through that very res — would
+    // otherwise inherit a 206 status and a stale Content-Range from an
+    // attempt that never produced a byte, even if the retry serves in full.
+    const fx = makeServingFixture({ vanishesBeforeGet: true });
+    const mock = makeRes({ headers: { range: 'bytes=2-5' } });
+
+    await expect(fx.storage.sendToResponse('photos-trek', 'photo.jpg', mock.res)).rejects.toBeInstanceOf(
+      StorageNotFoundError,
+    );
+
+    expect(mock.res.headersSent).toBe(false);
+    expect(mock.res.statusCode).toBe(200); // never left on 206
+    expect(mock.headers).toEqual({}); // no Content-Range / Content-Length / validator residue
+    expect(fx.getStreamCalls).toEqual([{ key: 'photo.jpg', range: { start: 2, end: 5 } }]);
+  });
+
+  it('throws StorageNotFoundError from the pre-flight stat, before any header is set', async () => {
+    const fx = makeServingFixture({ missing: true });
+    const mock = makeRes();
+
+    await expect(fx.storage.sendToResponse('photos-trek', 'gone.jpg', mock.res)).rejects.toBeInstanceOf(
+      StorageNotFoundError,
+    );
+    expect(mock.headers).toEqual({});
+    expect(fx.getStreamCalls).toEqual([]); // the miss costs one HEAD, not a GET
   });
 });
 

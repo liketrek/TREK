@@ -46,8 +46,9 @@ export interface S3Api {
     ContentLength?: number;
     ContentRange?: string;
     LastModified?: Date;
+    ETag?: string;
   }>;
-  HeadObject(input: Record<string, unknown>): Promise<{ ContentLength?: number; LastModified?: Date }>;
+  HeadObject(input: Record<string, unknown>): Promise<{ ContentLength?: number; LastModified?: Date; ETag?: string }>;
   DeleteObject(input: Record<string, unknown>): Promise<unknown>;
   ListObjectsV2(input: Record<string, unknown>): Promise<
     AsyncIterable<{ Contents?: Array<{ Key?: string; Size?: number; LastModified?: Date }> }>
@@ -345,7 +346,13 @@ export class S3Driver implements StorageDriver {
     // LocalDriver parity: on a ranged read the stat is the FULL object's —
     // total from the 206 Content-Range, never the ranged ContentLength.
     const size = range ? totalFromContentRange(res.ContentRange, key, this.id) : (res.ContentLength ?? 0);
-    return { stream: res.Body, stat: { key, size, mtimeMs: res.LastModified?.getTime() ?? 0 } };
+    // The ETag's opaque value passes through untouched — on a ranged GET it
+    // is still the FULL object's tag (same as `size` above), which is exactly
+    // what a conditional/If-Range client needs.
+    return {
+      stream: res.Body,
+      stat: { key, size, mtimeMs: res.LastModified?.getTime() ?? 0, etag: normalizeEtag(res.ETag) },
+    };
   }
 
   async stat(key: string): Promise<ObjectStat | null> {
@@ -353,7 +360,12 @@ export class S3Driver implements StorageDriver {
     const s3 = await this.client();
     try {
       const res = await this.deadlined(s3.HeadObject({ Bucket: this.bucket, Key: this.keyPrefix + key }), `stat '${key}'`);
-      return { key, size: res.ContentLength ?? 0, mtimeMs: res.LastModified?.getTime() ?? 0 };
+      return {
+        key,
+        size: res.ContentLength ?? 0,
+        mtimeMs: res.LastModified?.getTime() ?? 0,
+        etag: normalizeEtag(res.ETag),
+      };
     } catch (err) {
       if (isNotFound(err)) return null;
       throw this.wrap(err, `stat failed for '${key}'`);
@@ -445,6 +457,24 @@ function normalizeKeyPrefix(raw: string): string {
   if (trimmed === '') return '';
   assertValidPrefix(`${trimmed}/`);
   return `${trimmed}/`;
+}
+
+/**
+ * Re-quotes the entity-tag aws-lite hands back. Verified live against AIStor
+ * RELEASE.2026-08-07T18-34-35Z: the SDK strips the ETag's surrounding quotes
+ * before it reaches us (`a925576942e9…`, not `"a925576942e9…"`), and an
+ * unquoted entity-tag is not a valid HTTP ETag (RFC 9110 §8.8.3,
+ * `etag = DQUOTE *etagc DQUOTE`) — emitting one straight into an ETag
+ * response header invites intermediaries to drop or mangle it. Only the
+ * quotes the SDK removed are restored; the opaque value itself is never
+ * touched, and an already-quoted or weak tag (from another S3-compatible
+ * backend, or a future SDK that stops stripping) passes through unchanged.
+ * An absent or empty ETag stays absent — "the backend didn't say" (see
+ * ObjectStat.etag), never a synthesized tag.
+ */
+function normalizeEtag(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  return raw.startsWith('"') || raw.startsWith('W/"') ? raw : `"${raw}"`;
 }
 
 /** 'bytes 2-5/10' → 10. A 206 without a parseable total is a backend defect. */

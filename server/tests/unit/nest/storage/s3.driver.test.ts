@@ -82,6 +82,38 @@ describe('S3Driver stat/delete', () => {
     const api = makeMockApi({ HeadObject: vi.fn().mockResolvedValue({ ContentLength: 42, LastModified: new Date(5000) }) });
     expect(await makeDriver(api).stat('a/x.bin')).toEqual({ key: 'a/x.bin', size: 42, mtimeMs: 5000 });
   });
+  it('surfaces the bucket ETag verbatim (quotes included) so the serving path can use it as a validator', async () => {
+    const api = makeMockApi({
+      HeadObject: vi.fn().mockResolvedValue({ ContentLength: 42, LastModified: new Date(5000), ETag: '"d41d8cd98f00b204"' }),
+    });
+    expect(await makeDriver(api).stat('a/x.bin')).toEqual({
+      key: 'a/x.bin',
+      size: 42,
+      mtimeMs: 5000,
+      etag: '"d41d8cd98f00b204"',
+    });
+  });
+  it('re-quotes the unquoted ETag aws-lite hands back (a bare tag is not a valid HTTP ETag)', async () => {
+    // Verified live against AIStor: the SDK strips the surrounding quotes.
+    const api = makeMockApi({
+      HeadObject: vi.fn().mockResolvedValue({ ContentLength: 42, LastModified: new Date(5000), ETag: 'a925576942e9' }),
+    });
+    expect((await makeDriver(api).stat('a/x.bin'))!.etag).toBe('"a925576942e9"');
+  });
+  it('leaves an already-weak tag alone and an absent/empty ETag undefined', async () => {
+    const weak = makeMockApi({
+      HeadObject: vi.fn().mockResolvedValue({ ContentLength: 42, LastModified: new Date(5000), ETag: 'W/"abc"' }),
+    });
+    expect((await makeDriver(weak).stat('a/x.bin'))!.etag).toBe('W/"abc"');
+
+    const none = makeMockApi({ HeadObject: vi.fn().mockResolvedValue({ ContentLength: 42, LastModified: new Date(5000) }) });
+    expect((await makeDriver(none).stat('a/x.bin'))!.etag).toBeUndefined();
+
+    const blank = makeMockApi({
+      HeadObject: vi.fn().mockResolvedValue({ ContentLength: 42, LastModified: new Date(5000), ETag: '' }),
+    });
+    expect((await makeDriver(blank).stat('a/x.bin'))!.etag).toBeUndefined();
+  });
   it('stats a 404/NotFound as null', async () => {
     const api = makeMockApi({ HeadObject: vi.fn().mockRejectedValue(awsError(404, 'NotFound')) });
     expect(await makeDriver(api).stat('a/x.bin')).toBeNull();
@@ -164,6 +196,35 @@ describe('S3Driver getStream', () => {
 
     await makeDriver(api).getStream('a/x.bin', { start: 7 });
     expect(api.GetObject).toHaveBeenLastCalledWith(expect.objectContaining({ Range: 'bytes=7-' }));
+  });
+  it('surfaces the ETag on a plain get, and the FULL-object ETag on a ranged one', async () => {
+    const api = makeMockApi({
+      GetObject: vi.fn().mockResolvedValue({
+        Body: Readable.from('hello'),
+        ContentLength: 5,
+        LastModified: new Date(7000),
+        ETag: '"abc123"',
+      }),
+    });
+    expect((await makeDriver(api).getStream('a/x.bin')).stat.etag).toBe('"abc123"');
+
+    const ranged = makeMockApi({
+      GetObject: vi.fn().mockResolvedValue({
+        Body: Readable.from('23'),
+        ContentLength: 2,
+        ContentRange: 'bytes 2-3/10',
+        LastModified: new Date(7000),
+        ETag: '"abc123"',
+      }),
+    });
+    // S3 answers a 206 with the whole object's tag — the validator a resuming
+    // If-Range client sent us in the first place.
+    expect((await makeDriver(ranged).getStream('a/x.bin', { start: 2, end: 3 })).stat).toEqual({
+      key: 'a/x.bin',
+      size: 10,
+      mtimeMs: 7000,
+      etag: '"abc123"',
+    });
   });
   it('maps 404/NoSuchKey to StorageNotFoundError', async () => {
     const api = makeMockApi({ GetObject: vi.fn().mockRejectedValue(awsError(404, 'NoSuchKey')) });
