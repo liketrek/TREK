@@ -320,6 +320,52 @@ describe('StorageJobsService migrations', () => {
     expect(() => jobs.startBackfill('m')).toThrow(BackfillBusyError);
     await waitFor(() => jobs.migrationStatuses().some((m) => m.status !== 'running'));
   });
+
+  it('MIG-005 an object already on the target with a matching size is skipped in the copy phase itself', async () => {
+    const { storage, jobs, destRoot } = makeMigrationWorld();
+    await storage.put('files', 'a.txt', Readable.from('aaa'));
+    // Pre-populate the destination with a byte-identical copy — the shape of
+    // a retried/resumed migration, not just the delta sweep's territory.
+    fs.mkdirSync(path.join(destRoot, 'files'), { recursive: true });
+    fs.writeFileSync(path.join(destRoot, 'files', 'a.txt'), 'aaa');
+
+    jobs.startMigration('files', 'dest-local');
+    const final = await waitTerminal(jobs, 'files');
+    expect(final.status).toBe('done');
+    expect(final.skipped).toBeGreaterThanOrEqual(1);
+    expect(final.copied).toBe(0);
+    expect(registryCategoriesRow().files).toBe('dest-local');
+  });
+
+  it('MIG-006 a sweep-phase copy failure is reported without undoing the already-flipped category', async () => {
+    const { storage, jobs, registry, uploadsRoot, destRoot } = makeMigrationWorld();
+    await storage.put('files', 'a.txt', Readable.from('aaa'));
+
+    // Grab the exact driver instance startMigration will resolve and keep for
+    // its whole run (the in-flight guarantee), then wrap list() so the THIRD
+    // call — the delta sweep's own re-list, after phase 1a's total count and
+    // phase 1b's copy — races a content change into the source right as the
+    // sweep starts, with the destination path blocked so the sweep's re-copy
+    // attempt fails without touching the flip that already happened.
+    const { driver: sourceDriver } = registry.resolve('files');
+    const originalList = sourceDriver.list.bind(sourceDriver);
+    let listCalls = 0;
+    vi.spyOn(sourceDriver, 'list').mockImplementation((prefix: string) => {
+      listCalls += 1;
+      if (listCalls === 3) {
+        fs.writeFileSync(path.join(uploadsRoot, 'files', 'a.txt'), 'aaaa');
+        fs.rmSync(path.join(destRoot, 'files', 'a.txt'), { force: true });
+        fs.mkdirSync(path.join(destRoot, 'files', 'a.txt'), { recursive: true });
+      }
+      return originalList(prefix);
+    });
+
+    jobs.startMigration('files', 'dest-local');
+    const final = await waitTerminal(jobs, 'files');
+    expect(final.status).toBe('done'); // sweep failures don't undo a completed flip
+    expect(final.failed).toBeGreaterThanOrEqual(1);
+    expect(registryCategoriesRow().files).toBe('dest-local');
+  });
 });
 
 describe('StorageJobsService.cancelJobsForMissingBackends', () => {
