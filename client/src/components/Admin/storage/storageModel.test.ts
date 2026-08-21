@@ -51,6 +51,7 @@ const STATE: StorageAdminState = {
   seedFilePresent: false,
   usage: null,
   backfills: [],
+  migrations: [],
 };
 
 describe('settingsDocumentOf', () => {

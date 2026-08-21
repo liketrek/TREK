@@ -33,6 +33,7 @@ function baseState(overrides: Partial<StorageAdminState> = {}): StorageAdminStat
     seedFilePresent: false,
     usage: null,
     backfills: [],
+    migrations: [],
     ...overrides,
   };
 }
