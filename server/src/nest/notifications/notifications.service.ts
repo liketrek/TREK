@@ -96,7 +96,7 @@ type RespondResult = { success: boolean; error?: string; notification?: Notifica
 interface EventNotifConfig {
   inAppType: 'simple' | 'navigate';
   titleKey: string;
-  textKey: string;
+  textKey: string | ((params: Record<string, string>) => string);
   navigateTextKey?: string;
   navigateTarget: (params: Record<string, string>) => string | null;
 }
@@ -213,7 +213,7 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
   replica_failure: {
     inAppType: 'navigate',
     titleKey: 'notif.replica_failure.title',
-    textKey: 'notif.replica_failure.text',
+    textKey: (p) => (p.suppressed !== '0' ? 'notif.replica_failure.textSuppressed' : 'notif.replica_failure.text'),
     navigateTextKey: 'notif.action.view',
     navigateTarget: () => '/admin?tab=storage',
   },
@@ -710,6 +710,10 @@ export class NotificationsService {
     const navigateTarget = inApp?.navigateTarget ?? config.navigateTarget(params);
     const fullLink = navigateTarget ? `${appUrl}${navigateTarget}` : undefined;
 
+    // Resolve the in-app text key once, so all three in-app branches below agree
+    // (e.g. replica_failure picks the "N more failures suppressed" phrasing off params.suppressed).
+    const textKey = typeof config.textKey === 'function' ? config.textKey(params) : config.textKey;
+
     // Fetch sender info once for in-app WS payloads
     const sender = actorId
       ? this.db.get<{ username: string; avatar: string | null }>('SELECT username, avatar FROM users WHERE id = ?', actorId) ?? null
@@ -735,7 +739,7 @@ export class NotificationsService {
             event_type: event,
             title_key: config.titleKey,
             title_params: params,
-            text_key: config.textKey,
+            text_key: textKey,
             text_params: params,
             positive_text_key: inApp.positiveTextKey ?? 'notif.action.accept',
             negative_text_key: inApp.negativeTextKey ?? 'notif.action.decline',
@@ -751,7 +755,7 @@ export class NotificationsService {
             event_type: event,
             title_key: config.titleKey,
             title_params: params,
-            text_key: config.textKey,
+            text_key: textKey,
             text_params: params,
             navigate_text_key: config.navigateTextKey ?? 'notif.action.view',
             navigate_target: navigateTarget,
@@ -765,7 +769,7 @@ export class NotificationsService {
             event_type: event,
             title_key: config.titleKey,
             title_params: params,
-            text_key: config.textKey,
+            text_key: textKey,
             text_params: params,
           };
         }

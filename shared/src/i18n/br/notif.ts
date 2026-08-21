@@ -29,6 +29,7 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'TREK {version} está disponível',
   'notif.replica_failure.title': 'Falha na réplica de armazenamento',
   'notif.replica_failure.text': "Falha ao gravar na réplica '{backend}': {op} de {key} — {error}",
+  'notif.replica_failure.textSuppressed': "Falha ao gravar na réplica '{backend}': {op} de {key} — {error}. Mais {suppressed} falha(s) foram suprimidas desde a última notificação.",
   'notif.action.view_trip': 'Ver viagem',
   'notif.action.view_collab': 'Ver mensagens',
   'notif.action.view_packing': 'Ver bagagem',

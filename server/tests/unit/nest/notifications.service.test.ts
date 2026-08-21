@@ -388,6 +388,32 @@ describe('send() — in-app notification content', () => {
     expect(notifs[0].navigate_target).toBe('/admin');
     expect(notifs[0].title_key).toBe('notif.version_available.title');
   });
+
+  it('NOTIF-RF-002 suppressed > 0 stores the textSuppressed key; 0 keeps the plain key', async () => {
+    const { user: admin } = createAdmin(testDb);
+    setNotificationChannels(testDb, 'none');
+
+    await send({
+      event: 'replica_failure',
+      actorId: null,
+      scope: 'admin',
+      targetId: 0,
+      params: { backend: 'minio', op: 'put', key: 'trips/1/a.jpg', error: 'ECONNRESET', suppressed: '3' },
+    });
+
+    await send({
+      event: 'replica_failure',
+      actorId: null,
+      scope: 'admin',
+      targetId: 0,
+      params: { backend: 'minio', op: 'put', key: 'trips/1/b.jpg', error: 'ECONNRESET', suppressed: '0' },
+    });
+
+    const notifs = getInAppNotifications(admin.id);
+    expect(notifs.length).toBe(2);
+    expect(notifs[0].text_key).toBe('notif.replica_failure.textSuppressed');
+    expect(notifs[1].text_key).toBe('notif.replica_failure.text');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
