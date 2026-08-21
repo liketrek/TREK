@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  CalendarDays, Car, Compass, Footprints, Hotel, Pencil, Plus, RotateCcw,
+  CalendarDays, Car, Compass, Footprints, Hotel, MapPin, Pencil, Plus, RotateCcw,
   Route as RouteIcon, TramFront, Zap,
 } from 'lucide-react'
 import type { WeatherResult } from '@trek/shared'
@@ -15,6 +15,7 @@ import { RES_ICONS, getNoteIcon } from '../../../../components/Planner/DayPlanSi
 import { getDayBookendHotels, isDayInAccommodationRange } from '../../../../utils/dayOrder'
 import { splitReservationDateTime } from '../../../../utils/formatters'
 import { dayCoMapsUrl, dayGoogleMapsUrl, optimizeDayOrder } from '../lib/dayRoute'
+import GoogleMapsIcon from '../../../../components/shared/GoogleMapsIcon'
 import { splitNoteTime } from '../lib/dayNotes'
 import { weatherIconFor } from '../plan/planTimelineModel'
 import type { Assignment, DayNote, Reservation } from '../../../../types'
@@ -197,6 +198,18 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
     shell.openSheet('accommodation', { dayId: day.id })
   }
 
+  // Tapping the stay opens the stay. It used to open the place the stay is
+  // pinned to, which put check-in/check-out/confirmation out of reach entirely —
+  // MAccommodationSheet has taken an accId all along, nothing ever passed one (#2001).
+  const editAccommodation = (accId: number) => {
+    if (!day) return
+    shell.openSheet('accommodation', { dayId: day.id, accId })
+  }
+  const openAccommodationPlace = (placeId: number) => {
+    shell.closeSheet()
+    planner.handlePlaceClick(placeId)
+  }
+
   const cTemp = (c: number) => Math.round(isFahrenheit ? c * 9 / 5 + 32 : c)
   const formattedDate = day?.date
     ? new Date(`${day.date.slice(0, 10)}T00:00:00Z`).toLocaleDateString(locale, {
@@ -328,12 +341,7 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                     onClick={openInGoogleMaps}
                     className={`flex items-center gap-[5px] rounded-full px-3 py-[7px] text-[0.75rem] font-semibold text-m-ink ${INNER_CLS}`}
                   >
-                    <svg width="13" height="13" viewBox="0 0 48 48" fill="currentColor" aria-hidden="true">
-                      <path d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-                      <path d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-                      <path d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-                      <path d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
-                    </svg>
+                    <GoogleMapsIcon size={13} />
                     {t('planner.openGoogleMaps')}
                   </button>
                 )}
@@ -460,10 +468,15 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                   const linked = planner.reservations.find(r => String(r.accommodation_id ?? '') === String(acc.id))
                   return (
                     <div key={acc.id} className={`rounded-[16px] px-3 py-[11px] ${INNER_CLS}`}>
-                      <div
-                        className="flex items-center gap-[10px]"
-                        onClick={() => { if (acc.place_id) { shell.closeSheet(); planner.handlePlaceClick(acc.place_id) } }}
-                      >
+                      <div className="flex items-center gap-[10px]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (canEditDays) editAccommodation(acc.id)
+                            else if (acc.place_id) openAccommodationPlace(acc.place_id)
+                          }}
+                          className="flex min-w-0 flex-1 items-center gap-[10px] text-left"
+                        >
                         {acc.place_image ? (
                           <div
                             className="h-10 w-10 flex-none rounded-[12px] bg-cover bg-center"
@@ -480,9 +493,20 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                             <div className="truncate font-geist text-[0.65625rem] text-m-muted">{acc.place_address}</div>
                           )}
                         </div>
+                        </button>
                         <span className={`flex-none rounded-full border px-[7px] py-[2px] text-[0.5625rem] font-bold uppercase tracking-[.05em] ${badge.cls}`}>
                           {badge.label}
                         </span>
+                        {canEditDays && acc.place_id != null && (
+                          <button
+                            type="button"
+                            onClick={() => openAccommodationPlace(acc.place_id as number)}
+                            aria-label={t('mobileTrip.viewDetails')}
+                            className="flex flex-none p-[3px] text-m-faint"
+                          >
+                            <MapPin size={13} strokeWidth={1.8} />
+                          </button>
+                        )}
                       </div>
                       {(acc.check_in || acc.check_out || acc.confirmation) && (
                         <div className="mt-[10px] flex gap-[6px]">
@@ -501,7 +525,13 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                         </div>
                       )}
                       {linked && (
-                        <div className="mt-2 flex items-center gap-2">
+                        // The day's booking list filters hotels out, so this strip is
+                        // the only place the stay's booking shows up — it may as well open it.
+                        <button
+                          type="button"
+                          onClick={() => openReservation(linked)}
+                          className="mt-2 flex w-full items-center gap-2 text-left"
+                        >
                           <span
                             className="h-2 w-2 flex-none rounded-full"
                             style={{ background: linked.status === 'confirmed' ? 'var(--m-st-confirmed)' : 'var(--m-st-pending)' }}
@@ -510,7 +540,7 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                             {linked.status === 'confirmed' ? t('reservations.confirmed') : t('reservations.pending')}
                             {linked.confirmation_number ? ` · #${linked.confirmation_number}` : ''}
                           </span>
-                        </div>
+                        </button>
                       )}
                     </div>
                   )
