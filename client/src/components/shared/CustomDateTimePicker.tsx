@@ -2,6 +2,7 @@ import { Calendar, ChevronLeft, ChevronRight, Keyboard } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from '../../i18n';
+import { useRemeasureSignal } from '../../hooks/useAnchoredPosition';
 
 function daysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
@@ -41,6 +42,8 @@ export function CustomDatePicker({
   const [yearPageStart, setYearPageStart] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
+  // Re-renders the open calendar whenever its anchor may have moved (#1999).
+  const reanchor = useRemeasureSignal(open);
 
   const parsed = value ? new Date(value + 'T00:00:00Z') : null;
   const [viewYear, setViewYear] = useState(parsed?.getUTCFullYear() || new Date().getFullYear());
@@ -368,7 +371,10 @@ export function CustomDatePicker({
             aria-label={t('common.datepicker.dialog')}
             style={{
               position: 'fixed',
-              ...(() => {
+              // reanchor ticks on scroll / resize / keyboard so this recomputes
+              // against a fresh rect instead of the one measured on open (#1999).
+              ...((): { top: number; left: number } => {
+                void reanchor;
                 const r = ref.current?.getBoundingClientRect();
                 if (!r) return { top: 0, left: 0 };
                 const w = 268,
