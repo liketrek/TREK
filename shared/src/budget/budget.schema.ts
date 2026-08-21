@@ -47,7 +47,7 @@ export const COST_CATEGORIES = [
   'health',
   'tips',
   'fuel',
-  'parkings',
+  'parking',
   'other',
 ] as const;
 export type CostCategory = (typeof COST_CATEGORIES)[number];
@@ -72,7 +72,7 @@ const RESERVATION_TYPE_TO_COST_CATEGORY: Record<string, CostCategory> = {
   hotel: 'accommodation',
   accommodation: 'accommodation',
   lodging: 'accommodation',
-  parking: 'transport',
+  parking: 'parking',
   restaurant: 'food',
   activity: 'activities',
 };

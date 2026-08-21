@@ -118,7 +118,7 @@ const budget: TranslationStrings = {
   'costs.cat.health': '건강',
   'costs.cat.tips': '팁',
   'costs.cat.fuel': '연료',
-  'costs.cat.parkings': '주차',
+  'costs.cat.parking': '주차',
   'costs.cat.other': '기타',
   'costs.daysCount': '{count}일',
   'costs.travelers': '여행자 {count}명',

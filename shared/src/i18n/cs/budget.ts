@@ -118,7 +118,7 @@ const budget: TranslationStrings = {
   'costs.cat.health': 'Zdraví',
   'costs.cat.tips': 'Spropitné',
   'costs.cat.fuel': 'Palivo',
-  'costs.cat.parkings': 'Parkování',
+  'costs.cat.parking': 'Parkování',
   'costs.cat.other': 'Ostatní',
   'costs.daysCount': '{count} dní',
   'costs.travelers': '{count} cestovatelů',

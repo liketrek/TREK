@@ -119,7 +119,7 @@ const budget: TranslationStrings = {
   'costs.cat.health': 'Υγεία',
   'costs.cat.tips': 'Φιλοδωρήματα',
   'costs.cat.fuel': 'Καύσιμα',
-  'costs.cat.parkings': 'Στάθμευση',
+  'costs.cat.parking': 'Στάθμευση',
   'costs.cat.other': 'Άλλα',
   'costs.daysCount': '{count} ημέρες',
   'costs.travelers': '{count} ταξιδιώτες',

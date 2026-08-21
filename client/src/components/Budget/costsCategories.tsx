@@ -28,7 +28,7 @@ export const COST_CAT_META: Record<CostCategory, CostCategoryMeta> = {
   health:        { key: 'health',        labelKey: 'costs.cat.health',        Icon: HeartPulse, color: '#dc2626' },
   tips:          { key: 'tips',          labelKey: 'costs.cat.tips',          Icon: Coins, color: '#d97706' },
   fuel:          { key: 'fuel',          labelKey: 'costs.cat.fuel',          Icon: Fuel, color: '#f59e0b' },
-  parkings:      { key: 'parkings',      labelKey: 'costs.cat.parkings',      Icon: ParkingCircle, color: '#3b82f6' },
+  parking:       { key: 'parking',       labelKey: 'costs.cat.parking',       Icon: ParkingCircle, color: '#3b82f6' },
   other:         { key: 'other',         labelKey: 'costs.cat.other',         Icon: MoreHorizontal, color: '#6b7280' },
 }
 
@@ -54,7 +54,7 @@ const LEGACY_CATEGORY_MAP: Record<string, CostCategory> = {
   health: 'health', medical: 'health',
   tip: 'tips', tips: 'tips',
   gas: 'fuel', fuel: 'fuel', petrol: 'fuel',
-  parking: 'parkings', parkings: 'parkings',
+  parking: 'parking', parkings: 'parking', 'car park': 'parking',
   other: 'other', misc: 'other',
 }
 
