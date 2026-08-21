@@ -208,10 +208,13 @@ describe('MPlanTimeline', () => {
       expect(shell.openSheet).toHaveBeenCalledWith('day', { dayId: 2 })
     })
 
-    it('FE-MOB-PLTL-007: is left out entirely without chips and without weather', () => {
+    it('FE-MOB-PLTL-007: still renders, with the day pill, without chips or weather (#2004)', () => {
       const { container } = renderTimeline()
 
-      expect(container.querySelector('.border-b')).toBeNull()
+      // The pill is the only way into the day sheet, so it may not depend on the
+      // day happening to have an accommodation or a weather reading.
+      expect(container.querySelector('.border-b')).not.toBeNull()
+      expect(screen.getByRole('button', { name: 'day.overview' })).toBeInTheDocument()
     })
 
     it('FE-MOB-PLTL-008: draws the hotel bookend legs above and below the rows', () => {
@@ -349,16 +352,15 @@ describe('MPlanTimeline', () => {
     })
 
     it('FE-MOB-PLTL-020: read-only members get no tappable connectors', () => {
-      const { container } = renderTimeline({}, { can: vi.fn(() => false) }, { mode: 'edit' })
+      renderTimeline({}, { can: vi.fn(() => false) }, { mode: 'edit' })
 
-      expect(container.querySelector('button')).toBeNull()
+      expect(screen.getByText('7 min').closest('button')).toBeNull()
     })
 
     it('FE-MOB-PLTL-020b: go mode keeps the connectors read-only even with edit rights', () => {
-      const { container } = renderTimeline()
+      renderTimeline()
 
       expect(screen.getByText('7 min').closest('button')).toBeNull()
-      expect(container.querySelector('button')).toBeNull()
     })
   })
 
@@ -439,6 +441,8 @@ describe('MPlanTimeline', () => {
       renderTimeline({ day: { ...DAY, title: null } }, {}, { mode: 'edit' })
 
       expect(screen.getByText('planner.dayN:2')).toBeInTheDocument()
+      // …and the day pill next to it stays icon-only so the name is not doubled.
+      expect(screen.getByRole('button', { name: 'day.overview' })).toHaveTextContent('')
     })
 
     it('FE-MOB-PLTL-028: the pencil renames the day and Enter commits the change', () => {
