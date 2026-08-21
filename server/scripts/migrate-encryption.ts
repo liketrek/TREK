@@ -326,6 +326,68 @@ async function main() {
         }
       }
     }
+
+    // --- app_settings: storage.backends ---
+    // Storage backend secrets live encrypted INSIDE the storage.backends JSON
+    // array (BACKENDS_KEY in src/nest/storage/storage-registry.service.ts is
+    // its own app_settings row — 'storage.categories' is a sibling row with no
+    // secrets), on the fields the shared type registry marks `secret` (only
+    // options.secretAccessKey for s3 today; src/nest/storage/storage-secrets.ts
+    // encrypts it with the same enc:v1: scheme as the api-key columns above).
+    // This script can't import storageSecretFields from @trek/shared (kept
+    // independent of the app, see the header note), so the field list per
+    // backend type is pinned here. Miss one and that backend's secret stays
+    // encrypted under the old key after rotation, then fails to decrypt on the
+    // next read (StorageBackendError) — pinned by
+    // tests/unit/db/migrate-encryption-parity.test.ts.
+    const STORAGE_BACKEND_SECRET_FIELDS: Record<string, readonly string[]> = {
+      s3: ['secretAccessKey'],
+    };
+    {
+      const row = db.prepare("SELECT value FROM app_settings WHERE key = 'storage.backends'").get() as
+        | { value: string }
+        | undefined;
+      if (row?.value) {
+        let backends: unknown;
+        try {
+          backends = JSON.parse(row.value);
+        } catch {
+          result.errors.push('app_settings.storage.backends: invalid JSON — skipping');
+          backends = undefined;
+        }
+        if (backends !== undefined) {
+          if (Array.isArray(backends)) {
+            let changed = false;
+            for (const backend of backends as Record<string, unknown>[]) {
+              if (!backend || typeof backend !== 'object') continue;
+              const type = typeof backend.type === 'string' ? backend.type : undefined;
+              const fields = type ? STORAGE_BACKEND_SECRET_FIELDS[type] : undefined;
+              if (!fields || fields.length === 0) continue;
+              const options = backend.options;
+              if (!options || typeof options !== 'object') continue;
+              const name = typeof backend.name === 'string' ? backend.name : '?';
+              for (const field of fields) {
+                const raw = (options as Record<string, unknown>)[field];
+                if (typeof raw !== 'string' || !raw) continue;
+                const newVal = migrateApiKeyValue(raw, `app_settings.storage.backends[${name}].${field}`);
+                if (newVal !== null) {
+                  (options as Record<string, unknown>)[field] = newVal;
+                  changed = true;
+                }
+              }
+            }
+            if (changed) {
+              db.prepare("UPDATE app_settings SET value = ? WHERE key = 'storage.backends'").run(
+                JSON.stringify(backends),
+              );
+            }
+          } else {
+            result.errors.push('app_settings.storage.backends: not an array — skipping');
+          }
+        }
+      }
+    }
+
     // --- settings: per-user encrypted keys ---
     const encryptedSettingKeys = ['webhook_url', 'ntfy_token', 'mapbox_access_token'];
     const settingRows = db.prepare(

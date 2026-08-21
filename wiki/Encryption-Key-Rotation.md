@@ -16,6 +16,7 @@ TREK encrypts sensitive settings at rest using AES-256-GCM. The following values
 - Admin webhook URL and admin ntfy token (global, in `app_settings`)
 - MFA (TOTP) secrets for all users
 - Photo passphrases for Synology shared-link photos (in `trek_photos`)
+- S3 storage backend secret access keys (in `app_settings['storage.backends']`; see [Admin-Storage](Admin-Storage))
 
 The encryption derives a key from `ENCRYPTION_KEY` using SHA-256 (with a domain suffix per secret type), so the raw `ENCRYPTION_KEY` value is never stored in the database.
 
@@ -61,6 +62,7 @@ The script:
 3. Creates a timestamped backup of the database (e.g. `travel.db.backup-1713484800000`) before modifying anything.
 4. Re-encrypts all stored secrets across all tables:
    - `app_settings`: `oidc_client_secret`, `smtp_pass`, `admin_webhook_url`, `admin_ntfy_token`, `maps_api_key`, `unsplash_api_key`
+   - `app_settings['storage.backends']`: the `secretAccessKey` of every S3 storage backend
    - `users` (per user): `maps_api_key`, `unsplash_api_key`, `openweather_api_key`, `immich_api_key`, `synology_password`, `synology_sid`, `synology_did`, `mfa_secret`
    - `settings` (per user): `webhook_url`, `ntfy_token`, `mapbox_access_token`
    - `trip_album_links`: `passphrase`
