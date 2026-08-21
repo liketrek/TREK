@@ -159,6 +159,23 @@ export class StorageService {
     }
   }
 
+  /**
+   * A narrow locality probe: the real filesystem path for the object, or
+   * null when there isn't one — a remote (path-less) driver, or a local
+   * driver whose file no longer exists on disk. The fs-existence check is
+   * the fail-safe half of the contract: a caller that trusts a stale path
+   * (deleted between listing and this call, or by another process) would
+   * otherwise silently skip or corrupt-read the object instead of falling
+   * back to the stream path. Same spirit as spoolDirFor — exposes a path,
+   * never a driver.
+   */
+  async getLocalPathOrNull(category: ServedCategory, name: string): Promise<string | null> {
+    const { driver, key } = this.resolve(category, name);
+    const localPath = driver.getLocalPath?.(key) ?? null;
+    if (localPath === null) return null;
+    return fs.existsSync(localPath) ? localPath : null;
+  }
+
   /** Replica failures from mirror backends — logged there, surfaced here. */
   health(): { replicaFailures: readonly ReplicaFailure[] } {
     return { replicaFailures: this.registry.replicaFailures() };

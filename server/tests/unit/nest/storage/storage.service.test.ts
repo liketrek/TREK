@@ -177,6 +177,47 @@ describe('StorageService withLocalFile', () => {
   });
 });
 
+describe('StorageService getLocalPathOrNull', () => {
+  it('returns the real path for a local driver whose object exists on disk', async () => {
+    const fx = makeFixture('files/');
+    await fx.storage.put('files', 'img.jpg', Readable.from('jpeg bytes'));
+
+    const localPath = await fx.storage.getLocalPathOrNull('files', 'img.jpg');
+    expect(localPath).toBe(path.join(fs.realpathSync(fx.root), 'files/img.jpg'));
+  });
+
+  it('returns null for a path-less (remote) driver', async () => {
+    const remote = makeStreamOnlyFixture('remote bytes');
+    expect(await remote.storage.getLocalPathOrNull('files', 'remote.bin')).toBeNull();
+    // The probe never falls back to streaming itself — it's a pure locality check.
+    expect(remote.driverCalls).toEqual([]);
+  });
+
+  it('returns null for a local miss (no fs.existsSync throw)', async () => {
+    const fx = makeFixture('files/');
+    expect(await fx.storage.getLocalPathOrNull('files', 'ghost.jpg')).toBeNull();
+  });
+
+  it('fail-safe: returns null when the local path exists in the driver API but the file has vanished from disk', async () => {
+    // Binding controller ruling: "local path available" means the path exists
+    // on disk. Simulates a file deleted between storage.list() and this call
+    // (or by another process) — the caller must fall back to streaming rather
+    // than push a path that will 404/throw when read.
+    const fx = makeFixture('files/');
+    await fx.storage.put('files', 'raced.jpg', Readable.from('bytes'));
+    fs.rmSync(path.join(fs.realpathSync(fx.root), 'files/raced.jpg'));
+
+    expect(await fx.storage.getLocalPathOrNull('files', 'raced.jpg')).toBeNull();
+  });
+
+  it('rejects a name that composes into an invalid key', async () => {
+    const fx = makeFixture('files/');
+    await expect(fx.storage.getLocalPathOrNull('files', '../escape.bin')).rejects.toBeInstanceOf(
+      StorageInvalidKeyError,
+    );
+  });
+});
+
 interface MockRes {
   res: Response;
   sendFileCalls: Array<{ name: string; root: string }>;

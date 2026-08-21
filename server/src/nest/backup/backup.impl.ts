@@ -1,6 +1,7 @@
 import archiver from 'archiver';
 import unzipper from 'unzipper';
 import path from 'path';
+import { pipeline } from 'node:stream/promises';
 import { readEnv } from '../../app-config';
 import fs from 'fs';
 import Database from 'better-sqlite3';
@@ -173,6 +174,10 @@ export async function createBackup(storage: StorageService, prefix: 'backup' | '
   const zipSpool = path.join(spoolDir, `zip-build-${prefix}-${timestamp}`);
   const pdataSnap = path.join(spoolDir, `plugins-snap-${prefix}-${timestamp}`);
   const dbSnap = path.join(spoolDir, `travel-snap-${prefix}-${timestamp}.db`);
+  // Per-backup staging for uploads with no local path (a remote/S3 primary, or
+  // a local path that vanished between listing and archiving — see
+  // getLocalPathOrNull). Same spool as the rest of the build, same cleanup.
+  const stagingDir = path.join(spoolDir, `staging-${prefix}-${timestamp}`);
 
   try {
     try { db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch (e) {}
@@ -190,9 +195,23 @@ export async function createBackup(storage: StorageService, prefix: 'backup' | '
         // In mode A the google/trek caches nest under the photos/ prefix — the
         // category walk would sweep them back in without this skip.
         if (category === 'photos' && (obj.key.startsWith('google/') || obj.key.startsWith('trek/'))) continue;
-        await storage.withLocalFile(category, obj.key, async (absPath) => {
-          uploadEntries.push({ absPath, name: `uploads/${category}/${obj.key}` });
-        });
+        // Local path available (exists on disk right now — the fail-safe half
+        // of getLocalPathOrNull's contract) → push it directly: zero-copy, the
+        // default-install path. Otherwise (a remote/S3 primary, or a local
+        // path that vanished between the list() and here) stream the object
+        // into this backup's own staging dir so archiver has a real file to
+        // read lazily during finalize() — the temp file withLocalFile would
+        // have produced is gone by the time archiver gets to it.
+        const localPath = await storage.getLocalPathOrNull(category, obj.key);
+        if (localPath !== null) {
+          uploadEntries.push({ absPath: localPath, name: `uploads/${category}/${obj.key}` });
+          continue;
+        }
+        const stagedPath = path.join(stagingDir, category, obj.key);
+        fs.mkdirSync(path.dirname(stagedPath), { recursive: true });
+        const { stream } = await storage.getStream(category, obj.key);
+        await pipeline(stream, fs.createWriteStream(stagedPath));
+        uploadEntries.push({ absPath: stagedPath, name: `uploads/${category}/${obj.key}` });
       }
     }
 
@@ -202,6 +221,11 @@ export async function createBackup(storage: StorageService, prefix: 'backup' | '
 
       output.on('close', resolve);
       archive.on('error', reject);
+      // archiver emits 'warning' (not 'error') for entries it couldn't
+      // stat/read — a stale staged path, a permission error — and by default
+      // just skips them, silently dropping bytes from the backup. Fail the
+      // backup instead: a dropped entry must never pass as a success.
+      archive.on('warning', reject);
 
       archive.pipe(output);
 
@@ -293,6 +317,7 @@ export async function createBackup(storage: StorageService, prefix: 'backup' | '
     fs.rmSync(zipSpool, { force: true });
     fs.rmSync(pdataSnap, { recursive: true, force: true });
     fs.rmSync(dbSnap, { force: true });
+    fs.rmSync(stagingDir, { recursive: true, force: true });
   }
 }
 

@@ -98,6 +98,8 @@ function stubStorage(overrides: Record<string, unknown> = {}): StorageService {
     getStream: vi.fn(),
     sendToResponse: vi.fn(async () => {}),
     withLocalFile: vi.fn(async (_c: string, _k: string, fn: (p: string) => Promise<unknown>) => fn('/stub/local/path')),
+    // Default: every object has a local path (the zero-copy default-install branch).
+    getLocalPathOrNull: vi.fn(async () => '/stub/local/path'),
     spoolDirFor: vi.fn(() => '/stub/spool'),
     tempDir: vi.fn(() => '/stub/tmp'),
     health: vi.fn(() => ({ replicaFailures: [] })),
@@ -369,7 +371,7 @@ describe('BACKUP-036 createBackup', () => {
     expect(storage.stat).toHaveBeenCalledWith('backups', result.filename);
   });
 
-  it('BACKUP-036j — archives category objects under the legacy uploads/ entry names via withLocalFile', async () => {
+  it('BACKUP-036j — archives category objects under the legacy uploads/ entry names via the local fast path', async () => {
     fsMock.existsSync.mockReturnValue(false);
     setupArchiveSuccess();
     const storage = stubStorage({
@@ -382,10 +384,76 @@ describe('BACKUP-036 createBackup', () => {
 
     await createBackup(storage);
 
-    expect(storage.withLocalFile).toHaveBeenCalledWith('files', 'a.pdf', expect.any(Function));
-    expect(storage.withLocalFile).toHaveBeenCalledWith('journey', 'thumbs/x.jpg', expect.any(Function));
+    expect(storage.getLocalPathOrNull).toHaveBeenCalledWith('files', 'a.pdf');
+    expect(storage.getLocalPathOrNull).toHaveBeenCalledWith('journey', 'thumbs/x.jpg');
     expect(archiverInstanceMock.file).toHaveBeenCalledWith('/stub/local/path', { name: 'uploads/files/a.pdf' });
     expect(archiverInstanceMock.file).toHaveBeenCalledWith('/stub/local/path', { name: 'uploads/journey/thumbs/x.jpg' });
+    // The local fast path never touches getStream — this is the zero-copy default-install branch.
+    expect(storage.getStream).not.toHaveBeenCalled();
+  });
+
+  it('BACKUP-036k — a remote-driver object (no local path) is streamed into per-backup staging and archived from there', async () => {
+    fsMock.existsSync.mockReturnValue(false);
+    const writableEvents = setupArchiveSuccess();
+    const { PassThrough } = await import('node:stream');
+    const remoteStream = new PassThrough();
+    remoteStream.end(Buffer.from('remote upload bytes'));
+    fsMock.createWriteStream.mockImplementation((p: string) => {
+      // The zip destination stream still needs the writableEvents wiring
+      // setupArchiveSuccess set up (finalize() resolves the build via 'close');
+      // staged files use a minimal fake that just resolves the pipeline.
+      if (String(p).includes('zip-build-')) {
+        return { on: vi.fn((event: string, cb: Function) => { writableEvents[event] = cb; }) };
+      }
+      // pipeline() (real, from node:stream/promises) needs a real Writable —
+      // a PassThrough gives it one without touching the real filesystem.
+      return new PassThrough();
+    });
+    const storage = stubStorage({
+      stat: statOf(2048),
+      list: listByCategory({ files: [{ key: 'remote.pdf' }] }),
+      getLocalPathOrNull: vi.fn(async () => null),
+      getStream: vi.fn(async (category: string, key: string) => {
+        expect(category).toBe('files');
+        expect(key).toBe('remote.pdf');
+        return { stream: remoteStream, stat: { key, size: 20, mtimeMs: 0 } };
+      }),
+    });
+
+    await createBackup(storage);
+
+    expect(storage.getLocalPathOrNull).toHaveBeenCalledWith('files', 'remote.pdf');
+    expect(storage.getStream).toHaveBeenCalledWith('files', 'remote.pdf');
+    const fileCall = archiverInstanceMock.file.mock.calls.find(
+      (c: unknown[]) => (c[1] as { name?: string })?.name === 'uploads/files/remote.pdf',
+    );
+    expect(fileCall).toBeDefined();
+    const stagedPath = fileCall![0] as string;
+    expect(stagedPath).toContain('/stub/spool/staging-backup-');
+    expect(stagedPath).toContain('files/remote.pdf');
+    // The staging dir is removed alongside zipSpool/dbSnap in the existing finally.
+    expect(fsMock.rmSync).toHaveBeenCalledWith(
+      expect.stringContaining('/stub/spool/staging-backup-'),
+      { recursive: true, force: true },
+    );
+  });
+
+  it('BACKUP-036l — a vanished remote object (archiver "warning") fails the backup instead of silently dropping it', async () => {
+    fsMock.existsSync.mockReturnValue(false);
+    const archiveEvents: Record<string, Function> = {};
+    fsMock.createWriteStream.mockReturnValue({ on: vi.fn() } as never);
+    archiverInstanceMock.on.mockImplementation((event: string, cb: Function) => { archiveEvents[event] = cb; });
+    archiverInstanceMock.pipe.mockReturnValue(undefined);
+    archiverInstanceMock.finalize.mockImplementation(() => {
+      // archiver emits 'warning' (not 'error') for entries it couldn't stat/read
+      // (e.g. ENOENT) — without archive.on('warning', reject) this resolves clean.
+      archiveEvents['warning']?.(new Error('ENOENT: no such file, stat entry'));
+    });
+    archiverMock.mockReturnValue(archiverInstanceMock);
+    const storage = stubStorage();
+
+    await expect(createBackup(storage)).rejects.toThrow('ENOENT');
+    expect(storage.put).not.toHaveBeenCalled();
   });
 
   it('BACKUP-036m — a mirror replica failure surfaced via health never fails the request', async () => {
@@ -496,7 +564,7 @@ describe('BACKUP-036 createBackup', () => {
     expect(names.some(n => n?.includes('google/'))).toBe(false);
     expect(names.some(n => n?.includes('trek/'))).toBe(false);
     // Only the archived categories are ever listed — the excludes are structural.
-    expect(storage.withLocalFile).toHaveBeenCalledTimes(1);
+    expect(storage.getLocalPathOrNull).toHaveBeenCalledTimes(1);
   });
 
   it('BACKUP-036h — only category prefixes are ever archived; backups/ and restore-* are structurally out (issue #1358)', async () => {
