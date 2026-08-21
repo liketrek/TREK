@@ -1,10 +1,13 @@
 /**
  * The file plugin surface after it moved onto @PluginMethod.
  *
- * Files are the only plugin surface that touches disk and the only one that uses
- * three separate rights, so the cases here lean on the upload path: the extension
- * blocklist, the size cap, the demo-mode refusal, and that each operation asks for
- * its own permission rather than one shared domain action.
+ * Files are the only plugin surface with three separate rights (one per write
+ * operation), and both its byte-paths — read and write — go through the storage
+ * layer rather than touching disk directly. The cases here lean on the upload
+ * path: the extension blocklist, the size cap, the demo-mode refusal, that each
+ * operation asks for its own permission rather than one shared domain action, and
+ * that a create pins the validate -> put -> insert -> broadcast order so a failed
+ * put can never leave a DB row pointing at missing bytes.
  */
 import { describe, it, expect, vi } from 'vitest';
 import { expectRegisteredProvider } from '../../helpers/module-providers';
@@ -269,6 +272,47 @@ describe('FilesRpc writes', () => {
       req('files.create', { tripId: 1, input: { name: 'a.pdf', content_base64: b64('x'), place_id: 7, reservation_id: 9, description: 'd' } }), 42,
     );
     expect(f.files.createFile).toHaveBeenCalledWith(1, expect.anything(), 42, { place_id: '7', reservation_id: '9', description: 'd' });
+  });
+
+  it('FILES-RPC-018 create puts the bytes into the storage layer before the DB row', async () => {
+    const f = build();
+    const order: string[] = [];
+    (f.storage.put as ReturnType<typeof vi.fn>).mockImplementation(async () => { order.push('put'); });
+    (f.files.createFile as ReturnType<typeof vi.fn>).mockImplementation(() => { order.push('insert'); return { id: 130 }; });
+    const res = await f.host('db:write:files').dispatch(
+      req('files.create', { tripId: 1, input: { name: 'a.pdf', content_base64: b64('x'), mimetype: 'application/pdf' } }), 42,
+    );
+    expect(res.ok).toBe(true);
+    expect(order).toEqual(['put', 'insert']);
+    const [category, name, source, opts] = (f.storage.put as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(category).toBe('files');
+    expect(name).toMatch(/^[0-9a-f-]{36}\.pdf$/);
+    expect(source).toBeInstanceOf(Readable);
+    expect(opts).toEqual({ contentType: 'application/pdf' });
+  });
+
+  it('FILES-RPC-019 create defaults the stored contentType like the returned mimetype', async () => {
+    const f = build();
+    await f.host('db:write:files').dispatch(req('files.create', { tripId: 1, input: { name: 'a.pdf', content_base64: b64('x') } }), 42);
+    const [, , , opts] = (f.storage.put as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(opts).toEqual({ contentType: 'application/octet-stream' });
+  });
+
+  it('FILES-RPC-020 a failed put creates no DB row and broadcasts nothing', async () => {
+    const f = build();
+    (f.storage.put as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('backend down'));
+    const res = (await f.host('db:write:files').dispatch(
+      req('files.create', { tripId: 1, input: { name: 'a.pdf', content_base64: b64('x') } }), 42,
+    )) as RpcError;
+    expect(res.error).toBeDefined();
+    expect(f.files.createFile).not.toHaveBeenCalled();
+    expect(f.realtime.broadcast).not.toHaveBeenCalled();
+  });
+
+  it('FILES-RPC-021 a refused create never reaches the storage layer', async () => {
+    const f = build();
+    await f.host('db:write:files').dispatch(req('files.create', { tripId: 1, input: { name: 'evil.exe', content_base64: b64('MZ') } }), 42);
+    expect(f.storage.put).not.toHaveBeenCalled();
   });
 
   it('FILES-RPC-016e a file with no recorded size or mimetype still reads', async () => {

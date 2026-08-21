@@ -1,4 +1,3 @@
-import fsMod from 'node:fs';
 import pathMod from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
@@ -49,9 +48,10 @@ type CreateInput = {
  * sensitive than its filename. And the three write operations use three distinct
  * rights (file_upload / file_edit / file_delete) rather than one domain action.
  *
- * The upload path is the only one in the plugin surface that touches disk, so the
- * extension is checked against the central blocklist and the size is capped before
- * anything is written, and a demo user is refused outright.
+ * This surface holds no direct fs access: both byte-paths — read and write — go
+ * through the storage layer, so `ctx.files` behaves identically whether the backend
+ * is local disk, S3, or a mirrored pair. The extension blocklist and size cap still
+ * run before the put, and a demo user is refused outright.
  */
 @PluginController()
 export class FilesRpc {
@@ -125,7 +125,7 @@ export class FilesRpc {
   }
 
   @PluginMethod('files.create', { permission: 'db:write:files' })
-  create(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async create(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const tripId = num(params.tripId, 'tripId');
     const actor = this.guards.requireActor(ctx, 'file');
     const input = asPayload(params.input);
@@ -144,7 +144,7 @@ export class FilesRpc {
     return this.writeFile(tripId, input as unknown as CreateInput, actor);
   }
 
-  private writeFile(tripId: number, input: CreateInput, actingUserId: number): unknown {
+  private async writeFile(tripId: number, input: CreateInput, actingUserId: number): Promise<unknown> {
     // Mirrors the REST upload guard: a demo user must not write bytes to the shared
     // demo instance, not even through a plugin's db:write:files. The email is only
     // resolved when demo mode is actually on, so self-hosted installs pay nothing.
@@ -166,8 +166,12 @@ export class FilesRpc {
     });
     if (foreign) throw new ForbiddenResource(`${foreign} does not belong to trip ${tripId}`);
     const filename = `${randomUUID()}${ext}`;
-    fsMod.mkdirSync(filesDir, { recursive: true });
-    fsMod.writeFileSync(pathMod.join(filesDir, filename), buf);
+    // Same order as the REST upload (files.controller.ts): the object is
+    // committed to storage before anything references it — a put failure can
+    // orphan a blob at worst, never create a row pointing at missing bytes.
+    await this.storage.put('files', filename, Readable.from(buf), {
+      contentType: input.mimetype || 'application/octet-stream',
+    });
     const file = this.files.createFile(
       tripId,
       { filename, originalname: original, size: buf.length, mimetype: input.mimetype || 'application/octet-stream' },
