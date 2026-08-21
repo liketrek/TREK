@@ -539,14 +539,14 @@ describe('EntryEditor', () => {
     expect(onUploadPhotos).not.toHaveBeenCalled()
   })
 
-  it('FE-JRN-EDITOR-026: leaves a skeleton without any content a skeleton', async () => {
+  it('FE-JRN-EDITOR-026: promotes a skeleton the user saved without editing (#2008)', async () => {
     const user = userEvent.setup()
     const { onSave } = mountEditor(buildEntry({ id: 21, type: 'skeleton', title: 'Venice' }))
 
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(onSave).toHaveBeenCalled())
-    expect(onSave.mock.calls[0][0]).toMatchObject({ type: undefined })
+    expect(onSave.mock.calls[0][0]).toMatchObject({ type: 'entry' })
   })
 
   it('FE-JRN-EDITOR-027: removes a con row again', async () => {
