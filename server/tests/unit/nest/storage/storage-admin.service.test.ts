@@ -69,7 +69,7 @@ function makeService(opts: { uploadsRoot?: string } = {}) {
   const jobs = new StorageJobsService(registry);
   const stats = new StorageStatsService(storage, db);
   const service = new StorageAdminService(db, registry, storage, jobs, stats);
-  return { service, registry, uploadsRoot, stats };
+  return { service, registry, uploadsRoot, stats, jobs };
 }
 
 /** The settings-owned document the service persists (uploads override + extras). */
@@ -237,6 +237,18 @@ describe('StorageAdminService.applyConfig', () => {
     service.applyConfig(configWith(uploadsRoot));
     expect(txSpy).toHaveBeenCalledTimes(1);
     expect(reloadSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('STORADM-019 applyConfig invokes the dissolved-job cancellation after reload', () => {
+    const { service, registry, uploadsRoot, jobs } = makeService();
+    const reloadSpy = vi.spyOn(registry, 'reload');
+    const cancelSpy = vi.spyOn(jobs, 'cancelJobsForMissingBackends');
+    service.applyConfig(configWith(uploadsRoot));
+    expect(cancelSpy).toHaveBeenCalledTimes(1);
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+    const reloadOrder = reloadSpy.mock.invocationCallOrder[0]!;
+    const cancelOrder = cancelSpy.mock.invocationCallOrder[0]!;
+    expect(cancelOrder).toBeGreaterThan(reloadOrder);
   });
 });
 

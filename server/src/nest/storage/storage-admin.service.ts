@@ -110,6 +110,10 @@ export class StorageAdminService {
       upsert.run(CATEGORIES_KEY, JSON.stringify(encrypted.categories));
     });
     this.registry.reload();
+    // Any running job whose backend the reloaded config no longer has ends
+    // cancelled rather than running invisibly against a stale driver ref
+    // (polish item 3) — see StorageJobsService.cancelJobsForMissingBackends.
+    this.jobs.cancelJobsForMissingBackends();
   }
 
   /**

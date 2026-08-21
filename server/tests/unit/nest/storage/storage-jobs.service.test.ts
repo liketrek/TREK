@@ -321,3 +321,68 @@ describe('StorageJobsService migrations', () => {
     await waitFor(() => jobs.migrationStatuses().some((m) => m.status !== 'running'));
   });
 });
+
+describe('StorageJobsService.cancelJobsForMissingBackends', () => {
+  it('JOBS-020 cancels a running backfill whose mirror left the config', async () => {
+    const { storage, jobs, registry } = makeWorld();
+    for (let i = 0; i < 50; i++) await storage.put('backups', `c${i}.zip`, Readable.from('y'.repeat(2000)));
+    jobs.startBackfill('m');
+    await waitFor(() => jobs.statuses().some((s) => s.backend === 'm' && s.done >= 1), 5000, 1);
+
+    // Simulate a config save that drops mirror 'm' entirely — 'backups' reverts
+    // to the built-in default ('backups-local'), a self-consistent config.
+    setSetting('storage.backends', JSON.stringify([]));
+    setSetting('storage.categories', JSON.stringify({}));
+    registry.reload();
+
+    jobs.cancelJobsForMissingBackends();
+    await waitFor(() => jobs.statuses().some((s) => s.backend === 'm' && s.status !== 'running'));
+    const status = jobs.statuses().find((s) => s.backend === 'm')!;
+    expect(status.status).toBe('cancelled');
+  });
+
+  it('JOBS-021 cancels a running migration whose source or target backend is gone', async () => {
+    // A category migrating away from a non-built-in backend ('nas') to another
+    // non-built-in backend ('dest-local') — both can genuinely disappear from
+    // a config save, unlike the always-present 'uploads-local'/'backups-local'.
+    const uploadsRoot = makeTmpDir();
+    const nasRoot = makeTmpDir();
+    const destRoot = makeTmpDir();
+    setSetting(
+      'storage.backends',
+      JSON.stringify([
+        { name: 'uploads-local', type: 'local', options: { root: uploadsRoot } },
+        { name: 'nas', type: 'local', options: { root: nasRoot } },
+        { name: 'dest-local', type: 'local', options: { root: destRoot } },
+      ]),
+    );
+    setSetting('storage.categories', JSON.stringify({ files: 'nas' }));
+    const env = { env: () => ({ paths: {} }) } as unknown as RuntimeEnvService;
+    const registry = new StorageRegistryService(db, env, new StorageEventsService());
+    registry.onModuleInit();
+    const storage = new StorageService(registry);
+    const jobs = new StorageJobsService(registry);
+
+    for (let i = 0; i < 100; i++) await storage.put('files', `f${i}.txt`, Readable.from('x'.repeat(100_000)));
+    jobs.startMigration('files', 'dest-local');
+    await waitFor(() => jobs.migrationStatuses().some((m) => m.category === 'files' && m.done >= 1), 5000, 1);
+
+    // Simulate a config save: 'files' is rerouted to 'uploads-local' and the
+    // migration's in-flight FROM backend ('nas') is dropped from the config
+    // entirely — self-consistent (validateConfig only checks the new
+    // category map), but the running migration's `from` no longer resolves.
+    setSetting(
+      'storage.backends',
+      JSON.stringify([
+        { name: 'uploads-local', type: 'local', options: { root: uploadsRoot } },
+        { name: 'dest-local', type: 'local', options: { root: destRoot } },
+      ]),
+    );
+    setSetting('storage.categories', JSON.stringify({ files: 'uploads-local' }));
+    registry.reload();
+
+    jobs.cancelJobsForMissingBackends();
+    const final = await waitTerminal(jobs, 'files');
+    expect(final.status).toBe('cancelled');
+  });
+});

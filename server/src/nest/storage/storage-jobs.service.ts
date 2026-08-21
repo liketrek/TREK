@@ -207,15 +207,24 @@ export class StorageJobsService {
     return [...this.migrations.values()].map((m) => ({ ...m.status }));
   }
 
-  /** Cancel any running migration/backfill whose backend no longer resolves (Task 4). */
+  /**
+   * After a config apply: any running job whose backend no longer exists (or,
+   * for a migration, whose from OR to backend is gone) ends 'cancelled'
+   * instead of running invisibly against stale driver refs (spec, polish item
+   * 3) — the resolved driver instances stay valid (the in-flight guarantee),
+   * only their backend name has fallen out of the config. A cancelled
+   * migration pre-flip is harmless (MIG-003's guarantee); post-flip the flag
+   * is never read again because the sweep phase always runs to completion.
+   */
   cancelJobsForMissingBackends(): void {
+    const names = new Set(this.registry.snapshot().backends.map((b) => b.name));
     for (const job of this.jobs.values()) {
       if (job.status.status !== 'running') continue;
-      if (!this.registry.driverByName(job.status.backend)) job.cancelled = true;
+      if (!names.has(job.status.backend)) job.cancelled = true;
     }
     for (const migration of this.migrations.values()) {
       if (migration.status.status !== 'running') continue;
-      if (!this.registry.driverByName(migration.status.to)) migration.cancelled = true;
+      if (!names.has(migration.status.from) || !names.has(migration.status.to)) migration.cancelled = true;
     }
   }
 
