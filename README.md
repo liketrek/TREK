@@ -541,9 +541,11 @@ reject the server's uploads; self-hosted endpoints (MinIO/Garage) should be
 addressed by IP or `localhost` unless configured for virtual-hosted buckets.
 The legacy `/uploads/photos` directory from older TREK versions is still
 served and included in backups, but it is not a configurable category.
-Running the storage contract suite against a live MinIO/AIStor stays a
-manual, license-gated procedure — see `docker-compose.minio-test.yml`'s
-header; it is not part of CI.
+Running the storage contract suite against a live MinIO/AIStor is a
+license-gated procedure — CI runs it automatically for same-repo pull
+requests (fork PRs skip it, since they have no access to the license
+secret); to run it yourself locally, see `docker-compose.minio-test.yml`'s
+header for the manual procedure.
 
 ### Provisioning at first boot (seed file)
 

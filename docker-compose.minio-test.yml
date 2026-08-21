@@ -1,12 +1,13 @@
 # Manual, license-gated live-provider test for the env-gated S3 driver
-# contract suite. This is NOT run in CI.
+# contract suite, for local/operator use. CI runs this exact suite for
+# same-repo pull requests, via the MINIO_LICENSE_KEY repo secret (see
+# .github/workflows/test.yml's s3-contract job) — this compose file stays
+# the manual procedure for local runs and for fork PRs, which don't get
+# repo secrets and so still need it run by hand.
 #
-# Why manual: MinIO fully dropped the community line (quay.io/minio/minio
-# gets no further updates). The maintained successor is AIStor
+# MinIO fully dropped the community line (quay.io/minio/minio gets no
+# further updates). The maintained successor is AIStor
 # (quay.io/minio/aistor/minio), which requires a license key to boot at all.
-# A CI job can't hold a shared license credential safely, so live-provider
-# contract runs are a manual, operator-driven procedure until a
-# licensing-compatible target for CI exists (e.g. Garage).
 #
 # REQUIRED: a `minio-licence.key` file at the repo root (same directory as
 # this compose file). It is git-ignored and must never be committed — obtain
