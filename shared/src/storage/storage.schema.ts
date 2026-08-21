@@ -231,6 +231,28 @@ export const storageBackfillStatusSchema = z.object({
 });
 export type StorageBackfillStatus = z.infer<typeof storageBackfillStatusSchema>;
 
+// ── Category migration (copy → flip → delta sweep) ────────────────────────────
+
+export const storageMigrationStatusSchema = z.object({
+  category: storageCategorySchema,
+  from: z.string(),
+  to: z.string(),
+  status: z.enum(['running', 'done', 'failed', 'cancelled']),
+  /** Keys examined in the copy phase; total is 0 while enumerating. */
+  done: z.number(),
+  total: z.number(),
+  copied: z.number(),
+  skipped: z.number(),
+  failed: z.number(),
+  startedAt: z.number(),
+  finishedAt: z.number().optional(),
+  /** status 'failed' only: the aborting error (copy failures also set counts). */
+  error: z.string().optional(),
+  /** Terminal 'done' only: objects/bytes left on the old backend. */
+  reclaimable: z.object({ objects: z.number(), bytes: z.number() }).optional(),
+});
+export type StorageMigrationStatus = z.infer<typeof storageMigrationStatusSchema>;
+
 export const storageUsageSchema = z.object({
   computedAt: z.number(),
   categories: z.record(storageCategorySchema, z.object({ objects: z.number(), bytes: z.number() })),
@@ -259,6 +281,7 @@ export const storageAdminStateSchema = z.object({
   seedFilePresent: z.boolean(),
   usage: storageUsageSchema.nullable(),
   backfills: z.array(storageBackfillStatusSchema),
+  migrations: z.array(storageMigrationStatusSchema),
 });
 export type StorageAdminState = z.infer<typeof storageAdminStateSchema>;
 

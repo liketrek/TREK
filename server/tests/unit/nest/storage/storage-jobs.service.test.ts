@@ -21,11 +21,13 @@ import { DatabaseService } from '../../../../src/nest/database/database.service'
 import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
 import { MirrorDriver } from '../../../../src/nest/storage/drivers/mirror.driver';
 import { StorageEventsService } from '../../../../src/nest/storage/storage-events.service';
-import { StorageRegistryService } from '../../../../src/nest/storage/storage-registry.service';
+import { CATEGORIES_KEY, StorageRegistryService } from '../../../../src/nest/storage/storage-registry.service';
 import { StorageService } from '../../../../src/nest/storage/storage.service';
 import {
   BackfillBusyError,
   BackfillTargetError,
+  MigrationRequestError,
+  MigrationTargetError,
   StorageJobsService,
 } from '../../../../src/nest/storage/storage-jobs.service';
 
@@ -76,12 +78,73 @@ function makeWorld() {
   return { registry, storage, jobs, backupsRoot, nasRoot };
 }
 
-async function waitFor(predicate: () => boolean, ms = 5000): Promise<void> {
+async function waitFor(predicate: () => boolean, ms = 5000, intervalMs = 20): Promise<void> {
   const start = Date.now();
   while (!predicate()) {
     if (Date.now() - start > ms) throw new Error('timed out waiting for job');
-    await new Promise((r) => setTimeout(r, 20));
+    await new Promise((r) => setTimeout(r, intervalMs));
   }
+}
+
+/** A registry with 'files' explicitly routed to 'uploads-local' and an unassigned 'dest-local' target. */
+function makeMigrationWorld() {
+  const uploadsRoot = makeTmpDir();
+  const backupsRoot = makeTmpDir();
+  const destRoot = makeTmpDir();
+  setSetting(
+    'storage.backends',
+    JSON.stringify([
+      { name: 'uploads-local', type: 'local', options: { root: uploadsRoot } },
+      { name: 'backups-local', type: 'local', options: { root: backupsRoot } },
+      { name: 'dest-local', type: 'local', options: { root: destRoot } },
+    ]),
+  );
+  setSetting('storage.categories', JSON.stringify({ files: 'uploads-local' }));
+  const env = { env: () => ({ paths: {} }) } as unknown as RuntimeEnvService;
+  const registry = new StorageRegistryService(db, env, new StorageEventsService());
+  registry.onModuleInit();
+  const storage = new StorageService(registry);
+  const jobs = new StorageJobsService(registry);
+  return { registry, storage, jobs, uploadsRoot, destRoot };
+}
+
+/** Combines the migration world's 'dest-local' target with the backfill world's routed mirror 'm'. */
+function makeMigrationBackfillWorld() {
+  const uploadsRoot = makeTmpDir();
+  const backupsRoot = makeTmpDir();
+  const nasRoot = makeTmpDir();
+  const destRoot = makeTmpDir();
+  setSetting(
+    'storage.backends',
+    JSON.stringify([
+      { name: 'uploads-local', type: 'local', options: { root: uploadsRoot } },
+      { name: 'backups-local', type: 'local', options: { root: backupsRoot } },
+      { name: 'nas', type: 'local', options: { root: nasRoot } },
+      { name: 'dest-local', type: 'local', options: { root: destRoot } },
+      { name: 'm', type: 'mirror', options: { primary: 'backups-local', replicas: ['nas'] } },
+    ]),
+  );
+  setSetting('storage.categories', JSON.stringify({ backups: 'm', files: 'uploads-local' }));
+  const env = { env: () => ({ paths: {} }) } as unknown as RuntimeEnvService;
+  const registry = new StorageRegistryService(db, env, new StorageEventsService());
+  registry.onModuleInit();
+  const storage = new StorageService(registry);
+  const jobs = new StorageJobsService(registry);
+  return { registry, storage, jobs, uploadsRoot, backupsRoot, nasRoot, destRoot };
+}
+
+/** Reads the raw 'storage.categories' app_settings row (undefined key ⇒ {}). */
+function registryCategoriesRow(): Record<string, string> {
+  const row = testDb.prepare('SELECT value FROM app_settings WHERE key = ?').get(CATEGORIES_KEY) as
+    | { value: string }
+    | undefined;
+  return row ? (JSON.parse(row.value) as Record<string, string>) : {};
+}
+
+/** Polls migrationStatuses() for the named category to leave 'running', bounded ~5s. */
+async function waitTerminal(jobs: StorageJobsService, category: string) {
+  await waitFor(() => jobs.migrationStatuses().some((m) => m.category === category && m.status !== 'running'));
+  return jobs.migrationStatuses().find((m) => m.category === category)!;
 }
 
 describe('StorageJobsService', () => {
@@ -175,5 +238,86 @@ describe('StorageJobsService', () => {
     expect(() => jobs.startBackfill('ghost')).toThrow(BackfillTargetError);
     expect(() => jobs.startBackfill('nas')).toThrow(BackfillTargetError);
     await waitFor(() => jobs.statuses().some((s) => s.status !== 'running'));
+  });
+});
+
+describe('StorageJobsService migrations', () => {
+  it('MIG-001 happy path: copies, flips the category, sweeps a raced write, tallies reclaimable', async () => {
+    const { storage, jobs, uploadsRoot, destRoot } = makeMigrationWorld();
+    // Sized up (not slept) so the copy phase has real work left when we poll
+    // for enumeration-done — a few bytes would finish before the first poll tick.
+    const big = 'a'.repeat(4_000_000);
+    await storage.put('files', 'a.txt', Readable.from(big));
+    await storage.put('files', 'b.txt', Readable.from(big.replace(/a/g, 'b')));
+
+    jobs.startMigration('files', 'dest-local');
+    // Enumeration done — write the raced third object before the copy phase settles.
+    // Tight poll interval: the window between "total > 0" and job completion is narrow.
+    await waitFor(
+      () => jobs.migrationStatuses().some((m) => m.category === 'files' && m.total > 0),
+      5000,
+      1,
+    );
+    fs.writeFileSync(path.join(uploadsRoot, 'files', 'c.txt'), 'ccc');
+
+    const final = await waitTerminal(jobs, 'files');
+    expect(final.status).toBe('done');
+    // 2 copy-phase + 1 sweep — but the raced write may instead land in the
+    // copy phase's own (re-run) list(), so assert combined coverage, not
+    // which phase caught it.
+    expect(final.copied + final.skipped).toBeGreaterThanOrEqual(3);
+    expect(registryCategoriesRow().files).toBe('dest-local'); // flip persisted
+    expect(fs.existsSync(path.join(destRoot, 'files', 'a.txt'))).toBe(true);
+    expect(fs.existsSync(path.join(destRoot, 'files', 'b.txt'))).toBe(true);
+    expect(fs.existsSync(path.join(destRoot, 'files', 'c.txt'))).toBe(true);
+    expect(final.reclaimable).toEqual({ objects: 3, bytes: expect.any(Number) }); // sources kept
+  });
+
+  it('MIG-002 a copy failure blocks the flip and ends failed', async () => {
+    const { storage, jobs, destRoot } = makeMigrationWorld();
+    await storage.put('files', 'a.txt', Readable.from('aaa'));
+    await storage.put('files', 'b.txt', Readable.from('bbb'));
+    // Pre-create a DIRECTORY at the target key path so the put's rename fails.
+    fs.mkdirSync(path.join(destRoot, 'files', 'a.txt'), { recursive: true });
+
+    jobs.startMigration('files', 'dest-local');
+    const final = await waitTerminal(jobs, 'files');
+    expect(final.status).toBe('failed');
+    expect(final.failed).toBeGreaterThan(0);
+    expect(registryCategoriesRow().files).toBe('uploads-local'); // NOT flipped
+  });
+
+  it('MIG-003 cancel before the flip leaves everything untouched', async () => {
+    const { storage, jobs } = makeMigrationWorld();
+    // Many, largish objects (not sleeps) so the copy phase is still running
+    // when we poll for done >= 1 and issue the cancel.
+    for (let i = 0; i < 100; i++) await storage.put('files', `f${i}.txt`, Readable.from('x'.repeat(100_000)));
+
+    jobs.startMigration('files', 'dest-local');
+    await waitFor(() => jobs.migrationStatuses().some((m) => m.category === 'files' && m.done >= 1), 5000, 1);
+    expect(jobs.cancelMigration('files')).toBe(true);
+
+    const final = await waitTerminal(jobs, 'files');
+    expect(final.status).toBe('cancelled');
+    expect(registryCategoriesRow().files).toBe('uploads-local');
+  });
+
+  it('MIG-004 validations: 400s, 404, and 409 against a running backfill (and vice versa)', async () => {
+    const { storage, jobs } = makeMigrationBackfillWorld();
+    expect(() => jobs.startMigration('files', 'uploads-local')).toThrow(MigrationRequestError); // to === current
+    expect(() => jobs.startMigration('nope' as never, 'dest-local')).toThrow(MigrationRequestError);
+    expect(() => jobs.startMigration('files', 'ghost')).toThrow(MigrationTargetError);
+
+    // A running backfill blocks a migration start.
+    for (let i = 0; i < 20; i++) await storage.put('backups', `b${i}.zip`, Readable.from('x'.repeat(1000)));
+    jobs.startBackfill('m');
+    expect(() => jobs.startMigration('files', 'dest-local')).toThrow(BackfillBusyError);
+    await waitFor(() => jobs.statuses().some((s) => s.status !== 'running'));
+
+    // A running migration blocks a backfill start too.
+    await storage.put('files', 'a.txt', Readable.from('a'.repeat(5000)));
+    jobs.startMigration('files', 'dest-local');
+    expect(() => jobs.startBackfill('m')).toThrow(BackfillBusyError);
+    await waitFor(() => jobs.migrationStatuses().some((m) => m.status !== 'running'));
   });
 });

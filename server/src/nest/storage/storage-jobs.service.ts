@@ -1,13 +1,32 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { randomUUID } from 'node:crypto';
+import { pipeline } from 'node:stream/promises';
 import { Injectable, Logger } from '@nestjs/common';
-import { STORAGE_CATEGORIES, type StorageBackfillStatus } from '@trek/shared';
+import {
+  STORAGE_CATEGORIES,
+  type StorageBackfillStatus,
+  type StorageCategory,
+  type StorageMigrationStatus,
+} from '@trek/shared';
+import { contentTypeFor } from './content-type';
 import { MirrorDriver } from './drivers/mirror.driver';
+import { GLOBAL_TEMP_DIR } from './storage-paths';
 import { StorageRegistryService } from './storage-registry.service';
+import type { StorageDriver } from './storage.types';
 
 export class BackfillTargetError extends Error {}
 export class BackfillBusyError extends Error {}
+export class MigrationRequestError extends Error {}
+export class MigrationTargetError extends Error {}
 
 interface ActiveJob {
   status: StorageBackfillStatus;
+  cancelled: boolean;
+}
+
+interface ActiveMigration {
+  status: StorageMigrationStatus;
   cancelled: boolean;
 }
 
@@ -20,7 +39,16 @@ interface ActiveJob {
 export class StorageJobsService {
   private readonly logger = new Logger(StorageJobsService.name);
   private readonly jobs = new Map<string, ActiveJob>();
+  private readonly migrations = new Map<string, ActiveMigration>();
   private ttlMs = 10 * 60_000;
+
+  /** One storage job at a time, across both backfills and category migrations. */
+  private anyJobRunning(): boolean {
+    return (
+      [...this.jobs.values()].some((j) => j.status.status === 'running') ||
+      [...this.migrations.values()].some((m) => m.status.status === 'running')
+    );
+  }
 
   constructor(private readonly registry: StorageRegistryService) {}
 
@@ -47,7 +75,7 @@ export class StorageJobsService {
     if (!(driver instanceof MirrorDriver)) {
       throw new BackfillTargetError(`'${mirrorName}' is not a mirror backend`);
     }
-    if ([...this.jobs.values()].some((job) => job.status.status === 'running')) {
+    if (this.anyJobRunning()) {
       throw new BackfillBusyError('a sync is already running — one backfill at a time');
     }
     const prefixes = resolved.map((r) => r.keyPrefix);
@@ -109,5 +137,156 @@ export class StorageJobsService {
 
   statuses(): StorageBackfillStatus[] {
     return [...this.jobs.values()].map((job) => ({ ...job.status }));
+  }
+
+  /**
+   * Start a category migration: copy every object from the category's
+   * current backend to `to`, flip the category assignment once the copy
+   * phase is clean, then sweep any delta the copy phase raced against.
+   * Throws MigrationRequestError (400) / MigrationTargetError (404) /
+   * BackfillBusyError (409, shared with backfills — one storage job at a time).
+   */
+  startMigration(category: StorageCategory, to: string): void {
+    if (!STORAGE_CATEGORIES.includes(category)) {
+      throw new MigrationRequestError(`'${category}' is not a configurable category`);
+    }
+    const current = this.registry.resolve(category);
+    if (current.backendName === to) {
+      throw new MigrationRequestError(`'${category}' is already on '${to}'`);
+    }
+    const target = this.registry.driverByName(to);
+    if (!target) throw new MigrationTargetError(`no backend named '${to}'`);
+    if (this.anyJobRunning()) {
+      throw new BackfillBusyError('a sync is already running — one storage job at a time');
+    }
+
+    const job: ActiveMigration = {
+      cancelled: false,
+      status: {
+        category,
+        from: current.backendName,
+        to,
+        status: 'running',
+        done: 0,
+        total: 0,
+        copied: 0,
+        skipped: 0,
+        failed: 0,
+        startedAt: Date.now(),
+      },
+    };
+    this.migrations.set(category, job);
+    // Detached, driver instances resolved above (in-flight guarantee, same as backfill).
+    void this.runMigration(job, current.driver, target, current.keyPrefix)
+      .catch((err: unknown) => {
+        job.status = {
+          ...job.status,
+          status: 'failed',
+          error: err instanceof Error ? err.message : String(err),
+          finishedAt: Date.now(),
+        };
+        this.logger.error(`migration '${category}' aborted: ${job.status.error}`);
+      })
+      .finally(() => {
+        setTimeout(() => {
+          if (this.migrations.get(category) === job && job.status.status !== 'running') {
+            this.migrations.delete(category);
+          }
+        }, this.ttlMs).unref?.();
+      });
+  }
+
+  cancelMigration(category: string): boolean {
+    const job = this.migrations.get(category);
+    if (!job || job.status.status !== 'running') return false;
+    job.cancelled = true;
+    return true;
+  }
+
+  migrationStatuses(): StorageMigrationStatus[] {
+    return [...this.migrations.values()].map((m) => ({ ...m.status }));
+  }
+
+  /** Cancel any running migration/backfill whose backend no longer resolves (Task 4). */
+  cancelJobsForMissingBackends(): void {
+    for (const job of this.jobs.values()) {
+      if (job.status.status !== 'running') continue;
+      if (!this.registry.driverByName(job.status.backend)) job.cancelled = true;
+    }
+    for (const migration of this.migrations.values()) {
+      if (migration.status.status !== 'running') continue;
+      if (!this.registry.driverByName(migration.status.to)) migration.cancelled = true;
+    }
+  }
+
+  /** Copy one needy object source→target via a spool file; returns false on a counted failure. */
+  private async copyObject(source: StorageDriver, target: StorageDriver, key: string): Promise<boolean> {
+    const file = path.join(GLOBAL_TEMP_DIR, randomUUID());
+    try {
+      const { stream } = await source.getStream(key);
+      await pipeline(stream, fs.createWriteStream(file)); // source errors RETHROW (abort → failed)
+    } catch (err) {
+      await fs.promises.rm(file, { force: true });
+      throw err;
+    }
+    try {
+      await target.put(key, fs.createReadStream(file), { contentType: contentTypeFor(key) });
+      return true;
+    } catch {
+      return false; // per-object failure: counted, blocks the flip
+    } finally {
+      await fs.promises.rm(file, { force: true });
+    }
+  }
+
+  private async runMigration(
+    job: ActiveMigration,
+    source: StorageDriver,
+    target: StorageDriver,
+    prefix: string,
+  ): Promise<void> {
+    const s = () => job.status;
+    // Phase 1a: honest total.
+    for await (const _stat of source.list(prefix)) job.status = { ...s(), total: s().total + 1 };
+    // Phase 1b: copy.
+    for await (const stat of source.list(prefix)) {
+      if (job.cancelled) {
+        job.status = { ...s(), status: 'cancelled', finishedAt: Date.now() };
+        return;
+      }
+      const done = s().done + 1;
+      job.status = { ...s(), done, total: Math.max(s().total, done) };
+      const existing = await target.stat(stat.key);
+      if (existing && existing.size === stat.size) {
+        job.status = { ...s(), skipped: s().skipped + 1 };
+        continue;
+      }
+      if (await this.copyObject(source, target, stat.key)) job.status = { ...s(), copied: s().copied + 1 };
+      else job.status = { ...s(), failed: s().failed + 1 };
+    }
+    if (s().failed > 0) {
+      job.status = {
+        ...s(),
+        status: 'failed',
+        error: `${s().failed} object(s) failed to copy — category not flipped`,
+        finishedAt: Date.now(),
+      };
+      return;
+    }
+    // Phase 2: flip — the job, not the save, owns this.
+    this.registry.assignCategory(s().category, s().to);
+    // Phase 3: delta sweep + reclaimable tally. Cancellation is ignored here (bounded).
+    const reclaimable = { objects: 0, bytes: 0 };
+    for await (const stat of source.list(prefix)) {
+      reclaimable.objects += 1;
+      reclaimable.bytes += stat.size;
+      const existing = await target.stat(stat.key);
+      if (existing && existing.size === stat.size) continue;
+      const done = s().done + 1;
+      job.status = { ...s(), done, total: Math.max(s().total, done) };
+      if (await this.copyObject(source, target, stat.key)) job.status = { ...s(), copied: s().copied + 1 };
+      else job.status = { ...s(), failed: s().failed + 1 }; // sweep failure: reported, flip already happened
+    }
+    job.status = { ...s(), status: 'done', total: s().done, reclaimable, finishedAt: Date.now() };
   }
 }

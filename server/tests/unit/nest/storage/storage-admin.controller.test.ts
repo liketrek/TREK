@@ -15,7 +15,13 @@ import { expectRegisteredController } from '../../../helpers/module-providers';
 
 const user = { id: 1 } as User;
 const req = { headers: {}, socket: { remoteAddress: '127.0.0.1' } } as unknown as Request;
-const FRESH_STATE = { backends: [], categories: {}, health: { replicaFailures: [] }, seedFilePresent: false };
+const FRESH_STATE = {
+  backends: [],
+  categories: {},
+  health: { replicaFailures: [] },
+  seedFilePresent: false,
+  migrations: [],
+};
 
 function makeController(over: Partial<Record<keyof StorageAdminService, unknown>> = {}) {
   const writeAudit = vi.fn();

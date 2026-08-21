@@ -57,6 +57,7 @@ export class StorageAdminService {
       seedFilePresent: fs.existsSync(SEED_CONFIG_PATH),
       usage: this.stats.readUsage(),
       backfills: this.jobs.statuses(),
+      migrations: this.jobs.migrationStatuses(),
     };
   }
 

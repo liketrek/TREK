@@ -165,6 +165,32 @@ export class StorageRegistryService implements OnModuleInit {
     return GLOBAL_TEMP_DIR;
   }
 
+  /** Driver instance for a defined backend, assigned or not; null when unknown. */
+  driverByName(name: string): StorageDriver | null {
+    if (!this.state) return null;
+    return this.state.drivers.get(name) ?? null;
+  }
+
+  /**
+   * Persist one category assignment and reload — the migration flip's write
+   * path. Same transactional row write applyConfig uses, scoped to one key;
+   * the current stored map is read through the existing parseCategoryMap
+   * validator rather than re-parsing the raw row by hand.
+   */
+  assignCategory(category: StorageCategory, backend: string): void {
+    const stored = new Map(parseCategoryMap(this.readSettings().categories));
+    stored.set(category, backend);
+    const next = Object.fromEntries(stored);
+    this.db.transaction(() => {
+      this.db
+        .prepare(
+          'INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+        )
+        .run(CATEGORIES_KEY, JSON.stringify(next));
+    });
+    this.reload();
+  }
+
   recordReplicaFailure(failure: ReplicaFailure): void {
     this.failures.push(failure);
     if (this.failures.length > REPLICA_FAILURE_RING_SIZE) {
