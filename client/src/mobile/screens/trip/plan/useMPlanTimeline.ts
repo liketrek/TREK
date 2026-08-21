@@ -211,14 +211,18 @@ export function useMPlanTimeline(planner: TripPlanner) {
     }
   }, [dayAssignments, tripActions, tripId, pushUndo, updateRouteForDay, toast, t])
 
-  const moveRow = useCallback((item: MergedItem, direction: 'up' | 'down') => {
+  /**
+   * Moves an item to an arbitrary slot. The buttons swap with a neighbour, a
+   * drag lands anywhere (#1997) — both come through here so the chronology
+   * guard and the undo entry stay identical either way.
+   */
+  const moveRowTo = useCallback((item: MergedItem, toIndex: number) => {
     if (!day) return
     const idx = merged.indexOf(item)
-    const target = direction === 'up' ? idx - 1 : idx + 1
-    if (idx < 0 || target < 0 || target >= merged.length) return
+    if (idx < 0 || toIndex < 0 || toIndex >= merged.length || toIndex === idx) return
     const newOrder = [...merged]
-    newOrder[idx] = merged[target]
-    newOrder[target] = item
+    newOrder.splice(idx, 1)
+    newOrder.splice(toIndex, 0, item)
     // Same guard as the desktop arrow buttons: a TIMED item may not jump past
     // other timed items (untimed items move freely and keep their neighbours).
     if (itemHasTime(item, day.id) && breaksChronology(newOrder, day.id, getDisplayTimeForDay)) {
@@ -227,6 +231,11 @@ export function useMPlanTimeline(planner: TripPlanner) {
     }
     void applyMergedOrder(day.id, newOrder)
   }, [day, merged, applyMergedOrder, toast, t])
+
+  const moveRow = useCallback((item: MergedItem, direction: 'up' | 'down') => {
+    const idx = merged.indexOf(item)
+    moveRowTo(item, direction === 'up' ? idx - 1 : idx + 1)
+  }, [merged, moveRowTo])
 
   // ── Place actions ──
   const removeAssignment = useCallback((assignment: Assignment) => {
@@ -240,18 +249,22 @@ export function useMPlanTimeline(planner: TripPlanner) {
   }, [planner])
 
   // ── Add bar ──
+  // Both of these sit inside a day's toolbar, so the day is the context — the
+  // place gets assigned to it on save and the booking opens pre-dated (#1998).
   const addPlace = useCallback(() => {
     planner.setEditingPlace(null)
     planner.setEditingAssignmentId(null)
     planner.setPrefillCoords(null)
+    planner.setPlaceFormDayId(day?.id ?? null)
     planner.setShowPlaceForm(true)
-  }, [planner])
+  }, [planner, day])
 
   const addBooking = useCallback(() => {
     planner.setEditingReservation(null)
     planner.setBookingForAssignmentId(null)
+    planner.setReservationModalDayId(day?.id ?? null)
     planner.setShowReservationModal(true)
-  }, [planner])
+  }, [planner, day])
 
   const addTransport = useCallback(() => {
     planner.setEditingTransport(null)
@@ -360,6 +373,7 @@ export function useMPlanTimeline(planner: TripPlanner) {
     language, timeFormat: settings.time_format,
     openTransitKeys, toggleTransit,
     moveRow, removeAssignment, editAssignment, editTransport, openTransitJourney,
+    moveRowTo,
     addPlace, addBooking, addTransport,
     optimize, exportGoogleMaps, exportCoMaps, renameDay, fullPlaceOf,
     routeModeOptions, setLegMode,

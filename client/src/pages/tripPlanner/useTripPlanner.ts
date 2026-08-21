@@ -200,11 +200,16 @@ export function useTripPlanner() {
   const [editingPlace, setEditingPlace] = useState<Place | null>(null)
   const [prefillCoords, setPrefillCoords] = useState<{ lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string } | null>(null)
   const [editingAssignmentId, setEditingAssignmentId] = useState<number | null>(null)
+  // Day context of the open form. Set only by the day-scoped entry points (the
+  // mobile day toolbar, a long-press on the mobile map); every other opener
+  // clears it, so a place added from the pool still lands in the pool (#1998).
+  const [placeFormDayId, setPlaceFormDayId] = useState<number | null>(null)
+  const [reservationModalDayId, setReservationModalDayId] = useState<number | null>(null)
 
   // The bottom-nav "+" opens the new-place form via ?create=place.
   useEffect(() => {
     if (searchParams.get('create') === 'place') {
-      setEditingPlace(null); setEditingAssignmentId(null); setShowPlaceForm(true)
+      setEditingPlace(null); setEditingAssignmentId(null); setPlaceFormDayId(null); setShowPlaceForm(true)
       setSearchParams(p => { p.delete('create'); return p }, { replace: true })
     }
   }, [searchParams])
@@ -268,7 +273,30 @@ export function useTripPlanner() {
   // Manual route planning: off by default, toggled from the day-plan footer. Mode
   // is per-session and selects which travel time the connectors show — either a
   // built-in OSRM profile or a plugin route profile ('plugin:<id>/<profile>').
-  const [routeShown, setRouteShown] = useState(false)
+  // Per-trip route visibility. `null` = the user has never said anything, which
+  // is what lets the mobile map switch it on by default; an explicit false has to
+  // survive every later map entry, and it used to be clobbered on each one (#2003).
+  const routeStorageKey = tripId ? `trek:day-route:${tripId}` : null
+  const [routeChoice, setRouteChoice] = useState<boolean | null>(() => {
+    if (typeof window === 'undefined' || !routeStorageKey) return null
+    const raw = window.localStorage.getItem(routeStorageKey)
+    return raw === 'true' ? true : raw === 'false' ? false : null
+  })
+  const routeShown = routeChoice === true
+  const setRouteShown = useCallback((v: boolean | ((prev: boolean) => boolean)) => {
+    setRouteChoice(prev => {
+      const next = typeof v === 'function' ? v(prev === true) : v
+      if (routeStorageKey && typeof window !== 'undefined') {
+        window.localStorage.setItem(routeStorageKey, String(next))
+      }
+      return next
+    })
+  }, [routeStorageKey])
+  // The mobile map opens with the day's route drawn — a default, not a choice, so
+  // it never overwrites an explicit off and is never written to storage itself.
+  const autoShowRoute = useCallback(() => {
+    setRouteChoice(prev => (prev === null ? true : prev))
+  }, [])
   const [routeProfile, setRouteProfile] = useState<string>('driving')
   const [fitKey, setFitKey] = useState<number>(0)
   const initialFitTripId = useRef<number | null>(null)
@@ -288,7 +316,10 @@ export function useTripPlanner() {
   }, [trip, places])
 
   useEffect(() => {
-    healthApi.features().then(f => setBookingImportAvailable(f.bookingImport)).catch(() => {})
+    // The server runs the import when EITHER kitinerary or the LLM parser is
+    // there (booking-import.service.ts), so gating the entry point on kitinerary
+    // alone hid a working feature on LLM-only instances (#2007).
+    healthApi.features().then(f => setBookingImportAvailable(f.bookingImport || f.aiParsing)).catch(() => {})
   }, [])
 
   const connectionsStorageKey = tripId ? `trek:visible-connections:${tripId}` : null
@@ -488,13 +519,14 @@ export function useTripPlanner() {
     setSelectedPlaceId(null)
   }, [])
 
-  const handleMapContextMenu = useCallback(async (e) => {
+  const handleMapContextMenu = useCallback(async (e, dayId?: number | null) => {
     if (!can('place_edit', trip)) return
     e.originalEvent?.preventDefault()
     const { lat, lng } = e.latlng
     setPrefillCoords({ lat, lng })
     setEditingPlace(null)
     setEditingAssignmentId(null)
+    setPlaceFormDayId(dayId ?? null)
     setShowPlaceForm(true)
     try {
       const { mapsApi } = await import('../../api/client')
@@ -507,7 +539,7 @@ export function useTripPlanner() {
 
   // Open the Add-Place form pre-filled from an OSM "explore" POI marker — all the
   // data already comes from the POI, so no reverse-geocode is needed.
-  const openAddPlaceFromPoi = useCallback((poi: { lat: number; lng: number; name: string; address: string | null; website: string | null; phone: string | null; osm_id: string }) => {
+  const openAddPlaceFromPoi = useCallback((poi: { lat: number; lng: number; name: string; address: string | null; website: string | null; phone: string | null; osm_id: string }, dayId?: number | null) => {
     if (!can('place_edit', trip)) return
     setPrefillCoords({
       lat: poi.lat,
@@ -520,6 +552,7 @@ export function useTripPlanner() {
     })
     setEditingPlace(null)
     setEditingAssignmentId(null)
+    setPlaceFormDayId(dayId ?? null)
     setShowPlaceForm(true)
   }, [trip])
 
@@ -548,6 +581,18 @@ export function useTripPlanner() {
       return { id: editingPlace.id }
     } else {
       const place = await tripActions.addPlace(tripId, data)
+      // Added from inside a day? Then it belongs to that day. Without this the
+      // place drops into the unplanned pool and, on mobile, into a different
+      // screen entirely — which reads as "it wasn't saved" (#1998).
+      if (place?.id && placeFormDayId != null) {
+        try {
+          await tripActions.assignPlaceToDay(tripId, placeFormDayId, place.id)
+          updateRouteForDay(placeFormDayId)
+        } catch (err: unknown) {
+          // The place itself exists; only the day link failed.
+          toast.error(err instanceof Error ? err.message : t('common.unknownError'))
+        }
+      }
       if (pendingFiles?.length > 0 && place?.id) {
         for (const file of pendingFiles) {
           const fd = new FormData()
@@ -567,7 +612,7 @@ export function useTripPlanner() {
       // exist a moment ago (#1298), the same way the booking modals work.
       return place?.id ? { id: place.id } : undefined
     }
-  }, [editingPlace, editingAssignmentId, tripId, toast, pushUndo])
+  }, [editingPlace, editingAssignmentId, placeFormDayId, tripId, toast, pushUndo, updateRouteForDay])
 
   // Open the place editor from any entry point (Places pool, inspector, map).
   // Times live per day-assignment, so when no day is in context resolve the
@@ -576,6 +621,7 @@ export function useTripPlanner() {
   const openPlaceEditor = useCallback((place: Place, preferredAssignmentId: number | null = null) => {
     setEditingPlace(place)
     setEditingAssignmentId(preferredAssignmentId ?? resolvePoolAssignmentId(assignments, place.id))
+    setPlaceFormDayId(null)
     setShowPlaceForm(true)
   }, [assignments])
 
@@ -985,6 +1031,7 @@ export function useTripPlanner() {
     showDayDetail, setShowDayDetail, dayDetailCollapsed, setDayDetailCollapsed,
     showPlaceForm, setShowPlaceForm, editingPlace, setEditingPlace,
     prefillCoords, setPrefillCoords, editingAssignmentId, setEditingAssignmentId,
+    placeFormDayId, setPlaceFormDayId, reservationModalDayId, setReservationModalDayId,
     showTripForm, setShowTripForm, showMembersModal, setShowMembersModal,
     showReservationModal, setShowReservationModal, editingReservation, setEditingReservation,
     showBookingImport, setShowBookingImport, bookingImportAvailable,
@@ -994,7 +1041,7 @@ export function useTripPlanner() {
     transportModalDayId, setTransportModalDayId,
     transportModalAutomated, setTransportModalAutomated, transitPrefill, setTransitPrefill, transitJourney, setTransitJourney,
     reservationPrefill, transportPrefill, importReviewActive, startImportReview, advanceImportReview,
-    routeShown, setRouteShown, routeProfile, setRouteProfile, routeVias, fitKey, setFitKey,
+    routeShown, setRouteShown, autoShowRoute, routeProfile, setRouteProfile, routeVias, fitKey, setFitKey,
     mobileSidebarOpen, setMobileSidebarOpen, mobilePlanScrollTopRef, mobilePlacesScrollTopRef,
     deletePlaceId, setDeletePlaceId, deletePlaceIds, setDeletePlaceIds,
     visibleConnections, toggleConnection, allConnectionsShown, toggleAllConnections, mapTransportDetail, setMapTransportDetail,

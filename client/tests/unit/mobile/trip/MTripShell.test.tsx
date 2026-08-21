@@ -182,7 +182,7 @@ describe('MTripShell', () => {
   it('FE-MOB-SHELL-014: the map toggle draws the route and refits the selected day', () => {
     const { planner } = renderShell()
     fireEvent.click(screen.getByRole('button', { name: 'mobileTrip.mapView' }))
-    expect(planner.setRouteShown).toHaveBeenCalledWith(true)
+    expect(planner.autoShowRoute).toHaveBeenCalled()
     expect(planner.handleSelectDay).toHaveBeenCalledWith(11, false)
     expect(shellApi.view).toBe('map')
     // The timeline unmounts, the map layer stays warm underneath.
@@ -196,13 +196,15 @@ describe('MTripShell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'mobileTrip.listView' }))
     expect(shellApi.view).toBe('plan')
     expect(screen.getByTestId('plan-timeline')).toBeInTheDocument()
-    expect(spy(planner, 'setRouteShown')).toHaveBeenCalledTimes(1)
+    // Entering the map defaults the route on once; leaving it leaves the choice alone.
+    expect(spy(planner, 'autoShowRoute')).toHaveBeenCalledTimes(1)
+    expect(spy(planner, 'setRouteShown')).not.toHaveBeenCalled()
   })
 
   it('FE-MOB-SHELL-016: the map toggle skips the refit while no day is selected', () => {
     const { planner } = renderShell({ selectedDayId: null } as Partial<TripPlanner>)
     fireEvent.click(screen.getByRole('button', { name: 'mobileTrip.mapView' }))
-    expect(planner.setRouteShown).toHaveBeenCalledWith(true)
+    expect(planner.autoShowRoute).toHaveBeenCalled()
     expect(planner.handleSelectDay).not.toHaveBeenCalled()
   })
 
@@ -238,7 +240,7 @@ describe('MTripShell', () => {
     const { planner } = renderShell()
     fireEvent.click(screen.getByRole('button', { name: 'Sun 3' }))
     expect(planner.handleSelectDay).toHaveBeenCalledWith(12, true)
-    expect(planner.setRouteShown).not.toHaveBeenCalled()
+    expect(planner.autoShowRoute).not.toHaveBeenCalled()
   })
 
   it('FE-MOB-SHELL-021: tapping the active day opens the day sheet', () => {
@@ -254,7 +256,7 @@ describe('MTripShell', () => {
     vi.mocked(planner.setRouteShown).mockClear()
     fireEvent.click(screen.getByRole('button', { name: 'Sun 3' }))
     expect(planner.handleSelectDay).toHaveBeenLastCalledWith(12, false)
-    expect(planner.setRouteShown).toHaveBeenCalledWith(true)
+    expect(planner.autoShowRoute).toHaveBeenCalled()
   })
 
   // #1962 — the phone lost the desktop sidebar's collapse chevron, so the map showed

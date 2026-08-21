@@ -181,6 +181,7 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
     setEditingPlace(null)
     setEditingAssignmentId(null)
     setPrefillCoords(null)
+    planner.setPlaceFormDayId(null)
     if (deleteArmed) setDeletePlaceId(null)
   }
 
