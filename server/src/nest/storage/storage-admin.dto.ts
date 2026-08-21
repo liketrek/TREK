@@ -1,5 +1,5 @@
 import { createZodDto } from 'nestjs-zod';
-import { storageConfigSchema, storageTestRequestSchema } from '@trek/shared';
+import { storageConfigSchema, storageMigrationRequestSchema, storageTestRequestSchema } from '@trek/shared';
 
 /**
  * createZodDto wrappers over the @trek/shared storage contracts — the global
@@ -8,3 +8,4 @@ import { storageConfigSchema, storageTestRequestSchema } from '@trek/shared';
  */
 export class StorageConfigDto extends createZodDto(storageConfigSchema) {}
 export class StorageTestRequestDto extends createZodDto(storageTestRequestSchema) {}
+export class StorageMigrationRequestDto extends createZodDto(storageMigrationRequestSchema) {}

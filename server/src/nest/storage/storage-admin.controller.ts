@@ -10,14 +10,13 @@ import { AuditService } from '../audit/audit.service';
 import { getClientIp } from '../audit/client-ip';
 import { ManagedForbidden } from '../common/managed';
 import { StorageAdminService } from './storage-admin.service';
-import { StorageConfigDto, StorageTestRequestDto } from './storage-admin.dto';
+import { StorageConfigDto, StorageMigrationRequestDto, StorageTestRequestDto } from './storage-admin.dto';
 import {
   BackfillBusyError,
   BackfillTargetError,
   MigrationRequestError,
   MigrationTargetError,
 } from './storage-jobs.service';
-import type { StorageCategory } from './storage.types';
 import { StatsBusyError } from './storage-stats.service';
 
 /**
@@ -118,16 +117,11 @@ export class StorageAdminController {
 
   /** Start a category migration: copy → flip → delta sweep. One storage job at a time. */
   @Post('migrations')
-  migrationStart(
-    @CurrentUser() user: User,
-    @Body() body: { category?: string; to?: string },
-    @Req() req: Request,
-  ): { started: true } {
-    const category = typeof body?.category === 'string' ? body.category : '';
-    const to = typeof body?.to === 'string' ? body.to : '';
-    if (!category || !to) throw new HttpException({ error: 'category and to are required' }, 400);
+  @HttpCode(200)
+  migrationStart(@CurrentUser() user: User, @Body() body: StorageMigrationRequestDto, @Req() req: Request): { started: true } {
+    const { category, to } = body;
     try {
-      this.service.startMigration(category as StorageCategory, to);
+      this.service.startMigration(category, to);
     } catch (err) {
       if (err instanceof MigrationRequestError) throw new HttpException({ error: err.message }, 400);
       if (err instanceof MigrationTargetError) throw new HttpException({ error: err.message }, 404);

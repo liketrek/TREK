@@ -288,6 +288,12 @@ export type StorageAdminState = z.infer<typeof storageAdminStateSchema>;
 export const storageTestRequestSchema = z.strictObject({ backend: storageBackendSchema });
 export type StorageTestRequest = z.infer<typeof storageTestRequestSchema>;
 
+export const storageMigrationRequestSchema = z.strictObject({
+  category: storageCategorySchema,
+  to: z.string().min(1),
+});
+export type StorageMigrationRequest = z.infer<typeof storageMigrationRequestSchema>;
+
 export const storageTestResponseSchema = z.object({
   ok: z.boolean(),
   targets: z.array(z.object({ name: z.string(), ok: z.boolean(), error: z.string().optional() })),

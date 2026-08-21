@@ -248,7 +248,7 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
       .post('/api/admin/storage/migrations')
       .set('Cookie', adminCookie)
       .send({ category: 'journey', to: 'dest' });
-    expect(start.status).toBe(201);
+    expect(start.status).toBe(200);
     expect(start.body).toEqual({ started: true });
 
     let status: { status: string } | undefined;
