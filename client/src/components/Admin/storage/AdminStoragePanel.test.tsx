@@ -30,7 +30,6 @@ function baseState(overrides: Partial<StorageAdminState> = {}): StorageAdminStat
       backups: { backend: 'backups-local', source: 'default' },
     },
     health: { replicaFailures: [] },
-    encryptionReady: true,
     seedFilePresent: false,
     usage: null,
     backfills: [],
@@ -449,12 +448,28 @@ describe('AdminStoragePanel', () => {
     ];
     await renderPanel(runningState);
 
-    // Stub GET with a deferred response: the poll that fires next is held
-    // open (simulating a slow GET issued before the save's PUT resolves)
-    // until the test releases it explicitly, after the save has landed.
-    let releaseStalePoll!: () => void;
+    // The save's own PUT will land a distinct, fresh world: files reassigned
+    // to off-box, backfill finished. This must be what the panel shows.
+    const savedState = mirroredState();
+    savedState.categories.files = { backend: 'off-box', source: 'settings' };
+
+    // Hold ONLY the first poll GET open (the genuinely stale one, issued
+    // before the save) until the test releases it explicitly. Every later
+    // poll GET is answered immediately with the world the mock server
+    // currently holds — pre-save before the PUT, saved after — because a
+    // real server can never answer a GET issued after the PUT committed
+    // with the pre-save world. (An earlier version of this stub deferred
+    // EVERY GET and rebound the release handle to the newest one; a poll
+    // tick squeezing in after the save then got released with the pre-save
+    // payload, which no real backend can produce — and the seq guard
+    // rightly let it through, failing the test.)
+    let releaseStalePoll: (() => void) | undefined;
+    let putLanded = false;
     server.use(
       http.get('/api/admin/storage', () => {
+        if (releaseStalePoll) {
+          return HttpResponse.json(putLanded ? savedState : runningState);
+        }
         return new Promise<Response>((resolve) => {
           releaseStalePoll = () => resolve(HttpResponse.json(runningState) as unknown as Response);
         });
@@ -463,13 +478,10 @@ describe('AdminStoragePanel', () => {
     // Wait for the 50ms interval to fire and get stuck on the deferred GET.
     await waitFor(() => expect(releaseStalePoll).toBeDefined());
 
-    // The save's own PUT lands a distinct, fresh world: files reassigned to
-    // off-box, backfill finished. This must be what the panel shows.
-    const savedState = mirroredState();
-    savedState.categories.files = { backend: 'off-box', source: 'settings' };
     server.use(
       http.put('/api/admin/storage', async ({ request }) => {
         await request.json();
+        putLanded = true;
         return HttpResponse.json(savedState);
       }),
     );
@@ -482,7 +494,7 @@ describe('AdminStoragePanel', () => {
 
     // Now let the stale poll (issued before the save, carrying the pre-save
     // world) resolve. It must be dropped, not applied over the save.
-    releaseStalePoll();
+    releaseStalePoll!();
     await new Promise((r) => setTimeout(r, 150));
     expect(within(categoryRow('files')).getByText('off-box')).toBeInTheDocument();
     expect(within(categoryRow('files')).queryByText('uploads-local')).not.toBeInTheDocument();
