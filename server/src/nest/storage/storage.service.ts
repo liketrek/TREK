@@ -282,6 +282,18 @@ export class StorageService {
     return { replicaFailures: this.registry.replicaFailures() };
   }
 
+  /**
+   * Re-read storage config from `app_settings` and swap the registry's
+   * resolved backends/categories — the narrow passthrough a restore uses
+   * after reopening the DB (backup.impl.ts's restoreFromZip), so rehydrated
+   * bytes land where the RESTORED config says rather than the stale
+   * pre-restore one. Same shape as health(): StorageRegistryService stays
+   * unexported from the module, this facade is the only way in.
+   */
+  reloadConfig(): void {
+    this.registry.reload();
+  }
+
   private resolve(category: ServedCategory, name: string): Resolved {
     const { driver, keyPrefix } = this.registry.resolve(category);
     const key = keyPrefix + name;

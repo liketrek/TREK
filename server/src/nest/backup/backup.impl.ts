@@ -487,37 +487,6 @@ export async function restoreFromZip(storage: StorageService, zipPath: string): 
       if (fs.existsSync(extractedEncKey)) {
         fs.copyFileSync(extractedEncKey, path.join(dataDir, '.encryption_key'));
       }
-
-      const extractedUploads = path.join(extractDir, 'uploads');
-      if (fs.existsSync(extractedUploads)) {
-        // Parity with the legacy wipe: it unlinked one level deep only (nested
-        // files — journey/thumbs, photos/google — survived until overwritten by
-        // the copy) and swallowed per-file errors.
-        for (const category of BACKUP_UPLOAD_CATEGORIES) {
-          for await (const obj of storage.list(category)) {
-            if (obj.key.includes('/')) continue;
-            await storage.delete(category, obj.key).catch(() => { /* best-effort, as the old unlink loop was */ });
-          }
-        }
-        await rehydrateUploads(storage, extractedUploads);
-      }
-
-      // Plugin trees can't be swapped while the runtime holds their DBs open, so stage
-      // them beside the live trees, then ask the runtime to quiesce its plugins and apply
-      // the swap NOW. If the runtime isn't up (plugins disabled / restore during boot),
-      // the staging waits for the boot reconcile — with nothing running, no data diverges.
-      // Best-effort: a staging error must not fail an otherwise-good core restore.
-      try {
-        stageExtractedPluginTrees(extractDir);
-        // Quiesce regardless of whether trees were staged: the restored travel.db carries
-        // a different `plugins` table, so any plugin still running with its pre-restore
-        // identity/grants is now a ghost — invisible in the restored UI, unstoppable short
-        // of a process restart. applyStagedRestoreNow closes those handles; the tree swap
-        // it also performs is a no-op when nothing was staged (e.g. an older archive).
-        await applyStagedRestoreNow();
-      } catch (e) {
-        console.error('Restore: staging plugin trees failed:', e);
-      }
     } finally {
       // Reopening the DB must always run (even if the copy above threw) so the
       // process is never left without a connection. Capture a reopen failure
@@ -535,6 +504,54 @@ export async function restoreFromZip(storage: StorageService, zipPath: string): 
       // permission would decide against the wrong grants until the
       // next restart. Dropping the cache forces a fresh read.
       invalidatePermissionsCache();
+    }
+
+    if (!reinitFailed) {
+      // The registry reads storage.* app_settings through the DB handle that
+      // was just closed and reopened above — reload it now, AFTER reinitialize()
+      // and BEFORE any byte moves, so rehydrated uploads land where the RESTORED
+      // config says rather than the stale pre-restore one (audit #4). Skipped
+      // entirely when reopen failed: with no live DB handle the registry has
+      // nothing to read, and the restore is already reported as "restart
+      // required" below — rehydrating into a stale/guessed config would be worse.
+      storage.reloadConfig();
+
+      const extractedUploads = path.join(extractDir, 'uploads');
+      if (fs.existsSync(extractedUploads)) {
+        // Parity with the legacy wipe: it unlinked one level deep only (nested
+        // files — journey/thumbs, photos/google — survived until overwritten by
+        // the copy) and swallowed per-file errors.
+        for (const category of BACKUP_UPLOAD_CATEGORIES) {
+          for await (const obj of storage.list(category)) {
+            if (obj.key.includes('/')) continue;
+            await storage.delete(category, obj.key).catch(() => { /* best-effort, as the old unlink loop was */ });
+          }
+        }
+        await rehydrateUploads(storage, extractedUploads);
+      }
+    }
+
+    // Plugin trees can't be swapped while the runtime holds their DBs open, so stage
+    // them beside the live trees, then ask the runtime to quiesce its plugins and apply
+    // the swap NOW. If the runtime isn't up (plugins disabled / restore during boot),
+    // the staging waits for the boot reconcile — with nothing running, no data diverges.
+    // Best-effort: a staging error must not fail an otherwise-good core restore. Runs
+    // UNCONDITIONALLY, even when reinitFailed — unlike reload/rehydration this is pure
+    // filesystem staging with no DB dependency (plugin-backup.ts), so a failed reopen
+    // must not cost the archive's plugin data: extractDir is unlinked right below, and
+    // an un-staged tree there would be gone for good with no recovery path.
+    try {
+      stageExtractedPluginTrees(extractDir);
+      // Quiesce regardless of whether trees were staged: the restored travel.db carries
+      // a different `plugins` table, so any plugin still running with its pre-restore
+      // identity/grants is now a ghost — invisible in the restored UI, unstoppable short
+      // of a process restart. applyStagedRestoreNow closes those handles; the tree swap
+      // it also performs is a no-op when nothing was staged (e.g. an older archive). It
+      // degrades gracefully when the DB isn't reopened, same as any other best-effort
+      // failure here.
+      await applyStagedRestoreNow();
+    } catch (e) {
+      console.error('Restore: staging plugin trees failed:', e);
     }
 
     fs.rmSync(extractDir, { recursive: true, force: true });

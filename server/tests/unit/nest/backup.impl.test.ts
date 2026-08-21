@@ -103,6 +103,7 @@ function stubStorage(overrides: Record<string, unknown> = {}): StorageService {
     spoolDirFor: vi.fn(() => '/stub/spool'),
     tempDir: vi.fn(() => '/stub/tmp'),
     health: vi.fn(() => ({ replicaFailures: [] })),
+    reloadConfig: vi.fn(),
     ...overrides,
   } as unknown as StorageService;
 }
@@ -864,14 +865,26 @@ describe('BACKUP-061 restoreFromZip extraction', () => {
     dbMock.reinitialize.mockImplementationOnce(() => {
       throw new Error('database is locked');
     });
+    const storage = stubStorage();
 
-    const result = await restoreFromZip(stubStorage(), '/data/tmp/ok.zip');
+    const result = await restoreFromZip(storage, '/data/tmp/ok.zip');
 
     // The files already landed, so this is neither a success nor a plain failure: the
     // admin has to restart, and the message has to say so.
     expect(result.success).toBe(false);
     expect(result.status).toBe(500);
     expect(result.error).toMatch(/restart the server/i);
+    // A failed reopen leaves no live DB handle for the registry to read: reload
+    // (and with it any rehydration) is skipped rather than reading through a
+    // torn/unavailable connection — already reported as "restart required".
+    expect(storage.reloadConfig).not.toHaveBeenCalled();
+    expect(storage.put).not.toHaveBeenCalled();
+    // Plugin-tree staging is pure filesystem (plugin-backup.ts), has no DB
+    // dependency, and is the archive's ONLY copy of that data — it must still
+    // run even when the DB reopen failed, or extractDir's cleanup right after
+    // would delete it with no recovery path. fs.cpSync only fires from inside
+    // stageExtractedPluginTrees in this flow, so its call is the proof.
+    expect(fsMock.cpSync).toHaveBeenCalled();
   });
 });
 
@@ -1255,6 +1268,40 @@ describe('BACKUP-045 restoreFromZip — full success path (no uploads)', () => {
       expect.stringContaining('.encryption_key'),
       expect.stringContaining('.encryption_key'),
     );
+  });
+
+  it('BACKUP-045f — reloadConfig runs after reinitialize and before uploads rehydration (audit #4)', async () => {
+    // The registry reads storage.* app_settings through the DB handle — which
+    // is closed and reopened around this restore. reloadConfig() must run
+    // AFTER that reopen (else it reads a torn/unavailable connection) and
+    // BEFORE any rehydrated byte is put, so rehydration lands per the
+    // RESTORED config rather than the stale pre-restore one.
+    setupSuccessfulExtraction();
+    setupAllTablesPresent();
+
+    const callOrder: string[] = [];
+    dbMock.reinitialize.mockImplementation(() => { callOrder.push('reinitialize'); });
+
+    const dirent = (name: string, dir = false) => ({ name, isDirectory: () => dir, isFile: () => !dir });
+    fsMock.existsSync.mockImplementation((p: string) => !String(p).endsWith('.encryption_key'));
+    fsMock.readdirSync.mockImplementation((p: string, opts?: { withFileTypes?: boolean }) => {
+      const s = String(p);
+      const entries = s.endsWith('uploads') ? [dirent('files', true)] : s.endsWith('files') ? [dirent('a.pdf')] : [];
+      return (opts?.withFileTypes ? entries : entries.map(e => e.name)) as never;
+    });
+    fsMock.unlinkSync.mockReturnValue(undefined);
+    fsMock.copyFileSync.mockReturnValue(undefined);
+    fsMock.rmSync.mockReturnValue(undefined);
+
+    const storage = stubStorage({
+      reloadConfig: vi.fn(() => { callOrder.push('reloadConfig'); }),
+      put: vi.fn(async () => { callOrder.push('put:rehydrate'); }),
+    });
+
+    const result = await restoreFromZip(storage, '/data/tmp/upload.zip');
+
+    expect(result).toEqual({ success: true });
+    expect(callOrder).toEqual(['reinitialize', 'reloadConfig', 'put:rehydrate']);
   });
 });
 
