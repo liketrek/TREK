@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { pipeline } from 'node:stream/promises';
 import type { Readable } from 'node:stream';
 import { assertValidKey, assertValidPrefix } from '../storage-keys';
+import { contentTypeFor } from '../content-type';
 import {
   isLocalTempFile,
   StorageInvalidKeyError,
@@ -18,7 +19,7 @@ import {
 export interface ReplicaFailure {
   backend: string;
   key: string;
-  op: 'put' | 'delete';
+  op: 'put' | 'delete' | 'stat';
   error: string;
   at: number;
 }
@@ -211,7 +212,7 @@ export class MirrorDriver implements StorageDriver {
             }
           } catch (err) {
             progress.failed += 1;
-            this.reportReplicaFailure(replica.id, stat.key, 'put', err);
+            this.reportReplicaFailure(replica.id, stat.key, 'stat', err);
           }
         }
 
@@ -230,7 +231,7 @@ export class MirrorDriver implements StorageDriver {
           try {
             for (const replica of needy) {
               try {
-                await replica.put(stat.key, fs.createReadStream(file));
+                await replica.put(stat.key, fs.createReadStream(file), { contentType: contentTypeFor(stat.key) });
                 progress.copied += 1;
               } catch (err) {
                 progress.failed += 1;
@@ -243,9 +244,11 @@ export class MirrorDriver implements StorageDriver {
         }
 
         progress.done += 1;
+        if (progress.done > progress.total) progress.total = progress.done;
         hooks.onProgress({ ...progress });
       }
     }
+    progress.total = progress.done;
     return { ...progress, cancelled: false };
   }
 
@@ -260,7 +263,7 @@ export class MirrorDriver implements StorageDriver {
     throw primaryErr;
   }
 
-  private reportReplicaFailure(backend: string, key: string, op: 'put' | 'delete', err: unknown): void {
+  private reportReplicaFailure(backend: string, key: string, op: 'put' | 'delete' | 'stat', err: unknown): void {
     this.onReplicaFailure?.({
       backend,
       key,

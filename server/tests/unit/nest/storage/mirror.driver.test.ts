@@ -4,7 +4,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { LocalDriver } from '../../../../src/nest/storage/drivers/local.driver';
-import { MirrorDriver, type ReplicaFailure } from '../../../../src/nest/storage/drivers/mirror.driver';
+import {
+  MirrorDriver,
+  type BackfillHooks,
+  type ReplicaFailure,
+} from '../../../../src/nest/storage/drivers/mirror.driver';
 import {
   StorageBackendError,
   StorageNotFoundError,
@@ -176,5 +180,79 @@ describe('MirrorDriver specifics', () => {
     vi.spyOn(fx.primary, 'put').mockRejectedValueOnce(new StorageBackendError('nope'));
     await expect(fx.mirror.put('backup-9.zip', Readable.from('fail'))).rejects.toThrow();
     expect(fs.readdirSync(fx.spool)).toEqual([]);
+  });
+});
+
+describe('MirrorDriver.backfill polish', () => {
+  const cleanups: string[] = [];
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    while (cleanups.length) fs.rmSync(cleanups.pop()!, { recursive: true, force: true });
+  });
+
+  function setup(): {
+    mirror: MirrorDriver;
+    primary: LocalDriver;
+    replica: StorageDriver;
+    primaryRoot: string;
+    failures: ReplicaFailure[];
+  } {
+    const p = makeLocal('primary-local');
+    const r = makeLocal('replica-local');
+    const spool = makeTmpDir();
+    const failures: ReplicaFailure[] = [];
+    const mirror = new MirrorDriver({
+      id: 'backup-mirror',
+      primary: p.driver,
+      replicas: [r.driver],
+      tempDir: () => spool,
+      onReplicaFailure: (f) => failures.push(f),
+    });
+    cleanups.push(p.root, r.root, spool);
+    return { mirror, primary: p.driver, replica: r.driver, primaryRoot: p.root, failures };
+  }
+
+  function hooks(): BackfillHooks {
+    return { onProgress: () => undefined, isCancelled: () => false };
+  }
+
+  it('MIRROR-BF-020 backfill puts carry a contentType derived from the key', async () => {
+    const fx = setup();
+    await fx.primary.put('files/a.pdf', Readable.from('pdf bytes'));
+    const putSpy = vi.spyOn(fx.replica, 'put');
+
+    await fx.mirror.backfill(['files/'], hooks());
+
+    const call = putSpy.mock.calls.find(([key]) => key === 'files/a.pdf')!;
+    expect(call[2]).toEqual({ contentType: 'application/pdf' });
+  });
+
+  it('MIRROR-BF-021 a replica STAT failure reports op stat, not put', async () => {
+    const fx = setup();
+    await fx.primary.put('files/a.pdf', Readable.from('pdf bytes'));
+    vi.spyOn(fx.replica, 'stat').mockRejectedValueOnce(new Error('probe down'));
+
+    await fx.mirror.backfill(['files/'], hooks());
+
+    expect(fx.failures.some((f) => f.op === 'stat')).toBe(true);
+  });
+
+  it('MIRROR-BF-022 done never exceeds total, and total settles to done on completion', async () => {
+    const fx = setup();
+    await fx.primary.put('files/a.txt', Readable.from('a'));
+    await fx.primary.put('files/b.txt', Readable.from('b'));
+
+    const snapshots: Array<{ done: number; total: number }> = [];
+    const result = await fx.mirror.backfill(['files/'], {
+      onProgress: (p) => {
+        snapshots.push({ done: p.done, total: p.total });
+        if (snapshots.length === 1) fs.writeFileSync(path.join(fx.primaryRoot, 'files', 'late.txt'), 'x');
+      },
+      isCancelled: () => false,
+    });
+
+    for (const s of snapshots) expect(s.done).toBeLessThanOrEqual(s.total);
+    expect(result.total).toBe(result.done);
   });
 });

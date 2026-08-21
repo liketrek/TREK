@@ -207,7 +207,7 @@ export const storageCategorySourceSchema = z.enum(['default', 'settings']);
 export const storageReplicaFailureSchema = z.object({
   backend: z.string(),
   key: z.string(),
-  op: z.enum(['put', 'delete']),
+  op: z.enum(['put', 'delete', 'stat']),
   error: z.string(),
   at: z.number(),
 });
