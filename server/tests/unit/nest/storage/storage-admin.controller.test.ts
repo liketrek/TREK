@@ -9,7 +9,12 @@ import type { AuditService } from '../../../../src/nest/audit/audit.service';
 import type { StorageConfigDto, StorageTestRequestDto } from '../../../../src/nest/storage/storage-admin.dto';
 import { StorageModule } from '../../../../src/nest/storage/storage.module';
 import { StorageBackendError } from '../../../../src/nest/storage/storage.types';
-import { BackfillBusyError, BackfillTargetError } from '../../../../src/nest/storage/storage-jobs.service';
+import {
+  BackfillBusyError,
+  BackfillTargetError,
+  MigrationRequestError,
+  MigrationTargetError,
+} from '../../../../src/nest/storage/storage-jobs.service';
 import { StatsBusyError } from '../../../../src/nest/storage/storage-stats.service';
 import { expectRegisteredController } from '../../../helpers/module-providers';
 
@@ -228,5 +233,97 @@ describe('StorageAdminController', () => {
     });
     await expect(controller.statsRefresh(user, req)).rejects.toBe(boom);
     expect(writeAudit).not.toHaveBeenCalled();
+  });
+
+  it('STORCTL-020 POST migrations starts and audits', () => {
+    const { controller, service, writeAudit } = makeController({ startMigration: vi.fn() });
+    const result = controller.migrationStart(user, { category: 'files', to: 'dest' }, req);
+    expect(service.startMigration).toHaveBeenCalledWith('files', 'dest');
+    expect(result).toEqual({ started: true });
+    expect(writeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 1,
+        action: 'admin.storage_migration',
+        details: { category: 'files', to: 'dest' },
+      }),
+    );
+  });
+
+  it('STORCTL-021 POST maps MigrationRequestError→400, MigrationTargetError→404, BackfillBusyError→409, others rethrow', () => {
+    const { controller: reqController, writeAudit: reqAudit } = makeController({
+      startMigration: vi.fn(() => {
+        throw new MigrationRequestError("'files' is already on 'dest'");
+      }),
+    });
+    try {
+      reqController.migrationStart(user, { category: 'files', to: 'dest' }, req);
+      expect.unreachable('should have thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(HttpException);
+      expect((err as HttpException).getStatus()).toBe(400);
+      expect((err as HttpException).getResponse()).toEqual({ error: "'files' is already on 'dest'" });
+    }
+    expect(reqAudit).not.toHaveBeenCalled();
+
+    const { controller: targetController, writeAudit: targetAudit } = makeController({
+      startMigration: vi.fn(() => {
+        throw new MigrationTargetError("no backend named 'ghost'");
+      }),
+    });
+    try {
+      targetController.migrationStart(user, { category: 'files', to: 'ghost' }, req);
+      expect.unreachable('should have thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(HttpException);
+      expect((err as HttpException).getStatus()).toBe(404);
+      expect((err as HttpException).getResponse()).toEqual({ error: "no backend named 'ghost'" });
+    }
+    expect(targetAudit).not.toHaveBeenCalled();
+
+    const { controller: busyController, writeAudit: busyAudit } = makeController({
+      startMigration: vi.fn(() => {
+        throw new BackfillBusyError('a sync is already running — one storage job at a time');
+      }),
+    });
+    try {
+      busyController.migrationStart(user, { category: 'files', to: 'dest' }, req);
+      expect.unreachable('should have thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(HttpException);
+      expect((err as HttpException).getStatus()).toBe(409);
+    }
+    expect(busyAudit).not.toHaveBeenCalled();
+
+    const boom = new Error('unexpected registry failure');
+    const { controller: boomController, writeAudit: boomAudit } = makeController({
+      startMigration: vi.fn(() => {
+        throw boom;
+      }),
+    });
+    expect(() => boomController.migrationStart(user, { category: 'files', to: 'dest' }, req)).toThrow(boom);
+    expect(boomAudit).not.toHaveBeenCalled();
+  });
+
+  it('STORCTL-022 DELETE migrations/:category cancels + audits; 404 when none running', () => {
+    const { controller, service, writeAudit } = makeController({ cancelMigration: vi.fn(() => true) });
+    const result = controller.migrationCancel(user, 'files', req);
+    expect(service.cancelMigration).toHaveBeenCalledWith('files');
+    expect(result).toEqual({ cancelled: true });
+    expect(writeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 1, action: 'admin.storage_migration_cancel', details: { category: 'files' } }),
+    );
+
+    const { controller: noneController, writeAudit: noneAudit } = makeController({
+      cancelMigration: vi.fn(() => false),
+    });
+    try {
+      noneController.migrationCancel(user, 'ghost', req);
+      expect.unreachable('should have thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(HttpException);
+      expect((err as HttpException).getStatus()).toBe(404);
+      expect((err as HttpException).getResponse()).toEqual({ error: "no running migration for 'ghost'" });
+    }
+    expect(noneAudit).not.toHaveBeenCalled();
   });
 });

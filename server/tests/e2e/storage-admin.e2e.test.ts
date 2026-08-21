@@ -235,6 +235,39 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
     expect(JSON.parse(audit.details)).toMatchObject({ backend: 'cand', type: 'local', ok: true });
   });
 
+  it('STORE2E-010 migration moves a category end to end', async () => {
+    const destRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'trek-e2e-migration-dest-'));
+    const put = await request(server)
+      .put('/api/admin/storage')
+      .set('Cookie', adminCookie)
+      .send({ backends: [{ name: 'dest', type: 'local', options: { root: destRoot } }], categories: {} });
+    expect(put.status).toBe(200);
+
+    // 'journey' is empty (no objects planted), so the migration is valid and instant.
+    const start = await request(server)
+      .post('/api/admin/storage/migrations')
+      .set('Cookie', adminCookie)
+      .send({ category: 'journey', to: 'dest' });
+    expect(start.status).toBe(201);
+    expect(start.body).toEqual({ started: true });
+
+    let status: { status: string } | undefined;
+    let stateBody: { categories: Record<string, { backend: string; source: string }> } | undefined;
+    for (let i = 0; i < 50; i++) {
+      const state = await request(server).get('/api/admin/storage').set('Cookie', adminCookie);
+      stateBody = state.body as typeof stateBody;
+      status = (state.body.migrations as Array<{ category: string; status: string }>).find(
+        (m) => m.category === 'journey',
+      );
+      if (status && status.status !== 'running') break;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    expect(status).toMatchObject({ status: 'done' });
+    expect(stateBody!.categories.journey).toEqual({ backend: 'dest', source: 'settings' });
+    const audit = db.prepare("SELECT details FROM audit_log WHERE action = 'admin.storage_migration'").get() as { details: string };
+    expect(JSON.parse(audit.details)).toEqual({ category: 'journey', to: 'dest' });
+  });
+
   it('STORE2E-011 backfill guards: 401 anon, 404 non-mirror, 409 while running is covered by unit — here the 404', async () => {
     expect((await request(server).post('/api/admin/storage/backends/x/backfill')).status).toBe(401);
     const res = await request(server).post('/api/admin/storage/backends/uploads-local/backfill').set('Cookie', adminCookie);

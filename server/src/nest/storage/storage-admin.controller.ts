@@ -11,7 +11,13 @@ import { getClientIp } from '../audit/client-ip';
 import { ManagedForbidden } from '../common/managed';
 import { StorageAdminService } from './storage-admin.service';
 import { StorageConfigDto, StorageTestRequestDto } from './storage-admin.dto';
-import { BackfillBusyError, BackfillTargetError } from './storage-jobs.service';
+import {
+  BackfillBusyError,
+  BackfillTargetError,
+  MigrationRequestError,
+  MigrationTargetError,
+} from './storage-jobs.service';
+import type { StorageCategory } from './storage.types';
 import { StatsBusyError } from './storage-stats.service';
 
 /**
@@ -106,6 +112,47 @@ export class StorageAdminController {
       action: 'admin.storage_backfill_cancel',
       ip: getClientIp(req),
       details: { backend: name },
+    });
+    return { cancelled: true };
+  }
+
+  /** Start a category migration: copy → flip → delta sweep. One storage job at a time. */
+  @Post('migrations')
+  migrationStart(
+    @CurrentUser() user: User,
+    @Body() body: { category?: string; to?: string },
+    @Req() req: Request,
+  ): { started: true } {
+    const category = typeof body?.category === 'string' ? body.category : '';
+    const to = typeof body?.to === 'string' ? body.to : '';
+    if (!category || !to) throw new HttpException({ error: 'category and to are required' }, 400);
+    try {
+      this.service.startMigration(category as StorageCategory, to);
+    } catch (err) {
+      if (err instanceof MigrationRequestError) throw new HttpException({ error: err.message }, 400);
+      if (err instanceof MigrationTargetError) throw new HttpException({ error: err.message }, 404);
+      if (err instanceof BackfillBusyError) throw new HttpException({ error: err.message }, 409);
+      throw err;
+    }
+    this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.storage_migration',
+      ip: getClientIp(req),
+      details: { category, to },
+    });
+    return { started: true };
+  }
+
+  @Delete('migrations/:category')
+  migrationCancel(@CurrentUser() user: User, @Param('category') category: string, @Req() req: Request): { cancelled: true } {
+    if (!this.service.cancelMigration(category)) {
+      throw new HttpException({ error: `no running migration for '${category}'` }, 404);
+    }
+    this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.storage_migration_cancel',
+      ip: getClientIp(req),
+      details: { category },
     });
     return { cancelled: true };
   }

@@ -17,7 +17,7 @@ import {
   unmaskStorageConfig,
 } from './storage-secrets';
 import { ephemeralDriverFor, probeDriver, type ProbeTargetResult } from './storage-probe';
-import { StorageBackendError } from './storage.types';
+import { StorageBackendError, type StorageCategory } from './storage.types';
 import { StorageJobsService } from './storage-jobs.service';
 import { StorageStatsService } from './storage-stats.service';
 
@@ -72,6 +72,20 @@ export class StorageAdminService {
   /** True when an active run was cancelled; false when there was nothing to cancel. */
   cancelBackfill(mirrorName: string): boolean {
     return this.jobs.cancelBackfill(mirrorName);
+  }
+
+  /**
+   * Start a category migration to a new backend. Delegates to the one-at-a-time
+   * job registry; throws MigrationRequestError (400) / MigrationTargetError (404) /
+   * BackfillBusyError (409).
+   */
+  startMigration(category: StorageCategory, to: string): void {
+    this.jobs.startMigration(category, to);
+  }
+
+  /** True when an active migration was cancelled; false when there was nothing to cancel. */
+  cancelMigration(category: string): boolean {
+    return this.jobs.cancelMigration(category);
   }
 
   /** Runs and persists a fresh usage scan. Throws StatsBusyError (409) if one is already running. */

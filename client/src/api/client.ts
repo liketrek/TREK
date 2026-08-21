@@ -655,6 +655,10 @@ export const adminApi = {
     apiClient.post(`/admin/storage/backends/${encodeURIComponent(backend)}/backfill`).then(r => r.data),
   cancelStorageBackfill: (backend: string): Promise<{ cancelled: true }> =>
     apiClient.delete(`/admin/storage/backends/${encodeURIComponent(backend)}/backfill`).then(r => r.data),
+  startStorageMigration: (category: string, to: string): Promise<{ started: true }> =>
+    apiClient.post('/admin/storage/migrations', { category, to }).then(r => r.data),
+  cancelStorageMigration: (category: string): Promise<{ cancelled: true }> =>
+    apiClient.delete(`/admin/storage/migrations/${encodeURIComponent(category)}`).then(r => r.data),
   // A full scan of a large install can exceed the 8s instance timeout.
   refreshStorageStats: (): Promise<StorageUsage> =>
     apiClient.post('/admin/storage/stats/refresh', undefined, { timeout: 120_000 }).then(r => r.data),
