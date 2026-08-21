@@ -28,6 +28,7 @@ const todo: TranslationStrings = {
   'todo.detail.title': 'Görev',
   'todo.detail.description': 'Açıklama',
   'todo.detail.category': 'Liste',
+  'todo.detail.startDate': 'Başlangıç Tarihi',
   'todo.detail.dueDate': 'Son tarih',
   'todo.detail.assignedTo': 'Atanan',
   'todo.detail.delete': 'Sil',

@@ -41,9 +41,12 @@ interface KategorieGruppeProps {
   onLeave?: (id: number, userId: number) => void
   isAdmin?: boolean
   onSaveAsTemplate?: (category: string) => void
+  // Without a travel companion there is no one to assign or share with, so the
+  // assignee chips and per-item sharing controls are hidden.
+  hasCompanions?: boolean
 }
 
-export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, onDeleteAll, onDeleteItem, onAddItem, assignees, tripMembers, onSetAssignees, bagTrackingEnabled, bags, onCreateBag, canEdit = true, allItems, onReorder, currentUserId, onSetSharing, onClone, onJoin, onLeave, isAdmin = false, onSaveAsTemplate }: KategorieGruppeProps) {
+export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, onDeleteAll, onDeleteItem, onAddItem, assignees, tripMembers, onSetAssignees, bagTrackingEnabled, bags, onCreateBag, canEdit = true, allItems, onReorder, currentUserId, onSetSharing, onClone, onJoin, onLeave, isAdmin = false, onSaveAsTemplate, hasCompanions = true }: KategorieGruppeProps) {
   const [offen, setOffen] = useState(true)
   const [dragId, setDragId] = useState<number | null>(null)
   const [overId, setOverId] = useState<number | null>(null)
@@ -144,7 +147,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
 
         {/* Assignee chips */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 3, flex: 1, minWidth: 0, marginLeft: 4 }}>
-          {assignees.map(a => (
+          {hasCompanions && assignees.map(a => (
             <div key={a.user_id} style={{ position: 'relative' }}
               onClick={e => { e.stopPropagation(); if (canEdit) onSetAssignees(kategorie, assignees.filter(x => x.user_id !== a.user_id).map(x => x.user_id)) }}
             >
@@ -170,7 +173,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
               </div>
             </div>
           ))}
-          {canEdit && (
+          {hasCompanions && canEdit && (
           <div ref={assigneeDropdownRef} style={{ position: 'relative' }}>
             <button onClick={e => { e.stopPropagation(); setShowAssigneeDropdown(v => !v) }}
               style={{
@@ -275,7 +278,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
             return (
               <React.Fragment key={item.id}>
                 <ArtikelZeile item={item} tripId={tripId} categories={allCategories} onCategoryChange={() => {}} onDelete={onDeleteItem} bagTrackingEnabled={bagTrackingEnabled} bags={bags} onCreateBag={onCreateBag} canEdit={canEdit}
-                  tripMembers={tripMembers} currentUserId={currentUserId} onSetSharing={onSetSharing} onClone={onClone} onJoin={onJoin} onLeave={onLeave}
+                  tripMembers={tripMembers} currentUserId={currentUserId} onSetSharing={onSetSharing} onClone={onClone} onJoin={onJoin} onLeave={onLeave} hasCompanions={hasCompanions}
                   drag={canEdit ? {
                     isDragging: dragId === item.id,
                     isOver: overId === item.id && dragId !== null && dragId !== item.id,

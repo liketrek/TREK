@@ -51,7 +51,7 @@ import { useTripPlanner } from './tripPlanner/useTripPlanner'
 import { usePoiExplore } from '../components/Map/usePoiExplore'
 import PoiCategoryPill from '../components/Map/PoiCategoryPill'
 
-function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; packingItems: PackingItem[]; todoItems: TodoItem[] }) {
+function ListsContainer({ tripId, packingItems, todoItems, tripMembers }: { tripId: number; packingItems: PackingItem[]; todoItems: TodoItem[]; tripMembers: TripMember[] }) {
   const [subTab, setSubTab] = useState<'packing' | 'todo'>(() => {
     return (sessionStorage.getItem(`trip-lists-subtab-${tripId}`) as 'packing' | 'todo') || 'packing'
   })
@@ -65,6 +65,9 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
   const [packingView, setPackingView] = useState<'common' | 'personal'>('personal')
   const { t } = useTranslation()
   const isAdmin = useAuthStore(s => s.user?.role === 'admin')
+  // Without a travel companion the shared/personal packing split is meaningless:
+  // pin to the user's own list and hide the sharing UI.
+  const hasCompanions = tripMembers.length > 1
 
   const tabs = [
     { id: 'packing' as const, label: t('todo.subtab.packing'), icon: PackageCheck, count: packingItems.length },
@@ -130,7 +133,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
                 )}
                 <ApplyTemplateButton
                   tripId={tripId}
-                  visibility={packingView}
+                  visibility={hasCompanions ? packingView : 'personal'}
                   className={`${sharedBtnClass} bg-accent text-accent-text`}
                   style={sharedBtnStyle}
                 />
@@ -171,7 +174,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
         </div>
       </div>
       <div style={{ padding: '16px 28px 0' }} className="max-md:!px-4">
-        {subTab === 'packing' && <PackingListPanel tripId={tripId} items={packingItems} openImportSignal={importPackingSignal} clearCheckedSignal={clearCheckedSignal} saveTemplateSignal={saveTemplateSignal} inlineHeader={false} view={packingView} onViewChange={setPackingView} />}
+        {subTab === 'packing' && <PackingListPanel tripId={tripId} items={packingItems} openImportSignal={importPackingSignal} clearCheckedSignal={clearCheckedSignal} saveTemplateSignal={saveTemplateSignal} inlineHeader={false} view={packingView} onViewChange={setPackingView} tripMembers={tripMembers} />}
         {subTab === 'todo' && <TodoListPanel tripId={tripId} items={todoItems} addItemSignal={addTodoSignal} />}
       </div>
     </div>
@@ -704,7 +707,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
 
         {activeTab === 'listen' && (
           <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', width: '100%', paddingBottom: 'var(--bottom-nav-h)' }}>
-            <ListsContainer tripId={tripId} packingItems={packingItems} todoItems={todoItems} />
+            <ListsContainer tripId={tripId} packingItems={packingItems} todoItems={todoItems} tripMembers={tripMembers} />
           </div>
         )}
 

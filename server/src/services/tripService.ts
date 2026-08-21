@@ -1034,11 +1034,11 @@ export function copyTripById(sourceTripId: string | number, newOwnerId: number, 
 
     const oldTodos = db.prepare('SELECT * FROM todo_items WHERE trip_id = ?').all(sourceTripId) as any[];
     const insertTodo = db.prepare(`
-      INSERT INTO todo_items (trip_id, name, checked, category, sort_order, due_date, description, assigned_user_id, priority)
-      VALUES (?, ?, 0, ?, ?, ?, ?, NULL, ?)
+      INSERT INTO todo_items (trip_id, name, checked, category, sort_order, start_date, due_date, description, assigned_user_id, priority)
+      VALUES (?, ?, 0, ?, ?, ?, ?, ?, NULL, ?)
     `);
     for (const t of oldTodos) {
-      insertTodo.run(newTripId, t.name, t.category, t.sort_order, t.due_date, t.description, t.priority);
+      insertTodo.run(newTripId, t.name, t.category, t.sort_order, t.start_date, t.due_date, t.description, t.priority);
     }
 
     const oldCategoryOrder = db.prepare('SELECT category, sort_order FROM budget_category_order WHERE trip_id = ?').all(sourceTripId) as any[];

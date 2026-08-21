@@ -31,6 +31,9 @@ interface ArtikelZeileProps {
   onClone?: (id: number) => void
   onJoin?: (id: number) => void
   onLeave?: (id: number, userId: number) => void
+  // Without a travel companion the sharing badges and per-item share control
+  // are hidden (there is no one to share with).
+  hasCompanions?: boolean
   // Drag-to-reorder (#969) — wired by the category group, which owns the order.
   drag?: {
     isDragging: boolean
@@ -42,7 +45,7 @@ interface ArtikelZeileProps {
   }
 }
 
-export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCategoryChange, onDelete, bagTrackingEnabled, bags = [], onCreateBag, canEdit = true, tripMembers = [], currentUserId, onSetSharing, onClone, onJoin, onLeave, drag }: ArtikelZeileProps) {
+export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCategoryChange, onDelete, bagTrackingEnabled, bags = [], onCreateBag, canEdit = true, tripMembers = [], currentUserId, onSetSharing, onClone, onJoin, onLeave, hasCompanions = true, drag }: ArtikelZeileProps) {
   const isPlaceholder = item.name === PACKING_PLACEHOLDER_NAME
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState(isPlaceholder ? '' : item.name)
@@ -64,7 +67,7 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
   const sharedByMe = !!item.is_private && item.owner_id === currentUserId && recipients.length > 0
   const broughtBy = !item.is_private && item.owner_username ? item.owner_username : null
   const contributors = item.contributors || []
-  const canShare = canEdit && !isPlaceholder && !!onSetSharing
+  const canShare = hasCompanions && canEdit && !isPlaceholder && !!onSetSharing
 
   const handleToggle = () => togglePackingItem(tripId, item.id, !item.checked)
 
@@ -168,19 +171,19 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
       )}
 
       {/* Sharing badges (#858 three-tier) */}
-      {!isPlaceholder && sharedToMe && (
+      {hasCompanions && !isPlaceholder && sharedToMe && (
         <span className="packing-row-badge" title={t('packing.takenCareOf', { name: item.owner_username || '' })}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', padding: '1px 7px', borderRadius: 99 }}>
           <HandHelping size={10} /> {t('packing.takenCareOf', { name: item.owner_username || '' })}
         </span>
       )}
-      {!isPlaceholder && sharedByMe && (
+      {hasCompanions && !isPlaceholder && sharedByMe && (
         <span className="packing-row-badge" title={recipients.map(r => r.username).join(', ')}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-tertiary)', padding: '1px 7px', borderRadius: 99 }}>
           <UserRound size={10} /> {t('packing.sharedWithCount', { count: recipients.length })}
         </span>
       )}
-      {!isPlaceholder && broughtBy && (
+      {hasCompanions && !isPlaceholder && broughtBy && (
         <span className="packing-row-badge" title={t('packing.broughtBy', { name: broughtBy })}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '1px 4px' }}>
           <Users size={10} /> {broughtBy}{contributors.length > 0 ? ` +${contributors.length}` : ''}

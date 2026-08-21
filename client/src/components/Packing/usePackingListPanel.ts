@@ -36,6 +36,9 @@ export interface PackingListPanelProps {
   // Lifted so an out-of-panel Apply Template button knows the active view (#1565).
   view?: 'common' | 'personal'
   onViewChange?: (view: 'common' | 'personal') => void
+  // Page-level trip roster (owner + members/guests). Preferred over the panel's
+  // own fetch so a just-added companion is reflected without a remount.
+  tripMembers?: TripMember[]
 }
 
 /**
@@ -45,7 +48,7 @@ export interface PackingListPanelProps {
  * sections below render header, filters, the grouped list, the bag sidebar/
  * modal and the import dialog.
  */
-export function usePackingList({ tripId, items, openImportSignal = 0, clearCheckedSignal = 0, saveTemplateSignal = 0, inlineHeader = true, view: viewProp, onViewChange }: PackingListPanelProps) {
+export function usePackingList({ tripId, items, openImportSignal = 0, clearCheckedSignal = 0, saveTemplateSignal = 0, inlineHeader = true, view: viewProp, onViewChange, tripMembers: tripMembersProp }: PackingListPanelProps) {
   const [filter, setFilter] = useState('alle') // 'alle' | 'offen' | 'erledigt'
   // Three-tier sharing (#858): 'common' = the group pool, 'personal' = my own
   // list (private + shared-to-me).
@@ -53,7 +56,6 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   // intentionally local state: switching views is a session concern, not a
   // persisted trip preference.
   const [ownView, setOwnView] = useState<'common' | 'personal'>('personal')
-  const view = viewProp ?? ownView
   const setView = onViewChange ?? setOwnView
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCatName, setNewCatName] = useState('')
@@ -67,21 +69,33 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   const toast = useToast()
   const { t } = useTranslation()
 
-  // Trip members & category assignees
-  const [tripMembers, setTripMembers] = useState<TripMember[]>([])
+  // Trip members & category assignees. The page-level roster is the source of
+  // truth when provided (it refreshes after a member/guest is added); the panel
+  // only fetches its own copy when rendered standalone.
+  const [internalMembers, setInternalMembers] = useState<TripMember[]>([])
   const [categoryAssignees, setCategoryAssignees] = useState<Record<string, CategoryAssignee[]>>({})
 
   useEffect(() => {
+    if (tripMembersProp) return
     tripsApi.getMembers(tripId).then(data => {
       const all: TripMember[] = []
       if (data.owner) all.push({ id: data.owner.id, username: data.owner.username, avatar: data.owner.avatar_url, is_guest: false })
       if (data.members) all.push(...data.members.map((m: any) => ({ id: m.id, username: m.username, avatar: m.avatar_url, is_guest: !!m.is_guest })))
-      setTripMembers(all)
+      setInternalMembers(all)
     }).catch(() => {})
+  }, [tripId, tripMembersProp])
+
+  useEffect(() => {
     packingApi.getCategoryAssignees(tripId).then(data => {
       setCategoryAssignees(data.assignees || {})
     }).catch(() => {})
   }, [tripId])
+
+  const tripMembers = tripMembersProp ?? internalMembers
+  // Without a travel companion the shared/personal split is meaningless: pin the
+  // view to the user's own list (the default) and hide the sharing UI entirely.
+  const hasCompanions = tripMembers.length > 1
+  const view = hasCompanions ? (viewProp ?? ownView) : 'personal'
 
   const handleSetAssignees = async (category: string, userIds: number[]) => {
     try {
@@ -98,8 +112,10 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   // callers before the API hydrates the sharing fields) keeps its established
   // common classification rather than being reclassified.
   const viewItems = useMemo(
-    () => items.filter(i => (view === 'common' ? !i.is_private : !!i.is_private)),
-    [items, view],
+    () => hasCompanions
+      ? items.filter(i => (view === 'common' ? !i.is_private : !!i.is_private))
+      : items,
+    [items, view, hasCompanions],
   )
 
   const allCategories = useMemo(() => {
@@ -401,7 +417,7 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   const handleLeaveItem = (id: number, userId: number) => removePackingContributor(tripId, id, userId)
 
   return {
-    view, setView, currentUserId,
+    view, setView, currentUserId, hasCompanions,
     handleSetSharing, handleCloneItem, handleJoinItem, handleLeaveItem,
     tripId, items, inlineHeader, t, canEdit, isAdmin, font, reorderPackingItems,
     filter, setFilter, addingCategory, setAddingCategory, newCatName, setNewCatName,

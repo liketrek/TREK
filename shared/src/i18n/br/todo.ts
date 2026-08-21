@@ -28,6 +28,7 @@ const todo: TranslationStrings = {
   'todo.detail.title': 'Tarefa',
   'todo.detail.description': 'Descrição',
   'todo.detail.category': 'Lista',
+  'todo.detail.startDate': 'Data de início',
   'todo.detail.dueDate': 'Data de vencimento',
   'todo.detail.assignedTo': 'Atribuído a',
   'todo.detail.delete': 'Excluir',

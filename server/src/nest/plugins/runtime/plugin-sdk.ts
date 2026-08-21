@@ -185,7 +185,7 @@ export interface PluginContext {
   /** A trip's to-dos. Needs 'db:read:todos' (list) / 'db:write:todos' + 'packing_edit' (create/update/delete). */
   todos: {
     list(tripId: number): Promise<unknown[]>;
-    create(tripId: number, input: { name: string; category?: string; due_date?: string; description?: string; assigned_user_id?: number; priority?: number }): Promise<unknown>;
+    create(tripId: number, input: { name: string; category?: string; start_date?: string; due_date?: string; description?: string; assigned_user_id?: number; priority?: number }): Promise<unknown>;
     update(tripId: number, todoId: number, input: Record<string, unknown>): Promise<unknown>;
     delete(tripId: number, todoId: number): Promise<{ deleted: boolean }>;
   };

@@ -175,6 +175,7 @@ export function buildTodoItem(overrides: Partial<TodoItem> = {}): TodoItem {
     category: null,
     checked: 0,
     sort_order: 0,
+    start_date: null,
     due_date: null,
     description: null,
     assigned_user_id: null,

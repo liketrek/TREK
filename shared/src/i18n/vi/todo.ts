@@ -28,6 +28,7 @@ const todo: TranslationStrings = {
   'todo.detail.title': 'Nhiệm vụ',
   'todo.detail.description': 'Miêu tả',
   'todo.detail.category': 'Danh sách',
+  'todo.detail.startDate': 'Ngày bắt đầu',
   'todo.detail.dueDate': 'Ngày đến hạn',
   'todo.detail.assignedTo': 'Được giao cho',
   'todo.detail.delete': 'Xóa bỏ',

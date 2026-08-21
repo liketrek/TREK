@@ -45,6 +45,10 @@ beforeEach(() => {
   seedStore(useTripStore, { trip: buildTrip({ id: 1 }) });
 });
 
+// A trip with a travel companion (owner + one member) — used by tests that
+// exercise the shared/personal view split, which only renders with companions.
+const withCompanion = [{ id: 1, username: 'me' }, { id: 2, username: 'alice' }];
+
 describe('PackingListPanel', () => {
   it('FE-COMP-PACKING-001: renders Packing List title', () => {
     render(<PackingListPanel tripId={1} items={[]} />);
@@ -978,7 +982,7 @@ describe('PackingListPanel', () => {
       )
     );
     const item = buildPackingItem({ is_private: 1, name: 'Camera', category: 'Electronics' });
-    render(<PackingListPanel tripId={1} items={[item]} />);
+    render(<PackingListPanel tripId={1} items={[item]} tripMembers={withCompanion} />);
 
     // The assignee chip shows the first letter of username
     await waitFor(() => {
@@ -1238,7 +1242,7 @@ describe('PackingListPanel', () => {
         return HttpResponse.json({ items: [], count: 12 });
       })
     );
-    render(<PackingListPanel tripId={1} items={[]} />);
+    render(<PackingListPanel tripId={1} items={[]} tripMembers={withCompanion} />);
 
     await user.click(await screen.findByText('My list'));
     await user.click(await screen.findByText('Apply template'));
@@ -1259,7 +1263,7 @@ describe('PackingListPanel', () => {
         return HttpResponse.json({ items: [], count: 12 });
       })
     );
-    render(<PackingListPanel tripId={1} items={[]} />);
+    render(<PackingListPanel tripId={1} items={[]} tripMembers={withCompanion} />);
 
     await user.click(await screen.findByText('Shared'));
     await user.click(await screen.findByText('Apply template'));
@@ -1613,7 +1617,7 @@ describe('PackingListPanel', () => {
       buildPackingItem({ name: 'Group tent', is_private: 0 }),
       buildPackingItem({ name: 'My diary', is_private: 1, owner_id: 1 }),
     ];
-    render(<PackingListPanel tripId={1} items={items} />);
+    render(<PackingListPanel tripId={1} items={items} tripMembers={withCompanion} />);
 
     // Default view = My list → only the personal item.
     expect(await screen.findByText('My diary')).toBeInTheDocument();
@@ -1628,7 +1632,7 @@ describe('PackingListPanel', () => {
   it('FE-COMP-PACKING-082: starts in My list even when it has no items', async () => {
     const user = userEvent.setup();
     const sharedItem = buildPackingItem({ name: 'Shared tent', is_private: 0 });
-    render(<PackingListPanel tripId={1} items={[sharedItem]} />);
+    render(<PackingListPanel tripId={1} items={[sharedItem]} tripMembers={withCompanion} />);
 
     expect(screen.queryByText('Shared tent')).not.toBeInTheDocument();
     expect(screen.getByText('No items match this filter')).toBeInTheDocument();
@@ -1642,10 +1646,49 @@ describe('PackingListPanel', () => {
     const items = [
       buildPackingItem({ name: 'Power bank', is_private: 1, owner_id: 2, owner_username: 'Bob', recipients: [{ user_id: 1, username: 'me' }] }),
     ];
-    render(<PackingListPanel tripId={1} items={items} />);
+    render(<PackingListPanel tripId={1} items={items} tripMembers={withCompanion} />);
     await userEvent.click(screen.getByText('My list'));
     await screen.findByText('Power bank');
     // "by Bob" — taken care of by the bringer.
     expect(screen.getByText('by Bob')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-PACKING-083: hides the shared/personal view tabs when there is no companion', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1 }), isAuthenticated: true });
+    render(<PackingListPanel tripId={1} items={[buildPackingItem({ name: 'Passport', is_private: 1 })]} />);
+
+    // The default handler returns no members → no companion → tabs are hidden.
+    expect(screen.queryByText('Shared')).not.toBeInTheDocument();
+    expect(screen.queryByText('My list')).not.toBeInTheDocument();
+    // The item itself is still visible.
+    expect(await screen.findByText('Passport')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-PACKING-084: shows common and personal items together when there is no companion', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1 }), isAuthenticated: true });
+    const items = [
+      buildPackingItem({ name: 'Group tent', is_private: 0 }),
+      buildPackingItem({ name: 'My diary', is_private: 1, owner_id: 1 }),
+    ];
+    render(<PackingListPanel tripId={1} items={items} />);
+
+    // Without a companion there is no shared/personal split — both render.
+    expect(await screen.findByText('Group tent')).toBeInTheDocument();
+    expect(await screen.findByText('My diary')).toBeInTheDocument();
+    // And no view tabs are shown.
+    expect(screen.queryByText('Shared')).not.toBeInTheDocument();
+    expect(screen.queryByText('My list')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-PACKING-085: hides the per-item share control and assignee button when there is no companion', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1 }), isAuthenticated: true });
+    const items = [buildPackingItem({ name: 'Passport', is_private: 1 })];
+    const { container } = render(<PackingListPanel tripId={1} items={items} />);
+
+    await screen.findByText('Passport');
+    // No per-item share button (Share2 icon) on the row.
+    expect(container.querySelector('svg.lucide-share-2')).toBeNull();
+    // No assignee button (UserPlus icon) in the category header.
+    expect(container.querySelector('svg.lucide-user-plus')).toBeNull();
   });
 });

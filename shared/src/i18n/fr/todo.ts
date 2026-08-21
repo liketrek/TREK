@@ -28,6 +28,7 @@ const todo: TranslationStrings = {
   'todo.detail.title': 'Tâche',
   'todo.detail.description': 'Description',
   'todo.detail.category': 'Liste',
+  'todo.detail.startDate': 'Date de début',
   'todo.detail.dueDate': "Date d'échéance",
   'todo.detail.assignedTo': 'Assigné à',
   'todo.detail.delete': 'Supprimer',

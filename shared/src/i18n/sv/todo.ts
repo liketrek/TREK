@@ -28,6 +28,7 @@ const todo: TranslationStrings = {
   'todo.detail.title': 'Uppgift',
   'todo.detail.description': 'Beskrivning',
   'todo.detail.category': 'Lista',
+  'todo.detail.startDate': 'Startdatum',
   'todo.detail.dueDate': 'Förfallodag',
   'todo.detail.assignedTo': 'Tilldelad till',
   'todo.detail.delete': 'Radera',

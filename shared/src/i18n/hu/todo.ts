@@ -28,6 +28,7 @@ const todo: TranslationStrings = {
   'todo.detail.title': 'Feladat',
   'todo.detail.description': 'Leírás',
   'todo.detail.category': 'Lista',
+  'todo.detail.startDate': 'Kezdő dátum',
   'todo.detail.dueDate': 'Határidő',
   'todo.detail.assignedTo': 'Hozzárendelve',
   'todo.detail.delete': 'Törlés',

@@ -28,6 +28,7 @@ const todo: TranslationStrings = {
   'todo.detail.title': 'Taak',
   'todo.detail.description': 'Beschrijving',
   'todo.detail.category': 'Lijst',
+  'todo.detail.startDate': 'Startdatum',
   'todo.detail.dueDate': 'Vervaldatum',
   'todo.detail.assignedTo': 'Toegewezen aan',
   'todo.detail.delete': 'Verwijderen',

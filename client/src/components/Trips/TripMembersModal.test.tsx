@@ -33,6 +33,9 @@ beforeEach(() => {
     http.get('/api/trips/1/share-link', () =>
       HttpResponse.json({ token: null })
     ),
+    http.get('/api/trips/1/invite-link', () =>
+      HttpResponse.json({ token: null })
+    ),
     http.get('/api/auth/users', () =>
       HttpResponse.json({ users: [memberUser] })
     ),
@@ -363,7 +366,7 @@ describe('TripMembersModal', () => {
     render(<TripMembersModal {...defaultProps} />);
     await screen.findByText('Invite User');
 
-    const inviteBtn = screen.getByRole('button', { name: /Invite/i });
+    const inviteBtn = screen.getByRole('button', { name: 'Invite' });
     expect(inviteBtn).toBeDisabled();
   });
 

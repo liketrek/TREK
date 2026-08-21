@@ -28,6 +28,7 @@ const todo: TranslationStrings = {
   'todo.detail.title': 'Tarea',
   'todo.detail.description': 'Descripción',
   'todo.detail.category': 'Lista',
+  'todo.detail.startDate': 'Fecha de inicio',
   'todo.detail.dueDate': 'Fecha límite',
   'todo.detail.assignedTo': 'Asignado a',
   'todo.detail.delete': 'Eliminar',

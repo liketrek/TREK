@@ -3701,6 +3701,15 @@ function runMigrations(db: Database.Database): void {
       `);
       db.exec('CREATE INDEX IF NOT EXISTS idx_hidden_regions_user ON hidden_regions (user_id);');
     },
+    // Migration: todo start date — a task can span a range, so a start_date
+    // complements the existing due_date (deadline).
+    () => {
+      try {
+        db.exec('ALTER TABLE todo_items ADD COLUMN start_date TEXT');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

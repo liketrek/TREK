@@ -8,7 +8,7 @@ export function PackingList(S: PackingState) {
     handleAddItemToCategory, categoryAssignees, tripMembers, handleSetAssignees,
     bagTrackingEnabled, bags, handleCreateBagByName, canEdit, reorderPackingItems,
     currentUserId, handleSetSharing, handleCloneItem, handleJoinItem, handleLeaveItem,
-    isAdmin, handleOpenSaveTemplate,
+    isAdmin, handleOpenSaveTemplate, hasCompanions,
   } = S
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '10px 0 16px' }}>
@@ -51,6 +51,7 @@ export function PackingList(S: PackingState) {
               onLeave={handleLeaveItem}
               isAdmin={isAdmin}
               onSaveAsTemplate={handleOpenSaveTemplate}
+              hasCompanions={hasCompanions}
             />
           ))}
         </div>

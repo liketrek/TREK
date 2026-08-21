@@ -28,6 +28,7 @@ const todo: TranslationStrings = {
   'todo.detail.title': 'Εργασία',
   'todo.detail.description': 'Περιγραφή',
   'todo.detail.category': 'Λίστα',
+  'todo.detail.startDate': 'Ημερομηνία Έναρξης',
   'todo.detail.dueDate': 'Ημερομηνία λήξης',
   'todo.detail.assignedTo': 'Ανατεθειμένο σε',
   'todo.detail.delete': 'Διαγραφή',

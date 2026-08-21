@@ -53,7 +53,7 @@ export class TodoController {
   create(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: { name?: string; category?: string; due_date?: string; description?: string; assigned_user_id?: number; priority?: number },
+    @Body() body: { name?: string; category?: string; start_date?: string; due_date?: string; description?: string; assigned_user_id?: number; priority?: number },
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
@@ -61,8 +61,8 @@ export class TodoController {
     if (!body.name) {
       throw new HttpException({ error: 'Item name is required' }, 400);
     }
-    const { name, category, due_date, description, assigned_user_id, priority } = body;
-    const item = this.todo.createItem(tripId, { name, category, due_date, description, assigned_user_id, priority });
+    const { name, category, start_date, due_date, description, assigned_user_id, priority } = body;
+    const item = this.todo.createItem(tripId, { name, category, start_date, due_date, description, assigned_user_id, priority });
     this.todo.broadcast(tripId, 'todo:created', { item }, socketId);
     return { item };
   }
@@ -89,8 +89,8 @@ export class TodoController {
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    const { name, checked, category, due_date, description, assigned_user_id, priority } = body as Record<string, never>;
-    const updated = this.todo.updateItem(tripId, id, { name, checked, category, due_date, description, assigned_user_id, priority }, Object.keys(body));
+    const { name, checked, category, start_date, due_date, description, assigned_user_id, priority } = body as Record<string, never>;
+    const updated = this.todo.updateItem(tripId, id, { name, checked, category, start_date, due_date, description, assigned_user_id, priority }, Object.keys(body));
     if (!updated) {
       throw new HttpException({ error: 'Item not found' }, 404);
     }

@@ -7,7 +7,7 @@ import type { PackingState } from './usePackingListPanel'
  * and sharing the same height. Left-aligned with the list content.
  */
 export function PackingViewTabs(S: PackingState) {
-  const { view, setView, filter, setFilter, t, items } = S
+  const { view, setView, filter, setFilter, t, items, hasCompanions } = S
   const commonCount = items.filter(i => !i.is_private).length
   const personalCount = items.filter(i => !!i.is_private).length
 
@@ -49,11 +49,11 @@ export function PackingViewTabs(S: PackingState) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 0 0', flexShrink: 0, flexWrap: 'wrap' }}>
-      {viewPill('common', <Users size={14} />, t('packing.viewCommon'), commonCount)}
-      {viewPill('personal', <UserRound size={14} />, t('packing.viewPersonal'), personalCount)}
+      {hasCompanions && viewPill('common', <Users size={14} />, t('packing.viewCommon'), commonCount)}
+      {hasCompanions && viewPill('personal', <UserRound size={14} />, t('packing.viewPersonal'), personalCount)}
       {items.length > 0 && (
         <>
-          <span style={{ alignSelf: 'stretch', width: 1, background: 'var(--border-primary)', margin: '3px 4px' }} />
+          {hasCompanions && <span style={{ alignSelf: 'stretch', width: 1, background: 'var(--border-primary)', margin: '3px 4px' }} />}
           {filterPill('alle', t('packing.filterAll'))}
           {filterPill('offen', t('packing.filterOpen'))}
           {filterPill('erledigt', t('packing.filterDone'))}

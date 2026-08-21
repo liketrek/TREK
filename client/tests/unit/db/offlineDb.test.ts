@@ -154,7 +154,7 @@ describe('offlineDb — packing / todo / budget / reservations / files', () => {
   it('upserts todo items', async () => {
     const item: TodoItem = {
       id: 1, trip_id: 1, name: 'Book hotel', category: null, checked: 0,
-      sort_order: 0, due_date: null, description: null, assigned_user_id: null, priority: 0,
+      sort_order: 0, start_date: null, due_date: null, description: null, assigned_user_id: null, priority: 0,
     };
     await upsertTodoItems([item]);
     expect(await offlineDb.todoItems.count()).toBe(1);

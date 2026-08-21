@@ -28,6 +28,7 @@ const todo: TranslationStrings = {
   'todo.detail.title': 'Tasca',
   'todo.detail.description': 'Descripció',
   'todo.detail.category': 'Categoria',
+  'todo.detail.startDate': "Data d'inici",
   'todo.detail.dueDate': 'Data límit',
   'todo.detail.assignedTo': 'Assignada a',
   'todo.detail.delete': 'Elimina',

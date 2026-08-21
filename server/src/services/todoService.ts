@@ -11,16 +11,16 @@ export function listItems(tripId: string | number) {
 }
 
 export function createItem(tripId: string | number, data: {
-  name: string; category?: string; due_date?: string; description?: string; assigned_user_id?: number; priority?: number;
+  name: string; category?: string; start_date?: string; due_date?: string; description?: string; assigned_user_id?: number; priority?: number;
 }) {
   const maxOrder = db.prepare('SELECT MAX(sort_order) as max FROM todo_items WHERE trip_id = ?').get(tripId) as { max: number | null };
   const sortOrder = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
 
   const result = db.prepare(
-    'INSERT INTO todo_items (trip_id, name, checked, category, sort_order, due_date, description, assigned_user_id, priority) VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?)'
+    'INSERT INTO todo_items (trip_id, name, checked, category, sort_order, start_date, due_date, description, assigned_user_id, priority) VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?, ?)'
   ).run(
     tripId, data.name, data.category || null, sortOrder,
-    data.due_date || null, data.description || null, data.assigned_user_id || null, data.priority || 0
+    data.start_date || null, data.due_date || null, data.description || null, data.assigned_user_id || null, data.priority || 0
   );
 
   return db.prepare('SELECT * FROM todo_items WHERE id = ?').get(result.lastInsertRowid);
@@ -29,7 +29,7 @@ export function createItem(tripId: string | number, data: {
 export function updateItem(
   tripId: string | number,
   id: string | number,
-  data: { name?: string; checked?: number; category?: string; due_date?: string | null; description?: string | null; assigned_user_id?: number | null; priority?: number | null },
+  data: { name?: string; checked?: number; category?: string; start_date?: string | null; due_date?: string | null; description?: string | null; assigned_user_id?: number | null; priority?: number | null },
   bodyKeys: string[]
 ) {
   const item = db.prepare('SELECT * FROM todo_items WHERE id = ? AND trip_id = ?').get(id, tripId);
@@ -40,6 +40,7 @@ export function updateItem(
       name = COALESCE(?, name),
       checked = CASE WHEN ? IS NOT NULL THEN ? ELSE checked END,
       category = COALESCE(?, category),
+      start_date = CASE WHEN ? THEN ? ELSE start_date END,
       due_date = CASE WHEN ? THEN ? ELSE due_date END,
       description = CASE WHEN ? THEN ? ELSE description END,
       assigned_user_id = CASE WHEN ? THEN ? ELSE assigned_user_id END,
@@ -50,6 +51,8 @@ export function updateItem(
     data.checked !== undefined ? 1 : null,
     data.checked ? 1 : 0,
     data.category || null,
+    bodyKeys.includes('start_date') ? 1 : 0,
+    data.start_date ?? null,
     bodyKeys.includes('due_date') ? 1 : 0,
     data.due_date ?? null,
     bodyKeys.includes('description') ? 1 : 0,

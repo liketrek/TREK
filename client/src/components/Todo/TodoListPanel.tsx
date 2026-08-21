@@ -2,6 +2,7 @@ import { Fragment, useState, useMemo, useEffect, useRef } from 'react'
 import { avatarSrc } from '../../utils/avatarSrc'
 import ReactDOM from 'react-dom'
 import { useTripStore } from '../../store/tripStore'
+import { useAuthStore } from '../../store/authStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
@@ -320,6 +321,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
 
   const [name, setName] = useState(item.name)
   const [desc, setDesc] = useState(item.description || '')
+  const [startDate, setStartDate] = useState(item.start_date || '')
   const [dueDate, setDueDate] = useState(item.due_date || '')
   const [category, setCategory] = useState(item.category || '')
   const [addingCategory, setAddingCategoryInline] = useState(false)
@@ -331,14 +333,15 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
   useEffect(() => {
     setName(item.name)
     setDesc(item.description || '')
+    setStartDate(item.start_date || '')
     setDueDate(item.due_date || '')
     setCategory(item.category || '')
     setAssignedUserId(item.assigned_user_id)
     setPriority(item.priority || 0)
-  }, [item.id, item.name, item.description, item.due_date, item.category, item.assigned_user_id, item.priority])
+  }, [item.id, item.name, item.description, item.start_date, item.due_date, item.category, item.assigned_user_id, item.priority])
 
   const hasChanges = name !== item.name || desc !== (item.description || '') ||
-    dueDate !== (item.due_date || '') || category !== (item.category || '') ||
+    startDate !== (item.start_date || '') || dueDate !== (item.due_date || '') || category !== (item.category || '') ||
     assignedUserId !== item.assigned_user_id || priority !== (item.priority || 0)
 
   const save = async () => {
@@ -347,7 +350,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
     try {
       await updateTodoItem(tripId, item.id, {
         name: name.trim(), description: desc || null,
-        due_date: dueDate || null, category: category || null,
+        start_date: startDate || null, due_date: dueDate || null, category: category || null,
         assigned_user_id: assignedUserId, priority,
       } as any)
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.error')) }
@@ -472,6 +475,15 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
           )}
         </div>
 
+        {/* Start date */}
+        <div>
+          <label className={labelClass}>{t('todo.detail.startDate')}</label>
+          <CustomDatePicker
+            value={startDate}
+            onChange={v => setStartDate(v)}
+          />
+        </div>
+
         {/* Due date */}
         <div>
           <label className={labelClass}>{t('todo.detail.dueDate')}</label>
@@ -542,15 +554,17 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
   onCreated: (id: number) => void; onClose: () => void;
 }) {
   const { addTodoItem } = useTripStore()
+  const currentUserId = useAuthStore((s) => s.user)?.id ?? null
   const toast = useToast()
   const { t } = useTranslation()
 
   const [name, setName] = useState('')
   const [desc, setDesc] = useState('')
+  const [startDate, setStartDate] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [category, setCategory] = useState(defaultCategory || '')
   const [addingCategory, setAddingCategoryInline] = useState(false)
-  const [assignedUserId, setAssignedUserId] = useState<number | null>(null)
+  const [assignedUserId, setAssignedUserId] = useState<number | null>(currentUserId)
   const [priority, setPriority] = useState(0)
   const [saving, setSaving] = useState(false)
 
@@ -563,7 +577,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
       const trimmedCategory = category.trim()
       const item = await addTodoItem(tripId, {
         name: name.trim(), description: desc || null, priority,
-        due_date: dueDate || null, category: trimmedCategory || null,
+        start_date: startDate || null, due_date: dueDate || null, category: trimmedCategory || null,
         assigned_user_id: assignedUserId,
       } as any)
       if (item?.id) onCreated(item.id)
@@ -666,6 +680,11 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
               )
             })}
           </div>
+        </div>
+
+        <div>
+          <label className={labelClass}>{t('todo.detail.startDate')}</label>
+          <CustomDatePicker value={startDate} onChange={v => setStartDate(v)} />
         </div>
 
         <div>

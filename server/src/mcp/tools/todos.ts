@@ -48,6 +48,7 @@ export function registerTodoTools(server: McpServer, userId: number, scopes: str
         tripId: z.number().int().positive(),
         name: z.string().min(1).max(500).describe('To-do item name'),
         category: z.string().max(100).optional().describe('Category (e.g. "Logistics", "Booking")'),
+        start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Start date (YYYY-MM-DD)'),
         due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Due date (YYYY-MM-DD)'),
         description: z.string().max(2000).optional().describe('Additional description'),
         assigned_user_id: z.number().int().positive().optional().describe('User ID to assign this task to'),
@@ -55,11 +56,11 @@ export function registerTodoTools(server: McpServer, userId: number, scopes: str
       },
       annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     },
-    async ({ tripId, name, category, due_date, description, assigned_user_id, priority }) => {
+    async ({ tripId, name, category, start_date, due_date, description, assigned_user_id, priority }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('packing_edit', tripId, userId)) return permissionDenied();
-      const item = createTodoItem(tripId, { name, category, due_date, description, assigned_user_id, priority });
+      const item = createTodoItem(tripId, { name, category, start_date, due_date, description, assigned_user_id, priority });
       safeBroadcast(tripId, 'todo:created', { item });
       return ok({ item });
     }
@@ -74,6 +75,7 @@ export function registerTodoTools(server: McpServer, userId: number, scopes: str
         itemId: z.number().int().positive(),
         name: z.string().min(1).max(500).optional(),
         category: z.string().max(100).optional(),
+        start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional().describe('Set to null to clear the start date'),
         due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional().describe('Set to null to clear the due date'),
         description: z.string().max(2000).nullable().optional().describe('Set to null to clear'),
         assigned_user_id: z.number().int().positive().nullable().optional().describe('Set to null to unassign'),
@@ -81,17 +83,18 @@ export function registerTodoTools(server: McpServer, userId: number, scopes: str
       },
       annotations: TOOL_ANNOTATIONS_WRITE,
     },
-    async ({ tripId, itemId, name, category, due_date, description, assigned_user_id, priority }) => {
+    async ({ tripId, itemId, name, category, start_date, due_date, description, assigned_user_id, priority }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!hasTripPermission('packing_edit', tripId, userId)) return permissionDenied();
       // Build bodyKeys to signal which nullable fields were explicitly provided
       const bodyKeys: string[] = [];
+      if (start_date !== undefined) bodyKeys.push('start_date');
       if (due_date !== undefined) bodyKeys.push('due_date');
       if (description !== undefined) bodyKeys.push('description');
       if (assigned_user_id !== undefined) bodyKeys.push('assigned_user_id');
       if (priority !== undefined) bodyKeys.push('priority');
-      const item = updateTodoItem(tripId, itemId, { name, category, due_date, description, assigned_user_id, priority }, bodyKeys);
+      const item = updateTodoItem(tripId, itemId, { name, category, start_date, due_date, description, assigned_user_id, priority }, bodyKeys);
       if (!item) return { content: [{ type: 'text' as const, text: 'To-do item not found.' }], isError: true };
       safeBroadcast(tripId, 'todo:updated', { item });
       return ok({ item });

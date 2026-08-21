@@ -1,4 +1,4 @@
-import { CheckSquare, Square, ChevronRight, Flag, Calendar, GripVertical, UserRound } from 'lucide-react'
+import { CheckSquare, Square, ChevronRight, Flag, Calendar, CalendarDays, GripVertical, UserRound } from 'lucide-react'
 import { avatarSrc } from '../../utils/avatarSrc'
 import type { TodoItem } from '../../types'
 import { katColor, PRIO_CONFIG, type Member } from './todoListModel'
@@ -83,7 +83,7 @@ export default function TodoRow({ item, members, categories, today, isSelected, 
           </div>
         )}
         {/* Inline badges */}
-        {(item.priority || item.due_date || catColor || assignedUser) && (
+        {(item.priority || item.start_date || item.due_date || catColor || assignedUser) && (
         <div style={{ display: 'flex', gap: 5, marginTop: 5, flexWrap: 'wrap' }}>
           {item.priority > 0 && PRIO_CONFIG[item.priority] && (
             <span style={{
@@ -94,6 +94,16 @@ export default function TodoRow({ item, members, categories, today, isSelected, 
               border: `1px solid ${PRIO_CONFIG[item.priority].color}25`,
             }}>
               <Flag size={9} />{PRIO_CONFIG[item.priority].label}
+            </span>
+          )}
+          {item.start_date && (
+            <span style={{
+              fontSize: 'calc(10px * var(--fs-scale-caption, 1))', display: 'inline-flex', alignItems: 'center', gap: 3,
+              padding: '2px 7px', borderRadius: 5, fontWeight: 500,
+              color: 'var(--text-secondary)', background: 'var(--bg-hover)',
+              border: '1px solid var(--border-faint)',
+            }}>
+              <CalendarDays size={9} />{formatDate(item.start_date)}
             </span>
           )}
           {item.due_date && (

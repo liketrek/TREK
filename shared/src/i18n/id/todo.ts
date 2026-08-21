@@ -28,6 +28,7 @@ const todo: TranslationStrings = {
   'todo.detail.title': 'Tugas',
   'todo.detail.description': 'Deskripsi',
   'todo.detail.category': 'Daftar',
+  'todo.detail.startDate': 'Tanggal Mulai',
   'todo.detail.dueDate': 'Tenggat waktu',
   'todo.detail.assignedTo': 'Ditugaskan ke',
   'todo.detail.delete': 'Hapus',

@@ -73,6 +73,7 @@ export interface TodoItem {
   checked: number
   sort_order: number
   due_date: string | null
+  start_date: string | null
   description: string | null
   assigned_user_id: number | null
   priority: number

@@ -28,6 +28,7 @@ const todo: TranslationStrings = {
   'todo.detail.title': 'مهمة',
   'todo.detail.description': 'وصف',
   'todo.detail.category': 'قائمة',
+  'todo.detail.startDate': 'تاريخ البداية',
   'todo.detail.dueDate': 'تاريخ الاستحقاق',
   'todo.detail.assignedTo': 'مسند إلى',
   'todo.detail.delete': 'حذف',

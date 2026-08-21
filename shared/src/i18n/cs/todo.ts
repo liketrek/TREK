@@ -28,6 +28,7 @@ const todo: TranslationStrings = {
   'todo.detail.title': 'Úkol',
   'todo.detail.description': 'Popis',
   'todo.detail.category': 'Seznam',
+  'todo.detail.startDate': 'Datum začátku',
   'todo.detail.dueDate': 'Termín splnění',
   'todo.detail.assignedTo': 'Přiřazeno',
   'todo.detail.delete': 'Smazat',

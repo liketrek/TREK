@@ -28,6 +28,7 @@ const todo: TranslationStrings = {
   'todo.detail.title': 'Задача',
   'todo.detail.description': 'Описание',
   'todo.detail.category': 'Список',
+  'todo.detail.startDate': 'Дата начала',
   'todo.detail.dueDate': 'Срок выполнения',
   'todo.detail.assignedTo': 'Назначено',
   'todo.detail.delete': 'Удалить',

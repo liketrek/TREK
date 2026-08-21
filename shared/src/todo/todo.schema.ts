@@ -13,6 +13,7 @@ import { z } from 'zod';
 export const todoCreateItemRequestSchema = z.object({
   name: z.string().min(1),
   category: z.string().optional(),
+  start_date: z.string().optional(),
   due_date: z.string().optional(),
   description: z.string().optional(),
   assigned_user_id: z.number().optional(),
@@ -24,6 +25,7 @@ export const todoUpdateItemRequestSchema = z.object({
   name: z.string().optional(),
   checked: z.boolean().optional(),
   category: z.string().optional(),
+  start_date: z.string().optional(),
   due_date: z.string().optional(),
   description: z.string().optional(),
   assigned_user_id: z.number().optional(),
