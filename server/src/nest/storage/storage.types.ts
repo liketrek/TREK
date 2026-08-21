@@ -56,6 +56,33 @@ export function isLocalTempFile(source: Readable | LocalTempFile): source is Loc
   return typeof (source as LocalTempFile).tmpPath === 'string';
 }
 
+/**
+ * A socket-facing error code/syscall that LOOKS like "the client walked away
+ * or the pipe broke" — but is not, by itself, proof of that: the same codes
+ * (ECONNRESET, ERR_STREAM_PREMATURE_CLOSE) can come from a driver's own
+ * source stream failing for a real reason (e.g. the S3 SDK's HTTP response
+ * dropping on a genuine network blip), independent of the browser client.
+ * Callers MUST additionally gate on `res.headersSent` before treating a
+ * match as safe to swallow: a pre-header failure is always a real failure
+ * (the caller's miss contract — 404/204/next() — must still run), and only a
+ * POST-header match is the client walking away mid-download. See
+ * storage.service.ts's sendToResponse (the remote pipeline() branch gates
+ * this way explicitly; the local res.sendFile branch's callback only ever
+ * fires post-attempt, so it swallows unconditionally) and the maps/share
+ * place-photo proxies, which gate the same way around their own pipeline()
+ * call.
+ */
+export function isClientAbortError(err: unknown): boolean {
+  const e = err as { code?: string; syscall?: string } | null | undefined;
+  if (!e || typeof e !== 'object') return false;
+  return (
+    e.code === 'ECONNABORTED' ||
+    e.code === 'ECONNRESET' ||
+    e.code === 'ERR_STREAM_PREMATURE_CLOSE' ||
+    e.syscall === 'write'
+  );
+}
+
 export interface StorageDriver {
   /** Backend instance name, e.g. 'uploads-local'. */
   readonly id: string;

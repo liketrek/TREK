@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import type { Response } from 'express';
+import { PassThrough } from 'node:stream';
 
 import { TripShareController, SharedController } from '../../../src/nest/share/share.controller';
 import type { ShareService } from '../../../src/nest/share/share.service';
@@ -81,17 +82,35 @@ describe('SharedController', () => {
   });
 
   describe('place-photo proxy', () => {
+    // A real PassThrough (like storage.service.test.ts's makeRes) rather than
+    // a { on, pipe } stub: pipeline() needs authentic stream/eos semantics
+    // (close/error/finish wiring) that a bare mock can't satisfy.
     function photoRes() {
-      const r = {
+      const sink = new PassThrough();
+      const chunks: Buffer[] = [];
+      sink.on('data', (c: Buffer) => chunks.push(c));
+      // Capture the real PassThrough#end BEFORE overwriting the property
+      // below — r and sink are the same object (Object.assign mutates and
+      // returns its target), so referencing sink.end inside the wrapper
+      // would recurse into itself.
+      const realEnd = sink.end.bind(sink) as (...a: unknown[]) => unknown;
+      const r = Object.assign(sink, {
         statusCode: 200,
-        headersSent: false,
         status: vi.fn(function (this: unknown, c: number) { (r as { statusCode: number }).statusCode = c; return r; }),
         json: vi.fn(),
         set: vi.fn(),
         type: vi.fn(),
-        end: vi.fn(),
+        end: vi.fn((...args: unknown[]) => realEnd(...args)),
+        body: () => Buffer.concat(chunks).toString(),
+      });
+      return r as unknown as Response & {
+        status: ReturnType<typeof vi.fn>;
+        json: ReturnType<typeof vi.fn>;
+        set: ReturnType<typeof vi.fn>;
+        type: ReturnType<typeof vi.fn>;
+        end: ReturnType<typeof vi.fn>;
+        body: () => string;
       };
-      return r as unknown as Response & { status: ReturnType<typeof vi.fn>; json: ReturnType<typeof vi.fn>; set: ReturnType<typeof vi.fn>; type: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn> };
     }
 
     // Braced body on purpose: mockReset() returns the mock, and a function
@@ -120,14 +139,15 @@ describe('SharedController', () => {
     });
 
     it('streams the cached bytes with image/jpeg + an immutable cache header on a hit', async () => {
-      const stream = { on: vi.fn().mockReturnThis(), pipe: vi.fn() };
+      const stream = new PassThrough();
+      stream.end('hello');
       getStream.mockResolvedValue({ stream, stat: { key: 'photos/google/abc.jpg', size: 5, mtimeMs: 0 } });
       const res = photoRes();
       await controller('abc.jpg').placePhotoBytes('tok', 'p1', res);
       expect(res.set).toHaveBeenCalledWith('Cache-Control', 'public, max-age=2592000, immutable');
       expect(res.type).toHaveBeenCalledWith('image/jpeg');
       expect(getStream).toHaveBeenCalledWith('photos-google', 'abc.jpg');
-      expect(stream.pipe).toHaveBeenCalledWith(res);
+      expect(res.body()).toBe('hello');
     });
 
     it('falls back to an empty 204 when the stream cannot be opened (cache-delete race)', async () => {
@@ -142,27 +162,44 @@ describe('SharedController', () => {
     });
 
     it('falls back to an empty 204 when the stream errors before headers were sent', async () => {
-      let onError: () => void = () => {};
-      const stream = { on: vi.fn((ev: string, cb: () => void) => { if (ev === 'error') onError = cb; return stream; }), pipe: vi.fn() };
+      const stream = new PassThrough();
       getStream.mockResolvedValue({ stream, stat: { key: 'photos/google/abc.jpg', size: 5, mtimeMs: 0 } });
       const res = photoRes();
-      await controller('abc.jpg').placePhotoBytes('tok', 'p1', res);
-      onError();
+      const pending = controller('abc.jpg').placePhotoBytes('tok', 'p1', res);
+      // Let pipeline() attach its listeners before erroring the source, so
+      // the event isn't missed to a scheduling race.
+      await new Promise((resolve) => setImmediate(resolve));
+      stream.destroy(new Error('source boom'));
+      await pending;
       expect(res.status).toHaveBeenCalledWith(204);
       expect(res.end).toHaveBeenCalled();
       expect(res.set).toHaveBeenLastCalledWith('Cache-Control', 'no-store');
     });
 
-    it('does not re-send a 204 when the stream errors after headers were flushed', async () => {
-      let onError: () => void = () => {};
-      const stream = { on: vi.fn((ev: string, cb: () => void) => { if (ev === 'error') onError = cb; return stream; }), pipe: vi.fn() };
+    it('swallows an abort-like error once headers are flushed (client walked away)', async () => {
+      const stream = new PassThrough();
       getStream.mockResolvedValue({ stream, stat: { key: 'photos/google/abc.jpg', size: 5, mtimeMs: 0 } });
       const res = photoRes();
-      (res as { headersSent: boolean }).headersSent = true;
-      await controller('abc.jpg').placePhotoBytes('tok', 'p1', res);
-      onError();
+      (res as unknown as { headersSent: boolean }).headersSent = true;
+      const pending = controller('abc.jpg').placePhotoBytes('tok', 'p1', res);
+      await new Promise((resolve) => setImmediate(resolve));
+      stream.destroy(Object.assign(new Error('reset'), { code: 'ECONNRESET' }));
+      await expect(pending).resolves.toBeUndefined();
       expect(res.status).not.toHaveBeenCalled();
       expect(res.json).not.toHaveBeenCalled();
+      expect(res.end).not.toHaveBeenCalled();
+    });
+
+    it('re-throws a real (non-abort) error once headers are flushed', async () => {
+      const stream = new PassThrough();
+      getStream.mockResolvedValue({ stream, stat: { key: 'photos/google/abc.jpg', size: 5, mtimeMs: 0 } });
+      const res = photoRes();
+      (res as unknown as { headersSent: boolean }).headersSent = true;
+      const pending = controller('abc.jpg').placePhotoBytes('tok', 'p1', res);
+      await new Promise((resolve) => setImmediate(resolve));
+      stream.destroy(Object.assign(new Error('disk read error'), { code: 'EIO' }));
+      await expect(pending).rejects.toThrow('disk read error');
+      expect(res.status).not.toHaveBeenCalled();
       expect(res.end).not.toHaveBeenCalled();
     });
   });

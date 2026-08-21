@@ -1,9 +1,11 @@
 import { Body, Controller, Delete, Get, HttpException, Param, Post, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import type { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import type { User } from '../../types';
 import { ShareService } from './share.service';
 import { StorageService } from '../storage/storage.service';
+import { isClientAbortError } from '../storage/storage.types';
 import { ShareLinkDto } from './share.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -115,10 +117,21 @@ export class SharedController {
       if (!res.headersSent) this.emptyPhoto(res);
       return;
     }
-    stream.on('error', () => {
-      if (!res.headersSent) this.emptyPhoto(res);
-    });
-    stream.pipe(res);
+    try {
+      // pipeline destroys the source on any failure (no leaked read handle),
+      // matching storage.service.ts's sendToResponse contract.
+      await pipeline(stream, res);
+    } catch (err) {
+      if (!res.headersSent) {
+        // Same terminal state as the old pre-flush stream error path.
+        this.emptyPhoto(res);
+        return;
+      }
+      // Bytes are already on the wire — a client abort mid-download is the
+      // client's problem now, not ours; a real source error still surfaces
+      // (to the exception filter, which now no-ops safely on headersSent).
+      if (!isClientAbortError(err)) throw err;
+    }
   }
 
   // 204 for "no bytes to serve". Overrides the immutable Cache-Control the hit

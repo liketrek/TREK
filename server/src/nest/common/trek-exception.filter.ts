@@ -22,6 +22,22 @@ export class TrekExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const res = host.switchToHttp().getResponse<Response>();
 
+    // 0. A response already streaming to the client (headers sent) cannot be
+    //    rewritten with a JSON error envelope — this fires when a storage
+    //    stream (or any other in-flight write) errors after
+    //    sendToResponse()/pipeline() has already flushed headers, e.g. a
+    //    client abort mid-download. Writing here would throw
+    //    ERR_HTTP_HEADERS_SENT or corrupt a response the client is mid-read
+    //    on. Log it first — this is the ONLY place a post-header failure is
+    //    ever recorded, since destroying the socket below skips every other
+    //    branch's logging (including case 2's `status >= 500` log) — then
+    //    destroy the socket so the connection doesn't hang open.
+    if (res.headersSent) {
+      console.error('Unhandled error after headers sent:', exception);
+      res.destroy();
+      return;
+    }
+
     // 1. Raw multer errors that slipped past @nestjs/platform-express's
     //    transformException (it leaves codes it does not recognise untouched).
     //    Legacy: LIMIT_FILE_SIZE -> 413, everything else -> 400, body { error: message }.

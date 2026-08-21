@@ -3,14 +3,38 @@ import { HttpException } from '@nestjs/common';
 import { MulterError } from 'multer';
 import { TrekExceptionFilter } from '../../../src/nest/common/trek-exception.filter';
 
-function mockHost() {
-  const res = { status: vi.fn().mockReturnThis(), json: vi.fn().mockReturnThis() };
+function mockHost(extra: Record<string, unknown> = {}) {
+  const res = { status: vi.fn().mockReturnThis(), json: vi.fn().mockReturnThis(), destroy: vi.fn(), headersSent: false, ...extra };
   const host = { switchToHttp: () => ({ getResponse: () => res }) } as never;
   return { res, host };
 }
 
 describe('TrekExceptionFilter', () => {
   const filter = new TrekExceptionFilter();
+
+  // A storage stream (or any other in-flight write) can reject after
+  // sendToResponse()/pipeline() already flushed headers — e.g. a client
+  // abort mid-download. Writing a JSON envelope there would throw
+  // ERR_HTTP_HEADERS_SENT or corrupt a response the client is mid-read on.
+  it('destroys the socket and writes nothing when headers are already sent — but still logs (the only place a post-header failure is recorded)', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { res, host } = mockHost({ headersSent: true });
+    const exception = new Error('mid-stream failure');
+    filter.catch(exception, host);
+    expect(res.destroy).toHaveBeenCalledTimes(1);
+    expect(res.status).not.toHaveBeenCalled();
+    expect(res.json).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith('Unhandled error after headers sent:', exception);
+    consoleError.mockRestore();
+  });
+
+  it('still writes the normal error envelope when headers were not sent', () => {
+    const { res, host } = mockHost({ headersSent: false });
+    filter.catch(new HttpException('Bad thing', 400), host);
+    expect(res.destroy).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Bad thing' });
+  });
 
   it('passes through { error, code } bodies (auth guards) unchanged', () => {
     const { res, host } = mockHost();

@@ -9,6 +9,7 @@ import type { ReplicaFailure } from './drivers/mirror.driver';
 import { assertValidKey } from './storage-keys';
 import { StorageRegistryService } from './storage-registry.service';
 import {
+  isClientAbortError,
   StorageNotFoundError,
   type ByteRange,
   type LocalTempFile,
@@ -116,9 +117,22 @@ export class StorageService {
       if (!(await driver.stat(key))) throw new StorageNotFoundError(key);
       this.applyHeaders(res, opts);
       await new Promise<void>((resolve, reject) => {
-        res.sendFile(path.basename(localPath), { root: path.dirname(localPath) }, (err) =>
-          err ? reject(err) : resolve(),
-        );
+        res.sendFile(path.basename(localPath), { root: path.dirname(localPath) }, (err) => {
+          if (!err) {
+            resolve();
+            return;
+          }
+          // Client gone / bytes already on the wire: nothing useful to send —
+          // mirrors res.sendFile's own default callback (express
+          // response.js), which is the exact contract
+          // storageStaticHandler (platform.routes.ts) already implements
+          // caller-side for the /uploads/* static mounts.
+          if (isClientAbortError(err)) {
+            resolve();
+            return;
+          }
+          reject(err);
+        });
       });
       return;
     }
@@ -126,12 +140,22 @@ export class StorageService {
     const { stream, stat } = await driver.getStream(key);
     res.setHeader('Content-Length', String(stat.size));
     this.applyHeaders(res, opts);
-    await new Promise<void>((resolve, reject) => {
-      stream.on('error', reject);
-      res.on('error', reject);
-      res.on('finish', resolve);
-      stream.pipe(res);
-    });
+    try {
+      // pipeline (unlike the hand-rolled pipe+Promise it replaces) destroys
+      // BOTH ends on any failure, so a client abort no longer leaks the
+      // source stream (an S3 keep-alive socket, an open fd, …).
+      await pipeline(stream, res);
+    } catch (err) {
+      // Gate the swallow on headersSent, not just the error code: the source
+      // here is the driver's raw stream (e.g. the S3 SDK's HTTP response),
+      // which can itself throw ECONNRESET/ERR_STREAM_PREMATURE_CLOSE on a
+      // genuine network blip that has nothing to do with the browser client
+      // — before any byte has reached res. A pre-header failure of ANY code
+      // must still reject so the caller's miss contract (404/204/next())
+      // runs; only a POST-header failure is the client walking away
+      // mid-download, and only then is an abort-like code safe to swallow.
+      if (!res.headersSent || !isClientAbortError(err)) throw err;
+    }
   }
 
   /**
