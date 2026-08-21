@@ -323,7 +323,15 @@ export function usageByBackend(
 export interface MigrationCandidate {
   category: StorageCategory
   from: string
+  /** Display primary — never a hidden mirror name; used by the prompt lines and comparisons. */
   to: string
+  /**
+   * The RAW effective draft backend name for this category — possibly a
+   * mirror's wire name when `to` is a mirrored primary. The migration POST
+   * must carry this, not `to`: posting the bare primary would silently drop
+   * replication for a category that was just routed onto a mirror.
+   */
+  toWire: string
   /** null when usage was never scanned — the prompt still fires, with an unknown-size line. */
   objects: number | null
   bytes: number | null
@@ -343,10 +351,11 @@ export function computeMigrationCandidates(draft: StorageConfig, state: StorageA
   const candidates: MigrationCandidate[] = []
   for (const category of STORAGE_CATEGORIES) {
     const from = primaryNameOf(state, draft, state.categories[category]!.backend) // exhaustive by schema contract
-    const to = primaryNameOf(state, draft, effective[category])
+    const toWire = effective[category]
+    const to = primaryNameOf(state, draft, toWire)
     if (from === to) continue
     const usage = state.usage?.categories[category]
-    candidates.push({ category, from, to, objects: usage ? usage.objects : null, bytes: usage ? usage.bytes : null })
+    candidates.push({ category, from, to, toWire, objects: usage ? usage.objects : null, bytes: usage ? usage.bytes : null })
   }
   return candidates.filter((c) => c.objects !== 0)
 }

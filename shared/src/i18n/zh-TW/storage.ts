@@ -114,6 +114,7 @@ const storage: TranslationStrings = {
   'storage.migrate.routeOnly': '僅路由新寫入',
   'storage.migrate.running': '正在移動 {category}… {done}/{total}',
   'storage.migrate.done': '移動完成：已複製 {copied}，已略過 {skipped}',
+  'storage.migrate.doneFailures': '{failed} 個失敗 — 這些物件未複製到新的後端',
   'storage.migrate.failed': '移動失敗：{error} — 該分類未切換',
   'storage.migrate.cancelled': '移動已取消 — 未切換任何內容',
   'storage.migrate.reclaimable': '{objects} 個物件（{size}）仍保留在 {from} 上 — 請手動回收',

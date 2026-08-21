@@ -280,8 +280,39 @@ describe('computeMigrationCandidates', () => {
     };
     const candidates = computeMigrationCandidates(draft, state);
     expect(candidates).toEqual([
-      { category: 'files', from: 'uploads-local', to: 'off-box', objects: 3, bytes: 300 },
-      { category: 'avatars', from: 'uploads-local', to: 'off-box', objects: null, bytes: null },
+      { category: 'files', from: 'uploads-local', to: 'off-box', toWire: 'off-box', objects: 3, bytes: 300 },
+      { category: 'avatars', from: 'uploads-local', to: 'off-box', toWire: 'off-box', objects: null, bytes: null },
+    ]);
+  });
+
+  it('FE-ADMIN-STORM-018b: reassigning onto a mirrored primary yields toWire = the mirror wire name while `to` stays the display primary', () => {
+    const state: StorageAdminState = {
+      ...STATE,
+      backends: [
+        ...STATE.backends,
+        { name: 'nas', type: 'local', source: 'settings', options: { root: '/mnt/nas' }, categories: [] },
+        {
+          name: 'off-box-mirror',
+          type: 'mirror',
+          source: 'settings',
+          options: { primary: 'off-box', replicas: ['nas'] },
+          categories: [],
+        },
+      ],
+      usage: {
+        computedAt: 1,
+        categories: { files: { objects: 3, bytes: 300 } } as Record<StorageCategory, { objects: number; bytes: number }>,
+        legacyPhotos: { objects: 0, bytes: 0 },
+      },
+    };
+    const base = settingsDocumentOf(state);
+    // Reassign 'files' to the mirrored primary's WIRE name — the same value
+    // setCategory() writes into the draft when the operator picks a mirrored
+    // primary in the UI (adoptedMirrorFor(draft, 'off-box')?.name).
+    const draft: StorageConfig = { ...base, categories: { ...base.categories, files: 'off-box-mirror' } };
+    const candidates = computeMigrationCandidates(draft, state);
+    expect(candidates).toEqual([
+      { category: 'files', from: 'uploads-local', to: 'off-box', toWire: 'off-box-mirror', objects: 3, bytes: 300 },
     ]);
   });
 

@@ -124,6 +124,7 @@ const storage: TranslationStrings = {
   'storage.migrate.routeOnly': 'Nur neue Schreibvorgänge umleiten',
   'storage.migrate.running': 'Verschiebe {category}… {done}/{total}',
   'storage.migrate.done': 'Verschieben abgeschlossen: {copied} kopiert, {skipped} übersprungen',
+  'storage.migrate.doneFailures': '{failed} fehlgeschlagen — diese Objekte wurden nicht auf das neue Backend kopiert',
   'storage.migrate.failed': 'Verschieben fehlgeschlagen: {error} — die Kategorie wurde nicht umgestellt',
   'storage.migrate.cancelled': 'Verschieben abgebrochen — nichts wurde umgestellt',
   'storage.migrate.reclaimable': '{objects} Objekte ({size}) verbleiben auf {from} — manuell freigeben',

@@ -120,6 +120,7 @@ const storage: TranslationStrings = {
   'storage.migrate.routeOnly': '새 쓰기만 전환',
   'storage.migrate.running': '{category} 이동 중… {done}/{total}',
   'storage.migrate.done': '이동 완료: {copied}개 복사, {skipped}개 건너뜀',
+  'storage.migrate.doneFailures': '{failed}개 실패 — 해당 객체는 새 백엔드로 복사되지 않았습니다',
   'storage.migrate.failed': '이동 실패: {error} — 카테고리가 전환되지 않았습니다',
   'storage.migrate.cancelled': '이동이 취소되었습니다 — 아무것도 전환되지 않았습니다',
   'storage.migrate.reclaimable': '{objects}개 객체 ({size})가 {from}에 남아 있습니다 — 수동으로 회수하세요',

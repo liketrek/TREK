@@ -126,6 +126,7 @@ const storage: TranslationStrings = {
   'storage.migrate.routeOnly': 'Router uniquement les nouvelles écritures',
   'storage.migrate.running': 'Déplacement de {category}… {done}/{total}',
   'storage.migrate.done': 'Déplacement terminé : {copied} copiés, {skipped} ignorés',
+  'storage.migrate.doneFailures': "{failed} en échec — ces objets n'ont pas été copiés vers le nouveau backend",
   'storage.migrate.failed': "Échec du déplacement : {error} — la catégorie n'a pas été changée",
   'storage.migrate.cancelled': "Déplacement annulé — rien n'a été changé",
   'storage.migrate.reclaimable': '{objects} objets ({size}) restent sur {from} — à récupérer manuellement',

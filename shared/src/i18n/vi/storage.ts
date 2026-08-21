@@ -124,6 +124,7 @@ const storage: TranslationStrings = {
   'storage.migrate.routeOnly': 'Chỉ định tuyến các ghi mới',
   'storage.migrate.running': 'Đang di chuyển {category}… {done}/{total}',
   'storage.migrate.done': 'Di chuyển hoàn tất: {copied} đã sao chép, {skipped} đã bỏ qua',
+  'storage.migrate.doneFailures': '{failed} thất bại — các đối tượng đó chưa được sao chép sang backend mới',
   'storage.migrate.failed': 'Di chuyển thất bại: {error} — danh mục chưa được chuyển đổi',
   'storage.migrate.cancelled': 'Đã hủy di chuyển — chưa có gì được chuyển đổi',
   'storage.migrate.reclaimable': '{objects} đối tượng ({size}) vẫn còn trên {from} — hãy thu hồi thủ công',

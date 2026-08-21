@@ -121,6 +121,7 @@ const storage: TranslationStrings = {
   'storage.migrate.routeOnly': 'توجيه الكتابات الجديدة فقط',
   'storage.migrate.running': 'جارٍ نقل {category}… {done}/{total}',
   'storage.migrate.done': 'اكتمل النقل: تم نسخ {copied}، وتخطي {skipped}',
+  'storage.migrate.doneFailures': '{failed} فشل — لم يتم نسخ تلك الكائنات إلى الواجهة الخلفية الجديدة',
   'storage.migrate.failed': 'فشل النقل: {error} — لم يتم تبديل الفئة',
   'storage.migrate.cancelled': 'تم إلغاء النقل — لم يتم تبديل أي شيء',
   'storage.migrate.reclaimable': '{objects} كائن ({size}) لا تزال على {from} — استرجعها يدويًا',

@@ -593,6 +593,98 @@ describe('AdminStoragePanel', () => {
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 
+  it("FE-ADMIN-STOR-036: reassigning onto a mirrored primary POSTs the migration to the mirror's wire name, not the bare primary", async () => {
+    let migrationBody: unknown;
+    const usage = {
+      computedAt: Date.now(),
+      categories: { files: { objects: 3, bytes: 3072 } },
+      legacyPhotos: { objects: 0, bytes: 0 },
+    };
+    await renderPanel({ ...mirroredState(), usage } as StorageAdminState);
+    server.use(
+      http.put('/api/admin/storage', async ({ request }) => {
+        await request.json();
+        const saved = mirroredState();
+        saved.categories.files = { backend: 'mirror', source: 'settings' };
+        return HttpResponse.json(saved);
+      }),
+      http.post('/api/admin/storage/migrations', async ({ request }) => {
+        migrationBody = await request.json();
+        return HttpResponse.json({ started: true });
+      }),
+    );
+    fireEvent.click(within(categoryRow('files')).getByText('uploads-local (default)'));
+    const choices = screen.getAllByText('backups-local');
+    fireEvent.click(choices[choices.length - 1]!);
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    expect(await screen.findByRole('alertdialog')).toBeInTheDocument();
+    // The prompt still displays the PRIMARY name — the mirror stays hidden.
+    expect(screen.getByText(/Trip documents: 3 objects \(3\.0 KB\) from uploads-local to backups-local/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Move existing objects' }));
+    await screen.findByText('Storage configuration saved');
+    // The POST carries the mirror's raw wire name, not 'backups-local' —
+    // posting the bare primary would silently drop replication.
+    expect(migrationBody).toEqual({ category: 'files', to: 'mirror' });
+  });
+
+  it('FE-ADMIN-STOR-037: a queued migration waits out a running backfill (the server 409s on either while the other runs)', async () => {
+    const usage = {
+      computedAt: Date.now(),
+      categories: { files: { objects: 3, bytes: 3072 } },
+      legacyPhotos: { objects: 0, bytes: 0 },
+    };
+    const state = mirroredState();
+    (state as StorageAdminState).backfills = [
+      { backend: 'mirror', status: 'running', done: 1, total: 5, copied: 1, skipped: 0, failed: 0, startedAt: 1 },
+    ];
+    await renderPanel({ ...state, usage } as StorageAdminState);
+    const savedState = mirroredState();
+    savedState.categories.files = { backend: 'off-box', source: 'settings' };
+    // The save itself doesn't touch the backfill — a real server's PUT
+    // response reflects it still running, exactly like the GET poll below.
+    (savedState as StorageAdminState).backfills = [
+      { backend: 'mirror', status: 'running', done: 1, total: 5, copied: 1, skipped: 0, failed: 0, startedAt: 1 },
+    ];
+    let migrationPosted = false;
+    // Held running until the test flips it — the backfill only ever turns
+    // terminal via this GET stub, never via a real timer.
+    let backfillDone = false;
+    server.use(
+      http.put('/api/admin/storage', () => HttpResponse.json(savedState)),
+      http.post('/api/admin/storage/migrations', () => {
+        migrationPosted = true;
+        return HttpResponse.json({ started: true });
+      }),
+      http.get('/api/admin/storage', () => {
+        const next = { ...savedState };
+        next.backfills = [
+          {
+            backend: 'mirror', status: backfillDone ? 'done' : 'running', done: backfillDone ? 5 : 1, total: 5,
+            copied: backfillDone ? 5 : 1, skipped: 0, failed: 0, startedAt: 1,
+            ...(backfillDone ? { finishedAt: 2 } : {}),
+          },
+        ];
+        return HttpResponse.json(next);
+      }),
+    );
+    fireEvent.click(within(categoryRow('files')).getByText('uploads-local (default)'));
+    fireEvent.click(screen.getAllByText('off-box')[screen.getAllByText('off-box').length - 1]!);
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await screen.findByRole('alertdialog');
+    fireEvent.click(screen.getByRole('button', { name: 'Move existing objects' }));
+    await screen.findByText('Storage configuration saved');
+
+    // The backfill is still running — the queued migration must not POST yet.
+    await new Promise((r) => setTimeout(r, 200));
+    expect(migrationPosted).toBe(false);
+
+    // Once the backfill turns terminal, the queued migration is free to start.
+    backfillDone = true;
+    await waitFor(() => expect(migrationPosted).toBe(true), { timeout: 2000 });
+  });
+
   it('FE-ADMIN-STOR-032: zero-object reassigns save without any prompt', async () => {
     let putBody: unknown;
     const usage = {
@@ -713,6 +805,24 @@ describe('AdminStoragePanel', () => {
     expect(screen.getByText(/4 objects \(4\.0 KB\) remain on uploads-local — reclaim manually/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel move' }));
     await waitFor(() => expect(cancelledCategory).toBe('files'));
+  });
+
+  it('FE-ADMIN-STOR-038: a done migration with sweep failures shows the doneFailures line; a clean one shows nothing extra', async () => {
+    const state = baseState();
+    (state as StorageAdminState).migrations = [
+      {
+        category: 'files', from: 'uploads-local', to: 'off-box',
+        status: 'done', done: 4, total: 4, copied: 3, skipped: 0, failed: 2, startedAt: 1, finishedAt: 2,
+      },
+      {
+        category: 'journey', from: 'uploads-local', to: 'off-box',
+        status: 'done', done: 4, total: 4, copied: 4, skipped: 0, failed: 0, startedAt: 1, finishedAt: 2,
+      },
+    ];
+    await renderPanel(state);
+    expect(screen.getByText(/2 failed — those objects were not copied to the new backend/)).toBeInTheDocument();
+    // The clean migration (failed: 0) must not render the line at all.
+    expect(within(screen.getByTestId('storage-migration-journey')).queryByText(/failed —/)).not.toBeInTheDocument();
   });
 
   it('FE-ADMIN-STOR-035: a failed save disarms the sync-prompt snapshot', async () => {

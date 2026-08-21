@@ -122,6 +122,7 @@ const storage: TranslationStrings = {
   'storage.migrate.routeOnly': 'Dirigera bara nya skrivningar',
   'storage.migrate.running': 'Flyttar {category}… {done}/{total}',
   'storage.migrate.done': 'Flytt klar: {copied} kopierade, {skipped} överhoppade',
+  'storage.migrate.doneFailures': '{failed} misslyckades — dessa objekt kopierades inte till den nya backend',
   'storage.migrate.failed': 'Flytt misslyckades: {error} — kategorin byttes inte',
   'storage.migrate.cancelled': 'Flytt avbruten — inget byttes',
   'storage.migrate.reclaimable': '{objects} objekt ({size}) finns kvar på {from} — återvinn manuellt',

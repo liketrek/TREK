@@ -121,6 +121,7 @@ const storage: TranslationStrings = {
   'storage.migrate.routeOnly': 'Pouze směrovat nové zápisy',
   'storage.migrate.running': 'Přesouvání {category}… {done}/{total}',
   'storage.migrate.done': 'Přesun dokončen: {copied} zkopírováno, {skipped} přeskočeno',
+  'storage.migrate.doneFailures': '{failed} se nezdařilo — tyto objekty nebyly zkopírovány do nového backendu',
   'storage.migrate.failed': 'Přesun selhal: {error} — kategorie nebyla přepnuta',
   'storage.migrate.cancelled': 'Přesun zrušen — nic nebylo přepnuto',
   'storage.migrate.reclaimable': '{objects} objektů ({size}) zůstává na {from} — uvolněte ručně',

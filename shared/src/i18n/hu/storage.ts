@@ -125,6 +125,7 @@ const storage: TranslationStrings = {
   'storage.migrate.routeOnly': 'Csak az új írások irányítása',
   'storage.migrate.running': '{category} áthelyezése… {done}/{total}',
   'storage.migrate.done': 'Áthelyezés kész: {copied} másolva, {skipped} kihagyva',
+  'storage.migrate.doneFailures': '{failed} sikertelen — ezek az objektumok nem lettek átmásolva az új backendre',
   'storage.migrate.failed': 'Az áthelyezés sikertelen: {error} — a kategória nem lett átváltva',
   'storage.migrate.cancelled': 'Áthelyezés megszakítva — semmi sem lett átváltva',
   'storage.migrate.reclaimable': '{objects} objektum ({size}) marad a(z) {from} helyen — kézzel szabadítsd fel',

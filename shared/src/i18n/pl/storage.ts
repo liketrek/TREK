@@ -124,6 +124,7 @@ const storage: TranslationStrings = {
   'storage.migrate.routeOnly': 'Przekieruj tylko nowe zapisy',
   'storage.migrate.running': 'Przenoszenie {category}… {done}/{total}',
   'storage.migrate.done': 'Przenoszenie zakończone: {copied} skopiowanych, {skipped} pominiętych',
+  'storage.migrate.doneFailures': '{failed} nie powiodło się — te obiekty nie zostały skopiowane do nowego backendu',
   'storage.migrate.failed': 'Przenoszenie nie powiodło się: {error} — kategoria nie została przełączona',
   'storage.migrate.cancelled': 'Przenoszenie anulowane — nic nie zostało przełączone',
   'storage.migrate.reclaimable': '{objects} obiektów ({size}) pozostaje na {from} — odzyskaj ręcznie',

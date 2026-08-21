@@ -124,6 +124,7 @@ const storage: TranslationStrings = {
   'storage.migrate.routeOnly': 'Yalnızca yeni yazmaları yönlendir',
   'storage.migrate.running': '{category} taşınıyor… {done}/{total}',
   'storage.migrate.done': 'Taşıma tamamlandı: {copied} kopyalandı, {skipped} atlandı',
+  'storage.migrate.doneFailures': '{failed} başarısız oldu — bu nesneler yeni arka uca kopyalanmadı',
   'storage.migrate.failed': 'Taşıma başarısız oldu: {error} — kategori değiştirilmedi',
   'storage.migrate.cancelled': 'Taşıma iptal edildi — hiçbir şey değiştirilmedi',
   'storage.migrate.reclaimable': '{objects} nesne ({size}) {from} üzerinde kalıyor — manuel olarak geri kazanın',

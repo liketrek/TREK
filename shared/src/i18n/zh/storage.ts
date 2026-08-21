@@ -113,6 +113,7 @@ const storage: TranslationStrings = {
   'storage.migrate.routeOnly': '仅路由新写入',
   'storage.migrate.running': '正在移动 {category}… {done}/{total}',
   'storage.migrate.done': '移动完成：已复制 {copied}，已跳过 {skipped}',
+  'storage.migrate.doneFailures': '{failed} 个失败 — 这些对象未复制到新后端',
   'storage.migrate.failed': '移动失败：{error} — 该分类未切换',
   'storage.migrate.cancelled': '移动已取消 — 未切换任何内容',
   'storage.migrate.reclaimable': '{objects} 个对象（{size}）仍保留在 {from} 上 — 请手动回收',

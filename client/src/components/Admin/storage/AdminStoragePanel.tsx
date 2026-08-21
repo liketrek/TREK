@@ -104,14 +104,18 @@ export default function AdminStoragePanel(): React.ReactElement {
   // where setMigrationQueue(rest) re-fires this effect synchronously while
   // admin.state still shows the pre-POST world — without it, the next
   // candidate could dequeue and POST before the first is server-confirmed.
+  // Also waits out a running BACKFILL — the server's one-storage-job-at-a-time
+  // rule spans backfills and migrations alike, so starting while one runs
+  // would 409, and the queued candidate would be lost (no retry).
   useEffect(() => {
     if (migrationQueue.length === 0 || !admin.state) return
     if (migrationStartInFlight.current) return
     if (admin.state.migrations.some((m) => m.status === 'running')) return
+    if (admin.state.backfills.some((b) => b.status === 'running')) return
     const [next, ...rest] = migrationQueue
     migrationStartInFlight.current = true
     setMigrationQueue(rest)
-    void admin.startMigration(next!.category, next!.to).then((error) => {
+    void admin.startMigration(next!.category, next!.toWire).then((error) => {
       migrationStartInFlight.current = false
       if (error) toast.error(error)
     })
@@ -491,6 +495,11 @@ export default function AdminStoragePanel(): React.ReactElement {
                     <p className="text-xs mt-1 text-content-faint">
                       {t('storage.migrate.done', { copied: String(m.copied), skipped: String(m.skipped) })}
                     </p>
+                    {m.failed > 0 && (
+                      <p className="text-xs mt-1 text-content-faint">
+                        {t('storage.migrate.doneFailures', { failed: String(m.failed) })}
+                      </p>
+                    )}
                     {m.reclaimable && (
                       <p className="text-xs mt-1 text-content-faint">
                         {t('storage.migrate.reclaimable', {

@@ -121,6 +121,7 @@ const storage: TranslationStrings = {
   'storage.migrate.routeOnly': 'Apenas rotear novas gravações',
   'storage.migrate.running': 'Movendo {category}… {done}/{total}',
   'storage.migrate.done': 'Movimentação concluída: {copied} copiados, {skipped} ignorados',
+  'storage.migrate.doneFailures': '{failed} falharam — esses objetos não foram copiados para o novo backend',
   'storage.migrate.failed': 'Falha ao mover: {error} — a categoria não foi alterada',
   'storage.migrate.cancelled': 'Movimentação cancelada — nada foi alterado',
   'storage.migrate.reclaimable': '{objects} objetos ({size}) permanecem em {from} — recupere manualmente',

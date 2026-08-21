@@ -127,6 +127,7 @@ const storage: TranslationStrings = {
   'storage.migrate.routeOnly': 'Δρομολόγηση μόνο των νέων εγγραφών',
   'storage.migrate.running': 'Μετακίνηση {category}… {done}/{total}',
   'storage.migrate.done': 'Η μετακίνηση ολοκληρώθηκε: {copied} αντιγράφηκαν, {skipped} παραλείφθηκαν',
+  'storage.migrate.doneFailures': '{failed} απέτυχαν — αυτά τα αντικείμενα δεν αντιγράφηκαν στο νέο backend',
   'storage.migrate.failed': 'Η μετακίνηση απέτυχε: {error} — η κατηγορία δεν άλλαξε',
   'storage.migrate.cancelled': 'Η μετακίνηση ακυρώθηκε — τίποτα δεν άλλαξε',
   'storage.migrate.reclaimable': '{objects} αντικείμενα ({size}) παραμένουν στο {from} — ανάκτησέ τα χειροκίνητα',

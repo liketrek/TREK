@@ -124,6 +124,7 @@ const storage: TranslationStrings = {
   'storage.migrate.routeOnly': 'Перенаправити лише нові записи',
   'storage.migrate.running': 'Перенесення {category}… {done}/{total}',
   'storage.migrate.done': 'Перенесення завершено: {copied} скопійовано, {skipped} пропущено',
+  'storage.migrate.doneFailures': "{failed} не вдалося — ці об'єкти не було скопійовано на новий бекенд",
   'storage.migrate.failed': 'Перенесення не вдалося: {error} — категорію не перемкнуто',
   'storage.migrate.cancelled': 'Перенесення скасовано — нічого не перемкнуто',
   'storage.migrate.reclaimable': "{objects} об'єктів ({size}) залишаються на {from} — звільніть вручну",

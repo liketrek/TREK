@@ -122,6 +122,7 @@ const storage: TranslationStrings = {
   'storage.migrate.routeOnly': '新規書き込みのみ切り替える',
   'storage.migrate.running': '{category}を移動中… {done}/{total}',
   'storage.migrate.done': '移動完了: {copied}件コピー、{skipped}件スキップ',
+  'storage.migrate.doneFailures': '{failed}件失敗 — それらのオブジェクトは新しいバックエンドにコピーされませんでした',
   'storage.migrate.failed': '移動に失敗しました: {error} — カテゴリは切り替えられませんでした',
   'storage.migrate.cancelled': '移動をキャンセルしました — 何も切り替えられていません',
   'storage.migrate.reclaimable': '{objects}件のオブジェクト（{size}）が{from}に残っています — 手動で回収してください',

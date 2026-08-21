@@ -124,6 +124,7 @@ const storage: TranslationStrings = {
   'storage.migrate.routeOnly': 'Hanya arahkan penulisan baru',
   'storage.migrate.running': 'Memindahkan {category}… {done}/{total}',
   'storage.migrate.done': 'Pemindahan selesai: {copied} disalin, {skipped} dilewati',
+  'storage.migrate.doneFailures': '{failed} gagal — objek tersebut tidak disalin ke backend baru',
   'storage.migrate.failed': 'Pemindahan gagal: {error} — kategori tidak diubah',
   'storage.migrate.cancelled': 'Pemindahan dibatalkan — tidak ada yang diubah',
   'storage.migrate.reclaimable': '{objects} objek ({size}) masih tersisa di {from} — ambil kembali secara manual',

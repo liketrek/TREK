@@ -125,6 +125,7 @@ const storage: TranslationStrings = {
   'storage.migrate.routeOnly': 'Només enruta les escriptures noves',
   'storage.migrate.running': 'Movent {category}… {done}/{total}',
   'storage.migrate.done': 'Trasllat finalitzat: {copied} copiats, {skipped} omesos',
+  'storage.migrate.doneFailures': "{failed} han fallat — aquests objectes no s'han copiat al nou backend",
   'storage.migrate.failed': "Ha fallat el trasllat: {error} — la categoria no s'ha canviat",
   'storage.migrate.cancelled': "Trasllat cancel·lat — no s'ha canviat res",
   'storage.migrate.reclaimable': "{objects} objectes ({size}) romanen a {from} — recupera'ls manualment",
