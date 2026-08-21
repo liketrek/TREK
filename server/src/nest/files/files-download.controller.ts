@@ -45,8 +45,8 @@ export class FilesDownloadController {
       throw new HttpException({ error: 'File not found' }, 404);
     }
 
-    // basename() keeps resolveFilePath()'s tolerance: a stray prefixed row
-    // still resolves to its bare stored name.
+    // basename() tolerates a stray prefixed row (legacy rows sometimes stored
+    // a relative path); the storage layer's key validation refuses the rest.
     const name = path.basename(file.filename);
     if (!(await this.storage.exists('files', name).catch(() => false))) {
       throw new HttpException({ error: 'File not found' }, 404);

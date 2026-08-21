@@ -233,7 +233,7 @@ describe('FilesDownloadController', () => {
     expect(storage.sendToResponse).toHaveBeenCalledWith('files', 'x.pdf', res, undefined);
   });
 
-  it('tolerates a stray prefixed row via basename, like resolveFilePath did', async () => {
+  it('tolerates a stray prefixed row via basename(), same as the download controller', async () => {
     const storage = dstor();
     const s = dsvc({ getFileById: vi.fn().mockReturnValue({ filename: 'files/x.pdf', original_name: 'x.pdf' }) });
     await new FilesDownloadController(s, storage).download(req, res, '5', '9');

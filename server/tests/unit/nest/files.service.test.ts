@@ -154,17 +154,6 @@ describe('files.constants', () => {
     const serverRoot = path.resolve(__dirname, '../../..');
     expect(path.resolve(filesDir)).toBe(path.join(serverRoot, 'uploads', 'files'));
   });
-
-  it('FILE-SVC-005: resolveFilePath neutralizes traversal via basename and stays inside filesDir', () => {
-    const plain = svc.resolveFilePath('photo.jpg');
-    expect(plain.resolved).toBe(path.resolve(path.join(filesDir, 'photo.jpg')));
-    expect(plain.safe).toBe(true);
-
-    const sneaky = svc.resolveFilePath('../../../etc/passwd');
-    expect(sneaky.resolved).toBe(path.resolve(path.join(filesDir, 'passwd')));
-    expect(sneaky.safe).toBe(true);
-    expect(sneaky.resolved.startsWith(path.resolve(filesDir))).toBe(true);
-  });
 });
 
 // ── allowed extensions (canonical owner: AllowedFileTypesService) ─────────────

@@ -221,7 +221,7 @@ describe('File download path traversal', () => {
     const res = await request(app)
       .get(`/api/trips/${trip.id}/files/${fileId}/download`)
       .set(authHeader(user.id));
-    // resolveFilePath strips traversal via path.basename; normalized file does not exist in uploads
+    // path.basename() strips traversal in the download controller; normalized file does not exist in uploads
     expect(res.status).not.toBe(200);
   });
 });

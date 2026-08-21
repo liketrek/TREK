@@ -10,7 +10,7 @@ import { RealtimeService } from '../realtime/realtime.service';
 import { DatabaseService } from '../database/database.service';
 import { readEnv } from '../../app-config';
 import { isDemoEmail } from '../common/demo';
-import { BLOCKED_EXTENSIONS, filesDir } from './files.constants';
+import { BLOCKED_EXTENSIONS } from './files.constants';
 import { FilesService } from './files.service';
 import { StorageService } from '../storage/storage.service';
 import { StorageNotFoundError, type ObjectStat } from '../storage/storage.types';

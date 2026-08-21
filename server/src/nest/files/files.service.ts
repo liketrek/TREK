@@ -9,7 +9,7 @@ import { EphemeralTokenService } from '../auth/ephemeral-token.service';
 import { verifyJwtAndLoadUser } from '../auth/jwt-verify';
 import type { User, TripFile } from '../../types';
 import { DatabaseService, type TripAccess } from '../database/database.service';
-import { DEFAULT_ALLOWED_EXTENSIONS, filesDir } from './files.constants';
+import { DEFAULT_ALLOWED_EXTENSIONS } from './files.constants';
 import { StorageService } from '../storage/storage.service';
 
 type Trip = TripAccess;
@@ -104,20 +104,6 @@ export class FilesService {
     }
 
     return { error: 'Authentication required', status: 401 };
-  }
-
-  /**
-   * Absolute-path resolution for the one remaining raw-fs consumer, the plugin
-   * RPC read (files.rpc.ts). Deferred beyond slice 4 by user decision
-   * 2026-08-16; everything else in this domain addresses storage as
-   * ('files', <bare name>).
-   */
-  resolveFilePath(filename: string): { resolved: string; safe: boolean } {
-    const safeName = path.basename(filename);
-    const filePath = path.join(filesDir, safeName);
-    const resolved = path.resolve(filePath);
-    const safe = resolved.startsWith(path.resolve(filesDir));
-    return { resolved, safe };
   }
 
   // ---------------------------------------------------------------------------
