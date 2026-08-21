@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
-import { MASKED_SETTING_VALUE, type StorageAdminState } from '@trek/shared';
+import { MASKED_SETTING_VALUE, type StorageAdminState, type StorageCategory, type StorageConfig } from '@trek/shared';
 import { server } from '../../../helpers/msw/server';
 import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render';
 import { ToastContainer } from '../../../../src/components/shared/Toast';
@@ -79,6 +79,11 @@ describe('MAdminStoragePanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'off-box' })); // picker option; selecting closes
     expect(screen.getByText(/Existing objects do not move/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    // Usage was never scanned (baseState().usage === null) — the migrate
+    // prompt fires; this test is about the picker + PUT shape, not the
+    // prompt, so route new writes only (today's save behavior, unstripped).
+    await screen.findByRole('alertdialog');
+    fireEvent.click(screen.getByRole('button', { name: 'Just route new writes' }));
     await screen.findByText('Storage configuration saved');
     expect((putBody as { categories: Record<string, string> }).categories.files).toBe('off-box');
   });
@@ -99,6 +104,10 @@ describe('MAdminStoragePanel', () => {
     fireEvent.click(within(screen.getByTestId('m-storage-category-files')).getByRole('button'));
     fireEvent.click(screen.getByRole('button', { name: 'off-box' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    // Usage was never scanned — the migrate prompt fires first; route new
+    // writes only, matching this test's focus on the save-error rendering.
+    await screen.findByRole('alertdialog');
+    fireEvent.click(screen.getByRole('button', { name: 'Just route new writes' }));
     expect(await screen.findByText('registry says no')).toBeInTheDocument();
   });
 
@@ -158,6 +167,10 @@ describe('MAdminStoragePanel', () => {
     // screen here (the mirror-targets latency note only renders while a form is open).
     expect(screen.getByRole('note')).toHaveTextContent(/re-fetchable/);
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    // Usage was never scanned — the migrate prompt fires first; route new
+    // writes only, matching this test's focus on the picker/cache-warning.
+    await screen.findByRole('alertdialog');
+    fireEvent.click(screen.getByRole('button', { name: 'Just route new writes' }));
     await screen.findByText('Storage configuration saved');
     expect((putBody as { categories: Record<string, string> }).categories.places).toBe('mirror');
   });
@@ -220,5 +233,198 @@ describe('MAdminStoragePanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     await screen.findByText(/Existing objects are not replicated yet/);
+  });
+
+  it('FE-MOB-MSTOR-013: reassigning a populated category prompts before saving; Move strips it from the PUT and POSTs the migration after save', async () => {
+    let putBody: unknown;
+    let putCalled = false;
+    let migrationBody: unknown;
+    const usage = {
+      computedAt: Date.now(),
+      categories: { files: { objects: 3, bytes: 3072 } },
+      legacyPhotos: { objects: 0, bytes: 0 },
+    };
+    await renderPanel({ ...baseState(), usage } as StorageAdminState);
+    server.use(
+      http.put('/api/admin/storage', async ({ request }) => {
+        putCalled = true;
+        putBody = await request.json();
+        const saved = baseState();
+        saved.categories.files = { backend: 'off-box', source: 'settings' };
+        return HttpResponse.json(saved);
+      }),
+      http.post('/api/admin/storage/migrations', async ({ request }) => {
+        migrationBody = await request.json();
+        return HttpResponse.json({ started: true });
+      }),
+    );
+    fireEvent.click(within(screen.getByTestId('m-storage-category-files')).getByRole('button'));
+    fireEvent.click(screen.getByRole('button', { name: 'off-box' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    expect(await screen.findByRole('alertdialog')).toBeInTheDocument();
+    expect(putCalled).toBe(false);
+    expect(screen.getByText(/Trip documents: 3 objects \(3\.0 KB\) from uploads-local to off-box/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Move existing objects' }));
+    await screen.findByText('Storage configuration saved');
+    // files is default-sourced (uploads-local) in baseState() — stripping restores "no override".
+    expect((putBody as StorageConfig).categories.files).toBeUndefined();
+    expect(migrationBody).toEqual({ category: 'files', to: 'off-box' });
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-MSTOR-014: Just route new writes saves the reassignment as-is, no migration POST', async () => {
+    let putBody: unknown;
+    let migrationPosted = false;
+    const usage = {
+      computedAt: Date.now(),
+      categories: { files: { objects: 3, bytes: 3072 } },
+      legacyPhotos: { objects: 0, bytes: 0 },
+    };
+    await renderPanel({ ...baseState(), usage } as StorageAdminState);
+    server.use(
+      http.put('/api/admin/storage', async ({ request }) => {
+        putBody = await request.json();
+        const saved = baseState();
+        saved.categories.files = { backend: 'off-box', source: 'settings' };
+        return HttpResponse.json(saved);
+      }),
+      http.post('/api/admin/storage/migrations', () => {
+        migrationPosted = true;
+        return HttpResponse.json({ started: true });
+      }),
+    );
+    fireEvent.click(within(screen.getByTestId('m-storage-category-files')).getByRole('button'));
+    fireEvent.click(screen.getByRole('button', { name: 'off-box' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await screen.findByRole('alertdialog');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Just route new writes' }));
+    await screen.findByText('Storage configuration saved');
+    expect((putBody as StorageConfig).categories.files).toBe('off-box');
+    expect(migrationPosted).toBe(false);
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-MSTOR-015: two candidates queue sequentially: the second POSTs only after the first turns terminal', async () => {
+    const usage = {
+      computedAt: Date.now(),
+      categories: {
+        files: { objects: 3, bytes: 3072 },
+        journey: { objects: 2, bytes: 2048 },
+      },
+      legacyPhotos: { objects: 0, bytes: 0 },
+    };
+    await renderPanel({ ...baseState(), usage } as StorageAdminState);
+    const savedState = baseState();
+    savedState.categories.files = { backend: 'off-box', source: 'settings' };
+    savedState.categories.journey = { backend: 'off-box', source: 'settings' };
+    const migrationPosts: Array<{ category: StorageCategory; to: string }> = [];
+    // Held 'running' until the test explicitly flips this — deterministic,
+    // unlike counting poll ticks against the 50ms test interval.
+    let firstDone = false;
+    let postCount = 0;
+    server.use(
+      http.put('/api/admin/storage', () => HttpResponse.json(savedState)),
+      http.post('/api/admin/storage/migrations', async ({ request }) => {
+        postCount += 1;
+        const body = (await request.json()) as { category: StorageCategory; to: string };
+        migrationPosts.push(body);
+        // Pins the single-flight fix: the second POST must never arrive
+        // before the first migration is server-confirmed terminal — a
+        // regression here means the queue's synchronous re-fire raced ahead
+        // of admin.state showing the first as done.
+        if (postCount === 2) expect(firstDone).toBe(true);
+        return HttpResponse.json({ started: true });
+      }),
+      http.get('/api/admin/storage', () => {
+        const state = { ...savedState };
+        state.migrations =
+          migrationPosts.length === 0
+            ? []
+            : [
+                {
+                  category: migrationPosts[0]!.category, from: 'uploads-local', to: migrationPosts[0]!.to,
+                  status: firstDone ? 'done' : 'running', done: firstDone ? 3 : 1, total: 3,
+                  copied: firstDone ? 3 : 1, skipped: 0, failed: 0, startedAt: 1,
+                  ...(firstDone ? { finishedAt: 2 } : {}),
+                },
+              ];
+        return HttpResponse.json(state);
+      }),
+    );
+    fireEvent.click(within(screen.getByTestId('m-storage-category-files')).getByRole('button'));
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Trip documents' })).getByRole('button', { name: 'off-box' }));
+    fireEvent.click(within(screen.getByTestId('m-storage-category-journey')).getByRole('button'));
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Journey photos' })).getByRole('button', { name: 'off-box' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await screen.findByRole('alertdialog');
+    fireEvent.click(screen.getByRole('button', { name: 'Move existing objects' }));
+    await screen.findByText('Storage configuration saved');
+
+    await waitFor(() => expect(postCount).toBe(1));
+    expect(migrationPosts[0]!.category).toBe('files');
+    // At the moment the first POST arrives, exactly one POST has happened —
+    // and the second must not fire while the first is still running, no
+    // matter how many poll ticks elapse.
+    expect(postCount).toBe(1);
+    await new Promise((r) => setTimeout(r, 200));
+    expect(postCount).toBe(1);
+    // Once the first turns terminal, the second is dequeued — the POST
+    // handler's own assertion (above) pins that it never arrives early.
+    firstDone = true;
+    await waitFor(() => expect(postCount).toBe(2), { timeout: 2000 });
+    expect(migrationPosts[1]!.category).toBe('journey');
+  });
+
+  it('FE-MOB-MSTOR-016: a done migration row shows the reclaimable line; a running one shows progress + cancel wired to DELETE', async () => {
+    let cancelledCategory: string | null = null;
+    const state = baseState();
+    (state as StorageAdminState).migrations = [
+      {
+        category: 'files', from: 'uploads-local', to: 'off-box',
+        status: 'running', done: 2, total: 5, copied: 1, skipped: 1, failed: 0, startedAt: 1,
+      },
+      {
+        category: 'journey', from: 'uploads-local', to: 'off-box',
+        status: 'done', done: 4, total: 4, copied: 4, skipped: 0, failed: 0, startedAt: 1, finishedAt: 2,
+        reclaimable: { objects: 4, bytes: 4096 },
+      },
+    ];
+    await renderPanel(state);
+    server.use(
+      http.delete('/api/admin/storage/migrations/files', () => {
+        cancelledCategory = 'files';
+        return HttpResponse.json({ cancelled: true });
+      }),
+    );
+    expect(screen.getByText(/Moving Trip documents… 2\/5/)).toBeInTheDocument();
+    expect(screen.getByText(/Move finished: 4 copied, 0 skipped/)).toBeInTheDocument();
+    expect(screen.getByText(/4 objects \(4\.0 KB\) remain on uploads-local — reclaim manually/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel move' }));
+    await waitFor(() => expect(cancelledCategory).toBe('files'));
+  });
+
+  it('FE-MOB-MSTOR-017: a failed save disarms the sync-prompt snapshot', async () => {
+    await renderPanel();
+    server.use(http.put('/api/admin/storage', () => HttpResponse.json({ error: 'nope' }, { status: 400 })));
+    fireEvent.click(within(screen.getByTestId('m-storage-backend-backups-local')).getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'off-box' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await screen.findByText('nope');
+
+    // The draft-only mirror (never saved) still renders its "Sync now" —
+    // clicking it drives a genuine admin.state refresh (via refreshState())
+    // that lands a world whose mirror targets grew. With the pending-prompt
+    // snapshot disarmed by the failed save, the sync prompt must never appear.
+    server.use(
+      http.post('/api/admin/storage/backends/backups-local-mirror/backfill', () => HttpResponse.json({ started: true })),
+      http.get('/api/admin/storage', () => HttpResponse.json(mirroredState())),
+    );
+    fireEvent.click(within(screen.getByTestId('m-storage-backend-backups-local')).getByRole('button', { name: 'Sync now' }));
+    await new Promise((r) => setTimeout(r, 100));
+    expect(screen.queryByText(/Existing objects are not replicated yet/)).not.toBeInTheDocument();
   });
 });

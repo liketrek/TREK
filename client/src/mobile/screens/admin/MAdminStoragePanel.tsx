@@ -8,6 +8,7 @@ import {
   type StorageBackendFieldDef,
   type StorageBackendTypeId,
   type StorageCategory,
+  type StorageMigrationStatus,
 } from '@trek/shared'
 import { useTranslation } from '../../../i18n'
 import { useToast } from '../../../components/shared/Toast'
@@ -16,6 +17,7 @@ import { relativeTime } from '../../../utils/relativeTime'
 import {
   CACHE_CATEGORIES,
   adoptedMirrorFor,
+  computeMigrationCandidates,
   effectiveCategoryMap,
   foldBackends,
   primaryNameOf,
@@ -25,9 +27,11 @@ import {
   replicaOfPrimaries,
   settingsDocumentOf,
   setMirrorTargets,
+  stripCategories,
   upsertBackend,
   usageByBackend,
   type FoldedBackendRow,
+  type MigrationCandidate,
 } from '../../../components/Admin/storage/storageModel'
 import { useStorageAdmin } from '../../../components/Admin/storage/useStorageAdmin'
 import MToggle from '../../components/MToggle'
@@ -247,11 +251,21 @@ export default function MAdminStoragePanel(): React.ReactElement {
   const [confirmRemove, setConfirmRemove] = useState<{ name: string; degenerate: boolean } | null>(null)
   const [categoryPicker, setCategoryPicker] = useState<StorageCategory | null>(null)
   const [syncPrompt, setSyncPrompt] = useState<string | null>(null)
+  const [migratePrompt, setMigratePrompt] = useState<MigrationCandidate[] | null>(null)
+  const [migrationQueue, setMigrationQueue] = useState<MigrationCandidate[]>([])
   // Set by `save` right before it calls admin.save(): the pre-save mirror
   // target count per row name. Consumed (and cleared) by the effect below the
   // first time `admin.state` changes afterward — never touched otherwise, so
   // unrelated state changes (the backfill poll included) are no-ops here.
   const pendingPromptCheck = useRef<Map<string, number> | null>(null)
+  // Synchronous single-flight lock for the queue effect below: `admin.state`
+  // only reflects a just-started migration once startMigration's awaited
+  // refreshState() resolves, so `setMigrationQueue(rest)` re-firing the
+  // effect synchronously (still against the pre-POST `admin.state`) would
+  // otherwise dequeue and POST the next candidate before the server has
+  // confirmed the first — a ref (not state) so the guard is visible on that
+  // very next synchronous re-render, not just after a state-driven one.
+  const migrationStartInFlight = useRef(false)
 
   useEffect(() => {
     if (!pendingPromptCheck.current || !admin.state) return
@@ -261,6 +275,26 @@ export default function MAdminStoragePanel(): React.ReactElement {
     const grown = afterRows.find((r) => r.mirrorTargets.length > (before.get(r.name) ?? 0))
     if (grown) setSyncPrompt(grown.name)
   }, [admin.state])
+
+  // Queued category migrations run strictly sequentially: once a slot opens
+  // (no migration currently running), dequeue the next candidate and start
+  // it. Depends on admin.state so a poll landing a terminal status re-fires
+  // this without any user interaction. The in-flight lock closes the race
+  // where setMigrationQueue(rest) re-fires this effect synchronously while
+  // admin.state still shows the pre-POST world — without it, the next
+  // candidate could dequeue and POST before the first is server-confirmed.
+  useEffect(() => {
+    if (migrationQueue.length === 0 || !admin.state) return
+    if (migrationStartInFlight.current) return
+    if (admin.state.migrations.some((m) => m.status === 'running')) return
+    const [next, ...rest] = migrationQueue
+    migrationStartInFlight.current = true
+    setMigrationQueue(rest)
+    void admin.startMigration(next!.category, next!.to).then((error) => {
+      migrationStartInFlight.current = false
+      if (error) toast.error(error)
+    })
+  }, [migrationQueue, admin.state])
 
   if (admin.loading) {
     return (
@@ -332,15 +366,51 @@ export default function MAdminStoragePanel(): React.ReactElement {
     admin.setDraft({ ...draft, categories })
   }
 
-  const save = async () => {
-    // Snapshot the LAST-CONFIRMED (pre-save `state`'s own fold, not the
-    // in-progress `draft`) mirror target counts; the effect above compares
-    // them against the fresh post-save state to detect newly-added
-    // replicas. Folding `draft` here would already include the unsaved
-    // edit and mask the very growth this is meant to detect.
+  // Snapshot the LAST-CONFIRMED (pre-save `state`'s own fold, not the
+  // in-progress `draft`) mirror target counts; the effect above compares
+  // them against the fresh post-save state to detect newly-added
+  // replicas. Folding `draft` here would already include the unsaved
+  // edit and mask the very growth this is meant to detect.
+  const snapshotMirrorTargets = (): Map<string, number> => {
     const { rows: beforeRows } = foldBackends(state, settingsDocumentOf(state))
-    pendingPromptCheck.current = new Map(beforeRows.map((r) => [r.name, r.mirrorTargets.length]))
+    return new Map(beforeRows.map((r) => [r.name, r.mirrorTargets.length]))
+  }
+
+  const doPlainSave = async () => {
+    pendingPromptCheck.current = snapshotMirrorTargets()
     if (await admin.save()) toast.success(t('storage.saved'))
+    else pendingPromptCheck.current = null
+  }
+
+  const moveAndSave = async (candidates: MigrationCandidate[]) => {
+    pendingPromptCheck.current = snapshotMirrorTargets()
+    const ok = await admin.save(stripCategories(draft, state, candidates.map((c) => c.category)))
+    if (ok) {
+      setMigrationQueue(candidates)
+      toast.success(t('storage.saved'))
+    } else {
+      pendingPromptCheck.current = null
+    }
+    setMigratePrompt(null)
+  }
+
+  const routeOnlySave = async () => {
+    setMigratePrompt(null)
+    await doPlainSave()
+  }
+
+  const save = async () => {
+    const candidates = computeMigrationCandidates(draft, state)
+    if (candidates.length > 0) {
+      setMigratePrompt(candidates)
+      return
+    }
+    await doPlainSave()
+  }
+
+  const handleCancelMigration = async (m: StorageMigrationStatus) => {
+    const error = await admin.cancelMigration(m.category)
+    if (error) toast.error(error)
   }
 
   const handleRefreshStats = async () => {
@@ -585,6 +655,53 @@ export default function MAdminStoragePanel(): React.ReactElement {
               </div>
             )
           })}
+
+          {state.migrations.map((m) => (
+            <div
+              key={m.category}
+              data-testid={`m-storage-migration-${m.category}`}
+              className="rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] p-3"
+            >
+              <p className="text-[0.8125rem] font-bold text-m-ink">{t(`storage.category.${m.category}`)}</p>
+              {m.status === 'running' ? (
+                <>
+                  <p className="mt-1 font-geist text-[0.625rem] text-m-muted">
+                    {t('storage.migrate.running', {
+                      category: t(`storage.category.${m.category}`),
+                      done: String(m.done),
+                      total: String(m.total),
+                    })}
+                  </p>
+                  <div className="mt-1">
+                    <MAdminButton variant="ghost" onClick={() => void handleCancelMigration(m)}>
+                      {t('storage.migrate.cancel')}
+                    </MAdminButton>
+                  </div>
+                </>
+              ) : m.status === 'done' ? (
+                <>
+                  <p className="mt-1 font-geist text-[0.625rem] text-m-muted">
+                    {t('storage.migrate.done', { copied: String(m.copied), skipped: String(m.skipped) })}
+                  </p>
+                  {m.reclaimable && (
+                    <p className="mt-1 font-geist text-[0.625rem] text-m-muted">
+                      {t('storage.migrate.reclaimable', {
+                        objects: String(m.reclaimable.objects),
+                        size: formatBytes(m.reclaimable.bytes),
+                        from: m.from,
+                      })}
+                    </p>
+                  )}
+                </>
+              ) : m.status === 'failed' ? (
+                <p className="mt-1 font-geist text-[0.625rem] text-m-muted">
+                  {t('storage.migrate.failed', { error: m.error ?? '' })}
+                </p>
+              ) : (
+                <p className="mt-1 font-geist text-[0.625rem] text-m-muted">{t('storage.migrate.cancelled')}</p>
+              )}
+            </div>
+          ))}
         </div>
         {editing === null && (
           <div className="mt-3">
@@ -686,6 +803,38 @@ export default function MAdminStoragePanel(): React.ReactElement {
         </MAdminButton>
         {admin.dirty && <span className="font-geist text-[0.625rem] text-m-muted">{t('storage.unsaved')}</span>}
       </div>
+      {migratePrompt && (
+        <div role="alertdialog">
+          <MAdminCard>
+            <p className="text-[0.8125rem] text-m-ink">{t('storage.migrate.promptTitle')}</p>
+            {migratePrompt.map((c) => (
+              <p key={c.category} className="mt-1 font-geist text-[0.625rem] text-m-muted">
+                {c.objects === null
+                  ? t('storage.migrate.promptLineUnknown', {
+                      category: t(`storage.category.${c.category}`),
+                      from: c.from,
+                      to: c.to,
+                    })
+                  : t('storage.migrate.promptLine', {
+                      category: t(`storage.category.${c.category}`),
+                      objects: String(c.objects),
+                      size: formatBytes(c.bytes ?? 0),
+                      from: c.from,
+                      to: c.to,
+                    })}
+              </p>
+            ))}
+            <div className="mt-2 flex items-center gap-2">
+              <MAdminButton variant="ghost" onClick={() => void moveAndSave(migratePrompt)}>
+                {t('storage.migrate.move')}
+              </MAdminButton>
+              <MAdminButton variant="ghost" onClick={() => void routeOnlySave()}>
+                {t('storage.migrate.routeOnly')}
+              </MAdminButton>
+            </div>
+          </MAdminCard>
+        </div>
+      )}
       {admin.saveError && (
         <p role="alert" className="text-[0.8125rem] text-m-ink">
           {admin.saveError}
