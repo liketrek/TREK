@@ -107,7 +107,7 @@ const storage: TranslationStrings = {
   'storage.sync.running': 'Συγχρονισμός… {done}/{total}',
   'storage.sync.counts': '{copied} αντιγράφηκαν · {skipped} παραλείφθηκαν · {failed} απέτυχαν',
   'storage.sync.cancel': 'Ακύρωση συγχρονισμού',
-  'storage.sync.done': 'Ο συγχρονισμός ολοκληρώθηκε: {copied} αντιγράφηκαν, {failed} απέτυχαν',
+  'storage.sync.done': 'Ο συγχρονισμός ολοκληρώθηκε: {copied} αντιγράφηκαν, {deleted} διαγράφηκαν, {failed} απέτυχαν',
   'storage.sync.cancelled': 'Ο συγχρονισμός ακυρώθηκε',
   'storage.sync.error': 'Ο συγχρονισμός απέτυχε: {error}',
   'storage.sync.prompt': 'Τα υπάρχοντα αντικείμενα δεν έχουν αναπαραχθεί ακόμα — συγχρονισμός τώρα;',

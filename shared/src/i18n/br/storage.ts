@@ -101,7 +101,7 @@ const storage: TranslationStrings = {
   'storage.sync.running': 'Sincronizando… {done}/{total}',
   'storage.sync.counts': '{copied} copiados · {skipped} ignorados · {failed} falharam',
   'storage.sync.cancel': 'Cancelar sincronização',
-  'storage.sync.done': 'Sincronização concluída: {copied} copiados, {failed} falharam',
+  'storage.sync.done': 'Sincronização concluída: {copied} copiados, {deleted} excluídos, {failed} falharam',
   'storage.sync.cancelled': 'Sincronização cancelada',
   'storage.sync.error': 'Falha na sincronização: {error}',
   'storage.sync.prompt': 'Os objetos existentes ainda não foram replicados — sincronizar agora?',

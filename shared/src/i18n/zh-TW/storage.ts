@@ -94,7 +94,7 @@ const storage: TranslationStrings = {
   'storage.sync.running': '同步中… {done}/{total}',
   'storage.sync.counts': '已複製 {copied} · 已略過 {skipped} · 失敗 {failed}',
   'storage.sync.cancel': '取消同步',
-  'storage.sync.done': '同步完成：已複製 {copied}，失敗 {failed}',
+  'storage.sync.done': '同步完成：已複製 {copied}，已刪除 {deleted}，失敗 {failed}',
   'storage.sync.cancelled': '已取消同步',
   'storage.sync.error': '同步失敗：{error}',
   'storage.sync.prompt': '現有物件尚未複製 — 要立即同步嗎？',

@@ -397,22 +397,22 @@ describe('AdminStoragePanel', () => {
         const state = mirroredState();
         (state as StorageAdminState).backfills =
           polls < 3
-            ? [{ backend: 'mirror', status: 'running', done: 3, total: 10, copied: 2, skipped: 1, failed: 0, startedAt: 1 }]
-            : [{ backend: 'mirror', status: 'done', done: 10, total: 10, copied: 8, skipped: 2, failed: 0, startedAt: 1, finishedAt: 2 }];
+            ? [{ backend: 'mirror', status: 'running', done: 3, total: 10, copied: 2, skipped: 1, failed: 0, deleted: 0, startedAt: 1 }]
+            : [{ backend: 'mirror', status: 'done', done: 10, total: 10, copied: 8, skipped: 2, failed: 0, deleted: 1, startedAt: 1, finishedAt: 2 }];
         return HttpResponse.json(state);
       }),
     );
     fireEvent.click(within(backendRow('backups-local')).getByRole('button', { name: 'Sync now' }));
     await within(backendRow('backups-local')).findByText(/Syncing… 3\/10/);
     expect(within(backendRow('backups-local')).getByText(/2 copied · 1 skipped · 0 failed/)).toBeInTheDocument();
-    await within(backendRow('backups-local')).findByText(/Sync finished: 8 copied, 0 failed/);
+    await within(backendRow('backups-local')).findByText(/Sync finished: 8 copied, 1 deleted, 0 failed/);
   });
 
   it('FE-ADMIN-STOR-021: Cancel sync calls the DELETE endpoint', async () => {
     let cancelled = false;
     const state = mirroredState();
     (state as StorageAdminState).backfills = [
-      { backend: 'mirror', status: 'running', done: 1, total: 10, copied: 1, skipped: 0, failed: 0, startedAt: 1 },
+      { backend: 'mirror', status: 'running', done: 1, total: 10, copied: 1, skipped: 0, failed: 0, deleted: 0, startedAt: 1 },
     ];
     await renderPanel(state);
     server.use(
@@ -442,7 +442,7 @@ describe('AdminStoragePanel', () => {
   it('FE-ADMIN-STOR-023: the poll never clobbers a dirty draft', async () => {
     const state = mirroredState();
     (state as StorageAdminState).backfills = [
-      { backend: 'mirror', status: 'running', done: 1, total: 5, copied: 1, skipped: 0, failed: 0, startedAt: 1 },
+      { backend: 'mirror', status: 'running', done: 1, total: 5, copied: 1, skipped: 0, failed: 0, deleted: 0, startedAt: 1 },
     ];
     await renderPanel(state);
     // Dirty the draft: reassign files.
@@ -459,7 +459,7 @@ describe('AdminStoragePanel', () => {
   it('FE-ADMIN-STOR-024: a poll GET that resolves after a save must not overwrite the saved state', async () => {
     const runningState = mirroredState();
     (runningState as StorageAdminState).backfills = [
-      { backend: 'mirror', status: 'running', done: 1, total: 5, copied: 1, skipped: 0, failed: 0, startedAt: 1 },
+      { backend: 'mirror', status: 'running', done: 1, total: 5, copied: 1, skipped: 0, failed: 0, deleted: 0, startedAt: 1 },
     ];
     await renderPanel(runningState);
 
@@ -637,7 +637,7 @@ describe('AdminStoragePanel', () => {
     };
     const state = mirroredState();
     (state as StorageAdminState).backfills = [
-      { backend: 'mirror', status: 'running', done: 1, total: 5, copied: 1, skipped: 0, failed: 0, startedAt: 1 },
+      { backend: 'mirror', status: 'running', done: 1, total: 5, copied: 1, skipped: 0, failed: 0, deleted: 0, startedAt: 1 },
     ];
     await renderPanel({ ...state, usage } as StorageAdminState);
     const savedState = mirroredState();
@@ -645,7 +645,7 @@ describe('AdminStoragePanel', () => {
     // The save itself doesn't touch the backfill — a real server's PUT
     // response reflects it still running, exactly like the GET poll below.
     (savedState as StorageAdminState).backfills = [
-      { backend: 'mirror', status: 'running', done: 1, total: 5, copied: 1, skipped: 0, failed: 0, startedAt: 1 },
+      { backend: 'mirror', status: 'running', done: 1, total: 5, copied: 1, skipped: 0, failed: 0, deleted: 0, startedAt: 1 },
     ];
     let migrationPosted = false;
     // Held running until the test flips it — the backfill only ever turns
@@ -662,7 +662,7 @@ describe('AdminStoragePanel', () => {
         next.backfills = [
           {
             backend: 'mirror', status: backfillDone ? 'done' : 'running', done: backfillDone ? 5 : 1, total: 5,
-            copied: backfillDone ? 5 : 1, skipped: 0, failed: 0, startedAt: 1,
+            copied: backfillDone ? 5 : 1, skipped: 0, failed: 0, deleted: 0, startedAt: 1,
             ...(backfillDone ? { finishedAt: 2 } : {}),
           },
         ];

@@ -104,7 +104,7 @@ const storage: TranslationStrings = {
   'storage.sync.running': 'Menyinkronkan… {done}/{total}',
   'storage.sync.counts': '{copied} disalin · {skipped} dilewati · {failed} gagal',
   'storage.sync.cancel': 'Batalkan sinkronisasi',
-  'storage.sync.done': 'Sinkronisasi selesai: {copied} disalin, {failed} gagal',
+  'storage.sync.done': 'Sinkronisasi selesai: {copied} disalin, {deleted} dihapus, {failed} gagal',
   'storage.sync.cancelled': 'Sinkronisasi dibatalkan',
   'storage.sync.error': 'Sinkronisasi gagal: {error}',
   'storage.sync.prompt': 'Objek yang ada belum direplikasi — sinkronkan sekarang?',

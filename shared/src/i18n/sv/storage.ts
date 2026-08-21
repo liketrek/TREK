@@ -102,7 +102,7 @@ const storage: TranslationStrings = {
   'storage.sync.running': 'Synkroniserar… {done}/{total}',
   'storage.sync.counts': '{copied} kopierade · {skipped} överhoppade · {failed} misslyckade',
   'storage.sync.cancel': 'Avbryt synkronisering',
-  'storage.sync.done': 'Synkronisering klar: {copied} kopierade, {failed} misslyckade',
+  'storage.sync.done': 'Synkronisering klar: {copied} kopierade, {deleted} borttagna, {failed} misslyckade',
   'storage.sync.cancelled': 'Synkronisering avbruten',
   'storage.sync.error': 'Synkronisering misslyckades: {error}',
   'storage.sync.prompt': 'Befintliga objekt har inte replikerats än — synkronisera nu?',

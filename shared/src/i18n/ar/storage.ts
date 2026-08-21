@@ -101,7 +101,7 @@ const storage: TranslationStrings = {
   'storage.sync.running': 'جارٍ المزامنة… {done}/{total}',
   'storage.sync.counts': '{copied} منسوخة · {skipped} متخطاة · {failed} فاشلة',
   'storage.sync.cancel': 'إلغاء المزامنة',
-  'storage.sync.done': 'انتهت المزامنة: تم نسخ {copied}، وفشل {failed}',
+  'storage.sync.done': 'انتهت المزامنة: تم نسخ {copied}، وحُذف {deleted}، وفشل {failed}',
   'storage.sync.cancelled': 'تم إلغاء المزامنة',
   'storage.sync.error': 'فشلت المزامنة: {error}',
   'storage.sync.prompt': 'الكائنات الحالية لم تُنسخ بعد — هل تريد المزامنة الآن؟',

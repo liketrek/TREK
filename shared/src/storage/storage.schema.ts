@@ -207,7 +207,8 @@ export const storageCategorySourceSchema = z.enum(['default', 'settings']);
 export const storageReplicaFailureSchema = z.object({
   backend: z.string(),
   key: z.string(),
-  op: z.enum(['put', 'delete', 'stat']),
+  /** 'list' is the backfill sweep phase's replica.list() failing. */
+  op: z.enum(['put', 'delete', 'stat', 'list']),
   error: z.string(),
   at: z.number(),
 });
@@ -224,6 +225,8 @@ export const storageBackfillStatusSchema = z.object({
   copied: z.number(),
   skipped: z.number(),
   failed: z.number(),
+  /** Replica objects removed by the sweep phase — absent from the primary and not raced back. */
+  deleted: z.number(),
   startedAt: z.number(),
   finishedAt: z.number().optional(),
   /** status 'error' only: the aborting (primary-side) error. */

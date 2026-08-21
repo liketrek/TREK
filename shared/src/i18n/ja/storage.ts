@@ -102,7 +102,7 @@ const storage: TranslationStrings = {
   'storage.sync.running': '同期中… {done}/{total}',
   'storage.sync.counts': '{copied}件コピー · {skipped}件スキップ · {failed}件失敗',
   'storage.sync.cancel': '同期をキャンセル',
-  'storage.sync.done': '同期完了: {copied}件コピー、{failed}件失敗',
+  'storage.sync.done': '同期完了: {copied}件コピー、{deleted}件削除、{failed}件失敗',
   'storage.sync.cancelled': '同期をキャンセルしました',
   'storage.sync.error': '同期に失敗しました: {error}',
   'storage.sync.prompt': '既存のオブジェクトはまだ複製されていません — 今すぐ同期しますか？',

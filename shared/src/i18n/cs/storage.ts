@@ -101,7 +101,7 @@ const storage: TranslationStrings = {
   'storage.sync.running': 'Synchronizace… {done}/{total}',
   'storage.sync.counts': '{copied} zkopírováno · {skipped} přeskočeno · {failed} selhalo',
   'storage.sync.cancel': 'Zrušit synchronizaci',
-  'storage.sync.done': 'Synchronizace dokončena: {copied} zkopírováno, {failed} selhalo',
+  'storage.sync.done': 'Synchronizace dokončena: {copied} zkopírováno, {deleted} odstraněno, {failed} selhalo',
   'storage.sync.cancelled': 'Synchronizace zrušena',
   'storage.sync.error': 'Synchronizace selhala: {error}',
   'storage.sync.prompt': 'Existující objekty ještě nejsou replikovány — synchronizovat nyní?',

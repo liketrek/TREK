@@ -19,7 +19,7 @@ import {
 export interface ReplicaFailure {
   backend: string;
   key: string;
-  op: 'put' | 'delete' | 'stat';
+  op: 'put' | 'delete' | 'stat' | 'list';
   error: string;
   at: number;
 }
@@ -30,6 +30,8 @@ export interface BackfillProgress {
   copied: number;
   skipped: number;
   failed: number;
+  /** Replica objects removed by the sweep phase — absent from the primary and not raced back. */
+  deleted: number;
 }
 
 export interface BackfillHooks {
@@ -60,8 +62,9 @@ export interface BackfillResult extends BackfillProgress {
  * NOT written back to the primary (or to any other replica that missed it).
  * The object stays absent everywhere the read didn't find it — closing that
  * staleness window (a primary that failed a delete, or is genuinely missing
- * an object a replica still has) is a later sync-sweep's job, not this
- * driver's.
+ * an object a replica still has) is `backfill`'s sweep phase, below: a
+ * "Sync now" run doesn't just copy forward, it also deletes replica objects
+ * the primary no longer has.
  */
 export class MirrorDriver implements StorageDriver {
   readonly id: string;
@@ -216,27 +219,45 @@ export class MirrorDriver implements StorageDriver {
   }
 
   /**
-   * Copy existing primary objects under the given prefixes to every replica
-   * (backfill/stats spec). NOT part of the StorageDriver contract — mirror
-   * specific and additive. Two phases: enumerate (honest total), then copy.
-   * `done` counts keys examined; copied/skipped/failed count replica-level
-   * outcomes. Replica errors (stat or put) flow through the same failure
-   * funnel the write path uses and never abort the run; PRIMARY errors
+   * Copy existing primary objects under the given prefixes to every replica,
+   * then sweep each replica for objects the primary no longer has (backfill/
+   * stats spec, extended by the deletion-sweep spec — a "Sync now" run makes
+   * the target match the source, it isn't a one-way trash-can). NOT part of
+   * the StorageDriver contract — mirror specific and additive.
+   *
+   * Three phases: enumerate (honest total), copy, sweep. `done`/`total` only
+   * ever reflect the copy phase's primary-side enumeration; the sweep phase
+   * doesn't touch them. `copied`/`skipped`/`failed` count replica-level copy
+   * outcomes; `deleted` counts replica-level sweep deletions. Replica errors
+   * (stat/put/delete/list) flow through the same failure funnel the write
+   * path uses and never abort the run; PRIMARY errors from the copy phase
    * (list/getStream) propagate — a getStream failure is deliberately kept
    * outside the per-replica try/catch so it can never be misclassified as a
    * replica failure. Objects are compared by size only — the same criterion
    * a re-put would settle anyway.
+   *
+   * Sweep: the copy loop above already visits every primary key under the
+   * given prefixes, so it doubles as the key-set collection (no extra
+   * primary listing pass). Once the copy loop finishes, each replica is
+   * listed per prefix; any key it holds that isn't in that primary key-set
+   * is re-checked against `primary.stat` — the authoritative race gate for a
+   * primary that regained the key between the copy loop and here — and only
+   * deleted if that re-check still comes back empty. A replica whose `list`
+   * itself fails is reported and skipped; the sweep continues with the next
+   * replica. Cancellation is honored per key, same as the copy phase.
    */
   async backfill(prefixes: readonly string[], hooks: BackfillHooks): Promise<BackfillResult> {
-    const progress: BackfillProgress = { done: 0, total: 0, copied: 0, skipped: 0, failed: 0 };
+    const progress: BackfillProgress = { done: 0, total: 0, copied: 0, skipped: 0, failed: 0, deleted: 0 };
     for (const prefix of prefixes) {
       for await (const _stat of this.primary.list(prefix)) progress.total += 1;
     }
     hooks.onProgress({ ...progress });
 
+    const primaryKeys = new Set<string>();
     for (const prefix of prefixes) {
       for await (const stat of this.primary.list(prefix)) {
         if (hooks.isCancelled()) return { ...progress, cancelled: true };
+        primaryKeys.add(stat.key);
 
         // Phase A: decide, per replica, whether it needs this key. Replica
         // stat failures are reported and counted here — they never touch the
@@ -289,6 +310,51 @@ export class MirrorDriver implements StorageDriver {
       }
     }
     progress.total = progress.done;
+
+    // Phase 3: deletion sweep. Bounds the staleness window a failed replica
+    // delete (or a genuinely-missing-on-primary object) can leave open for
+    // mirror read-fallback — see the class doc above.
+    for (const prefix of prefixes) {
+      for (const replica of this.replicas) {
+        try {
+          for await (const stat of replica.list(prefix)) {
+            if (hooks.isCancelled()) return { ...progress, cancelled: true };
+            if (primaryKeys.has(stat.key)) continue;
+
+            // Race gate: the primary may have regained this key between the
+            // copy loop above and now — authoritative, re-checked per key.
+            let primaryStat: ObjectStat | null;
+            try {
+              primaryStat = await this.primary.stat(stat.key);
+            } catch (err) {
+              progress.failed += 1;
+              this.reportReplicaFailure(replica.id, stat.key, 'stat', err);
+              hooks.onProgress({ ...progress });
+              continue;
+            }
+            if (primaryStat) {
+              hooks.onProgress({ ...progress }); // spared — primary regained it
+              continue;
+            }
+
+            try {
+              await replica.delete(stat.key);
+              progress.deleted += 1;
+            } catch (err) {
+              progress.failed += 1;
+              this.reportReplicaFailure(replica.id, stat.key, 'delete', err);
+            }
+            hooks.onProgress({ ...progress });
+          }
+        } catch (err) {
+          // The replica's list() itself failed (up front or mid-stream):
+          // report against the prefix, skip this replica, sweep continues.
+          progress.failed += 1;
+          this.reportReplicaFailure(replica.id, prefix, 'list', err);
+        }
+      }
+    }
+
     return { ...progress, cancelled: false };
   }
 
@@ -303,7 +369,7 @@ export class MirrorDriver implements StorageDriver {
     throw primaryErr;
   }
 
-  private reportReplicaFailure(backend: string, key: string, op: 'put' | 'delete' | 'stat', err: unknown): void {
+  private reportReplicaFailure(backend: string, key: string, op: ReplicaFailure['op'], err: unknown): void {
     this.onReplicaFailure?.({
       backend,
       key,

@@ -105,7 +105,7 @@ const storage: TranslationStrings = {
   'storage.sync.running': 'Sincronitzant… {done}/{total}',
   'storage.sync.counts': '{copied} copiats · {skipped} omesos · {failed} fallits',
   'storage.sync.cancel': 'Cancel·la la sincronització',
-  'storage.sync.done': 'Sincronització finalitzada: {copied} copiats, {failed} fallits',
+  'storage.sync.done': 'Sincronització finalitzada: {copied} copiats, {deleted} suprimits, {failed} fallits',
   'storage.sync.cancelled': 'Sincronització cancel·lada',
   'storage.sync.error': 'Ha fallat la sincronització: {error}',
   'storage.sync.prompt': "Els objectes existents encara no s'han replicat — vols sincronitzar ara?",

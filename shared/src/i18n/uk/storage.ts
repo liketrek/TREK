@@ -104,7 +104,7 @@ const storage: TranslationStrings = {
   'storage.sync.running': 'Синхронізація… {done}/{total}',
   'storage.sync.counts': '{copied} скопійовано · {skipped} пропущено · {failed} не вдалося',
   'storage.sync.cancel': 'Скасувати синхронізацію',
-  'storage.sync.done': 'Синхронізацію завершено: {copied} скопійовано, {failed} не вдалося',
+  'storage.sync.done': 'Синхронізацію завершено: {copied} скопійовано, {deleted} видалено, {failed} не вдалося',
   'storage.sync.cancelled': 'Синхронізацію скасовано',
   'storage.sync.error': 'Синхронізація не вдалася: {error}',
   'storage.sync.prompt': "Наявні об'єкти ще не реплікуються — синхронізувати зараз?",

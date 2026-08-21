@@ -90,6 +90,7 @@ export class StorageJobsService {
         copied: 0,
         skipped: 0,
         failed: 0,
+        deleted: 0,
         startedAt: Date.now(),
       },
     };

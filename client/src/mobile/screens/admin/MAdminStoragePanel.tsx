@@ -579,7 +579,11 @@ export default function MAdminStoragePanel(): React.ReactElement {
                       </>
                     ) : backfill?.status === 'done' ? (
                       <p className="font-geist text-[0.625rem] text-m-muted">
-                        {t('storage.sync.done', { copied: String(backfill.copied), failed: String(backfill.failed) })}
+                        {t('storage.sync.done', {
+                          copied: String(backfill.copied),
+                          deleted: String(backfill.deleted),
+                          failed: String(backfill.failed),
+                        })}
                       </p>
                     ) : backfill?.status === 'cancelled' ? (
                       <p className="font-geist text-[0.625rem] text-m-muted">{t('storage.sync.cancelled')}</p>

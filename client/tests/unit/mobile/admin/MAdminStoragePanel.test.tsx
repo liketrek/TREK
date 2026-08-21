@@ -214,15 +214,15 @@ describe('MAdminStoragePanel', () => {
         const state = mirroredState();
         (state as StorageAdminState).backfills =
           polls < 3
-            ? [{ backend: 'mirror', status: 'running', done: 1, total: 4, copied: 1, skipped: 0, failed: 0, startedAt: 1 }]
-            : [{ backend: 'mirror', status: 'done', done: 4, total: 4, copied: 4, skipped: 0, failed: 0, startedAt: 1, finishedAt: 2 }];
+            ? [{ backend: 'mirror', status: 'running', done: 1, total: 4, copied: 1, skipped: 0, failed: 0, deleted: 0, startedAt: 1 }]
+            : [{ backend: 'mirror', status: 'done', done: 4, total: 4, copied: 4, skipped: 0, failed: 0, deleted: 2, startedAt: 1, finishedAt: 2 }];
         return HttpResponse.json(state);
       }),
     );
     const row = screen.getByTestId('m-storage-backend-backups-local');
     fireEvent.click(within(row).getByRole('button', { name: 'Sync now' }));
     await within(row).findByText(/Syncing… 1\/4/);
-    await within(row).findByText(/Sync finished: 4 copied, 0 failed/);
+    await within(row).findByText(/Sync finished: 4 copied, 2 deleted, 0 failed/);
   });
 
   it('FE-MOB-MSTOR-012: a save that added targets raises the sync prompt', async () => {

@@ -104,7 +104,7 @@ const storage: TranslationStrings = {
   'storage.sync.running': 'Đang đồng bộ… {done}/{total}',
   'storage.sync.counts': '{copied} đã sao chép · {skipped} đã bỏ qua · {failed} thất bại',
   'storage.sync.cancel': 'Hủy đồng bộ',
-  'storage.sync.done': 'Đồng bộ hoàn tất: {copied} đã sao chép, {failed} thất bại',
+  'storage.sync.done': 'Đồng bộ hoàn tất: {copied} đã sao chép, {deleted} đã xóa, {failed} thất bại',
   'storage.sync.cancelled': 'Đã hủy đồng bộ',
   'storage.sync.error': 'Đồng bộ thất bại: {error}',
   'storage.sync.prompt': 'Các đối tượng hiện có chưa được nhân bản — đồng bộ ngay?',

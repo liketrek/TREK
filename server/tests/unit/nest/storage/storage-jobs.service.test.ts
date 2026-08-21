@@ -182,7 +182,7 @@ describe('StorageJobsService', () => {
     jobs.startBackfill('m');
     await waitFor(() => jobs.statuses().some((s) => s.backend === 'm' && s.status === 'done'));
     const status = jobs.statuses().find((s) => s.backend === 'm')!;
-    expect(status).toMatchObject({ status: 'done', total: 1, done: 1, copied: 1, failed: 0 });
+    expect(status).toMatchObject({ status: 'done', total: 1, done: 1, copied: 1, failed: 0, deleted: 0 });
     expect(fs.existsSync(path.join(nasRoot, 'old-backup.zip'))).toBe(true);
   });
 

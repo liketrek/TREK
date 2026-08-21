@@ -100,7 +100,7 @@ const storage: TranslationStrings = {
   'storage.sync.running': '동기화 중… {done}/{total}',
   'storage.sync.counts': '{copied}개 복사 · {skipped}개 건너뜀 · {failed}개 실패',
   'storage.sync.cancel': '동기화 취소',
-  'storage.sync.done': '동기화 완료: {copied}개 복사, {failed}개 실패',
+  'storage.sync.done': '동기화 완료: {copied}개 복사, {deleted}개 삭제, {failed}개 실패',
   'storage.sync.cancelled': '동기화가 취소되었습니다',
   'storage.sync.error': '동기화 실패: {error}',
   'storage.sync.prompt': '기존 객체가 아직 복제되지 않았습니다 — 지금 동기화할까요?',

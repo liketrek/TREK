@@ -104,7 +104,7 @@ const storage: TranslationStrings = {
   'storage.sync.running': 'Eşitleniyor… {done}/{total}',
   'storage.sync.counts': '{copied} kopyalandı · {skipped} atlandı · {failed} başarısız',
   'storage.sync.cancel': 'Eşitlemeyi iptal et',
-  'storage.sync.done': 'Eşitleme tamamlandı: {copied} kopyalandı, {failed} başarısız',
+  'storage.sync.done': 'Eşitleme tamamlandı: {copied} kopyalandı, {deleted} silindi, {failed} başarısız',
   'storage.sync.cancelled': 'Eşitleme iptal edildi',
   'storage.sync.error': 'Eşitleme başarısız oldu: {error}',
   'storage.sync.prompt': 'Mevcut nesneler henüz çoğaltılmadı — şimdi eşitlensin mi?',

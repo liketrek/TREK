@@ -105,7 +105,7 @@ const storage: TranslationStrings = {
   'storage.sync.running': 'Szinkronizálás… {done}/{total}',
   'storage.sync.counts': '{copied} másolva · {skipped} kihagyva · {failed} sikertelen',
   'storage.sync.cancel': 'Szinkronizálás megszakítása',
-  'storage.sync.done': 'Szinkronizálás befejezve: {copied} másolva, {failed} sikertelen',
+  'storage.sync.done': 'Szinkronizálás befejezve: {copied} másolva, {deleted} törölve, {failed} sikertelen',
   'storage.sync.cancelled': 'Szinkronizálás megszakítva',
   'storage.sync.error': 'A szinkronizálás sikertelen: {error}',
   'storage.sync.prompt': 'A meglévő objektumok még nincsenek replikálva — szinkronizálsz most?',

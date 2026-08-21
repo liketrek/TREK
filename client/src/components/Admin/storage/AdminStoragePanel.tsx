@@ -387,7 +387,11 @@ export default function AdminStoragePanel(): React.ReactElement {
                       </>
                     ) : backfill?.status === 'done' ? (
                       <p className="text-xs text-content-faint">
-                        {t('storage.sync.done', { copied: String(backfill.copied), failed: String(backfill.failed) })}
+                        {t('storage.sync.done', {
+                          copied: String(backfill.copied),
+                          deleted: String(backfill.deleted),
+                          failed: String(backfill.failed),
+                        })}
                       </p>
                     ) : backfill?.status === 'cancelled' ? (
                       <p className="text-xs text-content-faint">{t('storage.sync.cancelled')}</p>

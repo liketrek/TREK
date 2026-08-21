@@ -49,7 +49,11 @@ turns replication off again.
   you added a target, press **Sync now** on the backend's row — one sync runs
   at a time, with progress and a cancel button; objects already present with
   matching sizes are skipped, and per-object failures land in the Health
-  strip without stopping the run.
+  strip without stopping the run. A sync makes the target **match** the
+  backend, not just catch up: it also deletes target objects that no longer
+  exist on the backend — it's not a trash can, so run it only when you want
+  the target pruned to match, and stray deletions land in the Health strip
+  like any other replica failure.
 
 ### Test
 

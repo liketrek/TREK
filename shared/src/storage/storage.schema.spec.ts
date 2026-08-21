@@ -159,6 +159,7 @@ describe('backfill + usage wire shapes', () => {
       copied: 2,
       skipped: 1,
       failed: 0,
+      deleted: 1,
       startedAt: 1_700_000_000_000,
     };
     expect(storageBackfillStatusSchema.parse(running)).toEqual(running);
