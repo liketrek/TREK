@@ -697,18 +697,31 @@ describe('AdminStoragePanel', () => {
     (savedState as StorageAdminState).backfills = [
       { backend: 'mirror', status: 'running', done: 1, total: 5, copied: 1, skipped: 0, failed: 0, deleted: 0, startedAt: 1 },
     ];
+    (savedState as StorageAdminState).usage = usage as StorageAdminState['usage'];
     let migrationPosted = false;
     // Held running until the test flips it — the backfill only ever turns
     // terminal via this GET stub, never via a real timer.
     let backfillDone = false;
+    // The running backfill has the panel polling GET from first render, so the
+    // stub must stay faithful to a real server: the files override appears in
+    // GET responses only AFTER the PUT has landed. Serving the post-save world
+    // early lets a poll that resolves while the confirm dialog is open erase
+    // the candidate (state already shows off-box, so from === to) and nothing
+    // ever gets queued.
+    let putSeen = false;
+    let polls = 0;
     server.use(
-      http.put('/api/admin/storage', () => HttpResponse.json(savedState)),
+      http.put('/api/admin/storage', () => {
+        putSeen = true;
+        return HttpResponse.json(savedState);
+      }),
       http.post('/api/admin/storage/migrations', () => {
         migrationPosted = true;
         return HttpResponse.json({ started: true });
       }),
       http.get('/api/admin/storage', () => {
-        const next = { ...savedState };
+        polls += 1;
+        const next = putSeen ? { ...savedState } : ({ ...mirroredState(), usage } as StorageAdminState);
         next.backfills = [
           {
             backend: 'mirror', status: backfillDone ? 'done' : 'running', done: backfillDone ? 5 : 1, total: 5,
@@ -723,6 +736,10 @@ describe('AdminStoragePanel', () => {
     fireEvent.click(screen.getAllByText('off-box')[screen.getAllByText('off-box').length - 1]!);
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     await screen.findByRole('alertdialog');
+    // Force the race this test once flaked on: let polls land while the dialog
+    // is open — they carry the pre-save world, so the candidate must survive.
+    const pollsAtOpen = polls;
+    await waitFor(() => expect(polls).toBeGreaterThan(pollsAtOpen + 1));
     fireEvent.click(screen.getByRole('button', { name: 'Move existing objects' }));
     await screen.findByText('Storage configuration saved');
 
