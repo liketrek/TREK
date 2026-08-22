@@ -56,5 +56,40 @@ const system_notice: TranslationStrings = {
   'system_notice.pager.counter': '{current} / {total}',
   'system_notice.pager.goto': 'Μετάβαση στην ειδοποίηση {n}',
   'system_notice.pager.position': 'Ειδοποίηση {current} από {total}',
+  'system_notice.release_400.eyebrow': 'Ενημερώθηκε',
+  'system_notice.release_400.tag': 'Έκδοση',
+  'system_notice.release_400.headline': 'Η μεγαλύτερη έκδοση που είχε ποτέ το TREK.',
+  'system_notice.release_400.intro':
+    'Το TREK αποκτά τηλέφωνο, και βιβλίο. Αυτή την έκδοση την έγραψαν δεκαεννέα άτομα — και μαζί της έφυγαν περίπου εκατόν πενήντα σφάλματα που αναφέρατε.',
+  'system_notice.release_400.feature_mobile_title': 'Το TREK σε κινητό',
+  'system_notice.release_400.feature_mobile_body':
+    'Οτιδήποτε κάτω από 768px έχει πλέον δικό του περιβάλλον — ένα γυάλινο dock, δικά του πάνελ, δικό του σχεδιαστή ταξιδιού. Ανοίξτε το TREK στο κινητό σας.',
+  'system_notice.release_400.feature_studio_title': 'TREK Studio',
+  'system_notice.release_400.feature_studio_badge': 'Beta',
+  'system_notice.release_400.feature_studio_body':
+    'Το PDF του Journey έγινε σχεδιαστής βιβλίου φωτογραφιών. Στήνει το βιβλίο όταν του το ζητήσετε, και μετά κάνει στην άκρη.',
+  'system_notice.release_400.feature_vacay_title': 'Το Vacay μαθαίνει τα υπόλοιπα',
+  'system_notice.release_400.feature_vacay_body':
+    'Μισές ημέρες, ρεπό και ευέλικτες ημέρες, σχολικές αργίες στο πλέγμα — και ένα έτος αδειών που δεν χρειάζεται να ξεκινά τον Ιανουάριο.',
+  'system_notice.release_400.feature_places_title': 'Οι τοποθεσίες συστήνονται, τα αρχεία φεύγουν',
+  'system_notice.release_400.feature_places_body':
+    'Εικόνες και περιγραφή συμπληρώνονται μόνες τους πριν αποθηκεύσετε μια τοποθεσία. Και τα αρχεία σας δεν χρειάζεται πια να μένουν στον δίσκο όπου τρέχει το TREK.',
+  'system_notice.release_400.footnote':
+    'Και αυτές είναι τέσσερις. Η 4.0.0 φέρνει αρκετές εκατοντάδες ακόμη αλλαγές, από τα Collections και το Atlas μέχρι όλο τον server από κάτω.',
+  'system_notice.release_400.note_eyebrow': 'Μια σημείωση από τον δημιουργό',
+  'system_notice.release_400.note_title': 'Ευχαριστώ που χρησιμοποιείτε το TREK.',
+  'system_notice.release_400.note_body':
+    'Το TREK ξεκίνησε ως ένα μικρό εργαλείο για τα δικά μου ταξίδια, γραμμένο στον ελεύθερό μου χρόνο. Έτσι είναι ακόμα: βράδια, σαββατοκύριακα, οι ώρες δίπλα σε μια δουλειά πλήρους απασχόλησης.\n\nΓια κάποιο διάστημα ήμουν μόνο εγώ. Όχι πια — δεκαεννέα άτομα έβγαλαν αυτή την έκδοση, και χιλιάδες από εσάς ήρθατε με αστέρια, αναφορές, μεταφράσεις και pull requests. Είμαι ευγνώμων για κάθε κομμάτι της.',
+  'system_notice.release_400.promise_label': 'Η υπόσχεση',
+  'system_notice.release_400.promise_text':
+    'Η ανοιχτού κώδικα πλευρά του TREK μένει δωρεάν, για πάντα. Καμία έκδοση επί πληρωμή, καμία συνδρομή, καμία παγίδα. Το υπόσχομαι.',
+  'system_notice.release_400.note_body_after':
+    'Η 4.0.0 πήρε εβδομάδες από ξενύχτια — μια εφαρμογή για κινητό, έναν σχεδιαστή βιβλίου, μια μετάβαση του server, τα περισσότερα γραμμένα ανάμεσα στα μεσάνυχτα και τις δύο. Δεν είναι παράπονο: μου αρέσει να το φτιάχνω. Είναι απλώς η ειλικρινής απάντηση στο πώς βγαίνει μια τόσο μεγάλη έκδοση από ένα έργο του ελεύθερου χρόνου.',
+  'system_notice.release_400.note_closing': 'Σας ευχαριστώ που είστε εδώ.',
+  'system_notice.release_400.note_signature': '— Maurice',
+  'system_notice.release_400.support_text':
+    'Η στήριξη είναι αυτό που κρατά όλο αυτό ζωντανό — servers, domains και οι ξενύχτιες που γίνονται εκδόσεις σαν κι αυτή. Αν το TREK αξίζει κάτι για εσάς, ένας καφές είναι ο πιο άμεσος τρόπος να συνεχίσει.',
+  'system_notice.release_400.cta_bmc': 'Buy me a coffee',
+  'system_notice.release_400.cta_kofi': 'Στηρίξτε στο Ko-fi',
 };
 export default system_notice;

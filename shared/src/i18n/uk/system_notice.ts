@@ -54,5 +54,41 @@ const system_notice: TranslationStrings = {
   'system_notice.v3014_whitespace_collision.title': 'Потрібна дія: конфлікт облікового запису користувача',
   'system_notice.v3014_whitespace_collision.body':
     'Оновлення 3.0.14 виявило один або кілька конфліктів імен користувачів або електронних адрес, спричинених початковими або кінцевими пробілами в збережених облікових записах. Уражені облікові записи було автоматично перейменовано. Перевірте журнали сервера на рядки, що починаються з **[migration] WHITESPACE COLLISION**, щоб визначити, які облікові записи потребують перевірки.',
+  // 4.0.0 release modal — the release on the left, the note from the maintainer on the right
+  'system_notice.release_400.eyebrow': 'Оновлення встановлено',
+  'system_notice.release_400.tag': 'Реліз',
+  'system_notice.release_400.headline': 'Найбільший реліз в історії TREK.',
+  'system_notice.release_400.intro':
+    'TREK отримує телефон і книгу. Цей реліз написали дев’ятнадцять людей — і разом з ним закрилися близько ста п’ятдесяти надісланих багів.',
+  'system_notice.release_400.feature_mobile_title': 'TREK на телефоні',
+  'system_notice.release_400.feature_mobile_body':
+    'Усе, що вужче за 768px, тепер окремий інтерфейс — скляний док, власні шторки, власний планувальник поїздок. Відкрийте TREK на телефоні.',
+  'system_notice.release_400.feature_studio_title': 'TREK Studio',
+  'system_notice.release_400.feature_studio_badge': 'Beta',
+  'system_notice.release_400.feature_studio_body':
+    'PDF із Journey став конструктором фотокниги. Він збирає книгу, коли ви попросите, і далі не заважає.',
+  'system_notice.release_400.feature_vacay_title': 'Vacay освоїв решту',
+  'system_notice.release_400.feature_vacay_body':
+    'Півдня, відгули та гнучкі дні, шкільні канікули в сітці — і відпускний рік, який не мусить починатися в січні.',
+  'system_notice.release_400.feature_places_title': 'Місця показують себе, файли з’їжджають',
+  'system_notice.release_400.feature_places_body':
+    'Фото й опис підставляються самі ще до того, як ви збережете місце. А завантажені файли більше не мусять лежати на диску, де працює TREK.',
+  'system_notice.release_400.footnote':
+    'І це лише чотири з них. У 4.0.0 ще кілька сотень змін — від Collections і Atlas до всього сервера під ними.',
+  'system_notice.release_400.note_eyebrow': 'Слово від мейнтейнера',
+  'system_notice.release_400.note_title': 'Дякую, що користуєтесь TREK.',
+  'system_notice.release_400.note_body':
+    'TREK починався як маленький інструмент для моїх власних поїздок, написаний у вільний час. Таким і залишився: вечори, вихідні, години поруч з основною роботою.\n\nЯкийсь час я був сам. Уже ні — цей реліз випустили дев’ятнадцять людей, а тисячі з вас прийшли із зірками, issue, перекладами та пул-реквестами. Я вдячний за кожну частину цього.',
+  'system_notice.release_400.promise_label': 'Обіцянка',
+  'system_notice.release_400.promise_text':
+    'Відкрита частина TREK залишається безкоштовною назавжди. Жодних платних тарифів, жодних підписок, жодних підводних каменів. Обіцяю.',
+  'system_notice.release_400.note_body_after':
+    '4.0.0 коштував тижнів пізніх ночей — застосунок для телефона, конструктор книги, міграція сервера, і майже все це написано між північчю і другою. Це не скарга: мені подобається це робити. Просто чесна відповідь на те, як реліз такого розміру виходить із проєкту у вільний час.',
+  'system_notice.release_400.note_closing': 'Дякую, що ви тут.',
+  'system_notice.release_400.note_signature': '— Maurice',
+  'system_notice.release_400.support_text':
+    'Підтримка — це те, на чому все тримається: сервери, домени і ті пізні ночі, з яких виходять такі релізи. Якщо TREK для вас чогось вартий, кава — найпряміший спосіб допомогти.',
+  'system_notice.release_400.cta_bmc': 'Buy me a coffee',
+  'system_notice.release_400.cta_kofi': 'Підтримати на Ko-fi',
 };
 export default system_notice;

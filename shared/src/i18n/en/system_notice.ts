@@ -50,6 +50,42 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.highlight_community': 'Built together with the community',
   'system_notice.thank_you_support.cta_bmc': 'Buy Me a Coffee',
   'system_notice.thank_you_support.cta_kofi': 'Support on Ko-fi',
+  // 4.0.0 release modal — the release on the left, the note from the maintainer on the right
+  'system_notice.release_400.eyebrow': 'Update installed',
+  'system_notice.release_400.tag': 'Release',
+  'system_notice.release_400.headline': 'The biggest release TREK has ever had.',
+  'system_notice.release_400.intro':
+    'TREK gets a phone, and a book. Nineteen people wrote this one — and about a hundred and fifty reported bugs went with it.',
+  'system_notice.release_400.feature_mobile_title': 'TREK goes mobile',
+  'system_notice.release_400.feature_mobile_body':
+    'Everything under 768px is its own interface now — a glass dock, its own sheets, its own trip planner. Open TREK on your phone.',
+  'system_notice.release_400.feature_studio_title': 'TREK Studio',
+  'system_notice.release_400.feature_studio_badge': 'Beta',
+  'system_notice.release_400.feature_studio_body':
+    'The Journey PDF became a photo book designer. It lays the book out when you ask it to, then gets out of the way.',
+  'system_notice.release_400.feature_vacay_title': 'Vacay learns the rest',
+  'system_notice.release_400.feature_vacay_body':
+    'Half days, comp and flex days, school holidays on the grid — and a leave year that does not have to start in January.',
+  'system_notice.release_400.feature_places_title': 'Places show themselves, files move out',
+  'system_notice.release_400.feature_places_body':
+    'Pictures and a description fill themselves in before you save a place. And your uploads no longer have to live on the disk TREK runs on.',
+  'system_notice.release_400.footnote':
+    'And these are four of them. 4.0.0 carries several hundred further changes, from Collections and Atlas to the whole server underneath.',
+  'system_notice.release_400.note_eyebrow': 'A note from the maintainer',
+  'system_notice.release_400.note_title': 'Thank you for using TREK.',
+  'system_notice.release_400.note_body':
+    'TREK started as a little tool for my own trips, written in my spare time. It still is: evenings, weekends, the hours next to a full-time job.\n\nFor a while it was only me. Not anymore — nineteen people shipped this release, and thousands of you arrived with stars, issues, translations and pull requests. I am grateful for every part of it.',
+  'system_notice.release_400.promise_label': 'The promise',
+  'system_notice.release_400.promise_text':
+    'The open-source side of TREK stays free, forever. No paid tiers, no subscriptions, no catch. Promised.',
+  'system_notice.release_400.note_body_after':
+    '4.0.0 took weeks of late nights — a phone app, a book designer, a server migration, most of it written between midnight and two. Not a complaint: I love building this. It is just the honest answer to how a release this size comes out of a spare-time project.',
+  'system_notice.release_400.note_closing': 'Thank you for being here.',
+  'system_notice.release_400.note_signature': '— Maurice',
+  'system_notice.release_400.support_text':
+    'Support is what keeps this running — servers, domains, and the late nights that turn into releases like this one. If TREK is worth something to you, a coffee is the most direct way to keep it going.',
+  'system_notice.release_400.cta_bmc': 'Buy me a coffee',
+  'system_notice.release_400.cta_kofi': 'Support on Ko-fi',
   'system_notice.pager.prev': 'Previous notice',
   'system_notice.pager.next': 'Next notice',
   'system_notice.pager.counter': '{current} / {total}',

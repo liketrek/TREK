@@ -54,5 +54,40 @@ const system_notice: TranslationStrings = {
   'system_notice.v3014_whitespace_collision.title': 'Tindakan diperlukan: konflik akun pengguna',
   'system_notice.v3014_whitespace_collision.body':
     'Pembaruan 3.0.14 mendeteksi satu atau lebih konflik nama pengguna atau email yang disebabkan oleh spasi di awal atau akhir nilai yang tersimpan. Akun yang terpengaruh telah diganti nama secara otomatis. Periksa log server untuk baris yang dimulai dengan **[migration] WHITESPACE COLLISION** guna mengidentifikasi akun mana yang perlu ditinjau.',
+  'system_notice.release_400.eyebrow': 'Pembaruan terpasang',
+  'system_notice.release_400.tag': 'Rilis',
+  'system_notice.release_400.headline': 'Rilis terbesar yang pernah ada di TREK.',
+  'system_notice.release_400.intro':
+    'TREK kini punya ponsel, dan sebuah buku. Sembilan belas orang menulis rilis ini — dan sekitar seratus lima puluh laporan bug ikut diperbaiki.',
+  'system_notice.release_400.feature_mobile_title': 'TREK kini mobile',
+  'system_notice.release_400.feature_mobile_body':
+    'Semua di bawah 768px kini antarmuka tersendiri — dock kaca, sheet sendiri, perencana perjalanan sendiri. Buka TREK di ponsel Anda.',
+  'system_notice.release_400.feature_studio_title': 'TREK Studio',
+  'system_notice.release_400.feature_studio_badge': 'Beta',
+  'system_notice.release_400.feature_studio_body':
+    'PDF Journey berubah jadi perancang buku foto. Ia menata bukunya saat Anda minta, lalu menyingkir.',
+  'system_notice.release_400.feature_vacay_title': 'Vacay belajar sisanya',
+  'system_notice.release_400.feature_vacay_body':
+    'Setengah hari, hari pengganti dan fleksibel, libur sekolah di kalender — dan tahun cuti yang tak harus mulai Januari.',
+  'system_notice.release_400.feature_places_title': 'Tempat tampil sendiri, file pindah keluar',
+  'system_notice.release_400.feature_places_body':
+    'Gambar dan deskripsi terisi sendiri sebelum Anda menyimpan tempat. Dan unggahan Anda tak harus lagi tinggal di disk tempat TREK berjalan.',
+  'system_notice.release_400.footnote':
+    'Dan ini baru empat di antaranya. 4.0.0 membawa beberapa ratus perubahan lain, dari Collections dan Atlas sampai seluruh server di baliknya.',
+  'system_notice.release_400.note_eyebrow': 'Catatan dari maintainer',
+  'system_notice.release_400.note_title': 'Terima kasih telah memakai TREK.',
+  'system_notice.release_400.note_body':
+    'TREK dimulai sebagai alat kecil untuk perjalanan saya sendiri, ditulis di waktu luang. Sampai sekarang masih begitu: malam hari, akhir pekan, jam-jam di sela pekerjaan penuh waktu.\n\nDulu hanya saya sendiri. Sekarang tidak lagi — sembilan belas orang merilis versi ini, dan ribuan dari kalian datang dengan bintang, issue, terjemahan dan pull request. Saya bersyukur atas setiap bagiannya.',
+  'system_notice.release_400.promise_label': 'Janjinya',
+  'system_notice.release_400.promise_text':
+    'Sisi open source TREK tetap gratis, selamanya. Tanpa paket berbayar, tanpa langganan, tanpa syarat tersembunyi. Saya janji.',
+  'system_notice.release_400.note_body_after':
+    '4.0.0 menghabiskan berminggu-minggu malam larut — aplikasi ponsel, perancang buku, migrasi server, sebagian besar ditulis antara pukul dua belas dan dua. Bukan keluhan: saya senang membangun ini. Ini cuma jawaban jujur bagaimana rilis sebesar ini keluar dari proyek waktu luang.',
+  'system_notice.release_400.note_closing': 'Terima kasih telah berada di sini.',
+  'system_notice.release_400.note_signature': '— Maurice',
+  'system_notice.release_400.support_text':
+    'Dukungan itulah yang membuat semua ini berjalan — server, domain, dan malam-malam larut yang berubah jadi rilis seperti ini. Jika TREK berarti bagimu, secangkir kopi adalah cara paling langsung untuk menjaganya tetap jalan.',
+  'system_notice.release_400.cta_bmc': 'Buy me a coffee',
+  'system_notice.release_400.cta_kofi': 'Dukung di Ko-fi',
 };
 export default system_notice;

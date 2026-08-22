@@ -1,0 +1,498 @@
+/*
+ * The release notice modal — a two-column panel: the release on the left,
+ * a note from the maintainer on the right.
+ *
+ * The measurements here are the design's own, kept in one stylesheet rather
+ * than spread across inline styles (the same arrangement mobile.css uses for
+ * the mobile shell). Every one of them is multiplied by --rn-s, so the whole
+ * panel scales as one piece and the proportions never drift: change that one
+ * number to resize the modal.
+ *
+ * The left column is deliberately dark in both themes: it is a brand panel,
+ * not a surface, so it does not read the surface tokens. Everything on the
+ * right does.
+ */
+
+.rn-overlay {
+  /* Design is drawn at 1420px wide; anything below full size is this factor. */
+  --rn-s: 0.72;
+
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  background: oklch(0.12 0.01 60 / 0.52);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  animation: rn-fade 0.35s ease both;
+}
+
+/* Roomy screens can carry a little more of the design's own scale. */
+@media (min-width: 1900px) and (min-height: 1150px) {
+  .rn-overlay { --rn-s: 0.86; }
+}
+
+@media (max-width: 1280px), (max-height: 760px) {
+  .rn-overlay { --rn-s: 0.64; padding: 16px; }
+}
+
+@keyframes rn-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes rn-rise {
+  from { opacity: 0; transform: translateY(16px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+.rn-panel {
+  width: calc(1420px * var(--rn-s));
+  max-width: 100%;
+  max-height: 100%;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  border-radius: calc(34px * var(--rn-s));
+  overflow: hidden;
+  box-shadow: 0 4px 12px oklch(0 0 0 / 0.2), 0 60px 130px -40px oklch(0 0 0 / 0.7);
+  border: 1px solid oklch(1 0 0 / 0.1);
+  animation: rn-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  font-family: var(--font-system);
+}
+
+/* Below the two-column breakpoint the halves stack and the panel scrolls. */
+@media (max-width: 1080px) {
+  .rn-panel { grid-template-columns: 1fr; overflow-y: auto; }
+}
+
+[data-reduce-motion='true'] .rn-overlay,
+[data-reduce-motion='true'] .rn-panel {
+  animation-duration: 0.01ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rn-overlay, .rn-panel { animation-duration: 0.01ms; }
+}
+
+/* ── Left: the release ─────────────────────────────────────────────────── */
+
+.rn-release {
+  position: relative;
+  background: radial-gradient(120% 95% at 18% 0%, #1b1b22 0%, #0e0e12 52%, #08080a 100%);
+  color: #f5f5f7;
+  padding: calc(50px * var(--rn-s)) calc(54px * var(--rn-s)) calc(38px * var(--rn-s));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* The dot field, faded out towards the lower right. */
+.rn-release-grain {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, oklch(1 0 0 / 0.1) 1px, transparent 1.3px);
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(90% 70% at 25% 12%, #000 0%, transparent 78%);
+  mask-image: radial-gradient(90% 70% at 25% 12%, #000 0%, transparent 78%);
+  pointer-events: none;
+}
+
+.rn-release-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.rn-eyebrow-row { display: flex; align-items: center; gap: calc(11px * var(--rn-s)); }
+
+.rn-mark {
+  width: calc(32px * var(--rn-s));
+  height: calc(32px * var(--rn-s));
+  border-radius: calc(10px * var(--rn-s));
+  background: oklch(1 0 0 / 0.1);
+  border: 1px solid oklch(1 0 0 / 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.rn-mark img {
+  width: calc(19px * var(--rn-s));
+  height: calc(19px * var(--rn-s));
+  display: block;
+}
+
+.rn-eyebrow {
+  font-family: var(--font-subtext);
+  font-size: calc(11.5px * var(--rn-s));
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: oklch(1 0 0 / 0.5);
+}
+
+.rn-version-row {
+  margin-top: calc(30px * var(--rn-s));
+  display: flex;
+  align-items: flex-end;
+  gap: calc(20px * var(--rn-s));
+}
+
+.rn-version {
+  font-family: var(--font-subtext);
+  font-size: calc(112px * var(--rn-s));
+  font-weight: 600;
+  line-height: 0.82;
+  letter-spacing: -0.055em;
+  color: #fbfbfd;
+  font-variant-numeric: tabular-nums;
+}
+
+.rn-tag {
+  padding-bottom: calc(11px * var(--rn-s));
+  font-size: calc(12.5px * var(--rn-s));
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: oklch(0.84 0.18 85);
+}
+
+.rn-headline {
+  word-break: auto-phrase;
+  margin: calc(24px * var(--rn-s)) 0 0;
+  font-size: calc(30px * var(--rn-s));
+  font-weight: 600;
+  line-height: 1.22;
+  letter-spacing: -0.03em;
+  max-width: calc(600px * var(--rn-s));
+  text-wrap: pretty;
+}
+
+.rn-intro {
+  margin: calc(13px * var(--rn-s)) 0 0;
+  max-width: calc(620px * var(--rn-s));
+  font-size: calc(15.5px * var(--rn-s));
+  line-height: 1.62;
+  color: oklch(1 0 0 / 0.62);
+  text-wrap: pretty;
+}
+
+.rn-features {
+  margin-top: calc(30px * var(--rn-s));
+  display: flex;
+  flex-direction: column;
+}
+
+.rn-feature {
+  display: flex;
+  gap: calc(18px * var(--rn-s));
+  padding: calc(16px * var(--rn-s)) 0;
+  border-top: 1px solid oklch(1 0 0 / 0.09);
+}
+
+.rn-feature:last-child { border-bottom: 1px solid oklch(1 0 0 / 0.09); }
+
+.rn-feature-icon {
+  width: calc(38px * var(--rn-s));
+  height: calc(38px * var(--rn-s));
+  flex: none;
+  border-radius: calc(12px * var(--rn-s));
+  background: oklch(1 0 0 / 0.07);
+  border: 1px solid oklch(1 0 0 / 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: oklch(0.9 0.16 88);
+}
+
+.rn-feature-text { min-width: 0; }
+
+.rn-feature-title {
+  font-size: calc(16.5px * var(--rn-s));
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.rn-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: calc(4px * var(--rn-s));
+  padding: calc(3px * var(--rn-s)) calc(8px * var(--rn-s));
+  border-radius: calc(6px * var(--rn-s));
+  background: oklch(0.84 0.18 85 / 0.16);
+  border: 1px solid oklch(0.84 0.18 85 / 0.4);
+  font-family: var(--font-subtext);
+  font-size: calc(9.5px * var(--rn-s));
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: oklch(0.9 0.16 88);
+  vertical-align: 2px;
+}
+
+.rn-feature-body {
+  margin-top: calc(5px * var(--rn-s));
+  font-size: calc(14.5px * var(--rn-s));
+  line-height: 1.55;
+  color: oklch(1 0 0 / 0.58);
+  text-wrap: pretty;
+}
+
+.rn-release-foot {
+  margin-top: auto;
+  padding-top: calc(28px * var(--rn-s));
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: calc(24px * var(--rn-s));
+  flex-wrap: wrap;
+}
+
+.rn-stats { display: flex; gap: calc(34px * var(--rn-s)); }
+
+.rn-stat-value {
+  font-family: var(--font-subtext);
+  font-size: calc(20px * var(--rn-s));
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.rn-stat-label {
+  margin-top: calc(3px * var(--rn-s));
+  font-size: calc(11px * var(--rn-s));
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: oklch(1 0 0 / 0.42);
+}
+
+.rn-notes {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(12px * var(--rn-s));
+  height: calc(46px * var(--rn-s));
+  padding: 0 calc(8px * var(--rn-s)) 0 calc(20px * var(--rn-s));
+  border-radius: 999px;
+  background: oklch(1 0 0 / 0.07);
+  border: 1px solid oklch(1 0 0 / 0.14);
+  color: #f5f5f7;
+  font-size: calc(14px * var(--rn-s));
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.1);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.rn-notes:hover { background: oklch(1 0 0 / 0.12); color: #f5f5f7; }
+
+.rn-notes-arrow {
+  width: calc(30px * var(--rn-s));
+  height: calc(30px * var(--rn-s));
+  border-radius: 50%;
+  background: oklch(0.9 0.16 88);
+  color: #101013;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.rn-footnote {
+  margin-top: calc(22px * var(--rn-s));
+  padding-top: calc(18px * var(--rn-s));
+  font-size: calc(14px * var(--rn-s));
+  line-height: 1.6;
+  color: oklch(1 0 0 / 0.5);
+  text-wrap: pretty;
+}
+
+/*
+ * Its own rule so the footnote only draws a divider when something sits between
+ * it and the feature list. Without the stats row the list's closing border is
+ * already right above it, and two lines land on top of each other.
+ */
+.rn-release-foot + .rn-footnote {
+  border-top: 1px solid oklch(1 0 0 / 0.09);
+}
+
+/* ── Right: the note ───────────────────────────────────────────────────── */
+
+.rn-note {
+  position: relative;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.rn-close {
+  position: absolute;
+  top: calc(24px * var(--rn-s));
+  right: calc(24px * var(--rn-s));
+  width: calc(38px * var(--rn-s));
+  height: calc(38px * var(--rn-s));
+  border-radius: 50%;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-faint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  z-index: 2;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.rn-close:hover { background: var(--bg-selected); color: var(--text-primary); }
+
+.rn-note-body {
+  flex: 1;
+  min-height: 0;
+  padding: calc(50px * var(--rn-s)) calc(52px * var(--rn-s)) calc(30px * var(--rn-s));
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.rn-note-eyebrow {
+  font-family: var(--font-subtext);
+  font-size: calc(11.5px * var(--rn-s));
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.rn-note-title {
+  /* CJK breaks anywhere by default; break at phrase boundaries where supported. */
+  word-break: auto-phrase;
+  margin: calc(16px * var(--rn-s)) 0 0;
+  font-size: calc(29px * var(--rn-s));
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  max-width: calc(420px * var(--rn-s));
+  text-wrap: pretty;
+}
+
+.rn-note p {
+  margin: calc(20px * var(--rn-s)) 0 0;
+  font-size: calc(15px * var(--rn-s));
+  line-height: 1.68;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+.rn-note p + p { margin-top: calc(15px * var(--rn-s)); }
+
+.rn-promise {
+  margin-top: calc(24px * var(--rn-s));
+  padding: calc(20px * var(--rn-s)) calc(22px * var(--rn-s));
+  border-radius: calc(20px * var(--rn-s));
+  background: oklch(0.72 0.11 190 / 0.1);
+  border: 1px solid oklch(0.72 0.11 190 / 0.28);
+}
+
+.rn-promise-label {
+  display: flex;
+  align-items: center;
+  gap: calc(9px * var(--rn-s));
+  font-family: var(--font-subtext);
+  font-size: calc(11px * var(--rn-s));
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: oklch(0.55 0.09 190);
+}
+
+.dark .rn-promise-label { color: oklch(0.78 0.1 190); }
+
+.rn-promise-text {
+  margin-top: calc(10px * var(--rn-s));
+  font-size: calc(15.5px * var(--rn-s));
+  font-weight: 600;
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+  text-wrap: pretty;
+}
+
+.rn-signoff { margin-top: auto; padding-top: calc(26px * var(--rn-s)); }
+
+.rn-closing {
+  font-size: calc(18px * var(--rn-s));
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.rn-signature {
+  margin-top: calc(8px * var(--rn-s));
+  font-size: calc(15px * var(--rn-s));
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.rn-support {
+  padding: calc(26px * var(--rn-s)) calc(52px * var(--rn-s)) calc(34px * var(--rn-s));
+  border-top: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+}
+
+.rn-support-text {
+  font-size: calc(15px * var(--rn-s));
+  line-height: 1.68;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+.rn-support-buttons {
+  margin-top: calc(16px * var(--rn-s));
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(10px * var(--rn-s));
+}
+
+.rn-support-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(9px * var(--rn-s));
+  height: calc(50px * var(--rn-s));
+  border-radius: calc(16px * var(--rn-s));
+  font-size: calc(14.5px * var(--rn-s));
+  font-weight: 600;
+  box-shadow: 0 2px 6px oklch(0 0 0 / 0.1);
+  cursor: pointer;
+  border: 0;
+  transition: filter 0.15s ease;
+}
+
+.rn-support-btn:hover { filter: brightness(0.96); }
+
+/* Brand colours — theme-lint-disable: Buy Me a Coffee and Ko-fi own these. */
+.rn-support-bmc  { background: #ffdd00; color: #101013; }
+.rn-support-kofi { background: #ff5e5b; color: #ffffff; }
+
+/* Narrow viewports: keep the proportions, drop the outer padding. */
+@media (max-width: 900px) {
+  .rn-overlay { padding: 0; }
+  .rn-panel { border-radius: 0; border: 0; max-height: 100%; }
+}
+
+/* Icons carry fixed size attributes from lucide; scale them with the panel. */
+.rn-feature-icon svg  { width: calc(18px * var(--rn-s)); height: calc(18px * var(--rn-s)); }
+.rn-notes-arrow svg   { width: calc(16px * var(--rn-s)); height: calc(16px * var(--rn-s)); }
+.rn-promise-label svg { width: calc(14px * var(--rn-s)); height: calc(14px * var(--rn-s)); flex: none; }
+.rn-support-btn svg   { width: calc(18px * var(--rn-s)); height: calc(18px * var(--rn-s)); flex: none; }
+.rn-close svg         { width: calc(18px * var(--rn-s)); height: calc(18px * var(--rn-s)); }

@@ -28,6 +28,47 @@ export type NoticeCta =
   | { kind: 'link';   labelKey: string; href: string }  // external URL, opens in a new tab
   | { kind: 'action'; labelKey: string; actionId: string; dismissOnAction?: boolean };
 
+export interface NoticeReleaseFeature {
+  iconName: string;
+  titleKey: string;
+  bodyKey: string;
+  badgeKey?: string;
+}
+
+export interface NoticeReleaseStat {
+  /** The figure itself ("~150") — shown as-is, never translated. */
+  value: string;
+  labelKey: string;
+}
+
+/**
+ * The release layout: the release on the left, a note from the maintainer on
+ * the right. A notice carrying this renders through the dedicated two-column
+ * modal instead of the generic notice body.
+ */
+export interface NoticeRelease {
+  version: string;
+  eyebrowKey: string;
+  tagKey: string;
+  headlineKey: string;
+  introKey: string;
+  features: NoticeReleaseFeature[];
+  stats?: NoticeReleaseStat[];
+  notes?: { labelKey: string; href: string };
+  footnoteKey?: string;
+  note: {
+    eyebrowKey: string;
+    titleKey: string;
+    bodyKey: string;
+    promiseLabelKey: string;
+    promiseTextKey: string;
+    bodyAfterKey: string;
+    closingKey: string;
+    signatureKey: string;
+  };
+  supportTextKey: string;
+}
+
 export interface SystemNotice {
   id: string;
   display: Display;
@@ -40,6 +81,8 @@ export interface SystemNotice {
   highlights?: Array<{ labelKey: string; iconName?: string }>;
   cta?: NoticeCta;
   secondaryCta?: NoticeCta;
+  /** Set to render the two-column release modal rather than the generic body. */
+  release?: NoticeRelease;
   // Hide this notice on small/mobile viewports (evaluated client-side).
   desktopOnly?: boolean;
   dismissible: boolean;

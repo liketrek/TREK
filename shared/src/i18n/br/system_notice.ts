@@ -54,5 +54,41 @@ const system_notice: TranslationStrings = {
   'system_notice.v3014_whitespace_collision.title': 'Ação necessária: conflito de conta de usuário',
   'system_notice.v3014_whitespace_collision.body':
     'A atualização 3.0.14 detectou um ou mais conflitos de nome de usuário ou e-mail causados por espaços em branco no início ou fim dos valores armazenados. As contas afetadas foram renomeadas automaticamente. Verifique os logs do servidor por linhas começando com **[migration] WHITESPACE COLLISION** para identificar quais contas precisam de revisão.',
+  // 4.0.0 release modal — the release on the left, the note from the maintainer on the right
+  'system_notice.release_400.eyebrow': 'Atualização instalada',
+  'system_notice.release_400.tag': 'Versão',
+  'system_notice.release_400.headline': 'A maior versão que o TREK já teve.',
+  'system_notice.release_400.intro':
+    'O TREK ganha um celular e um livro. Dezenove pessoas escreveram esta — e com ela foram uns cento e cinquenta bugs relatados.',
+  'system_notice.release_400.feature_mobile_title': 'TREK no celular',
+  'system_notice.release_400.feature_mobile_body':
+    'Tudo abaixo de 768px agora é uma interface própria — um dock de vidro, seus próprios painéis, seu próprio planejador. Abra o TREK no celular.',
+  'system_notice.release_400.feature_studio_title': 'TREK Studio',
+  'system_notice.release_400.feature_studio_badge': 'Beta',
+  'system_notice.release_400.feature_studio_body':
+    'O PDF do Journey virou um designer de álbuns de fotos. Ele monta o álbum quando você pede e depois sai do caminho.',
+  'system_notice.release_400.feature_vacay_title': 'Vacay aprende o resto',
+  'system_notice.release_400.feature_vacay_body':
+    'Meios dias, banco de horas e dias flexíveis, férias escolares na grade — e um ano de férias que não precisa começar em janeiro.',
+  'system_notice.release_400.feature_places_title': 'Lugares que se mostram, arquivos que saem',
+  'system_notice.release_400.feature_places_body':
+    'Fotos e descrição se preenchem sozinhas antes de você salvar um lugar. E seus uploads não precisam mais viver no disco onde o TREK roda.',
+  'system_notice.release_400.footnote':
+    'E estes são quatro deles. A 4.0.0 traz centenas de outras mudanças, de Collections e Atlas até todo o servidor por baixo.',
+  'system_notice.release_400.note_eyebrow': 'Uma nota do mantenedor',
+  'system_notice.release_400.note_title': 'Obrigado por usar o TREK.',
+  'system_notice.release_400.note_body':
+    'O TREK começou como uma ferramentinha para as minhas próprias viagens, escrita no tempo livre. E continua sendo: noites, fins de semana, as horas ao lado de um trabalho em tempo integral.\n\nPor um tempo era só eu. Não mais — dezenove pessoas entregaram esta versão, e milhares de pessoas chegaram com estrelas, issues, traduções e pull requests. Sou grato por cada parte disso.',
+  'system_notice.release_400.promise_label': 'A promessa',
+  'system_notice.release_400.promise_text':
+    'O lado open source do TREK continua gratuito, para sempre. Sem planos pagos, sem assinaturas, sem pegadinhas. Prometido.',
+  'system_notice.release_400.note_body_after':
+    'A 4.0.0 levou semanas de noites longas — um app de celular, um designer de álbuns, uma migração de servidor, quase tudo escrito entre meia-noite e duas. Não é reclamação: eu amo construir isso. É só a resposta honesta de como uma versão desse tamanho sai de um projeto de tempo livre.',
+  'system_notice.release_400.note_closing': 'Obrigado por estar aqui.',
+  'system_notice.release_400.note_signature': '— Maurice',
+  'system_notice.release_400.support_text':
+    'O apoio é o que mantém isso de pé — servidores, domínios e as noites longas que viram versões como esta. Se o TREK vale algo para você, um café é o jeito mais direto de manter isso vivo.',
+  'system_notice.release_400.cta_bmc': 'Buy me a coffee',
+  'system_notice.release_400.cta_kofi': 'Apoiar no Ko-fi',
 };
 export default system_notice;

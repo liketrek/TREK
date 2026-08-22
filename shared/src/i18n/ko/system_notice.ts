@@ -54,5 +54,40 @@ const system_notice: TranslationStrings = {
   'system_notice.pager.counter': '{current} / {total}',
   'system_notice.pager.goto': '{n}번 공지로 이동',
   'system_notice.pager.position': '공지 {current}/{total}',
+  'system_notice.release_400.eyebrow': '업데이트 완료',
+  'system_notice.release_400.tag': '릴리스',
+  'system_notice.release_400.headline': 'TREK 역사상 가장 큰 릴리스입니다.',
+  'system_notice.release_400.intro':
+    'TREK에 휴대폰과 책이 생겼습니다. 열아홉 명이 함께 만들었고, 보고된 버그 약 150개가 함께 정리되었습니다.',
+  'system_notice.release_400.feature_mobile_title': 'TREK, 모바일로',
+  'system_notice.release_400.feature_mobile_body':
+    '768px 아래는 이제 그 자체로 하나의 인터페이스입니다 — 글라스 독, 전용 시트, 전용 여행 플래너. 휴대폰에서 TREK을 열어보세요.',
+  'system_notice.release_400.feature_studio_title': 'TREK Studio',
+  'system_notice.release_400.feature_studio_badge': 'Beta',
+  'system_notice.release_400.feature_studio_body':
+    'Journey의 PDF가 사진 책 디자이너가 되었습니다. 부탁하면 책을 배치해 주고, 그다음엔 물러나 있습니다.',
+  'system_notice.release_400.feature_vacay_title': 'Vacay, 나머지까지',
+  'system_notice.release_400.feature_vacay_body':
+    '반차, 보상 휴가와 유연 근무일, 달력에 올라온 학교 방학 — 그리고 1월에 시작하지 않아도 되는 휴가 연도.',
+  'system_notice.release_400.feature_places_title': '장소는 스스로 채우고, 파일은 밖으로',
+  'system_notice.release_400.feature_places_body':
+    '장소를 저장하기 전에 사진과 설명이 알아서 채워집니다. 그리고 업로드한 파일은 더 이상 TREK이 도는 디스크에 있지 않아도 됩니다.',
+  'system_notice.release_400.footnote':
+    '그리고 이건 그중 네 가지입니다. 4.0.0에는 Collections와 Atlas부터 그 아래 서버 전체까지 수백 가지 변경이 더 담겨 있습니다.',
+  'system_notice.release_400.note_eyebrow': '개발자의 한마디',
+  'system_notice.release_400.note_title': 'TREK을 사용해 주셔서 감사합니다.',
+  'system_notice.release_400.note_body':
+    'TREK은 제 여행을 위해 여가 시간에 만든 작은 도구로 시작했습니다. 지금도 그렇습니다. 저녁, 주말, 그리고 풀타임 직장 옆의 시간들.\n\n한동안은 저 혼자였습니다. 이제는 아닙니다 — 열아홉 명이 이번 릴리스를 함께 내보냈고, 수천 명이 별과 이슈, 번역과 풀 리퀘스트를 들고 찾아와 주셨습니다. 그 모든 것에 감사합니다.',
+  'system_notice.release_400.promise_label': '약속',
+  'system_notice.release_400.promise_text':
+    'TREK의 오픈 소스 쪽은 영원히 무료입니다. 유료 등급도, 구독도, 숨겨진 조건도 없습니다. 약속드릴게요.',
+  'system_notice.release_400.note_body_after':
+    '4.0.0에는 늦은 밤 몇 주가 들어갔습니다 — 휴대폰 화면, 책 디자이너, 서버 마이그레이션, 대부분 자정과 새벽 두 시 사이에 썼습니다. 불평은 아닙니다. 이걸 만드는 게 좋습니다. 다만 이 정도 규모의 릴리스가 여가 프로젝트에서 어떻게 나오는지에 대한 솔직한 답입니다.',
+  'system_notice.release_400.note_closing': '함께해 주셔서 감사합니다.',
+  'system_notice.release_400.note_signature': '— Maurice',
+  'system_notice.release_400.support_text':
+    '이걸 계속 굴러가게 하는 건 후원입니다 — 서버와 도메인, 그리고 이런 릴리스가 되는 늦은 밤들. TREK이 여러분에게 가치가 있다면, 커피 한 잔이 이어가는 가장 직접적인 방법입니다.',
+  'system_notice.release_400.cta_bmc': 'Buy me a coffee',
+  'system_notice.release_400.cta_kofi': 'Ko-fi에서 후원하기',
 };
 export default system_notice;

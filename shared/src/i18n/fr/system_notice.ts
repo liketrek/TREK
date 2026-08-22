@@ -54,5 +54,40 @@ const system_notice: TranslationStrings = {
   'system_notice.v3014_whitespace_collision.title': 'Action requise : conflit de compte utilisateur',
   'system_notice.v3014_whitespace_collision.body':
     "La mise à niveau 3.0.14 a détecté un ou plusieurs conflits de nom d'utilisateur ou d'adresse e-mail causés par des espaces en début ou en fin de valeur dans les comptes enregistrés. Les comptes concernés ont été renommés automatiquement. Consultez les journaux du serveur pour les lignes commençant par **[migration] WHITESPACE COLLISION** afin d'identifier les comptes nécessitant une vérification.",
+  'system_notice.release_400.eyebrow': 'Mise à jour installée',
+  'system_notice.release_400.tag': 'Version',
+  'system_notice.release_400.headline': 'La plus grande version de TREK à ce jour.',
+  'system_notice.release_400.intro':
+    'TREK gagne un téléphone, et un livre. Dix-neuf personnes ont écrit cette version — et environ cent cinquante bugs signalés ont disparu au passage.',
+  'system_notice.release_400.feature_mobile_title': 'TREK passe au mobile',
+  'system_notice.release_400.feature_mobile_body':
+    'Tout ce qui est sous 768px a désormais sa propre interface — un dock en verre, ses feuilles, son planificateur. Ouvre TREK sur ton téléphone.',
+  'system_notice.release_400.feature_studio_title': 'TREK Studio',
+  'system_notice.release_400.feature_studio_badge': 'Beta',
+  'system_notice.release_400.feature_studio_body':
+    "Le PDF de Journey est devenu un concepteur de livre photo. Il met le livre en page quand tu le demandes, puis s'efface.",
+  'system_notice.release_400.feature_vacay_title': 'Vacay apprend le reste',
+  'system_notice.release_400.feature_vacay_body':
+    'Demi-journées, récup et RTT, vacances scolaires dans la grille — et une année de congés qui ne commence pas forcément en janvier.',
+  'system_notice.release_400.feature_places_title': 'Les lieux se présentent, les fichiers déménagent',
+  'system_notice.release_400.feature_places_body':
+    'Photos et description se remplissent toutes seules avant que tu enregistres un lieu. Et tes fichiers ne sont plus obligés de vivre sur le disque où tourne TREK.',
+  'system_notice.release_400.footnote':
+    "Et ce ne sont que quatre d'entre eux. 4.0.0 apporte plusieurs centaines d'autres changements, de Collections et Atlas jusqu'au serveur en dessous.",
+  'system_notice.release_400.note_eyebrow': 'Un mot du mainteneur',
+  'system_notice.release_400.note_title': "Merci d'utiliser TREK.",
+  'system_notice.release_400.note_body':
+    "TREK a commencé comme un petit outil pour mes propres voyages, écrit sur mon temps libre. Ça l'est toujours : le soir, le week-end, les heures à côté d'un travail à temps plein.\n\nPendant un temps, il n'y avait que moi. Plus maintenant — dix-neuf personnes ont livré cette version, et vous êtes des milliers à être arrivés avec des étoiles, des issues, des traductions et des pull requests. Je suis reconnaissant pour tout ça.",
+  'system_notice.release_400.promise_label': 'La promesse',
+  'system_notice.release_400.promise_text':
+    "Le côté open source de TREK reste gratuit, pour toujours. Pas de formules payantes, pas d'abonnements, aucun piège. Promis.",
+  'system_notice.release_400.note_body_after':
+    "4.0.0 a demandé des semaines de nuits blanches — une app mobile, un concepteur de livre, une migration serveur, l'essentiel écrit entre minuit et deux heures. Ce n'est pas une plainte : j'adore construire ça. C'est juste la réponse honnête à comment une version de cette taille sort d'un projet de temps libre.",
+  'system_notice.release_400.note_closing': "Merci d'être là.",
+  'system_notice.release_400.note_signature': '— Maurice',
+  'system_notice.release_400.support_text':
+    'Le soutien est ce qui fait tourner tout ça — serveurs, domaines, et les nuits blanches qui deviennent des versions comme celle-ci. Si TREK vaut quelque chose pour toi, un café est le moyen le plus direct de continuer.',
+  'system_notice.release_400.cta_bmc': 'Buy me a coffee',
+  'system_notice.release_400.cta_kofi': 'Soutenir sur Ko-fi',
 };
 export default system_notice;

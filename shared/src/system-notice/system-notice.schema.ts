@@ -42,6 +42,52 @@ const noticeCtaSchema = z.discriminatedUnion('kind', [
   }),
 ]);
 
+/** One "what changed" row in the release panel: icon, headline, prose, optional badge. */
+const noticeReleaseFeatureSchema = z.object({
+  iconName: z.string(),
+  titleKey: z.string(),
+  bodyKey: z.string(),
+  badgeKey: z.string().optional(),
+});
+
+/** A number worth stating next to the release — the figure itself is not translated. */
+const noticeReleaseStatSchema = z.object({
+  value: z.string(),
+  labelKey: z.string(),
+});
+
+/**
+ * The release layout: a two-column modal, the release on the left and a note
+ * from the maintainer on the right. A notice carrying this renders through
+ * ReleaseNoticeModal instead of the generic notice body, so every string it
+ * shows lives here rather than inside the component.
+ */
+const noticeReleaseSchema = z.object({
+  /** Shown as the display figure ("4.0.0") — a version string, not a semver gate. */
+  version: z.string(),
+  eyebrowKey: z.string(),
+  tagKey: z.string(),
+  headlineKey: z.string(),
+  introKey: z.string(),
+  features: z.array(noticeReleaseFeatureSchema),
+  stats: z.array(noticeReleaseStatSchema).optional(),
+  notes: z.object({ labelKey: z.string(), href: z.string() }).optional(),
+  footnoteKey: z.string().optional(),
+  note: z.object({
+    eyebrowKey: z.string(),
+    titleKey: z.string(),
+    /** Markdown paragraphs above the promise box. */
+    bodyKey: z.string(),
+    promiseLabelKey: z.string(),
+    promiseTextKey: z.string(),
+    /** Markdown paragraphs below the promise box. */
+    bodyAfterKey: z.string(),
+    closingKey: z.string(),
+    signatureKey: z.string(),
+  }),
+  supportTextKey: z.string(),
+});
+
 /** The client-facing notice (server-evaluated; conditions/versioning stripped). */
 export const systemNoticeDtoSchema = z.object({
   id: z.string(),
@@ -57,5 +103,6 @@ export const systemNoticeDtoSchema = z.object({
   secondaryCta: noticeCtaSchema.optional(),
   desktopOnly: z.boolean().optional(),
   dismissible: z.boolean(),
+  release: noticeReleaseSchema.optional(),
 });
 export type SystemNoticeDto = z.infer<typeof systemNoticeDtoSchema>;

@@ -55,5 +55,41 @@ const system_notice: TranslationStrings = {
   'system_notice.v3014_whitespace_collision.title': 'Aktion erforderlich: Benutzerkontokonflikt',
   'system_notice.v3014_whitespace_collision.body':
     'Das 3.0.14-Upgrade hat einen oder mehrere Konflikte bei Benutzernamen oder E-Mail-Adressen festgestellt, die durch führende oder nachgestellte Leerzeichen in gespeicherten Konten verursacht wurden. Betroffene Konten wurden automatisch umbenannt. Prüfe die Serverprotokolle auf Zeilen, die mit **[migration] WHITESPACE COLLISION** beginnen, um die betroffenen Konten zu identifizieren.',
+  // 4.0.0-Release-Modal — links das Release, rechts das Wort vom Maintainer
+  'system_notice.release_400.eyebrow': 'Update installiert',
+  'system_notice.release_400.tag': 'Release',
+  'system_notice.release_400.headline': 'Das größte Release, das TREK je hatte.',
+  'system_notice.release_400.intro':
+    'TREK bekommt ein Handy und ein Buch. Neunzehn Leute haben daran geschrieben — und rund hundertfünfzig gemeldete Bugs sind mitgekommen.',
+  'system_notice.release_400.feature_mobile_title': 'TREK wird mobil',
+  'system_notice.release_400.feature_mobile_body':
+    'Alles unter 768px ist jetzt eine eigene Oberfläche — ein Glas-Dock, eigene Sheets, ein eigener Trip-Planer. Öffne TREK auf deinem Handy.',
+  'system_notice.release_400.feature_studio_title': 'TREK Studio',
+  'system_notice.release_400.feature_studio_badge': 'Beta',
+  'system_notice.release_400.feature_studio_body':
+    'Aus dem Journey-PDF wurde ein Fotobuch-Designer. Er setzt das Buch, wenn du ihn darum bittest, und hält sich danach raus.',
+  'system_notice.release_400.feature_vacay_title': 'Vacay lernt den Rest',
+  'system_notice.release_400.feature_vacay_body':
+    'Halbe Tage, Überstunden- und Gleittage, Schulferien im Raster — und ein Urlaubsjahr, das nicht im Januar anfangen muss.',
+  'system_notice.release_400.feature_places_title': 'Orte zeigen sich, Dateien ziehen aus',
+  'system_notice.release_400.feature_places_body':
+    'Bilder und eine Beschreibung füllen sich von selbst, bevor du einen Ort speicherst. Und deine Uploads müssen nicht mehr auf der Platte liegen, auf der TREK läuft.',
+  'system_notice.release_400.footnote':
+    'Und das sind vier davon. 4.0.0 bringt mehrere hundert weitere Änderungen mit, von Collections und Atlas bis zum ganzen Server darunter.',
+  'system_notice.release_400.note_eyebrow': 'Ein Wort vom Maintainer',
+  'system_notice.release_400.note_title': 'Danke, dass du TREK nutzt.',
+  'system_notice.release_400.note_body':
+    'TREK hat als kleines Tool für meine eigenen Reisen angefangen, geschrieben in meiner Freizeit. Das ist es immer noch: Abende, Wochenenden, die Stunden neben einem Vollzeitjob.\n\nEine Weile war ich allein damit. Jetzt nicht mehr — neunzehn Leute haben dieses Release gebaut, und Tausende von euch kamen dazu, mit Sternen, Issues, Übersetzungen und Pull Requests. Ich bin für jedes Stück davon dankbar.',
+  'system_notice.release_400.promise_label': 'Das Versprechen',
+  'system_notice.release_400.promise_text':
+    'Die Open-Source-Seite von TREK bleibt kostenlos, für immer. Keine Paid Tiers, keine Abos, kein Haken. Versprochen.',
+  'system_notice.release_400.note_body_after':
+    '4.0.0 hat Wochen an späten Nächten gekostet — eine Handy-App, ein Buch-Designer, eine Server-Migration, das meiste zwischen Mitternacht und zwei geschrieben. Keine Klage: Ich baue das gern. Es ist nur die ehrliche Antwort darauf, wie ein Release dieser Größe aus einem Freizeitprojekt kommt.',
+  'system_notice.release_400.note_closing': 'Danke, dass du dabei bist.',
+  'system_notice.release_400.note_signature': '— Maurice',
+  'system_notice.release_400.support_text':
+    'Unterstützung ist das, was das hier am Laufen hält — Server, Domains und die späten Nächte, aus denen Releases wie dieses werden. Wenn TREK dir etwas wert ist, ist ein Kaffee der direkteste Weg, es weiterlaufen zu lassen.',
+  'system_notice.release_400.cta_bmc': 'Buy me a coffee',
+  'system_notice.release_400.cta_kofi': 'Ko-fi unterstützen',
 };
 export default system_notice;

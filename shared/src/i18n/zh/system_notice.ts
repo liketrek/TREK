@@ -52,5 +52,40 @@ const system_notice: TranslationStrings = {
   'system_notice.v3014_whitespace_collision.title': '需要操作：用户账户冲突',
   'system_notice.v3014_whitespace_collision.body':
     '3.0.14 版本升级检测到一个或多个由存储账户中首尾空白字符引发的用户名或邮箱冲突。受影响的账户已自动重命名。请检查服务器日志中以 **[migration] WHITESPACE COLLISION** 开头的行，以确认哪些账户需要审查。',
+  // 4.0.0 release modal — the release on the left, the note from the maintainer on the right
+  'system_notice.release_400.eyebrow': '更新已安装',
+  'system_notice.release_400.tag': '发布',
+  'system_notice.release_400.headline': 'TREK 有史以来最大的一次更新。',
+  'system_notice.release_400.intro':
+    'TREK 有了手机端，也有了相册书。这一版由十九个人写成——随之解决的还有大约一百五十个报告过的 bug。',
+  'system_notice.release_400.feature_mobile_title': 'TREK 上手机',
+  'system_notice.release_400.feature_mobile_body':
+    '768px 以下现在是一套独立的界面——毛玻璃底栏、自己的弹出面板、自己的行程规划器。用手机打开 TREK 试试。',
+  'system_notice.release_400.feature_studio_title': 'TREK Studio',
+  'system_notice.release_400.feature_studio_badge': 'Beta',
+  'system_notice.release_400.feature_studio_body':
+    'Journey 的 PDF 变成了一个相册书设计器。你让它排版，它就把书排好，然后退到一边。',
+  'system_notice.release_400.feature_vacay_title': 'Vacay 补齐了剩下的',
+  'system_notice.release_400.feature_vacay_body':
+    '半天、调休和弹性假、日历上的学校假期——还有不必从一月开始的假期年度。',
+  'system_notice.release_400.feature_places_title': '地点自己亮相，文件搬出去',
+  'system_notice.release_400.feature_places_body':
+    '在你保存一个地点之前，图片和描述会自己填好。上传的文件也不必再放在 TREK 所在的磁盘上。',
+  'system_notice.release_400.footnote':
+    '这只是其中四项。4.0.0 还带来数百项其他改动，从 Collections、Atlas 一直到底层的整个服务端。',
+  'system_notice.release_400.note_eyebrow': '来自维护者的话',
+  'system_notice.release_400.note_title': '感谢你使用 TREK。',
+  'system_notice.release_400.note_body':
+    'TREK 最初只是我为自己的旅行、用业余时间做的一个小工具。现在依然如此：晚上、周末，全职工作之外的那些时间。\n\n有一阵子只有我一个人。现在不是了——十九个人一起做出了这一版，还有成千上万的你们带着星标、issue、翻译和 pull request 来到这里。这一切我都心怀感激。',
+  'system_notice.release_400.promise_label': '承诺',
+  'system_notice.release_400.promise_text': 'TREK 的开源部分永远免费。没有付费档位，没有订阅，没有套路。我保证。',
+  'system_notice.release_400.note_body_after':
+    '4.0.0 花掉了好几个星期的深夜——一个手机端、一个相册书设计器、一次服务端迁移，大多写在午夜到两点之间。这不是抱怨：我喜欢做这件事。只是想诚实地说明，这么大的一个版本是怎么从一个业余项目里出来的。',
+  'system_notice.release_400.note_closing': '谢谢你来到这里。',
+  'system_notice.release_400.note_signature': '— Maurice',
+  'system_notice.release_400.support_text':
+    '是这些支持让它继续跑着——服务器、域名，还有那些变成这样一个版本的深夜。如果 TREK 对你有价值，请我喝杯咖啡是最直接的支持方式。',
+  'system_notice.release_400.cta_bmc': 'Buy me a coffee',
+  'system_notice.release_400.cta_kofi': '在 Ko-fi 上支持',
 };
 export default system_notice;

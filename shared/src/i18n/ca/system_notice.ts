@@ -55,5 +55,40 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.highlight_community': 'Construït conjuntament amb la comunitat',
   'system_notice.thank_you_support.cta_bmc': 'Buy Me a Coffee',
   'system_notice.thank_you_support.cta_kofi': 'Dona suport a Ko-fi',
+  'system_notice.release_400.eyebrow': 'Actualització instal·lada',
+  'system_notice.release_400.tag': 'Versió',
+  'system_notice.release_400.headline': 'La versió més gran que TREK ha tingut mai.',
+  'system_notice.release_400.intro':
+    'TREK guanya un telèfon, i un llibre. Dinou persones han escrit aquesta versió — i uns cent cinquanta errors reportats han desaparegut pel camí.',
+  'system_notice.release_400.feature_mobile_title': 'TREK es fa mòbil',
+  'system_notice.release_400.feature_mobile_body':
+    'Tot el que hi ha per sota de 768px té ara la seva pròpia interfície — un dock de vidre, els seus fulls, el seu planificador. Obre TREK al telèfon.',
+  'system_notice.release_400.feature_studio_title': 'TREK Studio',
+  'system_notice.release_400.feature_studio_badge': 'Beta',
+  'system_notice.release_400.feature_studio_body':
+    "El PDF de Journey s'ha convertit en un dissenyador de llibres de fotos. Compon el llibre quan l'hi demanes i després s'aparta.",
+  'system_notice.release_400.feature_vacay_title': 'Vacay aprèn la resta',
+  'system_notice.release_400.feature_vacay_body':
+    'Mitjos dies, dies de compensació i flexibles, vacances escolars a la graella — i un any de vacances que no ha de començar al gener.',
+  'system_notice.release_400.feature_places_title': 'Els llocs es mostren, els fitxers marxen',
+  'system_notice.release_400.feature_places_body':
+    "Les imatges i una descripció s'omplen soles abans que desis un lloc. I les teves pujades ja no han de viure al disc on s'executa TREK.",
+  'system_notice.release_400.footnote':
+    'I aquestes en són quatre. La 4.0.0 porta diversos centenars de canvis més, des de Collections i Atlas fins a tot el servidor de sota.',
+  'system_notice.release_400.note_eyebrow': 'Una nota del mantenidor',
+  'system_notice.release_400.note_title': 'Gràcies per utilitzar TREK.',
+  'system_notice.release_400.note_body':
+    "TREK va començar com una petita eina per als meus propis viatges, escrita al meu temps lliure. Encara ho és: vespres, caps de setmana, les hores al costat d'una feina a jornada completa.\n\nDurant un temps només hi era jo. Ja no — dinou persones han fet aquesta versió, i milers de vosaltres heu arribat amb estrelles, issues, traduccions i pull requests. Estic agraït per tot plegat.",
+  'system_notice.release_400.promise_label': 'La promesa',
+  'system_notice.release_400.promise_text':
+    'La part de codi obert de TREK segueix sent gratuïta, per sempre. Sense nivells de pagament, sense subscripcions, sense lletra petita. Promès.',
+  'system_notice.release_400.note_body_after':
+    "La 4.0.0 ha costat setmanes de nits llargues — una app de mòbil, un dissenyador de llibres, una migració del servidor, la major part escrita entre mitjanit i les dues. No és una queixa: m'encanta construir això. És només la resposta honesta a com surt una versió d'aquesta mida d'un projecte de temps lliure.",
+  'system_notice.release_400.note_closing': 'Gràcies per ser aquí.',
+  'system_notice.release_400.note_signature': '— Maurice',
+  'system_notice.release_400.support_text':
+    'El suport és el que fa que això funcioni — servidors, dominis i les nits llargues que es converteixen en versions com aquesta. Si TREK val alguna cosa per a tu, un cafè és la manera més directa de mantenir-ho en marxa.',
+  'system_notice.release_400.cta_bmc': 'Buy me a coffee',
+  'system_notice.release_400.cta_kofi': 'Dona suport a Ko-fi',
 };
 export default system_notice;
