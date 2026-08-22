@@ -176,7 +176,7 @@ journeys domain).
 
 ## 3. Option B — decorator-driven RPC registry (the end state)
 
-**What:** mirror the `@trek/nest-mcp` pilot for the plugin RPC surface.
+**What:** mirror the `@trek/nest-mcp` pilot (since folded into `server/src/nest-mcp/`) for the plugin RPC surface.
 Per-domain `<domain>.rpc.ts` classes with declarative metadata, discovered at
 boot, from which the supervisor builds each plugin's granted method map.
 
@@ -311,7 +311,7 @@ none of it is throwaway.
 | `src/nest/plugins/supervisor/plugin-supervisor.ts` | Sandbox lifecycle — untouched by both options |
 | `src/nest/todo/todo.bridge.ts` | Surviving bridge — kept only for the legacy `get_trip_summary` MCP registrar (`src/nest/files/files.bridge.ts` also survives, but for module-scope multer configs, not the plugin host) |
 | `src/mcp/registry-handoff.ts` | The MCP precedent for non-container code — **not needed here**; documented to explain why |
-| `nest-mcp/` (`@trek/nest-mcp`) | The proven decorator/registry/discovery blueprint Option B mirrors |
+| `nest-mcp/` (`@trek/nest-mcp`, since folded into `src/nest-mcp/`) | The proven decorator/registry/discovery blueprint Option B mirrors |
 | `src/nest/README.md` | The per-service DI migration recipe this roadmap rides on |
 | `tests/unit/plugins/plugin-host-deps.factory.test.ts` | The wiring suite (bore most of A's one-time test cost) |
 | `tests/unit/plugins/rpc-host.test.ts` | Survived A untouched; shrinks under B |

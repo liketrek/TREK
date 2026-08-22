@@ -38,8 +38,9 @@ package as its data source, so it can read it directly.
 
 ## If this ever becomes its own package
 
-`nest-mcp` is the worked example of the same layer as a separate workspace, and the
-delta is instructive. Because `nest-mcp` must not import the host, it needs a
+`nest-mcp` was the worked example of the same layer as a separate workspace (it has
+since been folded into `server/src/nest-mcp/`, which retired the machinery below), and
+the delta is instructive. Because `nest-mcp` could not import the host, it needed a
 `declare module` augmentation for its registries plus two `AssertExact` drift guards in
 `src/mcp/nest-mcp-policy.ts`, and a permissive `keyof X extends never ? string`
 fallback that silently disables all checking if someone forgets to augment.
@@ -54,7 +55,7 @@ fallback that silently disables all checking if someone forgets to augment.
 3. Root `package.json` `workspaces`, `server/package.json` deps, the root lockfile, the
    Dockerfile COPY stages and a source alias in `server/vitest.config.ts` all change.
 
-Note that a workspace would *not* let `trek-plugin-sdk` consume it: `nest-mcp` is
+Note that a workspace would *not* let `trek-plugin-sdk` consume it: `nest-mcp` was
 `"private": true`, and so would this be. The SDK gets its copy of the permission facts
 from the generated `plugin-sdk/src/generated/host-facts.ts` instead.
 

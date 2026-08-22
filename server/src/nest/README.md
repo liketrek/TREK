@@ -275,7 +275,7 @@ graph**, which is a different problem from serving a genuine outside consumer.
 Nine `*.mcp.ts` files did that with `addons.bridge` for one boolean each, and
 not by preference: a decorator's options object is built while the class is
 being defined, so the `when:` closure had no `this` to reach an injected service
-through. `@trek/nest-mcp` hands the gate its declaring instance now, and
+through. `src/nest-mcp/` hands the gate its declaring instance now, and
 `addons/addon-gate.ts` turns that into `addonGate(ADDON_IDS.X)` over an injected
 `AddonsService`. `reservations.mcp.ts` (assignments) and `atlas.mcp.ts` /
 `journey.mcp.ts` (auth) went the same way.
@@ -932,9 +932,9 @@ crons all inject now (`*.job.ts` providers on `scheduling/CronRegistrarService`)
    boot-validated by `trekMcpValidateAccess` (`src/mcp/nest-mcp-policy.ts`) —
    an unknown group, or `mode: 'write'` on a read-only group (`geo`,
    `weather`), fails app boot. **`mode` is typed the same way**: it is the mode
-   half of `Scope` (`read | write | delete | share`), augmented into
-   `@trek/nest-mcp` through `McpAccessModeRegistry` exactly like the group
-   registry. A scope that is neither read nor write — `journey:share` is the
+   half of `Scope` (`read | write | delete | share`), fed into
+   `src/nest-mcp/types.ts` through `McpAccessModeRegistry` exactly like the
+   group registry. A scope that is neither read nor write — `journey:share` is the
    one today — gets a real marker, *not* a `(ctx) => canX(ctx.scopes)`
    predicate: predicates bypass the policy entirely and are invisible to the
    boot gate, so a scope typo in one would ship as a silent full-access tool.
