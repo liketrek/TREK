@@ -60,7 +60,7 @@ import { AuditModule } from './audit/audit.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { PluginsModule } from './plugins/plugins.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
-import { McpModule } from '@trek/nest-mcp';
+import { McpModule } from '../nest-mcp';
 import { trekMcpAccessPolicy, trekMcpValidateAccess } from '../mcp/nest-mcp-policy';
 import { TrekExceptionFilter } from './common/trek-exception.filter';
 import { SpaFallbackFilter } from './platform/spa-fallback.filter';

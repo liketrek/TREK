@@ -3,7 +3,7 @@ import {
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   demoDenied, ok,
-} from '@trek/nest-mcp';
+} from '../../nest-mcp';
 import { z } from 'zod';
 import { ADDON_IDS } from '../../addons';
 import { AtlasService, BucketItemExistsError } from './atlas.service';

@@ -1,8 +1,9 @@
-import { McpController, McpModule, McpRegistryService, Tool, type McpAccessPolicy } from '../src';
+import { McpController, McpModule, McpRegistryService, Tool, type McpAccessPolicy } from '../../../src/nest-mcp';
 import { createAttachHarness, type AttachHarness, type TestCtx } from './harness';
 import { Injectable, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 
+import 'reflect-metadata';
 import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
@@ -18,7 +19,7 @@ class CounterService {
 class CounterMcp {
   constructor(private readonly counter: CounterService) {}
 
-  @Tool({ name: 'count', inputSchema: { by: z.number().optional() }, access: { group: 'c', mode: 'read' } })
+  @Tool({ name: 'count', inputSchema: { by: z.number().optional() }, access: { group: 'trips', mode: 'read' } })
   async count(_args: { by?: number }, ctx: TestCtx) {
     return { content: [{ type: 'text', text: JSON.stringify({ value: this.counter.next(), userId: ctx.userId }) }] };
   }

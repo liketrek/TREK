@@ -1,4 +1,4 @@
-import type { McpContext } from '@trek/nest-mcp';
+import type { McpContext } from '../../nest-mcp';
 import type { AddonsService } from './addons.service';
 import { ADDON_IDS } from '../../addons';
 
@@ -11,7 +11,7 @@ import { ADDON_IDS } from '../../addons';
  * `this` to reach an injected service through, and nine domains hid an edge to
  * the addons domain from the module graph to answer one boolean.
  *
- * `@trek/nest-mcp` now hands the gate the declaring controller instance, so the
+ * `src/nest-mcp` now hands the gate the declaring controller instance, so the
  * only thing a domain has to do is expose the service it already injects:
  *
  *     constructor(private readonly vacay: VacayService, readonly addons: AddonsService) {}

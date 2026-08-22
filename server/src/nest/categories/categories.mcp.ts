@@ -1,7 +1,7 @@
 import {
   McpController, Tool, Resource, type McpContext,
   TOOL_ANNOTATIONS_READONLY, ok,
-} from '@trek/nest-mcp';
+} from '../../nest-mcp';
 import { CategoriesService } from './categories.service';
 
 /**

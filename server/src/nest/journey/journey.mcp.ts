@@ -3,7 +3,7 @@ import {
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   demoDenied, ok, type McpContext,
-} from '@trek/nest-mcp';
+} from '../../nest-mcp';
 import { z } from 'zod';
 import { ADDON_IDS } from '../../addons';
 import { JourneyDomainService } from './journey-domain.service';

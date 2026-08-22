@@ -1,5 +1,5 @@
-import { McpController, Prompt, Resource, ResourceTemplate, Tool } from '../src';
-import { getEntry, isMcpController, type ClassRef } from '../src/metadata';
+import { McpController, Prompt, Resource, ResourceTemplate, Tool } from '../../../src/nest-mcp';
+import { getEntry, isMcpController, type ClassRef } from '../../../src/nest-mcp/metadata';
 
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
@@ -11,7 +11,7 @@ class Decorated {
     description: 'Does a thing.',
     inputSchema: { what: z.string() },
     annotations: { readOnlyHint: true },
-    access: { group: 'things', mode: 'read' },
+    access: { group: 'places', mode: 'read' },
   })
   doThing() {}
 
@@ -61,7 +61,7 @@ describe('nest-mcp decorators', () => {
         name: 'do_thing',
         description: 'Does a thing.',
         annotations: { readOnlyHint: true },
-        access: { group: 'things', mode: 'read' },
+        access: { group: 'places', mode: 'read' },
       },
     });
 

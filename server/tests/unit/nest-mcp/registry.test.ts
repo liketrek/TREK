@@ -1,4 +1,4 @@
-import { McpController, McpRegistry, Resource, Tool, type McpAccessValidator } from '../src';
+import { McpController, McpRegistry, Resource, Tool, type McpAccessValidator } from '../../../src/nest-mcp';
 
 import { describe, expect, it, vi } from 'vitest';
 
@@ -7,7 +7,7 @@ class Alpha {
   @Tool({ name: 'alpha_one' })
   one() {}
 
-  @Tool({ name: 'alpha_two', access: { group: 'a', mode: 'write' } })
+  @Tool({ name: 'alpha_two', access: { group: 'trips', mode: 'write' } })
   two() {}
 
   helper() {}
@@ -35,7 +35,7 @@ describe('McpRegistry.register / list', () => {
         name: 'alpha_two',
         className: 'Alpha',
         methodName: 'two',
-        access: { group: 'a', mode: 'write' },
+        access: { group: 'trips', mode: 'write' },
       }),
     ]);
   });
@@ -115,10 +115,10 @@ class MixedAccess {
   @Tool({ name: 'predicate_tool', access: () => true })
   predicated() {}
 
-  @Tool({ name: 'declared_read', access: { group: 'a', mode: 'read' } })
+  @Tool({ name: 'declared_read', access: { group: 'trips', mode: 'read' } })
   declaredRead() {}
 
-  @Tool({ name: 'declared_write', access: { group: 'b', mode: 'write' } })
+  @Tool({ name: 'declared_write', access: { group: 'places', mode: 'write' } })
   declaredWrite() {}
 }
 
@@ -130,7 +130,7 @@ describe('McpRegistry.validate — validateAccess hook', () => {
     expect(() => registry.validate()).not.toThrow();
     expect(validateAccess).toHaveBeenCalledTimes(2);
     expect(validateAccess).toHaveBeenCalledWith(
-      { group: 'a', mode: 'read' },
+      { group: 'trips', mode: 'read' },
       expect.objectContaining({
         kind: 'tool',
         name: 'declared_read',
@@ -139,7 +139,7 @@ describe('McpRegistry.validate — validateAccess hook', () => {
       }),
     );
     expect(validateAccess).toHaveBeenCalledWith(
-      { group: 'b', mode: 'write' },
+      { group: 'places', mode: 'write' },
       expect.objectContaining({
         kind: 'tool',
         name: 'declared_write',
@@ -163,7 +163,7 @@ describe('McpRegistry.validate — validateAccess hook', () => {
     });
     registry.register(new MixedAccess());
     expect(() => registry.validate()).toThrow(
-      /Invalid MCP registry: invalid access declarations: tool "declared_read" \(MixedAccess\.declaredRead\): no 'a:read' scope, tool "declared_write" \(MixedAccess\.declaredWrite\): no 'b:write' scope/,
+      /Invalid MCP registry: invalid access declarations: tool "declared_read" \(MixedAccess\.declaredRead\): no 'trips:read' scope, tool "declared_write" \(MixedAccess\.declaredWrite\): no 'places:write' scope/,
     );
   });
 

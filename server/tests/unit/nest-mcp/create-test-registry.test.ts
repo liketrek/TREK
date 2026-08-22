@@ -1,4 +1,4 @@
-import { createTestRegistry, McpController, McpRegistry, Tool, type McpAccessPolicy } from '../src';
+import { createTestRegistry, McpController, McpRegistry, Tool, type McpAccessPolicy } from '../../../src/nest-mcp';
 import type { TestCtx } from './harness';
 
 import { describe, expect, it } from 'vitest';
@@ -11,7 +11,7 @@ class One {
 
 @McpController()
 class Two {
-  @Tool({ name: 'two_tool', access: { group: 't', mode: 'write' } })
+  @Tool({ name: 'two_tool', access: { group: 'trips', mode: 'write' } })
   two() {}
 }
 
@@ -32,7 +32,7 @@ describe('createTestRegistry', () => {
         accessPolicy: () => true,
         validateAccess: ({ group, mode }) => `unknown group '${group}' (mode '${mode}')`,
       }),
-    ).toThrow(/invalid access declarations: tool "two_tool" \(Two\.two\): unknown group 't' \(mode 'write'\)/);
+    ).toThrow(/invalid access declarations: tool "two_tool" \(Two\.two\): unknown group 'trips' \(mode 'write'\)/);
   });
 
   it('forwards the accessPolicy option', () => {
@@ -44,6 +44,6 @@ describe('createTestRegistry', () => {
     const registry = createTestRegistry([new Two()], { accessPolicy: policy });
     // A denied entry is filtered before any server interaction, so a stub suffices.
     registry.attach({} as Parameters<McpRegistry['attach']>[0], { userId: 1 } as Parameters<McpRegistry['attach']>[1]);
-    expect(calls).toEqual(['t:write:1']);
+    expect(calls).toEqual(['trips:write:1']);
   });
 });

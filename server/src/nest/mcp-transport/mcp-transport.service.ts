@@ -3,7 +3,7 @@ import type { Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp';
-import { McpRegistryService } from '@trek/nest-mcp';
+import { McpRegistryService } from '../../nest-mcp';
 import type { User } from '../../types';
 import { ADDON_IDS } from '../../addons';
 import { getMcpSafeUrl } from '../../app-config';

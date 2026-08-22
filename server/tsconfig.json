@@ -32,7 +32,9 @@
       "@modelcontextprotocol/sdk/server/auth/clients": ["../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/auth/clients.js"],
       "@modelcontextprotocol/sdk/server/auth/errors": ["../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/auth/errors.js"],
       "@modelcontextprotocol/sdk/server/auth/types": ["../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/auth/types.js"],
-      "@modelcontextprotocol/sdk/shared/auth": ["../node_modules/@modelcontextprotocol/sdk/dist/cjs/shared/auth.js"]
+      "@modelcontextprotocol/sdk/shared/auth": ["../node_modules/@modelcontextprotocol/sdk/dist/cjs/shared/auth.js"],
+      "@modelcontextprotocol/sdk/client/index": ["../node_modules/@modelcontextprotocol/sdk/dist/cjs/client/index.js"],
+      "@modelcontextprotocol/sdk/inMemory": ["../node_modules/@modelcontextprotocol/sdk/dist/cjs/inMemory.js"]
     }
   },
   "include": ["src"],

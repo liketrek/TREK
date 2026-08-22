@@ -1,45 +1,15 @@
-import type { McpAccessGroup, McpAccessMode, McpAccessPolicy, McpAccessValidator } from '@trek/nest-mcp';
+import type { McpAccessGroup, McpAccessMode, McpAccessPolicy, McpAccessValidator } from '../nest-mcp';
 import { ALL_SCOPES, canRead, canWrite, type Scope, type ScopeGroup } from './scopes';
 
 /** The mode half of every scope: 'read' | 'write' | 'delete' | 'share'. */
 export type ScopeMode = Scope extends `${string}:${infer M}` ? M : never;
 
-/**
- * TREK's context shape for @trek/nest-mcp handlers, predicates and the
- * access policy — mirrors what registerTools() receives per session.
- * The group registry types every decorator's `access.group` against the
- * scope-derived union, so a typo'd group is a compile error in `.mcp.ts`.
- */
-declare module '@trek/nest-mcp' {
-  interface McpContext {
-    userId: number;
-    scopes: string[] | null;
-    isStaticToken: boolean;
-    /**
-     * Fire-once static-token deprecation notice closure (built per session in
-     * src/mcp/index.ts and threaded through registerTools → registry.attach).
-     * Optional so direct createTestRegistry ctxs without it keep working —
-     * consumers (list_trips / get_trip_summary) treat absence as "no notice".
-     */
-    getDeprecationNotice?: () => string | null;
-  }
-  // The augmentation pattern requires an empty single-extends interface —
-  // same false positive (and same disable) as McpContext in @trek/nest-mcp.
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-  interface McpAccessGroupRegistry extends Record<ScopeGroup, true> {}
-  // Same augmentation, for the mode half. Without it `mode` is 'read' |
-  // 'write' and journey's share tools could only be expressed as opaque
-  // predicates, which the boot gate below cannot check.
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-  interface McpAccessModeRegistry extends Record<ScopeMode, true> {}
-}
-
 type AssertExact<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
 
 /**
- * Compile-time lockstep: the augmented `access.group` union must be exactly
- * `ScopeGroup` — fails `npm run typecheck` if the augmentation above drifts
- * (which is also the proof that unknown groups like 'budgets' are rejected).
+ * Compile-time lockstep: `access.group` (from the registry interfaces in
+ * src/nest-mcp/types.ts) must be exactly `ScopeGroup` — fails
+ * `npm run typecheck` if the registries drift from scopes.ts.
  * Exported so the policy unit test has a runtime touchpoint.
  */
 export const MCP_ACCESS_GROUPS_MATCH_SCOPE_GROUPS: AssertExact<McpAccessGroup, ScopeGroup> = true;

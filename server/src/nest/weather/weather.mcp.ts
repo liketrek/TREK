@@ -1,4 +1,4 @@
-import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext } from '@trek/nest-mcp';
+import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext } from '../../nest-mcp';
 import { z } from 'zod';
 import { WeatherService } from './weather.service';
 

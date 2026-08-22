@@ -61,7 +61,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, addTripMember, createPackingItem, createBudgetItem } from '../../helpers/factories';
-import { createTestRegistry } from '@trek/nest-mcp';
+import { createTestRegistry } from '../../../src/nest-mcp';
 import { trekMcpAccessPolicy, trekMcpValidateAccess } from '../../../src/mcp/nest-mcp-policy';
 import { TripsMcp } from '../../../src/nest/trips/trips.mcp';
 import { TripPromptsMcp } from '../../../src/nest/trips/trip-prompts.mcp';

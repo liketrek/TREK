@@ -141,6 +141,9 @@ export default defineConfig({
         'src/db/**/*.ts': { statements: 73, branches: 38, functions: 59, lines: 80 },
         'src/mcp/**/*.ts': { statements: 58, branches: 43, functions: 63, lines: 60 },
         'src/middleware/**/*.ts': { statements: 91, branches: 89, functions: 87, lines: 94 },
+        // The folded-in nest-mcp decorator/registry layer keeps the 80% floor
+        // its own workspace gate enforced (tests/unit/nest-mcp/).
+        'src/nest-mcp/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         'src/systemNotices/**/*.ts': { statements: 84, branches: 67, functions: 93, lines: 85 },
         'src/utils/**/*.ts': { statements: 92, branches: 87, functions: 89, lines: 96 },
         // index.ts, bootstrap.ts, scheduler.ts, config.ts, websocket.ts and the
@@ -151,13 +154,6 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      // Use the package SOURCE in tests: the built CJS dist would be
-      // externalized by vite and its require('@modelcontextprotocol/sdk/...')
-      // would hit the SDK's unresolvable exports map natively (production
-      // resolves it via the tsconfig-paths/register runtime hook instead).
-      // Inlining the source also applies the SWC decorator transform and the
-      // SDK aliases below, and drops the build-freshness dependency.
-      '@trek/nest-mcp': new URL('../nest-mcp/src/index.ts', import.meta.url).pathname,
       // MCP SDK's exports map uses extension-less wildcard targets that neither
       // Node nor Vite can resolve. Point directly at the CJS dist files.
       // Paths are relative to the monorepo root (packages are hoisted there).

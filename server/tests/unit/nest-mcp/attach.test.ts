@@ -8,7 +8,7 @@ import {
   Tool,
   type McpAccessPolicy,
   type McpContext,
-} from '../src';
+} from '../../../src/nest-mcp';
 import { createAttachHarness, type AttachHarness, type TestCtx } from './harness';
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -29,7 +29,7 @@ class FixtureMcp {
     description: 'Reads.',
     inputSchema: { name: z.string() },
     annotations: { readOnlyHint: true },
-    access: { group: 'g', mode: 'read' },
+    access: { group: 'trips', mode: 'read' },
   })
   async readTool({ name }: { name: string }, ctx: TestCtx) {
     return {
@@ -37,7 +37,7 @@ class FixtureMcp {
     };
   }
 
-  @Tool({ name: 'write_tool', inputSchema: {}, access: { group: 'g', mode: 'write' } })
+  @Tool({ name: 'write_tool', inputSchema: {}, access: { group: 'trips', mode: 'write' } })
   async writeTool(_args: Record<string, never>, ctx: TestCtx) {
     return { content: [{ type: 'text', text: `wrote as ${ctx.userId}` }] };
   }
@@ -52,7 +52,12 @@ class FixtureMcp {
     return { content: [{ type: 'text', text: JSON.stringify({ args, userId: ctx.userId }) }] };
   }
 
-  @Resource({ name: 'fixture_doc', uri: 'test://doc', mimeType: 'text/plain', access: { group: 'g', mode: 'read' } })
+  @Resource({
+    name: 'fixture_doc',
+    uri: 'test://doc',
+    mimeType: 'text/plain',
+    access: { group: 'trips', mode: 'read' },
+  })
   async readDoc(uri: URL, ctx: TestCtx) {
     return { contents: [{ uri: uri.href, text: `doc for ${ctx.userId}` }] };
   }
@@ -70,7 +75,7 @@ class FixtureMcp {
 
 @McpController()
 class DeclarativeOnly {
-  @Tool({ name: 'gated_tool', access: { group: 'g', mode: 'read' } })
+  @Tool({ name: 'gated_tool', access: { group: 'trips', mode: 'read' } })
   async gated() {
     return { content: [{ type: 'text', text: 'gated' }] };
   }
@@ -80,7 +85,7 @@ class DeclarativeOnly {
 class WhenMcp {
   @Tool({
     name: 'when_scoped_tool',
-    access: { group: 'g', mode: 'read' },
+    access: { group: 'trips', mode: 'read' },
     when: (ctx: McpContext) => (ctx as TestCtx).allow === true,
   })
   async whenScoped() {

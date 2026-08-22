@@ -9,7 +9,7 @@ import { RealtimeService } from '../realtime/realtime.service';
  * src/websocket stub as module globals. The @McpController domain classes are
  * ordinary Nest providers, so they inject this instead. The pure result
  * helpers (noAccess/permissionDenied/adminRequired/MAX_MCP_TRIP_DAYS and the
- * @trek/nest-mcp re-exports) stay in _shared.ts — they carry no dependencies.
+ * src/nest-mcp re-exports) stay in _shared.ts — they carry no dependencies.
  */
 @Injectable()
 export class McpToolGuardsService {

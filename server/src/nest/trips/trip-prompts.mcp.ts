@@ -1,4 +1,4 @@
-import { McpController, Prompt, type McpContext } from '@trek/nest-mcp';
+import { McpController, Prompt, type McpContext } from '../../nest-mcp';
 import { z } from 'zod';
 import { ADDON_IDS } from '../../addons';
 import { addonGate } from '../addons/addon-gate';

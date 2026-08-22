@@ -1,4 +1,4 @@
-import { McpController, Prompt, type McpContext } from '@trek/nest-mcp';
+import { McpController, Prompt, type McpContext } from '../../nest-mcp';
 
 /**
  * Auth-related MCP surface. One prompt today, moved 1:1 from the legacy

@@ -2,7 +2,7 @@ import {
   McpController, Tool, type McpContext,
   TOOL_ANNOTATIONS_OPEN_WORLD_NON_IDEMPOTENT, TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
   demoDenied, ok,
-} from '@trek/nest-mcp';
+} from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
@@ -29,7 +29,7 @@ const transitRateLimiter = new RateLimitService();
 
 const transitModes = z.enum(['TRANSIT', ...SCHEDULED_TRANSIT_MODES]);
 
-// Local 2-arg variant (the @trek/nest-mcp errorResult takes a string only):
+// Local 2-arg variant (the src/nest-mcp errorResult takes a string only):
 // surface the provider/validation message when there is one, else the fallback.
 function errorResult(err: unknown, fallback: string) {
   return {

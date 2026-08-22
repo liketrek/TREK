@@ -4,7 +4,7 @@ import {
   TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   demoDenied, errorResult, ok,
-} from '@trek/nest-mcp';
+} from '../../nest-mcp';
 import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
 import { ADDON_IDS } from '../../addons';

@@ -31,12 +31,9 @@ FROM node:24-alpine AS server-builder
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY shared/package.json ./shared/
-COPY nest-mcp/package.json ./nest-mcp/
 COPY server/package.json ./server/
 RUN npm ci --workspace=server --ignore-scripts
 COPY --from=shared-builder /app/shared/dist ./shared/dist
-COPY nest-mcp/ ./nest-mcp/
-RUN npm run build --workspace=nest-mcp
 COPY server/ ./server/
 RUN npm run build --workspace=server
 
@@ -47,7 +44,6 @@ WORKDIR /app
 # Workspace manifests only — source never enters this stage.
 COPY package.json package-lock.json ./
 COPY shared/package.json ./shared/
-COPY nest-mcp/package.json ./nest-mcp/
 COPY server/package.json ./server/
 
 # The trailing chown runs in this layer on purpose: it covers the manifests and
@@ -94,10 +90,6 @@ COPY --chown=node:node server/scripts/migrate-encryption.ts ./server/scripts/mig
 # Admin recovery script (node server/reset-admin.js) for locked-out installs.
 COPY --chown=node:node server/reset-admin.js ./server/reset-admin.js
 COPY --chown=node:node --from=shared-builder /app/shared/dist ./shared/dist
-# server dist requires @trek/nest-mcp at runtime through the workspace symlink;
-# its dist's MCP SDK subpath requires ride the same tsconfig-paths/register
-# hook the server already boots with.
-COPY --chown=node:node --from=server-builder /app/nest-mcp/dist ./nest-mcp/dist
 COPY --chown=node:node --from=client-builder /app/client/dist ./server/public
 COPY --chown=node:node --from=client-builder /app/client/public/fonts ./server/public/fonts
 

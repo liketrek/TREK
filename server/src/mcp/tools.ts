@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
-import type { McpAttachOptions, McpRegistry } from '@trek/nest-mcp';
+import type { McpAttachOptions, McpRegistry } from '../nest-mcp';
 
 export function registerTools(registry: McpRegistry | null, server: McpServer, userId: number, scopes: string[] | null, isStaticToken = false, getDeprecationNotice: () => string | null = () => null, onInvoke?: McpAttachOptions['onInvoke']): void {
   // The trip tools moved to the DI-discovered src/nest/trips/trips.mcp.ts and
@@ -61,7 +61,7 @@ export function registerTools(registry: McpRegistry | null, server: McpServer, u
   // static-token notice to auth.mcp.ts (its `if (isStaticToken)` became a
   // `when` gate — the registry hands `when` the session context).
 
-  // Decorator-registered domains (@trek/nest-mcp). Production passes the
+  // Decorator-registered domains (src/nest-mcp). Production passes the
   // container-discovered McpRegistryService (injected into the transport
   // service); the no-Nest harness hands in createTestRegistry()'s build.
   // A null registry (direct callers without either) ⇒ skip.

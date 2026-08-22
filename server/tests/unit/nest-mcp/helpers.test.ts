@@ -8,7 +8,7 @@ import {
   TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
   TOOL_ANNOTATIONS_READONLY,
   TOOL_ANNOTATIONS_WRITE,
-} from '../src';
+} from '../../../src/nest-mcp';
 
 import { describe, expect, it } from 'vitest';
 

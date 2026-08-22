@@ -2,7 +2,7 @@ import {
   McpController, Tool, Resource, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   demoDenied, ok,
-} from '@trek/nest-mcp';
+} from '../../nest-mcp';
 import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
 import { NotificationsService } from './notifications.service';

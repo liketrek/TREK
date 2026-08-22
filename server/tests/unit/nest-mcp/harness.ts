@@ -1,4 +1,4 @@
-import type { McpAttachOptions, McpContext, McpRegistry } from '../src';
+import type { McpAttachOptions, McpContext, McpRegistry } from '../../../src/nest-mcp';
 import { Client } from '@modelcontextprotocol/sdk/client/index';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';

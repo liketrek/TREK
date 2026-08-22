@@ -1,15 +1,20 @@
-# @trek/nest-mcp
+# nest-mcp
 
-Decorator-driven MCP registration for NestJS. Domains declare MCP tools, resources and prompts as decorated methods on ordinary Nest providers; a discovery-backed registry collects them at boot and attaches them — filtered by a host-defined access policy — onto each per-session `McpServer`.
+Decorator-driven MCP registration for NestJS. Domains declare MCP tools, resources and prompts as decorated methods on ordinary Nest providers; a discovery-backed registry collects them at boot and attaches them — filtered by the access policy — onto each per-session `McpServer`.
 
-The package is **extraction-clean**: it imports nothing from `@trek/server` or `@trek/shared` and only peer-depends on `@nestjs/common`, `@nestjs/core`, `@modelcontextprotocol/sdk` and `zod`. It defines **no scope semantics** of its own — access meaning comes entirely from the host's `accessPolicy`.
+Formerly the standalone `@trek/nest-mcp` workspace package; folded into the server 2026-08-22. Two invariants survive the fold:
+
+- **Self-contained**: this directory imports nothing from the rest of `server/` except the type-only `../mcp/scopes` import in `types.ts` (which types `access.group`/`mode` against the real scope unions). Keep it that way — new TREK semantics belong in the host layer, not here.
+- **No scope semantics of its own**: access *meaning* comes entirely from the `accessPolicy`/`validateAccess` given at `McpModule.forRoot(...)` — TREK's live in `src/mcp/nest-mcp-policy.ts`.
+
+Tests live in `server/tests/unit/nest-mcp/` and run with the normal server suite; coverage is gated at ≥80% in `server/vitest.config.ts`.
 
 ## API
 
 ### Decorators
 
 ```ts
-import { McpController, Tool, Resource, ResourceTemplate, Prompt } from '@trek/nest-mcp';
+import { McpController, Tool, Resource, ResourceTemplate, Prompt } from '../../nest-mcp';
 import { z } from 'zod';
 
 @McpController() // implies @Injectable(); register the class in a module's providers: []
@@ -21,7 +26,7 @@ export class ThingsMcp {
     description: 'List all things.',
     inputSchema: {},                             // ZodRawShape, passed straight to the SDK
     annotations: { readOnlyHint: true },
-    access: { group: 'things', mode: 'read' },   // resolved by the host accessPolicy
+    access: { group: 'things', mode: 'read' },   // resolved by the accessPolicy
   })
   async listThings(_args: Record<string, never>, ctx: McpContext) {
     return { content: [{ type: 'text', text: JSON.stringify(this.things.list(ctx.userId)) }] };
@@ -40,24 +45,24 @@ export class ThingsMcp {
 
 Every decorator accepts `access` and `when`:
 
-- **Declarative** — `access: { group: 'things', mode: 'read' | 'write' }`, resolved by the `accessPolicy` given once at `McpModule.forRoot(...)`. `group` is typed as `McpAccessGroup` — plain `string` until the host augments `McpAccessGroupRegistry` (see below), after which only the host's registered groups compile.
+- **Declarative** — `access: { group: 'things', mode: 'read' | 'write' }`, resolved by the `accessPolicy` given once at `McpModule.forRoot(...)`. `group` and `mode` are typed against the scope-derived unions in `types.ts`, so a typo'd group is a compile error in `.mcp.ts` files.
 - **Predicate** — `access: (ctx) => boolean`, bypasses the policy.
 - **Availability gate** — `when: (ctx, self) => boolean`, evaluated *before* `access` (both must pass). Use it for feature/addon toggles so scope markers stay declarative: `when: (_ctx, self: PackingMcp) => self.addons.isAddonEnabled(...)`, `access: { group: 'packing', mode: 'read' }`. `self` is the `@McpController()` instance, handed in at attach time — the options object is built when the class is defined, so without it a gate can only reach a module-level singleton, and hosts end up constructing a second copy of a service outside their own container to answer a toggle.
 - **Omitted `access`** — the entry is always registered (subject to `when`).
 
 ### Result helpers & annotation presets
 
-Handler-side conveniences, exported from the package root so decorated domains need nothing from the legacy MCP layer:
+Handler-side conveniences, exported from the barrel so decorated domains need nothing from the legacy MCP layer:
 
 ```ts
-import { ok, errorResult, demoDenied, TOOL_ANNOTATIONS_READONLY } from '@trek/nest-mcp';
+import { ok, errorResult, demoDenied, TOOL_ANNOTATIONS_READONLY } from '../../nest-mcp';
 
 ok({ tags })                 // { content: [{ type: 'text', text: <pretty JSON> }] }
 errorResult('Tag not found.') // { content: [...], isError: true } — message verbatim
 demoDenied()                  // canned demo-mode write refusal
 ```
 
-Six `TOOL_ANNOTATIONS_*` presets cover the read/write/delete/idempotency matrix (plus `OPEN_WORLD` variants). Host-specific canned errors (permission wording, RBAC lookups) belong in the host, built on `errorResult` — see TREK's `server/src/mcp/tools/_shared.ts`, which re-exports the generic helpers from here.
+Six `TOOL_ANNOTATIONS_*` presets cover the read/write/delete/idempotency matrix (plus `OPEN_WORLD` variants). TREK-specific canned errors (permission wording, RBAC lookups) belong in the host layer, built on `errorResult` — see `server/src/mcp/tools/_shared.ts`, which re-exports the generic helpers from here.
 
 ### Fail-fast validation
 
@@ -65,11 +70,11 @@ Six `TOOL_ANNOTATIONS_*` presets cover the read/write/delete/idempotency matrix 
 
 - duplicate names per kind (fixed resources: duplicate URIs);
 - declarative `access` without a configured `accessPolicy`;
-- declarative `access` rejected by the optional host-supplied `validateAccess` hook.
+- declarative `access` rejected by the optional `validateAccess` hook.
 
 All problems are aggregated into one `Invalid MCP registry: ...` error, so a single boot failure reports every misconfiguration.
 
-`validateAccess?: (access, entry) => string | null | undefined` (on both `McpModule.forRoot(...)` and `createTestRegistry(...)` options) is called once per entry with declarative access — predicates are opaque to the host and skipped. Return a problem description to fail boot, null/undefined to accept:
+`validateAccess?: (access, entry) => string | null | undefined` (on both `McpModule.forRoot(...)` and `createTestRegistry(...)` options) is called once per entry with declarative access — predicates are opaque and skipped. Return a problem description to fail boot, null/undefined to accept:
 
 ```ts
 McpModule.forRoot({
@@ -79,35 +84,15 @@ McpModule.forRoot({
 })
 ```
 
-### Context typing
+### Context and access typing
 
-The package exports an empty `McpContext` interface; the host augments it once:
-
-```ts
-declare module '@trek/nest-mcp' {
-  interface McpContext {
-    userId: number;
-    scopes: string[] | null;
-    isStaticToken: boolean;
-  }
-}
-```
-
-### Access-group typing
-
-Same trick for `access.group`: the package exports an empty `McpAccessGroupRegistry` interface, and `McpAccessGroup` (the type of `group`) is `string` until the host augments it — after which every decorator's `group` is checked against the host's union at compile time:
-
-```ts
-declare module '@trek/nest-mcp' {
-  interface McpAccessGroupRegistry extends Record<MyGroupUnion, true> {}
-}
-```
+`McpContext` (the per-session context handed to every handler, predicate and the policy) and the `McpAccessGroupRegistry`/`McpAccessModeRegistry` interfaces that type `access.group`/`mode` are defined directly in `types.ts`. Before the fold they were empty interfaces the host augmented via `declare module '@trek/nest-mcp'`; the TREK shapes are now baked in, with the lockstep asserts in `src/mcp/nest-mcp-policy.ts` pinning the registries to `scopes.ts` at compile time.
 
 ### Wiring
 
 ```ts
 // AppModule
-McpModule.forRoot({ accessPolicy: (access, ctx) => /* host semantics */ })
+McpModule.forRoot({ accessPolicy: (access, ctx) => /* scope semantics */ })
 
 // wherever per-session servers are built (may be outside Nest — hand the
 // registry over after app.init()):
@@ -119,7 +104,7 @@ registry.list(); // introspection
 ### Testing without Nest
 
 ```ts
-import { createTestRegistry } from '@trek/nest-mcp';
+import { createTestRegistry } from '../../../src/nest-mcp';
 
 const registry = createTestRegistry([new ThingsMcp(new ThingsService(db))], { accessPolicy });
 registry.attach(server, ctx);
@@ -133,13 +118,6 @@ registry.attach(server, ctx);
 4. Delete the legacy registrar file and its call in `server/src/mcp/tools.ts`.
 5. Add one line constructing the instance in `server/tests/helpers/mcp-test-controllers.ts` and keep the domain's existing unit tests green — behavior must be indistinguishable to a client.
 
-## Development
+## Notes
 
-```bash
-npm run build --workspace=nest-mcp     # tsc → dist/ (CJS + d.ts)
-npm run test --workspace=nest-mcp      # vitest (SWC transform for decorator metadata)
-npm run typecheck --workspace=nest-mcp
-npm run lint:check --workspace=nest-mcp
-```
-
-Note: the MCP SDK's exports map uses extension-less wildcards that TypeScript cannot resolve; `tsconfig.json` `paths` and `vitest.config.ts` aliases point at the CJS dist files (same workaround as `server/`).
+The MCP SDK's exports map uses extension-less wildcards that TypeScript cannot resolve; `server/tsconfig.json` `paths` and `server/vitest.config.ts` aliases point at the CJS dist files. `registry.ts` is the only file here importing the SDK.

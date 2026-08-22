@@ -8,7 +8,7 @@
  * case below has to cast its way past the union on purpose.
  */
 import { describe, it, expect } from 'vitest';
-import { createTestRegistry, McpController, Tool, type McpDeclarativeAccess } from '@trek/nest-mcp';
+import { createTestRegistry, McpController, Tool, type McpDeclarativeAccess } from '../../../src/nest-mcp';
 import {
   MCP_ACCESS_GROUPS_MATCH_SCOPE_GROUPS,
   trekMcpAccessPolicy,

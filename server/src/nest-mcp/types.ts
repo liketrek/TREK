@@ -1,51 +1,61 @@
+import type { Scope, ScopeGroup } from '../mcp/scopes';
+
 import type { ZodRawShape } from 'zod';
 
 /**
- * The per-session context handed to `McpRegistry.attach(server, ctx)` and
- * forwarded to every handler (last argument) and access predicate/policy.
- *
- * The package defines NO context fields of its own — the host application
- * augments this interface once:
- *
- *   declare module '@trek/nest-mcp' {
- *     interface McpContext { userId: number; scopes: string[] | null }
- *   }
+ * The mode half of every scope: 'read' | 'write' | 'delete' | 'share'.
+ * Mirrors `ScopeMode` in `src/mcp/nest-mcp-policy.ts`, which stays the
+ * exported one (its only consumer is that file's own lockstep assert).
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface McpContext {}
+type ScopeMode = Scope extends `${string}:${infer M}` ? M : never;
 
 /**
- * Host-augmentable registry of valid `access.group` values — the `McpContext`
- * augmentation trick applied to groups. Augment once:
+ * The per-session context handed to `McpRegistry.attach(server, ctx)` and
+ * forwarded to every handler (last argument) and access predicate/policy —
+ * mirrors what registerTools() receives per session.
  *
- *   declare module '@trek/nest-mcp' {
- *     interface McpAccessGroupRegistry extends Record<MyGroupUnion, true> {}
- *   }
- *
- * Unaugmented, `McpAccessGroup` stays `string` — the package attaches no
- * semantics to groups, same contract as `McpContext`.
+ * Historically this was an empty interface augmented by the host (nest-mcp
+ * was a separate extraction-clean workspace); since the fold into the server
+ * the TREK shape lives here directly. The type-only `../mcp/scopes` import
+ * above is the one deliberate coupling to the rest of the server.
  */
+export interface McpContext {
+  userId: number;
+  scopes: string[] | null;
+  isStaticToken: boolean;
+  /**
+   * Fire-once static-token deprecation notice closure (built per session in
+   * src/mcp/index.ts and threaded through registerTools → registry.attach).
+   * Optional so direct createTestRegistry ctxs without it keep working —
+   * consumers (list_trips / get_trip_summary) treat absence as "no notice".
+   */
+  getDeprecationNotice?: () => string | null;
+}
+
+/**
+ * Registry of valid `access.group` values, keyed by the scope-derived union
+ * so a typo'd group is a compile error in `.mcp.ts` files. The semantics of
+ * a group come from the access policy in `src/mcp/nest-mcp-policy.ts`, not
+ * from here.
+ */
+// The registry pattern requires an empty single-extends interface — the
+// keys ARE the contract, so the lint's "no members" finding is a false
+// positive.
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface McpAccessGroupRegistry {}
+export interface McpAccessGroupRegistry extends Record<ScopeGroup, true> {}
 
 export type McpAccessGroup = keyof McpAccessGroupRegistry extends never
   ? string
   : keyof McpAccessGroupRegistry & string;
 
 /**
- * Host augmentation point for the access *mode*, mirroring
- * `McpAccessGroupRegistry`:
- *
- *   declare module '@trek/nest-mcp' {
- *     interface McpAccessModeRegistry extends Record<MyModeUnion, true> {}
- *   }
- *
- * Unaugmented, `McpAccessMode` falls back to `'read' | 'write'` — the two
- * modes every host had before this was augmentable, so leaving the registry
- * empty keeps the previous contract exactly.
+ * Same registry pattern for the access *mode* half. Without the full mode
+ * union `mode` would be 'read' | 'write' only, and journey's share tools
+ * could only be expressed as opaque predicates, which the boot gate in
+ * `src/mcp/nest-mcp-policy.ts` cannot check.
  */
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface McpAccessModeRegistry {}
+export interface McpAccessModeRegistry extends Record<ScopeMode, true> {}
 
 export type McpAccessMode = keyof McpAccessModeRegistry extends never
   ? 'read' | 'write'

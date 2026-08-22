@@ -1,6 +1,6 @@
-import { errorResult } from '@trek/nest-mcp';
+import { errorResult } from '../../nest-mcp';
 
-// Generic MCP result helpers and annotation presets live in @trek/nest-mcp
+// Generic MCP result helpers and annotation presets live in src/nest-mcp
 // (single source for the decorator-based domains). Re-exported so the
 // @McpController files keep importing from here. Everything below is PURE —
 // the impure guards (hasTripPermission/isAdminUser/safeBroadcast) moved onto
@@ -15,7 +15,7 @@ export {
   TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
   TOOL_ANNOTATIONS_READONLY,
   TOOL_ANNOTATIONS_WRITE,
-} from '@trek/nest-mcp';
+} from '../../nest-mcp';
 
 export const MAX_MCP_TRIP_DAYS = 90;
 

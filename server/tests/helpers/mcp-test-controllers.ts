@@ -1,4 +1,4 @@
-import { createTestRegistry, type McpRegistry } from '@trek/nest-mcp';
+import { createTestRegistry, type McpRegistry } from '../../src/nest-mcp';
 import { db } from '../../src/db/database';
 import { trekMcpAccessPolicy, trekMcpValidateAccess } from '../../src/mcp/nest-mcp-policy';
 import { AssignmentsMcp } from '../../src/nest/assignments/assignments.mcp';
