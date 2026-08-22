@@ -3,7 +3,7 @@ import { Readable } from 'node:stream';
 import type { StorageBackend } from '@trek/shared';
 import { LocalDriver } from './drivers/local.driver';
 import { S3Driver } from './drivers/s3.driver';
-import { StorageBackendError, type StorageDriver } from './storage.types';
+import { StorageBackendError, describeError, type StorageDriver } from './storage.types';
 
 /**
  * Test-connection probes (spec: POST /api/admin/storage/test). Drivers are
@@ -20,25 +20,6 @@ export interface ProbeTargetResult {
   name: string;
   ok: boolean;
   error?: string;
-}
-
-/**
- * Driver wrappers (S3Driver.wrap) keep the underlying failure as `cause` and
- * out of `message` — right for logs, useless for the admin "Test" toast, where
- * "put failed" must say WHY (ECONNREFUSED vs NoSuchBucket). Flatten the chain
- * here, probe-only.
- */
-function describeError(err: unknown): string {
-  const parts: string[] = [];
-  const seen = new Set<unknown>();
-  for (let cur: unknown = err; cur != null && !seen.has(cur); ) {
-    seen.add(cur);
-    const message = cur instanceof Error ? cur.message : String(cur);
-    const code = (cur as { code?: unknown }).code;
-    parts.push(typeof code === 'string' && code && !message.includes(code) ? `${message} (${code})` : message);
-    cur = cur instanceof Error ? (cur as { cause?: unknown }).cause : undefined;
-  }
-  return parts.filter(Boolean).join(': ');
 }
 
 /** put → stat → delete of a unique probe key; any throw becomes the target's error. */

@@ -108,6 +108,20 @@ describe('MirrorDriver specifics', () => {
     expect(fx.failures[0].error).toContain('replica disk full');
   });
 
+  it("reports a replica failure with the wrapped cause chain, not just the wrapper's message", async () => {
+    const fx = track(makeMirror());
+    const raw = Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:9000'), { code: 'ECONNREFUSED' });
+    vi.spyOn(fx.replica, 'put').mockRejectedValueOnce(
+      new StorageBackendError("put failed for 'backup-3.zip' on 's3'", raw),
+    );
+
+    await expect(fx.mirror.put('backup-3.zip', Readable.from('payload'))).resolves.toBeUndefined();
+
+    expect(fx.failures).toHaveLength(1);
+    expect(fx.failures[0].error).toContain("put failed for 'backup-3.zip' on 's3'");
+    expect(fx.failures[0].error).toContain('ECONNREFUSED');
+  });
+
   it('rejects put and never touches replicas when the primary write fails', async () => {
     const fx = track(makeMirror());
     vi.spyOn(fx.primary, 'put').mockRejectedValueOnce(new StorageBackendError('primary gone'));

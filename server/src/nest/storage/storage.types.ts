@@ -111,6 +111,26 @@ export interface StorageDriver {
 }
 
 /**
+ * Driver wrappers (S3Driver.wrap) keep the underlying failure as `cause` and
+ * out of `message` — right for logs, useless anywhere the message is shown to
+ * an admin (probe results, replica-failure notifications), where "put failed"
+ * must say WHY (ECONNREFUSED vs NoSuchBucket). Flattens the cause chain,
+ * appending an S3-style `code` when it isn't already in that link's message.
+ */
+export function describeError(err: unknown): string {
+  const parts: string[] = [];
+  const seen = new Set<unknown>();
+  for (let cur: unknown = err; cur != null && !seen.has(cur); ) {
+    seen.add(cur);
+    const message = cur instanceof Error ? cur.message : String(cur);
+    const code = (cur as { code?: unknown }).code;
+    parts.push(typeof code === 'string' && code && !message.includes(code) ? `${message} (${code})` : message);
+    cur = cur instanceof Error ? (cur as { cause?: unknown }).cause : undefined;
+  }
+  return parts.filter(Boolean).join(': ');
+}
+
+/**
  * Typed error set so route handlers map storage failures to their existing
  * bespoke envelopes without string-matching driver internals.
  */

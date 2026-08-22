@@ -6,6 +6,7 @@ import type { Readable } from 'node:stream';
 import { assertValidKey, assertValidPrefix } from '../storage-keys';
 import { contentTypeFor } from '../content-type';
 import {
+  describeError,
   isLocalTempFile,
   StorageInvalidKeyError,
   StorageNotFoundError,
@@ -374,7 +375,7 @@ export class MirrorDriver implements StorageDriver {
       backend,
       key,
       op,
-      error: err instanceof Error ? err.message : String(err),
+      error: describeError(err),
       at: Date.now(),
     });
   }
