@@ -121,6 +121,33 @@ export function adoptedMirrorFor(draft: StorageConfig, primaryName: string): Mir
   return draft.backends.filter(isMirror).find((m) => m.options.primary === primaryName)
 }
 
+/**
+ * Client-side mirror expansion for the test probe (audit fix — the server's
+ * `testBackend` resolves a mirror candidate's primary/replicas against its
+ * OWN live snapshot by name, so probing a mirrored row with unsaved draft
+ * edits to those targets would silently test the SAVED options instead of
+ * what's on the form). Draft overrides win per name, falling back to state
+ * (built-in/env); a name that resolves to neither is dropped — that
+ * primary/replica no longer exists, and the row already renders as
+ * degenerate in that case.
+ */
+export function mirrorProbeTargets(
+  draft: StorageConfig,
+  state: StorageAdminState,
+  mirror: StorageBackend,
+): StorageBackend[] {
+  if (mirror.type !== 'mirror') return [mirror]
+  const names = [mirror.options.primary, ...mirror.options.replicas]
+  return names
+    .map((name): StorageBackend | null => {
+      const draftMatch = draft.backends.find((b) => b.name === name)
+      if (draftMatch) return draftMatch
+      const stateMatch = state.backends.find((b) => b.name === name)
+      return stateMatch ? asWireBackend(stateMatch) : null
+    })
+    .filter((b): b is StorageBackend => b !== null)
+}
+
 export function foldBackends(
   state: StorageAdminState,
   draft: StorageConfig,

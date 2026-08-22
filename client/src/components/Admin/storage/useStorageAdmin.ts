@@ -29,12 +29,21 @@ export interface StorageAdmin {
   /** PUTs `overrideDraft ?? draft` — an override lets a caller strip categories from the wire body without staging them (and marking dirty) via setDraft. */
   save: (overrideDraft?: StorageConfig) => Promise<boolean>
   test: (backend: StorageBackend) => Promise<void>
+  /**
+   * Probe each target individually (client-expanded mirror primary +
+   * replicas — see `mirrorProbeTargets`) and merge the results into one
+   * `StorageTestResponse` under `key` (the row's mirror wire name). Never
+   * sends the mirror stub itself — each call probes a concrete backend.
+   */
+  testMirror: (key: string, targets: StorageBackend[]) => Promise<void>
   /** null on success; the verbatim server error otherwise. */
   startBackfill: (mirrorName: string) => Promise<string | null>
   cancelBackfill: (mirrorName: string) => Promise<string | null>
   startMigration: (category: string, to: string) => Promise<string | null>
   cancelMigration: (category: string) => Promise<string | null>
   refreshStats: () => Promise<string | null>
+  /** Re-GETs admin state (poll-safe — see the implementation comment below). Exposed for the panel's failed-queue recovery path. */
+  refreshState: () => Promise<void>
 }
 
 /**
@@ -181,6 +190,24 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
     [genericError],
   )
 
+  const testMirror = useCallback(
+    async (key: string, targets: StorageBackend[]): Promise<void> => {
+      setTestResults((prev) => ({ ...prev, [key]: 'running' }))
+      const settled = await Promise.all(
+        targets.map(async (target) => {
+          try {
+            const result = await adminApi.testStorageBackend(target)
+            return result.targets[0] ?? { name: target.name, ok: result.ok }
+          } catch (err: unknown) {
+            return { name: target.name, ok: false, error: getApiErrorMessage(err, genericError) }
+          }
+        }),
+      )
+      setTestResults((prev) => ({ ...prev, [key]: { ok: settled.every((r) => r.ok), targets: settled } }))
+    },
+    [genericError],
+  )
+
   // While any backfill or category migration is running, poll GET state so
   // progress/counts advance without the operator refreshing the page.
   useEffect(() => {
@@ -276,10 +303,12 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
     setDraft,
     save,
     test,
+    testMirror,
     startBackfill,
     cancelBackfill,
     startMigration,
     cancelMigration,
     refreshStats,
+    refreshState,
   }
 }

@@ -22,6 +22,7 @@ import {
   computeMigrationCandidates,
   effectiveCategoryMap,
   foldBackends,
+  mirrorProbeTargets,
   primaryNameOf,
   removeBackend,
   removeBackendAndMirrors,
@@ -73,7 +74,11 @@ export default function AdminStoragePanel(): React.ReactElement {
   } | null>(null)
   const [confirmRemove, setConfirmRemove] = useState<{ name: string; degenerate: boolean } | null>(null)
   const [syncPrompt, setSyncPrompt] = useState<string | null>(null)
-  const [migratePrompt, setMigratePrompt] = useState<MigrationCandidate[] | null>(null)
+  // Open/closed only — never a snapshot of candidates. Storing the candidate
+  // array here would go stale the moment the operator edits a category while
+  // the dialog is open; the render below and moveAndSave both recompute
+  // computeMigrationCandidates(draft, state) fresh instead.
+  const [migratePromptOpen, setMigratePromptOpen] = useState(false)
   const [migrationQueue, setMigrationQueue] = useState<MigrationCandidate[]>([])
   // Set by `save` right before it calls admin.save(): the pre-save mirror
   // target count per row name. Consumed (and cleared) by the effect below the
@@ -108,6 +113,15 @@ export default function AdminStoragePanel(): React.ReactElement {
   // Also waits out a running BACKFILL — the server's one-storage-job-at-a-time
   // rule spans backfills and migrations alike, so starting while one runs
   // would 409, and the queued candidate would be lost (no retry).
+  //
+  // A failed startMigration POST would otherwise strand `rest`: it was
+  // already dequeued into local state before the POST, so on failure nothing
+  // ever changes `migrationQueue` or `admin.state` again — the effect never
+  // re-fires and the remaining candidates sit invisibly forever, silently
+  // never migrated. On failure the whole remaining queue is explicitly
+  // cleared (never retried — the operator re-triggers via Save), named in a
+  // toast, and admin.state is refreshed so the panel reflects whatever the
+  // failed attempt's category ended up as server-side.
   useEffect(() => {
     if (migrationQueue.length === 0 || !admin.state) return
     if (migrationStartInFlight.current) return
@@ -118,7 +132,14 @@ export default function AdminStoragePanel(): React.ReactElement {
     setMigrationQueue(rest)
     void admin.startMigration(next!.category, next!.toWire).then((error) => {
       migrationStartInFlight.current = false
-      if (error) toast.error(error)
+      if (error) {
+        toast.error(error)
+        if (rest.length > 0) {
+          toast.error(t('storage.migrate.queueDropped', { categories: categoryNames(t, rest.map((c) => c.category)) }))
+          setMigrationQueue([])
+        }
+        void admin.refreshState().catch(() => {})
+      }
     })
   }, [migrationQueue, admin.state])
 
@@ -133,6 +154,13 @@ export default function AdminStoragePanel(): React.ReactElement {
     )
   }
   const { state, draft } = admin
+
+  // Pure/cheap — recomputed every render so the migrate-prompt dialog (below)
+  // never shows a stale candidate set while it's open (fix: migration prompt
+  // staleness). moveAndSave recomputes independently at confirm time rather
+  // than reading this render-scoped value, since the click handler and the
+  // render that produced it are not guaranteed to be the same one.
+  const migrationCandidates = computeMigrationCandidates(draft, state)
 
   // Duplicate pre-check needs EVERY wire name (hidden mirror names included);
   // mirror-target candidates are the visible primaries only.
@@ -213,7 +241,14 @@ export default function AdminStoragePanel(): React.ReactElement {
     else pendingPromptCheck.current = null
   }
 
-  const moveAndSave = async (candidates: MigrationCandidate[]) => {
+  // Recomputes the candidate set at confirm time — never trusts whatever was
+  // true when the dialog opened. The operator can edit categories (or a
+  // background poll can land a fresher usage scan) while the dialog is on
+  // screen; the recomputed set is what actually drives both stripCategories
+  // (what gets reverted from the PUT body) and the queue (what gets POSTed),
+  // so the two can never diverge from what the dialog most recently showed.
+  const moveAndSave = async () => {
+    const candidates = computeMigrationCandidates(draft, state)
     pendingPromptCheck.current = snapshotMirrorTargets()
     const ok = await admin.save(stripCategories(draft, state, candidates.map((c) => c.category)))
     if (ok) {
@@ -222,18 +257,17 @@ export default function AdminStoragePanel(): React.ReactElement {
     } else {
       pendingPromptCheck.current = null
     }
-    setMigratePrompt(null)
+    setMigratePromptOpen(false)
   }
 
   const routeOnlySave = async () => {
-    setMigratePrompt(null)
+    setMigratePromptOpen(false)
     await doPlainSave()
   }
 
   const save = async () => {
-    const candidates = computeMigrationCandidates(draft, state)
-    if (candidates.length > 0) {
-      setMigratePrompt(candidates)
+    if (migrationCandidates.length > 0) {
+      setMigratePromptOpen(true)
       return
     }
     await doPlainSave()
@@ -329,7 +363,15 @@ export default function AdminStoragePanel(): React.ReactElement {
                     {t(`storage.source.${row.source}`)}
                   </span>
                   <span className="flex-1" />
-                  <button className="text-xs underline text-content-secondary" style={LINK_BUTTON_STYLE} onClick={() => admin.test(testCandidate)}>
+                  <button
+                    className="text-xs underline text-content-secondary"
+                    style={LINK_BUTTON_STYLE}
+                    onClick={() =>
+                      row.mirrorName
+                        ? admin.testMirror(resultKey, mirrorProbeTargets(draft, state, testCandidate))
+                        : admin.test(testCandidate)
+                    }
+                  >
                     {t('storage.actions.test')}
                   </button>
                   {row.source !== 'env' && (
@@ -398,29 +440,39 @@ export default function AdminStoragePanel(): React.ReactElement {
                           {t('storage.sync.cancel')}
                         </button>
                       </>
-                    ) : backfill?.status === 'done' ? (
-                      <p className="text-xs text-content-faint">
-                        {t('storage.sync.done', {
-                          copied: String(backfill.copied),
-                          deleted: String(backfill.deleted),
-                          failed: String(backfill.failed),
-                        })}
-                      </p>
-                    ) : backfill?.status === 'cancelled' ? (
-                      <p className="text-xs text-content-faint">{t('storage.sync.cancelled')}</p>
-                    ) : backfill?.status === 'error' ? (
-                      <p className="text-xs text-content-faint">
-                        {t('storage.sync.error', { error: backfill.error ?? '' })}
-                      </p>
-                    ) : syncPrompt !== row.name ? (
-                      <button
-                        className="text-xs underline text-content-secondary"
-                        style={LINK_BUTTON_STYLE}
-                        onClick={() => handleStartBackfill(row)}
-                      >
-                        {t('storage.sync.now')}
-                      </button>
-                    ) : null}
+                    ) : (
+                      <>
+                        {/* Terminal statuses render ALONGSIDE the button (not instead-of) —
+                            a completed/cancelled/errored backfill must stay re-runnable
+                            without a page reload. */}
+                        {backfill?.status === 'done' && (
+                          <p className="text-xs text-content-faint">
+                            {t('storage.sync.done', {
+                              copied: String(backfill.copied),
+                              deleted: String(backfill.deleted),
+                              failed: String(backfill.failed),
+                            })}
+                          </p>
+                        )}
+                        {backfill?.status === 'cancelled' && (
+                          <p className="text-xs text-content-faint">{t('storage.sync.cancelled')}</p>
+                        )}
+                        {backfill?.status === 'error' && (
+                          <p className="text-xs text-content-faint">
+                            {t('storage.sync.error', { error: backfill.error ?? '' })}
+                          </p>
+                        )}
+                        {syncPrompt !== row.name && (
+                          <button
+                            className="text-xs underline text-content-secondary"
+                            style={LINK_BUTTON_STYLE}
+                            onClick={() => handleStartBackfill(row)}
+                          >
+                            {t('storage.sync.now')}
+                          </button>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
                 {syncPrompt === row.name && (
@@ -636,10 +688,15 @@ export default function AdminStoragePanel(): React.ReactElement {
         </button>
         {admin.dirty && <span className="text-xs text-content-faint">{t('storage.unsaved')}</span>}
       </div>
-      {migratePrompt && (
+      {migrationQueue.length > 0 && (
+        <p className="text-xs mt-2 text-content-faint">
+          {t('storage.migrate.queued', { categories: categoryNames(t, migrationQueue.map((c) => c.category)) })}
+        </p>
+      )}
+      {migratePromptOpen && (
         <div className="rounded-lg border px-3 py-2 mt-2 border-edge bg-surface-secondary" role="alertdialog">
           <p className="text-sm text-content">{t('storage.migrate.promptTitle')}</p>
-          {migratePrompt.map((c) => (
+          {migrationCandidates.map((c) => (
             <p key={c.category} className="text-xs mt-1 text-content-secondary">
               {c.objects === null
                 ? t('storage.migrate.promptLineUnknown', {
@@ -660,7 +717,7 @@ export default function AdminStoragePanel(): React.ReactElement {
             <button
               className="text-xs underline text-content-secondary"
               style={LINK_BUTTON_STYLE}
-              onClick={() => void moveAndSave(migratePrompt)}
+              onClick={() => void moveAndSave()}
             >
               {t('storage.migrate.move')}
             </button>
@@ -670,6 +727,13 @@ export default function AdminStoragePanel(): React.ReactElement {
               onClick={() => void routeOnlySave()}
             >
               {t('storage.migrate.routeOnly')}
+            </button>
+            <button
+              className="text-xs underline text-content-secondary"
+              style={LINK_BUTTON_STYLE}
+              onClick={() => setMigratePromptOpen(false)}
+            >
+              {t('storage.migrate.promptCancel')}
             </button>
           </div>
         </div>

@@ -135,5 +135,8 @@ const storage: TranslationStrings = {
   'storage.migrate.cancelled': 'Movimiento cancelado — no se cambió nada',
   'storage.migrate.reclaimable': '{objects} objetos ({size}) permanecen en {from} — recupéralos manualmente',
   'storage.migrate.cancel': 'Cancelar movimiento',
+  'storage.migrate.promptCancel': 'Cancelar',
+  'storage.migrate.queued': 'En cola: {categories}',
+  'storage.migrate.queueDropped': 'No se pudo iniciar la siguiente migración — se vació la cola restante: {categories}',
 };
 export default storage;

@@ -134,5 +134,8 @@ const storage: TranslationStrings = {
   'storage.migrate.cancelled': 'Verplaatsen geannuleerd — er is niets omgezet',
   'storage.migrate.reclaimable': '{objects} objecten ({size}) blijven op {from} — handmatig terugwinnen',
   'storage.migrate.cancel': 'Verplaatsen annuleren',
+  'storage.migrate.promptCancel': 'Annuleren',
+  'storage.migrate.queued': 'In wachtrij: {categories}',
+  'storage.migrate.queueDropped': 'Kon de volgende verplaatsing niet starten — de resterende wachtrij is gewist: {categories}',
 };
 export default storage;

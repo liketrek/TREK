@@ -128,5 +128,8 @@ const storage: TranslationStrings = {
   'storage.migrate.cancelled': 'تم إلغاء النقل — لم يتم تبديل أي شيء',
   'storage.migrate.reclaimable': '{objects} كائن ({size}) لا تزال على {from} — استرجعها يدويًا',
   'storage.migrate.cancel': 'إلغاء النقل',
+  'storage.migrate.promptCancel': 'إلغاء',
+  'storage.migrate.queued': 'في قائمة الانتظار: {categories}',
+  'storage.migrate.queueDropped': 'تعذّر بدء عملية النقل التالية — تم مسح قائمة الانتظار المتبقية: {categories}',
 };
 export default storage;

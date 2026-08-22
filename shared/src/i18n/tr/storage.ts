@@ -133,5 +133,8 @@ const storage: TranslationStrings = {
   'storage.migrate.cancelled': 'Taşıma iptal edildi — hiçbir şey değiştirilmedi',
   'storage.migrate.reclaimable': '{objects} nesne ({size}) {from} üzerinde kalıyor — manuel olarak geri kazanın',
   'storage.migrate.cancel': 'Taşımayı iptal et',
+  'storage.migrate.promptCancel': 'İptal',
+  'storage.migrate.queued': 'Sırada: {categories}',
+  'storage.migrate.queueDropped': 'Sonraki taşıma başlatılamadı — kalan kuyruk temizlendi: {categories}',
 };
 export default storage;

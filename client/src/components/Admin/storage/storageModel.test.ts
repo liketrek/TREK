@@ -11,6 +11,7 @@ import {
   categoriesPointingAt,
   computeMigrationCandidates,
   foldBackends,
+  mirrorProbeTargets,
   mirrorsReferencing,
   primaryNameOf,
   removeBackend,
@@ -337,5 +338,42 @@ describe('computeMigrationCandidates', () => {
     const strippedCovers = stripCategories(draft, STATE, ['covers']);
     expect(strippedCovers.categories.covers).toBe('off-box'); // settings-sourced saved value restored explicitly
     expect(strippedCovers.categories.files).toBe('off-box'); // untouched — not in the strip list
+  });
+});
+
+describe('mirrorProbeTargets', () => {
+  it('FE-ADMIN-STORM-020: a non-mirror candidate passes through unchanged', () => {
+    const local: StorageBackend = { name: 'uploads-local', type: 'local', options: { root: '/data/uploads' } };
+    expect(mirrorProbeTargets(settingsDocumentOf(STATE), STATE, local)).toEqual([local]);
+  });
+
+  it('FE-ADMIN-STORM-021: expands primary + replicas — draft override wins per name, falling back to state for names the draft never touched', () => {
+    const mirror: StorageBackend = {
+      name: 'mirror', type: 'mirror',
+      options: { primary: 'uploads-local', replicas: ['off-box'] },
+    };
+    // The draft carries an EDITED off-box (unsaved endpoint change) but never
+    // touches uploads-local (a built-in, never draft-owned).
+    const editedOffBox = {
+      name: 'off-box', type: 's3',
+      options: { ...(STATE.backends[2]!.options as Record<string, unknown>), endpoint: 'http://edited:9000' },
+    } as StorageBackend;
+    const draft: StorageConfig = { backends: [editedOffBox, mirror], categories: {} };
+
+    const targets = mirrorProbeTargets(draft, STATE, mirror);
+    expect(targets.map((t) => t.name)).toEqual(['uploads-local', 'off-box']);
+    // Primary: no draft entry — resolved from state (the live built-in).
+    expect(targets[0]).toEqual({ name: 'uploads-local', type: 'local', options: { root: '/data/uploads' } });
+    // Replica: draft override wins — the unsaved edit, not the saved options.
+    expect((targets[1]!.options as Record<string, unknown>).endpoint).toBe('http://edited:9000');
+  });
+
+  it('FE-ADMIN-STORM-022: a name resolving to neither draft nor state is dropped, not thrown', () => {
+    const mirror: StorageBackend = {
+      name: 'mirror', type: 'mirror',
+      options: { primary: 'uploads-local', replicas: ['ghost'] },
+    };
+    const targets = mirrorProbeTargets(settingsDocumentOf(STATE), STATE, mirror);
+    expect(targets.map((t) => t.name)).toEqual(['uploads-local']);
   });
 });

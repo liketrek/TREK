@@ -127,5 +127,8 @@ const storage: TranslationStrings = {
   'storage.migrate.cancelled': '이동이 취소되었습니다 — 아무것도 전환되지 않았습니다',
   'storage.migrate.reclaimable': '{objects}개 객체 ({size})가 {from}에 남아 있습니다 — 수동으로 회수하세요',
   'storage.migrate.cancel': '이동 취소',
+  'storage.migrate.promptCancel': '취소',
+  'storage.migrate.queued': '대기 중: {categories}',
+  'storage.migrate.queueDropped': '다음 이동을 시작할 수 없습니다 — 남은 대기열이 지워졌습니다: {categories}',
 };
 export default storage;

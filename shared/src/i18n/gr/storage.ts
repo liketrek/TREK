@@ -137,5 +137,8 @@ const storage: TranslationStrings = {
   'storage.migrate.cancelled': 'Η μετακίνηση ακυρώθηκε — τίποτα δεν άλλαξε',
   'storage.migrate.reclaimable': '{objects} αντικείμενα ({size}) παραμένουν στο {from} — ανάκτησέ τα χειροκίνητα',
   'storage.migrate.cancel': 'Ακύρωση μετακίνησης',
+  'storage.migrate.promptCancel': 'Ακύρωση',
+  'storage.migrate.queued': 'Σε αναμονή: {categories}',
+  'storage.migrate.queueDropped': 'Δεν ήταν δυνατή η έναρξη της επόμενης μετακίνησης — η υπόλοιπη ουρά διαγράφηκε: {categories}',
 };
 export default storage;

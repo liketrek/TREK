@@ -130,5 +130,8 @@ const storage: TranslationStrings = {
   'storage.migrate.cancelled': '移動をキャンセルしました — 何も切り替えられていません',
   'storage.migrate.reclaimable': '{objects}件のオブジェクト（{size}）が{from}に残っています — 手動で回収してください',
   'storage.migrate.cancel': '移動をキャンセル',
+  'storage.migrate.promptCancel': 'キャンセル',
+  'storage.migrate.queued': 'キュー待ち: {categories}',
+  'storage.migrate.queueDropped': '次の移動を開始できませんでした — 残りのキューはクリアされました: {categories}',
 };
 export default storage;

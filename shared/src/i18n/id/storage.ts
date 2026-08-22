@@ -132,5 +132,8 @@ const storage: TranslationStrings = {
   'storage.migrate.cancelled': 'Pemindahan dibatalkan — tidak ada yang diubah',
   'storage.migrate.reclaimable': '{objects} objek ({size}) masih tersisa di {from} — ambil kembali secara manual',
   'storage.migrate.cancel': 'Batalkan pemindahan',
+  'storage.migrate.promptCancel': 'Batal',
+  'storage.migrate.queued': 'Dalam antrean: {categories}',
+  'storage.migrate.queueDropped': 'Tidak dapat memulai pemindahan berikutnya — antrean yang tersisa telah dihapus: {categories}',
 };
 export default storage;

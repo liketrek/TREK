@@ -134,5 +134,8 @@ const storage: TranslationStrings = {
   'storage.migrate.cancelled': "Trasllat cancel·lat — no s'ha canviat res",
   'storage.migrate.reclaimable': "{objects} objectes ({size}) romanen a {from} — recupera'ls manualment",
   'storage.migrate.cancel': 'Cancel·la el trasllat',
+  'storage.migrate.promptCancel': 'Cancel·la',
+  'storage.migrate.queued': 'En cua: {categories}',
+  'storage.migrate.queueDropped': "No s'ha pogut iniciar el trasllat següent — s'ha buidat la cua restant: {categories}",
 };
 export default storage;

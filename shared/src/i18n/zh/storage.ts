@@ -120,5 +120,8 @@ const storage: TranslationStrings = {
   'storage.migrate.cancelled': '移动已取消 — 未切换任何内容',
   'storage.migrate.reclaimable': '{objects} 个对象（{size}）仍保留在 {from} 上 — 请手动回收',
   'storage.migrate.cancel': '取消移动',
+  'storage.migrate.promptCancel': '取消',
+  'storage.migrate.queued': '排队中：{categories}',
+  'storage.migrate.queueDropped': '无法启动下一个迁移 — 剩余队列已清空：{categories}',
 };
 export default storage;

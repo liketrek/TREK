@@ -175,25 +175,46 @@ describe('AdminStoragePanel', () => {
     expect((putBody as StorageConfig).backends).toEqual([]);
   });
 
-  it('FE-ADMIN-STOR-007: Test on a mirrored primary probes the composed mirror per target', async () => {
-    let postBody: unknown;
+  it('FE-ADMIN-STOR-007: Test on a mirrored primary probes the draft primary and each replica individually (never the mirror stub), merging into one result', async () => {
+    const posted: Array<{ name: string; type: string }> = [];
     await renderPanel(mirroredState());
     server.use(
       http.post('/api/admin/storage/test', async ({ request }) => {
-        postBody = await request.json();
+        const body = (await request.json()) as { backend: { name: string; type: string } };
+        posted.push(body.backend);
+        const ok = body.backend.name === 'backups-local';
         return HttpResponse.json({
-          ok: false,
-          targets: [
-            { name: 'backups-local', ok: true },
-            { name: 'off-box', ok: false, error: 'connect ECONNREFUSED' },
-          ],
+          ok,
+          targets: [{ name: body.backend.name, ok, ...(ok ? {} : { error: 'connect ECONNREFUSED' }) }],
         });
       }),
     );
     fireEvent.click(within(backendRow('backups-local')).getByRole('button', { name: 'Test' }));
     await within(backendRow('backups-local')).findByText('Test failed');
     expect(within(backendRow('backups-local')).getByText(/connect ECONNREFUSED/)).toBeInTheDocument();
-    expect((postBody as { backend: { name: string; type: string } }).backend).toMatchObject({ name: 'mirror', type: 'mirror' });
+    // Two separate probes, each a concrete backend — never the mirror object itself.
+    expect(posted.map((b) => b.name).sort()).toEqual(['backups-local', 'off-box']);
+    expect(posted.every((b) => b.type !== 'mirror')).toBe(true);
+  });
+
+  it('FE-ADMIN-STOR-042: mirrored-row Test uses the DRAFT options of a target, not the saved ones (client-side mirror expansion)', async () => {
+    const posted: Array<{ name: string; options: Record<string, unknown> }> = [];
+    await renderPanel(mirroredState());
+    server.use(
+      http.post('/api/admin/storage/test', async ({ request }) => {
+        const body = (await request.json()) as { backend: { name: string; options: Record<string, unknown> } };
+        posted.push(body.backend);
+        return HttpResponse.json({ ok: true, targets: [{ name: body.backend.name, ok: true }] });
+      }),
+    );
+    // Edit the replica (off-box) in the draft without saving — an unsaved endpoint change.
+    fireEvent.click(within(backendRow('off-box')).getByRole('button', { name: 'Edit' }));
+    fireEvent.change(screen.getByLabelText(/Endpoint URL/), { target: { value: 'http://edited.example:9000' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    fireEvent.click(within(backendRow('backups-local')).getByRole('button', { name: 'Test' }));
+    await within(backendRow('backups-local')).findByText('Connection OK');
+    const offBoxProbe = posted.find((b) => b.name === 'off-box');
+    expect(offBoxProbe?.options.endpoint).toBe('http://edited.example:9000');
   });
 
   it('FE-ADMIN-STOR-008: the health strip lists replica failures with a relative age; all-clear otherwise', async () => {
@@ -916,5 +937,164 @@ describe('AdminStoragePanel', () => {
   it('FE-ADMIN-STOR-041: no configError renders no banner', async () => {
     await renderPanel(baseState({ configError: null }));
     expect(screen.queryByText(/failed to load/)).not.toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-STOR-043: the migrate-prompt dialog recomputes on render — reassigning another category while it is open adds it, and the confirm strips/queues BOTH', async () => {
+    let putBody: unknown;
+    const migrationBodies: unknown[] = [];
+    const usage = {
+      computedAt: Date.now(),
+      categories: { files: { objects: 3, bytes: 3072 } },
+      legacyPhotos: { objects: 0, bytes: 0 },
+    };
+    await renderPanel({ ...baseState(), usage } as StorageAdminState);
+    server.use(
+      http.put('/api/admin/storage', async ({ request }) => {
+        putBody = await request.json();
+        const saved = baseState();
+        saved.categories.files = { backend: 'off-box', source: 'settings' };
+        saved.categories.journey = { backend: 'off-box', source: 'settings' };
+        return HttpResponse.json(saved);
+      }),
+      http.post('/api/admin/storage/migrations', async ({ request }) => {
+        migrationBodies.push(await request.json());
+        return HttpResponse.json({ started: true });
+      }),
+    );
+    fireEvent.click(within(categoryRow('files')).getByText('uploads-local (default)'));
+    fireEvent.click(screen.getAllByText('off-box')[screen.getAllByText('off-box').length - 1]!);
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    const dialog = await screen.findByRole('alertdialog');
+    expect(within(dialog).getByText(/Trip documents: 3 objects/)).toBeInTheDocument();
+    expect(within(dialog).queryByText(/Journey photos/)).not.toBeInTheDocument();
+
+    // Reassign a SECOND category while the dialog is still open — no usage
+    // scan for it, so it prompts with the unknown-size line.
+    fireEvent.click(within(categoryRow('journey')).getByText('uploads-local (default)'));
+    fireEvent.click(screen.getAllByText('off-box')[screen.getAllByText('off-box').length - 1]!);
+
+    // The dialog re-rendered with the fresh candidate set — never the stale
+    // one-category snapshot from when it opened.
+    expect(within(dialog).getByText(/Journey photos: unknown size/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Move existing objects' }));
+    await screen.findByText('Storage configuration saved');
+    // Both categories were stripped from the PUT body (moveAndSave's own
+    // recompute at confirm time), not just the one visible when Save was clicked.
+    expect((putBody as StorageConfig).categories.files).toBeUndefined();
+    expect((putBody as StorageConfig).categories.journey).toBeUndefined();
+    // ...and both were queued/POSTed as migrations.
+    await waitFor(() => expect(migrationBodies).toHaveLength(2));
+    expect(migrationBodies).toEqual(
+      expect.arrayContaining([
+        { category: 'files', to: 'off-box' },
+        { category: 'journey', to: 'off-box' },
+      ]),
+    );
+  });
+
+  it('FE-ADMIN-STOR-044: the migrate-prompt dialog has a Cancel button that dismisses it without saving or losing the draft edit', async () => {
+    let putCalled = false;
+    const usage = {
+      computedAt: Date.now(),
+      categories: { files: { objects: 3, bytes: 3072 } },
+      legacyPhotos: { objects: 0, bytes: 0 },
+    };
+    await renderPanel({ ...baseState(), usage } as StorageAdminState);
+    server.use(
+      http.put('/api/admin/storage', () => {
+        putCalled = true;
+        return HttpResponse.json(baseState());
+      }),
+    );
+    fireEvent.click(within(categoryRow('files')).getByText('uploads-local (default)'));
+    const choices = screen.getAllByText('off-box');
+    fireEvent.click(choices[choices.length - 1]!);
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    const dialog = await screen.findByRole('alertdialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(putCalled).toBe(false);
+    // The draft edit itself survives — only the dialog closed.
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-STOR-045: a failed migration start clears the remaining queue with a toast naming the dropped categories, refreshes state, and the queued line clears', async () => {
+    const usage = {
+      computedAt: Date.now(),
+      categories: {
+        files: { objects: 3, bytes: 3072 },
+        journey: { objects: 2, bytes: 2048 },
+      },
+      legacyPhotos: { objects: 0, bytes: 0 },
+    };
+    await renderPanel({ ...baseState(), usage } as StorageAdminState);
+    const savedState = baseState();
+    savedState.categories.files = { backend: 'off-box', source: 'settings' };
+    savedState.categories.journey = { backend: 'off-box', source: 'settings' };
+    let getCalls = 0;
+    let releasePost: (() => void) | undefined;
+    server.use(
+      http.put('/api/admin/storage', () => HttpResponse.json(savedState)),
+      http.post('/api/admin/storage/migrations', () => {
+        return new Promise<Response>((resolve) => {
+          releasePost = () => resolve(HttpResponse.json({ error: 'busy' }, { status: 409 }) as unknown as Response);
+        });
+      }),
+      http.get('/api/admin/storage', () => {
+        getCalls += 1;
+        return HttpResponse.json(savedState);
+      }),
+    );
+    fireEvent.click(within(categoryRow('files')).getByText('uploads-local (default)'));
+    fireEvent.click(screen.getAllByText('off-box')[screen.getAllByText('off-box').length - 1]!);
+    fireEvent.click(within(categoryRow('journey')).getByText('uploads-local (default)'));
+    fireEvent.click(screen.getAllByText('off-box')[screen.getAllByText('off-box').length - 1]!);
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await screen.findByRole('alertdialog');
+    fireEvent.click(screen.getByRole('button', { name: 'Move existing objects' }));
+    await screen.findByText('Storage configuration saved');
+
+    // The first candidate (files) is dequeued and its POST is in flight; the
+    // remaining queue (journey) renders as an explicit, visible line.
+    await waitFor(() => expect(releasePost).toBeDefined());
+    expect(screen.getByText('Queued: Journey photos')).toBeInTheDocument();
+
+    // The POST fails (409 busy) — the remaining queue is dropped, named in a
+    // toast, and never silently retried.
+    releasePost!();
+    await screen.findByText('Could not start the next migration — the remaining queue was cleared: Journey photos');
+    expect(screen.queryByText(/^Queued:/)).not.toBeInTheDocument();
+    await waitFor(() => expect(getCalls).toBeGreaterThanOrEqual(1));
+  });
+
+  it('FE-ADMIN-STOR-046: a done sync still renders Sync now alongside the done line — re-runnable without a reload', async () => {
+    const state = mirroredState();
+    (state as StorageAdminState).backfills = [
+      { backend: 'mirror', status: 'done', done: 5, total: 5, copied: 5, skipped: 0, failed: 0, deleted: 0, startedAt: 1, finishedAt: 2 },
+    ];
+    let started = false;
+    await renderPanel(state);
+    server.use(
+      http.post('/api/admin/storage/backends/mirror/backfill', () => {
+        started = true;
+        return HttpResponse.json({ started: true });
+      }),
+    );
+    const row = backendRow('backups-local');
+    expect(within(row).getByText(/Sync finished: 5 copied, 0 deleted, 0 failed/)).toBeInTheDocument();
+    fireEvent.click(within(row).getByRole('button', { name: 'Sync now' }));
+    await waitFor(() => expect(started).toBe(true));
+  });
+
+  it('FE-ADMIN-STOR-047: an errored sync also still renders Sync now alongside the error line', async () => {
+    const state = mirroredState();
+    (state as StorageAdminState).backfills = [
+      { backend: 'mirror', status: 'error', done: 2, total: 5, copied: 1, skipped: 0, failed: 1, deleted: 0, startedAt: 1, error: 'disk full' },
+    ];
+    await renderPanel(state);
+    const row = backendRow('backups-local');
+    expect(within(row).getByText(/Sync failed: disk full/)).toBeInTheDocument();
+    expect(within(row).getByRole('button', { name: 'Sync now' })).toBeInTheDocument();
   });
 });

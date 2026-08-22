@@ -128,5 +128,8 @@ const storage: TranslationStrings = {
   'storage.migrate.cancelled': 'Přesun zrušen — nic nebylo přepnuto',
   'storage.migrate.reclaimable': '{objects} objektů ({size}) zůstává na {from} — uvolněte ručně',
   'storage.migrate.cancel': 'Zrušit přesun',
+  'storage.migrate.promptCancel': 'Zrušit',
+  'storage.migrate.queued': 'Ve frontě: {categories}',
+  'storage.migrate.queueDropped': 'Nepodařilo se spustit další přesun — zbývající fronta byla vymazána: {categories}',
 };
 export default storage;

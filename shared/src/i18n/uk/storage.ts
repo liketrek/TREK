@@ -133,5 +133,8 @@ const storage: TranslationStrings = {
   'storage.migrate.cancelled': 'Перенесення скасовано — нічого не перемкнуто',
   'storage.migrate.reclaimable': "{objects} об'єктів ({size}) залишаються на {from} — звільніть вручну",
   'storage.migrate.cancel': 'Скасувати перенесення',
+  'storage.migrate.promptCancel': 'Скасувати',
+  'storage.migrate.queued': 'У черзі: {categories}',
+  'storage.migrate.queueDropped': 'Не вдалося розпочати наступне перенесення — залишок черги очищено: {categories}',
 };
 export default storage;

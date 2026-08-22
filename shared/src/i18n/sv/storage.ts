@@ -131,5 +131,8 @@ const storage: TranslationStrings = {
   'storage.migrate.cancelled': 'Flytt avbruten — inget byttes',
   'storage.migrate.reclaimable': '{objects} objekt ({size}) finns kvar på {from} — återvinn manuellt',
   'storage.migrate.cancel': 'Avbryt flytt',
+  'storage.migrate.promptCancel': 'Avbryt',
+  'storage.migrate.queued': 'I kö: {categories}',
+  'storage.migrate.queueDropped': 'Det gick inte att starta nästa flytt — den återstående kön rensades: {categories}',
 };
 export default storage;

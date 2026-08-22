@@ -132,5 +132,8 @@ const storage: TranslationStrings = {
   'storage.migrate.cancelled': 'Đã hủy di chuyển — chưa có gì được chuyển đổi',
   'storage.migrate.reclaimable': '{objects} đối tượng ({size}) vẫn còn trên {from} — hãy thu hồi thủ công',
   'storage.migrate.cancel': 'Hủy di chuyển',
+  'storage.migrate.promptCancel': 'Hủy',
+  'storage.migrate.queued': 'Đang chờ: {categories}',
+  'storage.migrate.queueDropped': 'Không thể bắt đầu di chuyển tiếp theo — hàng đợi còn lại đã bị xóa: {categories}',
 };
 export default storage;
