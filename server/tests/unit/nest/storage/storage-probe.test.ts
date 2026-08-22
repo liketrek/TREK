@@ -5,7 +5,7 @@ import path from 'node:path';
 import { LocalDriver } from '../../../../src/nest/storage/drivers/local.driver';
 import { S3Driver } from '../../../../src/nest/storage/drivers/s3.driver';
 import { ephemeralDriverFor, probeDriver } from '../../../../src/nest/storage/storage-probe';
-import type { StorageDriver } from '../../../../src/nest/storage/storage.types';
+import { StorageBackendError, type StorageDriver } from '../../../../src/nest/storage/storage.types';
 
 function makeTmpDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'trek-probe-'));
@@ -36,6 +36,38 @@ describe('probeDriver', () => {
     const result = await probeDriver('boom', driver);
     expect(result.ok).toBe(false);
     expect(result.error).toContain('disk on fire');
+  });
+
+  it('PROBE-005 appends the wrapped cause chain to the target error message', async () => {
+    const raw = new Error('connect ECONNREFUSED 127.0.0.1:9000');
+    const driver = {
+      id: 'p',
+      put: vi.fn().mockRejectedValue(new StorageBackendError("put failed for 'k' on 'probe-s3'", raw)),
+      stat: vi.fn(),
+      delete: vi.fn(),
+      getStream: vi.fn(),
+      list: vi.fn(),
+    } as unknown as StorageDriver;
+    const result = await probeDriver('p', driver);
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("put failed for 'k' on 'probe-s3'");
+    expect(result.error).toContain('ECONNREFUSED');
+  });
+
+  it("PROBE-006 appends an S3-style error code that isn't already in the cause's message", async () => {
+    const raw = Object.assign(new Error('The specified bucket does not exist'), { code: 'NoSuchBucket' });
+    const driver = {
+      id: 'p',
+      put: vi.fn().mockRejectedValue(new StorageBackendError("put failed for 'k' on 'probe-s3'", raw)),
+      stat: vi.fn(),
+      delete: vi.fn(),
+      getStream: vi.fn(),
+      list: vi.fn(),
+    } as unknown as StorageDriver;
+    const result = await probeDriver('p', driver);
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain('The specified bucket does not exist');
+    expect(result.error).toContain('NoSuchBucket');
   });
 });
 
