@@ -25,7 +25,8 @@ const storage: TranslationStrings = {
   'storage.save': 'Zapisz zmiany',
   'storage.unsaved': 'Niezapisane zmiany',
   'storage.saveConflict':
-    'Konfiguracja magazynu zmieniła się od czasu jej wczytania. Sprawdź swoje zmiany i zapisz ponownie.',
+    'Konfiguracja magazynu zmieniła się od czasu jej wczytania, więc Twoje zmiany nie zostały zapisane. Odrzuć je i wczytaj zapisaną konfigurację ponownie, aby zacząć od nowa.',
+  'storage.discardAndReload': 'Odrzuć moje zmiany i wczytaj ponownie',
   'storage.configError.banner': 'Nie udało się wczytać zapisanej konfiguracji magazynu — zapisanie ją zastąpi: {error}',
   'storage.backends.title': 'Backendy',
   'storage.backends.add': 'Dodaj backend',

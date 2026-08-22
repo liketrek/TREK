@@ -25,7 +25,8 @@ const storage: TranslationStrings = {
   'storage.save': 'Wijzigingen opslaan',
   'storage.unsaved': 'Niet-opgeslagen wijzigingen',
   'storage.saveConflict':
-    'De opslagconfiguratie is gewijzigd sinds deze werd geladen. Controleer je wijzigingen en sla opnieuw op.',
+    'De opslagconfiguratie is gewijzigd sinds deze werd geladen, dus je wijzigingen zijn niet opgeslagen. Verwerp ze en laad de opgeslagen instellingen opnieuw om opnieuw te beginnen.',
+  'storage.discardAndReload': 'Mijn wijzigingen verwerpen en opnieuw laden',
   'storage.configError.banner':
     'Het laden van de opgeslagen opslaginstellingen is mislukt — opslaan zal ze vervangen: {error}',
   'storage.backends.title': 'Backends',

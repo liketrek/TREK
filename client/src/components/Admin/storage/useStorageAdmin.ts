@@ -23,6 +23,8 @@ export interface StorageAdmin {
   loadError: string | null
   /** Server 400s/409s land here VERBATIM (400) or as the distinct conflict copy (409) — long registry messages outlive a toast. */
   saveError: string | null
+  /** True while `saveError` is the 409 copy — the panels render the discard-and-reload escape next to it. */
+  saveConflict: boolean
   saving: boolean
   testResults: StorageTestResults
   setDraft: (next: StorageConfig) => void
@@ -44,6 +46,13 @@ export interface StorageAdmin {
   refreshStats: () => Promise<string | null>
   /** Re-GETs admin state (poll-safe — see the implementation comment below). Exposed for the panel's failed-queue recovery path. */
   refreshState: () => Promise<void>
+  /**
+   * The 409's only exit: throw the local edits away and reload the saved
+   * settings (fresh GET → fresh draft → fresh version), clearing dirty and
+   * saveError. See the implementation comment for why refreshState can't do
+   * this itself.
+   */
+  discardDraft: () => Promise<void>
 }
 
 /**
@@ -58,6 +67,7 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [saveConflict, setSaveConflict] = useState(false)
   const [saving, setSaving] = useState(false)
   const [testResults, setTestResults] = useState<StorageTestResults>({})
 
@@ -87,6 +97,7 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
     setDraftState(settingsDocumentOf(next))
     setDirty(false)
     setSaveError(null)
+    setSaveConflict(false)
   }, [])
 
   useEffect(() => {
@@ -149,6 +160,7 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
       const body: StorageConfigPut = { ...(overrideDraft ?? draft), version: draft.version }
       setSaving(true)
       setSaveError(null)
+      setSaveConflict(false)
       try {
         // The response is the fresh effective world, never the request echo.
         applyState(await adminApi.updateStorage(body))
@@ -161,6 +173,7 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
           // draft itself is left untouched for review (dirty is never
           // cleared here) — refreshState() already respects dirtyRef.
           setSaveError(conflictError)
+          setSaveConflict(true)
           void refreshState().catch(() => {})
         } else {
           setSaveError(getApiErrorMessage(err, genericError))
@@ -172,6 +185,26 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
     },
     [draft, applyState, genericError, conflictError, refreshState],
   )
+
+  /**
+   * Conflict recovery (final-review fix): after a 409 the dirty draft keeps
+   * the version it was built at. refreshState deliberately leaves a dirty
+   * draft's version alone — bumping it there would resurrect audit #7, where
+   * the background poll floats a mid-edit draft past a migration flip it
+   * never carried — so nothing else can ever move it, and every retry 409s
+   * again. The operator's way out is to say so explicitly: discard the local
+   * edits, reload the saved settings, and start over from the fresh version.
+   * A fresh GET (not the possibly-dropped post-409 refresh) guarantees that
+   * version is current, and applyState clears dirty/saveError with it.
+   */
+  const discardDraft = useCallback(async (): Promise<void> => {
+    try {
+      applyState(await adminApi.getStorage())
+    } catch (err: unknown) {
+      setSaveError(getApiErrorMessage(err, genericError))
+      setSaveConflict(false)
+    }
+  }, [applyState, genericError])
 
   const test = useCallback(
     async (backend: StorageBackend): Promise<void> => {
@@ -298,6 +331,7 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
     loading,
     loadError,
     saveError,
+    saveConflict,
     saving,
     testResults,
     setDraft,
@@ -310,5 +344,6 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
     cancelMigration,
     refreshStats,
     refreshState,
+    discardDraft,
   }
 }

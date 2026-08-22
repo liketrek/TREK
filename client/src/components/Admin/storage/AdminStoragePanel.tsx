@@ -740,9 +740,21 @@ export default function AdminStoragePanel(): React.ReactElement {
         </div>
       )}
       {admin.saveError && (
-        <p role="alert" className="text-sm mt-2 text-content">
-          {admin.saveError}
-        </p>
+        <div role="alert" className="text-sm mt-2 text-content">
+          <p>{admin.saveError}</p>
+          {/* A 409 leaves the draft pinned to a version the server has moved
+              past; "save again" can never clear it, so the banner offers the
+              one action that can — see useStorageAdmin.discardDraft. */}
+          {admin.saveConflict && (
+            <button
+              className="text-xs underline text-content-secondary mt-1"
+              style={LINK_BUTTON_STYLE}
+              onClick={() => void admin.discardDraft()}
+            >
+              {t('storage.discardAndReload')}
+            </button>
+          )}
+        </div>
       )}
 
       <ConfirmDialog

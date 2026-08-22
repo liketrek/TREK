@@ -23,7 +23,9 @@ const storage: TranslationStrings = {
   'storage.saved': 'Konfigurace úložiště uložena',
   'storage.save': 'Uložit změny',
   'storage.unsaved': 'Neuložené změny',
-  'storage.saveConflict': 'Konfigurace úložiště se od načtení změnila. Zkontrolujte své změny a uložte je znovu.',
+  'storage.saveConflict':
+    'Konfigurace úložiště se od načtení změnila, takže vaše změny nebyly uloženy. Zahoďte je a načtěte uložené nastavení znovu, abyste mohli začít od začátku.',
+  'storage.discardAndReload': 'Zahodit mé změny a načíst znovu',
   'storage.configError.banner': 'Nepodařilo se načíst uložené nastavení úložiště — uložením je nahradíte: {error}',
   'storage.backends.title': 'Backendy',
   'storage.backends.add': 'Přidat backend',

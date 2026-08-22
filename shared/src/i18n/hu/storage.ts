@@ -25,7 +25,8 @@ const storage: TranslationStrings = {
   'storage.save': 'Módosítások mentése',
   'storage.unsaved': 'Nem mentett módosítások',
   'storage.saveConflict':
-    'A tárhely-konfiguráció megváltozott a betöltése óta. Ellenőrizze a módosításait, és mentse el újra.',
+    'A tárhely-konfiguráció megváltozott a betöltése óta, ezért a módosításai nem lettek mentve. Vesse el őket, és töltse be újra a mentett beállításokat az újrakezdéshez.',
+  'storage.discardAndReload': 'Módosításaim elvetése és újratöltés',
   'storage.configError.banner':
     'A mentett tárhely-beállítások betöltése nem sikerült — a mentés felülírja őket: {error}',
   'storage.backends.title': 'Backendek',

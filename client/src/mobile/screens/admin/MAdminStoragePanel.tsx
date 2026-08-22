@@ -854,9 +854,16 @@ export default function MAdminStoragePanel(): React.ReactElement {
         </div>
       )}
       {admin.saveError && (
-        <p role="alert" className="text-[0.8125rem] text-m-ink">
-          {admin.saveError}
-        </p>
+        <div role="alert" className="text-[0.8125rem] text-m-ink">
+          <p>{admin.saveError}</p>
+          {/* A 409 pins the draft to a version the server moved past — saving
+              again can never clear it, so offer the one action that can. */}
+          {admin.saveConflict && (
+            <MAdminButton variant="ghost" onClick={() => void admin.discardDraft()}>
+              {t('storage.discardAndReload')}
+            </MAdminButton>
+          )}
+        </div>
       )}
 
       <MConfirmSheet

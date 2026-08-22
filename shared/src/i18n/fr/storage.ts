@@ -25,7 +25,8 @@ const storage: TranslationStrings = {
   'storage.save': 'Enregistrer les modifications',
   'storage.unsaved': 'Modifications non enregistrées',
   'storage.saveConflict':
-    'La configuration de stockage a changé depuis son chargement. Vérifiez vos modifications et enregistrez à nouveau.',
+    "La configuration de stockage a changé depuis son chargement, vos modifications n'ont donc pas été enregistrées. Abandonnez-les et rechargez la configuration enregistrée pour recommencer.",
+  'storage.discardAndReload': 'Abandonner mes modifications et recharger',
   'storage.configError.banner':
     "Échec du chargement des paramètres de stockage enregistrés — l'enregistrement les remplacera : {error}",
   'storage.backends.title': 'Backends',

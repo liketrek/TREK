@@ -23,7 +23,9 @@ const storage: TranslationStrings = {
   'storage.saved': 'ストレージ設定を保存しました',
   'storage.save': '変更を保存',
   'storage.unsaved': '未保存の変更',
-  'storage.saveConflict': 'ストレージ設定は読み込み後に変更されました。変更内容を確認し、再度保存してください。',
+  'storage.saveConflict':
+    'ストレージ設定は読み込み後に変更されたため、変更内容は保存されませんでした。変更を破棄して保存済みの設定を再読み込みし、やり直してください。',
+  'storage.discardAndReload': '変更を破棄して再読み込み',
   'storage.configError.banner':
     '保存済みのストレージ設定の読み込みに失敗しました — 保存すると置き換えられます: {error}',
   'storage.backends.title': 'バックエンド',

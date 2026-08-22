@@ -25,7 +25,8 @@ const storage: TranslationStrings = {
   'storage.save': 'Lưu thay đổi',
   'storage.unsaved': 'Thay đổi chưa lưu',
   'storage.saveConflict':
-    'Cấu hình lưu trữ đã thay đổi kể từ khi được tải. Vui lòng xem lại thay đổi của bạn và lưu lại.',
+    'Cấu hình lưu trữ đã thay đổi kể từ khi được tải, nên các thay đổi của bạn chưa được lưu. Hãy hủy chúng và tải lại cấu hình đã lưu để bắt đầu lại.',
+  'storage.discardAndReload': 'Hủy thay đổi của tôi và tải lại',
   'storage.configError.banner': 'Không thể tải cài đặt lưu trữ đã lưu — việc lưu sẽ thay thế chúng: {error}',
   'storage.backends.title': 'Backend',
   'storage.backends.add': 'Thêm backend',

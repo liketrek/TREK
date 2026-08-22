@@ -25,7 +25,8 @@ const storage: TranslationStrings = {
   'storage.save': 'Salva modifiche',
   'storage.unsaved': 'Modifiche non salvate',
   'storage.saveConflict':
-    'La configurazione di archiviazione è cambiata da quando è stata caricata. Rivedi le modifiche e salva di nuovo.',
+    'La configurazione di archiviazione è cambiata da quando è stata caricata, quindi le tue modifiche non sono state salvate. Scartale e ricarica la configurazione salvata per ricominciare.',
+  'storage.discardAndReload': 'Scarta le mie modifiche e ricarica',
   'storage.configError.banner':
     'Impossibile caricare le impostazioni di archiviazione salvate — il salvataggio le sostituirà: {error}',
   'storage.backends.title': 'Backend',

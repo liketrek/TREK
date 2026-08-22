@@ -25,7 +25,8 @@ const storage: TranslationStrings = {
   'storage.save': 'Änderungen speichern',
   'storage.unsaved': 'Ungespeicherte Änderungen',
   'storage.saveConflict':
-    'Die Speicherkonfiguration hat sich seit dem Laden geändert. Überprüfen Sie Ihre Änderungen und speichern Sie erneut.',
+    'Die Speicherkonfiguration hat sich seit dem Laden geändert, deshalb wurden Ihre Änderungen nicht gespeichert. Verwerfen Sie sie und laden Sie die gespeicherten Einstellungen neu, um von vorn zu beginnen.',
+  'storage.discardAndReload': 'Meine Änderungen verwerfen und neu laden',
   'storage.configError.banner':
     'Die gespeicherten Speichereinstellungen konnten nicht geladen werden — durch Speichern werden sie ersetzt: {error}',
   'storage.backends.title': 'Backends',

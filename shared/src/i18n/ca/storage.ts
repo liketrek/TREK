@@ -24,7 +24,8 @@ const storage: TranslationStrings = {
   'storage.save': 'Desar els canvis',
   'storage.unsaved': 'Canvis sense desar',
   'storage.saveConflict':
-    "La configuració d'emmagatzematge ha canviat des que es va carregar. Revisa els teus canvis i desa'ls de nou.",
+    "La configuració d'emmagatzematge ha canviat des que es va carregar, així que els teus canvis no s'han desat. Descarta'ls i torna a carregar la configuració desada per començar de nou.",
+  'storage.discardAndReload': 'Descarta els meus canvis i torna a carregar',
   'storage.configError.banner':
     "No s'han pogut carregar els paràmetres d'emmagatzematge desats — desar-los els substituirà: {error}",
   'storage.backends.title': 'Backends',

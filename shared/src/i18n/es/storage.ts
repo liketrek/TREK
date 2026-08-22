@@ -25,7 +25,8 @@ const storage: TranslationStrings = {
   'storage.save': 'Guardar cambios',
   'storage.unsaved': 'Cambios sin guardar',
   'storage.saveConflict':
-    'La configuración de almacenamiento cambió desde que la cargaste. Revisa tus cambios y guarda de nuevo.',
+    'La configuración de almacenamiento cambió desde que la cargaste, así que tus cambios no se guardaron. Descártalos y recarga la configuración guardada para empezar de nuevo.',
+  'storage.discardAndReload': 'Descartar mis cambios y recargar',
   'storage.configError.banner':
     'No se pudieron cargar los ajustes de almacenamiento guardados — guardar los reemplazará: {error}',
   'storage.backends.title': 'Backends',

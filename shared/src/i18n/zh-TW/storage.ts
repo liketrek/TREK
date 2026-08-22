@@ -22,7 +22,9 @@ const storage: TranslationStrings = {
   'storage.saved': '儲存設定已儲存',
   'storage.save': '儲存變更',
   'storage.unsaved': '未儲存的變更',
-  'storage.saveConflict': '儲存設定自載入後已變更。請檢查您的變更並重新儲存。',
+  'storage.saveConflict':
+    '儲存設定自載入後已變更，因此您的變更未被儲存。請捨棄這些變更並重新載入已儲存的設定，然後重新開始。',
+  'storage.discardAndReload': '捨棄我的變更並重新載入',
   'storage.configError.banner': '已儲存的儲存設定載入失敗 — 儲存將取代它們：{error}',
   'storage.backends.title': '後端',
   'storage.backends.add': '新增後端',

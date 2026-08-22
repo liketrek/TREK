@@ -24,7 +24,8 @@ const storage: TranslationStrings = {
   'storage.save': 'Değişiklikleri kaydet',
   'storage.unsaved': 'Kaydedilmemiş değişiklikler',
   'storage.saveConflict':
-    'Depolama yapılandırması yüklendiğinden beri değişti. Değişikliklerinizi gözden geçirip tekrar kaydedin.',
+    'Depolama yapılandırması yüklendiğinden beri değişti, bu yüzden değişiklikleriniz kaydedilmedi. Değişiklikleri atıp kayıtlı ayarları yeniden yükleyerek baştan başlayın.',
+  'storage.discardAndReload': 'Değişikliklerimi at ve yeniden yükle',
   'storage.configError.banner': 'Kaydedilmiş depolama ayarları yüklenemedi — kaydetmek onların yerini alacak: {error}',
   'storage.backends.title': 'Arka uçlar',
   'storage.backends.add': 'Arka uç ekle',

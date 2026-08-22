@@ -796,8 +796,12 @@ describe('AdminStoragePanel', () => {
 
     // The version this PUT submits is the one the draft was loaded at.
     expect(
-      await screen.findByText('Storage settings changed since you loaded them. Review your changes and save again.'),
+      await screen.findByText(
+        'Storage settings changed since you loaded them, so your changes were not saved. Discard them and reload the saved settings to start over.',
+      ),
     ).toBeInTheDocument();
+    // The copy points at a real escape, and the escape is on screen.
+    expect(screen.getByRole('button', { name: 'Discard my changes and reload' })).toBeInTheDocument();
     expect(putVersion).toBe(3);
 
     // refreshState() ran (a second GET landed) and the panel now reflects
@@ -806,6 +810,59 @@ describe('AdminStoragePanel', () => {
     await waitFor(() => expect(getCalls).toBeGreaterThanOrEqual(2));
     expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
     expect(within(categoryRow('files')).getByText('off-box')).toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-STOR-049: a 409 is recoverable in place — Discard reloads the saved settings and the next save carries the FRESH version', async () => {
+    let getCalls = 0;
+    const putVersions: number[] = [];
+    const usage = {
+      computedAt: Date.now(),
+      categories: { files: { objects: 0, bytes: 0 } },
+      legacyPhotos: { objects: 0, bytes: 0 },
+    };
+    const initial = { ...baseState(), usage, version: 3 } as StorageAdminState;
+    const refreshed = { ...initial, version: 4 };
+    server.use(http.get('/api/admin/storage', () => HttpResponse.json(++getCalls === 1 ? initial : refreshed)));
+    render(
+      <>
+        <ToastContainer />
+        <AdminStoragePanel />
+      </>,
+    );
+    await waitFor(() => expect(screen.getByText('Backends')).toBeInTheDocument());
+    server.use(
+      http.put('/api/admin/storage', async ({ request }) => {
+        const body = (await request.json()) as StorageConfig & { version: number };
+        putVersions.push(body.version);
+        // Only the stale version conflicts; the fresh one goes through.
+        return body.version === 4
+          ? HttpResponse.json({ ...refreshed, version: 5 })
+          : HttpResponse.json({ error: 'stale' }, { status: 409 });
+      }),
+    );
+
+    const reassignFiles = () => {
+      fireEvent.click(within(categoryRow('files')).getByText(/^uploads-local/));
+      const choices = screen.getAllByText('off-box');
+      fireEvent.click(choices[choices.length - 1]!);
+    };
+
+    reassignFiles();
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await screen.findByText(/Storage settings changed since you loaded them/);
+    expect(putVersions).toEqual([3]);
+
+    // Without this action the draft keeps its stale version forever: setDraft
+    // re-attaches it to every later edit, so every retry 409s again.
+    fireEvent.click(screen.getByRole('button', { name: 'Discard my changes and reload' }));
+    await waitFor(() => expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument());
+    expect(screen.queryByText(/Storage settings changed since you loaded them/)).not.toBeInTheDocument();
+    expect(within(categoryRow('files')).getByText(/^uploads-local/)).toBeInTheDocument(); // saved world, not the draft
+
+    reassignFiles();
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await screen.findByText('Storage configuration saved');
+    expect(putVersions).toEqual([3, 4]);
   });
 
   it('FE-ADMIN-STOR-033: two candidates queue sequentially: the second POSTs only after the first turns terminal', async () => {

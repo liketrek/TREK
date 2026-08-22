@@ -23,7 +23,9 @@ const storage: TranslationStrings = {
   'storage.saved': 'تم حفظ إعدادات التخزين',
   'storage.save': 'حفظ التغييرات',
   'storage.unsaved': 'تغييرات غير محفوظة',
-  'storage.saveConflict': 'تم تغيير إعدادات التخزين منذ تحميلها. راجع تغييراتك واحفظ مرة أخرى.',
+  'storage.saveConflict':
+    'تغيّرت إعدادات التخزين منذ تحميلها، لذلك لم يتم حفظ تغييراتك. تجاهلها وأعد تحميل الإعدادات المحفوظة للبدء من جديد.',
+  'storage.discardAndReload': 'تجاهل تغييراتي وأعد التحميل',
   'storage.configError.banner': 'فشل تحميل إعدادات التخزين المخزنة — سيؤدي الحفظ إلى استبدالها: {error}',
   'storage.backends.title': 'الواجهات الخلفية',
   'storage.backends.add': 'إضافة واجهة خلفية',

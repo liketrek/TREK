@@ -28,7 +28,9 @@ const storage: TranslationStrings = {
   'storage.save': 'Save changes',
   'storage.unsaved': 'Unsaved changes',
 
-  'storage.saveConflict': 'Storage settings changed since you loaded them. Review your changes and save again.',
+  'storage.saveConflict':
+    'Storage settings changed since you loaded them, so your changes were not saved. Discard them and reload the saved settings to start over.',
+  'storage.discardAndReload': 'Discard my changes and reload',
   'storage.configError.banner': 'Stored storage settings failed to load — saving will replace them: {error}',
   // Backends list
   'storage.backends.title': 'Backends',
