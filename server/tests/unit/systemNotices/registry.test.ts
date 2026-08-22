@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import semver from 'semver';
 import { SYSTEM_NOTICES } from '../../../src/systemNotices/registry.js';
+import { isNoticeVersionActive } from '../../../src/systemNotices/service.js';
 
 /** Collect all actionIds registered via registerNoticeAction() in client source files. */
 function collectRegisteredActionIds(): Set<string> {
@@ -61,6 +62,36 @@ describe('registry integrity', () => {
           `notice "${n.id}": minVersion ${n.minVersion} > maxVersion ${n.maxVersion}`
         ).toBe(true);
       }
+    }
+  });
+
+  it('the 4.0.0 release notice is confined to the 4.0.x line', () => {
+    const release = SYSTEM_NOTICES.find(n => n.id === 'release-4-0-0');
+    expect(release).toBeDefined();
+    // Its copy is about this release, so it must not greet somebody who skipped
+    // straight past it, and it must not run alongside the next release's notice.
+    expect(isNoticeVersionActive(release!, '3.4.1')).toBe(false);
+    expect(isNoticeVersionActive(release!, '4.0.0')).toBe(true);
+    expect(isNoticeVersionActive(release!, '4.0.7')).toBe(true);
+    // The upper bound is exclusive, so every 4.0.x patch still gets it.
+    expect(isNoticeVersionActive(release!, '4.0.9')).toBe(true);
+    expect(isNoticeVersionActive(release!, '4.0.12')).toBe(true);
+    expect(isNoticeVersionActive(release!, '4.1.0')).toBe(false);
+    expect(isNoticeVersionActive(release!, '4.2.0')).toBe(false);
+  });
+
+  it('the thank-you notice hands over to the release modal at 4.0.0', () => {
+    const thankYou = SYSTEM_NOTICES.find(n => n.id === 'thank-you-support');
+    expect(thankYou).toBeDefined();
+    // Both carry the same thank-you and the same two support links, so exactly
+    // one of them may be active at any version.
+    expect(isNoticeVersionActive(thankYou!, '3.4.1')).toBe(true);
+    expect(isNoticeVersionActive(thankYou!, '4.0.0')).toBe(false);
+
+    const release = SYSTEM_NOTICES.find(n => n.id === 'release-4-0-0')!;
+    for (const version of ['3.4.1', '4.0.0', '4.0.7', '4.1.0', '5.0.0']) {
+      const active = [thankYou!, release].filter(n => isNoticeVersionActive(n, version));
+      expect(active.length, `both thank-you notices active at ${version}`).toBeLessThanOrEqual(1);
     }
   });
 });

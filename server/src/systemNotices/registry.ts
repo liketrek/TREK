@@ -106,7 +106,11 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
     conditions: [{ kind: 'managed', is: false }],
     publishedAt: '2026-08-22T00:00:00Z',
     priority: 110,
+    // The 4.0.x window. The copy is about this release, so somebody arriving on
+    // 4.1 — or jumping 3.x straight to 4.2 — should get that release's notice
+    // instead of this one, not a summary of a version they skipped.
     minVersion: '4.0.0',
+    maxVersion: '4.1.0',
   },
 
   // ── Thank-you + support the project — shown once per install AND once per upgrade ──
