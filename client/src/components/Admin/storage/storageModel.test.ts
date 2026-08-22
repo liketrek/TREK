@@ -17,6 +17,7 @@ import {
   removeBackend,
   removeBackendAndMirrors,
   renameBackendRefs,
+  replicaCandidates,
   replicaOfPrimaries,
   setMirrorTargets,
   settingsDocumentOf,
@@ -237,6 +238,33 @@ describe('mirror fold/synthesize (replicas-on-primary)', () => {
     expect(primaryNameOf(MIRRORED_STATE, mirroredDraft(), 'mirror')).toBe('backups-local');
     expect(primaryNameOf(MIRRORED_STATE, { backends: [], categories: {} }, 'mirror')).toBe('backups-local'); // state fallback
     expect(primaryNameOf(STATE, settingsDocumentOf(STATE), 'uploads-local')).toBe('uploads-local');
+  });
+});
+
+describe('replicaCandidates', () => {
+  it('FE-ADMIN-STORM-020: offers only rows that serve no category, never the row being edited', () => {
+    const { rows } = foldBackends(MIRRORED_STATE, mirroredDraft());
+    // uploads-local/place-photos-local serve categories directly;
+    // backups-local serves backups through the mirror it is the primary of;
+    // off-box carries a direct `covers` assignment. Nothing is offerable.
+    expect(replicaCandidates(rows, 'backups-local')).toEqual([]);
+  });
+
+  it('FE-ADMIN-STORM-021: keeps an already-selected target listed so it can be unchecked', () => {
+    const { rows } = foldBackends(MIRRORED_STATE, mirroredDraft());
+    expect(replicaCandidates(rows, 'backups-local', ['off-box'])).toEqual(['off-box']);
+  });
+
+  it('FE-ADMIN-STORM-022: an unassigned row is offered', () => {
+    const state: StorageAdminState = {
+      ...MIRRORED_STATE,
+      backends: [
+        ...MIRRORED_STATE.backends,
+        { name: 'cold-store', type: 'local', source: 'settings', options: { root: '/data/cold' }, categories: [] },
+      ],
+    };
+    const { rows } = foldBackends(state, settingsDocumentOf(state));
+    expect(replicaCandidates(rows, 'backups-local')).toEqual(['cold-store']);
   });
 });
 

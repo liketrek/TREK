@@ -25,6 +25,7 @@ import {
   removeBackend,
   removeBackendAndMirrors,
   renameBackendRefs,
+  replicaCandidates,
   replicaOfPrimaries,
   settingsDocumentOf,
   setMirrorTargets,
@@ -327,7 +328,7 @@ export default function MAdminStoragePanel(): React.ReactElement {
       initial: row.backend,
       originalName: row.name,
       mirror: {
-        candidates: rows.filter((r) => r.name !== row.name).map((r) => r.name),
+        candidates: replicaCandidates(rows, row.name, row.mirrorTargets),
         initialTargets: row.mirrorTargets,
       },
     })
@@ -727,7 +728,7 @@ export default function MAdminStoragePanel(): React.ReactElement {
                 setEditing({
                   initial: null,
                   originalName: null,
-                  mirror: { candidates: rows.map((r) => r.name), initialTargets: [] },
+                  mirror: { candidates: replicaCandidates(rows, null), initialTargets: [] },
                 })
               }
             >

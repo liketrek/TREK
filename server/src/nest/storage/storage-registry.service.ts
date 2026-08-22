@@ -190,7 +190,7 @@ export class StorageRegistryService implements OnModuleInit {
    * ever answer for the backend a category is assigned to right now.
    */
   keyPrefixFor(category: ServedCategory, backendName: string): string {
-    return category === 'photos-google' && backendName === 'place-photos-local' ? '' : CATEGORY_PREFIXES[category];
+    return prefixFor(category, backendName);
   }
 
   /** Driver instance for a defined backend, assigned or not; null when unknown. */
@@ -222,9 +222,23 @@ export class StorageRegistryService implements OnModuleInit {
     // Belt-and-braces alongside the migration job's own pre-flip cancel guard:
     // never persist a category pointing at a backend that doesn't exist in
     // the current snapshot (e.g. a config save removed it mid-migration).
-    const names = new Set(this.state?.snapshot.backends.map((b) => b.name) ?? []);
+    const defined = this.state?.snapshot.backends ?? [];
+    const names = new Set(defined.map((b) => b.name));
     if (!names.has(backend)) {
       throw new StorageBackendError(`cannot assign '${category}' to unknown backend '${backend}'`);
+    }
+    // The OTHER writer of the two settings rows, so it enforces the same
+    // shared-replica rule validateConfig does (see assertNoSharedReplicas):
+    // a mirror's sync sweep DELETES replica objects its primary doesn't hold,
+    // so routing a category onto a backend that is somebody's replica would
+    // hand this category's objects to that sweep.
+    const target = defined.find((b) => b.name === backend);
+    const owner = target?.type === 'mirror' ? String(target.options.primary) : backend;
+    const holder = defined.find((b) => b.type === 'mirror' && replicaNamesOf(b.options).includes(owner));
+    if (holder) {
+      throw new StorageBackendError(
+        `cannot assign '${category}' to '${backend}' — '${owner}' is a mirror replica of '${holder.name}', and that mirror's sync sweep would delete the category's objects`,
+      );
     }
     const stored = new Map(parseCategoryMap(this.readSettings().categories));
     stored.set(category, backend);
@@ -539,6 +553,103 @@ function decryptedSecret(config: S3BackendConfig): string {
   return plain;
 }
 
+/** The key-prefix a category uses on a given backend — see keyPrefixFor's doc comment. */
+function prefixFor(category: ServedCategory, backendName: string): string {
+  return category === 'photos-google' && backendName === 'place-photos-local' ? '' : CATEGORY_PREFIXES[category];
+}
+
+/** Replica names off a snapshot's loose options record (mirrors always carry a string[] there). */
+function replicaNamesOf(options: Record<string, string | number | string[]>): string[] {
+  return Array.isArray(options.replicas) ? options.replicas : [];
+}
+
+/** Human-readable prefix for an error message — '' is the backend's whole root. */
+function describePrefix(prefix: string): string {
+  return prefix === '' ? 'the backend root' : `'${prefix}'`;
+}
+
+/** First overlapping pair across two swept-prefix sets; '' (the root) overlaps everything. */
+function overlappingPrefixes(a: ReadonlySet<string>, b: ReadonlySet<string>): [string, string] | null {
+  for (const left of a) {
+    for (const right of b) {
+      if (left.startsWith(right) || right.startsWith(left)) return [left, right];
+    }
+  }
+  return null;
+}
+
+/**
+ * The shared-replica rule (audit critical — the backfill deletion sweep).
+ *
+ * A mirror's "Sync now" sweep makes each replica MATCH the primary: it lists
+ * the replica under every prefix the mirror's categories occupy and deletes
+ * the keys the primary doesn't hold. `backups` occupies prefix '' — the
+ * replica's ENTIRE root — so a backend that is simultaneously a replica and a
+ * category target would have that category's objects deleted by the first
+ * sync (silent data loss from the flagship mirror flow). The sweep is
+ * correct; what must not exist is a config that expresses the overlap. Hence
+ * two refusals, both naming the backend and the conflict:
+ *
+ * 1. a backend that serves a category — directly, or as the PRIMARY of a
+ *    mirror a category routes to — can never also be a mirror replica;
+ * 2. a backend replicating two mirrors whose swept prefixes overlap (equal,
+ *    nested, or either one '') would have each mirror's sweep delete the
+ *    other's objects.
+ *
+ * Disjoint prefixes are fine: one backend may replicate `files` for one
+ * mirror and `covers` for another. The admin UI keeps the replica picker in
+ * step by never offering a backend that already serves a category.
+ */
+function assertNoSharedReplicas(
+  backends: Map<string, BackendConfig>,
+  categories: Map<ServedCategory, string>,
+): void {
+  const replicaOf = new Map<string, string[]>(); // backend → mirrors listing it as a replica
+  for (const config of backends.values()) {
+    if (config.type !== 'mirror') continue;
+    for (const replica of config.options.replicas) {
+      replicaOf.set(replica, [...(replicaOf.get(replica) ?? []), config.name]);
+    }
+  }
+  if (replicaOf.size === 0) return;
+
+  const servedBy = new Map<string, ServedCategory[]>(); // serving backend → its categories
+  const sweptBy = new Map<string, Set<string>>(); // mirror → the prefixes its sweep covers
+  for (const [category, backendName] of categories) {
+    // Existence was checked by the caller, so this lookup cannot miss.
+    const backend = backends.get(backendName)!;
+    const owner = backend.type === 'mirror' ? backend.options.primary : backendName;
+    servedBy.set(owner, [...(servedBy.get(owner) ?? []), category]);
+    if (backend.type === 'mirror') {
+      const prefixes = sweptBy.get(backendName) ?? new Set<string>();
+      prefixes.add(prefixFor(category, backendName));
+      sweptBy.set(backendName, prefixes);
+    }
+  }
+
+  const empty: ReadonlySet<string> = new Set();
+  for (const [replica, mirrors] of replicaOf) {
+    const served = servedBy.get(replica);
+    if (served) {
+      throw new StorageBackendError(
+        `backend '${replica}' is a mirror replica of '${mirrors[0]}' and also serves category '${served[0]}' — ` +
+          `a backend can be a replica or a category target, not both (a sync sweep deletes replica objects the mirror's primary doesn't hold)`,
+      );
+    }
+    for (let i = 0; i < mirrors.length; i += 1) {
+      for (let j = i + 1; j < mirrors.length; j += 1) {
+        const overlap = overlappingPrefixes(sweptBy.get(mirrors[i]!) ?? empty, sweptBy.get(mirrors[j]!) ?? empty);
+        if (overlap) {
+          throw new StorageBackendError(
+            `backend '${replica}' replicates both '${mirrors[i]}' and '${mirrors[j]}', whose swept key prefixes overlap ` +
+              `(${describePrefix(overlap[0])} and ${describePrefix(overlap[1])}) — one mirror's sync sweep would delete the other's objects`,
+          );
+        }
+      }
+    }
+  }
+}
+
 function validateConfig(backends: Map<string, BackendConfig>, categories: Map<ServedCategory, string>): void {
   for (const config of backends.values()) {
     if (config.type !== 'mirror') continue;
@@ -558,4 +669,5 @@ function validateConfig(backends: Map<string, BackendConfig>, categories: Map<Se
       throw new StorageBackendError(`category '${category}' maps to unknown backend '${backendName}'`);
     }
   }
+  assertNoSharedReplicas(backends, categories);
 }

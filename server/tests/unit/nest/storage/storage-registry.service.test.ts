@@ -472,6 +472,39 @@ describe('StorageRegistryService assignCategory', () => {
     expect(() => registry.assignCategory('files', 'ghost-backend')).toThrow();
     expect(registry.currentConfigVersion()).toBe(0);
   });
+
+  it('REG-ASSIGN-005 refuses the migration flip onto a backend that is currently a mirror replica (validateConfig, other direction)', () => {
+    const { registry } = makeRegistry({
+      backends: [
+        { name: 'nas-backups', type: 'local', options: { root: makeTmpDir() } },
+        { name: 'backups-mirror', type: 'mirror', options: { primary: 'backups-local', replicas: ['nas-backups'] } },
+      ],
+      categories: { backups: 'backups-mirror' },
+    });
+
+    expect(() => registry.assignCategory('files', 'nas-backups')).toThrow(
+      /cannot assign 'files' to 'nas-backups' — 'nas-backups' is a mirror replica of 'backups-mirror'/,
+    );
+    expect(registry.snapshot().categories.files.backend).toBe('uploads-local'); // unchanged
+    expect(registry.currentConfigVersion()).toBe(0); // nothing written
+  });
+
+  it('REG-ASSIGN-006 refuses the flip onto a MIRROR whose primary is a replica of another mirror', () => {
+    const { registry } = makeRegistry({
+      backends: [
+        { name: 'nas', type: 'local', options: { root: makeTmpDir() } },
+        { name: 'extra', type: 'local', options: { root: makeTmpDir() } },
+        { name: 'nas-mirror', type: 'mirror', options: { primary: 'nas', replicas: ['extra'] } },
+        { name: 'backups-mirror', type: 'mirror', options: { primary: 'backups-local', replicas: ['nas'] } },
+      ],
+      categories: { backups: 'backups-mirror' },
+    });
+
+    expect(() => registry.assignCategory('files', 'nas-mirror')).toThrow(
+      /cannot assign 'files' to 'nas-mirror' — 'nas' is a mirror replica of 'backups-mirror'/,
+    );
+    expect(registry.currentConfigVersion()).toBe(0);
+  });
 });
 
 // ── replica-failure health ────────────────────────────────────────────────────
@@ -595,6 +628,89 @@ describe('preview()', () => {
     });
     expect(registry.resolve('backups').driver).toBe(before);
     expect(registry.resolve('backups').backendName).toBe('backups-local');
+  });
+});
+
+// ── shared replica backends (audit critical: the backfill deletion sweep) ─────
+//
+// A mirror's "Sync now" sweep DELETES replica keys under the swept category
+// prefixes that the primary doesn't hold. `backups` sweeps prefix '' — the
+// replica's ENTIRE root — so any backend that is both a replica and a category
+// target would have that category's objects swept away by the first sync. The
+// sweep itself is correct; the fix is that no config can express the setup.
+
+describe('StorageRegistryService shared-replica refusals', () => {
+  it('REG-SHARED-001 refuses the config that would let a backups sync sweep another category\'s objects (uploads-local as a backups-mirror replica)', () => {
+    const { registry } = makeRegistry();
+    expect(() =>
+      registry.preview({
+        backends: [
+          { name: 'nas-backups', type: 'local', options: { root: makeTmpDir() } },
+          { name: 'backups-mirror', type: 'mirror', options: { primary: 'nas-backups', replicas: ['uploads-local'] } },
+        ],
+        categories: { backups: 'backups-mirror' },
+      }),
+    ).toThrow(/backend 'uploads-local' is a mirror replica of 'backups-mirror' and also serves category/);
+  });
+
+  it('REG-SHARED-002 refuses a replica that serves a category as ANOTHER mirror\'s primary', () => {
+    const { registry } = makeRegistry();
+    expect(() =>
+      registry.preview({
+        backends: [
+          { name: 'nas', type: 'local', options: { root: makeTmpDir() } },
+          { name: 'extra', type: 'local', options: { root: makeTmpDir() } },
+          { name: 'files-mirror', type: 'mirror', options: { primary: 'nas', replicas: ['extra'] } },
+          { name: 'backups-mirror', type: 'mirror', options: { primary: 'backups-local', replicas: ['nas'] } },
+        ],
+        categories: { files: 'files-mirror', backups: 'backups-mirror' },
+      }),
+    ).toThrow(/backend 'nas' is a mirror replica of 'backups-mirror' and also serves category 'files'/);
+  });
+
+  it('REG-SHARED-003 refuses one backend replicating two mirrors whose swept prefixes overlap (\'\' overlaps everything)', () => {
+    const { registry } = makeRegistry();
+    expect(() =>
+      registry.preview({
+        backends: [
+          { name: 'nas', type: 'local', options: { root: makeTmpDir() } },
+          { name: 'p1', type: 'local', options: { root: makeTmpDir() } },
+          { name: 'p2', type: 'local', options: { root: makeTmpDir() } },
+          { name: 'm-backups', type: 'mirror', options: { primary: 'p1', replicas: ['nas'] } },
+          { name: 'm-files', type: 'mirror', options: { primary: 'p2', replicas: ['nas'] } },
+        ],
+        categories: { backups: 'm-backups', files: 'm-files' },
+      }),
+    ).toThrow(/backend 'nas' replicates both 'm-backups' and 'm-files', whose swept key prefixes overlap/);
+  });
+
+  it('REG-SHARED-004 accepts one backend replicating two mirrors with DISJOINT swept prefixes', () => {
+    const { registry } = makeRegistry();
+    expect(() =>
+      registry.preview({
+        backends: [
+          { name: 'nas', type: 'local', options: { root: makeTmpDir() } },
+          { name: 'p1', type: 'local', options: { root: makeTmpDir() } },
+          { name: 'p2', type: 'local', options: { root: makeTmpDir() } },
+          { name: 'm-files', type: 'mirror', options: { primary: 'p1', replicas: ['nas'] } },
+          { name: 'm-covers', type: 'mirror', options: { primary: 'p2', replicas: ['nas'] } },
+        ],
+        categories: { files: 'm-files', covers: 'm-covers' },
+      }),
+    ).not.toThrow();
+  });
+
+  it('REG-SHARED-005 still accepts the ordinary shape: a dedicated, unassigned replica', () => {
+    const { registry } = makeRegistry();
+    expect(() =>
+      registry.preview({
+        backends: [
+          { name: 'nas-backups', type: 'local', options: { root: makeTmpDir() } },
+          { name: 'backups-mirror', type: 'mirror', options: { primary: 'backups-local', replicas: ['nas-backups'] } },
+        ],
+        categories: { backups: 'backups-mirror' },
+      }),
+    ).not.toThrow();
   });
 });
 

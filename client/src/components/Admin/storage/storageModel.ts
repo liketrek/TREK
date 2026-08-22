@@ -198,6 +198,32 @@ export function foldBackends(
   return { rows, degenerate }
 }
 
+/**
+ * The rows offerable as mirror replicas (the "Mirror targets" picker).
+ *
+ * A backend that already serves a category — directly, or as the primary of a
+ * mirror a category routes to, which is exactly what `row.categories` unions —
+ * can never also be a replica: the mirror's sync sweep makes each replica
+ * MATCH the primary, deleting whatever the primary doesn't hold, and `backups`
+ * sweeps the replica's entire root. The server refuses such a config outright
+ * (storage-registry.service.ts, assertNoSharedReplicas); the picker simply
+ * never offers one, so the operator can't walk into the refusal.
+ *
+ * Targets already selected on this mirror stay listed regardless — they must
+ * remain visible to be unchecked (and a config that predates this rule is
+ * repaired here, not hidden).
+ */
+export function replicaCandidates(
+  rows: FoldedBackendRow[],
+  selfName: string | null,
+  currentTargets: readonly string[] = [],
+): string[] {
+  return rows
+    .filter((row) => row.name !== selfName)
+    .filter((row) => row.categories.length === 0 || currentTargets.includes(row.name))
+    .map((row) => row.name)
+}
+
 function uniqueMirrorName(state: StorageAdminState, draft: StorageConfig, primaryName: string): string {
   const taken = new Set([...draft.backends.map((b) => b.name), ...state.backends.map((b) => b.name)])
   const base = `${primaryName}-mirror`

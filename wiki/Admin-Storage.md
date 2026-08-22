@@ -34,6 +34,11 @@ Edit any backend and tick one or more **Mirror targets**: every write to that
 backend is then also copied to each selected target. Removing all targets
 turns replication off again.
 
+- A backend can serve as a **mirror target or as a category target, not
+  both** — only backends no category is stored on are offered in the list, and
+  saving a configuration that mixes the two is refused. A sync makes a target
+  match its backend (see below), so anything else stored there would be
+  deleted.
 - Writes go to the backend itself first (it stays the source of truth), then
   to each target in order. A slow or unreachable target slows every upload of
   every category on that backend — ideal for backups, worth weighing before

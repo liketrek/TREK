@@ -18,6 +18,10 @@ function baseState(overrides: Partial<StorageAdminState> = {}): StorageAdminStat
       { name: 'backups-local', type: 'local', source: 'built-in', options: { root: '/data/backups' }, categories: ['backups'] },
       { name: 'place-photos-local', type: 'local', source: 'env', options: { root: '/photos' }, categories: ['places'] },
       { name: 'off-box', type: 's3', source: 'settings', options: S3_MASKED, categories: ['covers'] },
+      // Unassigned on purpose: the only row the mirror-target picker may
+      // offer, since a backend that serves a category can never also be a
+      // replica (the sync sweep would delete that category's objects).
+      { name: 'cold-store', type: 'local', source: 'settings', options: { root: '/data/cold' }, categories: [] },
     ],
     categories: {
       files: { backend: 'uploads-local', source: 'default' },
@@ -42,6 +46,13 @@ function baseState(overrides: Partial<StorageAdminState> = {}): StorageAdminStat
 
 function mirroredState(): StorageAdminState {
   const state = baseState();
+  // off-box is this fixture's REPLICA, so it must not also be a direct
+  // category target — the server refuses that config outright (a backups
+  // sweep would delete the covers objects), so covers goes back to its
+  // default. cold-store stays free as the second offerable target.
+  state.backends.find((b) => b.name === 'off-box')!.categories = [];
+  state.backends.find((b) => b.name === 'uploads-local')!.categories.push('covers');
+  state.categories.covers = { backend: 'uploads-local', source: 'default' };
   state.backends.push({
     name: 'mirror', type: 'mirror', source: 'settings',
     options: { primary: 'backups-local', replicas: ['off-box'] }, categories: ['backups'],
@@ -129,7 +140,7 @@ describe('AdminStoragePanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Just route new writes' }));
     await screen.findByText('Storage configuration saved');
     const body = putBody as StorageConfig;
-    expect(body.backends.map((b) => b.name)).toEqual(['off-box']); // built-ins/env never in the body
+    expect(body.backends.map((b) => b.name)).toEqual(['off-box', 'cold-store']); // built-ins/env never in the body
     expect(body.categories).toEqual({ covers: 'off-box', files: 'off-box' });
   });
 
@@ -172,7 +183,7 @@ describe('AdminStoragePanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Remove backend' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     await screen.findByText('Storage configuration saved');
-    expect((putBody as StorageConfig).backends).toEqual([]);
+    expect((putBody as StorageConfig).backends.map((b) => b.name)).toEqual(['cold-store']);
   });
 
   it('FE-ADMIN-STOR-007: Test on a mirrored primary probes the draft primary and each replica individually (never the mirror stub), merging into one result', async () => {
@@ -268,7 +279,9 @@ describe('AdminStoragePanel', () => {
       }),
     );
     fireEvent.click(within(backendRow('backups-local')).getByRole('button', { name: 'Edit' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'off-box' }));
+    // off-box serves covers, so the picker never offers it as a replica.
+    expect(screen.queryByRole('checkbox', { name: 'off-box' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'cold-store' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     await screen.findByText('Storage configuration saved');
@@ -277,7 +290,7 @@ describe('AdminStoragePanel', () => {
       expect.arrayContaining(['off-box', 'backups-local', 'backups-local-mirror']),
     );
     expect(body.backends.find((b) => b.name === 'backups-local-mirror')!.options).toEqual({
-      primary: 'backups-local', replicas: ['off-box'],
+      primary: 'backups-local', replicas: ['cold-store'],
     });
     expect(body.categories.backups).toBe('backups-local-mirror'); // default-sourced category rewritten
   });
@@ -293,14 +306,28 @@ describe('AdminStoragePanel', () => {
     );
     fireEvent.click(within(backendRow('backups-local')).getByRole('button', { name: 'Edit' }));
     expect(screen.getByRole('checkbox', { name: 'off-box' })).toBeChecked(); // initialTargets from the fold
-    fireEvent.click(screen.getByRole('checkbox', { name: 'uploads-local' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'cold-store' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     await screen.findByText('Storage configuration saved');
     const mirrors = (putBody as StorageConfig).backends.filter((b) => b.type === 'mirror');
     expect(mirrors).toHaveLength(1);
     expect(mirrors[0]!.name).toBe('mirror'); // adopted, not renamed
-    expect(mirrors[0]!.options).toEqual({ primary: 'backups-local', replicas: ['off-box', 'uploads-local'] });
+    expect(mirrors[0]!.options).toEqual({ primary: 'backups-local', replicas: ['off-box', 'cold-store'] });
+  });
+
+  it('FE-ADMIN-STOR-048: the mirror-target picker never offers a backend that serves a category — but keeps already-selected targets visible', async () => {
+    await renderPanel(mirroredState());
+    fireEvent.click(within(backendRow('backups-local')).getByRole('button', { name: 'Edit' }));
+    // Serving rows are refused as replicas by the server (a sync sweep would
+    // delete their categories' objects) — so they are never offered here.
+    expect(screen.queryByRole('checkbox', { name: 'uploads-local' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: 'place-photos-local' })).not.toBeInTheDocument();
+    // ...and never the row being edited itself, which serves backups.
+    expect(screen.queryByRole('checkbox', { name: 'backups-local' })).not.toBeInTheDocument();
+    // Free rows are offered; the current target stays listed so it can be unchecked.
+    expect(screen.getByRole('checkbox', { name: 'cold-store' })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'off-box' })).toBeChecked();
   });
 
   it('FE-ADMIN-STOR-014: unchecking every target dissolves the mirror and re-points its categories', async () => {
@@ -353,7 +380,7 @@ describe('AdminStoragePanel', () => {
     const state = mirroredState();
     state.backends.push({
       name: 'mirror2', type: 'mirror', source: 'settings',
-      options: { primary: 'backups-local', replicas: ['off-box'] }, categories: [],
+      options: { primary: 'backups-local', replicas: ['cold-store'] }, categories: [],
     });
     await renderPanel(state);
     const row = screen.getByTestId('storage-backend-mirror2');
@@ -454,7 +481,7 @@ describe('AdminStoragePanel', () => {
       http.put('/api/admin/storage', async () => HttpResponse.json(mirroredState())),
     );
     fireEvent.click(within(backendRow('backups-local')).getByRole('button', { name: 'Edit' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'off-box' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'cold-store' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     await within(backendRow('backups-local')).findByText(/Existing objects are not replicated yet/);
@@ -902,7 +929,7 @@ describe('AdminStoragePanel', () => {
     await renderPanel();
     server.use(http.put('/api/admin/storage', () => HttpResponse.json({ error: 'nope' }, { status: 400 })));
     fireEvent.click(within(backendRow('backups-local')).getByRole('button', { name: 'Edit' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'off-box' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'cold-store' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     await screen.findByText('nope');
