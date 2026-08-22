@@ -50,7 +50,10 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
         onMarkerClick={planner.handleMarkerClick}
         // Tap on empty map = deselect, same contract as desktop.
         onMapClick={planner.handleMapClick}
-        onMapContextMenu={planner.handleMapContextMenu}
+        // The chip rail names a day at all times on mobile, so a place dropped on
+        // the map belongs to it — the desktop map has no such context and passes
+        // nothing, which keeps its pool behaviour (#1998).
+        onMapContextMenu={e => planner.handleMapContextMenu(e, planner.selectedDayId)}
         // No center/zoom: the map frames itself on the trip's places at mount.
         tileUrl={planner.mapTileUrl}
         fitKey={planner.fitKey}
@@ -62,7 +65,7 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
         // routes this through mapTransportDetail into the day sidebar instead).
         onReservationClick={(rid: number) => shell.openSheet('transport', { reservationId: rid })}
         pois={poi.pois}
-        onPoiClick={planner.openAddPlaceFromPoi}
+        onPoiClick={marker => planner.openAddPlaceFromPoi(marker, planner.selectedDayId)}
         onViewportChange={poi.onViewportChange}
         onMapReady={setGlMap}
       />

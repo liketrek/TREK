@@ -1,4 +1,4 @@
-import { Hotel, Utensils, ShoppingCart, Bus, Plane, Ticket, Camera, ShoppingBag, FileText, HeartPulse, Coins, MoreHorizontal } from 'lucide-react'
+import { Hotel, Utensils, ShoppingCart, Bus, Plane, Ticket, Camera, ShoppingBag, FileText, HeartPulse, Coins, MoreHorizontal, Fuel, ParkingCircle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { COST_CATEGORIES, type CostCategory } from '@trek/shared'
 
@@ -27,6 +27,8 @@ export const COST_CAT_META: Record<CostCategory, CostCategoryMeta> = {
   fees:          { key: 'fees',          labelKey: 'costs.cat.fees',          Icon: FileText, color: '#475569' },
   health:        { key: 'health',        labelKey: 'costs.cat.health',        Icon: HeartPulse, color: '#dc2626' },
   tips:          { key: 'tips',          labelKey: 'costs.cat.tips',          Icon: Coins, color: '#d97706' },
+  fuel:          { key: 'fuel',          labelKey: 'costs.cat.fuel',          Icon: Fuel, color: '#f59e0b' },
+  parking:       { key: 'parking',       labelKey: 'costs.cat.parking',       Icon: ParkingCircle, color: '#3b82f6' },
   other:         { key: 'other',         labelKey: 'costs.cat.other',         Icon: MoreHorizontal, color: '#6b7280' },
 }
 
@@ -51,6 +53,8 @@ const LEGACY_CATEGORY_MAP: Record<string, CostCategory> = {
   fee: 'fees', fees: 'fees',
   health: 'health', medical: 'health',
   tip: 'tips', tips: 'tips',
+  gas: 'fuel', fuel: 'fuel', petrol: 'fuel',
+  parking: 'parking', parkings: 'parking', 'car park': 'parking',
   other: 'other', misc: 'other',
 }
 

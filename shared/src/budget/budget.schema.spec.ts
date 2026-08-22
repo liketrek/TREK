@@ -3,6 +3,8 @@ import {
   budgetUpdateMembersRequestSchema,
   budgetToggleMemberPaidRequestSchema,
   budgetReorderItemsRequestSchema,
+  COST_CATEGORIES,
+  typeToCostCategory,
 } from './budget.schema';
 
 import { describe, it, expect } from 'vitest';
@@ -39,5 +41,23 @@ describe('budgetReorderItemsRequestSchema', () => {
   it('requires numeric ids', () => {
     expect(budgetReorderItemsRequestSchema.safeParse({ orderedIds: [3, 1, 2] }).success).toBe(true);
     expect(budgetReorderItemsRequestSchema.safeParse({ orderedIds: ['a'] }).success).toBe(false);
+  });
+});
+
+describe('COST_CATEGORIES', () => {
+  it('includes fuel and parking alongside the existing fixed categories', () => {
+    expect(COST_CATEGORIES).toContain('fuel');
+    expect(COST_CATEGORIES).toContain('parking');
+  });
+});
+
+describe('typeToCostCategory', () => {
+  it('files a parking booking under parking, not transport', () => {
+    expect(typeToCostCategory('parking')).toBe('parking');
+  });
+
+  it('leaves the other vehicle types on transport', () => {
+    expect(typeToCostCategory('car-rental')).toBe('transport');
+    expect(typeToCostCategory('taxi')).toBe('transport');
   });
 });

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Clock, ChevronUp, ChevronDown } from 'lucide-react'
 import { useSettingsStore } from '../../store/settingsStore'
 import { formatClockTime, parseMeridiemTime } from '../../utils/formatters'
+import { useAnchoredPosition } from '../../hooks/useAnchoredPosition'
 
 interface CustomTimePickerProps {
   value: string
@@ -17,6 +18,8 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
   const [inputFocused, setInputFocused] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const dropRef = useRef<HTMLDivElement>(null)
+  // The spinner is short, and it has to keep up with a scrolling sheet (#1999).
+  const anchored = useAnchoredPosition(ref, open, { estimatedHeight: 120, matchWidth: false })
 
   const [h, m] = (parseMeridiemTime(value) ?? value ?? '').split(':').map(Number)
   const hour = isNaN(h) ? null : h
@@ -151,8 +154,11 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
       {open && createPortal(
         <div ref={dropRef} style={{
           position: 'fixed',
-          top: (() => { const r = ref.current?.getBoundingClientRect(); return r ? r.bottom + 4 : 0 })(),
-          left: (() => { const r = ref.current?.getBoundingClientRect(); return r ? r.left : 0 })(),
+          ...(anchored
+            ? anchored.flipped
+              ? { bottom: anchored.bottom, left: anchored.left }
+              : { top: anchored.top, left: anchored.left }
+            : { top: 0, left: 0 }),
           zIndex: 99999,
           background: 'var(--bg-card)', border: '1px solid var(--border-primary)',
           borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.12)',

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   Briefcase, Check, CheckCheck, ChevronDown, ChevronUp, HandHelping,
-  LayoutTemplate, MoreHorizontal, Package, Pencil, Plus, RotateCcw, Save as SaveIcon, Trash2, Upload, UserPlus, UserRound,
+  Download, LayoutTemplate, MoreHorizontal, Package, Pencil, Plus, RotateCcw, Save as SaveIcon, Trash2, UserPlus, UserRound,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { useAuthStore } from '../../../../store/authStore'
@@ -323,7 +323,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
               {isAdmin && items.length > 0 && (
                 <ActionRow icon={SaveIcon} label={t('packing.saveAsTemplate')} onClick={() => setActionView('save')} />
               )}
-              <ActionRow icon={Upload} label={t('packing.import')} onClick={() => { setActionsOpen(false); setShowImportSheet(true) }} />
+              <ActionRow icon={Download} label={t('packing.import')} onClick={() => { setActionsOpen(false); setShowImportSheet(true) }} />
             </>
           )}
           {actionView === 'apply' && (

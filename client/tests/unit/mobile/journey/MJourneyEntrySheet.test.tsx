@@ -453,14 +453,14 @@ describe('MJourneyEntrySheet full editor', () => {
     expect(onSave.mock.calls[0][0]).toMatchObject({ type: 'entry' });
   });
 
-  it('FE-MOB-JENTRY-010: leaves an untouched skeleton a skeleton', async () => {
+  it('FE-MOB-JENTRY-010: promotes a skeleton the user saved without editing (#2008)', async () => {
     const user = userEvent.setup();
     const { onSave } = mountSheet(buildEntry({ id: 9, type: 'skeleton', title: 'Venice' }));
 
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave.mock.calls[0][0]).toMatchObject({ type: undefined });
+    expect(onSave.mock.calls[0][0]).toMatchObject({ type: 'entry' });
   });
 
   it('FE-MOB-JENTRY-011: queues picked files, reports progress and uploads them on save', async () => {

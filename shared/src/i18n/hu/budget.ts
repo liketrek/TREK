@@ -117,6 +117,8 @@ const budget: TranslationStrings = {
   'costs.cat.fees': 'Díjak és jegyek',
   'costs.cat.health': 'Egészség',
   'costs.cat.tips': 'Borravaló',
+  'costs.cat.fuel': 'Üzemanyag',
+  'costs.cat.parking': 'Parkolás',
   'costs.cat.other': 'Egyéb',
   'costs.daysCount': '{count} nap',
   'costs.travelers': '{count} utazó',

@@ -12,6 +12,7 @@ import { getDisplayTimeForDay, getSpanPhase } from '../../../../utils/dayMerge'
 import { formatTime, splitReservationDateTime } from '../../../../utils/formatters'
 import { transportSubtitle, type TransitMeta, type TransportEntry } from './planTimelineModel'
 import { splitNoteTime } from '../lib/dayNotes'
+import type { DragRowProps } from './useMPlanDragReorder'
 import type { TransitLegDisplay } from '../../../../components/Planner/transitDisplay'
 import type { Assignment, DayNote, Place, Reservation, RouteSegment, TranslationFn } from '../../../../types'
 import { formatScheduleMinutes } from '../../../../components/Plugins/PluginDaySchedule'
@@ -21,7 +22,11 @@ import type { PluginDayScheduleItem } from '../../../../api/client'
  * The five row types of the mobile day timeline (place / manual transport /
  * auto-transit with collapsible legs / travel-time connector / note), each in
  * its go and edit variant. Edit rows swap the left avatar for right-hand action
- * circles; reordering is button-based — no drag on touch (#1432).
+ * circles.
+ *
+ * Reordering has two paths: the up/down stack, and — since #1997 — a long-press
+ * drag carried by `utils/touchDragBridge`. `drag` below is the second one's props;
+ * it is undefined outside edit mode, which is what keeps a plain scroll a scroll.
  */
 
 interface RowChrome {
@@ -30,6 +35,20 @@ interface RowChrome {
   language: string
   timeFormat: string
 }
+
+/** Native drag props from useMPlanDragReorder, plus the row's own drag state. */
+export interface RowDrag extends DragRowProps {
+  dragging: boolean
+  dropTarget: boolean
+}
+
+/** Dims the travelling row and rules a line where the drop would land. */
+const dragClass = (d?: RowDrag): string =>
+  !d ? '' : `${d.dragging ? 'opacity-40' : ''} ${d.dropTarget && !d.dragging ? 'shadow-[inset_0_2px_0_0_var(--m-act)]' : ''}`
+
+/** Only the props a DOM node takes — `dragging`/`dropTarget` are ours. */
+const dragProps = (d?: RowDrag) =>
+  d ? { draggable: d.draggable, onDragStart: d.onDragStart, onDragOver: d.onDragOver, onDrop: d.onDrop, onDragEnd: d.onDragEnd } : {}
 
 const fmtTime = (time: string | null | undefined, c: RowChrome): string =>
   time ? formatTime(time.slice(0, 5), c.language, c.timeFormat) : ''
@@ -100,12 +119,13 @@ const TIME_CHIP = 'flex-none whitespace-nowrap rounded-[6px] bg-[color:var(--m-i
 
 // ── b3) Place row ────────────────────────────────────────────────────────────
 
-export function PlaceRow({ assignment, fullPlace, linkedRes, chrome, reorder, onOpen, onEdit, onRemove }: {
+export function PlaceRow({ assignment, fullPlace, linkedRes, chrome, reorder, drag, onOpen, onEdit, onRemove }: {
   assignment: Assignment
   fullPlace: Place | undefined
   linkedRes: Reservation | null
   chrome: RowChrome
   reorder: ReactNode
+  drag?: RowDrag
   onOpen: () => void
   onEdit: () => void
   onRemove: () => void
@@ -122,7 +142,7 @@ export function PlaceRow({ assignment, fullPlace, linkedRes, chrome, reorder, on
     : place?.address || place?.description || ''
 
   return (
-    <div onClick={onOpen} className="flex cursor-pointer items-center gap-2.5 py-1.5">
+    <div {...dragProps(drag)} onClick={onOpen} className={`flex cursor-pointer items-center gap-2.5 py-1.5 ${dragClass(drag)}`}>
       {!chrome.editing && (
         <AvatarRing className="shadow-[0_3px_8px_-3px_rgba(0,0,0,.4)]">
           <PlaceAvatar
@@ -175,11 +195,12 @@ export function PlaceRow({ assignment, fullPlace, linkedRes, chrome, reorder, on
 
 // ── b1) Manual transport / booking row ───────────────────────────────────────
 
-export function TransportRow({ res, dayId, chrome, reorder, onOpen }: {
+export function TransportRow({ res, dayId, chrome, reorder, drag, onOpen }: {
   res: TransportEntry
   dayId: number
   chrome: RowChrome
   reorder: ReactNode
+  drag?: RowDrag
   onOpen: () => void
 }) {
   const Icon = RES_ICONS[res.type as keyof typeof RES_ICONS] || Ticket
@@ -192,7 +213,7 @@ export function TransportRow({ res, dayId, chrome, reorder, onOpen }: {
   const sub = transportSubtitle(res)
 
   return (
-    <div onClick={onOpen} className="mt-1.5 flex cursor-pointer items-center gap-2.5">
+    <div {...dragProps(drag)} onClick={onOpen} className={`mt-1.5 flex cursor-pointer items-center gap-2.5 ${dragClass(drag)}`}>
       {!chrome.editing && (
         <AvatarRing>
           <Icon size={14} strokeWidth={2} />
@@ -313,13 +334,14 @@ function TransitLegRows({ legs, t }: { legs: TransitLegDisplay[]; t: Translation
   )
 }
 
-export function TransitRow({ res, transit, dayId, open, chrome, reorder, onToggle, onOpenJourney }: {
+export function TransitRow({ res, transit, dayId, open, chrome, reorder, drag, onToggle, onOpenJourney }: {
   res: TransportEntry
   transit: TransitMeta
   dayId: number
   open: boolean
   chrome: RowChrome
   reorder: ReactNode
+  drag?: RowDrag
   onToggle: () => void
   onOpenJourney: () => void
 }) {
@@ -331,7 +353,7 @@ export function TransitRow({ res, transit, dayId, open, chrome, reorder, onToggl
   const Chevron = open ? ChevronUp : ChevronDown
 
   return (
-    <div className="mt-1.5 flex items-start gap-2.5">
+    <div {...dragProps(drag)} className={`mt-1.5 flex items-start gap-2.5 ${dragClass(drag)}`}>
       {!chrome.editing && (
         <AvatarRing className="mt-1">
           <Icon size={14} strokeWidth={2} />
@@ -458,10 +480,11 @@ export function HotelConnRow({ seg, name, placement }: {
 
 // ── b5) Day-note row ─────────────────────────────────────────────────────────
 
-export function NoteRow({ note, chrome, reorder, onEdit }: {
+export function NoteRow({ note, chrome, reorder, drag, onEdit }: {
   note: DayNote
   chrome: RowChrome
   reorder: ReactNode
+  drag?: RowDrag
   onEdit: () => void
 }) {
   const Icon = getNoteIcon(note.icon)
@@ -474,8 +497,9 @@ export function NoteRow({ note, chrome, reorder, onEdit }: {
 
   return (
     <div
+      {...dragProps(drag)}
       onClick={chrome.editing ? onEdit : undefined}
-      className={`my-[2px] flex items-center gap-2.5 ${chrome.editing ? 'cursor-pointer' : ''}`}
+      className={`my-[2px] flex items-center gap-2.5 ${chrome.editing ? 'cursor-pointer' : ''} ${dragClass(drag)}`}
     >
       {!chrome.editing && (
         <AvatarRing style={note.color ? { background: skin.iconBackground, borderColor: skin.border } : undefined}>

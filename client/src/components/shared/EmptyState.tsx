@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import MDancingTrek, { type TrekScene, type TrekMood } from '../../mobile/components/MDancingTrek'
 
 /**
@@ -18,6 +18,7 @@ export default function EmptyState({
   size = 104,
   surface = 'var(--bg-card)',
   className = '',
+  action,
 }: {
   scene?: TrekScene
   mood?: TrekMood
@@ -25,6 +26,8 @@ export default function EmptyState({
   size?: number
   surface?: string
   className?: string
+  /** Optional call to action under the title, for states that have an obvious next step. */
+  action?: ReactNode
 }) {
   return (
     <div
@@ -33,6 +36,7 @@ export default function EmptyState({
     >
       <MDancingTrek scene={scene} mood={mood} size={size} />
       <p className="text-[15px] font-semibold text-content-secondary">{title}</p>
+      {action}
     </div>
   )
 }

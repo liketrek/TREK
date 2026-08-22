@@ -1,8 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import {
-  ChevronDown, ChevronUp, Compass, Copy, Files, ImageIcon, LayoutTemplate, Plus,
-  Search, Shapes, Trash2, Upload, X,
-} from 'lucide-react'
+import { ChevronDown, ChevronUp, Compass, Copy, FileDown, Files, ImageIcon, LayoutTemplate, Plus, Search, Shapes, Trash2, X } from 'lucide-react'
 import type { BookElement, BookPageSetup, JourneyStats } from '@trek/shared'
 import { useElementSize } from '../../hooks/useElementSize'
 import { useStudioStore } from '../../store/studioStore'
@@ -259,7 +256,7 @@ function PagesPanel({
             onClick={() => fileInput.current?.click()}
             title={t('journey.studio.importSpreadHint')}
           >
-            <Upload size={14} />
+            <FileDown size={14} />
             {t('journey.studio.importSpread')}
           </button>
         </div>

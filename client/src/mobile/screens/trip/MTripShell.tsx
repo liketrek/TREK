@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react'
 import { findTodayDayId } from '../../../components/Planner/today'
 import {
-  ChevronLeft, FileDown, List, Map as MapIcon, MoreHorizontal, PackageCheck,
+  ChevronDown, ChevronLeft, Download, FileDown, List, Map as MapIcon, MoreHorizontal, PackageCheck,
   Plane, Plus, Rows3, Ticket, TrainFront, Trash2, Upload, Wallet,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -241,7 +241,7 @@ export default function MTripShell({
     // Entering the map: draw the current day's route and frame it — the
     // BoundsController re-fits to include the polyline once OSRM resolves.
     if (next === 'map') {
-      planner.setRouteShown(true)
+      planner.autoShowRoute()
       if (planner.selectedDayId != null) planner.handleSelectDay(planner.selectedDayId, false)
       focusMapOnDay(planner.selectedDayId)
     } else {
@@ -284,7 +284,7 @@ export default function MTripShell({
       // In map mode a day tap fits to that day's places, draws its route and drops
       // the other days' pins, so the day it framed is the day it shows.
       if (view === 'map') {
-        planner.setRouteShown(true)
+        planner.autoShowRoute()
         focusMapOnDay(dayId)
       }
     }
@@ -335,11 +335,14 @@ export default function MTripShell({
                   // Inactive chips only — an inline background would otherwise beat
                   // the active chip's bg-m-act class.
                   style={active ? undefined : { background: dayTintBackground(tint, 'badge', '--day-tint-chip') }}
-                  className={`flex-1 whitespace-nowrap rounded-full px-3 py-[5px] text-center text-[0.75rem] font-semibold ${
+                  className={`flex flex-1 items-center justify-center gap-[3px] whitespace-nowrap rounded-full px-3 py-[5px] text-center text-[0.75rem] font-semibold ${
                     active ? 'bg-m-act text-m-actfg shadow-[0_6px_16px_-6px_rgba(0,0,0,.4)]' : 'text-m-ink'
                   }`}
                 >
                   {dayChipLabel(day, language, t('planner.dayN', { n: day.day_number ?? idx + 1 }))}
+                  {/* Marks the second tap as "opens the day", the only day-sheet
+                      route that also exists in map view. */}
+                  {active && <ChevronDown size={11} strokeWidth={2.6} aria-hidden="true" className="flex-none opacity-70" />}
                 </button>
               )
             })}
@@ -387,7 +390,7 @@ export default function MTripShell({
             />
             {planner.bookingImportAvailable && (
               <MIconBtn ariaLabel={t('reservations.import.title')} onClick={() => planner.setShowBookingImport(true)} size={40} className="text-m-muted backdrop-blur-[24px] backdrop-saturate-[1.7]">
-                <Upload size={15} strokeWidth={2} />
+                <Download size={15} strokeWidth={2} />
               </MIconBtn>
             )}
             {planner.airTrailAvailable && (
@@ -407,7 +410,7 @@ export default function MTripShell({
             />
             {planner.bookingImportAvailable && (
               <MIconBtn ariaLabel={t('reservations.import.title')} onClick={() => planner.setShowBookingImport(true)} size={40} className="text-m-muted backdrop-blur-[24px] backdrop-saturate-[1.7]">
-                <Upload size={15} strokeWidth={2} />
+                <Download size={15} strokeWidth={2} />
               </MIconBtn>
             )}
             <CompactToggle active={bookingsCompact} onToggle={() => setBookingsCompact(v => !v)} label={t('mobileTrip.compactView')} />

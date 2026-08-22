@@ -43,7 +43,7 @@ import { useRouteCalculation } from '../hooks/useRouteCalculation'
 import { usePlaceSelection } from '../hooks/usePlaceSelection'
 import { usePlannerHistory } from '../hooks/usePlannerHistory'
 import type { Accommodation, TripMember, Day, Place, Reservation, PackingItem, TodoItem } from '../types'
-import { ListTodo, Upload, Plus, Trash2, FolderPlus } from 'lucide-react'
+import { ListTodo, Download, Plus, Trash2, FolderPlus } from 'lucide-react'
 import { useTripPlanner } from './tripPlanner/useTripPlanner'
 import { usePoiExplore } from '../components/Map/usePoiExplore'
 import PoiCategoryPill from '../components/Map/PoiCategoryPill'
@@ -189,7 +189,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
                   className={`${sharedBtnClass} bg-accent text-accent-text`}
                   style={sharedBtnStyle}
                 >
-                  <Upload size={14} strokeWidth={2.5} />
+                  <Download size={14} strokeWidth={2.5} />
                   <span className="hidden sm:inline">{t('packing.import')}</span>
                 </button>
               </div>
@@ -278,6 +278,22 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
   // so a long press stands in for one (#1616). Only where the pointer is
   // coarse — a hybrid laptop loads drag-drop-touch instead.
   useTouchDragBridge(isTouch && !isMobile)
+
+  // The place inspector's booking strip opens the editor the booking belongs to.
+  // Handed over as undefined when the right is missing, so the strip stays a
+  // read-only summary rather than a button that does nothing (#2012).
+  const openLinkedTransport = can('day_edit', trip) ? (reservation: Reservation) => {
+    setEditingTransport(reservation)
+    setTransportModalDayId(reservation.day_id ?? null)
+    setTransportModalAutomated(false)
+    setShowTransportModal(true)
+    setMobileSidebarOpen(null)
+  } : undefined
+  const openLinkedReservation = can('reservation_edit', trip) ? (reservation: Reservation) => {
+    setEditingReservation(reservation)
+    setShowReservationModal(true)
+    setMobileSidebarOpen(null)
+  } : undefined
 
   const poi = usePoiExplore()
   const [glMap, setGlMap] = useState<CompassMap | null>(null)
@@ -594,6 +610,8 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
 
             {selectedPlace && !isMobile && (
               <PlaceInspector
+                onEditTransport={openLinkedTransport}
+                onEditReservation={openLinkedReservation}
                 place={selectedPlace}
                 categories={categories}
                 days={days}
@@ -634,6 +652,8 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
               <div className="bg-[rgba(0,0,0,0.3)]" style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 'var(--bottom-nav-h)' }} onClick={() => setSelectedPlaceId(null)}>
                 <div style={{ width: '100%', maxHeight: '85vh' }} onClick={e => e.stopPropagation()}>
                   <PlaceInspector
+                    onEditTransport={openLinkedTransport}
+                    onEditReservation={openLinkedReservation}
                     place={selectedPlace}
                     categories={categories}
                     days={days}

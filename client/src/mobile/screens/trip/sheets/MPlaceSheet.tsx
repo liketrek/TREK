@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import {
-  Bookmark, Camera, ExternalLink, Loader2, Map as MapIcon, Navigation, Paperclip,
+  Bookmark, Camera, ChevronRight, ExternalLink, Loader2, Map as MapIcon, Navigation, Paperclip,
   Pencil, Phone, Plus, Route, Trash2, Upload, X,
 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
@@ -85,6 +85,35 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
     ? ((planner.selectedAssignmentId ? dayAssignments.find(a => a.id === planner.selectedAssignmentId) : null)
       ?? dayAssignments.find(a => a.place?.id === place?.id))
     : null
+  // The booking attached to that assignment. The desktop inspector shows this
+  // strip; the phone sheet never did, so a booking reached from a map marker was
+  // just as unreachable here, only invisibly so (#2012).
+  const linkedRes = assignmentInDay
+    ? planner.reservations.find(r => r.assignment_id === assignmentInDay.id) ?? null
+    : null
+  // A ferry or a flight has its own form — the reservation modal cannot hold one.
+  // Resolved up front so a user without the matching right gets no button at all,
+  // rather than one that does nothing (#2012).
+  const canOpenLinkedRes = !!linkedRes && planner.can(
+    planner.TRANSPORT_TYPES.has(linkedRes.type) ? 'day_edit' : 'reservation_edit',
+    planner.trip,
+  )
+  const openLinkedRes = () => {
+    if (!linkedRes || !canOpenLinkedRes) return
+    if (planner.TRANSPORT_TYPES.has(linkedRes.type)) {
+      planner.setEditingTransport(linkedRes)
+      planner.setTransportModalDayId(linkedRes.day_id ?? null)
+      planner.setTransportModalAutomated(false)
+      planner.setShowTransportModal(true)
+    } else {
+      planner.setEditingReservation(linkedRes)
+      planner.setShowReservationModal(true)
+    }
+    // This sheet hangs off the place selection, not the sheet stack, so its own
+    // close() is what dismisses it — otherwise the editor opens on top of it.
+    close()
+  }
+
   const participants = assignmentInDay?.participants || []
   const participantIds = participants.map(p => p.user_id)
   const allJoined = participants.length === 0
@@ -401,6 +430,30 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                   </button>
                 ))}
               </div>
+            )}
+
+            {/* ── The booking attached to this stop (#2012) ── */}
+            {linkedRes && (
+              <>
+                <Eyebrow className="mb-[6px] mt-3">{t('reservations.title')}</Eyebrow>
+                <button
+                  type="button"
+                  onClick={openLinkedRes}
+                  disabled={!canOpenLinkedRes}
+                  aria-label={canOpenLinkedRes ? t('inspector.editRes') : undefined}
+                  className={`flex w-full items-center gap-2 rounded-[14px] px-3 py-[10px] text-left ${INNER_CLS}`}
+                >
+                  <span
+                    className="h-2 w-2 flex-none rounded-full"
+                    style={{ background: linkedRes.status === 'confirmed' ? 'var(--m-st-confirmed)' : 'var(--m-st-pending)' }}
+                  />
+                  <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold">{linkedRes.title}</span>
+                  <span className="flex-none font-geist text-[0.65625rem] text-m-muted">
+                    {linkedRes.status === 'confirmed' ? t('reservations.confirmed') : t('reservations.pending')}
+                  </span>
+                  {canOpenLinkedRes && <ChevronRight size={14} strokeWidth={2} className="flex-none text-m-faint" />}
+                </button>
+              </>
             )}
 
             {/* ── Participants of the selected day's assignment ── */}

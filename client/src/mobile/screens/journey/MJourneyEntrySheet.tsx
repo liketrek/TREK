@@ -204,10 +204,9 @@ export default function MJourneyEntrySheet({
         weather: weather || null,
         tags: tags.filter(tag => tag.trim()),
         pros_cons: { pros: pros.filter(p => p.trim()), cons: cons.filter(c => c.trim()) },
-        type: entry.type === 'skeleton'
-          && (story.trim() || pendingFiles.length > 0 || pendingLinkIds.length > 0 || pendingProviderGroups.length > 0)
-          ? 'entry'
-          : undefined,
+        // An explicit Save is the user saying this suggestion is now their entry —
+        // it does not need a story to earn that (#2008).
+        type: entry.type === 'skeleton' ? 'entry' : undefined,
       }, persistedEntryIdRef.current ?? undefined)
       if (entryId > 0) persistedEntryIdRef.current = entryId
       if (pendingFiles.length > 0 && entryId) {

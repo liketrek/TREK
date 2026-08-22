@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
+import { useAnchoredPosition, scrollAnchorIntoView } from '../../hooks/useAnchoredPosition'
 
 interface SelectOption {
   // Callers use both string keys and numeric ids (e.g. day/place ids) as values;
@@ -41,8 +42,16 @@ export default function CustomSelect({
   const dropRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
 
+  // Follows the trigger while the sheet scrolls and while the on-screen keyboard
+  // resizes the viewport, instead of freezing at the rect measured on open (#1999).
+  const anchored = useAnchoredPosition(ref, open)
+
   useEffect(() => {
-    if (open && searchable && searchRef.current) searchRef.current.focus()
+    if (!open || !searchable || !searchRef.current) return
+    searchRef.current.focus()
+    // Focusing raises the keyboard on a phone; scroll the trigger up so the list
+    // it just opened is not left underneath it (#2000).
+    scrollAnchorIntoView(ref.current)
   }, [open, searchable])
 
   useEffect(() => {
@@ -121,15 +130,11 @@ export default function CustomSelect({
       {open && createPortal(
         <div ref={dropRef} style={{
           position: 'fixed',
-          ...(() => {
-            const r = ref.current?.getBoundingClientRect()
-            if (!r) return { top: 0, left: 0, width: 200 }
-            const spaceBelow = window.innerHeight - r.bottom
-            const openUp = spaceBelow < 220 && r.top > spaceBelow
-            return openUp
-              ? { bottom: window.innerHeight - r.top + 4, left: r.left, width: r.width }
-              : { top: r.bottom + 4, left: r.left, width: r.width }
-          })(),
+          ...(anchored
+            ? anchored.flipped
+              ? { bottom: anchored.bottom, left: anchored.left, width: anchored.width }
+              : { top: anchored.top, left: anchored.left, width: anchored.width }
+            : { top: 0, left: 0, width: 200 }),
           zIndex: 99999,
           background: 'var(--bg-card)',
           backdropFilter: 'blur(24px) saturate(180%)',
@@ -139,7 +144,7 @@ export default function CustomSelect({
           boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
           overflow: 'hidden',
           animation: 'trek-menu-enter 200ms cubic-bezier(0.23, 1, 0.32, 1)',
-          transformOrigin: 'top center',
+          transformOrigin: anchored?.flipped ? 'bottom center' : 'top center',
           willChange: 'transform, opacity',
         }}>
           {/* Search */}
@@ -161,8 +166,13 @@ export default function CustomSelect({
             </div>
           )}
 
-          {/* Options */}
-          <div style={{ maxHeight: 220, overflowY: 'auto', padding: '4px' }}>
+          {/* Options — capped at whatever the viewport still shows, so a list opened
+              beside an on-screen keyboard shrinks instead of hiding under it (#2000). */}
+          <div style={{
+            maxHeight: Math.min(220, Math.max(96, (anchored?.maxHeight ?? 220) - (searchable ? 38 : 0))),
+            overflowY: 'auto',
+            padding: '4px',
+          }}>
             {filtered.length === 0 ? (
               <div style={{ padding: '10px 12px', fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', textAlign: 'center' }}>—</div>
             ) : (

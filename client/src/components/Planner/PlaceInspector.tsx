@@ -30,6 +30,7 @@ import { splitReservationDateTime, formatTime, formatMoney } from '../../utils/f
 import { useTripStore } from '../../store/tripStore'
 import { formatDistance, formatElevation } from '../../utils/units'
 import { getNavigationTargets, openNavigationTarget } from './placeNavigation'
+import { TRANSPORT_TYPES } from '../../utils/dayMerge'
 import { NavigationMenu } from '../shared/NavigationMenu'
 import { resolveOpenNow, resolvePlaceTimeZone, placeWeekdayIndex } from './placeOpenState'
 import { convertHoursLine } from './placeHoursFormat'
@@ -143,6 +144,11 @@ interface PlaceInspectorProps {
   selectedAssignmentId?: number | null
   assignments?: AssignmentsMap
   reservations?: Reservation[]
+  /** Editors for the linked booking, each omitted when the user lacks that right —
+   *  a transport needs day_edit, anything else reservation_edit. Both absent leaves
+   *  the strip the read-only summary it has always been (#2012). */
+  onEditTransport?: (reservation: Reservation) => void
+  onEditReservation?: (reservation: Reservation) => void
   onClose: () => void
   onEdit?: () => void
   onDelete?: () => void
@@ -168,7 +174,7 @@ interface PlaceInspectorProps {
 
 export default function PlaceInspector({
   place, categories, mode = 'trip', days = [], selectedDayId = null, selectedAssignmentId = null,
-  assignments = {}, reservations = [],
+  assignments = {}, reservations = [], onEditTransport, onEditReservation,
   onClose, onEdit, onDelete, onAssignToDay, onRemoveAssignment,
   files = [], onFileUpload, tripMembers = [], onSetParticipants, onUpdatePlace, onUploadImage, onRate,
   leftWidth = 0, rightWidth = 0,
@@ -426,7 +432,8 @@ export default function PlaceInspector({
           {mode === 'trip' && (
             <PlaceReservationParticipants selectedAssignmentId={selectedAssignmentId} reservations={reservations}
               assignments={assignments} selectedDayId={selectedDayId} tripMembers={tripMembers} locale={locale}
-              timeFormat={timeFormat} t={t} onSetParticipants={onSetParticipants} />
+              timeFormat={timeFormat} t={t} onSetParticipants={onSetParticipants}
+              onEditTransport={onEditTransport} onEditReservation={onEditReservation} />
           )}
 
           {/* Opening hours + Files — side by side on desktop only if both exist */}
@@ -814,7 +821,7 @@ function PlaceInspectorHeader({ openNow, place, category, t, editingName, nameIn
 }
 
 function PlaceReservationParticipants({ selectedAssignmentId, reservations, assignments, selectedDayId,
-  tripMembers, locale, timeFormat, t, onSetParticipants }: any) {
+  tripMembers, locale, timeFormat, t, onSetParticipants, onEditTransport, onEditReservation }: any) {
   return (
     <>
           {(() => {
@@ -830,8 +837,25 @@ function PlaceReservationParticipants({ selectedAssignmentId, reservations, assi
                 {/* Reservation */}
                 {res && (() => {
                   const confirmed = res.status === 'confirmed'
+                  // The strip summarised the booking but went nowhere, so its
+                  // attachments and fields had no route from the map (#2012).
+                  // A transport has its own form; picking by type is what the day
+                  // sidebar does, and an absent handler means this user may not
+                  // open this one — so the strip stays inert rather than lying.
+                  const editor = TRANSPORT_TYPES.has(res.type) ? onEditTransport : onEditReservation
+                  const open = editor ? () => editor(res) : undefined
                   return (
-                    <div style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${confirmed ? 'rgba(22,163,74,0.2)' : 'rgba(217,119,6,0.2)'}` }}>
+                    <div
+                      role={open ? 'button' : undefined}
+                      aria-label={open ? t('inspector.editRes') : undefined}
+                      tabIndex={open ? 0 : undefined}
+                      onClick={open}
+                      onKeyDown={open ? (e: React.KeyboardEvent) => {
+                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open() }
+                      } : undefined}
+                      title={open ? t('inspector.editRes') : undefined}
+                      style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${confirmed ? 'rgba(22,163,74,0.2)' : 'rgba(217,119,6,0.2)'}`, cursor: open ? 'pointer' : undefined, textAlign: 'left' }}
+                    >
                       <div className={confirmed ? 'bg-[rgba(22,163,74,0.08)]' : 'bg-[rgba(217,119,6,0.08)]'} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px' }}>
                         <div className={confirmed ? 'bg-[#16a34a]' : 'bg-[#d97706]'} style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0 }} />
                         <span className={confirmed ? 'text-[#16a34a]' : 'text-[#d97706]'} style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700 }}>{confirmed ? t('reservations.confirmed') : t('reservations.pending')}</span>

@@ -447,7 +447,7 @@ describe('PackingListPanel', () => {
     const { container } = render(<PackingListPanel tripId={1} items={[]} />);
 
     // Click the Import button (Upload icon in the header)
-    const importBtn = container.querySelector('svg.lucide-upload')?.closest('button');
+    const importBtn = container.querySelector('svg.lucide-download')?.closest('button');
     expect(importBtn).toBeTruthy();
     await user.click(importBtn!);
 
@@ -538,7 +538,7 @@ describe('PackingListPanel', () => {
     const { container } = render(<PackingListPanel tripId={1} items={[]} />);
 
     // Open import modal
-    const importBtn = container.querySelector('svg.lucide-upload')?.closest('button');
+    const importBtn = container.querySelector('svg.lucide-download')?.closest('button');
     await user.click(importBtn!);
     await screen.findByText('Import Packing List');
 
@@ -655,7 +655,7 @@ describe('PackingListPanel', () => {
     const { container } = render(<PackingListPanel tripId={1} items={[]} />);
 
     // Open import modal
-    const importBtn = container.querySelector('svg.lucide-upload')?.closest('button');
+    const importBtn = container.querySelector('svg.lucide-download')?.closest('button');
     await user.click(importBtn!);
     await screen.findByText('Import Packing List');
 
@@ -929,7 +929,7 @@ describe('PackingListPanel', () => {
     const { container } = render(<PackingListPanel tripId={1} items={[]} />);
 
     // Open import modal
-    const importBtn = container.querySelector('svg.lucide-upload')?.closest('button');
+    const importBtn = container.querySelector('svg.lucide-download')?.closest('button');
     await user.click(importBtn!);
     await screen.findByText('Import Packing List');
 
@@ -1215,7 +1215,7 @@ describe('PackingListPanel', () => {
     const { container } = render(<PackingListPanel tripId={1} items={[]} />);
 
     // Open import modal
-    const importBtn = container.querySelector('svg.lucide-upload')?.closest('button');
+    const importBtn = container.querySelector('svg.lucide-download')?.closest('button');
     await user.click(importBtn!);
     await screen.findByText('Import Packing List');
 
@@ -1500,7 +1500,7 @@ describe('PackingListPanel', () => {
     const { container } = render(<PackingListPanel tripId={1} items={[]} />);
 
     // Open import modal
-    const importBtn = container.querySelector('svg.lucide-upload')?.closest('button');
+    const importBtn = container.querySelector('svg.lucide-download')?.closest('button');
     await user.click(importBtn!);
     await screen.findByText('Import Packing List');
 

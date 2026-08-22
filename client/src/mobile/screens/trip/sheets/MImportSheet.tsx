@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { ChevronLeft, ChevronRight, Download, MapPin, Upload } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, FileDown, MapPin } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import MIconBtn from '../../../components/MIconBtn'
@@ -51,7 +51,7 @@ export default function MImportSheet({ planner, open, onClose }: MImportSheetPro
       {step === 'menu' && (
         <div className="px-[14px] pb-[14px] pt-1">
           <ImpMenuRow
-            icon={Upload}
+            icon={FileDown}
             title={t('places.importFile')}
             sub="GPX · KML · KMZ"
             onClick={() => setStep('file')}

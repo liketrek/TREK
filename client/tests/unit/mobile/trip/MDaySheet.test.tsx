@@ -343,7 +343,11 @@ describe('MDaySheet', () => {
     // start_day_id is this day, end_day_id a later one → check-in badge plus the stat label.
     expect(screen.getAllByText('Check-in')).toHaveLength(2)
 
+    // Tapping the stay edits the stay; the place is one tap further right (#2001).
     fireEvent.click(screen.getByText('Hotel Sacher'))
+    expect(shell.openSheet).toHaveBeenCalledWith('accommodation', { dayId: 2, accId: ACCOMMODATIONS[0].id })
+
+    fireEvent.click(screen.getByRole('button', { name: 'View details' }))
     expect(shell.closeSheet).toHaveBeenCalled()
     expect(planner.handlePlaceClick).toHaveBeenCalledWith(55)
 

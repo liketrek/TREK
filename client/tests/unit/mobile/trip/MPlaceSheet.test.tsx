@@ -105,6 +105,14 @@ function makePlanner(overrides: Record<string, unknown> = {}) {
       ratePlace: vi.fn().mockResolvedValue(undefined),
     },
     can: vi.fn(() => true),
+    reservations: [] as unknown[],
+    TRANSPORT_TYPES: new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other']),
+    setEditingTransport: vi.fn(),
+    setTransportModalDayId: vi.fn(),
+    setTransportModalAutomated: vi.fn(),
+    setShowTransportModal: vi.fn(),
+    setEditingReservation: vi.fn(),
+    setShowReservationModal: vi.fn(),
     toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
     ...overrides,
   } as unknown as TripPlanner
@@ -428,5 +436,77 @@ describe('MPlaceSheet', () => {
     rerender(<MPlaceSheet planner={planner} shell={shell} />)
 
     expect(screen.getAllByRole('button', { name: /Automatic color/ })[0]).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  // ── The booking attached to this stop (#2012) ──
+
+  const bookingPlanner = (res: Record<string, unknown>) => makePlanner({
+    selectedAssignmentId: 11,
+    reservations: [res],
+  })
+
+  it('FE-MOB-PLSH-027: shows the booking attached to the day assignment (#2012)', () => {
+    renderSheet(bookingPlanner({ id: 7, assignment_id: 11, title: 'Ferry to Corfu', status: 'pending', type: 'ferry' }))
+
+    expect(screen.getByText('Ferry to Corfu')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-PLSH-028: a transport booking opens the transport editor, not the reservation modal', () => {
+    const planner = bookingPlanner({ id: 7, assignment_id: 11, title: 'Ferry to Corfu', status: 'pending', type: 'ferry', day_id: 2 })
+    renderSheet(planner)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Reservation' }))
+
+    expect(planner.setEditingTransport).toHaveBeenCalledWith(expect.objectContaining({ id: 7 }))
+    expect(planner.setTransportModalDayId).toHaveBeenCalledWith(2)
+    expect(planner.setShowTransportModal).toHaveBeenCalledWith(true)
+    expect(planner.setShowReservationModal).not.toHaveBeenCalled()
+    // and the place sheet gets out of the way
+    expect(planner.setSelectedPlaceId).toHaveBeenCalledWith(null)
+  })
+
+  it('FE-MOB-PLSH-029: a non-transport booking opens the reservation modal', () => {
+    const planner = bookingPlanner({ id: 8, assignment_id: 11, title: 'Museum tour', status: 'confirmed', type: 'activity' })
+    renderSheet(planner)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Reservation' }))
+
+    expect(planner.setEditingReservation).toHaveBeenCalledWith(expect.objectContaining({ id: 8 }))
+    expect(planner.setShowReservationModal).toHaveBeenCalledWith(true)
+    expect(planner.setShowTransportModal).not.toHaveBeenCalled()
+  })
+
+  it('FE-MOB-PLSH-030: a viewer without edit rights sees the booking but gets no live button', () => {
+    const planner = makePlanner({
+      selectedAssignmentId: 11,
+      reservations: [{ id: 7, assignment_id: 11, title: 'Ferry to Corfu', status: 'pending', type: 'ferry' }],
+      can: vi.fn(() => false),
+    })
+    renderSheet(planner)
+
+    // Still readable — just not a control that would do nothing when pressed.
+    expect(screen.getByText('Ferry to Corfu')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit Reservation' })).not.toBeInTheDocument()
+    const row = screen.getByText('Ferry to Corfu').closest('button') as HTMLButtonElement
+    expect(row.disabled).toBe(true)
+  })
+
+  it('FE-MOB-PLSH-030b: day_edit alone is not enough for a plain booking, and vice versa', () => {
+    // A ferry needs day_edit; a member who only has reservation_edit gets no button.
+    const planner = makePlanner({
+      selectedAssignmentId: 11,
+      reservations: [{ id: 7, assignment_id: 11, title: 'Ferry to Corfu', status: 'pending', type: 'ferry' }],
+      can: vi.fn((perm: string) => perm === 'reservation_edit'),
+    })
+    renderSheet(planner)
+
+    const row = screen.getByText('Ferry to Corfu').closest('button') as HTMLButtonElement
+    expect(row.disabled).toBe(true)
+  })
+
+  it('FE-MOB-PLSH-031: a booking on another assignment is not shown here', () => {
+    renderSheet(bookingPlanner({ id: 9, assignment_id: 999, title: 'Someone elses ferry', status: 'pending', type: 'ferry' }))
+
+    expect(screen.queryByText('Someone elses ferry')).not.toBeInTheDocument()
   })
 })

@@ -125,7 +125,22 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
       })
       setPendingFiles(pf._sourceFiles ?? [])
     } else {
-      setForm(EMPTY)
+      // Opened from a day's toolbar: start on that day rather than on a blank
+      // date the user has to look up again (#1998). A hotel spans to the next
+      // day, which is what checking in on this day actually means.
+      const ctxDay = planner.reservationModalDayId != null
+        ? days.find(d => d.id === planner.reservationModalDayId)
+        : undefined
+      const ctxDate = ctxDay?.date ? ctxDay.date.slice(0, 10) : ''
+      const nextDay = ctxDay ? days[days.indexOf(ctxDay) + 1] : undefined
+      setForm(ctxDate
+        ? {
+            ...EMPTY,
+            reservation_time: ctxDate,
+            hotel_start_day: ctxDay!.id,
+            hotel_end_day: nextDay?.id ?? ctxDay!.id,
+          }
+        : EMPTY)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showReservationModal])
@@ -186,6 +201,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
 
   const handleClose = () => {
     if (importReviewActive) { advanceImportReview(); return }
+    planner.setReservationModalDayId(null)
     setShowReservationModal(false)
     setEditingReservation(null)
     setBookingForAssignmentId(null)

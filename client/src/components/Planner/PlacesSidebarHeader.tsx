@@ -1,4 +1,4 @@
-import { Search, Plus, X, Upload, ChevronDown, Check, MapPin, Star } from 'lucide-react'
+import { Search, Plus, X, Upload, FileDown, ChevronDown, Check, MapPin, Star } from 'lucide-react'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import Tooltip from '../shared/Tooltip'
 import type { SidebarState } from './usePlacesSidebar'
@@ -54,7 +54,7 @@ export function PlacesHeader(S: SidebarState) {
             cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
-          <Upload size={11} strokeWidth={2} /> {t('places.importFile')}
+          <FileDown size={11} strokeWidth={2} /> {t('places.importFile')}
         </button>
         <button
           onClick={() => setListImportOpen(true)}

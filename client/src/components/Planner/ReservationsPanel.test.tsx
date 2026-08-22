@@ -66,15 +66,16 @@ describe('ReservationsPanel', () => {
 
   it('FE-COMP-RES-005: shows Manual Booking add button', () => {
     render(<ReservationsPanel {...defaultProps} />);
-    // Button text is reservations.addManual = "Manual Booking"
-    expect(screen.getByText('Manual Booking')).toBeInTheDocument();
+    // Button text is reservations.addManual = "Manual Booking" — in the toolbar
+    // and, on an empty list, in the empty state's call to action too (#2007).
+    expect(screen.getAllByText('Manual Booking').length).toBeGreaterThan(0);
   });
 
   it('FE-COMP-RES-006: clicking Manual Booking button calls onAdd', async () => {
     const user = userEvent.setup();
     const onAdd = vi.fn();
     render(<ReservationsPanel {...defaultProps} onAdd={onAdd} />);
-    await user.click(screen.getByText('Manual Booking'));
+    await user.click(screen.getAllByText('Manual Booking')[0]);
     expect(onAdd).toHaveBeenCalled();
   });
 
@@ -654,7 +655,7 @@ describe('ReservationsPanel', () => {
 
   it('FE-PLANNER-RESP-058: the add button dims on hover and restores on leave', () => {
     render(<ReservationsPanel {...defaultProps} />);
-    const add = screen.getByText('Manual Booking').closest('button') as HTMLButtonElement;
+    const add = screen.getAllByText('Manual Booking')[0].closest('button') as HTMLButtonElement;
     act(() => { add.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
     expect(add.style.opacity).toBe('0.88');
     act(() => { add.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); });

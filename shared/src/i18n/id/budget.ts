@@ -117,6 +117,8 @@ const budget: TranslationStrings = {
   'costs.cat.fees': 'Biaya & tiket',
   'costs.cat.health': 'Kesehatan',
   'costs.cat.tips': 'Tip',
+  'costs.cat.fuel': 'Bahan bakar',
+  'costs.cat.parking': 'Parkir',
   'costs.cat.other': 'Lainnya',
   'costs.daysCount': '{count} hari',
   'costs.travelers': '{count} pelancong',

@@ -1,5 +1,5 @@
 import {
-  X, Check, CheckCheck, Luggage, Package, FolderPlus, Upload,
+  X, Check, CheckCheck, Luggage, Package, FolderPlus, Download,
 } from 'lucide-react'
 import type { PackingState } from './usePackingListPanel'
 
@@ -46,7 +46,7 @@ export function PackingHeader(S: PackingState) {
               border: '1px solid var(--border-primary)', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500, cursor: 'pointer',
               fontFamily: 'inherit', background: 'var(--bg-card)', color: 'var(--text-muted)',
             }}>
-              <Upload size={12} /> <span className="hidden sm:inline">{t('packing.import')}</span>
+              <Download size={12} /> <span className="hidden sm:inline">{t('packing.import')}</span>
             </button>
           )}
           {inlineHeader && canEdit && abgehakt > 0 && (

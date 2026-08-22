@@ -117,6 +117,10 @@ export function buildPlanner(overrides: Partial<TripPlanner> = {}): TripPlanner 
     setEditingPlace: vi.fn(),
     prefillCoords: null,
     setPrefillCoords: vi.fn(),
+    placeFormDayId: null,
+    setPlaceFormDayId: vi.fn(),
+    reservationModalDayId: null,
+    setReservationModalDayId: vi.fn(),
     editingAssignmentId: null,
     setEditingAssignmentId: vi.fn(),
     showTripForm: false,
@@ -156,6 +160,7 @@ export function buildPlanner(overrides: Partial<TripPlanner> = {}): TripPlanner 
 
     routeShown: false,
     setRouteShown: vi.fn(),
+    autoShowRoute: vi.fn(),
     routeProfile: 'driving',
     setRouteProfile: vi.fn(),
     routeVias: [],
