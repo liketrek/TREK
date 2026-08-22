@@ -191,7 +191,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
     enabledAddons, collabFeatures, tripAccommodations, setTripAccommodations,
     allowedFileTypes, tripMembers, setTripMembers, refreshMembers, loadAccommodations,
-    TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange,
+    TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange, hasCompanions,
     leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed, startResizeLeft, startResizeRight,
     selectedPlaceId, selectedAssignmentId, setSelectedPlaceId, selectAssignment,
     showDayDetail, setShowDayDetail, dayDetailCollapsed, setDayDetailCollapsed,
@@ -734,7 +734,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
           </div>
         )}
 
-        {activeTab === 'collab' && (
+        {activeTab === 'collab' && hasCompanions && (
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 'var(--bottom-nav-h)', overflow: 'hidden' }}>
             <CollabPanel tripId={tripId} tripMembers={tripMembers} collabFeatures={collabFeatures} />
           </div>

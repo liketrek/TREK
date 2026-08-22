@@ -85,6 +85,7 @@ export function useTripPlanner() {
   const [tripAccommodations, setTripAccommodations] = useState<Accommodation[]>([])
   const [allowedFileTypes, setAllowedFileTypes] = useState<string | null>(null)
   const [tripMembers, setTripMembers] = useState<TripMember[]>([])
+  const [membersLoaded, setMembersLoaded] = useState(false)
 
   // Re-fetch the trip roster so consumers (Costs participants, Collab, …) pick up a
   // just-added guest or member without a full page reload.
@@ -93,7 +94,10 @@ export function useTripPlanner() {
     tripsApi.getMembers(tripId).then(d => {
       const all = [d.owner, ...(d.members || [])].filter(Boolean)
       setTripMembers(all)
-    }).catch(() => {})
+      setMembersLoaded(true)
+    }).catch(() => {
+      setMembersLoaded(true)
+    })
   }, [tripId])
 
   const loadAccommodations = useCallback(() => {
@@ -120,6 +124,8 @@ export function useTripPlanner() {
   const tripPagePlugins = allPlugins.filter(p => p.type === 'trip-page')
   const tripPluginIds = tripPagePlugins.map(p => p.id).join(',')
 
+  const hasCompanions = tripMembers.length > 1
+
   // A trip-page plugin may replace core tabs while it's active (its manifest names
   // them; 'plan' is never replaceable) and may pick where its own tab sits.
   const replacedTabs = new Set(tripPagePlugins.flatMap(p => p.tripPage?.replaces ?? []))
@@ -130,7 +136,7 @@ export function useTripPlanner() {
     ...(enabledAddons.packing ? [{ id: 'listen', label: t('trip.tabs.lists'), shortLabel: t('trip.tabs.listsShort'), icon: PackageCheck }] : []),
     ...(enabledAddons.budget ? [{ id: 'finanzplan', label: t('trip.tabs.budget'), icon: Wallet }] : []),
     ...(enabledAddons.documents ? [{ id: 'dateien', label: t('trip.tabs.files'), icon: FolderOpen }] : []),
-    ...(enabledAddons.collab ? [{ id: 'collab', label: t('admin.addons.catalog.collab.name'), icon: Users }] : []),
+    ...(enabledAddons.collab && hasCompanions ? [{ id: 'collab', label: t('admin.addons.catalog.collab.name'), icon: Users }] : []),
   ].filter(tab => tab.id === 'plan' || !replacedTabs.has(tab.id))
   // Positioned plugin tabs splice in ascending order so two positions stay stable;
   // the rest append, exactly as before this capability existed.
@@ -146,18 +152,20 @@ export function useTripPlanner() {
   useEffect(() => {
     // Don't evict a saved plugin tab before the plugin feed has loaded.
     if (activeTab.startsWith('plugin:') && !pluginsLoaded) return
+    // Don't evict a saved collab tab before the trip roster has loaded.
+    if (activeTab === 'collab' && !membersLoaded) return
     const validTabIds = TRIP_TABS.map(t => t.id)
     if (!validTabIds.includes(activeTab)) {
       setActiveTab('plan')
       sessionStorage.setItem(`trip-tab-${tripId}`, 'plan')
     }
-  }, [enabledAddons, tripPluginIds, pluginsLoaded])
+  }, [enabledAddons, tripPluginIds, pluginsLoaded, membersLoaded, hasCompanions])
 
   const handleTabChange = (rawTabId: string): void => {
     // A core tab a plugin replaced is gone from the bar, but a programmatic jump
     // (e.g. onNavigateToFiles) could still target it and render a dead panel with
     // no active pill — fall back to the plan view like the invalid-tab guard does.
-    const tabId = replacedTabs.has(rawTabId) ? 'plan' : rawTabId
+    const tabId = replacedTabs.has(rawTabId) || (rawTabId === 'collab' && !hasCompanions) ? 'plan' : rawTabId
     setActiveTab(tabId)
     sessionStorage.setItem(`trip-tab-${tripId}`, tabId)
     if (tabId === 'finanzplan') tripActions.loadBudgetItems?.(tripId)
@@ -320,12 +328,18 @@ export function useTripPlanner() {
   // and there's no cross-trip bleed; members/accommodations load alongside.
   useEffect(() => {
     if (tripId) {
+      setMembersLoaded(false)
       tripActions.loadTrip(tripId).catch(() => { toast.error(t('trip.toast.loadError')); navigate('/dashboard') })
       loadAccommodations()
       if (isEffectivelyOffline()) {
         offlineDb.tripMembers.where('tripId').equals(Number(tripId)).toArray()
-          .then(rows => setTripMembers(rows))
-          .catch(() => {})
+          .then(rows => {
+            setTripMembers(rows)
+            setMembersLoaded(true)
+          })
+          .catch(() => {
+            setMembersLoaded(true)
+          })
       } else {
         refreshMembers()
       }
@@ -929,7 +943,7 @@ export function useTripPlanner() {
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
     enabledAddons, collabFeatures, tripAccommodations, setTripAccommodations,
     allowedFileTypes, tripMembers, setTripMembers, refreshMembers, loadAccommodations,
-    TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange,
+    TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange, hasCompanions,
     leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed, startResizeLeft, startResizeRight,
     selectedPlaceId, selectedAssignmentId, setSelectedPlaceId, selectAssignment,
     showDayDetail, setShowDayDetail, dayDetailCollapsed, setDayDetailCollapsed,

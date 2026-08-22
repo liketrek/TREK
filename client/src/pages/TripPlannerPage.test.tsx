@@ -505,10 +505,39 @@ describe('TripPlannerPage', () => {
   });
 
   describe('FE-PAGE-PLANNER-014: Collab tab renders CollabPanel', () => {
-    it('shows CollabPanel after clicking the Collab tab with collab addon enabled', async () => {
+    it('hides Collab tab when trip has no companions even if collab addon is enabled', async () => {
       server.use(
         http.get('/api/addons', () =>
           HttpResponse.json({ addons: [{ id: 'collab', type: 'collab' }] })
+        ),
+        http.get('/api/trips/:id/members', () =>
+          HttpResponse.json({ owner: buildUser({ id: 1, username: 'alice' }), members: [] })
+        )
+      );
+
+      vi.useFakeTimers();
+
+      seedTripStore({ id: 42 });
+
+      renderPlannerPage(42);
+
+      act(() => { vi.runAllTimers(); });
+
+      vi.useRealTimers();
+
+      expect(screen.queryByTitle('Collab')).not.toBeInTheDocument();
+    });
+
+    it('shows CollabPanel after clicking the Collab tab with collab addon enabled and companions present', async () => {
+      server.use(
+        http.get('/api/addons', () =>
+          HttpResponse.json({ addons: [{ id: 'collab', type: 'collab' }] })
+        ),
+        http.get('/api/trips/:id/members', () =>
+          HttpResponse.json({
+            owner: buildUser({ id: 1, username: 'alice' }),
+            members: [buildUser({ id: 2, username: 'bob' })],
+          })
         )
       );
 
@@ -524,6 +553,61 @@ describe('TripPlannerPage', () => {
 
       const collabTab = await screen.findByTitle('Collab');
       fireEvent.click(collabTab);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('collab-panel')).toBeInTheDocument();
+      });
+    });
+
+    it('evicts saved collab tab to plan when loaded trip has no companions', async () => {
+      sessionStorage.setItem('trip-tab-42', 'collab');
+      server.use(
+        http.get('/api/addons', () =>
+          HttpResponse.json({ addons: [{ id: 'collab', type: 'collab' }] })
+        ),
+        http.get('/api/trips/:id/members', () =>
+          HttpResponse.json({ owner: buildUser({ id: 1, username: 'alice' }), members: [] })
+        )
+      );
+
+      vi.useFakeTimers();
+
+      seedTripStore({ id: 42 });
+
+      renderPlannerPage(42);
+
+      act(() => { vi.runAllTimers(); });
+
+      vi.useRealTimers();
+
+      await waitFor(() => {
+        expect(sessionStorage.getItem('trip-tab-42')).toBe('plan');
+      });
+    });
+
+    it('preserves saved collab tab when loaded trip has companions', async () => {
+      sessionStorage.setItem('trip-tab-42', 'collab');
+      server.use(
+        http.get('/api/addons', () =>
+          HttpResponse.json({ addons: [{ id: 'collab', type: 'collab' }] })
+        ),
+        http.get('/api/trips/:id/members', () =>
+          HttpResponse.json({
+            owner: buildUser({ id: 1, username: 'alice' }),
+            members: [buildUser({ id: 2, username: 'bob' })],
+          })
+        )
+      );
+
+      vi.useFakeTimers();
+
+      seedTripStore({ id: 42 });
+
+      renderPlannerPage(42);
+
+      act(() => { vi.runAllTimers(); });
+
+      vi.useRealTimers();
 
       await waitFor(() => {
         expect(screen.getByTestId('collab-panel')).toBeInTheDocument();
