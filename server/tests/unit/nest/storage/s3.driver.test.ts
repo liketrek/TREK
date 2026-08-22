@@ -346,6 +346,19 @@ describe('S3Driver put — bounded peek routing', () => {
       ChunkSize: MULTIPART_THRESHOLD,
     });
   });
+  it('never passes ContentType to Upload (it corrupts CompleteMultipartUpload upstream — MalformedXML)', async () => {
+    const api = makeMockApi({
+      Upload: vi.fn().mockImplementation(async ({ Body }: { Body: Readable }) => {
+        await drain(Body);
+      }),
+    });
+    const chunk = Buffer.alloc(6 * 1024 * 1024, 7);
+    await makeDriver(api).put('a/big.zip', Readable.from([chunk, chunk, chunk]), {
+      contentType: 'application/zip',
+    });
+    expect(api.Upload).toHaveBeenCalled();
+    expect((api.Upload as ReturnType<typeof vi.fn>).mock.calls[0][0]).not.toHaveProperty('ContentType');
+  });
   it('does not drop bytes buffered ahead of a deferred Upload consumer (Transform interposition, not body.on("data"))', async () => {
     // Real aws-lite Upload awaits a full CreateMultipartUpload round trip
     // before attaching its own consumer. A `body.on('data', ...)` listener
@@ -450,6 +463,13 @@ describe('S3Driver put — LocalTempFile ownership', () => {
     await makeDriver(api).put('a/t.bin', { tmpPath: tmp });
     expect(api.Upload).toHaveBeenCalled();
     expect(fs.existsSync(tmp)).toBe(false);
+  });
+  it('never passes ContentType to a temp-file Upload either (same upstream MalformedXML defect)', async () => {
+    const api = makeMockApi({ Upload: vi.fn().mockImplementation(async ({ Body }: { Body: Readable }) => drain(Body)) });
+    const tmp = await makeTmp(MULTIPART_THRESHOLD);
+    await makeDriver(api).put('a/t.zip', { tmpPath: tmp }, { contentType: 'application/zip' });
+    expect(api.Upload).toHaveBeenCalled();
+    expect((api.Upload as ReturnType<typeof vi.fn>).mock.calls[0][0]).not.toHaveProperty('ContentType');
   });
   it('rejects a stalled threshold-sized temp-file Upload with StorageBackendError rather than crashing', async () => {
     // The Upload mock never reads/drains Body — only listens for its error,

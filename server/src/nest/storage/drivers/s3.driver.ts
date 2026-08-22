@@ -288,6 +288,22 @@ export class S3Driver implements StorageDriver {
         callback(null, chunk);
       },
     });
+    // Workaround for a verified upstream defect: a ContentType param corrupts
+    // @aws-lite/s3 Upload's final CompleteMultipartUpload request. Upload
+    // builds that request as `headers: { ...xml, ...getHeadersFromParams(
+    // params) }` (node_modules/@aws-lite/s3/src/upload.mjs:76-81) — the
+    // param-derived `content-type` (e.g. application/zip) is spread AFTER and
+    // clobbers the `application/xml` default, which flips @aws-lite/client's
+    // payload serializer (client/src/request/index.js:69) off its
+    // `XMLContentType` branch: the parts list is sent as JSON, and the server
+    // rejects it with 400 MalformedXML ("XML syntax error on line 0: EOF" —
+    // confirmed live against MinIO AIStor; any S3 would refuse the same).
+    // Dropping ContentType here means multipart objects are stored without
+    // it, which TREK never reads back — sendToResponse derives Content-Type
+    // from the key/caller, never from object metadata. The single-request
+    // PutObject paths keep ContentType. Delete this (and pass `base`
+    // through) once Upload stops leaking params into its Complete headers.
+    const { ContentType: _dropped, ...uploadBase } = base;
     // Attached BEFORE pipe()/destroy() can fire: an 'error' emitted on a
     // Readable with no listener crashes the process, and both a genuine
     // upstream read failure and our own expire()/catch cleanup emit one.
@@ -313,7 +329,7 @@ export class S3Driver implements StorageDriver {
     reset();
     body.pipe(monitored);
     try {
-      await s3.Upload({ ...base, Body: monitored, ChunkSize: MULTIPART_THRESHOLD });
+      await s3.Upload({ ...uploadBase, Body: monitored, ChunkSize: MULTIPART_THRESHOLD });
     } catch (err) {
       monitored.destroy();
       body.destroy();
