@@ -24,6 +24,7 @@ const storage: TranslationStrings = {
   'storage.saved': 'Opslagconfiguratie opgeslagen',
   'storage.save': 'Wijzigingen opslaan',
   'storage.unsaved': 'Niet-opgeslagen wijzigingen',
+  'storage.saveConflict': 'De opslagconfiguratie is gewijzigd sinds deze werd geladen. Controleer je wijzigingen en sla opnieuw op.',
   'storage.backends.title': 'Backends',
   'storage.backends.add': 'Backend toevoegen',
   'storage.backends.usedBy': 'Gebruikt door: {categories}',

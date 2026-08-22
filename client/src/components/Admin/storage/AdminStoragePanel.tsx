@@ -4,6 +4,7 @@ import {
   STORAGE_CATEGORIES,
   type StorageBackend,
   type StorageCategory,
+  type StorageConfig,
   type StorageMigrationStatus,
   type StorageTestResponse,
 } from '@trek/shared'
@@ -64,7 +65,7 @@ const LINK_BUTTON_STYLE: React.CSSProperties = { background: 'none', border: 'no
 export default function AdminStoragePanel(): React.ReactElement {
   const { t, locale } = useTranslation()
   const toast = useToast()
-  const admin = useStorageAdmin(t('common.error'))
+  const admin = useStorageAdmin(t('common.error'), t('storage.saveConflict'))
   const [editing, setEditing] = useState<{
     initial: StorageBackend | null
     originalName: string | null
@@ -156,7 +157,10 @@ export default function AdminStoragePanel(): React.ReactElement {
   const commitBackend = (backend: StorageBackend, mirrorTargets?: string[]) => {
     const renamedFrom =
       editing?.originalName && editing.originalName !== backend.name ? editing.originalName : null
-    let next = draft
+    // Widened to StorageConfig: these edit helpers are version-blind (they
+    // return plain StorageConfig), and admin.setDraft re-attaches the
+    // draft's own `version` regardless of what shape it's handed.
+    let next: StorageConfig | null = draft
     if (renamedFrom) next = renameBackendRefs(removeBackend(next, renamedFrom), renamedFrom, backend.name)
     next = upsertBackend(next, backend)
     if (mirrorTargets !== undefined) next = setMirrorTargets(state, next, backend.name, mirrorTargets)

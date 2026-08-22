@@ -23,6 +23,7 @@ const storage: TranslationStrings = {
   'storage.saved': "Configuració d'emmagatzematge desada",
   'storage.save': 'Desar els canvis',
   'storage.unsaved': 'Canvis sense desar',
+  'storage.saveConflict': 'La configuració d\'emmagatzematge ha canviat des que es va carregar. Revisa els teus canvis i desa\'ls de nou.',
   'storage.backends.title': 'Backends',
   'storage.backends.add': 'Afegir backend',
   'storage.backends.usedBy': 'Utilitzat per: {categories}',

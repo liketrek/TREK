@@ -25,6 +25,7 @@ import { StorageJobsService } from '../../../../src/nest/storage/storage-jobs.se
 import { StorageStatsService } from '../../../../src/nest/storage/storage-stats.service';
 import { StorageRegistryService, BACKENDS_KEY, CATEGORIES_KEY } from '../../../../src/nest/storage/storage-registry.service';
 import { StorageService } from '../../../../src/nest/storage/storage.service';
+import { StorageConflictError } from '../../../../src/nest/storage/storage.types';
 
 const db = new DatabaseService(testDb);
 
@@ -83,6 +84,15 @@ function configWith(uploadsRoot: string, extra: Partial<StorageConfig> = {}): St
   };
 }
 
+/**
+ * applyConfig now requires the current version (optimistic concurrency,
+ * audit #7) — most tests just want "the current one", read fresh at call
+ * time so a second call in the same test picks up the bump from the first.
+ */
+function put(service: StorageAdminService, config: StorageConfig): void {
+  service.applyConfig({ ...config, version: service.state().version });
+}
+
 beforeEach(() => {
   testDb.prepare("DELETE FROM app_settings WHERE key LIKE 'storage.%'").run();
 });
@@ -107,7 +117,7 @@ describe('StorageAdminService.state', () => {
 
   it('STORADM-002 masks exactly the secret fields (accessKeyId stays visible)', () => {
     const { service, uploadsRoot } = makeService();
-    service.applyConfig(configWith(uploadsRoot, {
+    put(service, configWith(uploadsRoot, {
       backends: [{ name: 'off-box', type: 's3', options: S3_OPTIONS }],
       categories: { backups: 'off-box' },
     }));
@@ -138,7 +148,7 @@ describe('StorageAdminService.applyConfig', () => {
   it('STORADM-010 happy path: persists both rows, reloads, new config is live', () => {
     const { service, registry, uploadsRoot } = makeService();
     const nasRoot = makeTmpDir();
-    service.applyConfig(configWith(uploadsRoot, {
+    put(service, configWith(uploadsRoot, {
       backends: [{ name: 'nas-backups', type: 'local', options: { root: nasRoot } }],
       categories: { backups: 'nas-backups' },
     }));
@@ -148,7 +158,7 @@ describe('StorageAdminService.applyConfig', () => {
 
   it('STORADM-011 encrypts plaintext secrets at rest', () => {
     const { service, uploadsRoot } = makeService();
-    service.applyConfig(configWith(uploadsRoot, {
+    put(service, configWith(uploadsRoot, {
       backends: [{ name: 'off-box', type: 's3', options: S3_OPTIONS }],
       categories: { backups: 'off-box' },
     }));
@@ -159,14 +169,14 @@ describe('StorageAdminService.applyConfig', () => {
 
   it('STORADM-012 mask echo preserves the stored ciphertext byte-for-byte', () => {
     const { service, uploadsRoot } = makeService();
-    service.applyConfig(configWith(uploadsRoot, {
+    put(service, configWith(uploadsRoot, {
       backends: [{ name: 'off-box', type: 's3', options: S3_OPTIONS }],
       categories: { backups: 'off-box' },
     }));
     const before = JSON.parse(readRow(BACKENDS_KEY)!) as Array<{ name: string; options: Record<string, unknown> }>;
     const cipherBefore = before.find((b) => b.name === 'off-box')!.options.secretAccessKey;
 
-    service.applyConfig(configWith(uploadsRoot, {
+    put(service, configWith(uploadsRoot, {
       backends: [{ name: 'off-box', type: 's3', options: { ...S3_OPTIONS, secretAccessKey: MASKED_SETTING_VALUE } }],
       categories: { backups: 'off-box' },
     }));
@@ -178,7 +188,7 @@ describe('StorageAdminService.applyConfig', () => {
     const { service, uploadsRoot } = makeService();
     const before = readRow(BACKENDS_KEY);
     expect(() =>
-      service.applyConfig(configWith(uploadsRoot, {
+      put(service, configWith(uploadsRoot, {
         backends: [{ name: 'brand-new', type: 's3', options: { ...S3_OPTIONS, secretAccessKey: MASKED_SETTING_VALUE } }],
         categories: {},
       })),
@@ -189,7 +199,7 @@ describe('StorageAdminService.applyConfig', () => {
   it('STORADM-014 a plaintext secret saves without an explicit ENCRYPTION_KEY and is still encrypted at rest', () => {
     // No key-presence gate: the implicit key covers encryption when ENCRYPTION_KEY is unset.
     const { service, uploadsRoot } = makeService();
-    service.applyConfig(configWith(uploadsRoot, {
+    put(service, configWith(uploadsRoot, {
       backends: [{ name: 'off-box', type: 's3', options: S3_OPTIONS }],
       categories: {},
     }));
@@ -201,7 +211,7 @@ describe('StorageAdminService.applyConfig', () => {
   it('STORADM-015 an encrypted (mask-echoed or enc:v1:) secret resaves fine', () => {
     // Resaving stored ciphertext must not lock admins out.
     const { service, uploadsRoot } = makeService();
-    service.applyConfig(configWith(uploadsRoot, {
+    put(service, configWith(uploadsRoot, {
       backends: [{ name: 'off-box', type: 's3', options: { ...S3_OPTIONS, secretAccessKey: encrypt_api_key('sk') } }],
       categories: { backups: 'off-box' },
     }));
@@ -212,7 +222,7 @@ describe('StorageAdminService.applyConfig', () => {
     const { service, uploadsRoot, registry } = makeService();
     const before = readRow(CATEGORIES_KEY);
     expect(() =>
-      service.applyConfig(configWith(uploadsRoot, { categories: { backups: 'nope' } })),
+      put(service, configWith(uploadsRoot, { categories: { backups: 'nope' } })),
     ).toThrow("category 'backups' maps to unknown backend 'nope'");
     expect(readRow(CATEGORIES_KEY)).toBe(before);
     expect(registry.resolve('backups').backendName).toBe('backups-local'); // live state untouched
@@ -222,7 +232,7 @@ describe('StorageAdminService.applyConfig', () => {
     const { service, uploadsRoot } = makeService();
     const before = readRow(BACKENDS_KEY);
     expect(() =>
-      service.applyConfig(configWith(uploadsRoot, {
+      put(service, configWith(uploadsRoot, {
         backends: [{ name: 'off-box', type: 's3', options: { ...S3_OPTIONS, accessKeyId: MASKED_SETTING_VALUE } }],
         categories: {},
       })),
@@ -234,7 +244,7 @@ describe('StorageAdminService.applyConfig', () => {
     const { service, registry, uploadsRoot } = makeService();
     const txSpy = vi.spyOn(db, 'transaction');
     const reloadSpy = vi.spyOn(registry, 'reload');
-    service.applyConfig(configWith(uploadsRoot));
+    put(service, configWith(uploadsRoot));
     expect(txSpy).toHaveBeenCalledTimes(1);
     expect(reloadSpy).toHaveBeenCalledTimes(1);
   });
@@ -243,12 +253,81 @@ describe('StorageAdminService.applyConfig', () => {
     const { service, registry, uploadsRoot, jobs } = makeService();
     const reloadSpy = vi.spyOn(registry, 'reload');
     const cancelSpy = vi.spyOn(jobs, 'cancelJobsForMissingBackends');
-    service.applyConfig(configWith(uploadsRoot));
+    put(service, configWith(uploadsRoot));
     expect(cancelSpy).toHaveBeenCalledTimes(1);
     expect(reloadSpy).toHaveBeenCalledTimes(1);
     const reloadOrder = reloadSpy.mock.invocationCallOrder[0]!;
     const cancelOrder = cancelSpy.mock.invocationCallOrder[0]!;
     expect(cancelOrder).toBeGreaterThan(reloadOrder);
+  });
+
+  it('STORADM-030 a successful save bumps the version counter by exactly one', () => {
+    const { service, uploadsRoot } = makeService();
+    expect(service.state().version).toBe(0);
+    put(service, configWith(uploadsRoot));
+    expect(service.state().version).toBe(1);
+    put(service, configWith(uploadsRoot));
+    expect(service.state().version).toBe(2);
+  });
+
+  it('STORADM-031 a stale submitted version throws StorageConflictError and persists nothing (→ 409, audit #7)', () => {
+    const { service, uploadsRoot } = makeService();
+    put(service, configWith(uploadsRoot)); // version is now 1
+    const beforeBackends = readRow(BACKENDS_KEY);
+    const beforeCategories = readRow(CATEGORIES_KEY);
+    expect(() =>
+      service.applyConfig({ ...configWith(uploadsRoot), version: 0 }), // stale — current is 1
+    ).toThrow(StorageConflictError);
+    try {
+      service.applyConfig({ ...configWith(uploadsRoot), version: 0 });
+      expect.unreachable('should have thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(StorageConflictError);
+      expect((err as StorageConflictError).currentVersion).toBe(1);
+      expect((err as StorageConflictError).submittedVersion).toBe(0);
+    }
+    expect(readRow(BACKENDS_KEY)).toBe(beforeBackends);
+    expect(readRow(CATEGORIES_KEY)).toBe(beforeCategories);
+    expect(service.state().version).toBe(1); // unchanged — the conflicting save never wrote
+  });
+
+  it('STORADM-032 the version check runs before preview/unmask — a stale submit never reaches those refusals', () => {
+    // If the version check ran AFTER preview, this would throw the registry's
+    // "unknown backend" StorageBackendError instead of StorageConflictError.
+    const { service, uploadsRoot } = makeService();
+    put(service, configWith(uploadsRoot)); // version is now 1
+    expect(() =>
+      service.applyConfig({ ...configWith(uploadsRoot, { categories: { backups: 'nope' } }), version: 0 }),
+    ).toThrow(StorageConflictError);
+  });
+
+  it('STORADM-033 regression (audit #7): a migration flip bumps the version; a stale admin PUT built before the flip 409s and the flip survives untouched', () => {
+    const { service, registry, uploadsRoot } = makeService();
+    const destRoot = makeTmpDir();
+    // The admin loads the form: draft carries version 0, categories.files → uploads-local.
+    put(service, configWith(uploadsRoot, {
+      backends: [{ name: 'dest', type: 'local', options: { root: destRoot } }],
+      categories: {},
+    })); // version is now 1; 'files' still defaults to uploads-local
+    const staleDraft = configWith(uploadsRoot, {
+      backends: [{ name: 'dest', type: 'local', options: { root: destRoot } }],
+      categories: {}, // the admin's draft never touched 'files'
+    });
+    const staleVersion = service.state().version; // 1 — what the admin's form is holding
+
+    // Meanwhile, a category migration flips 'files' to 'dest' — the exact
+    // write path assignCategory uses, bumping the shared version counter.
+    registry.assignCategory('files', 'dest');
+    expect(registry.snapshot().categories.files.backend).toBe('dest');
+    expect(service.state().version).toBe(2); // the flip bumped it past the admin's stale draft
+
+    // The admin's stale PUT (still holding version 1, and no opinion on
+    // 'files') must 409, NOT silently reassign 'files' back to its old default.
+    expect(() => service.applyConfig({ ...staleDraft, version: staleVersion })).toThrow(StorageConflictError);
+
+    // The flip survives untouched.
+    expect(registry.snapshot().categories.files.backend).toBe('dest');
+    expect(service.state().version).toBe(2);
   });
 });
 
@@ -291,7 +370,7 @@ describe('StorageAdminService.testBackend', () => {
     // init() fresh at probe time and hits the same EEXIST there instead.
     const badRoot = path.join(makeTmpDir(), 'a-file');
     const { service, uploadsRoot } = makeService();
-    service.applyConfig(configWith(uploadsRoot, {
+    put(service, configWith(uploadsRoot, {
       backends: [
         { name: 'good-local', type: 'local', options: { root: goodRoot } },
         { name: 'bad-local', type: 'local', options: { root: badRoot } },
@@ -322,7 +401,7 @@ describe('StorageAdminService.testBackend', () => {
   it('STORADM-024 unmasks a stored backend by name before probing (mask echo works on /test)', async () => {
     const { service, uploadsRoot } = makeService();
     const root = makeTmpDir();
-    service.applyConfig(configWith(uploadsRoot, {
+    put(service, configWith(uploadsRoot, {
       backends: [{ name: 'nas', type: 'local', options: { root } }],
       categories: {},
     }));
@@ -348,7 +427,7 @@ describe('StorageAdminService.testBackend', () => {
   it('STORADM-025 a mirror with a stored s3 replica decrypts the enc:v1: secret for the probe', async () => {
     const goodRoot = makeTmpDir();
     const { service, uploadsRoot } = makeService();
-    service.applyConfig(configWith(uploadsRoot, {
+    put(service, configWith(uploadsRoot, {
       backends: [
         { name: 'good-local', type: 'local', options: { root: goodRoot } },
         {

@@ -1,10 +1,11 @@
 import fs from 'node:fs';
 import { Injectable } from '@nestjs/common';
-import type { StorageAdminState, StorageBackend, StorageConfig, StorageTestResponse, StorageUsage } from '@trek/shared';
+import type { StorageAdminState, StorageBackend, StorageConfigPut, StorageTestResponse, StorageUsage } from '@trek/shared';
 import { DatabaseService } from '../database/database.service';
 import {
   BACKENDS_KEY,
   CATEGORIES_KEY,
+  VERSION_KEY,
   StorageRegistryService,
 } from './storage-registry.service';
 import { StorageService } from './storage.service';
@@ -17,7 +18,7 @@ import {
   unmaskStorageConfig,
 } from './storage-secrets';
 import { ephemeralDriverFor, probeDriver, type ProbeTargetResult } from './storage-probe';
-import { StorageBackendError, type StorageCategory } from './storage.types';
+import { StorageBackendError, StorageConflictError, type StorageCategory } from './storage.types';
 import { StorageJobsService } from './storage-jobs.service';
 import { StorageStatsService } from './storage-stats.service';
 
@@ -58,6 +59,7 @@ export class StorageAdminService {
       usage: this.stats.readUsage(),
       backfills: this.jobs.statuses(),
       migrations: this.jobs.migrationStatuses(),
+      version: this.registry.currentConfigVersion(),
     };
   }
 
@@ -93,8 +95,19 @@ export class StorageAdminService {
     return this.stats.scan();
   }
 
-  /** Full-document replace of the two settings rows. Throws StorageBackendError on any refusal. */
-  applyConfig(config: StorageConfig): void {
+  /**
+   * Full-document replace of the two settings rows. Throws StorageBackendError
+   * on any refusal, or StorageConflictError (audit #7) when `config.version`
+   * no longer matches the stored counter — checked FIRST, before unmask/preview,
+   * so a stale submit never even previews against (let alone overwrites) a
+   * config that moved on since the form was loaded (e.g. a category
+   * migration's flip, which bumps the same counter).
+   */
+  applyConfig(config: StorageConfigPut): void {
+    const currentVersion = this.registry.currentConfigVersion();
+    if (config.version !== currentVersion) {
+      throw new StorageConflictError(currentVersion, config.version);
+    }
     const unmasked = unmaskStorageConfig(config, this.storedBackendsRow());
     // unmask only resolves the secret fields it knows about; a mask sentinel
     // submitted in a non-secret field would otherwise pass through untouched
@@ -108,6 +121,7 @@ export class StorageAdminService {
       );
       upsert.run(BACKENDS_KEY, JSON.stringify(encrypted.backends));
       upsert.run(CATEGORIES_KEY, JSON.stringify(encrypted.categories));
+      upsert.run(VERSION_KEY, String(currentVersion + 1));
     });
     this.registry.reload();
     // Any running job whose backend the reloaded config no longer has ends

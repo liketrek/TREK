@@ -22,6 +22,7 @@ const storage: TranslationStrings = {
   'storage.saved': '儲存設定已儲存',
   'storage.save': '儲存變更',
   'storage.unsaved': '未儲存的變更',
+  'storage.saveConflict': '儲存設定自載入後已變更。請檢查您的變更並重新儲存。',
   'storage.backends.title': '後端',
   'storage.backends.add': '新增後端',
   'storage.backends.usedBy': '使用者：{categories}',

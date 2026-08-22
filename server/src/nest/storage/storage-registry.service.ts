@@ -72,6 +72,13 @@ interface RegistryState {
 
 export const BACKENDS_KEY = 'storage.backends';
 export const CATEGORIES_KEY = 'storage.categories';
+/**
+ * Optimistic-concurrency counter (audit #7): bumped inside the SAME
+ * transaction by every writer of the two settings rows above — applyConfig
+ * and the migration flip (assignCategory) — so a stale admin PUT can never
+ * silently undo a flip that landed after the PUT's form was loaded.
+ */
+export const VERSION_KEY = 'storage.config_version';
 const REPLICA_FAILURE_RING_SIZE = 50;
 
 /**
@@ -184,11 +191,19 @@ export class StorageRegistryService implements OnModuleInit {
     return this.state.drivers.get(name) ?? null;
   }
 
+  /** Current optimistic-concurrency counter — 0 when never bumped (fresh install). */
+  currentConfigVersion(): number {
+    return readConfigVersion(this.db);
+  }
+
   /**
    * Persist one category assignment and reload — the migration flip's write
    * path. Same transactional row write applyConfig uses, scoped to one key;
    * the current stored map is read through the existing parseCategoryMap
-   * validator rather than re-parsing the raw row by hand.
+   * validator rather than re-parsing the raw row by hand. Bumps the shared
+   * version counter in the SAME transaction (audit #7) — a concurrent admin
+   * PUT built against the pre-flip version now conflicts instead of silently
+   * overwriting this assignment.
    */
   assignCategory(category: StorageCategory, backend: string): void {
     // Belt-and-braces alongside the migration job's own pre-flip cancel guard:
@@ -202,11 +217,11 @@ export class StorageRegistryService implements OnModuleInit {
     stored.set(category, backend);
     const next = Object.fromEntries(stored);
     this.db.transaction(() => {
-      this.db
-        .prepare(
-          'INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
-        )
-        .run(CATEGORIES_KEY, JSON.stringify(next));
+      const upsert = this.db.prepare(
+        'INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      );
+      upsert.run(CATEGORIES_KEY, JSON.stringify(next));
+      upsert.run(VERSION_KEY, String(readConfigVersion(this.db) + 1));
     });
     this.reload();
   }
@@ -416,6 +431,13 @@ export class StorageRegistryService implements OnModuleInit {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** Raw read of the version counter row — 0 for an absent/garbage row (fresh install, or a hand-edited DB). */
+function readConfigVersion(db: DatabaseService): number {
+  const row = db.get<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', VERSION_KEY);
+  const parsed = row?.value ? Number.parseInt(row.value, 10) : 0;
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function parseBackendList(raw: unknown): BackendConfig[] {

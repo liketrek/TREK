@@ -23,6 +23,7 @@ const storage: TranslationStrings = {
   'storage.saved': '스토리지 설정이 저장되었습니다',
   'storage.save': '변경 사항 저장',
   'storage.unsaved': '저장되지 않은 변경 사항',
+  'storage.saveConflict': '스토리지 설정이 불러온 이후 변경되었습니다. 변경 사항을 확인하고 다시 저장하세요.',
   'storage.backends.title': '백엔드',
   'storage.backends.add': '백엔드 추가',
   'storage.backends.usedBy': '사용 중: {categories}',

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { StorageAdminState, StorageBackend, StorageConfig, StorageTestResponse } from '@trek/shared'
+import type { StorageAdminState, StorageBackend, StorageConfig, StorageConfigPut, StorageTestResponse } from '@trek/shared'
 import { adminApi } from '../../../api/client'
-import { getApiErrorMessage } from '../../../types'
+import { getApiErrorMessage, type ApiError } from '../../../types'
 import { settingsDocumentOf } from './storageModel'
 
 export type StorageTestResults = Record<string, StorageTestResponse | 'running'>
@@ -9,14 +9,19 @@ export type StorageTestResults = Record<string, StorageTestResponse | 'running'>
 /** 50ms under vitest so poll tests run on real timers (MSW + fake timers don't mix). */
 export const BACKFILL_POLL_MS = import.meta.env.MODE === 'test' ? 50 : 5000
 
+/** True for a 409 response — the version this draft was built at is no longer current (audit #7). */
+function isConflictError(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && 'response' in err && (err as ApiError).response?.status === 409
+}
+
 export interface StorageAdmin {
   state: StorageAdminState | null
-  /** The settings-owned document (the PUT body), with local edits layered in. */
-  draft: StorageConfig | null
+  /** The settings-owned document (the PUT body), with local edits layered in. Carries the version the draft was built at. */
+  draft: StorageConfigPut | null
   dirty: boolean
   loading: boolean
   loadError: string | null
-  /** Server 400s land here VERBATIM — long registry messages outlive a toast. */
+  /** Server 400s/409s land here VERBATIM (400) or as the distinct conflict copy (409) — long registry messages outlive a toast. */
   saveError: string | null
   saving: boolean
   testResults: StorageTestResults
@@ -37,9 +42,9 @@ export interface StorageAdmin {
  * model: self-contained, adminApi directly, deliberately no offline core —
  * hoster-level config is online-only).
  */
-export function useStorageAdmin(genericError: string): StorageAdmin {
+export function useStorageAdmin(genericError: string, conflictError: string): StorageAdmin {
   const [state, setState] = useState<StorageAdminState | null>(null)
-  const [draft, setDraftState] = useState<StorageConfig | null>(null)
+  const [draft, setDraftState] = useState<StorageConfigPut | null>(null)
   const [dirty, setDirty] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -93,15 +98,46 @@ export function useStorageAdmin(genericError: string): StorageAdmin {
     }
   }, [applyState, genericError])
 
+  // Re-attaches the CURRENT draft's version onto whatever shape the caller
+  // hands in (the storageModel edit helpers are version-blind — they operate
+  // on plain StorageConfig — so this is the one place that keeps `version`
+  // pinned to what the operator's form was loaded at, no matter how many
+  // local edits run in between).
   const setDraft = useCallback((next: StorageConfig) => {
-    setDraftState(next)
+    setDraftState((prev) => ({ ...next, version: prev?.version ?? 0 }))
     setDirty(true)
+  }, [])
+
+  // Poll-safe refresh: replaces `state` unconditionally, but only re-derives
+  // `draft` when the operator has no unsaved edits in flight — never touches
+  // `dirty`/`saveError`, so a running poll cannot clobber a dirty draft or
+  // mask a pending save error.
+  //
+  // Race guard: a poll GET issued before a save's PUT resolves can resolve
+  // AFTER the save applied its own (fresher) response, overwriting it with
+  // the pre-save world. Capture the state-application sequence number before
+  // the await and drop the response if it moved on, or if a save is
+  // in-flight/just landed (read via a ref so it's current at resolve time).
+  //
+  // Declared before `save` (which calls it on a 409) — a hook's `const`s
+  // must exist before another callback's dependency array references them.
+  const refreshState = useCallback(async (): Promise<void> => {
+    const seq = stateSeq.current
+    const next = await adminApi.getStorage()
+    if (stateSeq.current !== seq || savingRef.current) return
+    setState(next)
+    if (!dirtyRef.current) setDraftState(settingsDocumentOf(next))
   }, [])
 
   const save = useCallback(
     async (overrideDraft?: StorageConfig): Promise<boolean> => {
-      const body = overrideDraft ?? draft
-      if (!body) return false
+      if (!draft) return false
+      // Always the DRAFT's own version, even for an overrideDraft (a variant
+      // of the same draft with categories stripped, per stripCategories) —
+      // both share the same version basis: what the operator's form was
+      // loaded/refreshed at, never re-read from `state` here (that would
+      // defeat the whole check — see setDraft's re-attach comment above).
+      const body: StorageConfigPut = { ...(overrideDraft ?? draft), version: draft.version }
       setSaving(true)
       setSaveError(null)
       try {
@@ -109,13 +145,23 @@ export function useStorageAdmin(genericError: string): StorageAdmin {
         applyState(await adminApi.updateStorage(body))
         return true
       } catch (err: unknown) {
-        setSaveError(getApiErrorMessage(err, genericError))
+        if (isConflictError(err)) {
+          // Something else (another admin's save, or a category migration's
+          // flip) wrote since this draft's version was captured. Refresh
+          // `state` so the operator sees the fresh world, but the dirty
+          // draft itself is left untouched for review (dirty is never
+          // cleared here) — refreshState() already respects dirtyRef.
+          setSaveError(conflictError)
+          void refreshState().catch(() => {})
+        } else {
+          setSaveError(getApiErrorMessage(err, genericError))
+        }
         return false
       } finally {
         setSaving(false)
       }
     },
-    [draft, applyState, genericError],
+    [draft, applyState, genericError, conflictError, refreshState],
   )
 
   const test = useCallback(
@@ -134,24 +180,6 @@ export function useStorageAdmin(genericError: string): StorageAdmin {
     },
     [genericError],
   )
-
-  // Poll-safe refresh: replaces `state` unconditionally, but only re-derives
-  // `draft` when the operator has no unsaved edits in flight — never touches
-  // `dirty`/`saveError`, so a running poll cannot clobber a dirty draft or
-  // mask a pending save error.
-  //
-  // Race guard: a poll GET issued before a save's PUT resolves can resolve
-  // AFTER the save applied its own (fresher) response, overwriting it with
-  // the pre-save world. Capture the state-application sequence number before
-  // the await and drop the response if it moved on, or if a save is
-  // in-flight/just landed (read via a ref so it's current at resolve time).
-  const refreshState = useCallback(async (): Promise<void> => {
-    const seq = stateSeq.current
-    const next = await adminApi.getStorage()
-    if (stateSeq.current !== seq || savingRef.current) return
-    setState(next)
-    if (!dirtyRef.current) setDraftState(settingsDocumentOf(next))
-  }, [])
 
   // While any backfill or category migration is running, poll GET state so
   // progress/counts advance without the operator refreshing the page.

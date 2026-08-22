@@ -18,6 +18,7 @@ import {
   MigrationTargetError,
 } from './storage-jobs.service';
 import { StatsBusyError } from './storage-stats.service';
+import { StorageConflictError } from './storage.types';
 
 /**
  * /api/admin/storage — the admin surface over the storage registry (spec:
@@ -45,6 +46,11 @@ export class StorageAdminController {
     try {
       this.service.applyConfig(body);
     } catch (err) {
+      // The conflict branch must come before the blanket 400: a
+      // StorageConflictError IS an Error, so the generic catch-all below
+      // would otherwise swallow it into a 400 (audit #7 — the client can't
+      // tell "stale version, reload and retry" from "bad config" without 409).
+      if (err instanceof StorageConflictError) throw new HttpException({ error: err.message }, 409);
       throw new HttpException({ error: err instanceof Error ? err.message : String(err) }, 400);
     }
     this.audit.writeAudit({

@@ -8,7 +8,7 @@ import type { StorageAdminService } from '../../../../src/nest/storage/storage-a
 import type { AuditService } from '../../../../src/nest/audit/audit.service';
 import type { StorageConfigDto, StorageTestRequestDto } from '../../../../src/nest/storage/storage-admin.dto';
 import { StorageModule } from '../../../../src/nest/storage/storage.module';
-import { StorageBackendError } from '../../../../src/nest/storage/storage.types';
+import { StorageBackendError, StorageConflictError } from '../../../../src/nest/storage/storage.types';
 import {
   BackfillBusyError,
   BackfillTargetError,
@@ -57,6 +57,7 @@ const CONFIG = {
     },
   ],
   categories: { backups: 'off-box' },
+  version: 0,
 } as StorageConfigDto;
 
 describe('StorageAdminController', () => {
@@ -93,6 +94,27 @@ describe('StorageAdminController', () => {
       expect((err as HttpException).getStatus()).toBe(400);
       expect((err as HttpException).getResponse()).toEqual({
         error: "category 'backups' maps to unknown backend 'nope'",
+      });
+    }
+    expect(writeAudit).not.toHaveBeenCalled();
+  });
+
+  it('STORCTL-023 PUT maps StorageConflictError to a 409, ahead of the blanket 400, no audit', () => {
+    const { controller, writeAudit } = makeController({
+      applyConfig: vi.fn(() => {
+        // StorageConflictError IS an Error — this pins that the instanceof
+        // branch is checked BEFORE the generic catch-all 400 (audit #7).
+        throw new StorageConflictError(3, 1);
+      }),
+    });
+    try {
+      controller.update(user, CONFIG, req);
+      expect.unreachable('should have thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(HttpException);
+      expect((err as HttpException).getStatus()).toBe(409);
+      expect((err as HttpException).getResponse()).toEqual({
+        error: "storage settings changed since this form was loaded (current version 3, submitted 1) — reload and reapply your edits",
       });
     }
     expect(writeAudit).not.toHaveBeenCalled();

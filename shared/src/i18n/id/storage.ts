@@ -24,6 +24,7 @@ const storage: TranslationStrings = {
   'storage.saved': 'Konfigurasi penyimpanan disimpan',
   'storage.save': 'Simpan perubahan',
   'storage.unsaved': 'Perubahan belum disimpan',
+  'storage.saveConflict': 'Konfigurasi penyimpanan berubah sejak dimuat. Tinjau perubahan Anda dan simpan lagi.',
   'storage.backends.title': 'Backend',
   'storage.backends.add': 'Tambah backend',
   'storage.backends.usedBy': 'Digunakan oleh: {categories}',

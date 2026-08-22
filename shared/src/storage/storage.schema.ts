@@ -199,6 +199,18 @@ export const storageConfigSchema = z.strictObject({
 });
 export type StorageConfig = z.infer<typeof storageConfigSchema>;
 
+/**
+ * The PUT wire shape: the config document plus the optimistic-concurrency
+ * version the client read it at (audit #7 — a stale PUT can otherwise silently
+ * undo a category migration's just-flipped assignment). `storageConfigSchema`
+ * itself stays untouched — it doubles as the seed-file shape, which has no
+ * version to compare against.
+ */
+export const storageConfigPutSchema = storageConfigSchema.extend({
+  version: z.number().int().nonnegative(),
+});
+export type StorageConfigPut = z.infer<typeof storageConfigPutSchema>;
+
 // ── GET /api/admin/storage state + POST /test wire shapes ─────────────────────
 
 export const storageBackendSourceSchema = z.enum(['built-in', 'env', 'settings']);
@@ -285,6 +297,8 @@ export const storageAdminStateSchema = z.object({
   usage: storageUsageSchema.nullable(),
   backfills: z.array(storageBackfillStatusSchema),
   migrations: z.array(storageMigrationStatusSchema),
+  /** Optimistic-concurrency counter for the two settings rows (audit #7) — echo it back on the next PUT. */
+  version: z.number().int().nonnegative(),
 });
 export type StorageAdminState = z.infer<typeof storageAdminStateSchema>;
 

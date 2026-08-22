@@ -32,6 +32,7 @@ function baseState(overrides: Partial<StorageAdminState> = {}): StorageAdminStat
     usage: null,
     backfills: [],
     migrations: [],
+    version: 0,
     ...overrides,
   };
 }

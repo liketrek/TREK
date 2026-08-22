@@ -24,6 +24,7 @@ const storage: TranslationStrings = {
   'storage.saved': 'Конфигурация хранилища сохранена',
   'storage.save': 'Сохранить изменения',
   'storage.unsaved': 'Несохранённые изменения',
+  'storage.saveConflict': 'Конфигурация хранилища изменилась с момента загрузки. Проверьте свои изменения и сохраните снова.',
   'storage.backends.title': 'Бэкенды',
   'storage.backends.add': 'Добавить бэкенд',
   'storage.backends.usedBy': 'Используется в: {categories}',

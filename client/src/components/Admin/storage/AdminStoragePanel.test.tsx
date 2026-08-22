@@ -34,6 +34,7 @@ function baseState(overrides: Partial<StorageAdminState> = {}): StorageAdminStat
     usage: null,
     backfills: [],
     migrations: [],
+    version: 0,
     ...overrides,
   };
 }
@@ -706,6 +707,56 @@ describe('AdminStoragePanel', () => {
     await screen.findByText('Storage configuration saved');
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     expect((putBody as StorageConfig).categories.files).toBe('off-box');
+  });
+
+  it('FE-ADMIN-STOR-039 (audit #7): a 409 shows the distinct conflict message, refreshes state, and preserves the dirty draft for review', async () => {
+    let getCalls = 0;
+    let putVersion: number | undefined;
+    const usage = {
+      computedAt: Date.now(),
+      categories: { files: { objects: 0, bytes: 0 } },
+      legacyPhotos: { objects: 0, bytes: 0 },
+    };
+    const initial = { ...baseState(), usage, version: 3 } as StorageAdminState;
+    // Simulates the audit #7 scenario: a category migration's flip lands
+    // between this load and the operator's save — 'files' moves to a
+    // different backend, at a newer version.
+    const refreshed = {
+      ...initial,
+      version: 4,
+      categories: { ...initial.categories, files: { backend: 'backups-local', source: 'settings' as const } },
+    };
+    server.use(http.get('/api/admin/storage', () => HttpResponse.json(++getCalls === 1 ? initial : refreshed)));
+    render(
+      <>
+        <ToastContainer />
+        <AdminStoragePanel />
+      </>,
+    );
+    await waitFor(() => expect(screen.getByText('Backends')).toBeInTheDocument());
+    server.use(
+      http.put('/api/admin/storage', async ({ request }) => {
+        putVersion = (await request.json() as StorageConfig & { version: number }).version;
+        return HttpResponse.json({ error: 'stale' }, { status: 409 });
+      }),
+    );
+    fireEvent.click(within(categoryRow('files')).getByText('uploads-local (default)'));
+    const choices = screen.getAllByText('off-box');
+    fireEvent.click(choices[choices.length - 1]!);
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    // The version this PUT submits is the one the draft was loaded at.
+    expect(
+      await screen.findByText('Storage settings changed since you loaded them. Review your changes and save again.'),
+    ).toBeInTheDocument();
+    expect(putVersion).toBe(3);
+
+    // refreshState() ran (a second GET landed) and the panel now reflects
+    // the fresh world, yet the dirty draft — still showing the operator's
+    // own off-box pick — was never clobbered.
+    await waitFor(() => expect(getCalls).toBeGreaterThanOrEqual(2));
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+    expect(within(categoryRow('files')).getByText('off-box')).toBeInTheDocument();
   });
 
   it('FE-ADMIN-STOR-033: two candidates queue sequentially: the second POSTs only after the first turns terminal', async () => {

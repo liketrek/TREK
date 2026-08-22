@@ -54,6 +54,7 @@ const STATE: StorageAdminState = {
   usage: null,
   backfills: [],
   migrations: [],
+  version: 5,
 };
 
 describe('settingsDocumentOf', () => {
@@ -61,6 +62,11 @@ describe('settingsDocumentOf', () => {
     const doc = settingsDocumentOf(STATE);
     expect(doc.backends.map((b) => b.name)).toEqual(['off-box']);
     expect(doc.categories).toEqual({ covers: 'off-box' });
+  });
+
+  it('FE-ADMIN-STORM-001b: carries version from state (audit #7 — the PUT body\'s optimistic-concurrency check)', () => {
+    expect(settingsDocumentOf(STATE).version).toBe(5);
+    expect(settingsDocumentOf({ ...STATE, version: 12 }).version).toBe(12);
   });
 });
 

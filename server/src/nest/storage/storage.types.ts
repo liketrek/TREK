@@ -124,6 +124,24 @@ export class StorageBackendError extends Error {
   }
 }
 
+/**
+ * Optimistic-concurrency refusal (audit #7): the submitted config's `version`
+ * no longer matches the stored counter — something else (a config save, or a
+ * category migration's flip) wrote since the client last read state. Mapped
+ * to a 409 ahead of the blanket 400 (storage-admin.controller.ts).
+ */
+export class StorageConflictError extends Error {
+  constructor(
+    readonly currentVersion: number,
+    readonly submittedVersion: number,
+  ) {
+    super(
+      `storage settings changed since this form was loaded (current version ${currentVersion}, submitted ${submittedVersion}) — reload and reapply your edits`,
+    );
+    this.name = 'StorageConflictError';
+  }
+}
+
 export class StorageNotFoundError extends Error {
   constructor(readonly key: string) {
     super(`storage object not found: ${key}`);

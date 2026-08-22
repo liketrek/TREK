@@ -24,6 +24,7 @@ const storage: TranslationStrings = {
   'storage.saved': 'A tárhely-konfiguráció mentve',
   'storage.save': 'Módosítások mentése',
   'storage.unsaved': 'Nem mentett módosítások',
+  'storage.saveConflict': 'A tárhely-konfiguráció megváltozott a betöltése óta. Ellenőrizze a módosításait, és mentse el újra.',
   'storage.backends.title': 'Backendek',
   'storage.backends.add': 'Backend hozzáadása',
   'storage.backends.usedBy': 'Használja: {categories}',

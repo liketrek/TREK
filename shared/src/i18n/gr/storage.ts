@@ -24,6 +24,7 @@ const storage: TranslationStrings = {
   'storage.saved': 'Η ρύθμιση αποθήκευσης αποθηκεύτηκε',
   'storage.save': 'Αποθήκευση αλλαγών',
   'storage.unsaved': 'Μη αποθηκευμένες αλλαγές',
+  'storage.saveConflict': 'Η ρύθμιση αποθήκευσης άλλαξε από τη στιγμή που φορτώθηκε. Ελέγξτε τις αλλαγές σας και αποθηκεύστε ξανά.',
   'storage.backends.title': 'Backends',
   'storage.backends.add': 'Προσθήκη backend',
   'storage.backends.usedBy': 'Χρησιμοποιείται από: {categories}',

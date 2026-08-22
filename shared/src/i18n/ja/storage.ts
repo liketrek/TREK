@@ -23,6 +23,7 @@ const storage: TranslationStrings = {
   'storage.saved': 'ストレージ設定を保存しました',
   'storage.save': '変更を保存',
   'storage.unsaved': '未保存の変更',
+  'storage.saveConflict': 'ストレージ設定は読み込み後に変更されました。変更内容を確認し、再度保存してください。',
   'storage.backends.title': 'バックエンド',
   'storage.backends.add': 'バックエンドを追加',
   'storage.backends.usedBy': '使用中: {categories}',

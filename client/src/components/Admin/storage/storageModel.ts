@@ -4,6 +4,7 @@ import {
   type StorageBackend,
   type StorageCategory,
   type StorageConfig,
+  type StorageConfigPut,
 } from '@trek/shared'
 
 /** One entry of the effective world (GET state), as the panels render it. */
@@ -13,9 +14,13 @@ export type StateBackend = StorageAdminState['backends'][number]
  * The settings-owned document the PUT carries: settings-sourced backends and
  * settings-sourced category assignments ONLY — built-ins and env backends are
  * never in the body unless the operator overrides one by name (in which case
- * the override already reports source 'settings').
+ * the override already reports source 'settings'). Carries `version` from
+ * the state it was built at (audit #7 — optimistic concurrency): the hook
+ * re-attaches this same version on every subsequent local edit, so a PUT
+ * always submits the version the operator's form was loaded at, not
+ * whatever the server currently holds.
  */
-export function settingsDocumentOf(state: StorageAdminState): StorageConfig {
+export function settingsDocumentOf(state: StorageAdminState): StorageConfigPut {
   return {
     backends: state.backends.filter((b) => b.source === 'settings').map(asWireBackend),
     categories: Object.fromEntries(
@@ -23,6 +28,7 @@ export function settingsDocumentOf(state: StorageAdminState): StorageConfig {
         .filter(([, entry]) => entry.source === 'settings')
         .map(([category, entry]) => [category, entry.backend]),
     ) as StorageConfig['categories'],
+    version: state.version,
   }
 }
 

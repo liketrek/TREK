@@ -393,6 +393,28 @@ describe('StorageRegistryService assignCategory', () => {
     };
     expect((JSON.parse(row.value) as Record<string, string>).files).toBe('dest-local');
   });
+
+  it('REG-ASSIGN-003 bumps the shared optimistic-concurrency version counter by exactly one, in the same write (audit #7)', () => {
+    const { registry } = makeRegistry({ backends: [{ name: 'dest-local', type: 'local', options: { root: makeTmpDir() } }] });
+    expect(registry.currentConfigVersion()).toBe(0);
+
+    registry.assignCategory('files', 'dest-local');
+    expect(registry.currentConfigVersion()).toBe(1);
+
+    registry.assignCategory('journey', 'dest-local');
+    expect(registry.currentConfigVersion()).toBe(2);
+
+    const row = testDb.prepare("SELECT value FROM app_settings WHERE key = 'storage.config_version'").get() as
+      | { value: string }
+      | undefined;
+    expect(row?.value).toBe('2');
+  });
+
+  it('REG-ASSIGN-004 an unknown-backend refusal bumps nothing — the version write shares the categories transaction', () => {
+    const { registry } = makeRegistry();
+    expect(() => registry.assignCategory('files', 'ghost-backend')).toThrow();
+    expect(registry.currentConfigVersion()).toBe(0);
+  });
 });
 
 // ── replica-failure health ────────────────────────────────────────────────────

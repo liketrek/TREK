@@ -142,6 +142,7 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
         },
       ],
       categories: { backups: 'nas-backups' },
+      version: 0,
     };
     const res = await request(server).put('/api/admin/storage').set('Cookie', adminCookie).send(body);
     expect(res.status).toBe(200);
@@ -165,7 +166,7 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
     const res = await request(server)
       .put('/api/admin/storage')
       .set('Cookie', adminCookie)
-      .send({ backends: [], categories: { backups: 'nope' } });
+      .send({ backends: [], categories: { backups: 'nope' }, version: 0 });
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: "category 'backups' maps to unknown backend 'nope'" });
   });
@@ -174,7 +175,7 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
     const res = await request(server)
       .put('/api/admin/storage')
       .set('Cookie', adminCookie)
-      .send({ backends: [], categories: {}, readOnly: true });
+      .send({ backends: [], categories: {}, version: 0, readOnly: true });
     expect(res.status).toBe(400);
     expect(res.body.error).toBeDefined();
   });
@@ -194,6 +195,7 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
             },
           ],
           categories: {},
+          version: 0,
         });
       expect(res.status).toBe(200);
       // The secret never comes back and never persists in the clear.
@@ -240,7 +242,7 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
     const put = await request(server)
       .put('/api/admin/storage')
       .set('Cookie', adminCookie)
-      .send({ backends: [{ name: 'dest', type: 'local', options: { root: destRoot } }], categories: {} });
+      .send({ backends: [{ name: 'dest', type: 'local', options: { root: destRoot } }], categories: {}, version: 0 });
     expect(put.status).toBe(200);
 
     // 'journey' is empty (no objects planted), so the migration is valid and instant.
@@ -292,6 +294,7 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
           { name: 'm', type: 'mirror', options: { primary: 'backups-local', replicas: ['nas'] } },
         ],
         categories: { backups: 'm' },
+        version: 0,
       });
     expect(put.status).toBe(200);
     fs.writeFileSync(path.join(backupsRoot, 'pre-mirror.zip'), 'oldbytes');
@@ -322,5 +325,59 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
     expect(res.body.categories.backups.objects).toBeGreaterThanOrEqual(1); // pre-mirror.zip at least
     const audit = db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.storage_stats_refresh'").get() as { n: number };
     expect(audit.n).toBe(1);
+  });
+
+  it('STORE2E-014 regression (audit #7): a migration flip while the admin form is open makes the stale save 409, and the flip survives', async () => {
+    const destRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'trek-e2e-migration-dest2-'));
+    const put = await request(server)
+      .put('/api/admin/storage')
+      .set('Cookie', adminCookie)
+      .send({ backends: [{ name: 'dest', type: 'local', options: { root: destRoot } }], categories: {}, version: 0 });
+    expect(put.status).toBe(200);
+
+    // The admin opens the form: their draft is built at THIS version, before
+    // the migration below flips anything.
+    const loaded = await request(server).get('/api/admin/storage').set('Cookie', adminCookie);
+    const staleVersion = loaded.body.version as number;
+    expect(staleVersion).toBe(1);
+    expect(loaded.body.categories.journey).toEqual({ backend: 'uploads-local', source: 'default' });
+
+    // Meanwhile: a category migration flips 'journey' to 'dest' (empty
+    // category, so it completes instantly) — the same write path
+    // StorageRegistryService.assignCategory uses, bumping the version.
+    const start = await request(server)
+      .post('/api/admin/storage/migrations')
+      .set('Cookie', adminCookie)
+      .send({ category: 'journey', to: 'dest' });
+    expect(start.status).toBe(200);
+    let status: { status: string } | undefined;
+    for (let i = 0; i < 50; i++) {
+      const state = await request(server).get('/api/admin/storage').set('Cookie', adminCookie);
+      status = (state.body.migrations as Array<{ category: string; status: string }>).find(
+        (m) => m.category === 'journey',
+      );
+      if (status && status.status !== 'running') break;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    expect(status).toMatchObject({ status: 'done' });
+
+    // The admin's still-open form — unaware of the flip, and carrying no
+    // opinion of its own on 'journey' — submits its (now stale) save.
+    const staleSave = await request(server)
+      .put('/api/admin/storage')
+      .set('Cookie', adminCookie)
+      .send({
+        backends: [{ name: 'dest', type: 'local', options: { root: destRoot } }],
+        categories: {},
+        version: staleVersion,
+      });
+    expect(staleSave.status).toBe(409);
+    expect(staleSave.body.error).toContain('storage settings changed since this form was loaded');
+
+    // The flip survives — the stale save never silently reverted 'journey'
+    // back to its old default.
+    const after = await request(server).get('/api/admin/storage').set('Cookie', adminCookie);
+    expect(after.body.categories.journey).toEqual({ backend: 'dest', source: 'settings' });
+    expect(after.body.version).toBeGreaterThan(staleVersion);
   });
 });

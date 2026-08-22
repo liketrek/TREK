@@ -24,6 +24,7 @@ const storage: TranslationStrings = {
   'storage.saved': 'Speicherkonfiguration gespeichert',
   'storage.save': 'Änderungen speichern',
   'storage.unsaved': 'Ungespeicherte Änderungen',
+  'storage.saveConflict': 'Die Speicherkonfiguration hat sich seit dem Laden geändert. Überprüfen Sie Ihre Änderungen und speichern Sie erneut.',
   'storage.backends.title': 'Backends',
   'storage.backends.add': 'Backend hinzufügen',
   'storage.backends.usedBy': 'Verwendet von: {categories}',
