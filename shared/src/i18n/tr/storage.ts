@@ -23,7 +23,9 @@ const storage: TranslationStrings = {
   'storage.saved': 'Depolama yapılandırması kaydedildi',
   'storage.save': 'Değişiklikleri kaydet',
   'storage.unsaved': 'Kaydedilmemiş değişiklikler',
-  'storage.saveConflict': 'Depolama yapılandırması yüklendiğinden beri değişti. Değişikliklerinizi gözden geçirip tekrar kaydedin.',
+  'storage.saveConflict':
+    'Depolama yapılandırması yüklendiğinden beri değişti. Değişikliklerinizi gözden geçirip tekrar kaydedin.',
+  'storage.configError.banner': 'Kaydedilmiş depolama ayarları yüklenemedi — kaydetmek onların yerini alacak: {error}',
   'storage.backends.title': 'Arka uçlar',
   'storage.backends.add': 'Arka uç ekle',
   'storage.backends.usedBy': 'Kullanan: {categories}',
@@ -120,7 +122,8 @@ const storage: TranslationStrings = {
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': 'Mevcut nesneler yeni arka uca taşınsın mı?',
   'storage.migrate.promptLine': '{category}: {from} konumundan {to} konumuna {objects} nesne ({size})',
-  'storage.migrate.promptLineUnknown': '{category}: bilinmeyen boyut (henüz kullanım taraması yapılmadı) {from} konumundan {to} konumuna',
+  'storage.migrate.promptLineUnknown':
+    '{category}: bilinmeyen boyut (henüz kullanım taraması yapılmadı) {from} konumundan {to} konumuna',
   'storage.migrate.move': 'Mevcut nesneleri taşı',
   'storage.migrate.routeOnly': 'Yalnızca yeni yazmaları yönlendir',
   'storage.migrate.running': '{category} taşınıyor… {done}/{total}',

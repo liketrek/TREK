@@ -120,6 +120,14 @@ export class StorageRegistryService implements OnModuleInit {
   private readonly logger = new Logger(StorageRegistryService.name);
   private state: RegistryState | null = null;
   private failures: ReplicaFailure[] = [];
+  /**
+   * Set by load() whenever the stored settings fail to parse/validate — the
+   * message a failing load logs, kept around so the admin state can surface
+   * it (audit minor: silently falling back masked a broken stored config, so
+   * a later save looked like a no-op edit but actually replaced it). Cleared
+   * on the next successful load/reload.
+   */
+  private loadFailure: string | null = null;
 
   constructor(
     private readonly db: DatabaseService,
@@ -194,6 +202,11 @@ export class StorageRegistryService implements OnModuleInit {
   /** Current optimistic-concurrency counter — 0 when never bumped (fresh install). */
   currentConfigVersion(): number {
     return readConfigVersion(this.db);
+  }
+
+  /** Non-null when the last load() fell back (last-good config or built-in defaults) — null once a load succeeds. */
+  lastLoadError(): string | null {
+    return this.loadFailure;
   }
 
   /**
@@ -306,9 +319,12 @@ export class StorageRegistryService implements OnModuleInit {
   private load(boot: boolean): void {
     try {
       this.state = this.build(this.readSettings(), boot);
+      this.loadFailure = null;
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       const keeping = this.state ? 'last-good config' : 'built-in defaults';
-      this.logger.error(`invalid storage settings — keeping ${keeping}: ${err instanceof Error ? err.message : err}`);
+      this.logger.error(`invalid storage settings — keeping ${keeping}: ${message}`);
+      this.loadFailure = message;
       if (!this.state) {
         this.state = this.build({ backends: [], categories: {} }, boot);
       }
@@ -318,7 +334,23 @@ export class StorageRegistryService implements OnModuleInit {
   private readSettings(): { backends: unknown; categories: unknown } {
     const read = (key: string): unknown => {
       const row = this.db.get<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', key);
-      return row?.value ? (JSON.parse(row.value) as unknown) : undefined;
+      if (!row?.value) return undefined;
+      try {
+        return JSON.parse(row.value) as unknown;
+      } catch (err) {
+        // JSON.parse's own SyntaxError can echo a snippet of the raw input
+        // around the failure position (Node 24 V8, e.g. `Unexpected token
+        // 'u', ..."cessKey": undefined_"... is not valid JSON`) — for a
+        // hand-edited/corrupted row that snippet can contain a fragment of a
+        // real secret, and load()'s catch stores err.message verbatim as
+        // configError, which the admin panel renders. Substitute a generic
+        // message; keep only the numeric position when the engine reports
+        // one the old ("at position N") way — never any quoted content.
+        const position = err instanceof Error ? /at position (\d+)/.exec(err.message)?.[1] : undefined;
+        throw new StorageBackendError(
+          `'${key}' contains malformed JSON` + (position ? ` (at position ${position})` : ''),
+        );
+      }
     };
     return { backends: read(BACKENDS_KEY), categories: read(CATEGORIES_KEY) };
   }

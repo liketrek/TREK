@@ -25,6 +25,8 @@ const storage: TranslationStrings = {
   'storage.save': 'Зберегти зміни',
   'storage.unsaved': 'Незбережені зміни',
   'storage.saveConflict': 'Конфігурацію сховища змінено після завантаження. Перевірте свої зміни і збережіть ще раз.',
+  'storage.configError.banner':
+    'Не вдалося завантажити збережені налаштування сховища — збереження замінить їх: {error}',
   'storage.backends.title': 'Бекенди',
   'storage.backends.add': 'Додати бекенд',
   'storage.backends.usedBy': 'Використовується у: {categories}',
@@ -120,7 +122,8 @@ const storage: TranslationStrings = {
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': "Перенести наявні об'єкти на новий бекенд?",
   'storage.migrate.promptLine': "{category}: {objects} об'єктів ({size}) з {from} до {to}",
-  'storage.migrate.promptLineUnknown': '{category}: невідомий розмір (використання ще не проскановано) з {from} до {to}',
+  'storage.migrate.promptLineUnknown':
+    '{category}: невідомий розмір (використання ще не проскановано) з {from} до {to}',
   'storage.migrate.move': "Перенести наявні об'єкти",
   'storage.migrate.routeOnly': 'Перенаправити лише нові записи',
   'storage.migrate.running': 'Перенесення {category}… {done}/{total}',

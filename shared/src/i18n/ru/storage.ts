@@ -24,7 +24,9 @@ const storage: TranslationStrings = {
   'storage.saved': 'Конфигурация хранилища сохранена',
   'storage.save': 'Сохранить изменения',
   'storage.unsaved': 'Несохранённые изменения',
-  'storage.saveConflict': 'Конфигурация хранилища изменилась с момента загрузки. Проверьте свои изменения и сохраните снова.',
+  'storage.saveConflict':
+    'Конфигурация хранилища изменилась с момента загрузки. Проверьте свои изменения и сохраните снова.',
+  'storage.configError.banner': 'Не удалось загрузить сохранённые настройки хранилища — сохранение заменит их: {error}',
   'storage.backends.title': 'Бэкенды',
   'storage.backends.add': 'Добавить бэкенд',
   'storage.backends.usedBy': 'Используется в: {categories}',
@@ -122,7 +124,8 @@ const storage: TranslationStrings = {
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': 'Перенести существующие объекты на новый бэкенд?',
   'storage.migrate.promptLine': '{category}: {objects} объектов ({size}) из {from} в {to}',
-  'storage.migrate.promptLineUnknown': '{category}: неизвестный размер (использование ещё не просканировано) из {from} в {to}',
+  'storage.migrate.promptLineUnknown':
+    '{category}: неизвестный размер (использование ещё не просканировано) из {from} в {to}',
   'storage.migrate.move': 'Перенести существующие объекты',
   'storage.migrate.routeOnly': 'Перенаправить только новые записи',
   'storage.migrate.running': 'Перенос {category}… {done}/{total}',

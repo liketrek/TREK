@@ -24,7 +24,10 @@ const storage: TranslationStrings = {
   'storage.saved': 'Η ρύθμιση αποθήκευσης αποθηκεύτηκε',
   'storage.save': 'Αποθήκευση αλλαγών',
   'storage.unsaved': 'Μη αποθηκευμένες αλλαγές',
-  'storage.saveConflict': 'Η ρύθμιση αποθήκευσης άλλαξε από τη στιγμή που φορτώθηκε. Ελέγξτε τις αλλαγές σας και αποθηκεύστε ξανά.',
+  'storage.saveConflict':
+    'Η ρύθμιση αποθήκευσης άλλαξε από τη στιγμή που φορτώθηκε. Ελέγξτε τις αλλαγές σας και αποθηκεύστε ξανά.',
+  'storage.configError.banner':
+    'Η φόρτωση των αποθηκευμένων ρυθμίσεων αποθήκευσης απέτυχε — η αποθήκευση θα τις αντικαταστήσει: {error}',
   'storage.backends.title': 'Backends',
   'storage.backends.add': 'Προσθήκη backend',
   'storage.backends.usedBy': 'Χρησιμοποιείται από: {categories}',
@@ -123,7 +126,8 @@ const storage: TranslationStrings = {
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': 'Μετακίνηση των υπαρχόντων αντικειμένων στο νέο backend;',
   'storage.migrate.promptLine': '{category}: {objects} αντικείμενα ({size}) από {from} σε {to}',
-  'storage.migrate.promptLineUnknown': '{category}: άγνωστο μέγεθος (δεν έχει γίνει ακόμα σάρωση χρήσης) από {from} σε {to}',
+  'storage.migrate.promptLineUnknown':
+    '{category}: άγνωστο μέγεθος (δεν έχει γίνει ακόμα σάρωση χρήσης) από {from} σε {to}',
   'storage.migrate.move': 'Μετακίνηση υπαρχόντων αντικειμένων',
   'storage.migrate.routeOnly': 'Δρομολόγηση μόνο των νέων εγγραφών',
   'storage.migrate.running': 'Μετακίνηση {category}… {done}/{total}',

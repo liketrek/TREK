@@ -23,7 +23,10 @@ const storage: TranslationStrings = {
   'storage.saved': 'Lagringskonfiguration sparad',
   'storage.save': 'Spara ändringar',
   'storage.unsaved': 'Osparade ändringar',
-  'storage.saveConflict': 'Lagringskonfigurationen har ändrats sedan den lästes in. Granska dina ändringar och spara igen.',
+  'storage.saveConflict':
+    'Lagringskonfigurationen har ändrats sedan den lästes in. Granska dina ändringar och spara igen.',
+  'storage.configError.banner':
+    'Det gick inte att läsa in de sparade lagringsinställningarna — att spara ersätter dem: {error}',
   'storage.backends.title': 'Backender',
   'storage.backends.add': 'Lägg till backend',
   'storage.backends.usedBy': 'Används av: {categories}',

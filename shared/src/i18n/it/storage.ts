@@ -24,7 +24,10 @@ const storage: TranslationStrings = {
   'storage.saved': 'Configurazione di archiviazione salvata',
   'storage.save': 'Salva modifiche',
   'storage.unsaved': 'Modifiche non salvate',
-  'storage.saveConflict': 'La configurazione di archiviazione è cambiata da quando è stata caricata. Rivedi le modifiche e salva di nuovo.',
+  'storage.saveConflict':
+    'La configurazione di archiviazione è cambiata da quando è stata caricata. Rivedi le modifiche e salva di nuovo.',
+  'storage.configError.banner':
+    'Impossibile caricare le impostazioni di archiviazione salvate — il salvataggio le sostituirà: {error}',
   'storage.backends.title': 'Backend',
   'storage.backends.add': 'Aggiungi backend',
   'storage.backends.usedBy': 'Usato da: {categories}',
@@ -121,7 +124,8 @@ const storage: TranslationStrings = {
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': 'Spostare gli oggetti esistenti nel nuovo backend?',
   'storage.migrate.promptLine': '{category}: {objects} oggetti ({size}) da {from} a {to}',
-  'storage.migrate.promptLineUnknown': '{category}: dimensione sconosciuta (utilizzo non ancora calcolato) da {from} a {to}',
+  'storage.migrate.promptLineUnknown':
+    '{category}: dimensione sconosciuta (utilizzo non ancora calcolato) da {from} a {to}',
   'storage.migrate.move': 'Sposta oggetti esistenti',
   'storage.migrate.routeOnly': 'Instrada solo le nuove scritture',
   'storage.migrate.running': 'Spostamento di {category}… {done}/{total}',

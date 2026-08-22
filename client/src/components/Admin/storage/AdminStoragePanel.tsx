@@ -266,6 +266,15 @@ export default function AdminStoragePanel(): React.ReactElement {
 
   return (
     <div>
+      {state.configError && (
+        <div
+          role="alert"
+          className="rounded-xl border p-3 mb-4 text-sm"
+          style={{ borderColor: 'var(--warning)', background: 'var(--warning-soft)', color: 'var(--text-primary)' }}
+        >
+          {t('storage.configError.banner', { error: state.configError })}
+        </div>
+      )}
       <Section title={t('storage.health.title')} icon={Activity}>
         {state.health.replicaFailures.length === 0 ? (
           <p className="text-sm text-content-faint">{t('storage.health.allClear')}</p>

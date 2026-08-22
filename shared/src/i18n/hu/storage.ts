@@ -24,7 +24,10 @@ const storage: TranslationStrings = {
   'storage.saved': 'A tárhely-konfiguráció mentve',
   'storage.save': 'Módosítások mentése',
   'storage.unsaved': 'Nem mentett módosítások',
-  'storage.saveConflict': 'A tárhely-konfiguráció megváltozott a betöltése óta. Ellenőrizze a módosításait, és mentse el újra.',
+  'storage.saveConflict':
+    'A tárhely-konfiguráció megváltozott a betöltése óta. Ellenőrizze a módosításait, és mentse el újra.',
+  'storage.configError.banner':
+    'A mentett tárhely-beállítások betöltése nem sikerült — a mentés felülírja őket: {error}',
   'storage.backends.title': 'Backendek',
   'storage.backends.add': 'Backend hozzáadása',
   'storage.backends.usedBy': 'Használja: {categories}',
@@ -121,7 +124,8 @@ const storage: TranslationStrings = {
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': 'Áthelyezed a meglévő objektumokat az új backendre?',
   'storage.migrate.promptLine': '{category}: {objects} objektum ({size}) innen: {from} ide: {to}',
-  'storage.migrate.promptLineUnknown': '{category}: ismeretlen méret (a használat még nincs kiszámítva) innen: {from} ide: {to}',
+  'storage.migrate.promptLineUnknown':
+    '{category}: ismeretlen méret (a használat még nincs kiszámítva) innen: {from} ide: {to}',
   'storage.migrate.move': 'Meglévő objektumok áthelyezése',
   'storage.migrate.routeOnly': 'Csak az új írások irányítása',
   'storage.migrate.running': '{category} áthelyezése… {done}/{total}',

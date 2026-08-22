@@ -23,7 +23,10 @@ const storage: TranslationStrings = {
   'storage.saved': 'Configuração de armazenamento salva',
   'storage.save': 'Salvar alterações',
   'storage.unsaved': 'Alterações não salvas',
-  'storage.saveConflict': 'A configuração de armazenamento mudou desde que foi carregada. Revise suas alterações e salve novamente.',
+  'storage.saveConflict':
+    'A configuração de armazenamento mudou desde que foi carregada. Revise suas alterações e salve novamente.',
+  'storage.configError.banner':
+    'Falha ao carregar as configurações de armazenamento salvas — salvar irá substituí-las: {error}',
   'storage.backends.title': 'Backends',
   'storage.backends.add': 'Adicionar backend',
   'storage.backends.usedBy': 'Usado por: {categories}',

@@ -7,6 +7,41 @@ import { readEnv, type AppEnv } from '../app-config';
 import { logDebug, logWarn, logError } from '../nest/audit/audit-log.logger';
 
 /**
+ * Field names redacted from request-log query/body dumps (case-insensitive —
+ * lookup lowercases the key first). `secretaccesskey` covers the S3 storage
+ * backend's secret field (storage-admin PUT bodies land in the same debug
+ * log line as any other request body).
+ *
+ * Exported (module-level, not per-request) so it can be unit-tested directly
+ * without threading LOG_LEVEL through the real logger pipeline.
+ */
+export const SENSITIVE_KEYS = new Set([
+  'password',
+  'new_password',
+  'current_password',
+  'token',
+  'jwt',
+  'authorization',
+  'cookie',
+  'client_secret',
+  'mfa_token',
+  'code',
+  'smtp_pass',
+  'secretaccesskey',
+]);
+
+/** Deep-redacts every key in `SENSITIVE_KEYS` (case-insensitive) from a request-log value. */
+export function redact(value: unknown): unknown {
+  if (!value || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return (value as unknown[]).map(redact);
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    out[k] = SENSITIVE_KEYS.has(k.toLowerCase()) ? '[REDACTED]' : redact(v);
+  }
+  return out;
+}
+
+/**
  * The global request pipeline shared by the legacy Express app and the NestJS
  * instance. Both mount the *exact same* config so a request hitting a migrated
  * Nest route is protected identically to one hitting the legacy fallback
@@ -172,18 +207,7 @@ export function applyGlobalMiddleware(
 
   app.use(cookieParser());
 
-  // Request logging with sensitive field redaction
-  const SENSITIVE_KEYS = new Set(['password', 'new_password', 'current_password', 'token', 'jwt', 'authorization', 'cookie', 'client_secret', 'mfa_token', 'code', 'smtp_pass']);
-  const redact = (value: unknown): unknown => {
-    if (!value || typeof value !== 'object') return value;
-    if (Array.isArray(value)) return (value as unknown[]).map(redact);
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      out[k] = SENSITIVE_KEYS.has(k.toLowerCase()) ? '[REDACTED]' : redact(v);
-    }
-    return out;
-  };
-
+  // Request logging with sensitive field redaction (SENSITIVE_KEYS/redact above)
   app.use((req: Request, res: Response, next: NextFunction) => {
     if (req.path === '/api/health') return next();
     const startedAt = Date.now();

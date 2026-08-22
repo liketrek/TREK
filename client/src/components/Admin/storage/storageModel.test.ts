@@ -55,6 +55,7 @@ const STATE: StorageAdminState = {
   backfills: [],
   migrations: [],
   version: 5,
+  configError: null,
 };
 
 describe('settingsDocumentOf', () => {

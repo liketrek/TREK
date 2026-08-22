@@ -302,6 +302,61 @@ describe('StorageRegistryService settings', () => {
     expect(registry.resolve('backups').backendName).toBe('backups-local');
   });
 
+  it('lastLoadError() is null on a clean boot', () => {
+    const { registry } = makeRegistry();
+    expect(registry.lastLoadError()).toBeNull();
+  });
+
+  it.each([
+    ['unknown backend name in categories', undefined, JSON.stringify({ files: 'nope' })],
+    ['malformed JSON', 'not json at all', undefined],
+  ])(
+    'lastLoadError() records the exact failure at boot and stays set (silent-fallback audit minor): %s',
+    (_label, backendsRow, categoriesRow) => {
+      vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+      const { registry } = makeRegistry({ boot: false });
+      if (backendsRow !== undefined) setSetting('storage.backends', backendsRow);
+      if (categoriesRow !== undefined) setSetting('storage.categories', categoriesRow);
+      registry.onModuleInit();
+
+      expect(registry.lastLoadError()).not.toBeNull();
+      // Still resolves on built-in defaults — the fallback itself is unchanged,
+      // only the silence around it.
+      expect(registry.resolve('files').backendName).toBe('uploads-local');
+    },
+  );
+
+  it('a malformed row never leaks a secret-looking token into lastLoadError() (admin-facing configError)', () => {
+    // JSON.parse's own SyntaxError can echo a snippet of the raw input around
+    // the failure position (Node 24 V8) — an unquoted value like this is
+    // exactly the shape a corrupted/hand-edited secretAccessKey row takes.
+    // lastLoadError() must never carry that snippet through to the
+    // admin-facing configError banner.
+    vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    const { registry } = makeRegistry({ boot: false });
+    const secretToken = 'AKIA_SUPER_SECRET_TOKEN_1234567890';
+    setSetting('storage.backends', `{"secretAccessKey": ${secretToken}_undefined_broken}`);
+    registry.onModuleInit();
+
+    const err = registry.lastLoadError();
+    expect(err).not.toBeNull();
+    expect(err).not.toContain(secretToken);
+    expect(err).not.toContain('secretAccessKey');
+    expect(err).toContain("'storage.backends' contains malformed JSON");
+  });
+
+  it('lastLoadError() clears on the next successful load/reload', () => {
+    vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    const { registry } = makeRegistry({ boot: false });
+    setSetting('storage.categories', 'garbage {');
+    registry.onModuleInit();
+    expect(registry.lastLoadError()).not.toBeNull();
+
+    setSetting('storage.categories', '{}');
+    registry.reload();
+    expect(registry.lastLoadError()).toBeNull();
+  });
+
   it('keeps the last-good config (not defaults) when a reload() sees invalid settings', () => {
     const nasRoot = makeTmpDir();
     const { registry } = makeRegistry({
@@ -318,6 +373,8 @@ describe('StorageRegistryService settings', () => {
 
     // last-good, i.e. the mirror config — NOT the built-in defaults
     expect(registry.resolve('backups').backendName).toBe('backup-mirror');
+    // ...and the operator can find out about it (audit minor: this used to be silent).
+    expect(registry.lastLoadError()).toBeTruthy();
   });
 });
 

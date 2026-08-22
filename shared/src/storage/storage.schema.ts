@@ -299,6 +299,14 @@ export const storageAdminStateSchema = z.object({
   migrations: z.array(storageMigrationStatusSchema),
   /** Optimistic-concurrency counter for the two settings rows (audit #7) — echo it back on the next PUT. */
   version: z.number().int().nonnegative(),
+  /**
+   * Non-null when the stored storage settings failed to parse/validate and
+   * the registry fell back to the last-good config (or built-in defaults) —
+   * the admin panel renders this as a warning banner so a save is never a
+   * silent replacement of a config the operator never actually saw (audit
+   * minor). Null once the stored settings load cleanly.
+   */
+  configError: z.string().nullable(),
 });
 export type StorageAdminState = z.infer<typeof storageAdminStateSchema>;
 

@@ -24,7 +24,9 @@ const storage: TranslationStrings = {
   'storage.saved': 'Zapisano konfigurację magazynu',
   'storage.save': 'Zapisz zmiany',
   'storage.unsaved': 'Niezapisane zmiany',
-  'storage.saveConflict': 'Konfiguracja magazynu zmieniła się od czasu jej wczytania. Sprawdź swoje zmiany i zapisz ponownie.',
+  'storage.saveConflict':
+    'Konfiguracja magazynu zmieniła się od czasu jej wczytania. Sprawdź swoje zmiany i zapisz ponownie.',
+  'storage.configError.banner': 'Nie udało się wczytać zapisanej konfiguracji magazynu — zapisanie ją zastąpi: {error}',
   'storage.backends.title': 'Backendy',
   'storage.backends.add': 'Dodaj backend',
   'storage.backends.usedBy': 'Używany przez: {categories}',
@@ -120,7 +122,8 @@ const storage: TranslationStrings = {
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': 'Przenieść istniejące obiekty do nowego backendu?',
   'storage.migrate.promptLine': '{category}: {objects} obiektów ({size}) z {from} do {to}',
-  'storage.migrate.promptLineUnknown': '{category}: nieznany rozmiar (wykorzystanie jeszcze nie obliczone) z {from} do {to}',
+  'storage.migrate.promptLineUnknown':
+    '{category}: nieznany rozmiar (wykorzystanie jeszcze nie obliczone) z {from} do {to}',
   'storage.migrate.move': 'Przenieś istniejące obiekty',
   'storage.migrate.routeOnly': 'Przekieruj tylko nowe zapisy',
   'storage.migrate.running': 'Przenoszenie {category}… {done}/{total}',

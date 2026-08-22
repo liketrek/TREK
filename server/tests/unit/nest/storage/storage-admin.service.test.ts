@@ -13,6 +13,7 @@ vi.mock('../../../../src/config', () => ({ ENCRYPTION_KEY: 'storage-admin-test-k
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { Logger } from '@nestjs/common';
 import { MASKED_SETTING_VALUE, type StorageConfig } from '@trek/shared';
 import { createTables } from '../../../../src/db/schema';
 import { runMigrations } from '../../../../src/db/migrations';
@@ -132,6 +133,17 @@ describe('StorageAdminService.state', () => {
     expect(service.state().health.replicaFailures).toEqual([
       { backend: 'nas', key: 'backup-1.zip', op: 'put', error: 'disk full', at: 123 },
     ]);
+  });
+
+  it('STORADM-027 configError is null on a clean load, and mirrors registry.lastLoadError() after a bad reload', () => {
+    vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    const { service, registry } = makeService();
+    expect(service.state().configError).toBeNull();
+
+    setSetting(CATEGORIES_KEY, 'garbage {');
+    registry.reload();
+    expect(service.state().configError).toBe(registry.lastLoadError());
+    expect(service.state().configError).not.toBeNull();
   });
 
   it('STORADM-026 state embeds usage (null until computed) and live backfill statuses', async () => {

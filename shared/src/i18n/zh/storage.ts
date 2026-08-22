@@ -23,6 +23,7 @@ const storage: TranslationStrings = {
   'storage.save': '保存更改',
   'storage.unsaved': '未保存的更改',
   'storage.saveConflict': '存储配置自加载后已更改。请检查您的更改并重新保存。',
+  'storage.configError.banner': '已保存的存储设置加载失败 — 保存将替换它们：{error}',
   'storage.backends.title': '后端',
   'storage.backends.add': '添加后端',
   'storage.backends.usedBy': '使用者：{categories}',

@@ -60,6 +60,7 @@ export class StorageAdminService {
       backfills: this.jobs.statuses(),
       migrations: this.jobs.migrationStatuses(),
       version: this.registry.currentConfigVersion(),
+      configError: this.registry.lastLoadError(),
     };
   }
 

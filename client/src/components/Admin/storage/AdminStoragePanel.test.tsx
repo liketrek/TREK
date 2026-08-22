@@ -35,6 +35,7 @@ function baseState(overrides: Partial<StorageAdminState> = {}): StorageAdminStat
     backfills: [],
     migrations: [],
     version: 0,
+    configError: null,
     ...overrides,
   };
 }
@@ -896,5 +897,24 @@ describe('AdminStoragePanel', () => {
     fireEvent.click(within(backendRow('backups-local')).getByRole('button', { name: 'Sync now' }));
     await new Promise((r) => setTimeout(r, 100));
     expect(screen.queryByText(/Existing objects are not replicated yet/)).not.toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-STOR-040: a non-null configError renders a warning banner naming the error; save stays enabled', async () => {
+    await renderPanel(baseState({ configError: "'storage.categories' must be a JSON object" }));
+    const banner = screen.getByText(
+      "Stored storage settings failed to load — saving will replace them: 'storage.categories' must be a JSON object",
+    );
+    expect(banner).toHaveAttribute('role', 'alert');
+    // Save is the recovery path — it must not be force-disabled by the banner
+    // (it's still gated on `dirty` like any other save, unrelated to this).
+    fireEvent.click(within(categoryRow('files')).getByText('uploads-local (default)'));
+    const choices = screen.getAllByText('off-box');
+    fireEvent.click(choices[choices.length - 1]!);
+    expect(screen.getByRole('button', { name: 'Save changes' })).not.toBeDisabled();
+  });
+
+  it('FE-ADMIN-STOR-041: no configError renders no banner', async () => {
+    await renderPanel(baseState({ configError: null }));
+    expect(screen.queryByText(/failed to load/)).not.toBeInTheDocument();
   });
 });
