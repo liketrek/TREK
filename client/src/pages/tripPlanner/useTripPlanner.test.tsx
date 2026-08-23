@@ -680,6 +680,28 @@ describe('useTripPlanner — map derivations', () => {
     expect(result.current.mapPlaces.map(p => p.id)).toEqual([1])
   })
 
+  it('FE-TP-HOOK-111: the planned filter follows the selected day when one is selected', async () => {
+    const onDay7 = geo(1)
+    const onDay8 = geo(2)
+    seedTrip({
+      places: [onDay7, onDay8, geo(3)],
+      assignments: {
+        '7': [buildAssignment({ id: 10, day_id: 7, place: onDay7 })],
+        '8': [buildAssignment({ id: 11, day_id: 8, place: onDay8 })],
+      },
+      placesFilter: 'planned',
+      selectedDayId: 7,
+    })
+
+    const { result } = await renderPlanner()
+
+    expect(result.current.mapPlaces.map(p => p.id)).toEqual([1])
+
+    // No day selected → back to the whole plan
+    act(() => { useTripStore.setState({ selectedDayId: null }) })
+    expect(result.current.mapPlaces.map(p => p.id)).toEqual([1, 2])
+  })
+
   it('FE-TP-HOOK-030: collapsing a day hides its stops unless another expanded day shows them', async () => {
     const shared = geo(1)
     seedTrip({
