@@ -212,8 +212,9 @@ export type Accommodation = z.infer<typeof accommodationSchema>;
  */
 export const reservationUrlSchema = z.string().refine(
   // Browsers strip control characters and whitespace before they resolve the
-  // scheme, so a tab spliced into 'javascript:' still runs.
-  v => !/^(javascript|data|vbscript):/i.test(v.replace(/[\u0000-\u0020]/g, '')),
+  // scheme, so a tab spliced into 'javascript:' still runs. Everything at
+  // or below U+0020 goes, which is the same set a browser drops.
+  v => !/^(javascript|data|vbscript):/i.test(Array.from(v).filter(c => c > ' ').join('')),
   { message: 'must not be a javascript:, data: or vbscript: URL' },
 );
 
