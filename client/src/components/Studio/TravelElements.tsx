@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { fontStack } from './bookFonts'
 import { brightness } from './folioColour'
-import { COUNTRY_SHAPES, countryWorldPath, projectMercator, unprojectMercator } from './countryShapes'
+import { COUNTRY_SHAPES, countryParts, countryWorldPath, projectMercator, unprojectMercator } from './countryShapes'
 import { projectOntoTiles, tileView, usableStaticUrl } from './mapTiles'
 import { FLAG_H, FLAG_W, flagBands, flagDisc, flagSpec } from './flags'
 import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
@@ -270,12 +270,6 @@ function MapView({ el, frameStyle, big = false }: {
    */
   const cutToLand = el.clip === 'country' && shapes.length > 0
   const fitToLand = el.fitToCountries || cutToLand || (points.length === 0 && trail.length === 0)
-  if (fitToLand) {
-    for (const s of shapes) {
-      minX = Math.min(minX, s.b[0]); minY = Math.min(minY, s.b[1])
-      maxX = Math.max(maxX, s.b[2]); maxY = Math.max(maxY, s.b[3])
-    }
-  }
   for (const p of points) {
     minX = Math.min(minX, p.x); minY = Math.min(minY, p.y)
     maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y)
@@ -297,6 +291,45 @@ function MapView({ el, frameStyle, big = false }: {
       const q = projectMercator(lng, lat)
       minX = Math.min(minX, q.x); minY = Math.min(minY, q.y)
       maxX = Math.max(maxX, q.x); maxY = Math.max(maxY, q.y)
+    }
+  }
+
+  /*
+   * The country fit comes last, because it needs to know where the journey is.
+   *
+   * A country is one path but not one landmass. France's is five rings, three
+   * of them Kerguelen, French Guiana and New Caledonia, so unioning its whole
+   * bounding box fitted a Paris-Lyon-Nice route to 221 degrees of longitude and
+   * printed the three stops as a single dot. Britain does the same through
+   * South Georgia, Norway through Svalbard, Ecuador through the Galapagos.
+   *
+   * So only the rings the journey is near are fitted to. The margin is the
+   * route's own size, floored at two degrees, and that floor is the whole of
+   * the judgement: at two degrees a Paris-Nice route still pulls in Corsica,
+   * which is the picture that trip wants, while Kerguelen at 68 degrees east
+   * stays out. Raise it far and the territories come back; drop it to zero and
+   * a coastal route sitting just off a simplified coastline stops matching the
+   * country it is in.
+   *
+   * The whole shape is still the fallback — with no route there is nothing to
+   * measure against, and a country none of whose rings match is better drawn
+   * whole than not at all. The outlines themselves are unchanged either way:
+   * the overseas rings are still painted, they just run off the frame the way
+   * a coastline does.
+   */
+  if (fitToLand) {
+    const routed = Number.isFinite(minX)
+    const margin = Math.max(maxX - minX, maxY - minY, 2)
+    const nearX0 = minX - margin, nearY0 = minY - margin
+    const nearX1 = maxX + margin, nearY1 = maxY + margin
+    for (const s of shapes) {
+      const near = routed
+        ? countryParts(s).filter(p => p[0] <= nearX1 && p[2] >= nearX0 && p[1] <= nearY1 && p[3] >= nearY0)
+        : []
+      for (const b of near.length > 0 ? near : [s.b]) {
+        minX = Math.min(minX, b[0]); minY = Math.min(minY, b[1])
+        maxX = Math.max(maxX, b[2]); maxY = Math.max(maxY, b[3])
+      }
     }
   }
 

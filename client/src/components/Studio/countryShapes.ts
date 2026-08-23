@@ -59,6 +59,44 @@ export function countryWorldPath(shape: CountryShape): string {
   })
 }
 
+/*
+ * One box per ring of the outline, in the same world coordinates.
+ *
+ * A country is a single path but not a single landmass. France's is five
+ * subpaths, three of which are Kerguelen, French Guiana and New Caledonia, so
+ * its `b` covers 221 degrees of longitude and describes nowhere anybody stood.
+ * Anything fitting a view to a country needs the pieces, not the aggregate.
+ *
+ * Cached against the shape object: the boxes are a property of the generated
+ * data, and the data does not change while the page is open.
+ */
+const PARTS = new WeakMap<CountryShape, [number, number, number, number][]>()
+
+export function countryParts(shape: CountryShape): [number, number, number, number][] {
+  const cached = PARTS.get(shape)
+  if (cached) return cached
+  // The same placement `countryWorldPath` does, applied to the numbers rather
+  // than to the string.
+  const span = Math.max(shape.b[2] - shape.b[0], shape.b[3] - shape.b[1]) / 100
+  const parts: [number, number, number, number][] = []
+  for (const sub of shape.d.split('M')) {
+    const nums = sub.match(/-?\d*\.?\d+/g)
+    if (!nums || nums.length < 2) continue
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    for (let i = 0; i + 1 < nums.length; i += 2) {
+      const x = Number(nums[i]) * span + shape.b[0]
+      const y = Number(nums[i + 1]) * span + shape.b[1]
+      if (x < minX) minX = x
+      if (x > maxX) maxX = x
+      if (y < minY) minY = y
+      if (y > maxY) maxY = y
+    }
+    parts.push([minX, minY, maxX, maxY])
+  }
+  PARTS.set(shape, parts)
+  return parts
+}
+
 export const COUNTRY_SHAPES: Record<string, CountryShape> = {
   AD: { d: 'M84.2 57.2L84.2 50L81.6 50L84.2 46.5L84.2 42.9L86.8 42.9L86.8 35.8L92.1 35.8L92.1 32.2L92.1 35.8L94.7 32.2L94.7 35.8L94.7 32.2L100 32.2L97.4 28.6L89.5 28.6L86.8 25L84.2 25L84.2 17.9L86.8 17.9L86.8 14.3L84.2 14.3L84.2 17.9L84.2 14.3L81.6 14.3L78.9 17.9L78.9 14.3L65.8 14.3L63.2 10.7L44.7 10.7L44.7 3.6L36.8 3.6L36.8 0L34.2 3.6L18.4 3.6L18.4 7.2L15.8 7.2L15.8 14.3L18.4 14.3L18.4 17.9L13.2 17.9L13.2 21.5L7.9 21.5L7.9 25L5.3 25L5.3 28.6L7.9 32.2L7.9 35.8L2.6 35.8L2.6 42.9L0 42.9L10.5 42.9L10.5 46.5L13.2 46.5L13.2 50L15.8 53.6L13.2 53.6L13.2 57.2L7.9 57.2L5.3 60.8L2.6 60.8L2.6 64.3L7.9 64.3L7.9 71.5L10.5 71.5L7.9 71.5L7.9 75L10.5 75L10.5 78.6L7.9 78.6L18.4 78.6L18.4 82.2L36.8 82.2L36.8 78.6L39.5 75L39.5 71.5L42.1 71.5L42.1 75L44.7 75L44.7 71.5L47.4 71.5L50 67.9L52.6 71.5L52.6 67.9L55.3 67.9L57.9 71.5L57.9 67.9L65.8 67.9L65.8 60.8L68.4 57.2L71.1 57.2L71.1 60.8L73.7 57.2L73.7 60.8L78.9 60.8L84.2 57.2Z', w: 100, h: 82.2, b: [1.41, -47.25, 1.79, -46.94] },
   AE: { d: 'M99.8 25.1L99.6 11.1L95.6 9.9L95 5.5L96 2.1L95 0L93.8 0.5L92.3 4.2L93.1 3.2L93.3 3.9L91.1 5.8L91.3 6.9L91.1 6L89.4 8.1L87.5 7.9L87.7 8.8L86.9 9.5L86.7 8.6L86.7 9.9L84.4 12.5L83 12.5L83.4 10.6L81.5 13.6L82.1 13.9L80.5 14.8L81.3 14.5L81.1 15.5L80.5 14.8L79.4 17.1L79 16.2L78.8 17.8L77.3 16.4L78.2 20.3L78.2 18.9L76.7 18.2L77.1 18.9L76.5 18.5L76.9 19.1L74.4 22.8L72.1 24.2L72.6 25.3L71.3 23.7L71.7 25.1L71.3 24L70.7 25.1L70.9 23.7L70.3 25.1L71.1 25.3L69.6 26.3L69.2 25.6L69.6 26.5L68.2 26.9L69.2 28.1L68 26.9L66.3 27.9L66.9 29.2L66.1 29.9L66.3 27.6L65.3 28.8L66.1 29.2L64.9 29L64.7 30.6L63.6 31.1L64.9 32.4L63 35.4L63.8 36.3L60.7 37.7L61.3 38.8L60.1 39.3L59.9 40.2L61.1 40.4L55.5 42.3L53.2 40L52.4 41.6L53.4 42.5L50.9 43.2L52 43.9L53.2 42.5L54.1 42.9L52.6 44.5L52 43.9L52 44.8L48.6 44.8L48.9 45.9L42 46.6L39.1 44.5L36.2 44.8L36.2 45.5L35.3 44.3L35.6 45.2L34.1 44.5L34.5 45.9L32.8 46.1L32 43.9L31.2 44.8L30.4 44.5L31 43.9L24.5 44.5L23.7 43.4L22.9 44.5L21.2 42.5L20.8 44.5L18.7 45.5L17.9 44.8L18.1 46.1L14.8 48L10.8 48.9L7.9 47.5L7.5 48.6L4.4 46.8L4.4 41.4L3.5 40.9L2.5 42.7L1.7 40L2.1 42.3L1.2 42.9L1.5 40.2L0 38.6L0.4 44.5L21 71.5L74.2 78.5L76.1 75.1L76.1 67.7L83.2 56.4L82.5 51.1L81.3 48.9L86.5 46.1L88.6 47.3L92.5 45.9L91.3 42.5L86.9 42.3L88.6 40.2L88.6 37.9L87.3 35.9L88.4 33.4L87.7 32.9L88.8 32.2L88.1 26.7L91.3 24.4L93.1 25.3L93.3 27.6L91.7 27.6L94.4 30.6L96.3 29.7L96.5 28.1L98.5 27.4L99.4 26.3L98.8 25.3L99.8 25.1Z', w: 100, h: 78.5, b: [51.57, -27.02, 56.38, -23.24] },
