@@ -39,6 +39,13 @@ export function generateUUID(): string {
 }
 
 let _flushing = false
+// A row sits on 'syncing' only while its request is in flight, and the shared
+// axios instance times out at 8s. Anything still 'syncing' a minute later
+// belongs to a flush that never reached its catch — the tab was killed, the PWA
+// was evicted, the device slept mid-request. flush() only ever selects
+// 'pending', so without recovery that row is stranded: counted in the badge,
+// never replayed, and blocking every dependent behind it.
+const STUCK_SYNCING_MS = 60_000
 // Monotonically increasing timestamp so same-millisecond enqueues
 // still get a deterministic FIFO order when sorted by createdAt.
 let _lastTs = 0
@@ -121,14 +128,25 @@ export const mutationQueue = {
     // without its base token, so one more pass overwrites the server cleanly.
     let needsRetry = false
     try {
+      // Reclaim what an interrupted flush left behind before picking up work.
+      // Replaying is safe: the mutation id doubles as the X-Idempotency-Key, so
+      // a write the server already applied is answered from its replay cache.
+      const stuckBefore = Date.now() - STUCK_SYNCING_MS
+      await offlineDb.mutationQueue
+        .where('status')
+        .equals('syncing')
+        .filter(m => (m.syncingSince ?? 0) < stuckBefore)
+        .modify(m => { m.status = 'pending'; m.syncingSince = undefined })
+
       const pending = await offlineDb.mutationQueue
         .where('status')
         .equals('pending')
         .sortBy('createdAt')
 
       for (const mutation of pending) {
-        // Mark as syncing so UI can show progress
-        await offlineDb.mutationQueue.update(mutation.id, { status: 'syncing' })
+        // Mark as syncing so UI can show progress. The stamp is what lets the
+        // next flush tell an in-flight row from one a killed tab abandoned.
+        await offlineDb.mutationQueue.update(mutation.id, { status: 'syncing', syncingSince: Date.now() })
 
         // Resolve a temp-id reference now that earlier CREATEs in this flush
         // may have completed (FIFO order guarantees the CREATE ran first).

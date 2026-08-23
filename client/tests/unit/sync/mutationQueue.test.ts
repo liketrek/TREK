@@ -241,6 +241,47 @@ describe('mutationQueue.flush — offline guard', () => {
 
 // ── pending / pendingCount ────────────────────────────────────────────────────
 
+describe('mutationQueue.flush — interrupted flush recovery', () => {
+  it('replays a row an earlier flush abandoned on syncing', async () => {
+    let seen = 0;
+    server.use(
+      http.post('/api/trips/1/places', () => {
+        seen += 1;
+        return HttpResponse.json({ place: buildPlace({ id: 42 }) });
+      }),
+    );
+
+    // What a killed tab leaves behind: marked syncing, stamped long enough ago
+    // that no live request could still be in flight.
+    const id = generateUUID();
+    await offlineDb.mutationQueue.add({
+      id, tripId: 1, method: 'POST', url: '/trips/1/places',
+      body: { name: 'Eiffel Tower' }, resource: 'places',
+      createdAt: Date.now() - 600_000, status: 'syncing', attempts: 0, lastError: null,
+      syncingSince: Date.now() - 600_000,
+    });
+
+    await mutationQueue.flush();
+
+    expect(seen).toBe(1);
+    expect(await offlineDb.mutationQueue.get(id)).toBeUndefined();
+  });
+
+  it('leaves a freshly marked syncing row alone (a concurrent flush owns it)', async () => {
+    const id = generateUUID();
+    await offlineDb.mutationQueue.add({
+      id, tripId: 1, method: 'POST', url: '/trips/1/places',
+      body: { name: 'Eiffel Tower' }, resource: 'places',
+      createdAt: Date.now(), status: 'syncing', attempts: 0, lastError: null,
+      syncingSince: Date.now(),
+    });
+
+    await mutationQueue.flush();
+
+    expect((await offlineDb.mutationQueue.get(id))!.status).toBe('syncing');
+  });
+});
+
 describe('mutationQueue.pending', () => {
   it('returns pending mutations for a trip', async () => {
     const id1 = generateUUID();

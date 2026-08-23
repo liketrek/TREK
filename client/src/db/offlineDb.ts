@@ -51,6 +51,13 @@ export interface QueuedMutation {
   conflictServer?: unknown;
   /** When the conflict was detected (for ordering / display). */
   conflictAt?: number;
+  /**
+   * When the row was marked 'syncing'. Only meaningful while it is — the flush
+   * that set it clears the row on success or moves it off 'syncing' on failure.
+   * A stamp that outlives its flush is how a killed tab is recognised on the
+   * next one (see mutationQueue's STUCK_SYNCING_MS).
+   */
+  syncingSince?: number;
 }
 
 export interface SyncMeta {
