@@ -15,6 +15,7 @@ function makeService(overrides: Partial<ReservationsService> = {}): Reservations
   return {
     verifyTripAccess: vi.fn().mockReturnValue(trip),
     canEdit: vi.fn().mockReturnValue(true),
+    referencesOutsideTrip: vi.fn().mockReturnValue([]),
     broadcast: vi.fn(),
     syncBudgetOnCreate: vi.fn(),
     syncBudgetOnUpdate: vi.fn(),
@@ -55,6 +56,18 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
       expect(broadcast).toHaveBeenCalledWith('5', 'reservation:created', { reservation: { id: 9 } }, 'sock');
       expect(notifyBookingChange).toHaveBeenCalledWith('5', user.id, 'Hotel', 'lodging');
     });
+
+    it('400s on a body id belonging to another trip, without writing', () => {
+      const create = vi.fn();
+      const svc = makeService({
+        create,
+        referencesOutsideTrip: vi.fn().mockReturnValue(['accommodation_id']),
+      } as Partial<ReservationsService>);
+      const body = { title: 'Hotel', accommodation_id: 4711 };
+      expect(thrown(() => new ReservationsController(svc, airtrailLink).create(user, '5', body)))
+        .toEqual({ status: 400, body: { error: 'Not part of this trip: accommodation_id' } });
+      expect(create).not.toHaveBeenCalled();
+    });
   });
 
   describe('PUT /positions', () => {
@@ -86,6 +99,18 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
       expect(broadcast).toHaveBeenCalledWith('5', 'accommodation:updated', {}, 'sock');
       expect(syncBudgetOnUpdate).toHaveBeenCalledWith('5', '9', '', undefined, 'Old', 'lodging', { total_price: 50 }, 'sock');
       expect(notifyBookingChange).toHaveBeenCalledWith('5', user.id, 'Old', 'lodging');
+    });
+
+    it('400s on a body id belonging to another trip, without writing', () => {
+      const update = vi.fn();
+      const svc = makeService({
+        getReservation: vi.fn().mockReturnValue({ title: 'Old', type: 'lodging' }),
+        update,
+        referencesOutsideTrip: vi.fn().mockReturnValue(['day_id', 'place_id']),
+      } as Partial<ReservationsService>);
+      expect(thrown(() => new ReservationsController(svc, airtrailLink).update(user, '5', '9', { day_id: 1, place_id: 2 })))
+        .toEqual({ status: 400, body: { error: 'Not part of this trip: day_id, place_id' } });
+      expect(update).not.toHaveBeenCalled();
     });
   });
 

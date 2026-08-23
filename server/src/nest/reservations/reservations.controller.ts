@@ -68,6 +68,7 @@ export class ReservationsController {
     @Headers('x-socket-id') socketId?: string,
   ) {
     const body = rawBody as ReservationBody & { title: string };
+    this.rejectForeignReferences(tripId, body);
     const { reservation, accommodationCreated } = this.reservations.create(tripId, body as never);
     if (accommodationCreated) {
       this.reservations.broadcast(tripId, 'accommodation:created', {}, socketId);
@@ -107,6 +108,7 @@ export class ReservationsController {
     if (!current) {
       throw new HttpException({ error: 'Reservation not found' }, 404);
     }
+    this.rejectForeignReferences(tripId, body);
     const { reservation, accommodationChanged } = this.reservations.update(id, tripId, body as never, current as never);
     if (accommodationChanged) {
       this.reservations.broadcast(tripId, 'accommodation:updated', {}, socketId);
@@ -161,5 +163,20 @@ export class ReservationsController {
     this.reservations.broadcast(tripId, 'reservation:deleted', { reservationId: Number(id) }, socketId);
     this.reservations.notifyBookingChange(tripId, user.id, deleted.title, deleted.type || '');
     return { success: true };
+  }
+
+  /**
+   * The write contracts are open records, so day_id, place_id, assignment_id and
+   * accommodation_id arrive unvalidated. reservation_edit on :tripId says the
+   * caller may write HERE — it says nothing about the ids they put in the body,
+   * and a foreign accommodation_id used to be stored verbatim and deleted with
+   * the reservation. The MCP tools have refused foreign ids since they were
+   * written; this is the REST half of the same rule.
+   */
+  private rejectForeignReferences(tripId: string, body: ReservationBody): void {
+    const offenders = this.reservations.referencesOutsideTrip(tripId, body as never);
+    if (offenders.length > 0) {
+      throw new HttpException({ error: `Not part of this trip: ${offenders.join(', ')}` }, 400);
+    }
   }
 }

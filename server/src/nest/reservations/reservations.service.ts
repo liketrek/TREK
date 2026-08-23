@@ -432,6 +432,45 @@ export class ReservationsService {
     return this.reads.getReservationWithJoins(id);
   }
 
+  /**
+   * Name every id in the body that points outside this trip.
+   *
+   * Permission on the trip in the URL does not cover the body: it carries ids
+   * of its own, and a reservation happily stores a foreign accommodation_id,
+   * whose delete cascade then follows it out of the caller's own trip. The MCP
+   * tools have validated their referenced ids since they were written; this is
+   * the same check where every writer can reach it.
+   *
+   * Returns the offending field names, empty when the body is clean.
+   */
+  referencesOutsideTrip(tripId: string | number, data: CreateReservationData | UpdateReservationData): string[] {
+    const offenders: string[] = [];
+    const inTrip = (table: 'days' | 'places' | 'day_accommodations', id: unknown) =>
+      !!this.db.get(`SELECT id FROM ${table} WHERE id = ? AND trip_id = ?`, id, tripId);
+
+    const check = (field: string, ok: boolean) => { if (!ok) offenders.push(field); };
+
+    if (data.day_id != null) check('day_id', inTrip('days', data.day_id));
+    if (data.end_day_id != null) check('end_day_id', inTrip('days', data.end_day_id));
+    if (data.place_id != null) check('place_id', inTrip('places', data.place_id));
+    if (data.accommodation_id != null) check('accommodation_id', inTrip('day_accommodations', data.accommodation_id));
+    if (data.assignment_id != null) {
+      check('assignment_id', !!this.db.get(
+        'SELECT da.id FROM day_assignments da JOIN days d ON da.day_id = d.id WHERE da.id = ? AND d.trip_id = ?',
+        data.assignment_id, tripId,
+      ));
+    }
+
+    const acc = data.create_accommodation;
+    if (acc) {
+      if (acc.place_id != null) check('create_accommodation.place_id', inTrip('places', acc.place_id));
+      if (acc.start_day_id != null) check('create_accommodation.start_day_id', inTrip('days', acc.start_day_id));
+      if (acc.end_day_id != null) check('create_accommodation.end_day_id', inTrip('days', acc.end_day_id));
+    }
+
+    return offenders;
+  }
+
   /** The accommodation insert, the reservation insert, the endpoint save and
    *  the metadata sync are one logical write — all-or-nothing. */
   create(tripId: string | number, data: CreateReservationData): { reservation: ReservationRow; accommodationCreated: boolean } {
@@ -583,7 +622,9 @@ export class ReservationsService {
     // Update or create accommodation for hotel reservations
     let resolvedAccId: number | null = accommodation_id !== undefined ? (accommodation_id || null) : (current.accommodation_id ?? null);
     if (resolvedAccId) {
-      const accExists = this.db.get('SELECT id FROM day_accommodations WHERE id = ?', resolvedAccId);
+      // Scoped to the trip on purpose: an id belonging to someone else's trip
+      // must read as absent here, not as an accommodation to write through to.
+      const accExists = this.db.get('SELECT id FROM day_accommodations WHERE id = ? AND trip_id = ?', resolvedAccId, tripId);
       if (!accExists) resolvedAccId = null;
     }
     if (type === 'hotel' && create_accommodation) {
@@ -720,8 +761,13 @@ export class ReservationsService {
 
       let accommodationDeleted = false;
       if (reservation.accommodation_id) {
-        this.db.run('DELETE FROM day_accommodations WHERE id = ?', reservation.accommodation_id);
-        accommodationDeleted = true;
+        // trip_id in the WHERE, not just the reservation's own scope: a row
+        // written before referencesOutsideTrip existed can still carry a
+        // foreign accommodation_id, and the cascade must not follow it.
+        const removed = this.db.run(
+          'DELETE FROM day_accommodations WHERE id = ? AND trip_id = ?', reservation.accommodation_id, tripId,
+        );
+        accommodationDeleted = removed.changes > 0;
       }
 
       const linkedBudget = this.db.get<{ id: number }>('SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?', tripId, id);

@@ -816,3 +816,65 @@ describe('ReservationsService — quirk fixes (post-fold)', () => {
     expect(testDb.prepare('SELECT title FROM reservations WHERE id = ?').get(res.id)).toEqual({ title: 'Old' });
   });
 });
+
+describe('ReservationsService — referenced ids stay inside the trip', () => {
+  /** Attacker's trip and a victim trip they are not a member of. */
+  function twoTrips() {
+    const { user: attacker } = createUser(testDb);
+    const { user: victim } = createUser(testDb, { email: 'victim@example.test' });
+    const mine = createTrip(testDb, attacker.id, { start_date: '2030-05-01', end_date: '2030-05-03' });
+    const theirs = createTrip(testDb, victim.id, { start_date: '2030-05-01', end_date: '2030-05-03' });
+    return { mine, theirs };
+  }
+
+  it('RESV-SCOPE-001: names every foreign id in the body', () => {
+    const { mine, theirs } = twoTrips();
+    const foreignPlace = createPlace(testDb, theirs.id);
+    const foreignDay = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').get(theirs.id) as { id: number };
+    const foreignAcc = createDayAccommodation(testDb, theirs.id, foreignPlace.id, foreignDay.id, foreignDay.id);
+
+    expect(svc.referencesOutsideTrip(String(mine.id), {
+      title: 'x', day_id: foreignDay.id, place_id: foreignPlace.id, accommodation_id: foreignAcc.id,
+    })).toEqual(['day_id', 'place_id', 'accommodation_id']);
+  });
+
+  it('RESV-SCOPE-002: passes a body whose ids all live in the trip', () => {
+    const { mine } = twoTrips();
+    const place = createPlace(testDb, mine.id);
+    const day = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').get(mine.id) as { id: number };
+
+    expect(svc.referencesOutsideTrip(String(mine.id), { title: 'x', day_id: day.id, place_id: place.id })).toEqual([]);
+    expect(svc.referencesOutsideTrip(String(mine.id), { title: 'x' })).toEqual([]);
+  });
+
+  it('RESV-SCOPE-003: a stored foreign accommodation_id is not deleted with the reservation', () => {
+    const { mine, theirs } = twoTrips();
+    const foreignPlace = createPlace(testDb, theirs.id);
+    const foreignDay = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').get(theirs.id) as { id: number };
+    const foreignAcc = createDayAccommodation(testDb, theirs.id, foreignPlace.id, foreignDay.id, foreignDay.id);
+    // A row from before the check existed: it already carries the foreign id.
+    const res = createReservation(testDb, mine.id, { title: 'Hotel', type: 'hotel' });
+    testDb.prepare('UPDATE reservations SET accommodation_id = ? WHERE id = ?').run(foreignAcc.id, res.id);
+
+    const { accommodationDeleted } = svc.remove(String(res.id), String(mine.id));
+
+    expect(accommodationDeleted).toBe(false);
+    expect(testDb.prepare('SELECT id FROM day_accommodations WHERE id = ?').get(foreignAcc.id)).toBeTruthy();
+  });
+
+  it('RESV-SCOPE-004: an update carrying a foreign accommodation_id does not write through to it', () => {
+    const { mine, theirs } = twoTrips();
+    const foreignPlace = createPlace(testDb, theirs.id);
+    const foreignDay = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').get(theirs.id) as { id: number };
+    const foreignAcc = createDayAccommodation(testDb, theirs.id, foreignPlace.id, foreignDay.id, foreignDay.id, { check_in: '14:00' });
+    const res = createReservation(testDb, mine.id, { title: 'Hotel', type: 'hotel' });
+    const current = svc.getReservation(String(res.id), String(mine.id))!;
+
+    svc.update(String(res.id), String(mine.id), {
+      accommodation_id: foreignAcc.id, metadata: { check_in_time: '23:00' },
+    } as never, current);
+
+    expect(testDb.prepare('SELECT check_in FROM day_accommodations WHERE id = ?').get(foreignAcc.id)).toEqual({ check_in: '14:00' });
+    expect(testDb.prepare('SELECT accommodation_id FROM reservations WHERE id = ?').get(res.id)).toEqual({ accommodation_id: null });
+  });
+});
