@@ -78,13 +78,10 @@ export class JourneyService {
   removeContributor(id: number, userId: number, targetUserId: number) { return this.journey.removeContributor(id, userId, targetUserId); }
 
   // Share links
-  // Authorization: the token is the whole credential, so reading it needs the
-  // same owner check create/delete use. A viewer who reads it keeps a working
-  // anonymous link after being removed as a contributor.
-  getJourneyShareLink(id: number, userId: number) {
-    if (!this.journey.isOwner(id, userId)) return null;
-    return this.share.getJourneyShareLink(id);
-  }
+  // Authorization lives in JourneyShareService.readJourneyShareLink, which the
+  // MCP tool reads through as well; { allowed: false } is a refusal, not "no
+  // link exists".
+  getJourneyShareLink(id: number, userId: number) { return this.share.readJourneyShareLink(id, userId); }
   createOrUpdateJourneyShareLink(id: number, userId: number, data: Parameters<typeof this.share.createOrUpdateJourneyShareLink>[2]) { return this.share.createOrUpdateJourneyShareLink(id, userId, data); }
   deleteJourneyShareLink(id: number, userId: number) { return this.share.deleteJourneyShareLink(id, userId); }
 

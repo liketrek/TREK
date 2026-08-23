@@ -118,6 +118,19 @@ export class IdempotencyInterceptor implements NestInterceptor {
   ): Observable<unknown> {
     const originalJson = res.json.bind(res);
     const database = this.database;
+
+    let done!: () => void;
+    inFlight.set(signature, new Promise<void>((resolve) => { done = resolve; }));
+    let released = false;
+    // Idempotent: whichever of the two paths below gets there first releases the
+    // waiter, and the other one is a no-op.
+    const release = () => {
+      if (released) return;
+      released = true;
+      inFlight.delete(signature);
+      done();
+    };
+
     res.json = function (body: unknown): Response {
       if (res.statusCode >= 200 && res.statusCode < 300) {
         try {
@@ -133,16 +146,24 @@ export class IdempotencyInterceptor implements NestInterceptor {
           // Non-fatal: if storage fails, the request still succeeds.
         }
       }
+      // Release here, not in finalize: this is the point the row exists, and a
+      // waiter woken any earlier looks the key up, misses, and runs the handler
+      // a second time - the duplicate write the key is meant to prevent.
+      // Release here, not in finalize: this is the point the row exists, and a
+      // waiter woken any earlier looks the key up, misses, and runs the handler
+      // a second time - the duplicate write the key is meant to prevent.
+      release();
       return originalJson(body);
     };
 
-    let done!: () => void;
-    inFlight.set(signature, new Promise<void>((resolve) => { done = resolve; }));
-
     return next.handle().pipe(
       finalize(() => {
-        inFlight.delete(signature);
-        done();
+        // Backstop for a handler that never reaches res.json: it threw, or it
+        // answered through @Res() with send/end. Deferred by a full tick because
+        // finalize runs when the handler's observable completes and Nest writes
+        // the response several microtasks after that - firing straight away
+        // would beat the wrapper above to it on the ordinary path.
+        setImmediate(release);
       }),
     );
   }

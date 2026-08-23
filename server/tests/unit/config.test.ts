@@ -56,6 +56,26 @@ describe('config — encryption key resolution', () => {
     expect(write).not.toHaveBeenCalledWith(ENC_KEY_FILE, expect.anything(), expect.anything());
   });
 
+  it('CFGKEY-001b: names the errno, and the bind-mount case behind EISDIR', async () => {
+    vi.spyOn(process, 'exit').mockImplementation((() => {
+      throw new Error('process.exit called');
+    }) as never);
+    vi.spyOn(fs, 'writeFileSync').mockImplementation(() => undefined);
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    stubKeyFileRead(() => {
+      const err = new Error('EISDIR: illegal operation on a directory, read') as NodeJS.ErrnoException;
+      err.code = 'EISDIR';
+      throw err;
+    });
+
+    await expect(import('../../src/config')).rejects.toThrow('process.exit called');
+    // Without the code the operator sees a message and no way to tell a
+    // permission problem from a directory in the file's place.
+    const lines = error.mock.calls.map((c) => c.join(' '));
+    expect(lines.some((l) => l.startsWith('FATAL:') && l.includes('EISDIR'))).toBe(true);
+    expect(lines.some((l) => l.includes('bind mount'))).toBe(true);
+  });
+
   it('CFGKEY-002: refuses to regenerate over an existing but empty key file', async () => {
     const exit = vi.spyOn(process, 'exit').mockImplementation((() => {
       throw new Error('process.exit called');

@@ -33,7 +33,7 @@ vi.mock('../../../src/config', () => ({
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createJourney, createJourneyEntry } from '../../helpers/factories';
+import { createUser, createJourney, createJourneyEntry, addJourneyContributor } from '../../helpers/factories';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
@@ -146,6 +146,25 @@ describe('createOrUpdateJourneyShareLink', () => {
     const link = svc.getJourneyShareLink(journey.id);
     expect(link!.share_gallery).toBe(false);
     expect(link!.share_map).toBe(false);
+  });
+
+  it('JOURNEY-SHARE-029: reading the link separates "no link" from "not yours"', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: helper } = createUser(testDb);
+    const journey = createJourney(testDb, owner.id);
+    addJourneyContributor(testDb, journey.id, helper.id, 'editor');
+
+    // Nothing published yet: an owner is allowed to look and finds nothing.
+    expect(svc.readJourneyShareLink(journey.id, owner.id)).toEqual({ allowed: true, link: null });
+
+    svc.createOrUpdateJourneyShareLink(journey.id, owner.id, {});
+    const asOwner = svc.readJourneyShareLink(journey.id, owner.id);
+    expect(asOwner.allowed).toBe(true);
+    expect(asOwner.allowed && asOwner.link?.token).toBeTruthy();
+
+    // An editor is refused outright. Answering { link: null } here would tell a
+    // published journey's editor it is unpublished and offer to publish it.
+    expect(svc.readJourneyShareLink(journey.id, helper.id)).toEqual({ allowed: false });
   });
 
   it('JOURNEY-SHARE-027: an update leaves out flags it was not given', () => {

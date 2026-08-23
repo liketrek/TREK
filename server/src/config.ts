@@ -37,16 +37,22 @@ if (_encryptionKey) {
   try {
     _encryptionKey = fs.readFileSync(encKeyFile, 'utf8').trim();
   } catch (readErr: unknown) {
-    if ((readErr as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+    const code = (readErr as NodeJS.ErrnoException)?.code;
+    if (code !== 'ENOENT') {
       // The file is there, we just cannot read it (permissions, I/O error).
       // Continuing would resolve a different key and overwrite this one below,
       // which permanently orphans every stored secret. Refuse to start instead.
+      // The errno goes in the line because this exit crash-loops the container,
+      // and the code is the only part that says which of these it is.
       console.error(
-        'FATAL: could not read',
-        encKeyFile,
-        '-',
+        `FATAL: could not read ${encKeyFile} (${code ?? 'no errno'}) -`,
         readErr instanceof Error ? readErr.message : readErr,
       );
+      if (code === 'EISDIR') {
+        // Compose creating a missing bind-mount source as a directory is by far
+        // the most common way this file stops being a file.
+        console.error('EISDIR: the path is a directory. A bind mount pointed at data/.encryption_key created it as one — remove it and mount the data directory instead.');
+      }
       console.error('Fix the file permissions or set ENCRYPTION_KEY explicitly.');
       process.exit(1);
     }

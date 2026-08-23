@@ -415,10 +415,11 @@ export class JourneyMcp {
     access: { group: 'journey', mode: 'share' },
   })
   getJourneyShareLink({ journeyId }: { journeyId: number }, ctx: McpContext) {
-    // Owner only, same as the REST route: handing out the token is handing out
-    // the journey.
-    if (!this.journey.isOwner(journeyId, ctx.userId)) return notFound('Journey not found or access denied.');
-    return ok({ shareLink: this.share.getJourneyShareLink(journeyId) });
+    // Same read the REST route uses, so the owner check cannot drift apart
+    // between the two surfaces: handing out the token is handing out the journey.
+    const result = this.share.readJourneyShareLink(journeyId, ctx.userId);
+    if (!result.allowed) return notFound('Journey not found or access denied.');
+    return ok({ shareLink: result.link });
   }
 
   @Tool({

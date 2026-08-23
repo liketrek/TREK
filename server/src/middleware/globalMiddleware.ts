@@ -165,7 +165,15 @@ export function applyGlobalMiddleware(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'wasm-unsafe-eval'"],
+        // 'unsafe-eval' is load-bearing, not leftover: heic-to's libheif build
+        // initialises embind through new Function(), and that is what converts
+        // an iPhone .heic the moment somebody picks one. 'wasm-unsafe-eval'
+        // alone was tried first and was not enough (93b51a0b). The package
+        // ships a CSP-safe entry point at heic-to/csp; dropping this directive
+        // means switching client/src/utils/convertHeic.ts over to it and
+        // verifying a real .heic upload in a browser, not just deleting the
+        // string here.
+        scriptSrc: ["'self'", "'wasm-unsafe-eval'", "'unsafe-eval'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com"],
         imgSrc: ["'self'", "data:", "blob:", "https:"],
         connectSrc: [

@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { exceedsDeclaredLength, readCapped, readCappedText } from '../../../src/utils/cappedFetch';
+import { discardBody, exceedsDeclaredLength, readCapped, readCappedJson, readCappedText } from '../../../src/utils/cappedFetch';
 
 /** Response stub that streams `chunks` through a reader, tracking cancellation. */
-function streamed(chunks: string[]) {
+function streamed(chunks: string[], contentLength: string | null = null) {
   let i = 0;
   const state = { cancelled: false };
   return {
     state,
     res: {
-      headers: { get: () => null },
+      headers: { get: () => contentLength },
       body: {
         getReader: () => ({
           read: async () =>
@@ -17,6 +17,7 @@ function streamed(chunks: string[]) {
               : { done: true, value: undefined as unknown as Uint8Array },
           cancel: async () => { state.cancelled = true; },
         }),
+        cancel: async () => { state.cancelled = true; },
       },
     },
   };
@@ -117,5 +118,50 @@ describe('readCappedText', () => {
     expect(truncated).toBe(true);
     expect(text.startsWith('<title>x</title>')).toBe(true);
     expect(text.length).toBe(20);
+  });
+});
+
+describe('discardBody', () => {
+  it('CAP-012: cancels the stream of a response nobody is going to read', async () => {
+    const { res, state } = streamed(['unread']);
+    discardBody(res);
+    await Promise.resolve();
+    expect(state.cancelled).toBe(true);
+  });
+
+  it('CAP-013: is a no-op for a response without a body, and swallows a rejecting cancel', async () => {
+    expect(() => discardBody({})).not.toThrow();
+    expect(() => discardBody({ body: { getReader: () => ({ read: async () => ({ done: true }), cancel: async () => undefined }), cancel: async () => { throw new Error('nope'); } } })).not.toThrow();
+    await Promise.resolve();
+  });
+});
+
+describe('readCappedJson', () => {
+  it('CAP-014: parses a streamed body that fits', async () => {
+    const { res } = streamed(['{"holidays"', ':[1,2]}']);
+    expect(await readCappedJson(res, 1024)).toEqual({ holidays: [1, 2] });
+  });
+
+  it('CAP-015: a chunked body over the cap is undefined, not a truncated parse', async () => {
+    // No content-length at all — the case the declared-length check cannot see.
+    const { res, state } = streamed(['{"items":[', 'x'.repeat(200), ']}']);
+    expect(await readCappedJson(res, 32)).toBeUndefined();
+    expect(state.cancelled).toBe(true);
+  });
+
+  it('CAP-016: a declared oversize is refused without reading the body', async () => {
+    const { res, state } = streamed(['{"ok":true}'], '999999');
+    expect(await readCappedJson(res, 1024)).toBeUndefined();
+    await Promise.resolve();
+    expect(state.cancelled).toBe(true);
+  });
+
+  it('CAP-017: a body that is not JSON is undefined rather than a throw', async () => {
+    const { res } = streamed(['<html>error page</html>']);
+    expect(await readCappedJson(res, 1024)).toBeUndefined();
+  });
+
+  it('CAP-018: falls back to json() when the response exposes nothing to stream', async () => {
+    expect(await readCappedJson({ json: async () => ({ from: 'json' }) }, 1024)).toEqual({ from: 'json' });
   });
 });

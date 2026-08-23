@@ -5,6 +5,10 @@
  * migration lifts it into its own column and clears the note. The match has to
  * be case-SENSITIVE: LIKE is not, which would swallow a hand-written note that
  * happens to start with the same word.
+ *
+ * The second half covers the databases that ran the LIKE version before it was
+ * repaired — a fixed step never replays, so the damage is undone by a migration
+ * of its own at the end of the array.
  */
 import { describe, it, expect } from 'vitest';
 import Database from 'better-sqlite3';
@@ -50,6 +54,69 @@ describe('budget_items ticket_json migration', () => {
         ticket_json: string | null;
       };
       expect(row).toEqual({ note: 'ticketjson: buy at the door', ticket_json: null });
+    } finally {
+      db.close();
+    }
+  });
+});
+
+describe('recovering what the case-insensitive match destroyed', () => {
+  /**
+   * A database that already ran the buggy step: migrated to the tip, then wound
+   * back one version so only the recovery step is left to run — which is exactly
+   * what an existing install does on the next boot.
+   */
+  function makeDamagedDb(): Database.Database {
+    const db = new Database(':memory:');
+    db.exec('PRAGMA journal_mode = WAL');
+    db.exec('PRAGMA busy_timeout = 5000');
+    db.exec('PRAGMA foreign_keys = ON');
+    createTables(db);
+    runMigrations(db);
+    db.prepare("INSERT INTO users (id, username, email, password_hash) VALUES (1, 'u', 'u@example.test', 'x')").run();
+    db.prepare("INSERT INTO trips (id, user_id, title) VALUES (1, 1, 'T')").run();
+    // Row 1: what the LIKE match left behind for "ticketjson: buy at the door".
+    // Row 2: an actual receipt. Row 3: a receipt on a row whose owner has since
+    // written a note.
+    db.prepare('INSERT INTO budget_items (id, trip_id, name, note, ticket_json) VALUES (?, ?, ?, ?, ?)')
+      .run(1, 1, 'Museum', null, ' buy at the door');
+    db.prepare('INSERT INTO budget_items (id, trip_id, name, note, ticket_json) VALUES (?, ?, ?, ?, ?)')
+      .run(2, 1, 'Dinner', null, '{"items":[{"name":"Beer","price":"4.50","parts":[1]}]}');
+    db.prepare('INSERT INTO budget_items (id, trip_id, name, note, ticket_json) VALUES (?, ?, ?, ?, ?)')
+      .run(3, 1, 'Taxi', 'split at the hotel', '{"items":[]}');
+
+    const version = (db.prepare('SELECT version FROM schema_version LIMIT 1').get() as { version: number }).version;
+    db.prepare('UPDATE schema_version SET version = ?').run(version - 1);
+    return db;
+  }
+
+  const read = (db: Database.Database, id: number) =>
+    db.prepare('SELECT note, ticket_json FROM budget_items WHERE id = ?').get(id) as {
+      note: string | null;
+      ticket_json: string | null;
+    };
+
+  it('puts a chopped note back where it came from', () => {
+    const db = makeDamagedDb();
+    try {
+      runMigrations(db);
+      expect(read(db, 1)).toEqual({ note: ' buy at the door', ticket_json: null });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('leaves a genuine receipt alone', () => {
+    const db = makeDamagedDb();
+    try {
+      runMigrations(db);
+      expect(read(db, 2)).toEqual({
+        note: null,
+        ticket_json: '{"items":[{"name":"Beer","price":"4.50","parts":[1]}]}',
+      });
+      // A note written since the damage means the row was not chopped, so it is
+      // not a candidate at all.
+      expect(read(db, 3)).toEqual({ note: 'split at the hotel', ticket_json: '{"items":[]}' });
     } finally {
       db.close();
     }

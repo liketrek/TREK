@@ -445,27 +445,39 @@ export class ReservationsService {
    */
   referencesOutsideTrip(tripId: string | number, data: CreateReservationData | UpdateReservationData): string[] {
     const offenders: string[] = [];
-    const inTrip = (table: 'days' | 'places' | 'day_accommodations', id: unknown) =>
-      !!this.db.get(`SELECT id FROM ${table} WHERE id = ? AND trip_id = ?`, id, tripId);
+    // An id that resolves to nothing is not an offender. accommodation_id in
+    // particular carries no foreign key, so shortening a trip's date range
+    // cascades the day_accommodations row away and leaves the reservation
+    // pointing at a gap; update() has always healed that by clearing the link,
+    // and refusing the whole write instead would make such a booking
+    // permanently uneditable. Only a row that exists in a DIFFERENT trip is one
+    // the caller must not have reached for.
+    const elsewhere = (table: 'days' | 'places' | 'day_accommodations', id: unknown) => {
+      const row = this.db.get<{ trip_id: number }>(`SELECT trip_id FROM ${table} WHERE id = ?`, id);
+      return !!row && String(row.trip_id) !== String(tripId);
+    };
 
-    const check = (field: string, ok: boolean) => { if (!ok) offenders.push(field); };
+    const check = (field: string, offending: boolean) => { if (offending) offenders.push(field); };
 
-    if (data.day_id != null) check('day_id', inTrip('days', data.day_id));
-    if (data.end_day_id != null) check('end_day_id', inTrip('days', data.end_day_id));
-    if (data.place_id != null) check('place_id', inTrip('places', data.place_id));
-    if (data.accommodation_id != null) check('accommodation_id', inTrip('day_accommodations', data.accommodation_id));
+    if (data.day_id != null) check('day_id', elsewhere('days', data.day_id));
+    if (data.end_day_id != null) check('end_day_id', elsewhere('days', data.end_day_id));
+    if (data.place_id != null) check('place_id', elsewhere('places', data.place_id));
+    if (data.accommodation_id != null) check('accommodation_id', elsewhere('day_accommodations', data.accommodation_id));
     if (data.assignment_id != null) {
-      check('assignment_id', !!this.db.get(
-        'SELECT da.id FROM day_assignments da JOIN days d ON da.day_id = d.id WHERE da.id = ? AND d.trip_id = ?',
-        data.assignment_id, tripId,
-      ));
+      // An assignment belongs to a trip through its day, so the join is the
+      // lookup — same shape as the MCP tool's getAssignmentForTrip.
+      const row = this.db.get<{ trip_id: number }>(
+        'SELECT d.trip_id FROM day_assignments da JOIN days d ON da.day_id = d.id WHERE da.id = ?',
+        data.assignment_id,
+      );
+      check('assignment_id', !!row && String(row.trip_id) !== String(tripId));
     }
 
     const acc = data.create_accommodation;
     if (acc) {
-      if (acc.place_id != null) check('create_accommodation.place_id', inTrip('places', acc.place_id));
-      if (acc.start_day_id != null) check('create_accommodation.start_day_id', inTrip('days', acc.start_day_id));
-      if (acc.end_day_id != null) check('create_accommodation.end_day_id', inTrip('days', acc.end_day_id));
+      if (acc.place_id != null) check('create_accommodation.place_id', elsewhere('places', acc.place_id));
+      if (acc.start_day_id != null) check('create_accommodation.start_day_id', elsewhere('days', acc.start_day_id));
+      if (acc.end_day_id != null) check('create_accommodation.end_day_id', elsewhere('days', acc.end_day_id));
     }
 
     return offenders;

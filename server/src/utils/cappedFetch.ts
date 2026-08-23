@@ -16,14 +16,50 @@ interface CappedReader {
 }
 interface CappedResponse {
   headers?: { get(name: string): string | null } | null;
-  body?: { getReader(): CappedReader } | null;
+  body?: { getReader(): CappedReader; cancel?(): Promise<unknown> } | null;
   arrayBuffer?(): Promise<ArrayBuffer>;
   text?(): Promise<string>;
+  json?(): Promise<unknown>;
 }
 
 /** True when the provider declares a body larger than the budget. */
 export function exceedsDeclaredLength(res: CappedResponse, maxBytes: number): boolean {
   return Number(res.headers?.get('content-length') ?? 0) > maxBytes;
+}
+
+/**
+ * Let go of a body nobody is going to read. undici keeps the connection
+ * reserved until the stream ends, so a bail-out that just returns leaves the
+ * socket pinned until the garbage collector gets around to it — which is the
+ * one thing a size cap is supposed to prevent.
+ */
+export function discardBody(res: CappedResponse): void {
+  void res.body?.cancel?.().catch(() => {});
+}
+
+/**
+ * readCappedText plus the parse, for the providers that only ever answer with a
+ * JSON document. Answers `undefined` when the body is over the cap, was cut off
+ * at it, or does not parse: every caller already has a "the provider
+ * misbehaved" branch, and none of them can do anything with half a document.
+ */
+export async function readCappedJson<T>(res: CappedResponse, maxBytes: number): Promise<T | undefined> {
+  if (exceedsDeclaredLength(res, maxBytes)) {
+    discardBody(res);
+    return undefined;
+  }
+  // Neither a stream nor text() means there is nothing to read incrementally
+  // and nothing to cap — a null-body status, or a partial stub in a test.
+  if (!res.body?.getReader && !res.text && !res.arrayBuffer && res.json) {
+    return await res.json() as T;
+  }
+  const { text, truncated } = await readCappedText(res, maxBytes);
+  if (truncated) return undefined;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return undefined;
+  }
 }
 
 /**

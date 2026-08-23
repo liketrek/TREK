@@ -38,8 +38,12 @@ describe('global CSP: script-src', () => {
     expect(await directiveSources('script-src')).toContain("'wasm-unsafe-eval'");
   });
 
-  it("does not allow 'unsafe-eval' — the policy the wiki documents, and nothing first-party evals", async () => {
-    expect(await directiveSources('script-src')).not.toContain("'unsafe-eval'");
+  it("still allows 'unsafe-eval', which heic-to needs to decode an iPhone photo", async () => {
+    // Pinned so the next tidy-up of this list finds the reason before the
+    // consequence: libheif initialises embind with new Function(), and without
+    // this every .heic upload fails in the browser. See the comment on the
+    // directive for how to actually get rid of it.
+    expect(await directiveSources('script-src')).toContain("'unsafe-eval'");
   });
 });
 

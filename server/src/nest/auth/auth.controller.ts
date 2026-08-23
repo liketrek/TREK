@@ -66,7 +66,8 @@ export const AVATAR_FILE_FILTER: Options['fileFilter'] = (_req, file, cb) => {
  * the demo-mode block), settings, key validation, MFA setup/enable/disable, MCP
  * tokens and the short-lived ws/resource tokens. The per-IP rate limits reuse
  * the shared buckets (the inline rateLimiter(5) shares the 'login' bucket, as in
- * the legacy code). create-token answers 201; everything else 200.
+ * the legacy code); the two token-minting routes are keyed per account instead,
+ * see limitUser. create-token answers 201; everything else 200.
  */
 @Controller('api/auth')
 @UseGuards(JwtAuthGuard)
@@ -75,6 +76,21 @@ export class AuthController {
 
   private limit(bucket: string, req: Request, max: number): void {
     if (!this.rl.check(bucket, req.ip || 'unknown', max, WINDOW, Date.now())) {
+      throw new HttpException({ error: 'Too many attempts. Please try again later.' }, 429);
+    }
+  }
+
+  /**
+   * Same limiter, keyed on the account instead of the address. What these
+   * buckets bound is one account's share of the process-wide ephemeral token
+   * store, and an address is the wrong unit for that: an office, a school or a
+   * mobile carrier arrives as one IP, and the first user to reconnect a lot
+   * would take the ceiling away from everybody behind it. The pre-auth buckets
+   * (login, register, forgot-password) keep the IP key — there is no account
+   * to charge yet.
+   */
+  private limitUser(bucket: string, userId: number, max: number): void {
+    if (!this.rl.check(bucket, String(userId), max, WINDOW, Date.now())) {
       throw new HttpException({ error: 'Too many attempts. Please try again later.' }, 429);
     }
   }
@@ -307,13 +323,13 @@ export class AuthController {
 
   @Post('ws-token')
   @HttpCode(200)
-  wsToken(@CurrentUser() user: User, @Req() req: Request) {
+  wsToken(@CurrentUser() user: User) {
     // Own bucket, not 'login': a client that reconnects its socket in a loop
     // must not be able to lock itself out of signing in. The ceiling is far
     // above any real client, which mints one token per socket connect, but it
     // stops a single account from filling the process-wide ephemeral store and
     // 503-ing every other user's ws and download tokens.
-    this.limit('ws_token', req, 120);
+    this.limitUser('ws_token', user.id, 120);
     const result = this.tokens.createWsToken(user.id);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
@@ -323,8 +339,8 @@ export class AuthController {
 
   @Post('resource-token')
   @HttpCode(200)
-  resourceToken(@CurrentUser() user: User, @Body() body: ResourceTokenDto, @Req() req: Request) {
-    this.limit('resource_token', req, 120);
+  resourceToken(@CurrentUser() user: User, @Body() body: ResourceTokenDto) {
+    this.limitUser('resource_token', user.id, 120);
     const token = this.tokens.createResourceToken(user.id, body.purpose);
     if (!token) {
       throw new HttpException({ error: 'Service unavailable' }, 503);

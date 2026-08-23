@@ -1553,6 +1553,32 @@ describe('quirk fixes', () => {
     expect(await fresh.getHolidays('2026', 'DE')).toEqual({ error: 'Failed to fetch holidays' });
   });
 
+  it('VACAY-SVC-070d: a chunked provider body past the cap reads as the usual fetch error', async () => {
+    // nager.at answers chunked, so there is no content-length for the declared
+    // check to look at — only the streaming read stops this being buffered whole.
+    const payload = `[${'{"date":"2026-01-01"},'.repeat(200_000)}{"date":"2026-12-24"}]`;
+    const fetchMock = vi.fn().mockImplementation(async () => {
+      let sent = false;
+      return {
+        ok: true,
+        headers: { get: () => null },
+        body: {
+          getReader: () => ({
+            read: async () => (sent ? { done: true } : ((sent = true), { done: false, value: new TextEncoder().encode(payload) })),
+            cancel: async () => undefined,
+          }),
+          cancel: async () => undefined,
+        },
+        json: async () => JSON.parse(payload),
+      };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const fresh = new VacayService(new DatabaseService(testDb), new RealtimeService(), notificationsStub());
+
+    expect(await fresh.getHolidays('2026', 'DE')).toEqual({ error: 'Failed to fetch holidays' });
+    expect(await fresh.getCountries()).toEqual({ error: 'Failed to fetch countries' });
+  });
+
   it('VACAY-SVC-071: applyHolidayCalendars honors the cache TTL', async () => {
     const { plan } = setupUserWithPlan();
     testDb.prepare('UPDATE vacay_plans SET holidays_enabled = 1 WHERE id = ?').run(plan.id);

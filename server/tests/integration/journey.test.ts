@@ -428,10 +428,31 @@ describe('Journey share link', () => {
       .send({ share_timeline: true, share_gallery: true, share_map: true });
 
     // The token is the whole credential and it outlives the contributor's
-    // access, so reading it takes the same owner check create and delete take.
+    // access, so reading it takes the same owner check create and delete take —
+    // and it refuses the same way, because a 200 with a null link would tell the
+    // editor this published journey is unpublished.
     const res = await request(app)
       .get(`/api/journeys/${journey.id}/share-link`)
       .set('Cookie', authCookie(helper.id));
+
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: 'Not allowed' });
+
+    // The owner still reads the link out of the same route.
+    const owned = await request(app)
+      .get(`/api/journeys/${journey.id}/share-link`)
+      .set('Cookie', authCookie(owner.id));
+    expect(owned.status).toBe(200);
+    expect(owned.body.link.token).toBeTruthy();
+  });
+
+  it('JOURNEY-INT-044b — an owner with nothing published still gets 200 and a null link', async () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    const res = await request(app)
+      .get(`/api/journeys/${journey.id}/share-link`)
+      .set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body.link).toBeNull();

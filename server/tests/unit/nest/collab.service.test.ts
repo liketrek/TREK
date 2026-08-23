@@ -231,6 +231,23 @@ describe('listMessages', () => {
     expect(reply.reply_text).toBe('');
   });
 
+  it('COLLAB-SVC-013c: a deleted message cannot be quoted, and the create path blanks too', () => {
+    const { user1, trip } = setup();
+    const original = svc.createMessage(trip.id, user1.id, 'Original secret');
+    svc.deleteMessage(trip.id, original.message!.id, user1.id);
+
+    // Replying to something that is no longer there is refused outright.
+    expect(svc.createMessage(trip.id, user1.id, 'Too late', original.message!.id)).toEqual({ error: 'reply_not_found' });
+
+    // And the row the create path returns carries the same blanking listMessages
+    // does, for a message quoted before the original was deleted.
+    const second = svc.createMessage(trip.id, user1.id, 'Another secret');
+    const quoting = svc.createMessage(trip.id, user1.id, 'Quoting it', second.message!.id);
+    expect(quoting.message!.reply_text).toBe('Another secret');
+    svc.deleteMessage(trip.id, second.message!.id, user1.id);
+    expect(svc.listMessages(trip.id).find(m => m.text === 'Quoting it')!.reply_text).toBe('');
+  });
+
   it('COLLAB-SVC-013: includes reactions grouped by emoji', () => {
     const { user1, trip } = setup();
     const r = svc.createMessage(trip.id, user1.id, 'React me');

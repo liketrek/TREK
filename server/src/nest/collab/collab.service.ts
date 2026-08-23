@@ -422,7 +422,11 @@ export class CollabService {
 
   createMessage(tripId: string | number, userId: number, text: string, replyTo?: number | null): { error?: string; message?: ReturnType<CollabService['formatMessage']> } {
     if (replyTo) {
-      const replyMsg = this.db.get('SELECT id FROM collab_messages WHERE id = ? AND trip_id = ?', replyTo, tripId);
+      // A soft-deleted message is gone as far as anyone replying is concerned:
+      // its row survives only so the placeholder can be drawn where it was.
+      const replyMsg = this.db.get(
+        'SELECT id FROM collab_messages WHERE id = ? AND trip_id = ? AND deleted = 0', replyTo, tripId,
+      );
       if (!replyMsg) return { error: 'reply_not_found' };
     }
 
@@ -432,7 +436,8 @@ export class CollabService {
 
     const message = this.db.get<CollabMessage>(`
     SELECT m.*, u.username, u.avatar,
-      rm.text AS reply_text, ru.username AS reply_username
+      CASE WHEN rm.deleted = 1 THEN '' ELSE rm.text END AS reply_text,
+      ru.username AS reply_username
     FROM collab_messages m
     JOIN users u ON m.user_id = u.id
     LEFT JOIN collab_messages rm ON m.reply_to = rm.id

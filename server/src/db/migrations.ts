@@ -4089,6 +4089,40 @@ function runMigrations(db: Database.Database): void {
     () => {
       db.exec("UPDATE trip_files SET filename = substr(filename, 7) WHERE filename LIKE 'files/%'");
     },
+    // Give back the notes the TICKETJSON step chopped up (#1658).
+    //
+    // That step matched with LIKE, which is case-insensitive in SQLite, so a
+    // note somebody had typed starting "ticketjson:" was read as a receipt: the
+    // first eleven characters were dropped, the rest was moved into ticket_json
+    // and the note was set to NULL. The step now matches with GLOB, but that
+    // only helps a fresh install — the array is index-addressed against
+    // schema_version, so a repaired step never runs again on a database that
+    // already applied it.
+    //
+    // A receipt comes out of JSON.stringify and always parses; typed text does
+    // not. So a row moves back only when its ticket_json fails to parse AND the
+    // note is still empty — anything that parses, and any row someone has
+    // written a note on since, is left exactly as it is. The eleven marker
+    // characters themselves are gone for good: their case was the only thing
+    // separating a receipt from a note, and writing "TICKETJSON:" back would
+    // hand the row straight to the reader that reads that prefix as a receipt.
+    // Appended LAST — the array is index-addressed against schema_version.
+    () => {
+      const rows = db
+        .prepare(
+          `SELECT id, ticket_json FROM budget_items
+            WHERE ticket_json IS NOT NULL AND ticket_json != '' AND COALESCE(note, '') = ''`
+        )
+        .all() as Array<{ id: number; ticket_json: string }>;
+      const restore = db.prepare('UPDATE budget_items SET note = ?, ticket_json = NULL WHERE id = ?');
+      for (const row of rows) {
+        try {
+          JSON.parse(row.ticket_json);
+        } catch {
+          restore.run(row.ticket_json, row.id);
+        }
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

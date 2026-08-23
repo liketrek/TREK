@@ -187,7 +187,11 @@ describe('JourneyController', () => {
 
   it('preferences 403, share-link get/set/delete', () => {
     expect(thrown(() => ctl(svc({ updateJourneyPreferences: vi.fn().mockReturnValue(null) } as Partial<JourneyService>)).preferences(user, '9', {}))).toEqual({ status: 403, body: { error: 'Not allowed' } });
-    expect(ctl(svc({ getJourneyShareLink: vi.fn().mockReturnValue({ token: 'abc' }) } as Partial<JourneyService>)).getShareLink(user, '9')).toEqual({ link: { token: 'abc' } });
+    expect(ctl(svc({ getJourneyShareLink: vi.fn().mockReturnValue({ allowed: true, link: { token: 'abc' } }) } as Partial<JourneyService>)).getShareLink(user, '9')).toEqual({ link: { token: 'abc' } });
+    // An owner whose journey has no link gets the null; a non-owner gets the
+    // same refusal set/delete give, so the client can tell the two apart.
+    expect(ctl(svc({ getJourneyShareLink: vi.fn().mockReturnValue({ allowed: true, link: null }) } as Partial<JourneyService>)).getShareLink(user, '9')).toEqual({ link: null });
+    expect(thrown(() => ctl(svc({ getJourneyShareLink: vi.fn().mockReturnValue({ allowed: false }) } as Partial<JourneyService>)).getShareLink(user, '9'))).toEqual({ status: 403, body: { error: 'Not allowed' } });
     expect(thrown(() => ctl(svc({ createOrUpdateJourneyShareLink: vi.fn().mockReturnValue(null) } as Partial<JourneyService>)).setShareLink(user, '9', {}))).toEqual({ status: 403, body: { error: 'Not allowed' } });
     const setLink = vi.fn().mockReturnValue({ token: 'abc' });
     expect(ctl(svc({ createOrUpdateJourneyShareLink: setLink } as Partial<JourneyService>)).setShareLink(user, '9', { share_timeline: true })).toEqual({ token: 'abc' });
@@ -373,7 +377,11 @@ describe('JourneyController', () => {
     expect(thrown(() => ctl(svc(), { getBook: vi.fn().mockReturnValue(null), canOpen: vi.fn().mockReturnValue(false) }).getBook(user, '9'))).toEqual({ status: 404, body: { error: 'Journey not found' } });
     expect(ctl(svc(), { getBook: vi.fn().mockReturnValue({ id: 3, version: 4 }), canOpen: vi.fn() }).getBook(user, '9')).toEqual({ book: { id: 3, version: 4 } });
 
-    expect(thrown(() => ctl(svc(), { saveBook: vi.fn().mockReturnValue(null) }).saveBook(user, '9', { document: {} } as never))).toEqual({ status: 404, body: { error: 'Journey not found' } });
+    // A refused save says which refusal it was. Out of reach entirely is still
+    // 404; a viewer who can open the journey but may not write it gets 403, so
+    // the editor can say why instead of claiming the journey vanished.
+    expect(thrown(() => ctl(svc(), { saveBook: vi.fn().mockReturnValue(null), canOpen: vi.fn().mockReturnValue(false) }).saveBook(user, '9', { document: {} } as never))).toEqual({ status: 404, body: { error: 'Journey not found' } });
+    expect(thrown(() => ctl(svc(), { saveBook: vi.fn().mockReturnValue(null), canOpen: vi.fn().mockReturnValue(true) }).saveBook(user, '9', { document: {} } as never))).toEqual({ status: 403, body: { error: 'Not allowed' } });
 
     // The record comes back bare, not in an envelope — the contract in
     // shared/src/book/book-store.schema.ts is the record itself.
@@ -407,12 +415,13 @@ describe('JourneyController', () => {
     expect(broadcastSaved).not.toHaveBeenCalled();
   });
 
-  it('book: delete answers 204, or 404 out of reach', () => {
+  it('book: delete answers 204, 403 for a viewer, or 404 out of reach', () => {
     expect(ctl(svc(), { deleteBook: vi.fn().mockReturnValue(true) }).deleteBook(user, '9')).toBeUndefined();
     // False means there was nothing to delete, which is still a 204 — deleting
     // a book that is already gone is not a failure.
     expect(ctl(svc(), { deleteBook: vi.fn().mockReturnValue(false) }).deleteBook(user, '9')).toBeUndefined();
-    expect(thrown(() => ctl(svc(), { deleteBook: vi.fn().mockReturnValue(null) }).deleteBook(user, '9'))).toEqual({ status: 404, body: { error: 'Journey not found' } });
+    expect(thrown(() => ctl(svc(), { deleteBook: vi.fn().mockReturnValue(null), canOpen: vi.fn().mockReturnValue(false) }).deleteBook(user, '9'))).toEqual({ status: 404, body: { error: 'Journey not found' } });
+    expect(thrown(() => ctl(svc(), { deleteBook: vi.fn().mockReturnValue(null), canOpen: vi.fn().mockReturnValue(true) }).deleteBook(user, '9'))).toEqual({ status: 403, body: { error: 'Not allowed' } });
   });
 });
 
@@ -438,12 +447,12 @@ describe('JourneyPublicController', () => {
   });
 
   it('legacy photo proxy: 404 invalid token, immich path streams', async () => {
-    expect(await thrownAsync(() => new JourneyPublicController(svc({ validateShareTokenForAsset: vi.fn().mockReturnValue(null) } as Partial<JourneyService>), storageStub).legacyPhoto('tok', 'immich', 'a1', '2', 'thumbnail', {} as Response))).toEqual({ status: 404, body: { error: 'Not found' } });
+    expect(await thrownAsync(() => new JourneyPublicController(svc({ validateShareTokenForAsset: vi.fn().mockReturnValue(null) } as Partial<JourneyService>), storageStub).legacyPhoto('tok', 'immich', 'a1', 'thumbnail', {} as Response))).toEqual({ status: 404, body: { error: 'Not found' } });
     // One call for every provider now, with the ids in a ref instead of in a
     // per-provider argument order.
     const streamProviderAsset = vi.fn().mockResolvedValue(undefined);
     const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }), streamProviderAsset } as Partial<JourneyService>);
-    await new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'immich', 'a1', '2', 'original', {} as Response);
+    await new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'immich', 'a1', 'original', {} as Response);
     expect(streamProviderAsset).toHaveBeenCalledWith({}, 'immich', { userId: 5, ownerId: 5, assetId: 'a1' }, 'original');
   });
 
@@ -457,14 +466,14 @@ describe('JourneyPublicController', () => {
   it('legacy photo proxy: synology streams, and a failure becomes a 404 json', async () => {
     const streamProviderAsset = vi.fn().mockResolvedValue(undefined);
     const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }), streamProviderAsset } as Partial<JourneyService>);
-    await new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'synologyphotos', 'a1', '2', 'thumbnail', {} as Response);
+    await new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'synologyphotos', 'a1', 'thumbnail', {} as Response);
     expect(streamProviderAsset).toHaveBeenCalledWith({}, 'synologyphotos', { userId: 5, ownerId: 5, assetId: 'a1' }, 'thumbnail');
 
     const status = vi.fn().mockReturnThis();
     const json = vi.fn();
     const res = { status, json } as unknown as Response;
     const failing = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 0 }), streamProviderAsset: vi.fn().mockRejectedValue(new Error('no synology')) } as Partial<JourneyService>);
-    await new JourneyPublicController(failing, storageStub).legacyPhoto('tok', 'synologyphotos', 'a1', '6', 'original', res);
+    await new JourneyPublicController(failing, storageStub).legacyPhoto('tok', 'synologyphotos', 'a1', 'original', res);
     expect(status).toHaveBeenCalledWith(404);
     expect(json).toHaveBeenCalledWith({ error: 'Provider not supported' });
   });
@@ -478,7 +487,7 @@ describe('JourneyPublicController', () => {
     const json = vi.fn();
     const res = { status, json } as unknown as Response;
     const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }), streamProviderAsset } as Partial<JourneyService>);
-    await new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'photoprism', 'a1', '2', 'original', res);
+    await new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'photoprism', 'a1', 'original', res);
     expect(status).toHaveBeenCalledWith(404);
     expect(json).toHaveBeenCalledWith({ error: 'Provider not supported' });
   });
@@ -489,14 +498,14 @@ describe('JourneyPublicController', () => {
     // the journey owner when the photo row carries no owner_id.
     const streamProviderAsset = vi.fn().mockResolvedValue(undefined);
     const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 3 }), streamProviderAsset } as Partial<JourneyService>);
-    await new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'immich', 'a1', '8', 'original', {} as Response);
+    await new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'immich', 'a1', 'original', {} as Response);
     expect(streamProviderAsset).toHaveBeenCalledWith({}, 'immich', { userId: 3, ownerId: 3, assetId: 'a1' }, 'original');
   });
 
   it('legacy photo proxy: local provider 404s when the object does not exist', async () => {
     storageExists.mockResolvedValue(false);
     const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }) } as Partial<JourneyService>);
-    expect(await thrownAsync(() => new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'local', 'gone.jpg', '2', 'thumbnail', {} as Response))).toEqual({ status: 404, body: { error: 'Not found' } });
+    expect(await thrownAsync(() => new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'local', 'gone.jpg', 'thumbnail', {} as Response))).toEqual({ status: 404, body: { error: 'Not found' } });
     expect(storageSendToResponse).not.toHaveBeenCalled();
   });
 
@@ -506,7 +515,7 @@ describe('JourneyPublicController', () => {
     const set = vi.fn();
     const res = { set } as unknown as Response;
     const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }) } as Partial<JourneyService>);
-    await new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'local', 'photo.jpg', '2', 'original', res);
+    await new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'local', 'photo.jpg', 'original', res);
     expect(storageExists).toHaveBeenCalledWith('journey', 'photo.jpg');
     expect(set).toHaveBeenCalledWith('Cache-Control', 'public, max-age=86400');
     expect(storageSendToResponse).toHaveBeenCalledWith('journey', 'photo.jpg', res);
@@ -519,7 +528,7 @@ describe('JourneyPublicController', () => {
     const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }) } as Partial<JourneyService>);
 
     // Express decodes %2F in a single path param to '/', so the handler sees this.
-    await new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'local', '../../files/secret.pdf', '2', 'original', res);
+    await new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'local', '../../files/secret.pdf', 'original', res);
 
     // basename() collapses the traversal before the storage lookup, and central
     // key validation (storage-keys.ts) rejects anything that still carries a
@@ -533,7 +542,7 @@ describe('JourneyPublicController', () => {
     // which the handler reads as a miss.
     storageExists.mockRejectedValue(new Error('invalid storage key: journey/..'));
     const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }) } as Partial<JourneyService>);
-    expect(await thrownAsync(() => new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'local', '..', '2', 'original', {} as Response))).toEqual({ status: 404, body: { error: 'Not found' } });
+    expect(await thrownAsync(() => new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'local', '..', 'original', {} as Response))).toEqual({ status: 404, body: { error: 'Not found' } });
     expect(storageSendToResponse).not.toHaveBeenCalled();
   });
 });

@@ -868,3 +868,57 @@ describe('coordinate validation', () => {
     await expect(getWeather('42.40', '9.41', date, 'en')).rejects.toMatchObject({ status: 502 });
   });
 });
+
+// ── response size cap ────────────────────────────────────────────────────────
+
+describe('size cap on the Open-Meteo body', () => {
+  beforeEach(() => {
+    vi.mocked(fetch).mockReset();
+  });
+
+  /**
+   * Response that streams `chunks` with no content-length, the way Open-Meteo
+   * answers. json() is there so the old buffer-it-all path would happily parse
+   * these bodies — the cap has to be what stops the oversized one.
+   */
+  function chunked(chunks: string[]): Response {
+    let i = 0;
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      json: async () => JSON.parse(chunks.join('')),
+      body: {
+        getReader: () => ({
+          read: async () =>
+            i < chunks.length
+              ? { done: false, value: new TextEncoder().encode(chunks[i++]) }
+              : { done: true, value: undefined },
+          cancel: async () => undefined,
+        }),
+        cancel: async () => undefined,
+      },
+    } as unknown as Response;
+  }
+
+  it('WEATHER-COORD-004: a chunked body past the cap is a 502 — there is no content-length to catch it', async () => {
+    const date = dateOffset(5);
+    // Valid JSON, just far too much of it: the declared-length check sees nothing
+    // here, so only the streaming read stops this from being buffered whole.
+    const filler = '"x",'.repeat(400_000);
+    vi.mocked(fetch).mockResolvedValue(chunked([`{"daily":{"time":[${filler}"${date}"]}}`]));
+
+    await expect(getWeather('43.40', '9.42', date, 'en')).rejects.toMatchObject({ status: 502 });
+  });
+
+  it('WEATHER-COORD-005: a chunked body under the cap still parses', async () => {
+    const date = dateOffset(5);
+    const body = JSON.stringify({
+      daily: { time: [date], temperature_2m_max: [20], temperature_2m_min: [10], weathercode: [0] },
+    });
+    vi.mocked(fetch).mockResolvedValue(chunked([body.slice(0, 20), body.slice(20)]));
+
+    const result = await getWeather('44.40', '9.43', date, 'en');
+    expect(result.temp).toBe(15);
+  });
+});

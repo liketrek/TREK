@@ -204,9 +204,17 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
     const secondRes = makeRes();
     const second = lastValueFrom(interceptor.intercept(ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: 1 } }, secondRes), secondHandler));
 
+    // The order Nest uses, and the one that makes this test worth having: the
+    // handler's observable completes FIRST, and the response - which is what
+    // stores the row - is written a few microtasks later. Release the waiter any
+    // earlier and it looks the key up, misses, and runs the handler again.
+    finish({ id: 'first' });
+    // Nest is several microtask hops from the completion to the write
+    // (transformToResult -> lastValueFrom -> apply), so give the waiter the same
+    // room it gets in production to wake up too early.
+    for (let i = 0; i < 5; i++) await Promise.resolve();
     firstRes.statusCode = 201;
     firstRes.json({ id: 'first' });
-    finish({ id: 'first' });
 
     expect(await first).toEqual({ id: 'first' });
     expect(await second).toEqual({ id: 'first' });
@@ -231,6 +239,8 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
       secondHandler,
     ));
 
+    // Nothing writes a response here, so the waiter is freed by the backstop in
+    // finalize, which defers a full tick past the response write.
     finish({ id: 'first' });
     await first;
     expect(await second).toEqual({ id: 'second' });

@@ -9,7 +9,7 @@ import type {
 } from '@trek/shared';
 import { readEnv, getAppUrl } from '../../app-config';
 import { safeFetchFollow, SsrfBlockedError } from '../../utils/ssrfGuard';
-import { exceedsDeclaredLength, readCappedText } from '../../utils/cappedFetch';
+import { discardBody, exceedsDeclaredLength, readCappedText } from '../../utils/cappedFetch';
 import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
 // ── Photo cache (disk-backed) ────────────────────────────────────────────────
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
@@ -341,6 +341,20 @@ interface GooglePlaceDetails extends GooglePlaceResult {
 // embedded map data near the top, so two megabytes is plenty and keeps an
 // unbounded body out of memory.
 const MAX_MAPS_PAGE_BYTES = 2_000_000;
+
+const GOOGLE_SHORT_HOSTS = ['goo.gl', 'maps.app.goo.gl'];
+
+/**
+ * Google Maps lives on every country domain — google.de, maps.google.co.uk,
+ * google.com.au — so the host is matched by shape. A fixed list of .com hosts
+ * would quietly stop resolving the ccTLD links people actually paste. The TLD
+ * labels stay short (2-3 letters, optionally two of them) so that
+ * `google.evil.com` is not a Google host.
+ */
+function isGoogleMapsHost(hostname: string): boolean {
+  return GOOGLE_SHORT_HOSTS.includes(hostname)
+    || /^(www\.|maps\.)?google\.[a-z]{2,3}(\.[a-z]{2})?$/.test(hostname);
+}
 
 const WIKI_TIMEOUT_MS = 6000;
 
@@ -2038,9 +2052,8 @@ export class MapsService {
     // usually carries the !3d!4d data param we can then parse. Redirects are
     // followed manually so every hop is SSRF-re-checked.
     const parsed = new URL(url);
-    const GOOGLE_MAPS_HOSTS = ['goo.gl', 'maps.app.goo.gl', 'google.com', 'www.google.com', 'maps.google.com'];
-    const isShort = ['goo.gl', 'maps.app.goo.gl'].includes(parsed.hostname);
-    const isGoogleMaps = GOOGLE_MAPS_HOSTS.includes(parsed.hostname);
+    const isShort = GOOGLE_SHORT_HOSTS.includes(parsed.hostname);
+    const isGoogleMaps = isGoogleMapsHost(parsed.hostname);
     if (isShort || (isGoogleMaps && !extractCoords(url))) {
       resolvedUrl = (await followRedirects(url)).url || resolvedUrl;
     }
@@ -2053,12 +2066,15 @@ export class MapsService {
     // short link that lands on maps.google.com still qualifies.
     let resolvedHost = '';
     try { resolvedHost = new URL(resolvedUrl).hostname; } catch { /* keep the empty host, the branch is skipped */ }
-    if (!coords && GOOGLE_MAPS_HOSTS.includes(resolvedHost)) {
+    if (!coords && isGoogleMapsHost(resolvedHost)) {
       try {
         const pageRes = await followRedirects(resolvedUrl, {
           headers: { 'User-Agent': UA },
         });
-        if (!exceedsDeclaredLength(pageRes, MAX_MAPS_PAGE_BYTES)) {
+        if (exceedsDeclaredLength(pageRes, MAX_MAPS_PAGE_BYTES)) {
+          // Nothing here will read it, and an unread body keeps its socket.
+          discardBody(pageRes);
+        } else {
           // The map data sits near the top of the document, so a truncated read
           // still finds the coordinates; an oversized page degrades to the same
           // 400 an unparseable one already produced.

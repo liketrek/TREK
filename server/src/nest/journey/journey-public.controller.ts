@@ -55,7 +55,6 @@ export class JourneyPublicController {
     @Param('token') token: string,
     @Param('provider') provider: string,
     @Param('assetId') assetId: string,
-    @Param('ownerId') ownerId: string,
     @Param('kind') kind: string,
     @Res() res: Response,
   ): Promise<void> {
@@ -82,8 +81,9 @@ export class JourneyPublicController {
       return;
     }
 
-    // :ownerId stays in the path so old share links keep routing, but it is not
-    // read any more: the owner comes from the row the token resolved to.
+    // :ownerId stays in the route pattern so old share links keep routing, but
+    // it is not bound at all any more: the owner comes from the row the token
+    // resolved to.
     const effectiveOwnerId = valid.ownerId;
     const streaming = this.journey.streamProviderAsset(
       res,

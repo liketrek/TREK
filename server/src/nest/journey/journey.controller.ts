@@ -599,7 +599,7 @@ export class JourneyController {
       baseVersion: body.baseVersion,
     });
     if (result === null) {
-      throw new HttpException({ error: 'Journey not found' }, 404);
+      throw this.bookRefusal(Number(id), user.id);
     }
     if ('conflict' in result) {
       /*
@@ -624,8 +624,22 @@ export class JourneyController {
   deleteBook(@CurrentUser() user: User, @Param('id') id: string) {
     const removed = this.books.deleteBook(Number(id), user.id);
     if (removed === null) {
-      throw new HttpException({ error: 'Journey not found' }, 404);
+      throw this.bookRefusal(Number(id), user.id);
     }
+  }
+
+  /**
+   * Why a book write was refused, in a way the editor can act on.
+   *
+   * Both refusals come back as null, and answering 404 for both would tell a
+   * viewer who has just spent an hour laying out pages that their journey does
+   * not exist. Someone who cannot see the journey at all still gets the 404 —
+   * the status is not an existence oracle for them.
+   */
+  private bookRefusal(journeyId: number, userId: number): HttpException {
+    return this.books.canOpen(journeyId, userId)
+      ? new HttpException({ error: 'Not allowed' }, 403)
+      : new HttpException({ error: 'Journey not found' }, 404);
   }
 
   @Post(':id/entries')
@@ -693,7 +707,15 @@ export class JourneyController {
   // ── Share Link ──────────────────────────────────────────────────────────
   @Get(':id/share-link')
   getShareLink(@CurrentUser() user: User, @Param('id') id: string) {
-    return { link: this.journey.getJourneyShareLink(Number(id), user.id) };
+    // Reading the token is owner-only. It refuses like its siblings rather than
+    // answering with a null link: "not published" and "not yours to see" are
+    // different answers, and a client told the first one offers a create button
+    // that the POST below then refuses.
+    const result = this.journey.getJourneyShareLink(Number(id), user.id);
+    if (!result.allowed) {
+      throw new HttpException({ error: 'Not allowed' }, 403);
+    }
+    return { link: result.link };
   }
 
   @Post(':id/share-link')

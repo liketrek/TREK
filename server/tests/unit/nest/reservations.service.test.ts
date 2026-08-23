@@ -838,6 +838,25 @@ describe('ReservationsService — referenced ids stay inside the trip', () => {
     })).toEqual(['day_id', 'place_id', 'accommodation_id']);
   });
 
+  it('RESV-SCOPE-005: a dangling id is not an offender, so the booking stays editable', () => {
+    const { mine } = twoTrips();
+    const place = createPlace(testDb, mine.id);
+    const day = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').get(mine.id) as { id: number };
+    const acc = createDayAccommodation(testDb, mine.id, place.id, day.id, day.id);
+    const res = createReservation(testDb, mine.id, { title: 'Hotel', type: 'hotel' });
+    testDb.prepare('UPDATE reservations SET accommodation_id = ? WHERE id = ?').run(acc.id, res.id);
+    // What shortening the trip's date range does: the day goes, the cascade
+    // takes the accommodation with it, and the reservation keeps the id.
+    testDb.prepare('DELETE FROM day_accommodations WHERE id = ?').run(acc.id);
+
+    expect(svc.referencesOutsideTrip(String(mine.id), { title: 'x', accommodation_id: acc.id })).toEqual([]);
+
+    const current = svc.getReservation(String(res.id), String(mine.id))!;
+    svc.update(String(res.id), String(mine.id), { accommodation_id: acc.id, title: 'Hotel renamed' } as never, current);
+    expect(testDb.prepare('SELECT title, accommodation_id FROM reservations WHERE id = ?').get(res.id))
+      .toEqual({ title: 'Hotel renamed', accommodation_id: null });
+  });
+
   it('RESV-SCOPE-002: passes a body whose ids all live in the trip', () => {
     const { mine } = twoTrips();
     const place = createPlace(testDb, mine.id);

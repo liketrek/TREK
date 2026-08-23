@@ -1,4 +1,4 @@
-import { exceedsDeclaredLength } from '../../utils/cappedFetch';
+import { readCappedJson } from '../../utils/cappedFetch';
 
 // Open-Meteo sits on the request path as a third party: without a deadline a hung
 // connection holds the caller until the socket gives up on its own. Every other
@@ -24,13 +24,21 @@ function hourIndexFromTime(time?: string): number | null {
 // misbehaving, not that the trip got longer.
 const MAX_WEATHER_BYTES = 1024 * 1024;
 
-/** Open-Meteo GET with the shared deadline and the declared-size cap. */
-async function fetchOpenMeteo(url: string): Promise<Response> {
+/**
+ * Open-Meteo GET with the shared deadline and the size cap.
+ *
+ * The body is read through the cap rather than buffered with .json(): Open-Meteo
+ * answers chunked, so there is no content-length to check and a declared-length
+ * test alone would let any amount of data through. The caller still gets the
+ * response, because the status and `reason` are what shape its error.
+ */
+async function fetchOpenMeteo(url: string): Promise<{ response: Response; data: OpenMeteoForecast }> {
   const response = await fetch(url, { signal: AbortSignal.timeout(WEATHER_TIMEOUT_MS) });
-  if (exceedsDeclaredLength(response, MAX_WEATHER_BYTES)) {
+  const data = await readCappedJson<OpenMeteoForecast>(response, MAX_WEATHER_BYTES);
+  if (!data) {
     throw new ApiError(502, 'Open-Meteo API error');
   }
-  return response;
+  return { response, data };
 }
 
 /**
@@ -241,8 +249,7 @@ async function _getWeatherImpl(
     // Forecast range (-1 .. +16 days)
     if (diffDays >= -1 && diffDays <= 16) {
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&forecast_days=16`;
-      const response = await fetchOpenMeteo(url);
-      const data = await response.json() as OpenMeteoForecast;
+      const { response, data } = await fetchOpenMeteo(url);
 
       if (!response.ok || data.error) {
         throw new ApiError(response.status || 500, data.reason || 'Open-Meteo API error');
@@ -279,8 +286,7 @@ async function _getWeatherImpl(
         ? '&hourly=temperature_2m,weathercode'
         : '';
       const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${dateStr}&end_date=${dateStr}&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum${hourParam}&timezone=auto`;
-      const response = await fetchOpenMeteo(url);
-      const data = await response.json() as OpenMeteoForecast;
+      const { response, data } = await fetchOpenMeteo(url);
 
       if (!response.ok || data.error) {
         throw new ApiError(response.status || 500, data.reason || 'Open-Meteo Archive API error');
@@ -336,8 +342,7 @@ async function _getWeatherImpl(
       const endStr = endDate.toISOString().slice(0, 10);
 
       const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${startStr}&end_date=${endStr}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto`;
-      const response = await fetchOpenMeteo(url);
-      const data = await response.json() as OpenMeteoForecast;
+      const { response, data } = await fetchOpenMeteo(url);
 
       if (!response.ok || data.error) {
         throw new ApiError(response.status || 500, data.reason || 'Open-Meteo Climate API error');
@@ -389,8 +394,7 @@ async function _getWeatherImpl(
   if (cached) return cached;
 
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weathercode&timezone=auto`;
-  const response = await fetchOpenMeteo(url);
-  const data = await response.json() as OpenMeteoForecast;
+  const { response, data } = await fetchOpenMeteo(url);
 
   if (!response.ok || data.error) {
     throw new ApiError(response.status || 500, data.reason || 'Open-Meteo API error');
@@ -464,8 +468,7 @@ async function _getDetailedWeatherImpl(
       + `&hourly=temperature_2m,precipitation,weathercode,windspeed_10m,relativehumidity_2m`
       + `&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum,windspeed_10m_max,sunrise,sunset`
       + `&timezone=auto`;
-    const response = await fetchOpenMeteo(url);
-    const data = await response.json() as OpenMeteoForecast;
+    const { response, data } = await fetchOpenMeteo(url);
 
     if (!response.ok || data.error) {
       throw new ApiError(response.status || 500, data.reason || 'Open-Meteo Climate API error');
@@ -527,8 +530,7 @@ async function _getDetailedWeatherImpl(
     + `&daily=temperature_2m_max,temperature_2m_min,weathercode,sunrise,sunset,precipitation_probability_max,precipitation_sum,windspeed_10m_max`
     + `&timezone=auto&start_date=${dateStr}&end_date=${dateStr}`;
 
-  const response = await fetchOpenMeteo(url);
-  const data = await response.json() as OpenMeteoForecast;
+  const { response, data } = await fetchOpenMeteo(url);
 
   if (!response.ok || data.error) {
     throw new ApiError(response.status || 500, data.reason || 'Open-Meteo API error');

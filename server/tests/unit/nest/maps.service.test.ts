@@ -633,6 +633,39 @@ describe('resolveGoogleMapsUrl coordinate extraction (ReDoS guards)', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    'https://www.google.de/maps?cid=999',
+    'https://maps.google.co.uk/?cid=999',
+    'https://google.com.au/maps?cid=999',
+  ])('MAPS-CID-003b: still reads the page body of a country domain (%s)', async (link) => {
+    // Google Maps answers on every ccTLD, and those links carry no coordinates
+    // to fall back on — a host allow-list of .com spellings drops them.
+    const fetchMock = vi.fn(async (u: string) => {
+      if (u.includes('nominatim')) {
+        return { ok: true, json: async () => ({ display_name: 'Berlin, DE', name: null, address: {} }) };
+      }
+      return { url: link, text: async () => 'x!3d52.5163!4d13.3777y' };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await svc.resolveGoogleMapsUrl(link);
+    expect(result.lat).toBeCloseTo(52.5163, 3);
+    expect(result.lng).toBeCloseTo(13.3777, 3);
+  });
+
+  it('MAPS-CID-003c: a host that only looks like Google is still not read', async () => {
+    const fetchMock = vi.fn(async (u: string) => {
+      if (u.includes('nominatim')) {
+        return { ok: true, json: async () => ({ display_name: 'x', name: null, address: {} }) };
+      }
+      return { url: 'https://google.evil.com/maps', text: async () => 'x!3d40.6892!4d-74.0445y' };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(svc.resolveGoogleMapsUrl('https://google.evil.com/maps?cid=999')).rejects.toMatchObject({ status: 400 });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('MAPS-CID-004: skips a page body that declares more than the size cap', async () => {
     const fetchMock = vi.fn(async (u: string) => {
       if (u.includes('cid=')) return { url: 'https://www.google.com/maps/place/Somewhere' };

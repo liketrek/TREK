@@ -73,6 +73,24 @@ export class JourneyShareService {
     return { token, created: true };
   }
 
+  /**
+   * Read the link on behalf of a user. Owner only, the same check create and
+   * delete take: the token is the whole credential and it keeps working after a
+   * contributor is removed, so handing it out is handing out the journey.
+   *
+   * The refusal is its own answer rather than a null link, because those two
+   * mean opposite things to the caller — a published journey that reads as
+   * unpublished puts a "create link" button in front of somebody it will then
+   * refuse. Both the REST route and the MCP tool read the link through here.
+   */
+  readJourneyShareLink(
+    journeyId: number,
+    userId: number,
+  ): { allowed: false } | { allowed: true; link: JourneyShareTokenInfo | null } {
+    if (!this.journey.isOwner(journeyId, userId)) return { allowed: false };
+    return { allowed: true, link: this.getJourneyShareLink(journeyId) };
+  }
+
   getJourneyShareLink(journeyId: number): JourneyShareTokenInfo | null {
     const row = this.db.prepare('SELECT * FROM journey_share_tokens WHERE journey_id = ?').get(journeyId) as any;
     if (!row) return null;

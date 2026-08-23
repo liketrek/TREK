@@ -256,14 +256,35 @@ describe('MCP session management', () => {
 
     const sessionsForUser = () => [...sessions.values()].filter((s) => s.userId === user.id).length;
 
-    for (let i = 0; i < 20; i++) await createSession(user.id);
-    expect(sessionsForUser()).toBe(20);
+    // What the race leaves behind: concurrent initializes all read the same
+    // pre-registration count, all pass the cap check, and all register — so the
+    // map ends up over the cap. Driving that through supertest depends on how
+    // the requests interleave, so the state itself is set up instead: four past
+    // the cap, none of them the newcomer's doing. Each entry is only ever
+    // counted and evicted, so a stub with closable halves is enough.
+    // Inside the TTL, or countSessionsForUser skips them and there is nothing
+    // over the cap to trim.
+    const stale = Date.now() - 10_000;
+    for (let i = 0; i < 24; i++) {
+      sessions.set(`overshoot-${i}`, {
+        server: { close() {} },
+        transport: { close() {} },
+        userId: user.id,
+        scopes: null,
+        clientId: null,
+        isStaticToken: false,
+        lastActivity: stale + i,
+        lastClientIp: null,
+      } as unknown as NonNullable<ReturnType<typeof sessions.get>>);
+    }
+    expect(sessionsForUser()).toBe(24);
 
-    // All five read the same pre-registration count, so all five pass the cap
-    // check. Registration is where the overshoot has to be given back — nothing
-    // else drops these entries before the TTL sweep, and each holds a server.
-    await Promise.all([1, 2, 3, 4, 5].map(() => createSession(user.id)));
+    // The pre-check gives back one; without the trim at registration the other
+    // four stay in the map — each holding a full McpServer — until the TTL sweep.
+    const newSessionId = await createSession(user.id);
+
     expect(sessionsForUser()).toBe(20);
+    expect(sessions.has(newSessionId)).toBe(true);
   });
 
   it('MCP — session resumption with valid mcp-session-id', async () => {
