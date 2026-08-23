@@ -663,6 +663,28 @@ describe('MSettingsAccount – backup codes', () => {
     openSpy.mockRestore();
   });
 
+  // Parity with the desktop AccountTab: nothing reaches the popup unescaped, even
+  // though real codes are plain hex.
+  it('FE-MOB-SETACC-049: Print escapes the codes before writing them', async () => {
+    const user = userEvent.setup();
+    const written: string[] = [];
+    const popup = {
+      document: { open: vi.fn(), write: (html: string) => written.push(html), close: vi.fn() },
+      focus: vi.fn(),
+      print: vi.fn(),
+    };
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(popup as unknown as Window);
+    sessionStorage.setItem(BACKUP_KEY, JSON.stringify(['<img src=x onerror=alert(1)>']));
+    renderAccount();
+
+    await user.click(await screen.findByRole('button', { name: 'Print / PDF' }));
+
+    const html = written.join('');
+    expect(html).not.toContain('<img src=x');
+    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    openSpy.mockRestore();
+  });
+
   it('FE-MOB-SETACC-046: a blocked popup leaves printing a no-op', async () => {
     const user = userEvent.setup();
     const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);

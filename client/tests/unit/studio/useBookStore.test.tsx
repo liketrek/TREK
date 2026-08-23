@@ -368,11 +368,55 @@ describe('conflicts', () => {
     expect(result.current.state.status).toBe('conflict')
 
     api.saveBook.mockResolvedValue(record({ version: 7 }))
+    // Choosing re-sends what was refused, so this is the third write, not the second.
     act(() => { result.current.keepMine(theirs) })
+    await tick()
     act(() => { result.current.queueSave(doc('mine again'), 'T') })
     await tick()
 
+    expect(api.saveBook).toHaveBeenCalledTimes(3)
+  })
+
+  /*
+   * The one that lost an afternoon: write() empties the queue before it makes
+   * the request, so after a 409 nothing is queued. "Keep mine" cleared the
+   * conflict and left the document unsent until the user happened to touch the
+   * book again — and closing the editor writes the queue, which was empty.
+   */
+  it('sends the refused document as soon as the local one is kept', async () => {
+    const theirs = record({ version: 6 })
+    api.saveBook.mockRejectedValueOnce(conflictError(theirs))
+    const { result } = await mount()
+
+    act(() => { result.current.queueSave(doc('mine'), 'T') })
+    await tick()
+    expect(result.current.state.status).toBe('conflict')
+
+    api.saveBook.mockResolvedValue(record({ version: 7 }))
+    act(() => { result.current.keepMine(theirs) })
+    await tick()
+
     expect(api.saveBook).toHaveBeenCalledTimes(2)
+    expect(api.saveBook.mock.calls[1][1]).toMatchObject({ title: 'T', baseVersion: 6 })
+    expect((api.saveBook.mock.calls[1][1].document as BookDocument).title).toBe('mine')
+    expect(result.current.state.status).toBe('saved')
+  })
+
+  /* Nothing of their own to send: keeping theirs-as-mine is just the version. */
+  it('only clears the conflict when the local document is the agreed one', async () => {
+    const theirs = record({ version: 6 })
+    api.saveBook.mockRejectedValueOnce(conflictError(theirs))
+    const { result } = await mount()
+
+    act(() => { result.current.queueSave(doc('mine'), 'T') })
+    await tick()
+
+    act(() => { result.current.acceptTheirs(theirs) })
+    act(() => { result.current.keepMine(theirs) })
+    await tick()
+
+    expect(api.saveBook).toHaveBeenCalledTimes(1)
+    expect(result.current.state.status).toBe('idle')
   })
 
   it('returns their document when their version is taken, and drops the pending write', async () => {
@@ -408,11 +452,8 @@ describe('conflicts', () => {
     await tick()
     expect(result.current.state.status).toBe('conflict')
 
-    act(() => { result.current.keepMine(theirs) })
-    expect(result.current.state.status).toBe('idle')
-
     api.saveBook.mockResolvedValue(record({ version: 7 }))
-    act(() => { result.current.queueSave(doc('mine again'), 'T') })
+    act(() => { result.current.keepMine(theirs) })
     await tick()
 
     expect(api.saveBook.mock.calls[1][1].baseVersion).toBe(6)

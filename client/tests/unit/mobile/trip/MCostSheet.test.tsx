@@ -5,6 +5,7 @@ import { clearExchangeRateCache } from '../../../../src/hooks/useExchangeRates'
 import { useTripStore, type TripStoreState } from '../../../../src/store/tripStore'
 import type { BudgetItem, BudgetItemMember } from '../../../../src/types'
 import { buildBudgetItem } from '../../../helpers/factories'
+import { localToday } from '../../../../src/components/Planner/today'
 import { resetAllStores } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
@@ -17,7 +18,8 @@ const PEOPLE = [
   { id: 2, username: 'bob', avatar_url: null },
 ] as TripMember[]
 
-const TODAY = new Date().toISOString().slice(0, 10)
+// The traveller's own calendar day, not the UTC one — see components/Planner/today.ts.
+const TODAY = localToday()
 
 function member(user_id: number, amount: number | null): BudgetItemMember {
   return { user_id, paid: 0, username: user_id === 1 ? 'alice' : 'bob', amount }
@@ -570,6 +572,32 @@ describe('MCostSheet', () => {
     // The sheet lives in a portal, so query from the document root.
     expect(document.querySelector('img[src="/uploads/avatars/alice.png"]')).not.toBeNull()
     expect(screen.getByText('Guest')).toBeInTheDocument()
+  })
+
+  // #1567 all over again: an expense entered at 23:00 in Tokyo belongs on that
+  // evening's day, not on the UTC date that has not started there yet.
+  it('FE-MOB-COSTSH-031: the default expense date comes off the local clock, not UTC', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      // East of Greenwich the two dates part just after midnight, west of it just
+      // before, so pick the edge that this runner's zone actually has.
+      const hour = new Date(2026, 7, 12).getTimezoneOffset() > 0 ? 23 : 0
+      const now = new Date(2026, 7, 12, hour, 30, 0)
+      vi.setSystemTime(now)
+      const { onSaved } = renderSheet()
+      fillBasics('Ramen', '12')
+      fireEvent.click(submit())
+
+      await waitFor(() => expect(addBudgetItem).toHaveBeenCalledTimes(1))
+      expect(addBudgetItem.mock.calls[0][1]).toMatchObject({ expense_date: '2026-08-12' })
+      // Guard the guard: in a UTC runner there is no drift to catch.
+      if (now.getTimezoneOffset() !== 0) {
+        expect(now.toISOString().slice(0, 10)).not.toBe('2026-08-12')
+      }
+      await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1))
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('FE-MOB-COSTSH-030: a currency without a known symbol falls back to its code', () => {

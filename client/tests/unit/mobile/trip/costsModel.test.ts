@@ -371,6 +371,30 @@ describe('costsModel — CSV export', () => {
     expect(filename).toBe('costs-trip.csv');
   });
 
+  it('FE-MOB-CMOD-028: prefixes formula-leading names and notes so spreadsheets keep them as text', () => {
+    const items = [
+      expense({
+        id: 46,
+        name: '=HYPERLINK("http://evil","click")',
+        category: 'food',
+        expense_date: null,
+        total_price: 5,
+        note: '@SUM(A1:A9)',
+      }),
+      expense({ id: 47, name: '-12 refund', category: 'other', expense_date: null, total_price: 5 }),
+    ];
+
+    const { content } = buildCostsCsv(items, { base: 'EUR', ctx, locale: 'en-US', tripTitle: null, t });
+
+    const rows = content.split('\r\n');
+    // The quote inside the name still forces the field to be quoted around the apostrophe.
+    expect(rows[1]).toContain(`"'=HYPERLINK(""http://evil"",""click"")"`);
+    expect(rows[1]).toContain("'@SUM(A1:A9)");
+    expect(rows[2]).toContain("'-12 refund");
+    // Numbers never go through the escaper, so the amount columns stay parseable.
+    expect(rows[2]).toContain(';5.00;EUR;5.00;');
+  });
+
   it('FE-MOB-CMOD-024: falls back to the raw ISO date when the locale is unusable', () => {
     const { content } = buildCostsCsv(
       [expense({ id: 44, name: 'Bus', category: 'transport', expense_date: '2026-07-16', total_price: 3 })],

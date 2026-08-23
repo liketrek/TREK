@@ -1,4 +1,4 @@
-// FE-REPO-TRIP-001 to FE-REPO-TRIP-007
+// FE-REPO-TRIP-001 to FE-REPO-TRIP-011
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import 'fake-indexeddb/auto'
 import { http, HttpResponse } from 'msw'
@@ -95,5 +95,52 @@ describe('tripRepo.get', () => {
 
     const result = await tripRepo.get(82)
     expect(result.trip.title).toBe('Fallback')
+  })
+})
+
+describe('tripRepo.active', () => {
+  // Local calendar dates, like the repo itself.
+  function dateOffset(days: number): string {
+    const d = new Date()
+    d.setDate(d.getDate() + days)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+
+  it('FE-REPO-TRIP-008: online — passes the server answer straight through', async () => {
+    server.use(http.get('/api/trips/active', () =>
+      HttpResponse.json({ trip: { id: 90, title: 'Server pick', start_date: null, end_date: null } }),
+    ))
+
+    const result = await tripRepo.active()
+    expect(result.trip!.id).toBe(90)
+  })
+
+  it('FE-REPO-TRIP-009: offline — ranks ongoing over upcoming over past', async () => {
+    await offlineDb.trips.put(buildTrip({ id: 91, start_date: dateOffset(-40), end_date: dateOffset(-30) }))
+    await offlineDb.trips.put(buildTrip({ id: 92, start_date: dateOffset(10), end_date: dateOffset(14) }))
+    await offlineDb.trips.put(buildTrip({ id: 93, start_date: dateOffset(-1), end_date: dateOffset(2) }))
+    setOnline(false)
+
+    expect((await tripRepo.active()).trip!.id).toBe(93)
+
+    await offlineDb.trips.delete(93)
+    expect((await tripRepo.active()).trip!.id).toBe(92)
+
+    await offlineDb.trips.delete(92)
+    expect((await tripRepo.active()).trip!.id).toBe(91)
+  })
+
+  it('FE-REPO-TRIP-010: offline — skips archived trips and answers null when nothing is left', async () => {
+    await offlineDb.trips.put(buildTrip({ id: 94, is_archived: 1, start_date: dateOffset(-1), end_date: dateOffset(2) }))
+    setOnline(false)
+
+    expect((await tripRepo.active()).trip).toBeNull()
+  })
+
+  it('FE-REPO-TRIP-011: an HTTP error still rejects instead of falling back', async () => {
+    await offlineDb.trips.put(buildTrip({ id: 95 }))
+    server.use(http.get('/api/trips/active', () => HttpResponse.json({ error: 'boom' }, { status: 500 })))
+
+    await expect(tripRepo.active()).rejects.toThrow()
   })
 })

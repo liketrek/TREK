@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { BookElement, BookPageSetup, BookSpread } from '@trek/shared'
+import type { BookDocument, BookElement, BookPageSetup, BookSpread, JourneyStats } from '@trek/shared'
 import { bookPageSetupSchema } from '@trek/shared'
-import { render } from '../../helpers/render'
+import { fireEvent, render } from '../../helpers/render'
 import { SpreadView } from '../../../src/components/Studio/SpreadView'
+import { StudioTravelPanel } from '../../../src/components/Studio/StudioTravelPanel'
+import { useStudioStore } from '../../../src/store/studioStore'
 import { fetchRoads } from '../../../src/components/Studio/roadRoute'
 
 vi.mock('../../../src/components/Map/RouteCalculator', () => ({
@@ -214,5 +216,43 @@ describe('what gets asked for', () => {
 
     const roads = await fetchRoads([{ lat: 52.5, lng: 13.4 }, { lat: 52.1, lng: 13.8 }])
     expect(roads[0]!.length).toBe(40)
+  })
+})
+
+/**
+ * The lookups outlive the click by design — they are paced so the router is not
+ * hammered — so the panel has to take them with it when it goes.
+ */
+describe('placing a map from the panel', () => {
+  const journeyStats = {
+    journeyId: 1, distance: 0, days: 1, steps: 3, photos: 0, places: 3, furthest: 0,
+    countries: [], trips: [], start: null, end: null,
+    points: STOPS.map(p => ({ ...p, date: null, country: null, tripId: null })),
+  } as unknown as JourneyStats
+
+  beforeEach(() => {
+    vi.mocked(calculateRouteWithLegs).mockReset()
+    useStudioStore.getState().load({
+      version: 1, title: 'T', page,
+      spreads: [{ id: 's1', role: 'inner', background: null, elements: [], parked: [], entryId: null }],
+    } as unknown as BookDocument)
+  })
+
+  it('drops the road lookup when the panel goes away', async () => {
+    let asked: AbortSignal | undefined
+    vi.mocked(calculateRouteWithLegs).mockImplementation((_stops, opts) => {
+      asked = (opts as { signal?: AbortSignal } | undefined)?.signal
+      return new Promise(() => {}) as never
+    })
+
+    const { getByTitle, unmount } = render(
+      <StudioTravelPanel page={page} stats={journeyStats} path={[]} t={k => k} locale="en" />,
+    )
+    fireEvent.click(getByTitle('journey.studio.mapStyle.minimal'))
+    await vi.waitFor(() => expect(calculateRouteWithLegs).toHaveBeenCalled())
+
+    unmount()
+
+    expect(asked?.aborted).toBe(true)
   })
 })

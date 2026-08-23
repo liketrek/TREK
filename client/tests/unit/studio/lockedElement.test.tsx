@@ -110,6 +110,41 @@ describe('a locked element', () => {
     expect(container.querySelectorAll('.st-select')).toHaveLength(1)
   })
 
+  /*
+   * Delete was the one gesture that ignored the flag: the element was still
+   * selectable, so a stray Delete took away exactly what had been pinned down.
+   */
+  it('is not deleted by the Delete key', () => {
+    load(shape({ locked: true }))
+    const { container } = draw()
+    fireEvent.pointerDown(hitTarget(container))
+
+    fireEvent.keyDown(document, { key: 'Delete' })
+
+    expect(useStudioStore.getState().doc!.spreads[0].elements).toHaveLength(1)
+  })
+
+  it('is not deleted by the quick bar either', () => {
+    load(shape({ locked: true }))
+    const { container, getByTitle } = draw()
+    fireEvent.pointerDown(hitTarget(container))
+    fireEvent.pointerUp(container.querySelector('.st-stage')!)
+
+    fireEvent.click(getByTitle('Delete'))
+
+    expect(useStudioStore.getState().doc!.spreads[0].elements).toHaveLength(1)
+  })
+
+  it('leaves an unlocked element deletable', () => {
+    load(shape({ locked: false }))
+    const { container } = draw()
+    fireEvent.pointerDown(hitTarget(container))
+
+    fireEvent.keyDown(document, { key: 'Delete' })
+
+    expect(useStudioStore.getState().doc!.spreads[0].elements).toHaveLength(0)
+  })
+
   it('leaves an unlocked element movable, with its handles', () => {
     load(shape({ locked: false }))
     const { container } = draw()

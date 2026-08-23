@@ -386,7 +386,9 @@ describe('MSettingsAppearance', () => {
     );
   });
 
-  it('FE-MOB-SETAPP-027: unmounting before the debounce fires cancels the pending save', async () => {
+  // The scheme is already on the DOM by then, so dropping the write would revert the
+  // choice on the next load without ever telling the user.
+  it('FE-MOB-SETAPP-027: unmounting before the debounce fires flushes the pending save once', async () => {
     const user = userEvent.setup();
     const updateSetting = seedAppearance(undefined);
     const { unmount } = renderAppearance();
@@ -394,7 +396,23 @@ describe('MSettingsAppearance', () => {
     await user.click(screen.getByRole('button', { name: 'Indigo' }));
     unmount();
 
+    expect(appearanceCalls(updateSetting)).toHaveLength(1);
+    expect(appearanceCalls(updateSetting)[0].schemeId).toBe('indigo');
+
+    // The timer is cancelled, so nothing lands a second time.
     await new Promise((resolve) => setTimeout(resolve, 500));
-    expect(appearanceCalls(updateSetting)).toHaveLength(0);
+    expect(appearanceCalls(updateSetting)).toHaveLength(1);
+  });
+
+  it('FE-MOB-SETAPP-028: a debounce that already fired is not written again on unmount', async () => {
+    const user = userEvent.setup();
+    const updateSetting = seedAppearance(undefined);
+    const { unmount } = renderAppearance();
+
+    await user.click(screen.getByRole('button', { name: 'Teal' }));
+    await waitFor(() => expect(appearanceCalls(updateSetting)).toHaveLength(1));
+
+    unmount();
+    expect(appearanceCalls(updateSetting)).toHaveLength(1);
   });
 });

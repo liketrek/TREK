@@ -197,6 +197,16 @@ describe('the back cover', () => {
     expect(el.opacity).toBeLessThan(1)
   })
 
+  /*
+   * places and steps are separate figures — a journal with entries but no
+   * linked trip has steps and no places at all, and the tile printed "0".
+   */
+  it('leaves out the places tally when the journey has none', () => {
+    const back = last(build({ stats: stats({ places: 0, steps: 4 }) }).spreads)
+    const el = back.elements.find(e => e.kind === 'stats')!
+    expect(el.kind === 'stats' && el.metrics).not.toContain('places')
+  })
+
   it('still closes the book when there are no figures', () => {
     const back = last(build({ stats: null }).spreads)
     expect(back.role).toBe('back')

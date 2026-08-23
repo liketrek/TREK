@@ -504,6 +504,43 @@ describe('MSettingsNotifications', () => {
       await waitFor(() => expect(screen.getByRole('button', { name: 'In-App' }).className).toBe(activeClass));
     });
 
+    it('FE-MOB-SETNOTIF-032: a failing update toasts and leaves a later toggle alone', async () => {
+      const user = userEvent.setup();
+      let rejectInapp!: () => void;
+      server.use(
+        http.put('/api/notifications/preferences', async ({ request }) => {
+          const body = (await request.json()) as Record<string, Record<string, boolean>>;
+          // The first write is the in-app flip; it hangs until the test rejects it.
+          if (body.trip_invite.webhook === false) {
+            return new Promise<Response>(resolve => {
+              rejectInapp = () => resolve(HttpResponse.json({ error: 'nope' }, { status: 500 }) as unknown as Response);
+            });
+          }
+          return HttpResponse.json({ success: true });
+        }),
+      );
+      render(<><ToastContainer /><MSettingsNotifications /></>);
+
+      const inapp = await screen.findByRole('button', { name: 'In-App' });
+      // The webhook chip is off in this matrix — its look is the "inactive" reference.
+      const inactiveClass = screen.getByRole('button', { name: 'Webhook' }).className;
+      const activeClass = inapp.className;
+
+      await user.click(inapp);
+      await waitFor(() => expect(screen.getByRole('button', { name: 'In-App' }).className).toBe(inactiveClass));
+
+      // Flipped while the in-app write is still hanging.
+      await user.click(screen.getByRole('button', { name: 'Webhook' }));
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Webhook' }).className).toBe(activeClass));
+
+      rejectInapp();
+
+      expect(await screen.findByText('Error')).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByRole('button', { name: 'In-App' }).className).toBe(activeClass));
+      // The webhook toggle the user made meanwhile is not undone.
+      expect(screen.getByRole('button', { name: 'Webhook' }).className).toBe(activeClass);
+    });
+
     it('FE-MOB-SETNOTIF-029: the saving hint shows while the update is in flight', async () => {
       const user = userEvent.setup();
       let release!: () => void;

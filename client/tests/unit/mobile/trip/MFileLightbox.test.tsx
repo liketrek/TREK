@@ -205,4 +205,27 @@ describe('MFileLightbox', () => {
     fireEvent.click(screen.getByTestId('video-player').parentElement as HTMLElement)
     expect(onClose).not.toHaveBeenCalled()
   })
+
+  // Swiping is quicker than the token round trip, so the first file's url must not
+  // land on the second one.
+  it('FE-MOB-FLBOX-018: a token that resolves after a swipe does not overwrite the new image', async () => {
+    const release: Array<(url: string) => void> = []
+    vi.mocked(getAuthUrl).mockImplementation(
+      (url: string) => new Promise<string>(resolve => { release.push(() => resolve(`${url}?token=t1`)) }),
+    )
+    const { rerender, onIndexChange, onClose } = renderBox(0)
+
+    rerender(
+      <MFileLightbox files={FILES} index={1} onIndexChange={onIndexChange} onClose={onClose} t={t} />,
+    )
+    await waitFor(() => expect(release).toHaveLength(2))
+
+    // The first file resolves last.
+    release[1]('')
+    release[0]('')
+
+    await waitFor(() =>
+      expect(screen.getByAltText('castle.png')).toHaveAttribute('src', '/api/trips/1/files/2/download?token=t1'),
+    )
+  })
 })

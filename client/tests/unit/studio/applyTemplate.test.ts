@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { BookElement } from '@trek/shared'
+import type { BookElement, JourneyStats } from '@trek/shared'
 import { bookPageSetupSchema } from '@trek/shared'
 import { applyTemplate, templateFit, type TemplateEntry } from '../../../src/components/Studio/applyTemplate'
 import type { SpreadTemplate } from '../../../src/components/Studio/bookTemplates.data'
@@ -108,6 +108,14 @@ describe('what gets filled', () => {
     const chip = el({ kind: 'badge', variant: 'day', text: 'DAY 1', sub: '', code: null, style: 'chip' })
     const spread = applyTemplate(template([chip]), entry({ dayNumber: null }), ctx)
     expect((spread.elements[0] as { text: string }).text).toBe('DAY 1')
+  })
+
+  /* Every other figure on the page follows the book language; so does this one. */
+  it('sets the distance in the book language', () => {
+    const mark = el({ kind: 'badge', variant: 'distance', text: '', sub: '', code: null, style: 'plain' })
+    const travelled = { distance: 1_189_000, countries: [] } as unknown as JourneyStats
+    const spread = applyTemplate(template([mark]), entry(), { ...ctx, locale: 'de', stats: travelled })
+    expect((spread.elements[0] as { text: string }).text).toBe('1.189 km')
   })
 
   it('belongs to the entry it was filled from', () => {

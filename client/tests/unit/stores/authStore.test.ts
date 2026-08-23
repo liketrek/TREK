@@ -10,6 +10,15 @@ import { buildUser } from '../../helpers/factories';
 // The websocket module is already mocked globally in tests/setup.ts
 import { connect, disconnect } from '../../../src/api/websocket';
 
+// authStore is the only consumer of these two, so stubbing the module keeps the
+// real 30s interval and window listeners out of the suite while still letting us
+// assert the register/unregister ordering around a logout.
+const syncTriggers = vi.hoisted(() => ({
+  registerSyncTriggers: vi.fn(),
+  unregisterSyncTriggers: vi.fn(),
+}));
+vi.mock('../../../src/sync/syncTriggers', () => syncTriggers);
+
 // The user-scoped offline DB is real (fake-indexeddb); only the reopen step is
 // made failable so the "auth still succeeds when the DB won't open" path runs.
 const dbControl = vi.hoisted(() => ({ reopenFails: false }));
@@ -730,6 +739,24 @@ describe('authStore', () => {
       expect(state.placesPhotosEnabled).toBe(false);
       expect(state.placesAutocompleteEnabled).toBe(false);
       expect(state.placesDetailsEnabled).toBe(false);
+    });
+  });
+
+  describe('FE-STORE-AUTH-033: logging in again after a logout', () => {
+    it('re-registers the sync triggers logout tore down', async () => {
+      const user = buildUser();
+      server.use(
+        http.post('/api/auth/login', () => HttpResponse.json({ user, token: 'tok' }))
+      );
+
+      useAuthStore.setState({ user, isAuthenticated: true });
+      await useAuthStore.getState().logout();
+      expect(syncTriggers.unregisterSyncTriggers).toHaveBeenCalled();
+
+      syncTriggers.registerSyncTriggers.mockClear();
+      await useAuthStore.getState().login(user.email, 'password');
+
+      expect(syncTriggers.registerSyncTriggers).toHaveBeenCalled();
     });
   });
 });

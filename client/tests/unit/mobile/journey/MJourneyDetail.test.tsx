@@ -629,6 +629,28 @@ describe('MJourneyDetail', () => {
     expect(hook.updateEntry).toHaveBeenCalledWith(77, { title: 'Fresh' });
   });
 
+  // Leaving the screen mid-probe used to leave the requests running and land a
+  // setState on a gone component.
+  it('FE-MOB-JDET-038: leaving the screen aborts the provider probes', async () => {
+    vi.mocked(addonsApi.enabled).mockResolvedValue({
+      addons: [{ id: 'immich', name: 'Immich', type: 'photo_provider', enabled: true }],
+    });
+    let signal: AbortSignal | undefined;
+    vi.stubGlobal('fetch', vi.fn(async (_url: string, init?: RequestInit) => {
+      signal = init?.signal ?? undefined;
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+      });
+    }));
+    const { unmount } = setup({ view: 'gallery' });
+
+    await waitFor(() => expect(signal).toBeDefined());
+    expect(signal!.aborted).toBe(false);
+
+    unmount();
+    expect(signal!.aborted).toBe(true);
+  });
+
   it('FE-MOB-JDET-037: the screen measures itself, not the shell', () => {
     // #1809: the shell scrolls with the document now and hands down no definite
     // height. A map on a percentage of an auto-height parent collapses to zero.

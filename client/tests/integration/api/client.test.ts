@@ -360,6 +360,11 @@ describe('API client interceptors', () => {
 
     await expect(backupApi.download('backup.zip')).resolves.toBeUndefined();
     expect(createObjectURL).toHaveBeenCalled();
+    expect(clickSpy).toHaveBeenCalled();
+    // The shared helper appends the anchor (Firefox ignores a click on a
+    // detached one) and revokes the object URL a tick later, not in-line.
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+    await new Promise(r => setTimeout(r, 150));
     expect(revokeObjectURL).toHaveBeenCalled();
 
     vi.restoreAllMocks();

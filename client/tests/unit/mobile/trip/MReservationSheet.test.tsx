@@ -718,6 +718,27 @@ describe('MReservationSheet', () => {
     expect(selects()[2]).toHaveAttribute('data-value', '13')
   })
 
+  // A legacy or corrupted metadata column used to throw straight out of the open
+  // effect and leave the sheet blank.
+  it('FE-MOB-RESSH-052: unparseable metadata opens the sheet with empty check-in times', () => {
+    setup(makePlanner({
+      editingReservation: { ...DINNER, type: 'hotel', metadata: '{not json' },
+    }))
+    expect(titleField()).toHaveValue('Dinner')
+    expect(screen.getByPlaceholderText('15:00')).toHaveValue('')
+  })
+
+  it('FE-MOB-RESSH-053: double-encoded metadata still fills the check-in times', () => {
+    setup(makePlanner({
+      editingReservation: {
+        ...DINNER, type: 'hotel',
+        metadata: JSON.stringify(JSON.stringify({ check_in_time: '16:00', check_out_time: '10:30' })),
+      },
+    }))
+    expect(screen.getByPlaceholderText('15:00')).toHaveValue('16:00')
+    expect(screen.getByPlaceholderText('11:00')).toHaveValue('10:30')
+  })
+
   it('FE-MOB-RESSH-051: a hotel place without an address keeps the typed one', () => {
     setup()
     fireEvent.click(screen.getByRole('button', { name: 'reservations.type.hotel' }))

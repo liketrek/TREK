@@ -22,11 +22,12 @@ import {
   buildTripFile,
 } from '../../helpers/factories';
 
-// Helper to get today ± N days as YYYY-MM-DD
+// Helper to get today ± N days as YYYY-MM-DD. Local calendar date, like the
+// manager itself, so the ±1-day boundary cases hold outside UTC too.
 function dateOffset(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function makeBundle(tripId: number) {
@@ -281,5 +282,96 @@ describe('tripSyncManager — file blob caching', () => {
 
     const cached = await offlineDb.blobCache.toArray();
     expect(cached.length).toBe(0);
+  });
+});
+
+// ── local calendar dates ───────────────────────────────────────────────────────
+
+describe('tripSyncManager.syncAll — local calendar dates', () => {
+  // Only Date is faked; Dexie and MSW keep their real timers.
+  const withClock = (tz: string, iso: string, run: () => Promise<void>) => async () => {
+    const prevTz = process.env.TZ;
+    process.env.TZ = tz;
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(iso));
+    try {
+      await run();
+    } finally {
+      vi.useRealTimers();
+      if (prevTz === undefined) delete process.env.TZ;
+      else process.env.TZ = prevTz;
+    }
+  };
+
+  it('caches a trip on its last evening west of UTC', withClock(
+    'America/Los_Angeles',
+    // 21:00 on the 22nd in Los Angeles is already the 23rd in UTC.
+    '2026-08-23T04:00:00Z',
+    async () => {
+      const tripId = 110;
+      const trip = buildTrip({ id: tripId, end_date: '2026-08-22' });
+      const bundle = { ...makeBundle(tripId), trip };
+
+      server.use(
+        http.get('/api/trips', () => HttpResponse.json({ trips: [trip] })),
+        http.get(`/api/trips/${tripId}/bundle`, () => HttpResponse.json(bundle)),
+      );
+
+      await tripSyncManager.syncAll();
+      expect(await offlineDb.trips.get(tripId)).toBeDefined();
+    },
+  ));
+
+  it('drops a trip that ended yesterday east of UTC', withClock(
+    'Asia/Tokyo',
+    // 08:00 on the 23rd in Tokyo is still the 22nd in UTC.
+    '2026-08-22T23:00:00Z',
+    async () => {
+      const tripId = 111;
+      const trip = buildTrip({ id: tripId, end_date: '2026-08-22' });
+
+      let bundleCalled = false;
+      server.use(
+        http.get('/api/trips', () => HttpResponse.json({ trips: [trip] })),
+        http.get(`/api/trips/${tripId}/bundle`, () => {
+          bundleCalled = true;
+          return HttpResponse.json({});
+        }),
+      );
+
+      await tripSyncManager.syncAll();
+      expect(bundleCalled).toBe(false);
+      expect(await offlineDb.trips.get(tripId)).toBeUndefined();
+    },
+  ));
+});
+
+// ── logout mid-sync ────────────────────────────────────────────────────────────
+
+describe('tripSyncManager.syncAll — logout while syncing', () => {
+  it('stops writing trips once the gate closes mid-loop', async () => {
+    const firstId = 500;
+    const secondId = 501;
+    const first = buildTrip({ id: firstId, end_date: dateOffset(5) });
+    const second = buildTrip({ id: secondId, end_date: dateOffset(5) });
+
+    let secondBundleCalled = false;
+    server.use(
+      http.get('/api/trips', () => HttpResponse.json({ trips: [first, second] })),
+      http.get(`/api/trips/${firstId}/bundle`, () => {
+        // The user logs out while the first bundle is on the wire.
+        setAuthed(false);
+        return HttpResponse.json({ ...makeBundle(firstId), trip: first });
+      }),
+      http.get(`/api/trips/${secondId}/bundle`, () => {
+        secondBundleCalled = true;
+        return HttpResponse.json({ ...makeBundle(secondId), trip: second });
+      }),
+    );
+
+    await tripSyncManager.syncAll();
+
+    expect(secondBundleCalled).toBe(false);
+    expect(await offlineDb.trips.get(secondId)).toBeUndefined();
   });
 });

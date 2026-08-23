@@ -267,7 +267,8 @@ describe('MJourneySettingsSheet', () => {
     });
     const create = vi.spyOn(journeyApi, 'createShareLink').mockResolvedValue({ token: 'tok-9' });
     const writeText = vi.fn(async () => {});
-    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, writable: true, value: { writeText } });
+    Object.defineProperty(window, 'isSecureContext', { configurable: true, writable: true, value: true });
     setup();
 
     expect(await screen.findByText(`${window.location.origin}/public/journey/tok-9`)).toBeInTheDocument();
@@ -368,6 +369,26 @@ describe('MJourneySettingsSheet', () => {
     const cancels = screen.getAllByRole('button', { name: 'Cancel' });
     fireEvent.click(cancels[cancels.length - 1]);
     expect(props.onClose).toHaveBeenCalled();
+  });
+
+  // A self-hosted install served over plain HTTP has no navigator.clipboard, and the
+  // unguarded call used to throw before the button ever showed feedback.
+  it('FE-MOB-JSET-031: copies through execCommand when the clipboard API is unavailable', async () => {
+    vi.mocked(journeyApi.getShareLink).mockResolvedValue({
+      link: { token: 'tok-9', share_timeline: true, share_gallery: true, share_map: false },
+    });
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, writable: true, value: undefined });
+    Object.defineProperty(window, 'isSecureContext', { configurable: true, writable: true, value: false });
+    const execCommand = vi.fn(() => true);
+    Object.defineProperty(document, 'execCommand', { configurable: true, writable: true, value: execCommand });
+    setup();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Copy' }));
+
+    await waitFor(() => expect(execCommand).toHaveBeenCalledWith('copy'));
+    expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument();
+    // The temporary textarea is removed again.
+    expect(document.querySelector('textarea')).toBeNull();
   });
 
   it('FE-MOB-JSET-030: an existing cover is shown instead of the gradient', async () => {

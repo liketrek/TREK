@@ -138,16 +138,48 @@ describe('dayNotesSlice', () => {
       const note = buildDayNote({ id: 10, day_id: 1, text: 'Move me' });
       seedStore(useTripStore, { dayNotes: { '1': [note], '2': [] } });
 
+      let deleted = false;
       server.use(
-        http.delete('/api/trips/1/days/1/notes/10', () =>
+        http.post('/api/trips/1/days/2/notes', () =>
           HttpResponse.json({ message: 'Error' }, { status: 500 })
         ),
+        http.delete('/api/trips/1/days/1/notes/10', () => {
+          deleted = true;
+          return HttpResponse.json({ success: true });
+        }),
       );
 
       await expect(useTripStore.getState().moveDayNote(1, 1, 2, 10)).rejects.toThrow();
 
+      // The create is the first half of the move, so a failure there must leave
+      // the note where it was instead of deleting it out from under the user.
+      expect(deleted).toBe(false);
       expect(useTripStore.getState().dayNotes['1']).toHaveLength(1);
       expect(useTripStore.getState().dayNotes['1'][0].id).toBe(10);
+    });
+
+    it('FE-DAYNOTES-006b: moveDayNote removes the copy again when the source delete fails', async () => {
+      const note = buildDayNote({ id: 10, day_id: 1, text: 'Move me' });
+      const newNote = buildDayNote({ id: 99, day_id: 2, text: 'Move me' });
+      seedStore(useTripStore, { dayNotes: { '1': [note], '2': [] } });
+
+      const deletedFromTarget: number[] = [];
+      server.use(
+        http.post('/api/trips/1/days/2/notes', () => HttpResponse.json({ note: newNote })),
+        http.delete('/api/trips/1/days/1/notes/10', () =>
+          HttpResponse.json({ message: 'Error' }, { status: 500 })
+        ),
+        http.delete('/api/trips/1/days/2/notes/:noteId', ({ params }) => {
+          deletedFromTarget.push(Number(params.noteId));
+          return HttpResponse.json({ success: true });
+        }),
+      );
+
+      await expect(useTripStore.getState().moveDayNote(1, 1, 2, 10)).rejects.toThrow();
+
+      expect(deletedFromTarget).toEqual([99]);
+      expect(useTripStore.getState().dayNotes['1']).toHaveLength(1);
+      expect(useTripStore.getState().dayNotes['2']).toHaveLength(0);
     });
   });
 

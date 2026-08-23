@@ -44,6 +44,8 @@ vi.mock('../../../../src/components/shared/CustomSelect', () => ({
 }));
 
 const origCreateObjectURL = URL.createObjectURL;
+const origRevokeObjectURL = URL.revokeObjectURL;
+const revokeSpy = vi.fn();
 
 function buildDashTrip(over: Partial<DashboardTrip> = {}): DashboardTrip {
   return {
@@ -69,12 +71,15 @@ beforeEach(() => {
     return 1;
   }) as unknown as typeof window.__addToast;
   URL.createObjectURL = (() => 'blob:preview') as unknown as typeof URL.createObjectURL;
+  revokeSpy.mockClear();
+  URL.revokeObjectURL = revokeSpy as unknown as typeof URL.revokeObjectURL;
   useAuthStore.setState({ isAuthenticated: true, user: buildUser({ id: 1, role: 'user' }) });
   usePermissionsStore.setState({ permissions: {} });
 });
 
 afterEach(() => {
   URL.createObjectURL = origCreateObjectURL;
+  URL.revokeObjectURL = origRevokeObjectURL;
   delete window.__addToast;
   useSettingsStore.setState(s => ({ settings: { ...s.settings, default_currency: '' } }));
   vi.restoreAllMocks();
@@ -372,6 +377,30 @@ describe('MNewTripSheet', () => {
 
     await waitFor(() => expect(screen.getByText('Add cover image')).toBeInTheDocument());
     expect(update).not.toHaveBeenCalled();
+  });
+
+  // The preview holds the whole picked file in memory until the url is released.
+  it('FE-MOB-NTSH-034: a replaced or dropped file preview releases its blob url', async () => {
+    render(<MNewTripSheet open trip={null} onClose={() => {}} onSave={() => {}} />);
+
+    fireEvent.change(fileInput(), { target: { files: [png()] } });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument());
+    expect(revokeSpy).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(revokeSpy).toHaveBeenCalledWith('blob:preview'));
+  });
+
+  it('FE-MOB-NTSH-035: a stored cover url is never handed to revokeObjectURL', async () => {
+    const { unmount } = render(
+      <MNewTripSheet open trip={buildDashTrip()} onClose={() => {}} onSave={() => {}} />,
+    );
+
+    await waitFor(() =>
+      expect(document.querySelector('img[src="/uploads/covers/a.jpg"]')).toBeInTheDocument(),
+    );
+    unmount();
+    expect(revokeSpy).not.toHaveBeenCalled();
   });
 
   it('FE-MOB-NTSH-023: removing a stored cover clears it on the server', async () => {

@@ -77,6 +77,8 @@ vi.mock('../../../../src/mobile/screens/admin/MAdminAddonManager', () => ({
       <button type="button" onClick={onToggleBagTracking}>toggle bag</button>
       <span data-testid="chat-state">{String(collabFeatures.chat)}</span>
       <button type="button" onClick={() => onToggleCollabFeature('chat')}>toggle chat</button>
+      <span data-testid="notes-state">{String(collabFeatures.notes)}</span>
+      <button type="button" onClick={() => onToggleCollabFeature('notes')}>toggle notes</button>
     </div>
   ),
 }));
@@ -360,6 +362,34 @@ describe('MAdmin', () => {
     fireEvent.click(screen.getByRole('button', { name: 'toggle chat' }));
 
     await waitFor(() => expect(screen.getByTestId('chat-state')).toHaveTextContent('true'));
+  });
+
+  it('FE-MOB-ADMIN-018: a failing toggle only rolls back its own key', async () => {
+    let releaseChat: () => void = () => {};
+    server.use(
+      http.put('/api/admin/collab-features', async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        if ('chat' in body) {
+          await new Promise<void>((resolve) => { releaseChat = resolve; });
+          return HttpResponse.json({ error: 'boom' }, { status: 500 });
+        }
+        return HttpResponse.json({ ...body });
+      }),
+    );
+    renderAdmin();
+    await waitFor(() => expect(screen.getByText('alice')).toBeInTheDocument());
+    await openSection('Addons');
+
+    await waitFor(() => expect(screen.getByTestId('chat-state')).toHaveTextContent('true'));
+    fireEvent.click(screen.getByRole('button', { name: 'toggle chat' }));
+    fireEvent.click(screen.getByRole('button', { name: 'toggle notes' }));
+    await waitFor(() => expect(screen.getByTestId('notes-state')).toHaveTextContent('false'));
+
+    releaseChat();
+
+    // Chat comes back, but the notes toggle the admin made meanwhile survives.
+    await waitFor(() => expect(screen.getByTestId('chat-state')).toHaveTextContent('true'));
+    expect(screen.getByTestId('notes-state')).toHaveTextContent('false');
   });
 
   it('FE-MOB-ADMIN-017: the stats grid falls back to zero files', async () => {

@@ -1,4 +1,4 @@
-// FE-COMP-I18NCTX-001 to FE-COMP-I18NCTX-017
+// FE-COMP-I18NCTX-001 to FE-COMP-I18NCTX-017 (plus -003b / -013b)
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { SUPPORTED_LANGUAGES, TranslationProvider, useTranslation } from '../../../src/i18n/TranslationContext';
 import { TransHtml } from '../../../src/i18n/TransHtml';
@@ -49,6 +49,17 @@ describe('TranslationProvider', () => {
   it('FE-COMP-I18NCTX-003: substitutes every occurrence of a placeholder', () => {
     render(<TranslationProvider><Probe tKey="common.hoursAgo" params={{ count: 5 }} /></TranslationProvider>);
     expect(screen.getByTestId('value').textContent).toContain('5');
+  });
+
+  it('FE-COMP-I18NCTX-003b: inserts a value containing $ patterns literally', () => {
+    render(
+      <TranslationProvider>
+        <Probe tKey="journey.frontpage.suggestionText" params={{ title: 'A$&B $1 $`' }} />
+      </TranslationProvider>,
+    );
+    // A trip really can be named this, and `$&` as a replacement string would
+    // paste the matched placeholder back in.
+    expect(screen.getByTestId('value').textContent).toContain('A$&B $1 $`');
   });
 
   it('FE-COMP-I18NCTX-004: defaults to English with the matching locale', () => {
@@ -147,6 +158,16 @@ describe('tHtml', () => {
     const raw = screen.getByTestId('raw').textContent ?? '';
     expect(raw).not.toContain('<img');
     expect(raw).toContain('&lt;img');
+  });
+
+  it('FE-COMP-I18NCTX-013b: keeps $ patterns in an escaped value literal', () => {
+    render(
+      <TranslationProvider>
+        <HtmlProbe tKey="journey.frontpage.suggestionText" params={{ title: 'A$&B' }} />
+      </TranslationProvider>,
+    );
+
+    expect(screen.getByTestId('raw').textContent).toContain('A$&amp;B');
   });
 
   it('FE-COMP-I18NCTX-014: returns the key unchanged when it is unknown', () => {
