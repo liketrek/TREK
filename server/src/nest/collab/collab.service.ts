@@ -6,11 +6,16 @@ import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { avatarUrl } from '../common/avatarUrl';
 import { checkSsrf, createPinnedDispatcher } from '../../utils/ssrfGuard';
+import { exceedsDeclaredLength, readCappedText } from '../../utils/cappedFetch';
 import type { CollabNote, CollabPoll, CollabMessage, TripFile, User } from '../../types';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StorageService } from '../storage/storage.service';
 
 type Trip = TripAccess;
+
+// Half a megabyte of markup is far more than any og:/<title> block needs, and
+// the URL is caller-supplied, so read no further than that.
+const MAX_PREVIEW_BYTES = 512 * 1024;
 
 export interface ReactionRow {
   emoji: string;
@@ -374,7 +379,8 @@ export class CollabService {
   listMessages(tripId: string | number, before?: string | number) {
     const query = `
     SELECT m.*, u.username, u.avatar,
-      rm.text AS reply_text, ru.username AS reply_username
+      CASE WHEN rm.deleted = 1 THEN '' ELSE rm.text END AS reply_text,
+      ru.username AS reply_username
     FROM collab_messages m
     JOIN users u ON m.user_id = u.id
     LEFT JOIN collab_messages rm ON m.reply_to = rm.id
@@ -389,6 +395,12 @@ export class CollabService {
       : this.db.all<CollabMessage>(query, tripId);
 
     messages.reverse();
+
+    // A deleted message keeps its row so the client can render the placeholder
+    // off the flag, but the original text must not leave the server. REST and
+    // both MCP surfaces read through this method, so blanking here covers all
+    // three.
+    for (const m of messages) if (m.deleted) m.text = '';
 
     const msgIds = messages.map(m => m.id);
     const reactionsByMsg: Record<number, ReactionRow[]> = {};
@@ -468,8 +480,11 @@ export class CollabService {
         } as any);
         clearTimeout(timeout);
         if (!r.ok) throw new Error('Fetch failed');
+        if (exceedsDeclaredLength(r, MAX_PREVIEW_BYTES)) return fallback;
 
-        const html = await r.text();
+        // A truncated head still carries the tags we scrape, so a page over the
+        // budget degrades to fewer fields rather than to an error.
+        const { text: html } = await readCappedText(r, MAX_PREVIEW_BYTES);
         const get = (prop: string) => {
           const m = html.match(new RegExp(`<meta[^>]*property=["']og:${prop}["'][^>]*content=["']([^"']*)["']`, 'i'))
             || html.match(new RegExp(`<meta[^>]*content=["']([^"']*)["'][^>]*property=["']og:${prop}["']`, 'i'));

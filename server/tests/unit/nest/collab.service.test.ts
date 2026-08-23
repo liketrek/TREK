@@ -209,6 +209,28 @@ describe('listMessages', () => {
     expect(msgs[2].text).toBe('C');
   });
 
+  it('COLLAB-SVC-013a: blanks the text of a deleted message but keeps the flag', () => {
+    const { user1, trip } = setup();
+    const r = svc.createMessage(trip.id, user1.id, 'Secret plans');
+    svc.deleteMessage(trip.id, r.message!.id, user1.id);
+
+    const msgs = svc.listMessages(trip.id);
+    expect(msgs).toHaveLength(1);
+    expect(msgs[0].text).toBe('');
+    expect(msgs[0].deleted).toBe(1);
+  });
+
+  it('COLLAB-SVC-013b: blanks reply_text when the quoted message was deleted', () => {
+    const { user1, trip } = setup();
+    const original = svc.createMessage(trip.id, user1.id, 'Original secret');
+    svc.createMessage(trip.id, user1.id, 'Quoting it', original.message!.id);
+    svc.deleteMessage(trip.id, original.message!.id, user1.id);
+
+    const msgs = svc.listMessages(trip.id);
+    const reply = msgs.find(m => m.text === 'Quoting it')!;
+    expect(reply.reply_text).toBe('');
+  });
+
   it('COLLAB-SVC-013: includes reactions grouped by emoji', () => {
     const { user1, trip } = setup();
     const r = svc.createMessage(trip.id, user1.id, 'React me');
@@ -396,6 +418,42 @@ describe('linkPreview', () => {
     const result = await svc.linkPreview('https://example.com/net-error');
     expect(result.title).toBeNull();
     expect(result.url).toBe('https://example.com/net-error');
+  });
+
+  it('COLLAB-SVC-030a: returns the fallback when the page declares a body over the cap', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: (h: string) => (h === 'content-length' ? String(10 * 1024 * 1024) : null) },
+      text: async () => '<html><head><title>Huge</title></head></html>',
+    }));
+
+    const result = await svc.linkPreview('https://example.com/huge');
+    expect(result.title).toBeNull();
+  });
+
+  it('COLLAB-SVC-030b: reads only up to the cap and still scrapes the head tags', async () => {
+    let cancelled = false;
+    const chunks = [
+      new TextEncoder().encode('<html><head><title>Head Title</title></head><body>'),
+      new TextEncoder().encode('x'.repeat(1024 * 1024)),
+    ];
+    let i = 0;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: () => null },
+      body: {
+        getReader: () => ({
+          read: async () => (i < chunks.length ? { done: false, value: chunks[i++] } : { done: true }),
+          cancel: async () => { cancelled = true; },
+        }),
+      },
+    }));
+
+    const result = await svc.linkPreview('https://example.com/streamed');
+    // The head arrives first, so the scrape still works; the megabyte of padding
+    // past the 512KB budget is dropped and the reader is cancelled.
+    expect(result.title).toBe('Head Title');
+    expect(cancelled).toBe(true);
   });
 
   it('COLLAB-SVC-030: falls back to meta description tag when no og:description', async () => {

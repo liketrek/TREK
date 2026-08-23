@@ -17,6 +17,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Options } from 'multer';
 import path from 'path';
+import fs from 'fs';
 import type { User } from '../../types';
 import { CollabService } from './collab.service';
 import { StorageService } from '../storage/storage.service';
@@ -146,9 +147,20 @@ export class CollabController {
   @Post('notes/:id/files')
   @UseInterceptors(FileInterceptor('file'))
   async addNoteFile(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined, @Headers('x-socket-id') socketId?: string) {
-    const trip = this.requireTrip(tripId, user);
-    if (!this.collab.canUploadFiles(trip, user)) {
-      throw new HttpException({ error: 'No permission to upload files' }, 403);
+    // multer has already written the upload to the spool dir by the time any of
+    // these checks run, and nothing sweeps orphans, so every refusal takes the
+    // bytes back out, with the same closure the trip-file upload uses.
+    const cleanupSpool = () => {
+      if (file?.path) { try { fs.unlinkSync(file.path); } catch { /* best-effort */ } }
+    };
+    try {
+      const trip = this.requireTrip(tripId, user);
+      if (!this.collab.canUploadFiles(trip, user)) {
+        throw new HttpException({ error: 'No permission to upload files' }, 403);
+      }
+    } catch (err) {
+      cleanupSpool();
+      throw err;
     }
     if (!file) {
       throw new HttpException({ error: 'No file uploaded' }, 400);
@@ -158,6 +170,8 @@ export class CollabController {
     await this.storage.put('files', file.filename, { tmpPath: file.path });
     const result = this.collab.addNoteFile(tripId, id, file);
     if (!result) {
+      // Already committed, so the spool file is gone; drop the final object.
+      await this.storage.delete('files', file.filename).catch(() => {});
       throw new HttpException({ error: 'Note not found' }, 404);
     }
     this.collab.broadcast(tripId, 'collab:note:updated', { note: this.collab.getFormattedNoteById(tripId, id) }, socketId);
