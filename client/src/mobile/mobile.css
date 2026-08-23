@@ -327,3 +327,16 @@
   /* Zzz would sit invisible at opacity 0 without their animation — pin them visible */
   .trek-z { opacity: 1; }
 }
+
+/* Map attribution clears the dock.
+ *
+ * Both engines park their attribution at the bottom of the map, and on a phone
+ * the map is the whole screen — so the credit line lands under the floating nav
+ * and reads as a broken bar (#2022's screenshots show it over the dock). Lift it
+ * by the same variable everything else clears the dock with. Leaflet and
+ * MapLibre both, because a phone meets either depending on the screen. */
+.m-root .leaflet-control-attribution,
+.m-root .maplibregl-ctrl-bottom-left,
+.m-root .maplibregl-ctrl-bottom-right {
+  bottom: var(--bottom-nav-h);
+}

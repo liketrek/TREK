@@ -26,11 +26,14 @@ export default function MJourneyEntryCard({ entry, number, onClick }: MJourneyEn
   const storyPreview = entry.story ? stripMarkdown(entry.story) : ''
   const title = entry.title || (entry.type === 'checkin' ? t('journey.detail.journeyTab') : t('journey.editor.titlePlaceholder'))
 
+  // The timeline this card sits in is bottom-anchored with no height of its own, so a card
+  // that grows with its story climbs over the map and swallows its touches (#2022). Cap the
+  // card at the height the old journey timeline pins its active card to.
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex w-[280px] flex-none gap-[11px] rounded-[20px] bg-[color:var(--m-sheet)] p-[11px] text-left shadow-[0_16px_40px_-18px_rgba(0,0,0,.5)]"
+      className="flex max-h-[140px] w-[280px] flex-none gap-[11px] overflow-hidden rounded-[20px] bg-[color:var(--m-sheet)] p-[11px] text-left shadow-[0_16px_40px_-18px_rgba(0,0,0,.5)]"
     >
       {firstPhoto && (
         <span className="flex w-16 flex-none flex-col gap-[5px]">
@@ -73,8 +76,9 @@ export default function MJourneyEntryCard({ entry, number, onClick }: MJourneyEn
           </span>
         </span>
         <span className="mt-1 block truncate text-[0.875rem] font-extrabold">{title}</span>
+        {/* No display utility on the preview: Tailwind emits it after line-clamp-2 and would kill the clamp. */}
         {storyPreview && (
-          <span className="mt-[2px] block font-geist text-[0.65625rem] leading-[1.4] text-m-muted line-clamp-2">
+          <span className="mt-[2px] font-geist text-[0.65625rem] leading-[1.4] text-m-muted line-clamp-2">
             {storyPreview}
           </span>
         )}
