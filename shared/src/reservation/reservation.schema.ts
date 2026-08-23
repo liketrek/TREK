@@ -202,11 +202,31 @@ export const accommodationSchema = z.object({
 });
 export type Accommodation = z.infer<typeof accommodationSchema>;
 
+/**
+ * A booking link, as it is rendered into an href by the reservations panel. It
+ * deliberately stays free-form — people paste bare hosts ("www.hotel.com") and
+ * provider deep links, and rows written before this check exist — so the contract
+ * only rejects the schemes that execute in this origin instead of opening a page.
+ * Same class of bug as placeWebsiteSchema, one step narrower so nobody's stored
+ * link becomes unsavable.
+ */
+export const reservationUrlSchema = z.string().refine(
+  // Browsers strip control characters and whitespace before they resolve the
+  // scheme, so a tab spliced into 'javascript:' still runs.
+  v => !/^(javascript|data|vbscript):/i.test(v.replace(/[\u0000-\u0020]/g, '')),
+  { message: 'must not be a javascript:, data: or vbscript: URL' },
+);
+
 /** Reservation create: title is required; the many optional fields stay open. */
-export const reservationCreateRequestSchema = open.and(z.object({ title: z.string().min(1) }));
+export const reservationCreateRequestSchema = open.and(z.object({
+  title: z.string().min(1),
+  url: reservationUrlSchema.nullable().optional(),
+}));
 export type ReservationCreateRequest = z.infer<typeof reservationCreateRequestSchema>;
 
-export const reservationUpdateRequestSchema = open;
+export const reservationUpdateRequestSchema = open.and(z.object({
+  url: reservationUrlSchema.nullable().optional(),
+}));
 export type ReservationUpdateRequest = z.infer<typeof reservationUpdateRequestSchema>;
 
 /** Assign trip members/guests to a reservation (mirrors budget's PUT :id/members). */

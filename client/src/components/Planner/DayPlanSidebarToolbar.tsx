@@ -98,7 +98,9 @@ export function DayPlanSidebarToolbar({
                 onClick={() => {
                   const next = allExpanded ? new Set<number>() : new Set(days.map(d => d.id))
                   setExpandedDays(next)
-                  try { sessionStorage.setItem(`day-expanded-${tripId}`, JSON.stringify([...next])) } catch {}
+                  // Same store the sidebar reads on mount — a sessionStorage write
+                  // here left the persisted set behind after a reload.
+                  try { localStorage.setItem(`day-expanded-${tripId}`, JSON.stringify([...next])) } catch {}
                 }}
                 aria-label={label}
                 aria-pressed={allExpanded}

@@ -1,5 +1,6 @@
 import {
   reservationCreateRequestSchema,
+  reservationUpdateRequestSchema,
   reservationPositionsRequestSchema,
   accommodationCreateBodySchema,
   accommodationCreateRequestSchema,
@@ -19,6 +20,23 @@ describe('reservationCreateRequestSchema', () => {
       }).success,
     ).toBe(true);
     expect(reservationCreateRequestSchema.safeParse({ location: 'x' }).success).toBe(false);
+  });
+
+  it('rejects a booking url that executes instead of navigating, on create and update', () => {
+    expect(reservationCreateRequestSchema.safeParse({ title: 'Hotel', url: 'javascript:alert(1)' }).success).toBe(false);
+    expect(reservationCreateRequestSchema.safeParse({ title: 'Hotel', url: 'JavaScript:alert(1)' }).success).toBe(false);
+    expect(reservationCreateRequestSchema.safeParse({ title: 'Hotel', url: ' \tjava\nscript:alert(1)' }).success).toBe(false);
+    expect(reservationCreateRequestSchema.safeParse({ title: 'Hotel', url: 'data:text/html,<script>x</script>' }).success).toBe(false);
+    expect(reservationUpdateRequestSchema.safeParse({ url: 'vbscript:msgbox' }).success).toBe(false);
+  });
+
+  it('keeps every link people actually paste valid (no stored row becomes unsavable)', () => {
+    for (const url of ['https://hotel.example/booking', 'http://hotel.example', 'www.hotel.com', 'hotel.example/x?a=b', '']) {
+      expect(reservationCreateRequestSchema.safeParse({ title: 'Hotel', url }).success).toBe(true);
+      expect(reservationUpdateRequestSchema.safeParse({ url }).success).toBe(true);
+    }
+    expect(reservationUpdateRequestSchema.safeParse({ url: null }).success).toBe(true);
+    expect(reservationUpdateRequestSchema.safeParse({ location: 'x' }).success).toBe(true);
   });
 });
 

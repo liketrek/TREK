@@ -205,19 +205,28 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
             polyline.push(c)
           }
         }
-        for (let i = 0; i < run.length - 1; i++) {
+        // Neighbouring legs that resolve to the SAME mode travel as one
+        // multi-waypoint request — the router answers with one leg per pair, so
+        // the per-connector segments stay exactly as they were, and a day without
+        // per-leg overrides is back to a single call per run.
+        let i = 0
+        while (i < run.length - 1) {
           const mode = resolveLegMode(run[i], run[i + 1], dayDefaultMode)
-          const straight = (): [number, number][] => [[run[i].lat, run[i].lng], [run[i + 1].lat, run[i + 1].lng]]
+          let end = i + 1
+          while (end < run.length - 1 && resolveLegMode(run[end], run[end + 1], dayDefaultMode) === mode) end++
+          const chunk = run.slice(i, end + 1)
+          const straight = (): [number, number][] => chunk.map(p => [p.lat, p.lng] as [number, number])
           try {
-            const r = await calculateRouteWithLegs([{ lat: run[i].lat, lng: run[i].lng }, { lat: run[i + 1].lat, lng: run[i + 1].lng }], { signal: controller.signal, profile: mode, tripId, dayId })
+            const r = await calculateRouteWithLegs(chunk.map(p => ({ lat: p.lat, lng: p.lng })), { signal: controller.signal, profile: mode, tripId, dayId })
             pushCoords(r.coordinates.length >= 2 ? r.coordinates : straight())
-            if (r.legs[0]) allLegs.push({ ...r.legs[0], mode })
+            for (const leg of r.legs) allLegs.push({ ...leg, mode })
             if (r.vias) allVias.push(...r.vias)
           } catch (err) {
             if (err instanceof Error && err.name === 'AbortError') throw err
-            // Routing failed for this leg — fall back to a straight line, no times.
+            // Routing failed for these legs — fall back to straight lines, no times.
             pushCoords(straight())
           }
+          i = end
         }
         if (polyline.length >= 2) polylines.push(polyline)
       }

@@ -1,4 +1,4 @@
-// FE-COMP-RES-001 to FE-COMP-RES-040, FE-PLANNER-RESP-016 to FE-PLANNER-RESP-078
+// FE-COMP-RES-001 to FE-COMP-RES-040, FE-PLANNER-RESP-016 to FE-PLANNER-RESP-080
 import { render, screen, fireEvent, waitFor, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -899,5 +899,22 @@ describe('ReservationsPanel', () => {
     render(<ReservationsPanel {...defaultProps} reservations={[undated, dated]} days={[day]} />);
     const text = document.body.textContent || '';
     expect(text.indexOf('Dated train')).toBeLessThan(text.indexOf('Undated taxi'));
+  });
+
+  it('FE-PLANNER-RESP-079: an http booking link is rendered as an anchor', () => {
+    const res = buildReservation({ id: 1, title: 'Hotel', status: 'confirmed', url: 'https://hotel.example/booking' } as any);
+    render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
+    const link = screen.getByText('https://hotel.example/booking');
+    expect(link.tagName).toBe('A');
+    expect(link).toHaveAttribute('href', 'https://hotel.example/booking');
+  });
+
+  it('FE-PLANNER-RESP-080: a javascript: booking link stays plain text, never an href', () => {
+    const res = buildReservation({ id: 1, title: 'Hotel', status: 'confirmed', url: 'javascript:alert(1)' } as any);
+    render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
+    // The stored value stays readable, but nothing is clickable.
+    const shown = screen.getByText('javascript:alert(1)');
+    expect(shown.tagName).toBe('SPAN');
+    expect(document.querySelector('a[href^="javascript:"]')).toBeNull();
   });
 });

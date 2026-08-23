@@ -117,6 +117,48 @@ describe('useRouteCalculation', () => {
     expect(result.current.routeSegments).toEqual(MOCK_SEGMENTS.map(s => ({ ...s, mode: 'driving' })));
   });
 
+  it('FE-HOOK-ROUTE-023: consecutive legs of one mode go out as a single multi-waypoint request', async () => {
+    // Three places routed in the day default and a fourth reached on foot: two
+    // requests, not three, and the connectors stay one per pair in order.
+    (calculateRouteWithLegs as ReturnType<typeof vi.fn>).mockImplementation(
+      (waypoints: { lat: number; lng: number }[]) => Promise.resolve({
+        coordinates: [] as [number, number][],
+        distance: 0,
+        duration: 0,
+        legs: waypoints.slice(0, -1).map((w, i) => ({
+          ...MOCK_SEGMENTS[0],
+          from: [w.lat, w.lng] as [number, number],
+          to: [waypoints[i + 1].lat, waypoints[i + 1].lng] as [number, number],
+        })),
+      }),
+    );
+    const pts = [
+      { lat: 48.86, lng: 2.35 }, { lat: 48.87, lng: 2.36 },
+      { lat: 48.88, lng: 2.37 }, { lat: 48.89, lng: 2.38 },
+    ];
+    const assignments = pts.map((pt, i) => ({
+      ...buildAssignment({ day_id: 5, order_index: i, place: buildPlace(pt) }),
+      // The third place walks to the fourth; the first two use the day default.
+      leg_transport_mode: i === 2 ? 'walking' : null,
+    }));
+    const store = buildMockStore({ '5': assignments as never });
+
+    const { result } = renderHook(() => useRouteCalculation(store as TripStoreState, 5));
+    await act(async () => {});
+
+    const calls = (calculateRouteWithLegs as ReturnType<typeof vi.fn>).mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(calls[0][0]).toEqual(pts.slice(0, 3));
+    expect(calls[0][1].profile).toBe('driving');
+    expect(calls[1][0]).toEqual(pts.slice(2));
+    expect(calls[1][1].profile).toBe('walking');
+    // One segment per pair, in the order they are walked.
+    expect(result.current.routeSegments.map(s => s.mode)).toEqual(['driving', 'driving', 'walking']);
+    expect(result.current.routeSegments.map(s => s.from)).toEqual([
+      [pts[0].lat, pts[0].lng], [pts[1].lat, pts[1].lng], [pts[2].lat, pts[2].lng],
+    ]);
+  });
+
   it('FE-HOOK-ROUTE-006: assignments are sorted by order_index before extracting waypoints', async () => {
     const p1 = buildPlace({ lat: 10, lng: 10 });
     const p2 = buildPlace({ lat: 20, lng: 20 });

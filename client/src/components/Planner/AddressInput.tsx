@@ -22,6 +22,9 @@ export default function AddressInput({ value, onChange, placeholder, className }
   const [loading, setLoading] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Clearing the timer does nothing to a request that is already out, and
+  // mapsApi.search takes no signal, so results are matched by ticket instead.
+  const reqIdRef = useRef(0)
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -38,23 +41,28 @@ export default function AddressInput({ value, onChange, placeholder, className }
   const search = (text: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     const trimmed = text.trim()
-    if (trimmed.length < 3) { setResults([]); setLoading(false); return }
+    // Same reason as in pick(): a request for the longer text may still land.
+    if (trimmed.length < 3) { reqIdRef.current++; setResults([]); setLoading(false); return }
     debounceRef.current = setTimeout(async () => {
+      const myReq = ++reqIdRef.current
       setLoading(true)
       try {
         const data = await mapsApi.search(trimmed, locale)
+        if (myReq !== reqIdRef.current) return
         setResults(data.places || [])
         setHighlight(-1)
       } catch {
-        setResults([])
+        if (myReq === reqIdRef.current) setResults([])
       } finally {
-        setLoading(false)
+        if (myReq === reqIdRef.current) setLoading(false)
       }
     }, 320)
   }
 
   const pick = (r: any) => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
+    // A response still on its way must not repopulate the list behind the pick.
+    reqIdRef.current++
     onChange(r.address || r.name || '')
     setOpen(false)
     setResults([])

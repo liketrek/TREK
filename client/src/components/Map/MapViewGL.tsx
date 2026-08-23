@@ -930,6 +930,11 @@ export function MapViewGL({
       }
       try { map.remove() } catch { /* noop */ }
       mapRef.current = null
+      // Drop the debug handle too, or a style switch keeps every torn-down map
+      // (canvas and sources included) alive for the rest of the page's life. The
+      // identity check leaves a freshly built map alone if this cleanup runs late.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((window as any).__trek_map === map) delete (window as any).__trek_map
       setMapReady(false)
     }
   }, [glProvider, glStyle, mapboxToken, enableMapbox3d, mapboxQuality]) // rebuild on provider/style changes only

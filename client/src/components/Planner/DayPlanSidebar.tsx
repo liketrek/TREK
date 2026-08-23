@@ -435,6 +435,10 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     }))
     // Mark as initialized immediately to prevent re-entry
     for (const p of positions) initedTransportIds.current.add(p.id)
+    const before = positions.map(p => ({
+      id: p.id,
+      day_plan_position: useTripStore.getState().reservations.find(r => r.id === p.id)?.day_plan_position ?? null,
+    }))
     // Update store so subscribers see the new positions
     useTripStore.setState(state => ({
       reservations: state.reservations.map(r => {
@@ -443,8 +447,20 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
         return { ...r, day_plan_position: p.day_plan_position }
       })
     }))
-    // Persist to server (fire and forget)
-    reservationsApi.updatePositions(tripId, positions).catch(() => {})
+    // Persist to server. No toast — this is a bootstrap write nobody asked for —
+    // but the store has to go back to what the server still holds, otherwise the
+    // day shows an order that only exists in this tab.
+    // The ids stay marked as initialised: the effect reruns on every reservations
+    // change, so clearing them here would retry the same failing write in a loop.
+    reservationsApi.updatePositions(tripId, positions).catch(() => {
+      useTripStore.setState(state => ({
+        reservations: state.reservations.map(r => {
+          const p = before.find(x => x.id === r.id)
+          if (!p) return r
+          return { ...r, day_plan_position: p.day_plan_position }
+        })
+      }))
+    })
   }
 
   const getMergedItems = (dayId: number): MergedItem[] =>
@@ -581,36 +597,67 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
         } catch { return undefined }
       }
 
+      // Collect every leg of every day first, then fetch them a few at a time.
+      // Each result is stored under its own key, so nothing here depends on the
+      // order they come back in — which is what lets them overlap at all.
+      const tasks: (() => Promise<void>)[] = []
+
       for (const dayId of routeDayIds) {
         const { runs, startHotel, endHotel, firstWay, lastWay, wantTop, wantBottom } = planDay(dayId)
         const dfMode = dayDefaultMode(dayId)
         const dayLegs: Record<number, RouteSegment> = {}
+        legsByDay[dayId] = dayLegs
         for (const run of runs) {
           // One routing call per LEG, each with its own resolved mode, so a day can
           // mix walking/driving/plugin legs. RouteCalculator's cache is keyed per
           // profile+coords, so per-leg calls stay cheap (a single-mode day reuses
           // the same entries) and each leg is tagged with the mode it was drawn in.
           for (let i = 0; i < run.length - 1; i++) {
-            const seg = await legBetween({ lat: run[i].lat, lng: run[i].lng }, { lat: run[i + 1].lat, lng: run[i + 1].lng }, dayId, resolveLegMode(run[i], run[i + 1], dfMode))
-            if (seg) dayLegs[run[i].id] = seg
-            else if (controller.signal.aborted) return
+            const from = run[i]
+            const to = run[i + 1]
+            const mode = resolveLegMode(from, to, dfMode)
+            tasks.push(async () => {
+              const seg = await legBetween({ lat: from.lat, lng: from.lng }, { lat: to.lat, lng: to.lng }, dayId, mode)
+              if (seg) dayLegs[from.id] = seg
+            })
           }
         }
-        if (Object.keys(dayLegs).length) legsByDay[dayId] = dayLegs
         const hotel: { top?: { seg: RouteSegment; name: string; targetId?: number }; bottom?: { seg: RouteSegment; name: string; targetId?: number } } = {}
+        hotelByDay[dayId] = hotel
         if (wantTop) {
-          const seg = await legBetween({ lat: startHotel!.place_lat as number, lng: startHotel!.place_lng as number }, { lat: firstWay!.lat, lng: firstWay!.lng }, dayId, resolveLegMode({ isPlace: false }, firstWay!, dfMode))
-          if (seg) hotel.top = { seg, name: hotelName(startHotel!), targetId: firstWay!.isPlace ? firstWay!.id : undefined }
+          const mode = resolveLegMode({ isPlace: false }, firstWay!, dfMode)
+          tasks.push(async () => {
+            const seg = await legBetween({ lat: startHotel!.place_lat as number, lng: startHotel!.place_lng as number }, { lat: firstWay!.lat, lng: firstWay!.lng }, dayId, mode)
+            if (seg) hotel.top = { seg, name: hotelName(startHotel!), targetId: firstWay!.isPlace ? firstWay!.id : undefined }
+          })
         }
         if (wantBottom) {
-          const seg = await legBetween({ lat: lastWay!.lat, lng: lastWay!.lng }, { lat: endHotel!.place_lat as number, lng: endHotel!.place_lng as number }, dayId, resolveLegMode(lastWay!, { isPlace: false }, dfMode))
-          if (seg) hotel.bottom = { seg, name: hotelName(endHotel!), targetId: lastWay!.isPlace ? lastWay!.id : undefined }
+          const mode = resolveLegMode(lastWay!, { isPlace: false }, dfMode)
+          tasks.push(async () => {
+            const seg = await legBetween({ lat: lastWay!.lat, lng: lastWay!.lng }, { lat: endHotel!.place_lat as number, lng: endHotel!.place_lng as number }, dayId, mode)
+            if (seg) hotel.bottom = { seg, name: hotelName(endHotel!), targetId: lastWay!.isPlace ? lastWay!.id : undefined }
+          })
         }
-        if (controller.signal.aborted) return
-        if (hotel.top || hotel.bottom) hotelByDay[dayId] = hotel
       }
 
-      if (!controller.signal.aborted) { setRouteLegs(legsByDay); setHotelLegs(hotelByDay) }
+      // Small pool on purpose: a week of days is dozens of legs and the routing
+      // host is often a shared OSRM.
+      let nextTask = 0
+      const runTasks = async () => {
+        while (nextTask < tasks.length && !controller.signal.aborted) await tasks[nextTask++]()
+      }
+      await Promise.all(Array.from({ length: Math.min(6, tasks.length) }, runTasks))
+
+      if (controller.signal.aborted) return
+      // Days that ended up without a single leg were never in the map before.
+      for (const dayId of Object.keys(legsByDay).map(Number)) {
+        if (!Object.keys(legsByDay[dayId]).length) delete legsByDay[dayId]
+      }
+      for (const dayId of Object.keys(hotelByDay).map(Number)) {
+        if (!hotelByDay[dayId].top && !hotelByDay[dayId].bottom) delete hotelByDay[dayId]
+      }
+      setRouteLegs(legsByDay)
+      setHotelLegs(hotelByDay)
     })()
     // routeDayIds is memoized from the same inputs as routeDayKey below, so keying the
     // effect on the string is equivalent while staying stable across unrelated renders.
@@ -642,6 +689,9 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   const applyMergedOrder = async (dayId: number, newOrder: { type: string; data: any }[]) => {
     // Capture previous place order for undo
     const prevAssignmentIds = getDayAssignments(dayId).map(a => a.id)
+    // …and the reservations as they stand, so a failed write can put the visible
+    // order back instead of leaving a phantom one behind the error toast.
+    const prevReservations = useTripStore.getState().reservations
 
     // Places get sequential integer positions (0, 1, 2, ...)
     // Non-place items between place N-1 and place N get fractional positions
@@ -732,7 +782,11 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
           await tripActions.reorderAssignments(tripId, capturedDayId, capturedPrevIds)
         })
       }
-    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
+    } catch (err: unknown) {
+      useTripStore.setState({ reservations: prevReservations })
+      setTransportPosVersion(v => v + 1)
+      toast.error(err instanceof Error ? err.message : t('common.unknownError'))
+    }
   }
 
   const handleMergedDrop = async (dayId, fromType, fromId, toType, toId, insertAfter = false, toLegIndex = null) => {

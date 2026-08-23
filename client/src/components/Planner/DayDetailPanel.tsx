@@ -13,6 +13,7 @@ import { useTripStore } from '../../store/tripStore'
 import CustomSelect from '../shared/CustomSelect'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useToast } from '../shared/Toast'
 import { getLocaleForLanguage, useTranslation } from '../../i18n'
 import type { Day, Place, Category, Reservation, AssignmentsMap } from '../../types'
 import { isDayInAccommodationRange } from '../../utils/dayOrder'
@@ -492,6 +493,44 @@ function HotelPickerModal({ showHotelPicker, setShowHotelPicker, font, t, hotelD
   days, locale, hotelForm, setHotelForm, categories, hotelCategoryFilter, setHotelCategoryFilter, places,
   handleSelectPlace, accommodation, tripId, day, setAccommodations, setDayAccommodations, setAccommodation,
   handleSaveAccommodation, onAccommodationChange }: any) {
+  const toast = useToast()
+  // Saving the picker. The edit branch stays here rather than in useDayDetail
+  // because it also refreshes the panel's own accommodation state; it has to say
+  // what went wrong when the write fails, otherwise the picker just sits there
+  // with the Save button doing nothing.
+  const saveHotelPicker = async () => {
+    if (showHotelPicker !== 'edit' || !accommodation) {
+      await handleSaveAccommodation()
+      return
+    }
+    try {
+      await accommodationsApi.update(tripId, accommodation.id, {
+        place_id: hotelForm.place_id,
+        start_day_id: hotelDayRange.start,
+        end_day_id: hotelDayRange.end,
+        check_in: hotelForm.check_in || null,
+        check_in_end: hotelForm.check_in_end || null,
+        check_out: hotelForm.check_out || null,
+        confirmation: hotelForm.confirmation || null,
+      })
+      setShowHotelPicker(false)
+      setHotelForm({ check_in: '', check_in_end: '', check_out: '', confirmation: '', place_id: null })
+      // Reload
+      const d = await accommodationsApi.list(tripId)
+      const all = d.accommodations || []
+      setAccommodations(all)
+      setDayAccommodations(all.filter(a =>
+        day ? isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days) : false
+      ))
+      const acc = all.find(a => day ? isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days) : false)
+      setAccommodation(acc || null)
+      onAccommodationChange?.()
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+      toast.error(message || t('common.unknownError'))
+    }
+  }
+
   return (
     <>
             {/* Hotel Picker Popup — portal to body to escape transform stacking context */}
@@ -635,35 +674,7 @@ function HotelPickerModal({ showHotelPicker, setShowHotelPicker, font, t, hotelD
                   <button onClick={() => setShowHotelPicker(false)} style={{ padding: '7px 16px', borderRadius: 8, border: '1px solid var(--border-primary)', background: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)' }}>
                     {t('common.cancel')}
                   </button>
-                  <button onClick={async () => {
-                    if (showHotelPicker === 'edit' && accommodation) {
-                      // Update existing
-                      await accommodationsApi.update(tripId, accommodation.id, {
-                        place_id: hotelForm.place_id,
-                        start_day_id: hotelDayRange.start,
-                        end_day_id: hotelDayRange.end,
-                        check_in: hotelForm.check_in || null,
-                        check_in_end: hotelForm.check_in_end || null,
-                        check_out: hotelForm.check_out || null,
-                        confirmation: hotelForm.confirmation || null,
-                      })
-                      setShowHotelPicker(false)
-                      setHotelForm({ check_in: '', check_in_end: '', check_out: '', confirmation: '', place_id: null })
-                      // Reload
-                      accommodationsApi.list(tripId).then(d => {
-                        const all = d.accommodations || []
-                        setAccommodations(all)
-                        setDayAccommodations(all.filter(a =>
-                          day ? isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days) : false
-                        ))
-                        const acc = all.find(a => day ? isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days) : false)
-                        setAccommodation(acc || null)
-                      })
-                      onAccommodationChange?.()
-                    } else {
-                      await handleSaveAccommodation()
-                    }
-                  }} disabled={!hotelForm.place_id} style={{
+                  <button onClick={() => { void saveHotelPicker() }} disabled={!hotelForm.place_id} style={{
                     padding: '7px 20px', borderRadius: 8, border: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                     background: hotelForm.place_id ? 'var(--text-primary)' : 'var(--bg-tertiary)',
                     color: hotelForm.place_id ? 'var(--bg-card)' : 'var(--text-faint)',

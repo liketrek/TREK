@@ -67,6 +67,7 @@ const routableReservation = () => buildReservation({
 beforeEach(() => {
   vi.clearAllMocks()
   sessionStorage.clear()
+  localStorage.clear()
 })
 
 describe('DayPlanSidebarToolbar', () => {
@@ -142,7 +143,10 @@ describe('DayPlanSidebarToolbar', () => {
     expect(btn).toHaveAttribute('aria-pressed', 'false')
     await user.click(btn)
     expect(setExpandedDays).toHaveBeenCalledWith(new Set([10, 11]))
-    expect(JSON.parse(sessionStorage.getItem('day-expanded-1')!)).toEqual([10, 11])
+    // The sidebar restores the set from localStorage on mount, so that is the
+    // store the toolbar has to write to.
+    expect(JSON.parse(localStorage.getItem('day-expanded-1')!)).toEqual([10, 11])
+    expect(sessionStorage.getItem('day-expanded-1')).toBeNull()
   })
 
   it('FE-PLANNER-DPTOOLBAR-012: with every day expanded the button collapses them all', async () => {
@@ -154,7 +158,7 @@ describe('DayPlanSidebarToolbar', () => {
     expect(btn).toHaveAttribute('aria-pressed', 'true')
     await user.click(btn)
     expect(setExpandedDays).toHaveBeenCalledWith(new Set())
-    expect(JSON.parse(sessionStorage.getItem('day-expanded-1')!)).toEqual([])
+    expect(JSON.parse(localStorage.getItem('day-expanded-1')!)).toEqual([])
   })
 
   it('FE-PLANNER-DPTOOLBAR-013: a trip with no days is never treated as fully expanded', () => {

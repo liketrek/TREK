@@ -1,4 +1,4 @@
-// FE-PLANNER-ADDRIN-001 to FE-PLANNER-ADDRIN-014
+// FE-PLANNER-ADDRIN-001 to FE-PLANNER-ADDRIN-015
 import { useState } from 'react';
 import { delay, http, HttpResponse } from 'msw';
 import userEvent from '@testing-library/user-event';
@@ -204,6 +204,28 @@ describe('AddressInput', () => {
 
     expect(screen.queryByText('Hotel Sacher')).not.toBeInTheDocument();
     expect(input).toHaveValue('Sacher');
+  });
+
+  it('FE-PLANNER-ADDRIN-015: a slow earlier search cannot overwrite the newer results', async () => {
+    // The debounce only cancels the timer; a request already on its way keeps
+    // going, and this one answers last.
+    server.use(http.post('/api/maps/search', async ({ request }) => {
+      const { query } = await request.json() as { query: string };
+      if (query === 'Sacher') { await delay(600); return HttpResponse.json({ places: [HOTEL] }); }
+      return HttpResponse.json({ places: [CAFE] });
+    }));
+
+    render(<Host />);
+    const input = screen.getByPlaceholderText('Street and number');
+    fireEvent.change(input, { target: { value: 'Sacher' } });
+    await settle(350);
+    fireEvent.change(input, { target: { value: 'Cafe Central' } });
+
+    expect(await screen.findByText('Cafe Central')).toBeInTheDocument();
+    // Now let the first request land.
+    await settle(500);
+    expect(screen.getByText('Cafe Central')).toBeInTheDocument();
+    expect(screen.queryByText('Hotel Sacher')).not.toBeInTheDocument();
   });
 
   it('FE-PLANNER-ADDRIN-014: a mousedown outside closes the list and a failing search empties it', async () => {

@@ -1696,6 +1696,15 @@ describe('MapViewGL', () => {
     expect(glMap.remove).toHaveBeenCalled()
   })
 
+  it('FE-COMP-MAPVIEWGL-069: unmounting lets go of the window debug handle', async () => {
+    const { unmount } = render(<MapViewGL places={[]} fitKey={1} />)
+    await act(async () => {})
+    expect((window as any).__trek_map).toBe(glMap)
+    unmount()
+    // Otherwise every style switch keeps its torn-down map reachable from window.
+    expect((window as any).__trek_map).toBeUndefined()
+  })
+
   it('FE-COMP-MAPVIEWGL-059: pan and zoom report the visible bbox for the POI explore pill', async () => {
     const onViewportChange = vi.fn()
     render(<MapViewGL places={[]} fitKey={1} onViewportChange={onViewportChange} />)

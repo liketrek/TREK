@@ -2400,6 +2400,25 @@ describe('DayPlanSidebar', () => {
     expect(stored!.day_plan_position).toBe(positions[1].day_plan_position)
   })
 
+  it('FE-PLANNER-DAYPLAN-204: a rejected slot write puts the bookings back where the server has them', async () => {
+    const { reservationsApi } = await import('../../api/client')
+    vi.mocked(reservationsApi.updatePositions).mockRejectedValueOnce(new Error('offline'))
+    const place = buildPlace({ id: 1, name: 'Cafe', place_time: '08:00' })
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const a = buildAssignment({ id: 11, day_id: 10, order_index: 0, place })
+    const train = buildReservation({ id: 302, type: 'train', title: 'Early train', reservation_time: '2025-06-01T06:00:00', day_id: 10 })
+    seedStore(useTripStore, { reservations: [train] })
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [day], places: [place], assignments: { '10': [a] }, reservations: [train],
+    })} />)
+    await waitFor(() => expect(vi.mocked(reservationsApi.updatePositions)).toHaveBeenCalled())
+    // The optimistic slot is rolled back, so the next mount derives it again
+    // instead of showing an order only this tab knows about.
+    await waitFor(() => {
+      expect(useTripStore.getState().reservations.find(r => r.id === 302)!.day_plan_position).toBeNull()
+    })
+  })
+
   it('FE-PLANNER-DAYPLAN-115: a multi-day cruise labels its start, middle and end days', () => {
     const days = [
       buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' }),
@@ -2595,6 +2614,33 @@ describe('DayPlanSidebar', () => {
     expect(screen.queryByText('2 km')).not.toBeInTheDocument()
   })
 
+  it('FE-PLANNER-DAYPLAN-205: the legs of a day are fetched together, not one after the other', async () => {
+    const { calculateRouteWithLegs } = await import('../Map/RouteCalculator')
+    const release: (() => void)[] = []
+    vi.mocked(calculateRouteWithLegs as any).mockImplementation(() => new Promise(resolve => {
+      release.push(() => resolve({
+        coordinates: [], distance: 0, duration: 0,
+        legs: [{ distanceText: '2 km', durationText: '10 min', drivingText: '10 min', walkingText: '25 min' }],
+      }))
+    }))
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const places = [
+      buildPlace({ id: 1, name: 'A', lat: 48.85, lng: 2.35 }),
+      buildPlace({ id: 2, name: 'B', lat: 48.86, lng: 2.36 }),
+      buildPlace({ id: 3, name: 'C', lat: 48.87, lng: 2.37 }),
+      buildPlace({ id: 4, name: 'D', lat: 48.88, lng: 2.38 }),
+    ]
+    const assignments = {
+      '10': places.map((place, i) => buildAssignment({ id: i + 1, day_id: 10, order_index: i, place })),
+    }
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], places, assignments, selectedDayId: 10, routeShown: true })} />)
+    // All three legs are in flight while none of them has answered yet.
+    await waitFor(() => expect(release).toHaveLength(3))
+    release.forEach(fn => fn())
+    // And the connectors still land in one go once they come back.
+    await waitFor(() => expect(screen.getAllByText('2 km')).toHaveLength(3))
+  })
+
   it('FE-PLANNER-DAYPLAN-123: adding a note to a collapsed day expands it first', async () => {
     const user = userEvent.setup()
     mockDayNotesState.openAddNote.mockImplementation((dayId: number, _getMerged: unknown, expand: (id: number) => void) => expand(dayId))
@@ -2662,6 +2708,31 @@ describe('DayPlanSidebar', () => {
     fireEvent.dragStart(dragRow(screen.getByText('Place B')), { dataTransfer: emptyDataTransfer })
     fireEvent.drop(dragRow(screen.getByText('Place A')), { dataTransfer: { getData: vi.fn(() => '') } })
     await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith('server said no'))
+  })
+
+  it('FE-PLANNER-DAYPLAN-206: a rejected slot write snaps the booking order back', async () => {
+    const { reservationsApi } = await import('../../api/client')
+    vi.mocked(reservationsApi.updatePositions).mockRejectedValueOnce(new Error('server said no'))
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const placeA = buildPlace({ id: 1, name: 'Place A' })
+    const placeB = buildPlace({ id: 2, name: 'Place B' })
+    const a1 = buildAssignment({ id: 11, day_id: 10, order_index: 0, place: placeA })
+    const a2 = buildAssignment({ id: 12, day_id: 10, order_index: 1, place: placeB })
+    const bus = buildReservation({ id: 430, type: 'bus', title: 'Airport bus', day_id: 10, day_plan_position: 1.5 })
+    seedStore(useTripStore, { reservations: [bus] })
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [day], places: [placeA, placeB], assignments: { '10': [a1, a2] },
+      reservations: [bus], onReorder: vi.fn(async () => undefined),
+    })} />)
+    fireEvent.dragStart(dragRow(screen.getByText('Place B')), { dataTransfer: emptyDataTransfer })
+    fireEvent.drop(dragRow(screen.getByText('Place A')), { dataTransfer: { getData: vi.fn(() => '') } })
+
+    await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith('server said no'))
+    // The optimistic slot goes with it — otherwise the day keeps an order the
+    // server never accepted.
+    const stored = useTripStore.getState().reservations.find(r => r.id === 430)!
+    expect(stored.day_plan_position).toBe(1.5)
+    expect(stored.day_positions).toBeUndefined()
   })
 
   it('FE-PLANNER-DAYPLAN-126: reordering around a multi-leg flight writes a position per leg', async () => {

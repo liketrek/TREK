@@ -208,6 +208,20 @@ describe('PlaceDetailsColumn', () => {
     )
   })
 
+  it('FE-PDC-038: a fact url that is not http(s) stays a chip, never a link', async () => {
+    // fact.url comes straight from an OSM tag anyone can edit, so a
+    // javascript: value must not end up in an href.
+    placeEnrichment.mockResolvedValue({
+      photos: [],
+      description: null,
+      facts: [{ kind: 'menu', value: 'Menu', url: 'javascript:alert(1)' }],
+    })
+    renderColumn()
+
+    expect(await screen.findByText('Menu')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Menu/ })).not.toBeInTheDocument()
+  })
+
   it('FE-PDC-017: renders facts even when there is neither a picture nor a description', async () => {
     placeEnrichment.mockResolvedValue({
       photos: [],

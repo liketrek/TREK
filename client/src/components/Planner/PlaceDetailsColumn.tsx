@@ -26,6 +26,7 @@ import type { MapsPlaceEnrichmentResult, PlaceFact, PlaceHours, PlacePhotoCandid
 import { mapsApi } from '../../api/client'
 import { resolveOpenNow, resolvePlaceTimeZone, placeWeekdayIndex } from './placeOpenState'
 import { convertHoursLine, isUnknownHoursLine, splitHoursLine } from './placeHoursFormat'
+import { safeHttpUrl } from '../../utils/safeUrl'
 import type { TranslationFn } from '../../types'
 
 /** The place the column is describing. Null while nothing is selected. */
@@ -616,11 +617,14 @@ function FactList({ facts, t }: { facts: PlaceFact[]; t: TranslationFn }): React
             </>
           )
           const shared = 'inline-flex items-center gap-1.5 max-w-full rounded-full border border-edge bg-surface px-2 py-1 text-caption text-content-secondary'
+          // A fact url is a community-edited OSM tag (website:menu and friends),
+          // so anything but http(s) renders as the plain chip instead of a link.
+          const href = safeHttpUrl(fact.url)
 
-          return fact.url ? (
+          return href ? (
             <a
               key={fact.kind}
-              href={fact.url}
+              href={href}
               target="_blank"
               rel="noopener noreferrer"
               title={label}

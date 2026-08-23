@@ -1,4 +1,4 @@
-// FE-PLANNER-DAYDETAIL-001 to FE-PLANNER-DAYDETAIL-079
+// FE-PLANNER-DAYDETAIL-001 to FE-PLANNER-DAYDETAIL-080
 import React from 'react';
 import { fireEvent, render, screen, waitFor, within, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -340,6 +340,32 @@ describe('DayDetailPanel', () => {
     // Pencil and X buttons should be present in the accommodation row
     const buttons = screen.getAllByRole('button');
     expect(buttons.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('FE-PLANNER-DAYDETAIL-080: a failing accommodation edit keeps the picker open and says so', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    server.use(
+      http.get('/api/trips/1/accommodations', () =>
+        HttpResponse.json({
+          accommodations: [{
+            id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
+            start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: null, confirmation: null,
+          }],
+        }),
+      ),
+      http.put('/api/trips/1/accommodations/1', () => HttpResponse.json({ error: 'Stay overlaps' }, { status: 400 })),
+    );
+    render(<DayDetailPanel {...defaultProps} />);
+    await screen.findByText('Grand Hotel');
+    // The pencil beside the stay opens the picker in edit mode.
+    await userEvent.click(document.querySelector('.lucide-pencil')!.closest('button')!);
+    const picker = await waitFor(() => document.body.querySelector('[style*="z-index: 99999"]') as HTMLElement);
+    await userEvent.click(within(picker).getByText('Save'));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Stay overlaps', 'error', undefined));
+    // The picker stays put so the entered values are not lost.
+    expect(document.body.querySelector('[style*="z-index: 99999"]')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-022: accommodation edit/remove buttons hidden when canEditDays=false', async () => {
