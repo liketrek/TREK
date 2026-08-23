@@ -63,6 +63,9 @@ function resolveDefaultLanguage(raw: string | undefined): string {
 }
 
 export function deriveHttp(raw: RawEnv) {
+  // env.schema.ts accepts 0 as a valid hop count, so `|| 1` would quietly turn
+  // "trust nothing" into "trust one hop" and let a forged X-Forwarded-For through.
+  const trustProxyHops = Number.parseInt(raw.TRUST_PROXY ?? '', 10);
   return {
     allowedOriginsRaw: raw.ALLOWED_ORIGINS,
     /** globalMiddleware CORS variant: trim + drop empty entries. */
@@ -70,7 +73,7 @@ export function deriveHttp(raw: RawEnv) {
     /** websocket variant: trim only — an empty entry stays (and can never match an Origin header). */
     wsOrigins: csvList(raw.ALLOWED_ORIGINS),
     trustProxyRaw: raw.TRUST_PROXY,
-    trustProxy: Number.parseInt(raw.TRUST_PROXY ?? '') || 1,
+    trustProxy: Number.isFinite(trustProxyHops) ? trustProxyHops : 1,
     forceHttps: parseBool(raw.FORCE_HTTPS) === true,
     hstsIncludeSubdomains: parseBool(raw.HSTS_INCLUDE_SUBDOMAINS) === true,
     /** COOKIE_SECURE is tri-state: an explicit falsy value disables secure cookies; anything else means auto-detect. */
@@ -144,6 +147,8 @@ export function deriveDemo(raw: RawEnv) {
     /** Raw on purpose: demo-seed defaults to admin@trek.app, demo-reset to admin@nomad.app. */
     adminEmailRaw: raw.DEMO_ADMIN_EMAIL,
     adminPass: raw.DEMO_ADMIN_PASS || 'admin12345',
+    /** False means the admin account is being created with the published default. */
+    adminPassSet: !!raw.DEMO_ADMIN_PASS,
   };
 }
 

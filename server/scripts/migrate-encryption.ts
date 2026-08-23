@@ -303,7 +303,22 @@ async function main() {
     // unsplash_api_key was missing here for as long as the column has existed. It
     // matters now that the resolver reads it as the per-user fallback (#1939): left
     // out of a rotation it stays encrypted under the old key and reads back as unset.
-    const apiKeyColumns = ['maps_api_key', 'unsplash_api_key', 'openweather_api_key', 'immich_api_key', 'synology_password', 'synology_sid', 'synology_did'];
+    // airtrail_api_key arrived with a later migration, so an older database may
+    // not have the column at all — filter the list against the real table rather
+    // than letting one missing column throw the whole rotation.
+    const userColumns = new Set(
+      (db.prepare("SELECT name FROM pragma_table_info('users')").all() as { name: string }[]).map((r) => r.name),
+    );
+    const apiKeyColumns = [
+      'maps_api_key',
+      'unsplash_api_key',
+      'openweather_api_key',
+      'immich_api_key',
+      'synology_password',
+      'synology_sid',
+      'synology_did',
+      'airtrail_api_key',
+    ].filter((c) => userColumns.has(c));
     const users = db.prepare('SELECT id FROM users').all() as { id: number }[];
 
     for (const user of users) {
@@ -389,7 +404,7 @@ async function main() {
     }
 
     // --- settings: per-user encrypted keys ---
-    const encryptedSettingKeys = ['webhook_url', 'ntfy_token', 'mapbox_access_token'];
+    const encryptedSettingKeys = ['webhook_url', 'ntfy_token', 'mapbox_access_token', 'llm_api_key'];
     const settingRows = db.prepare(
       `SELECT user_id, key, value FROM settings WHERE key IN (${encryptedSettingKeys.map(() => '?').join(', ')})`
     ).all(...encryptedSettingKeys) as { user_id: number; key: string; value: string }[];
@@ -399,6 +414,106 @@ async function main() {
       const newVal = migrateApiKeyValue(row.value, `settings[user=${row.user_id}].${row.key}`);
       if (newVal !== null) {
         db.prepare('UPDATE settings SET value = ? WHERE user_id = ? AND key = ?').run(newVal, row.user_id, row.key);
+      }
+    }
+
+    // --- plugins: OAuth tokens and secret settings fields ---
+    // The plugin host encrypts with the same enc:v1: scheme as everything above:
+    // plugin-oauth.service stores both tokens encrypted, and plugins.service
+    // encrypts every settings field the manifest marked secret (instance scope in
+    // plugins.config, user scope in plugin_user_config.config). Left out of a
+    // rotation, a connected plugin reads back as "not connected" and a secret
+    // setting as unset, with nothing in the log to say why. Every table here
+    // arrived with a later migration, so each block checks that it exists.
+    const tableExists = (name: string): boolean =>
+      !!db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(name);
+
+    if (tableExists('plugin_oauth_tokens')) {
+      const tokenRows = db
+        .prepare('SELECT plugin_id, user_id, access_token, refresh_token FROM plugin_oauth_tokens')
+        .all() as { plugin_id: string; user_id: number; access_token: string | null; refresh_token: string | null }[];
+      for (const row of tokenRows) {
+        for (const col of ['access_token', 'refresh_token'] as const) {
+          const raw = row[col];
+          if (!raw) continue;
+          const newVal = migrateApiKeyValue(raw, `plugin_oauth_tokens[${row.plugin_id},${row.user_id}].${col}`);
+          if (newVal !== null) {
+            db.prepare(`UPDATE plugin_oauth_tokens SET ${col} = ? WHERE plugin_id = ? AND user_id = ?`).run(
+              newVal,
+              row.plugin_id,
+              row.user_id,
+            );
+          }
+        }
+      }
+    }
+
+    if (tableExists('plugin_settings_fields')) {
+      // Which keys are secret is per plugin and per scope, and it lives in the DB
+      // rather than in this script, so nothing has to be pinned by hand here.
+      const secretFields = db
+        .prepare("SELECT plugin_id, field_key, scope FROM plugin_settings_fields WHERE secret = 1")
+        .all() as { plugin_id: string; field_key: string; scope: string | null }[];
+      const secretKeysFor = (pluginId: string, scope: string): string[] =>
+        secretFields
+          .filter((f) => f.plugin_id === pluginId && (f.scope ?? 'instance') === scope)
+          .map((f) => f.field_key);
+
+      const migrateConfigJson = (raw: string | null, keys: string[], label: string): string | null => {
+        if (!raw || keys.length === 0) return null;
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          result.errors.push(`${label}: invalid JSON — skipping`);
+          return null;
+        }
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          result.errors.push(`${label}: not an object — skipping`);
+          return null;
+        }
+        const config = parsed as Record<string, unknown>;
+        let changed = false;
+        for (const key of keys) {
+          const value = config[key];
+          if (typeof value !== 'string' || !value) continue;
+          const newVal = migrateApiKeyValue(value, `${label}.${key}`);
+          if (newVal !== null) {
+            config[key] = newVal;
+            changed = true;
+          }
+        }
+        return changed ? JSON.stringify(config) : null;
+      };
+
+      if (tableExists('plugins')) {
+        const pluginRows = db.prepare('SELECT id, config FROM plugins').all() as { id: string; config: string | null }[];
+        for (const row of pluginRows) {
+          const next = migrateConfigJson(row.config, secretKeysFor(row.id, 'instance'), `plugins[${row.id}].config`);
+          if (next !== null) {
+            db.prepare('UPDATE plugins SET config = ? WHERE id = ?').run(next, row.id);
+          }
+        }
+      }
+
+      if (tableExists('plugin_user_config')) {
+        const userConfigRows = db
+          .prepare('SELECT plugin_id, user_id, config FROM plugin_user_config')
+          .all() as { plugin_id: string; user_id: number; config: string | null }[];
+        for (const row of userConfigRows) {
+          const next = migrateConfigJson(
+            row.config,
+            secretKeysFor(row.plugin_id, 'user'),
+            `plugin_user_config[${row.plugin_id},${row.user_id}].config`,
+          );
+          if (next !== null) {
+            db.prepare('UPDATE plugin_user_config SET config = ? WHERE plugin_id = ? AND user_id = ?').run(
+              next,
+              row.plugin_id,
+              row.user_id,
+            );
+          }
+        }
       }
     }
 

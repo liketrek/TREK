@@ -108,7 +108,6 @@ The exemption list is enforced by the `no-restricted-syntax` ban on
 
 - `numberOr` (`Number(x) || d`) treats `"0"` and negative-invalid values oddly:
   `PORT=0` silently becomes 3001, `TREK_PLUGIN_RPC_BURST=-5` stays -5.
-- `TRUST_PROXY=0` resolves to 1 hop (`parseInt || 1`).
 - APP_URL trailing-slash stripping differs per site (feeds strips one slash,
   notifications strips all).
 - `DEMO_ADMIN_EMAIL` defaults differ (demo-seed: admin@trek.app, demo-reset:

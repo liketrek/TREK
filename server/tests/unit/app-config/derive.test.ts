@@ -61,8 +61,10 @@ describe('deriveHttp', () => {
     expect(deriveHttp({}).wsOrigins).toBeNull();
   });
 
-  it('TRUST_PROXY: parseInt || 1 (globalMiddleware)', () => {
+  it('TRUST_PROXY: numeric hop count wins, 1 only as fallback (globalMiddleware)', () => {
     expect(deriveHttp({ TRUST_PROXY: '2' }).trustProxy).toBe(2);
+    // 0 is a valid hop count ("trust no proxy"), not a missing value.
+    expect(deriveHttp({ TRUST_PROXY: '0' }).trustProxy).toBe(0);
     expect(deriveHttp({ TRUST_PROXY: 'abc' }).trustProxy).toBe(1);
     expect(deriveHttp({}).trustProxy).toBe(1);
   });
@@ -124,6 +126,12 @@ describe('deriveDemo', () => {
     expect(deriveDemo({}).adminEmailRaw).toBeUndefined();
     expect(deriveDemo({}).adminUser).toBe('admin');
     expect(deriveDemo({}).adminPass).toBe('admin12345');
+  });
+
+  it('DEMO_ADMIN_PASS: adminPassSet tells the default apart from an explicit value', () => {
+    expect(deriveDemo({}).adminPassSet).toBe(false);
+    expect(deriveDemo({ DEMO_ADMIN_PASS: '' }).adminPassSet).toBe(false);
+    expect(deriveDemo({ DEMO_ADMIN_PASS: 'hunter22' }).adminPassSet).toBe(true);
   });
 });
 

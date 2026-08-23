@@ -3,8 +3,14 @@ import path from 'path';
 import { readEnv } from '../app-config';
 
 const dataDir = path.join(__dirname, '../../data');
-const dbPath = path.join(dataDir, 'travel.db');
 const baselinePath = path.join(dataDir, 'travel-baseline.db');
+
+// Where the live DB actually is. database.ts honours TREK_DB_FILE, so hardcoding
+// data/travel.db here would copy the baseline over an unrelated file and leave
+// the database we just closed untouched. The open connection knows its own path.
+function liveDbPath(db: { name: string }): string {
+  return db.name;
+}
 
 function resetDemoUser(): void {
   if (!fs.existsSync(baselinePath)) {
@@ -13,6 +19,11 @@ function resetDemoUser(): void {
   }
 
   const { db, closeDb, reinitialize } = require('../db/database');
+  const dbPath = liveDbPath(db);
+  if (dbPath === ':memory:') {
+    console.log('[Demo Reset] In-memory database, nothing to restore.');
+    return;
+  }
 
   // Save admin's current credentials and API keys (these should survive the reset)
   // NOTE: different default than demo-seed (admin@trek.app) — pinned legacy quirk.
@@ -98,6 +109,11 @@ function resetDemoUser(): void {
 
 function saveBaseline(): void {
   const { db } = require('../db/database');
+  const dbPath = liveDbPath(db);
+  if (dbPath === ':memory:') {
+    console.log('[Demo] In-memory database, no baseline to save.');
+    return;
+  }
 
   // Flush WAL so baseline file is self-contained
   try { db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch (e) {}

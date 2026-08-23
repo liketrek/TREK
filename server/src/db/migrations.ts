@@ -2721,7 +2721,9 @@ function runMigrations(db: Database.Database): void {
         `CREATE TABLE IF NOT EXISTS migrations (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, timestamp bigint NOT NULL, name varchar NOT NULL);`,
       );
       db.exec(`INSERT INTO migrations (timestamp, name) VALUES (1777810195344, 'InitialSchema1777810195344');`);
-      db.exec(`INSERT INTO app_settings (key, value) VALUES ('app_version', '${readEnv().app.appVersion || '3.0.14'}')`);
+      db.prepare("INSERT INTO app_settings (key, value) VALUES ('app_version', ?)").run(
+        readEnv().app.appVersion || '3.0.14',
+      );
     },
     // trim leading/trailing whitespace from stored usernames and emails
     () => {
@@ -2739,7 +2741,9 @@ function runMigrations(db: Database.Database): void {
       db.exec(`INSERT INTO schema_version_new (version) SELECT version FROM schema_version`);
       db.exec(`DROP TABLE schema_version`);
       db.exec(`ALTER TABLE schema_version_new RENAME TO schema_version`);
-      db.exec(`UPDATE app_settings SET value = '${readEnv().app.appVersion || '3.0.15'}' WHERE key = 'app_version'`);
+      db.prepare("UPDATE app_settings SET value = ? WHERE key = 'app_version'").run(
+        readEnv().app.appVersion || '3.0.15',
+      );
     },
     // Migration: OAuth 2.0 client_credentials grant — allow user-owned confidential
     // clients to skip the browser consent flow entirely and obtain tokens directly
@@ -3847,13 +3851,15 @@ function runMigrations(db: Database.Database): void {
     // means an expense split by receipt can never carry a written note, and
     // saving an expense any other way wipes whatever was typed in the budget
     // table. The receipt moves to its own column and note becomes text again.
+    // GLOB, not LIKE: LIKE is case-insensitive in SQLite, so a hand-written note
+    // starting "ticketjson:" would be chopped up and its text dropped.
     () => {
       const hasTicket = db.prepare("SELECT 1 FROM pragma_table_info('budget_items') WHERE name = 'ticket_json'").get();
       if (!hasTicket) db.exec('ALTER TABLE budget_items ADD COLUMN ticket_json TEXT');
       db.exec(`
         UPDATE budget_items
            SET ticket_json = substr(note, 12), note = NULL
-         WHERE note LIKE 'TICKETJSON:%'
+         WHERE note GLOB 'TICKETJSON:*'
       `);
     },
 
@@ -4091,15 +4097,24 @@ function runMigrations(db: Database.Database): void {
       try {
         const migration = migrations[i];
         if (typeof migration === 'function') {
-          db.transaction(migration)();
+          // The version bump has to commit together with the migration. Bumped
+          // afterwards, a crash in between leaves the schema advanced and the
+          // version stale, and the next boot replays a step that is not
+          // idempotent, exits 1, and turns one crash into a permanent boot loop.
+          db.transaction(() => {
+            migration();
+            db.prepare('UPDATE schema_version SET version = ?').run(i + 1);
+          })();
         } else {
+          // raw steps run outside a transaction on purpose (see PRAGMA
+          // foreign_keys above), so the bump stays a separate statement.
           migration.raw();
+          db.prepare('UPDATE schema_version SET version = ?').run(i + 1);
         }
       } catch (err) {
         console.error(`[migrations] FATAL: Migration ${i + 1} failed, rolled back:`, err);
         process.exit(1);
       }
-      db.prepare('UPDATE schema_version SET version = ?').run(i + 1);
     }
     console.log(`[DB] Migrations complete — schema version ${migrations.length}`);
   }

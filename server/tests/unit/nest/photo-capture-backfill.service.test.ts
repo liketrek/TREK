@@ -23,7 +23,10 @@ type Row = { id: number; provider?: string; file_path?: string | null; taken_at?
 
 function build(rows: Row[], info: Record<number, unknown>) {
   const recordCaptureMetadata = vi.fn();
-  const getPhotoInfo = vi.fn(async (id: number) =>
+  // Keyed on the SECOND argument on purpose: the resolver's signature is
+  // (userId, photoId), and a mock that keys on the first one passes just as
+  // happily when the two are swapped at the call site.
+  const getPhotoInfo = vi.fn(async (_userId: number, id: number) =>
     info[id] ? { success: true, data: info[id] } : { success: false, error: 'nope', status: 404 },
   );
   const photos = {
@@ -90,6 +93,14 @@ describe('PhotoCaptureBackfillService', () => {
     expect(recordCaptureMetadata).toHaveBeenCalledWith(8, {
       takenAt: '2026-03-16T08:00:00Z', lat: null, lng: null,
     });
+  });
+
+  it('CAPTURE-006a: passes the acting user and the photo id in the order the resolver declares', async () => {
+    const { svc, getPhotoInfo } = build([{ id: 7 }], { 7: { takenAt: '2026-03-15T10:20:00Z' } });
+
+    await svc.run([7], 42);
+
+    expect(getPhotoInfo).toHaveBeenCalledWith(42, 7);
   });
 
   it('CAPTURE-006: an empty batch touches nothing', () => {

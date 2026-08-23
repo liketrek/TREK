@@ -48,7 +48,7 @@ export class PhotoCaptureBackfillService {
           continue;
         }
 
-        const info = await this.resolver.getPhotoInfo(id, userId);
+        const info = await this.resolver.getPhotoInfo(userId, id);
         if (!info.success) continue;
 
         this.photos.recordCaptureMetadata(id, {

@@ -1,4 +1,3 @@
-import { createRequire } from 'module';
 import semver from 'semver';
 import { readEnv } from '../app-config';
 import { db } from '../db/database.js';
