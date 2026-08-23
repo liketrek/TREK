@@ -17,7 +17,7 @@ import { escapeHtml } from '@trek/shared'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from './glProviders'
 import LocationButton from './LocationButton'
 import { useGeolocation } from '../../hooks/useGeolocation'
-import type { Place, Reservation, RouteVia } from '../../types'
+import type { Day, Place, Reservation, RouteVia } from '../../types'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
 import { resolveTrackColor, hasManualTrackColor } from './trackColors'
 import { buildPoiPopupHtml } from './placePopup'
@@ -86,6 +86,7 @@ const NO_DAY_ORDER: Record<number, number[] | null> = {}
 const NO_RESERVATIONS: Reservation[] = []
 const NO_CONNECTION_IDS: number[] = []
 const NO_POIS: Poi[] = []
+const NO_DAYS: Day[] = []
 
 interface Props {
   places: Place[]
@@ -114,6 +115,8 @@ interface Props {
   reservations?: Reservation[]
   visibleConnectionIds?: number[]
   showTransitRoutes?: boolean
+  days?: Day[]
+  selectedDayId?: number | null
   showReservationStats?: boolean
   onReservationClick?: (reservationId: number) => void
   pois?: Poi[]
@@ -359,6 +362,8 @@ export function MapViewGL({
   reservations = NO_RESERVATIONS,
   visibleConnectionIds = NO_CONNECTION_IDS,
   showTransitRoutes = true,
+  days = NO_DAYS,
+  selectedDayId = null,
   showReservationStats = false,
   onReservationClick,
   pois = NO_POIS,
@@ -1270,8 +1275,8 @@ export function MapViewGL({
   // DayPlanSidebar — nothing is rendered until the user enables a
   // booking's route, matching the Leaflet MapView's behaviour.
   const visibleReservations = useMemo(() => (
-    visibleRouteReservations(reservations, { visibleConnectionIds, showTransitRoutes })
-  ), [reservations, visibleConnectionIds, showTransitRoutes])
+    visibleRouteReservations(reservations, { visibleConnectionIds, showTransitRoutes, selectedDayId, days })
+  ), [reservations, visibleConnectionIds, showTransitRoutes, selectedDayId, days])
   // Real road geometry for car/bus/taxi/bicycle bookings (straight line until it loads/if it fails).
   const transportRoutes = useTransportRoutes(visibleReservations)
 

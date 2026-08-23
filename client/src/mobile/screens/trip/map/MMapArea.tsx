@@ -45,6 +45,10 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
         route={planner.route}
         routeVias={planner.routeVias}
         showTransitRoutes={planner.routeShown}
+        // The route toggle belongs to one day, so the map needs that day to know
+        // which automated transports may ride it (#2019).
+        days={planner.days}
+        selectedDayId={planner.selectedDayId}
         routeSegments={planner.routeSegments}
         selectedPlaceId={planner.selectedPlaceId}
         onMarkerClick={planner.handleMarkerClick}

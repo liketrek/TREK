@@ -351,13 +351,17 @@ describe('TripPlannerPage — shell', () => {
 })
 
 describe('TripPlannerPage — plan tab', () => {
-  it('FE-PAGE-TPW-008: the map receives the filtered markers, the tile url and the panel widths', () => {
+  it('FE-PAGE-TPW-008: the map receives the filtered markers, the tile url, the panel widths and the selected day', () => {
     renderPage()
 
     expect(props('map').places).toEqual([place])
     expect(props('map').tileUrl).toBe('https://tiles/{z}/{x}/{y}.png')
     expect(props('map').leftWidth).toBe(320)
     expect(props('map').center).toBeUndefined()
+    // Without the day the route toggle belongs to, the map draws every automated
+    // transport in the trip as soon as any day's route is on (#2019).
+    expect(props('map').days).toEqual([day])
+    expect(props('map').selectedDayId).toBe(7)
   })
 
   it('FE-PAGE-TPW-009: collapsed panels report a zero width to the map', () => {

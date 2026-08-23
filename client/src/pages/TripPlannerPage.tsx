@@ -366,6 +366,10 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
               route={route}
               routeVias={routeVias}
               showTransitRoutes={routeShown}
+              // The route toggle belongs to one day, so the map needs that day to
+              // know which automated transports may ride it (#2019).
+              days={days}
+              selectedDayId={selectedDayId}
               routeSegments={routeSegments}
               selectedPlaceId={selectedPlaceId}
               onMarkerClick={handleMarkerClick}

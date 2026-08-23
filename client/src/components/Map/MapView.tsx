@@ -16,7 +16,7 @@ import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import { safeHexColor } from '../../utils/safeColor'
 import { escapeHtml } from '@trek/shared'
-import type { Reservation, RouteVia } from '../../types'
+import type { Day, Reservation, RouteVia } from '../../types'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
 import { resolveTrackColor, hasManualTrackColor } from './trackColors'
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, SATELLITE_TILE_URL, SATELLITE_TILE_ATTRIBUTION, SATELLITE_TILE_MAXZOOM } from '../../constants/mapDefaults'
@@ -526,6 +526,8 @@ export const MapView = memo(function MapView({
   showReservationStats = false,
   visibleConnectionIds = [] as number[],
   showTransitRoutes = true,
+  days = [] as Day[],
+  selectedDayId = null,
   onReservationClick,
   pois = [] as Poi[],
   onPoiClick,
@@ -545,8 +547,8 @@ export const MapView = memo(function MapView({
     </Marker>
   )), [pois, onPoiClick])
   const visibleReservations = useMemo(() => (
-    visibleRouteReservations(reservations, { visibleConnectionIds, showTransitRoutes })
-  ), [reservations, visibleConnectionIds, showTransitRoutes])
+    visibleRouteReservations(reservations, { visibleConnectionIds, showTransitRoutes, selectedDayId, days })
+  ), [reservations, visibleConnectionIds, showTransitRoutes, selectedDayId, days])
   // Real road geometry for car/bus/taxi/bicycle bookings (straight line until it loads/if it fails).
   const transportRoutes = useTransportRoutes(visibleReservations)
   // Dynamic padding: account for sidebars + bottom inspector + day detail panel
