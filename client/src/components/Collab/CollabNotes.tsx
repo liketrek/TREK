@@ -148,12 +148,13 @@ function useCollabNotes({ tripId, currentUser }: CollabNotesProps) {
     }
   }, [tripId, toast, t])
 
-  const handleUpdateNote = useCallback(async (noteId, data) => {
+  const handleUpdateNote = useCallback(async (noteId, data, opts: { silent?: boolean } = {}) => {
     let result
     try {
       result = await collabApi.updateNote(tripId, noteId, data)
     } catch (err) {
-      toast.error(t('common.error'))
+      // A batch of writes reports once for the whole run instead of once per note.
+      if (!opts.silent) toast.error(t('common.error'))
       throw err
     }
     const updated = result?.note || result
@@ -166,7 +167,7 @@ function useCollabNotes({ tripId, currentUser }: CollabNotesProps) {
 
   // A colour or a rename is N single-note writes; if one of them is rejected the
   // rest still have to run, and the list has to be re-read so it stops showing a
-  // change the server never took. handleUpdateNote already toasts each failure.
+  // change the server never took. Reporting the failure is the caller's job.
   const resyncNotes = useCallback(async () => {
     try {
       const fresh = await collabApi.getNotes(tripId)
@@ -201,10 +202,16 @@ function useCollabNotes({ tripId, currentUser }: CollabNotesProps) {
     const toUpdate = notes.filter(n => n.category === oldName)
     let failed = 0
     for (const n of toUpdate) {
-      try { await handleUpdateNote(n.id, { category: newName }) } catch { failed++ }
+      try { await handleUpdateNote(n.id, { category: newName }, { silent: true }) } catch { failed++ }
     }
-    if (failed > 0) await resyncNotes()
-  }, [notes, handleUpdateNote, resyncNotes])
+    // The rest still had to run, but a partial rename is not a saved rename: the
+    // settings modal has to stay open on the rejection instead of closing on it.
+    if (failed > 0) {
+      await resyncNotes()
+      toast.error(t('common.error'))
+      throw new Error(`rename failed for ${failed} of ${toUpdate.length} notes`)
+    }
+  }, [notes, handleUpdateNote, resyncNotes, toast, t])
 
   const handleEditSubmit = useCallback(async (data) => {
     if (!editingNote) return

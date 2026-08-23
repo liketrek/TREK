@@ -9,6 +9,7 @@ import { Crown, UserMinus, UserPlus, Users, LogOut, Link2, Trash2, Copy, Check, 
 import { useTranslation } from '../../i18n'
 import { getApiErrorMessage } from '../../types'
 import CustomSelect from '../shared/CustomSelect'
+import { copyText } from '../../utils/clipboard'
 
 interface AvatarProps {
   username: string
@@ -78,13 +79,12 @@ function ShareLinkSection({ tripId, t }: { tripId: number; t: (key: string, para
     } catch { toast.error(t('common.error')) }
   }
 
-  const handleCopy = () => {
-    if (shareUrl) {
-      navigator.clipboard.writeText(shareUrl)
-      setCopied(true)
-      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
-      copyTimerRef.current = setTimeout(() => setCopied(false), 2000)
-    }
+  const handleCopy = async () => {
+    if (!shareUrl) return
+    if (!(await copyText(shareUrl))) return
+    setCopied(true)
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+    copyTimerRef.current = setTimeout(() => setCopied(false), 2000)
   }
 
   if (loading) return null
@@ -201,8 +201,8 @@ function TripInviteLinkSection({ tripId, t }: { tripId: number; t: (key: string,
     finally { setBusy(false) }
   }
 
-  const copy = () => {
-    navigator.clipboard.writeText(inviteUrl)
+  const copy = async () => {
+    if (!(await copyText(inviteUrl))) return
     setCopied(true)
     if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
     copyTimerRef.current = setTimeout(() => setCopied(false), 2000)

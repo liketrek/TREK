@@ -1846,11 +1846,14 @@ describe('CollabNotes details', () => {
     await user.keyboard('{Enter}');
     await user.click(screen.getByRole('button', { name: /^Save$/i }));
 
-    // The rejected note must not stop the second one, and the modal still closes.
+    // The rejected note must not stop the second one, but the modal stays open —
+    // half a rename is not a saved rename.
     await waitFor(() => expect(puts).toEqual(['1', '2']));
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
-    await waitFor(() => expect(screen.queryByText('Manage Categories', { selector: 'h3' })).not.toBeInTheDocument());
+    expect(screen.getByText('Manage Categories', { selector: 'h3' })).toBeInTheDocument();
     // Re-read: the note the server refused is still shown under its old category.
+    const header = screen.getByText('Manage Categories', { selector: 'h3' }).parentElement!;
+    await user.click(within(header).getByRole('button'));
     await waitFor(() => expect(screen.getAllByText('NewCat').length).toBeGreaterThan(0));
     expect(screen.getAllByText('OldCat').length).toBeGreaterThan(0);
   });
@@ -1870,5 +1873,37 @@ describe('CollabNotes details', () => {
 
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
     expect(screen.getByText('Stubborn note')).toBeInTheDocument();
+  });
+
+  it('FE-W5CNT-032: a rejected category rename keeps the settings modal open and reports once', async () => {
+    const user = userEvent.setup();
+    serveNotes({
+      notes: [
+        buildNote({ id: 1, title: 'First note', category: 'OldCat' }),
+        buildNote({ id: 2, title: 'Second note', category: 'OldCat' }),
+      ],
+    });
+    server.use(
+      http.put('/api/trips/1/collab/notes/:id', () => new HttpResponse(null, { status: 500 })),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('First note');
+    await user.click(screen.getByTitle('Manage Categories'));
+    await screen.findByText('Manage Categories', { selector: 'h3' });
+
+    const oldCat = screen.getAllByText('OldCat').find(el => el.tagName === 'SPAN' && el.title === 'Click to rename')!;
+    await user.click(oldCat);
+    const editInput = screen.getByDisplayValue('OldCat');
+    await user.clear(editInput);
+    await user.type(editInput, 'NewCat');
+    await user.keyboard('{Enter}');
+    await screen.findByText('NewCat');
+    await user.click(screen.getByRole('button', { name: /^Save$/i }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
+    // Nothing was renamed, so the modal must not act like it was saved…
+    expect(screen.getByText('Manage Categories', { selector: 'h3' })).toBeInTheDocument();
+    // …and both rejected writes are one message, not one each.
+    expect(addToast).toHaveBeenCalledTimes(1);
   });
 });

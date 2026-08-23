@@ -5,6 +5,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
 import { MapPin, Clock, Users, Sparkles } from 'lucide-react'
 import EmptyState from '../shared/EmptyState'
+import { localToday } from '../Planner/today'
 
 function formatTime(timeStr, is12h) {
   if (!timeStr) return ''
@@ -17,15 +18,12 @@ function formatTime(timeStr, is12h) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
-const localIsoDate = (d) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-
 function formatDayLabel(date, t, locale) {
   const now = new Date()
   // Day dates are plain calendar strings, so "today"/"tomorrow" have to be
   // compared against the local calendar day, not the UTC one.
-  const nowDate = localIsoDate(now)
-  const tomorrowDate = localIsoDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1))
+  const nowDate = localToday(now)
+  const tomorrowDate = localToday(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1))
 
   if (date === nowDate) return t('collab.whatsNext.today') || 'Today'
   if (date === tomorrowDate) return t('collab.whatsNext.tomorrow') || 'Tomorrow'
@@ -51,7 +49,7 @@ export default function WhatsNextWidget({ tripMembers = [] }: WhatsNextWidgetPro
 
   const upcoming = useMemo(() => {
     const now = new Date()
-    const nowDate = localIsoDate(now)
+    const nowDate = localToday(now)
     const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
     const items = []
 

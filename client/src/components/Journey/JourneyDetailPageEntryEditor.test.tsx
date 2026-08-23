@@ -603,6 +603,26 @@ describe('EntryEditor', () => {
     expect(order).toEqual(['/api/photos/100/thumbnail', '/api/photos/101/thumbnail'])
   })
 
+  it('FE-JRN-EDITOR-047: a partly accepted order keeps what the server took', async () => {
+    const patched: number[] = []
+    server.use(http.patch('/api/journeys/photos/:id', ({ params }) => {
+      const id = Number(params.id)
+      patched.push(id)
+      if (id === 100) return HttpResponse.json({ error: 'sort rejected' }, { status: 500 })
+      return HttpResponse.json({ success: true })
+    }))
+    const user = userEvent.setup()
+    const { container } = mountEditor(buildEntry({ id: 10, photos: [buildPhoto(100), buildPhoto(101)] }))
+
+    await user.click(screen.getByRole('button', { name: 'Make 1st' }))
+
+    await waitFor(() => expect(patched).toEqual([101, 100]))
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('sort rejected', 'error', undefined))
+    // 101 is first on the server now; snapping the strip back would hide that.
+    const order = Array.from(container.querySelectorAll('.w-20.h-20 img')).map(i => i.getAttribute('src'))
+    expect(order).toEqual(['/api/photos/101/thumbnail', '/api/photos/100/thumbnail'])
+  })
+
   it('FE-JRN-EDITOR-030: dropping an unsaved gallery pick cancels its link', async () => {
     const linked: string[] = []
     server.use(http.post('/api/journeys/entries/55/link-photo', async ({ request }) => {

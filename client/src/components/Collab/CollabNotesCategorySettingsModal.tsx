@@ -48,9 +48,14 @@ export function CategorySettingsModal({ onClose, categories, categoryColors, onS
   }
 
   const handleSave = async () => {
-    // Apply renames to notes in DB
-    for (const [oldName, newName] of Object.entries(renames)) {
-      if (oldName !== newName) await onRenameCategory(oldName, newName)
+    // Apply renames to notes in DB. A rejected rename keeps the modal open — closing
+    // it would look like the rename went through; the caller has already reported it.
+    try {
+      for (const [oldName, newName] of Object.entries(renames)) {
+        if (oldName !== newName) await onRenameCategory(oldName, newName)
+      }
+    } catch {
+      return
     }
     await onSave(localColors)
     onClose()

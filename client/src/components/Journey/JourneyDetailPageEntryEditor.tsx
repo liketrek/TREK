@@ -450,12 +450,19 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
                             next.unshift(moved)
                             setPhotos(next)
                             // The order is shared: other members, the share view and the
-                            // PDF all read it, so a rejected write has to go back.
-                            Promise.all(next.map((ph, i) => journeyApi.updatePhoto(ph.id, { sort_order: i })))
-                              .catch(err => {
-                                setPhotos(prevOrder)
-                                toast.error(getApiErrorMessage(err, t('common.error')))
-                              })
+                            // PDF all read it, so a rejected write has to go back. Every
+                            // write is awaited first — snapping back on the first
+                            // rejection would do it while the rest are still landing.
+                            void (async () => {
+                              const results = await Promise.allSettled(next.map((ph, i) => journeyApi.updatePhoto(ph.id, { sort_order: i })))
+                              const rejected = results.filter(r => r.status === 'rejected') as PromiseRejectedResult[]
+                              if (rejected.length === 0) return
+                              toast.error(getApiErrorMessage(rejected[0].reason, t('common.error')))
+                              // Only a run where nothing landed can be put back: with a
+                              // partial one the server already holds part of the new
+                              // order, and hiding that would be the worse lie.
+                              if (rejected.length === results.length) setPhotos(prevOrder)
+                            })()
                           }}
                           className="absolute bottom-0.5 left-0.5 px-1.5 py-0.5 rounded bg-black/60 text-white text-[8px] font-semibold opacity-0 group-hover:opacity-100 transition-opacity"
                         >

@@ -14,6 +14,7 @@ import { journeyApi } from '../../../api/client'
 import { useJourneyStore } from '../../../store/journeyStore'
 import type { JourneyDetail } from '../../../store/journeyStore'
 import { normalizeImageFile } from '../../../utils/convertHeic'
+import { copyText } from '../../../utils/clipboard'
 import { pickGradient } from '../../../pages/journeyDetail/JourneyDetailPage.helpers'
 import { journeyCoverSrc } from './mobileJourneyMeta'
 
@@ -132,24 +133,9 @@ export default function MJourneySettingsSheet({
   }
 
   const copyShareUrl = async () => {
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(shareUrl)
-      } else {
-        // Fallback for non-secure contexts (plain HTTP) where navigator.clipboard is unavailable
-        const ta = document.createElement('textarea')
-        ta.value = shareUrl
-        ta.style.position = 'fixed'
-        ta.style.left = '-9999px'
-        document.body.appendChild(ta)
-        ta.focus()
-        ta.select()
-        document.execCommand('copy')
-        document.body.removeChild(ta)
-      }
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch { /* ignore */ }
+    if (!(await copyText(shareUrl))) return
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   const toggleSharePerm = async (key: 'share_timeline' | 'share_gallery' | 'share_map') => {

@@ -116,14 +116,16 @@ export default function NotificationsTab(): React.ReactElement {
   const toggle = async (eventType: string, channel: string) => {
     if (!matrix) return
     const current = matrix.preferences[eventType]?.[channel] ?? true
-    const updated = {
-      ...matrix.preferences,
-      [eventType]: { ...matrix.preferences[eventType], [channel]: !current },
-    }
-    setMatrix(m => m ? { ...m, preferences: updated } : m)
+    setMatrix(m => m ? {
+      ...m,
+      preferences: { ...m.preferences, [eventType]: { ...m.preferences[eventType], [channel]: !current } },
+    } : m)
     setSaving(true)
     try {
-      await notificationsApi.updatePreferences(updated)
+      // Only the toggled cell goes out. The server merges what it gets, and sending the
+      // whole matrix would carry this render's value for every other cell — a second
+      // toggle made while this request is in flight would be overwritten by it.
+      await notificationsApi.updatePreferences({ [eventType]: { [channel]: !current } })
     } catch {
       // Only this cell rolls back — restoring the whole snapshot would also undo a
       // toggle the user made while this request was in flight.

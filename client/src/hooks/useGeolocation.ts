@@ -102,11 +102,16 @@ export function useGeolocation(): UseGeolocationReturn {
   const watchIdRef = useRef<number | null>(null)
   // True between the start of startWatch and the watchPosition call it awaits.
   const startingRef = useRef(false)
+  // Bumped by every start and by every stop, so a run parked on the iOS prompt can
+  // tell it has been superseded — clearing startingRef alone can't, a start that came
+  // after the stop has set it again by then.
+  const startRunRef = useRef(0)
   const orientationHandlerRef = useRef<((e: DeviceOrientationEvent) => void) | null>(null)
   const headingRef = useRef<number | null>(null)
 
   const stopWatch = useCallback(() => {
     startingRef.current = false
+    startRunRef.current++
     if (watchIdRef.current !== null) {
       try { navigator.geolocation.clearWatch(watchIdRef.current) } catch { /* noop */ }
       watchIdRef.current = null
@@ -129,6 +134,7 @@ export function useGeolocation(): UseGeolocationReturn {
     // with nobody left holding its id.
     if (startingRef.current || watchIdRef.current !== null) return true
     startingRef.current = true
+    const run = ++startRunRef.current
     setError(null)
 
     // iOS: ask for orientation permission up front; on Android and desktop
@@ -142,6 +148,9 @@ export function useGeolocation(): UseGeolocationReturn {
         }
       } catch { /* older webkit throws — ignore and proceed */ }
     }
+    // Stopped (or restarted) while the prompt was open: subscribing now would leave a
+    // watch running that nobody holds the id of any more.
+    if (startRunRef.current !== run) return false
 
     // Device orientation → compass heading. `alpha` is rotation around the
     // Z-axis (0 = facing magnetic north on most devices). The webkit-only

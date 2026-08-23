@@ -1,8 +1,8 @@
 // FE-MOB-JDET-001 to FE-MOB-JDET-037
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '../../../helpers/render';
+import { render, screen, fireEvent, waitFor, act } from '../../../helpers/render';
 import MJourneyDetail from '../../../../src/mobile/screens/journey/MJourneyDetail';
-import { addonsApi, journeyApi } from '../../../../src/api/client';
+import { addonsApi, journeyApi, memoriesApi } from '../../../../src/api/client';
 import { useJourneyStore } from '../../../../src/store/journeyStore';
 import { useAuthStore } from '../../../../src/store/authStore';
 import type { GalleryPhoto, JourneyDetail, JourneyEntry } from '../../../../src/store/journeyStore';
@@ -198,6 +198,7 @@ beforeEach(() => {
   useJourneyStore.setState({ ...journeyStoreInitial, uploadGalleryPhotos, createEntry } as never, true);
   useAuthStore.setState({ user: { id: 5, username: 'maurice' } } as never);
   vi.spyOn(addonsApi, 'enabled').mockResolvedValue({ addons: [] });
+  vi.spyOn(memoriesApi, 'status').mockResolvedValue({ connected: false });
   vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200 })));
 });
 
@@ -353,7 +354,7 @@ describe('MJourneyDetail', () => {
         { id: 'legacy', name: 'Legacy', type: 'other', enabled: true },
       ],
     });
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ connected: true }), { status: 200 })));
+    vi.mocked(memoriesApi.status).mockResolvedValue({ connected: true });
     setup({ view: 'gallery' });
 
     fireEvent.click(await screen.findByRole('button', { name: 'common.upload' }));
@@ -366,7 +367,7 @@ describe('MJourneyDetail', () => {
     vi.mocked(addonsApi.enabled).mockResolvedValue({
       addons: [{ id: 'immich', name: 'Immich', type: 'photo_provider', enabled: true }],
     });
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ connected: true }), { status: 200 })));
+    vi.mocked(memoriesApi.status).mockResolvedValue({ connected: true });
     const toGallery = vi.spyOn(journeyApi, 'addProviderPhotosToGallery').mockResolvedValue({ added: 3 });
     const toEntry = vi.spyOn(journeyApi, 'addProviderPhotos').mockResolvedValue({ added: 1 });
     const { hook } = setup({ view: 'gallery' });
@@ -389,7 +390,7 @@ describe('MJourneyDetail', () => {
     vi.mocked(addonsApi.enabled).mockResolvedValue({
       addons: [{ id: 'immich', name: 'Immich', type: 'photo_provider', enabled: true }],
     });
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ connected: true }), { status: 200 })));
+    vi.mocked(memoriesApi.status).mockResolvedValue({ connected: true });
     vi.spyOn(journeyApi, 'addProviderPhotosToGallery').mockRejectedValue(new Error('boom'));
     setup({ view: 'gallery' });
 
@@ -507,7 +508,7 @@ describe('MJourneyDetail', () => {
     vi.mocked(addonsApi.enabled).mockResolvedValue({
       addons: [{ id: 'immich', name: 'Immich', type: 'photo_provider', enabled: true }],
     });
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ connected: true }), { status: 200 })));
+    vi.mocked(memoriesApi.status).mockResolvedValue({ connected: true });
     const { container } = setup({ view: 'gallery' });
     const input = container.ownerDocument.querySelector('input[type="file"]') as HTMLInputElement;
     const click = vi.spyOn(input, 'click').mockImplementation(() => {});
@@ -522,7 +523,7 @@ describe('MJourneyDetail', () => {
     vi.mocked(addonsApi.enabled).mockResolvedValue({
       addons: [{ id: 'immich', name: 'Immich', type: 'photo_provider', enabled: true }],
     });
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ connected: false }), { status: 200 })));
+    vi.mocked(memoriesApi.status).mockResolvedValue({ connected: false });
     const { container } = setup({ view: 'gallery' });
     const input = container.ownerDocument.querySelector('input[type="file"]') as HTMLInputElement;
     const click = vi.spyOn(input, 'click').mockImplementation(() => {});
@@ -536,7 +537,7 @@ describe('MJourneyDetail', () => {
     vi.mocked(addonsApi.enabled).mockResolvedValue({
       addons: [{ id: 'immich', name: 'Immich', type: 'photo_provider', enabled: true }],
     });
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ connected: true }), { status: 200 })));
+    vi.mocked(memoriesApi.status).mockResolvedValue({ connected: true });
     const gallery = [buildGalleryPhoto({ id: 601, asset_id: 'asset-1' }), buildGalleryPhoto({ id: 602, asset_id: null })];
     const { hook } = setup({
       view: 'gallery',
@@ -630,25 +631,24 @@ describe('MJourneyDetail', () => {
   });
 
   // Leaving the screen mid-probe used to leave the requests running and land a
-  // setState on a gone component.
-  it('FE-MOB-JDET-038: leaving the screen aborts the provider probes', async () => {
+  // setState on a gone component. The probes are sequential, so the queue has to
+  // stop as well instead of walking the rest of the providers.
+  it('FE-MOB-JDET-038: leaving the screen stops the provider probes', async () => {
     vi.mocked(addonsApi.enabled).mockResolvedValue({
-      addons: [{ id: 'immich', name: 'Immich', type: 'photo_provider', enabled: true }],
+      addons: [
+        { id: 'immich', name: 'Immich', type: 'photo_provider', enabled: true },
+        { id: 'synology', name: 'Synology', type: 'photo_provider', enabled: true },
+      ],
     });
-    let signal: AbortSignal | undefined;
-    vi.stubGlobal('fetch', vi.fn(async (_url: string, init?: RequestInit) => {
-      signal = init?.signal ?? undefined;
-      return new Promise<Response>((_resolve, reject) => {
-        init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
-      });
-    }));
+    let release: (value: { connected: boolean }) => void = () => {};
+    vi.mocked(memoriesApi.status).mockReturnValue(new Promise(resolve => { release = resolve; }));
     const { unmount } = setup({ view: 'gallery' });
 
-    await waitFor(() => expect(signal).toBeDefined());
-    expect(signal!.aborted).toBe(false);
+    await waitFor(() => expect(memoriesApi.status).toHaveBeenCalledTimes(1));
 
     unmount();
-    expect(signal!.aborted).toBe(true);
+    await act(async () => { release({ connected: true }); });
+    expect(memoriesApi.status).toHaveBeenCalledTimes(1);
   });
 
   it('FE-MOB-JDET-037: the screen measures itself, not the shell', () => {

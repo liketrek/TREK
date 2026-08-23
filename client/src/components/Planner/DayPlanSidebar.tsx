@@ -689,9 +689,25 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   const applyMergedOrder = async (dayId: number, newOrder: { type: string; data: any }[]) => {
     // Capture previous place order for undo
     const prevAssignmentIds = getDayAssignments(dayId).map(a => a.id)
-    // …and the reservations as they stand, so a failed write can put the visible
-    // order back instead of leaving a phantom one behind the error toast.
-    const prevReservations = useTripStore.getState().reservations
+    // …and, per booking, the fields this call is about to overwrite, so a failed write
+    // can put the visible order back instead of leaving a phantom one behind the error
+    // toast. Restoring the whole array instead would also drop what a collaborator's
+    // socket event applied while the requests were in flight.
+    const pendingRollback: (Partial<Reservation> & { id: number })[] = []
+    const dropRollback = (id: number) => {
+      const i = pendingRollback.findIndex(p => p.id === id)
+      if (i >= 0) pendingRollback.splice(i, 1)
+    }
+    const rollBackReservations = () => {
+      if (!pendingRollback.length) return
+      useTripStore.setState(state => ({
+        reservations: state.reservations.map(r => {
+          const p = pendingRollback.find(x => x.id === r.id)
+          return p ? { ...r, ...p } : r
+        })
+      }))
+      setTransportPosVersion(v => v + 1)
+    }
 
     // Places get sequential integer positions (0, 1, 2, ...)
     // Non-place items between place N-1 and place N get fractional positions
@@ -733,6 +749,10 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       // Update transport positions in store FIRST so the useEffect triggered by
       // onReorder's optimistic assignment update reads the correct positions.
       if (transportUpdates.length) {
+        for (const tu of transportUpdates) {
+          const r = useTripStore.getState().reservations.find(x => x.id === tu.id)
+          if (r) pendingRollback.push({ id: r.id, day_plan_position: r.day_plan_position, day_positions: r.day_positions })
+        }
         useTripStore.setState(state => ({
           reservations: state.reservations.map(r => {
             const tu = transportUpdates.find(u => u.id === r.id)
@@ -762,8 +782,11 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
           // here double-encodes it on the server, which wipes metadata.legs on read
           // and collapses the flight back to a single span.
           const newMeta = { ...parsed, legs }
+          pendingRollback.push({ id: rid, metadata: r.metadata })
           useTripStore.setState(state => ({ reservations: state.reservations.map(x => (x.id === rid ? { ...x, metadata: newMeta } : x)) }))
           await tripActions.updateReservation(tripId, rid, { metadata: newMeta })
+          // Stored, so a later step failing must not put the old legs back.
+          dropRollback(rid)
         }
         setTransportPosVersion(v => v + 1)
       }
@@ -771,6 +794,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       if (transportUpdates.length) {
         onRouteRefresh?.()
         await reservationsApi.updatePositions(tripId, transportUpdates, dayId)
+        for (const tu of transportUpdates) dropRollback(tu.id)
       }
       for (const n of noteUpdates) {
         await tripActions.updateDayNote(tripId, dayId, n.id, { sort_order: n.sort_order })
@@ -783,8 +807,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
         })
       }
     } catch (err: unknown) {
-      useTripStore.setState({ reservations: prevReservations })
-      setTransportPosVersion(v => v + 1)
+      rollBackReservations()
       toast.error(err instanceof Error ? err.message : t('common.unknownError'))
     }
   }

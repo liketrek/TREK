@@ -1,4 +1,4 @@
-// FE-COMP-MEMBERS-001 to FE-COMP-MEMBERS-054
+// FE-COMP-MEMBERS-001 to FE-COMP-MEMBERS-056
 import type { Mock } from 'vitest';
 import { act, render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -47,9 +47,11 @@ function asShareOwner(): void {
   server.use(http.get('/api/trips/1/invite-link', () => HttpResponse.json({ token: null })));
 }
 
+/** A browser on https, where the async clipboard API is the path taken. */
 function mockClipboard(): Mock<(text: string) => Promise<void>> {
   const writeText = vi.fn(async () => {});
-  Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+  Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true, writable: true });
+  Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true, writable: true });
   return writeText;
 }
 
@@ -80,6 +82,7 @@ afterEach(() => {
   delete window.__addToast;
   vi.useRealTimers();
   vi.restoreAllMocks();
+  Object.defineProperty(window, 'isSecureContext', { value: false, configurable: true, writable: true });
 });
 
 describe('TripMembersModal', () => {
@@ -272,11 +275,7 @@ describe('TripMembersModal', () => {
     seedStore(usePermissionsStore, { permissions: { share_manage: 'trip_owner' } });
     seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: ownerUser.id }) });
 
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, 'clipboard', {
-      value: { writeText },
-      configurable: true,
-    });
+    const writeText = mockClipboard();
 
     server.use(
       http.get('/api/trips/1/share-link', () =>
@@ -616,9 +615,12 @@ describe('TripMembersModal', () => {
 
     vi.useFakeTimers();
     fireEvent.click(copyBtn);
+    // The copy is awaited now, so the badge lands a microtask after the click.
+    await act(async () => {});
     expect(screen.getByText('Copied')).toBeInTheDocument();
     // A second copy replaces the pending reset rather than stacking timers.
     fireEvent.click(screen.getByText('Copied').closest('button')!);
+    await act(async () => {});
     act(() => { vi.advanceTimersByTime(2000); });
 
     expect(screen.getByText('Copy')).toBeInTheDocument();
@@ -980,6 +982,42 @@ describe('TripMembersModal', () => {
     expect(screen.queryByTitle('Remove access')).not.toBeInTheDocument();
   });
 
+  // A self-hosted install served over plain HTTP has no navigator.clipboard, and
+  // the unguarded call threw before the button ever showed feedback.
+  it('FE-COMP-MEMBERS-055: the share link copies through execCommand without a clipboard API', async () => {
+    const user = userEvent.setup();
+    asShareOwner();
+    Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true, writable: true });
+    Object.defineProperty(window, 'isSecureContext', { value: false, configurable: true, writable: true });
+    const execCommand = vi.fn(() => true);
+    Object.defineProperty(document, 'execCommand', { value: execCommand, configurable: true, writable: true });
+    server.use(http.get('/api/trips/1/share-link', () => HttpResponse.json({ token: 'tok55' })));
+    render(<TripMembersModal {...defaultProps} />);
+
+    await user.click((await screen.findByText('Copy')).closest('button')!);
+
+    expect(execCommand).toHaveBeenCalledWith('copy');
+    await screen.findByText('Copied');
+    expect(document.querySelector('textarea')).toBeNull();
+  });
+
+  it('FE-COMP-MEMBERS-056: the invite link copies through execCommand without a clipboard API', async () => {
+    const user = userEvent.setup();
+    asShareOwner();
+    Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true, writable: true });
+    Object.defineProperty(window, 'isSecureContext', { value: false, configurable: true, writable: true });
+    const execCommand = vi.fn(() => true);
+    Object.defineProperty(document, 'execCommand', { value: execCommand, configurable: true, writable: true });
+    server.use(http.get('/api/trips/1/invite-link', () => HttpResponse.json({ token: 'inv56' })));
+    render(<TripMembersModal {...defaultProps} />);
+
+    await user.click((await screen.findByText('Copy')).closest('button')!);
+
+    expect(execCommand).toHaveBeenCalledWith('copy');
+    await screen.findByText('Copied');
+    expect(document.querySelector('textarea')).toBeNull();
+  });
+
   it('FE-COMP-MEMBERS-054: the invite-link copied badge resets after two seconds', async () => {
     asShareOwner();
     const writeText = mockClipboard();
@@ -990,6 +1028,7 @@ describe('TripMembersModal', () => {
 
     vi.useFakeTimers();
     fireEvent.click(copyBtn);
+    await act(async () => {});
     expect(screen.getByText('Copied')).toBeInTheDocument();
     act(() => { vi.advanceTimersByTime(2000); });
 

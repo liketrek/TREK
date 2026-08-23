@@ -772,12 +772,13 @@ describe('NotificationsTab', () => {
 
   it('FE-COMP-NOTIFICATIONS-031: a failing toggle leaves a later toggle alone', async () => {
     const user = userEvent.setup();
+    const bodies: Record<string, Record<string, boolean>>[] = [];
     let rejectEmail!: () => void;
     server.use(
       http.put('/api/notifications/preferences', async ({ request }) => {
         const body = (await request.json()) as Record<string, Record<string, boolean>>;
-        // The first write is the email flip; in-app is still untouched there.
-        if (body.trip_invite.inapp === true) {
+        bodies.push(body);
+        if (body.trip_invite?.email !== undefined) {
           return new Promise<Response>(resolve => {
             rejectEmail = () => resolve(HttpResponse.json({ error: 'nope' }, { status: 500 }) as unknown as Response);
           });
@@ -795,7 +796,11 @@ describe('NotificationsTab', () => {
 
     // Flipped while the email write is still hanging.
     await user.click(inapp);
+    await waitFor(() => expect(bodies).toHaveLength(2));
     await waitFor(() => expect(screen.getAllByRole('button')[1]).toHaveAttribute('aria-pressed', 'false'));
+    // The in-app write must not carry the email cell, or the server would keep the
+    // value the failing write is about to take back.
+    expect(bodies[1].trip_invite.email).toBeUndefined();
 
     rejectEmail();
 

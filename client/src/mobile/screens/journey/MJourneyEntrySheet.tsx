@@ -543,11 +543,21 @@ export default function MJourneyEntrySheet({
                     onClick={() => {
                       // The PATCHes stay outside the updater — StrictMode invokes it
                       // twice in dev and would send the whole batch a second time.
+                      const prevOrder = photos
                       const next = [...photos]
                       const [moved] = next.splice(idx, 1)
                       next.unshift(moved)
                       setPhotos(next)
-                      next.forEach((ph, i) => { journeyApi.updatePhoto(ph.id, { sort_order: i }).catch(() => {}) })
+                      // Same as the desktop editor: the order is shared with the other
+                      // members, the share view and the PDF, so a run the server refused
+                      // outright goes back instead of passing for saved.
+                      void (async () => {
+                        const results = await Promise.allSettled(next.map((ph, i) => journeyApi.updatePhoto(ph.id, { sort_order: i })))
+                        const rejected = results.filter(r => r.status === 'rejected') as PromiseRejectedResult[]
+                        if (rejected.length === 0) return
+                        toast.error(getApiErrorMessage(rejected[0].reason, t('common.error')))
+                        if (rejected.length === results.length) setPhotos(prevOrder)
+                      })()
                     }}
                     className="absolute bottom-[3px] left-[3px] rounded-full bg-black/60 px-[6px] py-[1px] font-geist text-[0.5rem] font-bold text-white"
                   >

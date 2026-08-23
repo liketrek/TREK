@@ -1,4 +1,4 @@
-// FE-HOOK-GEO-001 to FE-HOOK-GEO-023
+// FE-HOOK-GEO-001 to FE-HOOK-GEO-025
 import { StrictMode } from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { GeoOnceError, getCurrentPositionOnce, useGeolocation } from './useGeolocation';
@@ -270,6 +270,39 @@ describe('useGeolocation', () => {
     await act(() => result.current.cycleMode());
 
     expect(() => act(() => result.current.setMode('off'))).not.toThrow();
+  });
+
+  it('FE-HOOK-GEO-024: stopping while the iOS prompt is open leaves no watch behind', async () => {
+    let grant!: () => void;
+    const requestPermission = vi.fn(() => new Promise<string>(resolve => { grant = () => resolve('granted'); }));
+    vi.stubGlobal('DeviceOrientationEvent', Object.assign(function () {}, { requestPermission }));
+
+    const { result } = renderHook(() => useGeolocation());
+    act(() => result.current.setMode('show'));
+    act(() => result.current.setMode('off'));
+
+    await act(async () => { grant(); await new Promise(r => setTimeout(r, 0)); });
+
+    expect(watchPosition).not.toHaveBeenCalled();
+  });
+
+  it('FE-HOOK-GEO-025: stop and start during the iOS prompt still ends with one watch', async () => {
+    const grants: ((v: string) => void)[] = [];
+    const requestPermission = vi.fn(() => new Promise<string>(resolve => { grants.push(resolve); }));
+    vi.stubGlobal('DeviceOrientationEvent', Object.assign(function () {}, { requestPermission }));
+
+    const { result } = renderHook(() => useGeolocation());
+    act(() => result.current.setMode('show'));
+    act(() => result.current.setMode('off'));
+    act(() => result.current.setMode('show'));
+
+    await act(async () => { grants.forEach(g => g('granted')); await new Promise(r => setTimeout(r, 0)); });
+
+    // Both runs got past the prompt; only the newer one may subscribe, or the older
+    // watch keeps running with its id overwritten.
+    expect(requestPermission).toHaveBeenCalledTimes(2);
+    expect(watchPosition).toHaveBeenCalledTimes(1);
+    expect(result.current.mode).toBe('show');
   });
 
   it('FE-HOOK-GEO-019: stops the watch when the component unmounts', async () => {

@@ -155,12 +155,16 @@ describe('RootRedirect — startup destination', () => {
     const onLine = Object.getOwnPropertyDescriptor(Navigator.prototype, 'onLine')
     Object.defineProperty(navigator, 'onLine', { value: false, configurable: true })
 
-    renderApp('/')
-    await waitFor(() => expect(screen.getByText('TripPlanner')).toBeInTheDocument())
-
-    if (onLine) Object.defineProperty(Navigator.prototype, 'onLine', onLine)
-    delete (navigator as unknown as { onLine?: boolean }).onLine
-    await offlineDb.trips.clear()
+    // navigator and the Dexie table are shared with every other test in the
+    // file, so a failed assertion must not leave the rest of them offline.
+    try {
+      renderApp('/')
+      await waitFor(() => expect(screen.getByText('TripPlanner')).toBeInTheDocument())
+    } finally {
+      if (onLine) Object.defineProperty(Navigator.prototype, 'onLine', onLine)
+      delete (navigator as unknown as { onLine?: boolean }).onLine
+      await offlineDb.trips.clear()
+    }
   })
 
   // The whole point of the localStorage mirror: the default launch must not pay

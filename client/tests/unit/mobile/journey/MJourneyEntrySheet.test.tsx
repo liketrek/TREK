@@ -687,6 +687,23 @@ describe('MJourneyEntrySheet full editor', () => {
     expect(patched.map(p => p.id)).toEqual(['101', '100']);
   });
 
+  it('FE-MOB-JENTRY-050: a refused reorder snaps the strip back and says so', async () => {
+    let attempts = 0;
+    server.use(http.patch('/api/journeys/photos/:id', () => {
+      attempts += 1;
+      return HttpResponse.json({ error: 'sort rejected' }, { status: 500 });
+    }));
+    const user = userEvent.setup();
+    mountSheet(buildEntry({ id: 5, photos: [buildPhoto(100), buildPhoto(101)] }));
+
+    await user.click(screen.getByRole('button', { name: '1st' }));
+
+    await waitFor(() => expect(attempts).toBe(2));
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('sort rejected', 'error', undefined));
+    const order = Array.from(document.querySelectorAll('.h-16 img')).map(i => i.getAttribute('src'));
+    expect(order).toEqual(['/api/photos/100/thumbnail', '/api/photos/101/thumbnail']);
+  });
+
   it('FE-MOB-JENTRY-021: toggles mood and weather chips back off', async () => {
     const user = userEvent.setup();
     const { onSave } = mountSheet(buildEntry({ id: 5, mood: 'rough', weather: 'cold' }));
@@ -783,18 +800,21 @@ describe('MJourneyEntrySheet full editor', () => {
     expect(screen.queryByText('All photos already added')).not.toBeInTheDocument();
   });
 
-  it('FE-MOB-JENTRY-037: reorders photos locally even when persisting the order fails', async () => {
-    let attempts = 0;
-    server.use(http.patch('/api/journeys/photos/:id', () => {
-      attempts += 1;
-      return new HttpResponse(null, { status: 500 });
+  it('FE-MOB-JENTRY-037: a partly accepted order keeps what the server took', async () => {
+    const patched: number[] = [];
+    server.use(http.patch('/api/journeys/photos/:id', ({ params }) => {
+      const id = Number(params.id);
+      patched.push(id);
+      if (id === 100) return new HttpResponse(null, { status: 500 });
+      return HttpResponse.json({ ok: true });
     }));
     const user = userEvent.setup();
     mountSheet(buildEntry({ id: 5, photos: [buildPhoto(100), buildPhoto(101)] }));
 
     await user.click(screen.getByRole('button', { name: '1st' }));
 
-    await waitFor(() => expect(attempts).toBe(2));
+    await waitFor(() => expect(patched).toEqual([101, 100]));
+    // 101 is first on the server now; snapping the strip back would hide that.
     const order = Array.from(document.querySelectorAll('.h-16 img')).map(i => i.getAttribute('src'));
     expect(order).toEqual(['/api/photos/101/thumbnail', '/api/photos/100/thumbnail']);
   });

@@ -2735,6 +2735,61 @@ describe('DayPlanSidebar', () => {
     expect(stored.day_positions).toBeUndefined()
   })
 
+  it('FE-PLANNER-DAYPLAN-207: a rejected note write leaves the stored booking slot alone', async () => {
+    const updateDayNote = vi.fn().mockRejectedValue(new Error('note write failed'))
+    stubTripActions({ updateDayNote })
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const placeA = buildPlace({ id: 1, name: 'Place A' })
+    const placeB = buildPlace({ id: 2, name: 'Place B' })
+    const a1 = buildAssignment({ id: 11, day_id: 10, order_index: 0, place: placeA })
+    const a2 = buildAssignment({ id: 12, day_id: 10, order_index: 1, place: placeB })
+    const note = buildDayNote({ id: 70, day_id: 10, text: 'Pack sunscreen', sort_order: 1.4 })
+    const bus = buildReservation({ id: 430, type: 'bus', title: 'Airport bus', day_id: 10, day_plan_position: 1.5 })
+    mockDayNotesState.dayNotes = { '10': [note] }
+    seedStore(useTripStore, { reservations: [bus] })
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [day], places: [placeA, placeB], assignments: { '10': [a1, a2] },
+      reservations: [bus], onReorder: vi.fn(async () => undefined),
+    })} />)
+    fireEvent.dragStart(dragRow(screen.getByText('Place B')), { dataTransfer: emptyDataTransfer })
+    fireEvent.drop(dragRow(screen.getByText('Place A')), { dataTransfer: { getData: vi.fn(() => '') } })
+
+    await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith('note write failed'))
+    // The slot write went through before the note failed, so the day must keep it.
+    const stored = useTripStore.getState().reservations.find(r => r.id === 430)!
+    expect(stored.day_positions).toEqual({ 10: expect.any(Number) })
+    expect(stored.day_plan_position).not.toBe(1.5)
+  })
+
+  it('FE-PLANNER-DAYPLAN-208: a booking that arrived mid-write survives the rollback', async () => {
+    const { reservationsApi } = await import('../../api/client')
+    const ferry = buildReservation({ id: 431, type: 'ferry', title: 'Island ferry', day_id: 10 })
+    vi.mocked(reservationsApi.updatePositions).mockImplementationOnce(async () => {
+      // Stands in for a collaborator's reservation:created event landing while the
+      // slot write is still out.
+      useTripStore.setState(state => ({ reservations: [...state.reservations, ferry] }))
+      throw new Error('server said no')
+    })
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const placeA = buildPlace({ id: 1, name: 'Place A' })
+    const placeB = buildPlace({ id: 2, name: 'Place B' })
+    const a1 = buildAssignment({ id: 11, day_id: 10, order_index: 0, place: placeA })
+    const a2 = buildAssignment({ id: 12, day_id: 10, order_index: 1, place: placeB })
+    const bus = buildReservation({ id: 430, type: 'bus', title: 'Airport bus', day_id: 10, day_plan_position: 1.5 })
+    seedStore(useTripStore, { reservations: [bus] })
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [day], places: [placeA, placeB], assignments: { '10': [a1, a2] },
+      reservations: [bus], onReorder: vi.fn(async () => undefined),
+    })} />)
+    fireEvent.dragStart(dragRow(screen.getByText('Place B')), { dataTransfer: emptyDataTransfer })
+    fireEvent.drop(dragRow(screen.getByText('Place A')), { dataTransfer: { getData: vi.fn(() => '') } })
+
+    await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith('server said no'))
+    const stored = useTripStore.getState().reservations
+    expect(stored.find(r => r.id === 430)!.day_plan_position).toBe(1.5)
+    expect(stored.find(r => r.id === 431)).toBeDefined()
+  })
+
   it('FE-PLANNER-DAYPLAN-126: reordering around a multi-leg flight writes a position per leg', async () => {
     const updateReservation = vi.fn(async () => ({} as Reservation))
     stubTripActions({ updateReservation })

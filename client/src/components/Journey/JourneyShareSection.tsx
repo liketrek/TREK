@@ -3,6 +3,7 @@ import { Link, List, Grid, MapPin, Check } from 'lucide-react'
 import { journeyApi } from '../../api/client'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
+import { copyText } from '../../utils/clipboard'
 
 export default function JourneyShareSection({ journeyId }: { journeyId: number }) {
   const { t } = useTranslation()
@@ -53,24 +54,9 @@ export default function JourneyShareSection({ journeyId }: { journeyId: number }
   const shareUrl = link ? `${window.location.origin}/public/journey/${link.token}` : ''
 
   const copyLink = async () => {
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(shareUrl)
-      } else {
-        // Fallback for non-secure contexts (plain HTTP) where navigator.clipboard is unavailable
-        const ta = document.createElement('textarea')
-        ta.value = shareUrl
-        ta.style.position = 'fixed'
-        ta.style.left = '-9999px'
-        document.body.appendChild(ta)
-        ta.focus()
-        ta.select()
-        document.execCommand('copy')
-        document.body.removeChild(ta)
-      }
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch { /* ignore */ }
+    if (!(await copyText(shareUrl))) return
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   if (loading || !manageable) return null

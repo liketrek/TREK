@@ -197,6 +197,9 @@ describe('BackgroundTasksWidget — poll backstop', () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(5000) })
 
     expect(useBackgroundTasksStore.getState().tasks[0].status).toBe('error')
+    // The file parsed fine — blaming it would send the user looking for a problem
+    // that isn't there.
+    expect(useBackgroundTasksStore.getState().tasks[0].error).toBe('Unknown error')
   })
 
   it('FE-W4BGT-022: a transient poll failure leaves the job running', async () => {

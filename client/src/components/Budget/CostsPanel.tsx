@@ -15,6 +15,7 @@ import { downloadBlob } from '../../utils/fileDownload'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
+import { localToday } from '../Planner/today'
 import { SYMBOLS, currenciesWith, SPLIT_COLORS } from './BudgetPanel.constants'
 import { calculateTicketShares, hasTicketSplit, NOTE_MAX, payersBalanced, readTicketItems, readUserNote, rebalancePayers, splitEqualShares, writeTicketItems, type TicketItem } from './CostsPanel.helpers'
 import { COST_CATEGORY_LIST, catMeta } from './costsCategories'
@@ -568,6 +569,14 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   }
 
   // ── mobile layout (Budget1Mobile.html): single flat column, total card on top ──
+  //
+  // Called as a plain function — `{MobileBody()}`, not `<MobileBody />` — and the
+  // same goes for ExpenseRow, SettleFlows, BalancesList and CategoryBreakdown.
+  // A component declared inside this one is a fresh component type on every
+  // render, so React tears the old subtree down and mounts a new one instead of
+  // updating it; the search box then loses focus after every keystroke. Calling
+  // them keeps the markup inline where it always was. Do not "tidy" these back
+  // into elements.
   function MobileBody() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 8 }}>
@@ -702,6 +711,8 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     )
   }
 
+  // Called, not rendered — see MobileBody: an element here would remount the
+  // list on every keystroke in the search box.
   function ExpenseRow({ e }: { e: BudgetItem }) {
     const c = catMeta(e.category)
     const Icon = c.Icon
@@ -1038,7 +1049,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const [name, setName] = useState(editing?.name || prefill?.name || '')
   const [cat, setCat] = useState<string>(editing ? catMeta(editing.category).key : (prefill?.category || 'food'))
   const [currency, setCurrency] = useState((editing?.currency || base).toUpperCase())
-  const [day, setDay] = useState(editing?.expense_date || new Date().toISOString().slice(0, 10))
+  const [day, setDay] = useState(editing?.expense_date || localToday())
   const [note, setNote] = useState(() => readUserNote(editing))
   const [total, setTotal] = useState<string>(() => {
     if (editing) return editing.total_price ? String(cleanAmount(editing.total_price)) : ''

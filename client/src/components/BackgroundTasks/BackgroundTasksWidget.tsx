@@ -114,7 +114,8 @@ export default function BackgroundTasksWidget() {
           .catch((err: { response?: { status?: number } }) => {
             // The server 404s a job once it has expired (or after a restart). Nothing is
             // ever coming, so end the card instead of spinning and re-polling forever.
-            if (err?.response?.status === 404) setError(task.id, task.tripId, t('reservations.import.error'))
+            // Not the parse-failure message — the file was fine, the job is just gone.
+            if (err?.response?.status === 404) setError(task.id, task.tripId, t('common.unknownError'))
           })
       }
     }, 5000)
