@@ -1,8 +1,11 @@
-import { Controller, Get, HttpException, Param, Res } from '@nestjs/common';
+import { Controller, Get, HttpException, Param, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import path from 'node:path';
 import { JourneyService } from './journey.service';
 import { StorageService } from '../storage/storage.service';
+import { AddonGuard } from '../addons/addon.guard';
+import { RequireAddon } from '../addons/require-addon.decorator';
+import { ADDON_IDS } from '../../addons';
 import { Public } from '../auth/public.decorator';
 
 /**
@@ -10,11 +13,18 @@ import { Public } from '../auth/public.decorator';
  * proxy for publicly shared journeys.
  *
  * Byte-identical to the legacy Express route (server/src/routes/journeyPublic.ts):
- * NOT behind any guard, every route validates the share token (404 on failure),
+ * no authentication, every route validates the share token (404 on failure),
  * the unified proxy streams by trek_photo_id and the legacy proxy serves local
  * files (with the uploads-dir traversal guard) or proxies immich/synology.
+ *
+ * The addon gate is the one guard here, and it has to be: turning the Journey
+ * addon off is meant to take the feature away, and without it already-published
+ * journeys stayed publicly readable while the authenticated surface went dark.
+ * AddonGuard only reads addon state, so it is safe in front of a @Public route.
  */
 @Public('share-token validated: the whole point is a link that works without an account')
+@UseGuards(AddonGuard)
+@RequireAddon(ADDON_IDS.JOURNEY, 'Journey')
 @Controller('api/public/journey')
 export class JourneyPublicController {
   constructor(
@@ -72,7 +82,9 @@ export class JourneyPublicController {
       return;
     }
 
-    const effectiveOwnerId = valid.ownerId || Number(ownerId);
+    // :ownerId stays in the path so old share links keep routing, but it is not
+    // read any more: the owner comes from the row the token resolved to.
+    const effectiveOwnerId = valid.ownerId;
     const streaming = this.journey.streamProviderAsset(
       res,
       provider,

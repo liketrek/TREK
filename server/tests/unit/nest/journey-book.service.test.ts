@@ -1,7 +1,7 @@
 /**
  * Storing TREK Studio books (#1973).
  *
- * The half worth testing hard is concurrency. Everyone on a journey can edit
+ * The half worth testing hard is concurrency. Every editor on a journey edits
  * the same book, so "two saves arrive together" is the ordinary case rather
  * than an edge one, and the failure mode of getting it wrong is somebody's
  * afternoon disappearing with no error anywhere.
@@ -101,6 +101,20 @@ describe('access', () => {
     const saved = books.saveBook(journey.id, helper.id, { title: 'B', document: doc() });
     expect(saved && 'record' in saved).toBe(true);
     expect(books.getBook(journey.id, helper.id)).not.toBeNull();
+  });
+
+  it('lets a viewer read the book but not overwrite or delete it', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: guest } = createUser(testDb);
+    const journey = createJourney(testDb, owner.id);
+    addJourneyContributor(testDb, journey.id, guest.id, 'viewer');
+    books.saveBook(journey.id, owner.id, { title: 'Iceland', document: doc() });
+
+    expect(books.canOpen(journey.id, guest.id)).toBe(true);
+    expect(books.getBook(journey.id, guest.id)).not.toBeNull();
+    expect(books.saveBook(journey.id, guest.id, { title: 'mine now', document: doc('two') })).toBeNull();
+    expect(books.deleteBook(journey.id, guest.id)).toBeNull();
+    expect(books.getBook(journey.id, owner.id)!.title).toBe('Iceland');
   });
 
   it('says nothing about a journey that does not exist', () => {

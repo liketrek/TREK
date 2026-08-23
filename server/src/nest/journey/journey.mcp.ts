@@ -408,28 +408,36 @@ export class JourneyMcp {
 
   @Tool({
     name: 'get_journey_share_link',
-    description: 'Get the current public share link for a journey. Returns null if none exists.',
+    description: 'Get the current public share link for a journey. Owner only. Returns null if none exists.',
     inputSchema: { journeyId: z.number().int().positive() },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'share' },
   })
   getJourneyShareLink({ journeyId }: { journeyId: number }, ctx: McpContext) {
-    if (!this.journey.canAccessJourney(journeyId, ctx.userId)) return notFound('Journey not found or access denied.');
+    // Owner only, same as the REST route: handing out the token is handing out
+    // the journey.
+    if (!this.journey.isOwner(journeyId, ctx.userId)) return notFound('Journey not found or access denied.');
     return ok({ shareLink: this.share.getJourneyShareLink(journeyId) });
   }
 
   @Tool({
     name: 'create_journey_share_link',
-    description: 'Create or update the public share link for a journey. Owner only.',
-    inputSchema: { journeyId: z.number().int().positive() },
+    description: 'Create or update the public share link for a journey. Owner only. Flags left out keep their current value on an existing link; a new link defaults to timeline/gallery/map on.',
+    inputSchema: {
+      journeyId: z.number().int().positive(),
+      share_timeline: z.boolean().optional(),
+      share_gallery: z.boolean().optional(),
+      share_map: z.boolean().optional(),
+      newest_first: z.boolean().optional(),
+    },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'share' },
   })
-  createJourneyShareLink({ journeyId }: { journeyId: number }, ctx: McpContext) {
+  createJourneyShareLink({ journeyId, ...permissions }: { journeyId: number; share_timeline?: boolean; share_gallery?: boolean; share_map?: boolean; newest_first?: boolean }, ctx: McpContext) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    const shareLink = this.share.createOrUpdateJourneyShareLink(journeyId, ctx.userId, {});
+    const shareLink = this.share.createOrUpdateJourneyShareLink(journeyId, ctx.userId, permissions);
     if (!shareLink) return notFound('Journey not found or access denied.');
     return ok({ shareLink });
   }

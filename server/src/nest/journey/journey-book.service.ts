@@ -9,10 +9,11 @@ import { JourneyDomainService } from './journey-domain.service';
  *
  * ── Access ───────────────────────────────────────────────────────────────
  *
- * A book belongs to its journey, so it inherits the journey's access exactly —
- * every contributor can open and edit it. There is no separate book permission
- * and there should not be: a second access model over the same object is how
- * two rules end up disagreeing about who may do what.
+ * A book belongs to its journey, so it inherits the journey's access exactly:
+ * every contributor can open it, and the ones who may edit the journey may edit
+ * it. There is no separate book permission and there should not be: a second
+ * access model over the same object is how two rules end up disagreeing about
+ * who may do what.
  *
  * ── Concurrency ──────────────────────────────────────────────────────────
  *
@@ -35,6 +36,15 @@ export class JourneyBookService {
   /** Null when the journey does not exist or the user cannot reach it. */
   private canAccess(journeyId: number, userId: number): boolean {
     return !!this.journey.canAccessJourney(journeyId, userId);
+  }
+
+  /**
+   * Writing the book is an edit like any other in this domain, so it takes the
+   * same owner-or-editor check the entry and photo writes take. canAccess also
+   * covers role 'viewer', who may read the book but must not overwrite it.
+   */
+  private canWrite(journeyId: number, userId: number): boolean {
+    return this.journey.canEdit(journeyId, userId);
   }
 
   /**
@@ -115,7 +125,7 @@ export class JourneyBookService {
     userId: number,
     input: { title: string; document: unknown; baseVersion?: number },
   ): { record: BookRecord } | { conflict: BookRecord } | null {
-    if (!this.canAccess(journeyId, userId)) return null;
+    if (!this.canWrite(journeyId, userId)) return null;
 
     const document = JSON.stringify(normalizeBookDocument(input.document));
     const existing = this.db
@@ -160,7 +170,7 @@ export class JourneyBookService {
   }
 
   deleteBook(journeyId: number, userId: number): boolean | null {
-    if (!this.canAccess(journeyId, userId)) return null;
+    if (!this.canWrite(journeyId, userId)) return null;
     const result = this.db
       .prepare('DELETE FROM journey_books WHERE journey_id = ?')
       .run(journeyId);

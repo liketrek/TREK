@@ -417,6 +417,48 @@ describe('Journey share link', () => {
     expect(get.body.link.share_map).toBe(false);
   });
 
+  it('JOURNEY-INT-044 — a contributor cannot read the token, only the owner can', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: helper } = createUser(testDb);
+    const journey = createJourney(testDb, owner.id);
+    addJourneyContributor(testDb, journey.id, helper.id, 'editor');
+    await request(app)
+      .post(`/api/journeys/${journey.id}/share-link`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ share_timeline: true, share_gallery: true, share_map: true });
+
+    // The token is the whole credential and it outlives the contributor's
+    // access, so reading it takes the same owner check create and delete take.
+    const res = await request(app)
+      .get(`/api/journeys/${journey.id}/share-link`)
+      .set('Cookie', authCookie(helper.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body.link).toBeNull();
+  });
+
+  it('JOURNEY-INT-045 — a flag-only update leaves the other flags alone', async () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    await request(app)
+      .post(`/api/journeys/${journey.id}/share-link`)
+      .set('Cookie', authCookie(user.id))
+      .send({ share_timeline: true, share_gallery: false, share_map: false, newest_first: true });
+
+    await request(app)
+      .post(`/api/journeys/${journey.id}/share-link`)
+      .set('Cookie', authCookie(user.id))
+      .send({ share_timeline: false });
+
+    const get = await request(app)
+      .get(`/api/journeys/${journey.id}/share-link`)
+      .set('Cookie', authCookie(user.id));
+    expect(get.body.link.share_timeline).toBe(false);
+    expect(get.body.link.share_gallery).toBe(false);
+    expect(get.body.link.share_map).toBe(false);
+    expect(get.body.link.newest_first).toBe(true);
+  });
+
   it('JOURNEY-INT-017 — DELETE /api/journeys/:id/share-link deletes the share link', async () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
@@ -1082,7 +1124,7 @@ describe('Journey upload parity', () => {
     expect(res.body.photos.length).toBeGreaterThan(0);
   });
 
-  it('JOURNEY-P05 — non-contributor gallery upload is 403 and files remain on disk (no cleanup today)', async () => {
+  it('JOURNEY-P05 — non-contributor gallery upload is 403 and the bytes are taken back off disk', async () => {
     const { user: owner } = createUser(testDb);
     const { user: other } = createUser(testDb);
     const journey = createJourney(testDb, owner.id);
@@ -1094,8 +1136,10 @@ describe('Journey upload parity', () => {
       .attach('photos', FIXTURE_IMG);
     expect(res.status).toBe(403);
     expect(res.body.error).toBe('Not allowed');
+    // The commit runs before the permission answer is known, so the refusal has
+    // to delete the object again. Nothing sweeps orphans.
     const after = fsMod.existsSync(journeyDir) ? fsMod.readdirSync(journeyDir).length : 0;
-    expect(after).toBe(before + 1);
+    expect(after).toBe(before);
   });
 
   it('JOURNEY-P06 — video+poster upload: poster is ALWAYS stored as .jpg (stored-XSS pin)', async () => {

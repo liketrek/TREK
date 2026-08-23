@@ -31,8 +31,10 @@ export function isVideoExtension(ext: string): boolean {
 // `allowed_file_types` is `*`, this list is still enforced so the
 // wildcard doesn't silently admit executables/scripts.
 export const BLOCKED_EXTENSIONS = [
-  // Server-rendered / scripted content that could XSS a viewer
-  '.svg', '.html', '.htm', '.xml', '.xhtml',
+  // Server-rendered / scripted content that could XSS a viewer. Downloads are
+  // served inline with an extension-derived Content-Type, so every spelling a
+  // browser renders as a document has to be listed, not just the common ones.
+  '.svg', '.svgz', '.html', '.htm', '.shtml', '.shtm', '.xml', '.xhtml', '.xht',
   // Scripts
   '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.php', '.py', '.rb', '.pl',
   // Executables

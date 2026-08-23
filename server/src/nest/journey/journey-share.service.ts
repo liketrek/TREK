@@ -44,19 +44,28 @@ export class JourneyShareService {
     // able to publish the journey or change which screens are shared.
     if (!this.journey.isOwner(journeyId, createdBy)) return null;
 
+    const existing = this.db.prepare('SELECT token, share_timeline, share_gallery, share_map, newest_first FROM journey_share_tokens WHERE journey_id = ?')
+      .get(journeyId) as { token: string; share_timeline: number; share_gallery: number; share_map: number; newest_first: number } | undefined;
+
+    if (existing) {
+      // An update only changes the flags it was actually given. Falling back to
+      // the create-time defaults here would silently re-publish a gallery or map
+      // the owner had switched off, at the unchanged token.
+      const share_timeline = permissions.share_timeline ?? !!existing.share_timeline;
+      const share_gallery = permissions.share_gallery ?? !!existing.share_gallery;
+      const share_map = permissions.share_map ?? !!existing.share_map;
+      const newest_first = permissions.newest_first ?? !!existing.newest_first;
+      this.db.prepare('UPDATE journey_share_tokens SET share_timeline = ?, share_gallery = ?, share_map = ?, newest_first = ? WHERE journey_id = ?')
+        .run(share_timeline ? 1 : 0, share_gallery ? 1 : 0, share_map ? 1 : 0, newest_first ? 1 : 0, journeyId);
+      return { token: existing.token, created: false };
+    }
+
     const {
       share_timeline = true,
       share_gallery = true,
       share_map = true,
       newest_first = false,
     } = permissions;
-
-    const existing = this.db.prepare('SELECT token FROM journey_share_tokens WHERE journey_id = ?').get(journeyId) as { token: string } | undefined;
-    if (existing) {
-      this.db.prepare('UPDATE journey_share_tokens SET share_timeline = ?, share_gallery = ?, share_map = ?, newest_first = ? WHERE journey_id = ?')
-        .run(share_timeline ? 1 : 0, share_gallery ? 1 : 0, share_map ? 1 : 0, newest_first ? 1 : 0, journeyId);
-      return { token: existing.token, created: false };
-    }
 
     const token = crypto.randomBytes(24).toString('base64url');
     this.db.prepare('INSERT INTO journey_share_tokens (journey_id, token, created_by, share_timeline, share_gallery, share_map, newest_first) VALUES (?, ?, ?, ?, ?, ?, ?)')
@@ -109,13 +118,18 @@ export class JourneyShareService {
     // owner shared the gallery.
     if (!row.share_gallery) return null;
     const photo = this.db.prepare(`
-      SELECT tkp.owner_id FROM journey_photos gp
+      SELECT tkp.owner_id, j.user_id AS journey_owner_id
+      FROM journey_photos gp
       JOIN trek_photos tkp ON tkp.id = gp.photo_id
+      JOIN journeys j ON j.id = gp.journey_id
       WHERE tkp.asset_id = ? AND gp.journey_id = ?
     `).get(assetId, row.journey_id) as any;
     // Only resolve assets that actually belong to this shared journey.
     if (!photo) return null;
-    return { ownerId: photo.owner_id };
+    // trek_photos.owner_id can be NULL. The journey's owner is the fallback, the
+    // same one the photo proxy uses. Whose provider credentials get tried must
+    // never come from a number an anonymous caller put in the URL.
+    return { ownerId: photo.owner_id || photo.journey_owner_id };
   }
 
   getPublicJourney(token: string) {

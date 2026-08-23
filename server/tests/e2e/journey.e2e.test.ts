@@ -317,6 +317,15 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
     expect(res.body).toEqual({ id: 9 });
   });
 
+  it('public journey read still answers the addon gate when Journey is off', async () => {
+    // The authenticated surface goes dark with the addon; a published journey
+    // has to go with it, or turning the switch off does not take the feature away.
+    isAddonEnabled.mockReturnValue(false);
+    const res = await request(server).get('/api/public/journey/tok');
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Journey addon is not enabled' });
+  });
+
   it('the image fileFilter is wired: a disallowed extension is rejected, not stored', async () => {
     // The multer options are built by MulterModule.registerAsync now, and Nest
     // injects MULTER_MODULE_OPTIONS with @Optional(): a token that fails to

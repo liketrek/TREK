@@ -6,6 +6,9 @@ import { JourneyController } from '../../../src/nest/journey/journey.controller'
 import { journeyThumbName } from '../../../src/nest/memories/thumbnail.service';
 import type { PhotoCaptureBackfillService } from '../../../src/nest/memories/photo-capture-backfill.service';
 import { JourneyPublicController } from '../../../src/nest/journey/journey-public.controller';
+import { AddonGuard } from '../../../src/nest/addons/addon.guard';
+import { REQUIRE_ADDON } from '../../../src/nest/addons/require-addon.decorator';
+import { ADDON_IDS } from '../../../src/addons';
 import type { JourneyService } from '../../../src/nest/journey/journey.service';
 import type { JourneyBookService } from '../../../src/nest/journey/journey-book.service';
 import type { StorageService } from '../../../src/nest/storage/storage.service';
@@ -186,8 +189,46 @@ describe('JourneyController', () => {
     expect(thrown(() => ctl(svc({ updateJourneyPreferences: vi.fn().mockReturnValue(null) } as Partial<JourneyService>)).preferences(user, '9', {}))).toEqual({ status: 403, body: { error: 'Not allowed' } });
     expect(ctl(svc({ getJourneyShareLink: vi.fn().mockReturnValue({ token: 'abc' }) } as Partial<JourneyService>)).getShareLink(user, '9')).toEqual({ link: { token: 'abc' } });
     expect(thrown(() => ctl(svc({ createOrUpdateJourneyShareLink: vi.fn().mockReturnValue(null) } as Partial<JourneyService>)).setShareLink(user, '9', {}))).toEqual({ status: 403, body: { error: 'Not allowed' } });
-    expect(ctl(svc({ createOrUpdateJourneyShareLink: vi.fn().mockReturnValue({ token: 'abc' }) } as Partial<JourneyService>)).setShareLink(user, '9', { share_timeline: true })).toEqual({ token: 'abc' });
+    const setLink = vi.fn().mockReturnValue({ token: 'abc' });
+    expect(ctl(svc({ createOrUpdateJourneyShareLink: setLink } as Partial<JourneyService>)).setShareLink(user, '9', { share_timeline: true })).toEqual({ token: 'abc' });
+    // newest_first is part of the shared contract and the public viewer reads
+    // it, so it has to reach the service instead of being dropped here (#1614).
+    expect(setLink).toHaveBeenCalledWith(9, 1, { share_timeline: true, share_gallery: undefined, share_map: undefined, newest_first: undefined });
+    const withOrder = vi.fn().mockReturnValue({ token: 'abc' });
+    ctl(svc({ createOrUpdateJourneyShareLink: withOrder } as Partial<JourneyService>)).setShareLink(user, '9', { newest_first: true });
+    expect(withOrder).toHaveBeenCalledWith(9, 1, { share_timeline: undefined, share_gallery: undefined, share_map: undefined, newest_first: true });
     expect(thrown(() => ctl(svc({ deleteJourneyShareLink: vi.fn().mockReturnValue(false) } as Partial<JourneyService>)).deleteShareLink(user, '9'))).toEqual({ status: 403, body: { error: 'Not allowed' } });
+  });
+
+  it('takes the committed bytes back out when the upload is refused', async () => {
+    // The commit happens before the authorization result is known (the Immich
+    // mirror reads the final path), so every refusal after it has to delete the
+    // object again. Nothing sweeps orphans.
+    const file = { filename: 'a.jpg', originalname: 'a.jpg' } as Express.Multer.File;
+    await thrownAsync(() => ctl(svc({ addPhoto: vi.fn().mockReturnValue(null) } as Partial<JourneyService>)).uploadEntryPhotos(user, '3', [file], {}));
+    expect(storageStub.delete).toHaveBeenCalledWith('journey', 'a.jpg');
+
+    vi.clearAllMocks();
+    await thrownAsync(() => ctl(svc({ uploadGalleryPhotos: vi.fn().mockReturnValue([]) } as Partial<JourneyService>)).uploadGalleryPhotos(user, '3', [{ filename: 'g.jpg' } as Express.Multer.File]));
+    expect(storageStub.delete).toHaveBeenCalledWith('journey', 'g.jpg');
+
+    vi.clearAllMocks();
+    await thrownAsync(() => ctl(svc({ updateJourney: vi.fn().mockReturnValue(null) } as Partial<JourneyService>)).cover(user, '9', { filename: 'c.jpg' } as Express.Multer.File));
+    expect(storageStub.delete).toHaveBeenCalledWith('journey', 'c.jpg');
+  });
+
+  it('drops the files of a partly refused entry batch, keeping the accepted ones', async () => {
+    // A 200 with fewer photos than files still leaves unreferenced objects behind.
+    const addPhoto = vi.fn().mockReturnValueOnce({ id: 5 }).mockReturnValueOnce(null);
+    const immichAutoUploadEnabled = vi.fn().mockReturnValue(false);
+    const files = [
+      { filename: 'ok.jpg', originalname: 'ok.jpg' } as Express.Multer.File,
+      { filename: 'no.jpg', originalname: 'no.jpg' } as Express.Multer.File,
+    ];
+    const res = await ctl(svc({ addPhoto, immichAutoUploadEnabled } as Partial<JourneyService>)).uploadEntryPhotos(user, '3', files, {});
+    expect(res).toEqual({ photos: [{ id: 5 }] });
+    expect(storageStub.delete).toHaveBeenCalledWith('journey', 'no.jpg');
+    expect(storageStub.delete).not.toHaveBeenCalledWith('journey', 'ok.jpg');
   });
 
   it('entry photo upload mirrors to Immich only when opted in', async () => {
@@ -376,6 +417,13 @@ describe('JourneyController', () => {
 });
 
 describe('JourneyPublicController', () => {
+  it('is addon-gated like the authenticated surface', () => {
+    // Turning the Journey addon off is meant to take the feature away; without
+    // this, already-published journeys stayed publicly readable.
+    expect(Reflect.getMetadata(REQUIRE_ADDON, JourneyPublicController)).toEqual({ addonId: ADDON_IDS.JOURNEY, label: 'Journey' });
+    expect((Reflect.getMetadata('__guards__', JourneyPublicController) ?? [])[0]).toBe(AddonGuard);
+  });
+
   it('GET /:token 404 / json', () => {
     expect(thrown(() => new JourneyPublicController(svc({ getPublicJourney: vi.fn().mockReturnValue(null) } as Partial<JourneyService>), storageStub).get('tok'))).toEqual({ status: 404, body: { error: 'Not found' } });
     expect(new JourneyPublicController(svc({ getPublicJourney: vi.fn().mockReturnValue({ id: 1 }) } as Partial<JourneyService>), storageStub).get('tok')).toEqual({ id: 1 });
@@ -435,11 +483,14 @@ describe('JourneyPublicController', () => {
     expect(json).toHaveBeenCalledWith({ error: 'Provider not supported' });
   });
 
-  it('legacy photo proxy: falls back to the path ownerId when the token has none', async () => {
+  it('legacy photo proxy: ignores the path ownerId, taking the owner off the token', async () => {
+    // Whose provider credentials get tried is not something an anonymous caller
+    // may choose from the URL. The share service resolves it, falling back to
+    // the journey owner when the photo row carries no owner_id.
     const streamProviderAsset = vi.fn().mockResolvedValue(undefined);
-    const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 0 }), streamProviderAsset } as Partial<JourneyService>);
+    const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 3 }), streamProviderAsset } as Partial<JourneyService>);
     await new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'immich', 'a1', '8', 'original', {} as Response);
-    expect(streamProviderAsset).toHaveBeenCalledWith({}, 'immich', { userId: 8, ownerId: 8, assetId: 'a1' }, 'original');
+    expect(streamProviderAsset).toHaveBeenCalledWith({}, 'immich', { userId: 3, ownerId: 3, assetId: 'a1' }, 'original');
   });
 
   it('legacy photo proxy: local provider 404s when the object does not exist', async () => {

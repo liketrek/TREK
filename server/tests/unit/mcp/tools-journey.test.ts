@@ -441,6 +441,46 @@ describe('journey share-link tools', () => {
     });
   });
 
+  it('passes the share flags through, and an omitted flag keeps its value', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const journey = await seedJourney(h);
+      await h.client.callTool({
+        name: 'create_journey_share_link',
+        arguments: { journeyId: journey.id, share_gallery: false, newest_first: true },
+      });
+      // Calling it again without the flags must not re-publish the gallery.
+      await h.client.callTool({ name: 'create_journey_share_link', arguments: { journeyId: journey.id } });
+      const read = parseToolResult(await h.client.callTool({
+        name: 'get_journey_share_link', arguments: { journeyId: journey.id },
+      })) as any;
+      expect(read.shareLink.share_gallery).toBe(false);
+      expect(read.shareLink.newest_first).toBe(true);
+      expect(read.shareLink.share_timeline).toBe(true);
+    });
+  });
+
+  it('get_journey_share_link is owner-only, like create and delete', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: guest } = createUser(testDb);
+    let journeyId = 0;
+    await withHarness(owner.id, async (h) => {
+      const journey = await seedJourney(h);
+      journeyId = journey.id;
+      await h.client.callTool({ name: 'create_journey_share_link', arguments: { journeyId } });
+    });
+    testDb.prepare(
+      'INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, ?, ?)',
+    ).run(journeyId, guest.id, 'viewer', Date.now());
+    await withHarness(guest.id, async (h) => {
+      // The token is the whole credential: a contributor must not be able to
+      // read out a link that keeps working after they are removed.
+      expect((await h.client.callTool({
+        name: 'get_journey_share_link', arguments: { journeyId },
+      })).isError).toBe(true);
+    });
+  });
+
   it('every share tool refuses a foreign journey', async () => {
     const { user } = createUser(testDb);
     const { journeyId } = foreignJourney();

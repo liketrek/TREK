@@ -279,6 +279,13 @@ export class FilesController {
     if (!this.files.can('file_edit', trip, user)) {
       throw new HttpException({ error: 'No permission' }, 403);
     }
+    // deleteFileLink scopes by (linkId, fileId) only, so the file itself has to
+    // be resolved against :tripId first. Otherwise a member of any trip could
+    // drop a link row belonging to a foreign trip's file.
+    const file = this.files.getFileById(id, tripId);
+    if (!file) {
+      throw new HttpException({ error: 'File not found' }, 404);
+    }
     this.files.deleteFileLink(linkId, id);
     return { success: true };
   }
@@ -286,6 +293,10 @@ export class FilesController {
   @UseGuards(TripAccessGuard)
   @Get(':id/links')
   links(@CurrentUser() user: User, @Trip() trip: TripAccess, @Param('tripId') tripId: string, @Param('id') id: string) {
+    const file = this.files.getFileById(id, tripId);
+    if (!file) {
+      throw new HttpException({ error: 'File not found' }, 404);
+    }
     return { links: this.files.getFileLinks(id) };
   }
 }

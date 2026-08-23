@@ -280,6 +280,20 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
       expect(thrown(() => tc(s).remove(user, '9', req))).toEqual({ status: 403, body: { error: 'No permission to delete this trip' } });
     });
 
+    it('404s for someone with no access, so the 403 is not an existence oracle', () => {
+      const s = svc({ getOwner: vi.fn().mockReturnValue({ user_id: 2 }), canAccessTrip: vi.fn().mockReturnValue(null), remove: vi.fn() } as Partial<TripsService>);
+      expect(thrown(() => tc(s).remove(user, '9', req))).toEqual({ status: 404, body: { error: 'Trip not found' } });
+      expect(s.remove).not.toHaveBeenCalled();
+    });
+
+    it('still lets an admin delete a trip they are not a member of', () => {
+      const admin = { id: 1, role: 'admin', email: 'a@example.test' } as User;
+      const remove = vi.fn().mockReturnValue({ tripId: 9, title: 'T', isAdminDelete: true, ownerEmail: 'owner@x.y' });
+      const s = svc({ getOwner: vi.fn().mockReturnValue({ user_id: 2 }), canAccessTrip: vi.fn().mockReturnValue(null), remove, broadcast: vi.fn() } as Partial<TripsService>);
+      expect(tc(s).remove(admin, '9', req)).toEqual({ success: true });
+      expect(remove).toHaveBeenCalledWith('9', 1, 'admin');
+    });
+
     it('deletes, audits and broadcasts', () => {
       const remove = vi.fn().mockReturnValue({ tripId: 9, title: 'T', isAdminDelete: false }); const broadcast = vi.fn();
       const s = svc({ getOwner: vi.fn().mockReturnValue({ user_id: 1 }), remove, broadcast } as Partial<TripsService>);

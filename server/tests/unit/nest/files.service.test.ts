@@ -141,10 +141,14 @@ describe('files.constants', () => {
   });
 
   it('FILE-SVC-003: blocklist, size caps and the default allowlist are pinned', () => {
-    expect(BLOCKED_EXTENSIONS).toHaveLength(25);
+    expect(BLOCKED_EXTENSIONS).toHaveLength(29);
     expect(BLOCKED_EXTENSIONS).toContain('.svg');
     expect(BLOCKED_EXTENSIONS).toContain('.exe');
     expect(BLOCKED_EXTENSIONS).toContain('.ps1');
+    // The alternative spellings a browser still renders as a document.
+    for (const ext of ['.svgz', '.shtml', '.shtm', '.xht']) {
+      expect(BLOCKED_EXTENSIONS).toContain(ext);
+    }
     expect(MAX_FILE_SIZE).toBe(50 * 1024 * 1024);
     expect(MAX_VIDEO_SIZE).toBe(500 * 1024 * 1024);
     expect(DEFAULT_ALLOWED_EXTENSIONS).toBe('jpg,jpeg,png,gif,webp,heic,pdf,doc,docx,xls,xlsx,txt,csv,pkpass,pkpasses,md,markdown');

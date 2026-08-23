@@ -148,6 +148,41 @@ describe('createOrUpdateJourneyShareLink', () => {
     expect(link!.share_map).toBe(false);
   });
 
+  it('JOURNEY-SHARE-027: an update leaves out flags it was not given', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
+      share_timeline: true,
+      share_gallery: false,
+      share_map: false,
+      newest_first: true,
+    });
+    // A caller that only flips the timeline must not silently re-publish the
+    // gallery and map at the unchanged token.
+    svc.createOrUpdateJourneyShareLink(journey.id, user.id, { share_timeline: false });
+
+    const link = svc.getJourneyShareLink(journey.id);
+    expect(link!.share_timeline).toBe(false);
+    expect(link!.share_gallery).toBe(false);
+    expect(link!.share_map).toBe(false);
+    expect(link!.newest_first).toBe(true);
+  });
+
+  it('JOURNEY-SHARE-028: newest_first survives a flag-only update and is settable', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    svc.createOrUpdateJourneyShareLink(journey.id, user.id, {});
+    expect(svc.getJourneyShareLink(journey.id)!.newest_first).toBe(false);
+
+    svc.createOrUpdateJourneyShareLink(journey.id, user.id, { newest_first: true });
+    expect(svc.getJourneyShareLink(journey.id)!.newest_first).toBe(true);
+
+    svc.createOrUpdateJourneyShareLink(journey.id, user.id, { share_gallery: false });
+    expect(svc.getJourneyShareLink(journey.id)!.newest_first).toBe(true);
+  });
+
   it('JOURNEY-SHARE-004: different journeys get different tokens', () => {
     const { user } = createUser(testDb);
     const j1 = createJourney(testDb, user.id);
@@ -321,6 +356,21 @@ describe('validateShareTokenForAsset', () => {
     const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, { share_timeline: true, share_gallery: false, share_map: true });
 
     expect(svc.validateShareTokenForAsset(token, 'immich-asset-999')).toBeNull();
+  });
+
+  it('JOURNEY-SHARE-029: falls back to the journey owner when the photo has no owner_id', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id);
+    insertJourneyPhoto(entry.id, { assetId: 'immich-asset-orphan' });
+    const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, {});
+
+    // Without the fallback the controller filled the gap from the :ownerId path
+    // segment, i.e. an anonymous caller picked whose provider credentials to try.
+    const result = svc.validateShareTokenForAsset(token, 'immich-asset-orphan');
+
+    expect(result).not.toBeNull();
+    expect(result!.ownerId).toBe(user.id);
   });
 
   it('JOURNEY-SHARE-015: denies (returns null) when the asset is not part of the shared journey', () => {

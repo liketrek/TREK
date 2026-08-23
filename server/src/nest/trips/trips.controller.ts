@@ -239,6 +239,13 @@ export class TripsController {
     if (!owner) {
       throw new HttpException({ error: 'Trip not found' }, 404);
     }
+    // Someone with no access at all gets the same 404 as a trip that does not
+    // exist, otherwise the 403 below turns sequential ids into an existence
+    // oracle. Admins are exempt: they may delete trips they are not a member of,
+    // which is what the isAdminDelete branch further down relies on.
+    if (user.role !== 'admin' && !this.trips.canAccessTrip(id, user.id)) {
+      throw new HttpException({ error: 'Trip not found' }, 404);
+    }
     if (!this.trips.can('trip_delete', user.role, owner.user_id, user.id, owner.user_id !== user.id)) {
       throw new HttpException({ error: 'No permission to delete this trip' }, 403);
     }

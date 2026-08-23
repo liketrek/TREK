@@ -527,7 +527,7 @@ describe('Delete trip', () => {
     expect(getRes.status).toBe(404);
   });
 
-  it('TRIP-019 — Regular user cannot delete another users trip → 403', async () => {
+  it('TRIP-019 — Regular user cannot delete another users trip → 404', async () => {
     const { user: owner } = createUser(testDb);
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, owner.id, { title: "Owner's Trip" });
@@ -536,8 +536,10 @@ describe('Delete trip', () => {
       .delete(`/api/trips/${trip.id}`)
       .set('Cookie', authCookie(other.id));
 
-    // getTripOwner finds the trip (it exists); checkPermission fails for non-members → 403
-    expect(res.status).toBe(403);
+    // 404, not 403: someone with no access at all must not be able to tell an
+    // existing trip from a missing one by walking sequential ids. A member who
+    // simply lacks trip_delete still gets 403 — see the case below.
+    expect(res.status).toBe(404);
 
     // Trip still exists
     const tripInDb = testDb.prepare('SELECT id FROM trips WHERE id = ?').get(trip.id);

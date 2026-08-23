@@ -7,6 +7,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db, canAccessTrip } from '../../../src/db/database';
+import { CAN_ACCESS_TRIP_SQL, buildDbMock, createTestDb } from '../../helpers/test-db';
 
 function seedUser(username: string): number {
   return Number(
@@ -50,5 +51,36 @@ describe('canAccessTrip', () => {
     );
 
     expect(canAccessTrip(tripId, stranger)).toBeUndefined();
+  });
+});
+
+/**
+ * The mock every domain test runs against had the pre-#1543 SELECT, so the very
+ * regression the block above pins was invisible to the suites that mock the db.
+ */
+describe('the buildDbMock stand-in for canAccessTrip', () => {
+  it('hands back the trip currency, like the real one', () => {
+    const testDb = createTestDb();
+    try {
+      const owner = Number(
+        testDb.prepare("INSERT INTO users (username, email, password_hash, role) VALUES ('m', 'm@example.test', 'x', 'user')")
+          .run().lastInsertRowid,
+      );
+      const tripId = Number(
+        testDb.prepare("INSERT INTO trips (user_id, title, currency) VALUES (?, 'Trip', 'ISK')")
+          .run(owner).lastInsertRowid,
+      );
+
+      expect(buildDbMock(testDb).canAccessTrip(tripId, owner)).toMatchObject({ id: tripId, currency: 'ISK' });
+    } finally {
+      testDb.close();
+    }
+  });
+
+  it('selects the same columns the production statement does', () => {
+    const columns = (sql: string) => sql.replace(/\s+/g, ' ').trim();
+    expect(columns(CAN_ACCESS_TRIP_SQL)).toBe(
+      'SELECT t.id, t.user_id, t.currency FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)',
+    );
   });
 });
