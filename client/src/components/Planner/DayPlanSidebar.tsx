@@ -65,7 +65,7 @@ interface DayPlanSidebarProps {
   selectedAssignmentId: number | null
   onSelectDay: (dayId: number | null, skipFit?: boolean) => void
   onPlaceClick: (placeId: number | null, assignmentId?: number | null) => void
-  onDayDetail: (day: Day) => void
+  onDayDetail: (day: Day | null) => void
   accommodations?: Accommodation[]
   onReorder: (dayId: number, orderedIds: number[]) => void
   onReorderDays?: (orderedIds: number[]) => void
@@ -1579,7 +1579,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
               <div
                 className="dp-day-header"
                 data-selected={isSelected}
-                onClick={() => { onSelectDay(day.id); if (onDayDetail) onDayDetail(day) }}
+                // Clicking the selected day again deselects it — same as the day panel's × (#2024).
+                onClick={() => { if (isSelected) { onSelectDay(null); if (onDayDetail) onDayDetail(null) } else { onSelectDay(day.id); if (onDayDetail) onDayDetail(day) } }}
                 onDragOver={e => { e.preventDefault(); if (dragOverDayId !== day.id) setDragOverDayId(day.id) }}
                 onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragOverDayId(null) }}
                 onDrop={e => handleDropOnDay(e, day.id)}

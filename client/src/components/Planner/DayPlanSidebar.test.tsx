@@ -370,6 +370,17 @@ describe('DayPlanSidebar', () => {
     expect(onSelectDay).toHaveBeenCalledWith(10)
   })
 
+  it('FE-PLANNER-DAYPLAN-209: clicking the selected day header again deselects it', async () => {
+    const user = userEvent.setup()
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'My Day' })
+    const onSelectDay = vi.fn()
+    const onDayDetail = vi.fn()
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], selectedDayId: 10, onSelectDay, onDayDetail })} />)
+    await user.click(screen.getByText('My Day'))
+    expect(onSelectDay).toHaveBeenCalledWith(null)
+    expect(onDayDetail).toHaveBeenCalledWith(null)
+  })
+
   it('FE-PLANNER-DAYPLAN-010: selectedDayId renders without error', () => {
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'My Day' })
     render(<DayPlanSidebar {...makeDefaultProps({ days: [day], selectedDayId: 10 })} />)
