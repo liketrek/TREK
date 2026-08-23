@@ -76,4 +76,30 @@ describe('forced-HTTPS redirect', () => {
     delete process.env.APP_URL;
     expect(await redirectLocation()).toBe('https://evil.example.com/trips');
   });
+
+  it('falls back to the request host when APP_URL is not a URL', async () => {
+    // A typo in the env should not take the instance down, and it should not
+    // produce a redirect to a host built from a half-parsed string either.
+    process.env.FORCE_HTTPS = 'true';
+    process.env.APP_URL = 'not a url';
+    expect(await redirectLocation()).toBe('https://evil.example.com/trips');
+  });
+
+  it('leaves an already-secure request alone, and never redirects the health probe', async () => {
+    process.env.FORCE_HTTPS = 'true';
+    process.env.APP_URL = 'https://trip.pakulat.org';
+    const app = express();
+    applyGlobalMiddleware(app);
+    app.get('/trips', (_req, res) => res.json({ ok: true }));
+    app.get('/api/health', (_req, res) => res.json({ ok: true }));
+
+    // The proxy already terminated TLS, so there is nothing to upgrade.
+    const forwarded = await request(app).get('/trips').set('X-Forwarded-Proto', 'https');
+    expect(forwarded.status).toBe(200);
+
+    // The container probe talks plain HTTP on the loopback and must not be
+    // bounced to a hostname it cannot resolve.
+    const probe = await request(app).get('/api/health');
+    expect(probe.status).toBe(200);
+  });
 });
