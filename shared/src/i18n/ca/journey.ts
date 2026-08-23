@@ -589,5 +589,9 @@ const journey: TranslationStrings = {
   'journey.studio.saveConflict': 'Una altra persona ha desat aquest llibre',
   'journey.studio.saveTakeTheirs': 'La seva',
   'journey.studio.saveKeepMine': 'La meva',
+  'journey.studio.rotate': 'Gira',
+  'journey.studio.rotateLeft': "Gira cap a l'esquerra",
+  'journey.studio.rotateRight': 'Gira cap a la dreta',
+  'journey.studio.saveReadOnly': 'Només lectura, no es desa',
 };
 export default journey;

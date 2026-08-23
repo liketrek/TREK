@@ -332,7 +332,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:day-tint-provider':
     'Dagen in het dagplan een kleur geven (bijvoorbeeld bij welk deel van de reis een dag hoort)',
   'admin.plugins.perm.geolocation:read':
-    'Je live locatie opvragen zolang een van zijn weergaven open is (je browser vraagt zelf ook nog om toestemming)',
+    'Je live locatie opvragen zolang een van zijn weergaven open is (TREK leest die met de locatietoestemming van deze site, niet met een eigen toestemming van de plug-in)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Tekstsecties toevoegen aan de PDF-export van de reis',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Landen markeren op de Atlas-wereldkaart (bijv. wensenlijsten of reisadviezen)',

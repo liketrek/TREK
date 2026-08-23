@@ -139,5 +139,13 @@ const budget: TranslationStrings = {
   'costs.filter.allCategories': 'Όλες οι κατηγορίες',
   'costs.filter.allDays': 'Όλες οι ημέρες',
   'costs.expensesCount': '{count} έξοδα',
+  'costs.ticketItemName': 'Όνομα είδους',
+  'costs.ticketSplitting': 'Μοιράζεται σε:',
+  'costs.ticketAddItem': 'Προσθήκη είδους',
+  'costs.ticketShares': 'Μερίδιο ανά άτομο',
+  'costs.excluded': 'Εκτός',
+  'costs.splitBalanced': 'Ο διαμοιρασμός ταιριάζει με το σύνολο',
+  'costs.splitSumUnder': 'Άθροισμα μεριδίων: {sum} από {total} (λείπουν {diff})',
+  'costs.splitSumOver': 'Άθροισμα μεριδίων: {sum} από {total} ({diff} παραπάνω)',
 };
 export default budget;

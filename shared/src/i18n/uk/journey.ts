@@ -590,5 +590,9 @@ const journey: TranslationStrings = {
   'journey.studio.saveConflict': 'Цю книгу зберіг хтось інший',
   'journey.studio.saveTakeTheirs': 'Їхню версію',
   'journey.studio.saveKeepMine': 'Мою версію',
+  'journey.studio.rotate': 'Повернути',
+  'journey.studio.rotateLeft': 'Повернути ліворуч',
+  'journey.studio.rotateRight': 'Повернути праворуч',
+  'journey.studio.saveReadOnly': 'Лише для читання, не зберігається',
 };
 export default journey;

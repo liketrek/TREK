@@ -339,7 +339,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:day-tint-provider':
     'تلوين الأيام في خطة اليوم (مثلاً تحديد المرحلة التي ينتمي إليها كل يوم)',
   'admin.plugins.perm.geolocation:read':
-    'الاستعلام عن موقعك المباشر ما دامت إحدى واجهاته مفتوحة (سيطلب متصفحك الإذن أيضًا)',
+    'الاستعلام عن موقعك المباشر ما دامت إحدى واجهاته مفتوحة (يقرأه TREK بإذن الموقع الممنوح لهذا الموقع الإلكتروني، لا بإذن خاص بالإضافة)',
   'admin.plugins.perm.hook:pdf-section-provider': 'إضافة أقسام نصية إلى تصدير PDF للرحلة',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'إبراز دول على خريطة أطلس العالمية (مثل قوائم الأمنيات أو تحذيرات السفر)',

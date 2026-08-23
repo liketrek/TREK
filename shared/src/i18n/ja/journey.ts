@@ -590,5 +590,9 @@ const journey: TranslationStrings = {
   'journey.studio.saveConflict': 'ほかの人がこの本を保存しました',
   'journey.studio.saveTakeTheirs': '相手の版',
   'journey.studio.saveKeepMine': '自分の版',
+  'journey.studio.rotate': '回転',
+  'journey.studio.rotateLeft': '左に回転',
+  'journey.studio.rotateRight': '右に回転',
+  'journey.studio.saveReadOnly': '閲覧のみ・保存されません',
 };
 export default journey;

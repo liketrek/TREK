@@ -138,6 +138,14 @@ const budget: TranslationStrings = {
   'costs.unfinishedHint': 'Total only — not settled yet',
   'costs.tapToInclude': 'Tap to include',
   'costs.amount': 'Amount',
+  'costs.ticketItemName': 'Item name',
+  'costs.ticketSplitting': 'Splitting:',
+  'costs.ticketAddItem': 'Add item',
+  'costs.ticketShares': 'Individual shares',
+  'costs.excluded': 'Excluded',
+  'costs.splitBalanced': 'Split matches total',
+  'costs.splitSumUnder': 'Sum of splits: {sum} of {total} (under by {diff})',
+  'costs.splitSumOver': 'Sum of splits: {sum} of {total} (over by {diff})',
 };
 
 export default budget;

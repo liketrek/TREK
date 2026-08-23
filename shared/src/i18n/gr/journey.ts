@@ -591,5 +591,9 @@ const journey: TranslationStrings = {
   'journey.studio.saveConflict': 'Κάποιος άλλος αποθήκευσε αυτό το βιβλίο',
   'journey.studio.saveTakeTheirs': 'Τη δική τους',
   'journey.studio.saveKeepMine': 'Τη δική μου',
+  'journey.studio.rotate': 'Περιστροφή',
+  'journey.studio.rotateLeft': 'Περιστροφή αριστερά',
+  'journey.studio.rotateRight': 'Περιστροφή δεξιά',
+  'journey.studio.saveReadOnly': 'Μόνο για ανάγνωση, δεν αποθηκεύεται',
 };
 export default journey;

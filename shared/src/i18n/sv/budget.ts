@@ -138,5 +138,13 @@ const budget: TranslationStrings = {
   'costs.filter.allCategories': 'Alla kategorier',
   'costs.filter.allDays': 'Alla dagar',
   'costs.expensesCount': '{count} utgifter',
+  'costs.ticketItemName': 'Artikelnamn',
+  'costs.ticketSplitting': 'Delas mellan:',
+  'costs.ticketAddItem': 'Lägg till artikel',
+  'costs.ticketShares': 'Andel per person',
+  'costs.excluded': 'Inte med',
+  'costs.splitBalanced': 'Fördelningen stämmer med totalen',
+  'costs.splitSumUnder': 'Summan av delarna: {sum} av {total} ({diff} saknas)',
+  'costs.splitSumOver': 'Summan av delarna: {sum} av {total} ({diff} för mycket)',
 };
 export default budget;

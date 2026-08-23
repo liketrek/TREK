@@ -469,7 +469,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:day-tint-provider':
     'Acolorir els dies del pla del dia (per exemple, a quin tram del viatge pertany un dia)',
   'admin.plugins.perm.geolocation:read':
-    "Consultar la teva ubicació en temps real mentre una de les seves vistes és oberta (el teu navegador també t'ho demanarà)",
+    "Consultar la teva ubicació en temps real mentre una de les seves vistes és oberta (el TREK la llegeix amb el permís d'ubicació d'aquest lloc, no amb un permís propi del connector)",
   'admin.plugins.updateConsentTitle': 'Aquesta actualització necessita permisos nous',
   'admin.plugins.updateConsentBody':
     "{name} v{version} demana permisos que encara no has concedit. La versió nova està instal·lada, però roman desactivada fins que l'aprovis.",

@@ -138,6 +138,14 @@ const budget: TranslationStrings = {
   'costs.filter.allCategories': 'Tất cả danh mục',
   'costs.filter.allDays': 'Tất cả các ngày',
   'costs.expensesCount': '{count} chi phí',
+  'costs.ticketItemName': 'Tên món',
+  'costs.ticketSplitting': 'Chia cho:',
+  'costs.ticketAddItem': 'Thêm món',
+  'costs.ticketShares': 'Phần của từng người',
+  'costs.excluded': 'Không tính',
+  'costs.splitBalanced': 'Phần chia khớp với tổng',
+  'costs.splitSumUnder': 'Tổng các phần: {sum} trên {total} (thiếu {diff})',
+  'costs.splitSumOver': 'Tổng các phần: {sum} trên {total} (thừa {diff})',
 };
 
 export default budget;

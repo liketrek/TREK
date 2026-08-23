@@ -589,5 +589,9 @@ const journey: TranslationStrings = {
   'journey.studio.saveConflict': 'Tuto knihu uložil někdo jiný',
   'journey.studio.saveTakeTheirs': 'Jejich verzi',
   'journey.studio.saveKeepMine': 'Moji verzi',
+  'journey.studio.rotate': 'Otočit',
+  'journey.studio.rotateLeft': 'Otočit doleva',
+  'journey.studio.rotateRight': 'Otočit doprava',
+  'journey.studio.saveReadOnly': 'Jen ke čtení, neukládá se',
 };
 export default journey;

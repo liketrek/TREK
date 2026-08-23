@@ -349,7 +349,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:day-schedule-provider': '일자 계획에 시간 항목 추가(충전 정차, 보안 검색 여유 시간)',
   'admin.plugins.perm.hook:day-tint-provider': '일자 계획에서 날짜를 색으로 구분(예: 해당 날짜가 여행의 어느 구간인지)',
   'admin.plugins.perm.geolocation:read':
-    '해당 플러그인 화면이 열려 있는 동안 실시간 위치 요청 (브라우저에서 추가로 확인함)',
+    '해당 플러그인 화면이 열려 있는 동안 실시간 위치 요청 (TREK이 이 사이트에 부여된 위치 권한으로 읽으며, 플러그인용 권한을 따로 묻지 않음)',
   'admin.plugins.perm.hook:pdf-section-provider': '여행 PDF 내보내기에 텍스트 섹션 추가',
   'admin.plugins.perm.hook:atlas-layer-provider': 'Atlas 세계 지도에서 국가 강조 표시(예: 위시리스트 또는 여행 경보)',
   'admin.plugins.perm.hook:journal-entry-provider': '저널 항목에 추가 행(링크, 통계) 제공',

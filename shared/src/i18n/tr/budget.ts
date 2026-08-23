@@ -138,5 +138,13 @@ const budget: TranslationStrings = {
   'costs.filter.allCategories': 'Tüm kategoriler',
   'costs.filter.allDays': 'Tüm günler',
   'costs.expensesCount': '{count} harcama',
+  'costs.ticketItemName': 'Kalem adı',
+  'costs.ticketSplitting': 'Bölüşülüyor:',
+  'costs.ticketAddItem': 'Kalem ekle',
+  'costs.ticketShares': 'Kişi başı pay',
+  'costs.excluded': 'Dahil değil',
+  'costs.splitBalanced': 'Bölüşüm toplamla eşleşiyor',
+  'costs.splitSumUnder': 'Payların toplamı: {total} tutarın {sum} kadarı ({diff} eksik)',
+  'costs.splitSumOver': 'Payların toplamı: {total} tutarın {sum} kadarı ({diff} fazla)',
 };
 export default budget;

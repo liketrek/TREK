@@ -138,5 +138,13 @@ const budget: TranslationStrings = {
   'costs.filter.allCategories': 'すべてのカテゴリー',
   'costs.filter.allDays': 'すべての日',
   'costs.expensesCount': '{count}件の支出',
+  'costs.ticketItemName': '品目名',
+  'costs.ticketSplitting': '分割:',
+  'costs.ticketAddItem': '品目を追加',
+  'costs.ticketShares': '一人あたりの負担',
+  'costs.excluded': '対象外',
+  'costs.splitBalanced': '分割は合計と一致しています',
+  'costs.splitSumUnder': '分割の合計: {total} のうち {sum}（{diff} 不足）',
+  'costs.splitSumOver': '分割の合計: {total} のうち {sum}（{diff} 超過）',
 };
 export default budget;

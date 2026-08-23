@@ -10,7 +10,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { usePermissionsStore } from '../../store/permissionsStore'
 import { clearExchangeRateCache } from '../../hooks/useExchangeRates'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
-import { buildUser, buildTrip, buildBudgetItem } from '../../../tests/helpers/factories'
+import { buildUser, buildTrip, buildBudgetItem, buildSettings } from '../../../tests/helpers/factories'
 import type { BudgetItem } from '../../types'
 import CostsPanel, { ExpenseModal } from './CostsPanel'
 import { splitEqualShares, calculateTicketShares, type TicketItem } from './CostsPanel.helpers'
@@ -594,7 +594,7 @@ describe('CostsPanel — settlements in the ledger', () => {
 
     expect(screen.getByDisplayValue('100,00')).toBeDisabled()
 
-    expect(screen.getByText('Individual Shares Summary')).toBeInTheDocument()
+    expect(screen.getByText('Individual shares')).toBeInTheDocument()
     expect(screen.getByText(/75\.00/)).toBeInTheDocument()
     expect(screen.getByText(/25\.00/)).toBeInTheDocument()
 
@@ -914,6 +914,50 @@ describe('CostsPanel — settle up', () => {
     fireEvent.click(screen.getByTitle('Undo'))
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Unknown error', 'error', undefined))
     delete window.__addToast
+  })
+
+  it('FE-W5COSTS-059: a settle-up that fails midway still reloads the transfers that went through', async () => {
+    const addToast = vi.fn()
+    window.__addToast = addToast as unknown as typeof window.__addToast
+    let posted = 0
+    let reads = 0
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
+      http.get('/api/trips/1/budget/settlement', () => {
+        reads += 1
+        return HttpResponse.json({ balances: [], flows: posted > 0 ? [flows[1]] : flows, settlements: [] })
+      }),
+      http.post('/api/trips/1/budget/settlements', () => {
+        posted += 1
+        return posted === 1 ? HttpResponse.json({ settlement: { id: 1 } }) : HttpResponse.json({ error: 'no' }, { status: 500 })
+      }),
+    )
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    const settleAll = await screen.findByRole('button', { name: 'Settle up' })
+    await waitFor(() => expect(settleAll).not.toBeDisabled())
+    const readsBefore = reads
+    fireEvent.click(settleAll)
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Unknown error', 'error', undefined))
+    // The failed second transfer must not swallow the refresh: bob's 45 € was
+    // recorded, and leaving it listed invites a second, doubled settle-up.
+    await waitFor(() => expect(reads).toBeGreaterThan(readsBefore))
+    expect(posted).toBe(2)
+    delete window.__addToast
+  })
+
+  it('FE-W5COSTS-060: a settlement read that fails says so instead of claiming everyone is square', async () => {
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ error: 'no' }, { status: 500 })),
+    )
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    await screen.findByText('Balances')
+    // Settle up and Balances both hang off the one failed request.
+    await waitFor(() => expect(screen.getAllByText('Unknown error')).toHaveLength(2))
+    expect(screen.queryByText("Everyone's square")).toBeNull()
   })
 
   it('FE-W5COSTS-013: the "you owe" card lists who I still have to pay', async () => {
@@ -1447,6 +1491,26 @@ describe('CostsPanel — remaining paths', () => {
     createObjURL.mockRestore(); revokeObjURL.mockRestore(); clickSpy.mockRestore()
   })
 
+  it('FE-W5COSTS-061: the CSV export neutralises names a spreadsheet would run as a formula', async () => {
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'EUR', title: 'Rome' }) })
+    let exported: Blob | null = null
+    const createObjURL = vi.spyOn(URL, 'createObjectURL').mockImplementation(b => { exported = b as Blob; return 'blob:mock' })
+    const revokeObjURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    mount([
+      expense({ id: 204, name: '=HYPERLINK("http://evil","click")', category: 'food', total_price: 12, expense_date: '2025-06-15', note: '@SUM(A1:A9)' }),
+      expense({ id: 205, name: '-5 refund', category: 'misc', total_price: 5, expense_date: '2025-06-16', note: null }),
+    ])
+
+    await screen.findByText('-5 refund')
+    fireEvent.click(screen.getByTitle('Export CSV'))
+
+    const lines = (await exported!.text()).replace(/^\uFEFF/, '').split('\r\n')
+    expect(lines[1]).toBe('06/15/2025;"\'=HYPERLINK(""http://evil"",""click"")";Food & drink;12.00;EUR;12.00;\'@SUM(A1:A9)')
+    expect(lines[2]).toBe('06/16/2025;\'-5 refund;Other;5.00;EUR;5.00;')
+    createObjURL.mockRestore(); revokeObjURL.mockRestore(); clickSpy.mockRestore()
+  })
+
   it('FE-W5COSTS-043: deleting an expense drops it from the ledger', async () => {
     let deleted = false
     server.use(http.delete('/api/trips/1/budget/101', () => { deleted = true; return HttpResponse.json({ success: true }) }))
@@ -1615,7 +1679,7 @@ describe('CostsPanel — remaining paths', () => {
     await user.click(bob)
     await user.click(bob)
     // 10.99 across two people leaves the odd cent with the lower user id.
-    expect(screen.getByText('Individual Shares Summary')).toBeInTheDocument()
+    expect(screen.getByText('Individual shares')).toBeInTheDocument()
     expect(screen.getByText('€5.50')).toBeInTheDocument()
     expect(screen.getByText('€5.49')).toBeInTheDocument()
   })
@@ -1741,6 +1805,21 @@ describe('CostsPanel — mobile extras', () => {
     expect(await screen.findByPlaceholderText('0.00')).toBeInTheDocument()
   })
 
+  it('FE-W5COSTS-062: the mobile search box keeps the caret across keystrokes', async () => {
+    const user = userEvent.setup()
+    mount([dinner(), taxi()])
+
+    await screen.findByText('Taxi')
+    const box = screen.getByPlaceholderText('Search expenses…')
+    await user.type(box, 'din')
+
+    // The whole word has to land: if the body is remounted per keystroke the input
+    // loses focus and everything after the first character goes nowhere.
+    expect((box as HTMLInputElement).value).toBe('din')
+    expect(document.activeElement).toBe(box)
+    expect(screen.queryByText('Taxi')).not.toBeInTheDocument()
+  })
+
   it('FE-W5COSTS-054: an unknown currency degrades to a plain amount on mobile too', async () => {
     seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: '' } })
     seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'XX' }) })
@@ -1772,5 +1851,60 @@ describe('CostsPanel — split maths', () => {
     // The service line used to count toward the total without landing on anyone,
     // so the shares stayed a permanent 5.00 short of it (#1382).
     expect(calculateTicketShares(items)).toEqual({ shares: { 1: 7.5, 2: 7.5 }, total: 15 })
+  })
+})
+
+// The reworked expense modal shipped with English written straight into the JSX,
+// so the receipt panel and the split summary stayed English on a German phone
+// while everything around them translated.
+describe('CostsPanel — expense modal in another language', () => {
+  beforeEach(() => {
+    seedAlice()
+    seedStore(useSettingsStore, { settings: buildSettings({ language: 'de', default_currency: 'EUR' }) })
+    clearExchangeRateCache()
+  })
+  afterEach(clearExchangeRateCache)
+
+  const openModal = () => render(
+    <ExpenseModal tripId={1} base="EUR" people={tripMembers} me={1} editing={null}
+      onClose={() => {}} onSaved={vi.fn()} />
+  )
+
+  it('FE-W5COSTS-063: the receipt panel is translated', async () => {
+    const user = userEvent.setup()
+    openModal()
+
+    // The locale bundle is fetched, so the first paint is still English.
+    await user.click(await screen.findByRole('button', { name: 'Beleg' }))
+    await user.click(screen.getByRole('button', { name: /Artikel hinzufügen/ }))
+
+    expect(screen.getByPlaceholderText('Artikelname')).toBeInTheDocument()
+    expect(screen.getByText('Aufteilen auf:')).toBeInTheDocument()
+    expect(screen.getByText('Anteil pro Person')).toBeInTheDocument()
+    expect(screen.queryByText('Individual shares')).not.toBeInTheDocument()
+  })
+
+  it('FE-W5COSTS-064: the split summary and the excluded marker are translated', async () => {
+    const user = userEvent.setup()
+    openModal()
+
+    await user.type(await screen.findByPlaceholderText('0,00'), '90')
+    await user.click(screen.getByRole('button', { name: 'Individuell' }))
+
+    // Nothing entered yet, so the whole 90 is still unaccounted for.
+    expect(screen.getByText('Summe der Anteile: €0.00 von €90.00 (es fehlen €90.00)')).toBeInTheDocument()
+
+    const shares = screen.getAllByPlaceholderText('45,00')
+    await user.type(shares[0], '90')
+    expect(screen.getByText('Aufteilung passt zur Summe')).toBeInTheDocument()
+
+    await user.type(shares[1], '10')
+    expect(screen.getByText('Summe der Anteile: €100.00 von €90.00 (€10.00 zu viel)')).toBeInTheDocument()
+
+    // Back to the equal split: a member taken out of it is marked, not dropped.
+    await user.click(screen.getByRole('button', { name: 'Gleichmäßig' }))
+    await user.click(screen.getByRole('button', { name: /bob/i }))
+    expect(screen.getByText('Nicht dabei')).toBeInTheDocument()
+    expect(screen.queryByText('Excluded')).not.toBeInTheDocument()
   })
 })

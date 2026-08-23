@@ -589,5 +589,9 @@ const journey: TranslationStrings = {
   'journey.studio.saveConflict': 'Otra persona ha guardado este libro',
   'journey.studio.saveTakeTheirs': 'La suya',
   'journey.studio.saveKeepMine': 'La mía',
+  'journey.studio.rotate': 'Girar',
+  'journey.studio.rotateLeft': 'Girar a la izquierda',
+  'journey.studio.rotateRight': 'Girar a la derecha',
+  'journey.studio.saveReadOnly': 'Solo lectura, no se guarda',
 };
 export default journey;

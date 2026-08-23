@@ -589,5 +589,9 @@ const journey: TranslationStrings = {
   'journey.studio.saveConflict': '다른 사람이 이 책을 저장했습니다',
   'journey.studio.saveTakeTheirs': '상대 버전',
   'journey.studio.saveKeepMine': '내 버전',
+  'journey.studio.rotate': '회전',
+  'journey.studio.rotateLeft': '왼쪽으로 회전',
+  'journey.studio.rotateRight': '오른쪽으로 회전',
+  'journey.studio.saveReadOnly': '읽기 전용, 저장되지 않음',
 };
 export default journey;

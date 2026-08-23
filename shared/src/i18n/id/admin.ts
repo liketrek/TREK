@@ -381,7 +381,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:day-tint-provider':
     'Memberi warna pada hari di rencana hari (misalnya bagian perjalanan mana yang memuat suatu hari)',
   'admin.plugins.perm.geolocation:read':
-    'Meminta lokasi terkinimu selama salah satu tampilannya terbuka (browser-mu tetap akan meminta izin terlebih dahulu)',
+    'Meminta lokasi terkinimu selama salah satu tampilannya terbuka (TREK membacanya dengan izin lokasi situs ini, bukan izin milik plugin sendiri)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Menambahkan bagian teks ke ekspor PDF perjalanan',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Menyorot negara di peta dunia Atlas (mis. daftar keinginan atau peringatan perjalanan)',

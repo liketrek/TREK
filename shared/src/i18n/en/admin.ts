@@ -369,7 +369,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:day-tint-provider':
     'Colour-code days in the day plan (e.g. which leg of the trip a day belongs to)',
   'admin.plugins.perm.geolocation:read':
-    'Ask for your live position while one of its views is open (your browser will still ask first)',
+    "Ask for your live position while one of its views is open (TREK reads it under this site's location permission, not the plugin's own)",
   'admin.plugins.perm.hook:pdf-section-provider': 'Append text sections to the trip PDF export',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Highlight countries on the Atlas world map (e.g. wishlists or travel advisories)',

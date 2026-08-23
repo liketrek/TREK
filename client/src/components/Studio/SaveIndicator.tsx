@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, CloudOff, RefreshCw } from 'lucide-react'
+import { AlertTriangle, Check, CloudOff, Eye, RefreshCw } from 'lucide-react'
 import type { BookRecord } from '@trek/shared'
 import type { SaveState } from './useBookStore'
 
@@ -39,6 +39,20 @@ export function SaveIndicator({
         <button onClick={() => onKeepMine(state.current)}>
           {t('journey.studio.saveKeepMine')}
         </button>
+      </div>
+    )
+  }
+
+  if (state.status === 'readonly') {
+    /*
+     * Not an error and not retryable: this person was invited to read the
+     * journey, not to write it. Said once, plainly, and left standing — the
+     * alternative is an editor that looks like it is saving and is not.
+     */
+    return (
+      <div className="st-save is-error" role="status">
+        <Eye size={13} />
+        <span>{t('journey.studio.saveReadOnly')}</span>
       </div>
     )
   }

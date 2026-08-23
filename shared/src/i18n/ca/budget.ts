@@ -138,6 +138,14 @@ const budget: TranslationStrings = {
   'costs.payersUnbalanced': 'Els imports dels pagadors han de sumar {amount}',
   'costs.confirm.deleteTitle': 'Vols eliminar la despesa?',
   'costs.confirm.deleteBody': '"{name}" quedarà eliminat permanentment.',
+  'costs.ticketItemName': "Nom de l'article",
+  'costs.ticketSplitting': 'Repartit entre:',
+  'costs.ticketAddItem': 'Afegeix un article',
+  'costs.ticketShares': 'Part de cadascú',
+  'costs.excluded': 'Exclòs',
+  'costs.splitBalanced': 'El repartiment quadra amb el total',
+  'costs.splitSumUnder': 'Suma de les parts: {sum} de {total} (en falten {diff})',
+  'costs.splitSumOver': 'Suma de les parts: {sum} de {total} ({diff} de més)',
 };
 
 export default budget;

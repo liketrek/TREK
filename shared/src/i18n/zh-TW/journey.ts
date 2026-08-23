@@ -587,5 +587,9 @@ const journey: TranslationStrings = {
   'journey.studio.saveConflict': '其他人儲存了這本書',
   'journey.studio.saveTakeTheirs': '用他們的',
   'journey.studio.saveKeepMine': '用我的',
+  'journey.studio.rotate': '旋轉',
+  'journey.studio.rotateLeft': '向左旋轉',
+  'journey.studio.rotateRight': '向右旋轉',
+  'journey.studio.saveReadOnly': '唯讀，不會儲存',
 };
 export default journey;

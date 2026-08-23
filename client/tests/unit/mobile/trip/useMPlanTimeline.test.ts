@@ -607,6 +607,9 @@ describe('useMPlanTimeline', () => {
     expect(planner.handleUpdateDayTitle).toHaveBeenCalledWith(2, 'Old Town')
   })
 
+  // The two built-in modes were the only labels on this menu written in English
+  // instead of looked up, so a German reader got "Driving"/"Walking" between
+  // translated rows — and next to plugin profiles carrying their own label.
   it('FE-MOB-PLTL-040: offers the built-in travel modes plus every plugin profile', async () => {
     usePluginStore.setState({
       plugins: [
@@ -616,8 +619,8 @@ describe('useMPlanTimeline', () => {
     })
     const { result } = await renderTimeline(makePlanner())
     expect(result.current.routeModeOptions).toEqual([
-      { key: 'driving', label: 'Driving' },
-      { key: 'walking', label: 'Walking' },
+      { key: 'driving', label: 'mobileTrip.profileDriving' },
+      { key: 'walking', label: 'mobileTrip.profileWalking' },
       { key: 'plugin:ev/eco', label: 'Eco' },
       { key: 'plugin:ev/fast', label: 'Fast' },
     ])

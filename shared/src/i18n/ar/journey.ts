@@ -588,5 +588,9 @@ const journey: TranslationStrings = {
   'journey.studio.saveConflict': 'حفظ شخص آخر هذا الكتاب',
   'journey.studio.saveTakeTheirs': 'نسختهم',
   'journey.studio.saveKeepMine': 'نسختي',
+  'journey.studio.rotate': 'تدوير',
+  'journey.studio.rotateLeft': 'تدوير لليسار',
+  'journey.studio.rotateRight': 'تدوير لليمين',
+  'journey.studio.saveReadOnly': 'للقراءة فقط، لا يتم الحفظ',
 };
 export default journey;

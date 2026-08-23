@@ -590,5 +590,9 @@ const journey: TranslationStrings = {
   'journey.studio.saveConflict': 'Iemand anders heeft dit boek opgeslagen',
   'journey.studio.saveTakeTheirs': 'De hunne',
   'journey.studio.saveKeepMine': 'De mijne',
+  'journey.studio.rotate': 'Draaien',
+  'journey.studio.rotateLeft': 'Naar links draaien',
+  'journey.studio.rotateRight': 'Naar rechts draaien',
+  'journey.studio.saveReadOnly': 'Alleen lezen, wordt niet opgeslagen',
 };
 export default journey;

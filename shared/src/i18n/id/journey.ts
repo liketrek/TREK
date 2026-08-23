@@ -588,5 +588,9 @@ const journey: TranslationStrings = {
   'journey.studio.saveConflict': 'Orang lain menyimpan buku ini',
   'journey.studio.saveTakeTheirs': 'Punya mereka',
   'journey.studio.saveKeepMine': 'Punya saya',
+  'journey.studio.rotate': 'Putar',
+  'journey.studio.rotateLeft': 'Putar ke kiri',
+  'journey.studio.rotateRight': 'Putar ke kanan',
+  'journey.studio.saveReadOnly': 'Hanya baca, tidak disimpan',
 };
 export default journey;

@@ -7,8 +7,20 @@ import type { PeerCursor } from './useBookPresence'
 import { FONT_STACKS } from './bookRender'
 import { useSpreadInteraction, type HandleId } from './useSpreadInteraction'
 import { useStudioStore } from '../../store/studioStore'
+import { useTranslation } from '../../i18n'
 
 const HANDLES: HandleId[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']
+
+/**
+ * What a delete may actually take out of the selection.
+ *
+ * A locked element stays selectable on purpose, so the lock has to be honoured
+ * here the way the drag, resize and rotate gestures honour it. The store keeps
+ * removing whatever it is handed: the import and repair paths remove locked
+ * elements deliberately.
+ */
+const deletable = (spread: BookSpread | undefined, selection: string[]): string[] =>
+  (spread?.elements ?? []).filter(e => selection.includes(e.id) && !e.locked).map(e => e.id)
 
 /**
  * Where the four rotation handles sit, as percentages of the selection box.
@@ -66,6 +78,7 @@ export function StudioCanvas({
   /** Where this one is, in the spread's millimetres. Null once it leaves. */
   onCursor?: (x: number | null, y: number | null) => void
 }) {
+  const { t } = useTranslation()
   const selection = useStudioStore(s => s.selection)
   const select = useStudioStore(s => s.select)
   const removeElements = useStudioStore(s => s.removeElements)
@@ -123,12 +136,13 @@ export function StudioCanvas({
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
       if ((e.key === 'Delete' || e.key === 'Backspace') && selection.length) {
         e.preventDefault()
-        removeElements(spreadIndex, selection)
+        const ids = deletable(spread, selection)
+        if (ids.length) removeElements(spreadIndex, ids)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [selection, spreadIndex, removeElements])
+  }, [selection, spread, spreadIndex, removeElements])
 
   if (!spread) return null
 
@@ -346,7 +360,7 @@ export function StudioCanvas({
                 className={`st-rotate is-${c.id}`}
                 style={{ left: c.left, top: c.top }}
                 onPointerDown={startRotate}
-                title="Rotate"
+                title={t('journey.studio.rotate')}
               >
                 <RotateCw size={11} />
               </div>
@@ -380,15 +394,15 @@ export function StudioCanvas({
               style={{ left: (x0 + x1) / 2, top: Math.max(6, y0 - 12) }}
               onPointerDown={e => e.stopPropagation()}
             >
-              <button onClick={() => duplicate(spreadIndex, selection)} title="Duplicate">
+              <button onClick={() => duplicate(spreadIndex, selection)} title={t('journey.studio.duplicate')}>
                 <Copy size={14} />
               </button>
               {sel.length === 1 && (
                 <>
-                  <button onClick={() => raise(spreadIndex, sel[0].id, 'front')} title="Bring to front">
+                  <button onClick={() => raise(spreadIndex, sel[0].id, 'front')} title={t('journey.studio.toFront')}>
                     <ChevronsUp size={14} />
                   </button>
-                  <button onClick={() => raise(spreadIndex, sel[0].id, 'back')} title="Send to back">
+                  <button onClick={() => raise(spreadIndex, sel[0].id, 'back')} title={t('journey.studio.toBack')}>
                     <ChevronsDown size={14} />
                   </button>
                 </>
@@ -405,13 +419,13 @@ export function StudioCanvas({
               */}
               <button
                 onClick={e => rotateBy(e.shiftKey ? -1 : -15)}
-                title="Rotate left"
+                title={t('journey.studio.rotateLeft')}
               >
                 <RotateCcw size={14} />
               </button>
               <button
                 onClick={e => rotateBy(e.shiftKey ? 1 : 15)}
-                title="Rotate right"
+                title={t('journey.studio.rotateRight')}
               >
                 <RotateCw size={14} />
               </button>
@@ -424,12 +438,16 @@ export function StudioCanvas({
                     elements: sp.elements.map(e => (selection.includes(e.id) ? { ...e, locked: !locked } : e)),
                   })),
                 }))}
-                title={locked ? 'Unlock' : 'Lock'}
+                title={t(locked ? 'journey.studio.unlock' : 'journey.studio.lock')}
               >
                 {locked ? <Unlock size={14} /> : <Lock size={14} />}
               </button>
               <span className="st-quickbar-sep" />
-              <button className="is-danger" onClick={() => removeElements(spreadIndex, selection)} title="Delete">
+              <button
+                className="is-danger"
+                onClick={() => { const ids = deletable(spread, selection); if (ids.length) removeElements(spreadIndex, ids) }}
+                title={t('journey.studio.delete')}
+              >
                 <Trash2 size={14} />
               </button>
             </div>

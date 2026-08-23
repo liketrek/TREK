@@ -589,5 +589,9 @@ const journey: TranslationStrings = {
   'journey.studio.saveConflict': 'Någon annan har sparat den här boken',
   'journey.studio.saveTakeTheirs': 'Deras',
   'journey.studio.saveKeepMine': 'Min',
+  'journey.studio.rotate': 'Rotera',
+  'journey.studio.rotateLeft': 'Rotera åt vänster',
+  'journey.studio.rotateRight': 'Rotera åt höger',
+  'journey.studio.saveReadOnly': 'Skrivskyddad, sparas inte',
 };
 export default journey;

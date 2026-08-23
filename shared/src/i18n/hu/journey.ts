@@ -589,5 +589,9 @@ const journey: TranslationStrings = {
   'journey.studio.saveConflict': 'Ezt a könyvet valaki más mentette',
   'journey.studio.saveTakeTheirs': 'Az övék',
   'journey.studio.saveKeepMine': 'Az enyém',
+  'journey.studio.rotate': 'Forgatás',
+  'journey.studio.rotateLeft': 'Forgatás balra',
+  'journey.studio.rotateRight': 'Forgatás jobbra',
+  'journey.studio.saveReadOnly': 'Csak olvasható, nem mentődik',
 };
 export default journey;

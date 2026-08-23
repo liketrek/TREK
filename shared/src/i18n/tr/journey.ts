@@ -589,5 +589,9 @@ const journey: TranslationStrings = {
   'journey.studio.saveConflict': 'Bu kitabı başka biri kaydetti',
   'journey.studio.saveTakeTheirs': 'Onlarınki',
   'journey.studio.saveKeepMine': 'Benimki',
+  'journey.studio.rotate': 'Döndür',
+  'journey.studio.rotateLeft': 'Sola döndür',
+  'journey.studio.rotateRight': 'Sağa döndür',
+  'journey.studio.saveReadOnly': 'Salt okunur, kaydedilmiyor',
 };
 export default journey;

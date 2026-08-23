@@ -589,5 +589,9 @@ const journey: TranslationStrings = {
   'journey.studio.saveConflict': 'Qualcun altro ha salvato questo libro',
   'journey.studio.saveTakeTheirs': 'La loro',
   'journey.studio.saveKeepMine': 'La mia',
+  'journey.studio.rotate': 'Ruota',
+  'journey.studio.rotateLeft': 'Ruota a sinistra',
+  'journey.studio.rotateRight': 'Ruota a destra',
+  'journey.studio.saveReadOnly': 'Sola lettura, non si salva',
 };
 export default journey;

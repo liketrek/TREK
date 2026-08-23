@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { Fragment, useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router'
 import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, ArrowLeftRight, Check, RotateCcw, Pencil, Trash2, AlertCircle, Download, StickyNote, ChevronDown } from 'lucide-react'
 import { useTripStore } from '../../store/tripStore'
@@ -74,6 +74,9 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   const { convert } = useExchangeRates(base)
   const curOf = useCallback((e: BudgetItem) => (e.currency || tripCurrency), [tripCurrency])
   const [settlement, setSettlement] = useState<SettlementData | null>(null)
+  // A failed settlement read leaves `settlement` null, which the empty views would
+  // otherwise present as "everyone is square", a balance claim we cannot make.
+  const [settlementError, setSettlementError] = useState(false)
   const [filter, setFilter] = useState<'all' | 'mine' | 'owed'>('all')
   const [search, setSearch] = useState('')
   const [catFilter, setCatFilter] = useState('')   // '' = all categories
@@ -99,7 +102,9 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   const fmt0 = useCallback((v: number, c = base) => formatMoney(v, c, locale, { decimals: 0 }), [base, locale])
 
   const loadSettlement = useCallback(() => {
-    budgetApi.settlement(tripId, base).then(setSettlement).catch(() => {})
+    budgetApi.settlement(tripId, base)
+      .then(s => { setSettlement(s); setSettlementError(false) })
+      .catch(() => setSettlementError(true))
   }, [tripId, base])
 
   useEffect(() => { loadBudgetItems(tripId); loadSettlement() }, [tripId])
@@ -219,8 +224,10 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     if (!flows.length) return
     try {
       for (const f of flows) await budgetApi.createSettlement(tripId, { from_user_id: f.from.user_id, to_user_id: f.to.user_id, amount: f.amount, currency: base })
-      loadSettlement()
     } catch { toast.error(t('common.unknownError')) }
+    // Refresh even when one transfer failed: the ones created before it are real,
+    // and leaving them in the flow list invites a second, doubled settle-up.
+    finally { loadSettlement() }
   }
 
   const dateMeta = useMemo(() => {
@@ -241,7 +248,13 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   // Costs rework (#1500). One row per expense, oldest first.
   const handleExportCsv = () => {
     const sep = ';'
-    const esc = (v: unknown) => { const s = String(v ?? ''); return s.includes(sep) || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s }
+    // A cell starting with =, +, -, @, TAB or CR is evaluated as a formula by Excel
+    // and Sheets, and the name/note columns are free text any trip member can write.
+    const esc = (v: unknown) => {
+      let s = String(v ?? '')
+      if (/^[=+\-@\t\r]/.test(s)) s = "'" + s
+      return s.includes(sep) || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s
+    }
     const fmtDate = (iso: string) => { if (!iso) return ''; try { return new Date(iso + 'T00:00:00Z').toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }) } catch { return iso } }
 
     const header = ['Date', 'Name', 'Category', 'Amount', 'Currency', 'Amount (' + base + ')', 'Note']
@@ -310,7 +323,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
 
   return (
     <div className="costs-root" style={{ minHeight: '100%', background: 'var(--c-bg)', padding: isMobile ? '6px 14px 28px' : '40px 24px 48px' }}>
-     {isMobile ? <MobileBody /> : (
+     {isMobile ? MobileBody() : (
      <div style={{ maxWidth: '100%', margin: '0 auto' }}>
       {/* ── Header bar ── */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, marginBottom: 28, flexWrap: 'wrap' }}>
@@ -422,8 +435,8 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
                 )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {g.entries.map(en => en.kind === 'expense'
-                    ? <ExpenseRow key={'e' + en.e.id} e={en.e} />
-                    : <SettlementRow key={'s' + en.s.id} s={en.s} />)}
+                    ? <Fragment key={'e' + en.e.id}>{ExpenseRow({ e: en.e })}</Fragment>
+                    : <Fragment key={'s' + en.s.id}>{SettlementRow({ s: en.s })}</Fragment>)}
                 </div>
               </div>
             )
@@ -444,19 +457,19 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
                 </button>
               )}
             </div>
-            <SettleFlows />
+            {SettleFlows()}
           </div>
 
           {/* balances */}
           <div className={cardCls} style={{ borderRadius: 22, padding: '22px 24px' }}>
             <div className={labelCls} style={{ marginBottom: 14 }}>{t('costs.balances')}</div>
-            <BalancesList balances={settlement?.balances || []} />
+            {BalancesList({ balances: settlement?.balances || [] })}
           </div>
 
           {/* by category */}
           <div className={cardCls} style={{ borderRadius: 22, padding: '22px 24px' }}>
             <div className={labelCls} style={{ marginBottom: 14 }}>{t('costs.byCategory')}</div>
-            <CategoryBreakdown />
+            {CategoryBreakdown()}
           </div>
         </div>
       </div>
@@ -520,8 +533,15 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     </div>
   )
 
+  // Settle-up and Balances both come from the one settlement request, so they
+  // share the notice that says the numbers are missing rather than zero.
+  function loadFailed() {
+    return <div className="text-content-muted" style={{ textAlign: 'center', padding: '14px 8px', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))' }}>{t('common.unknownError')}</div>
+  }
+
   // ── shared settle-flow list ──────────────────────────────────────────────
   function SettleFlows() {
+    if (settlementError) return loadFailed()
     const flows = settlement?.flows || []
     if (flows.length === 0) return (
       <div style={{ textAlign: 'center', padding: '14px 8px' }}>
@@ -602,7 +622,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
               <button onClick={() => setAddingPayment(true)} className="text-content-muted bg-surface-card border border-edge" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 9, fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}><Plus size={13} /> {t('costs.addPayment')}</button>
             )}
           </div>
-          <SettleFlows />
+          {SettleFlows()}
         </div>
 
         {/* Expenses */}
@@ -637,8 +657,8 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
                   <div key={g.day} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {!dayFilter && <div className={labelCls} style={{ display: 'flex', alignItems: 'center', padding: '0 2px' }}>{g.day}<span className="text-content-muted" style={{ marginLeft: 'auto', textTransform: 'none', letterSpacing: 0, fontWeight: 500, fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))' }}>{t('costs.spent', { amount: fmt(dtot) })}</span></div>}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{g.entries.map(en => en.kind === 'expense'
-                      ? <ExpenseRow key={'e' + en.e.id} e={en.e} />
-                      : <SettlementRow key={'s' + en.s.id} s={en.s} />)}</div>
+                      ? <Fragment key={'e' + en.e.id}>{ExpenseRow({ e: en.e })}</Fragment>
+                      : <Fragment key={'s' + en.s.id}>{SettlementRow({ s: en.s })}</Fragment>)}</div>
                   </div>
                 )
               })}
@@ -647,13 +667,13 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         {/* Balances */}
         <div className={cardCls} style={{ borderRadius: 18, padding: 16 }}>
           <div className={labelCls} style={{ marginBottom: 14 }}>{t('costs.balances')}</div>
-          <BalancesList balances={settlement?.balances || []} />
+          {BalancesList({ balances: settlement?.balances || [] })}
         </div>
 
         {/* By category */}
         <div className={cardCls} style={{ borderRadius: 18, padding: 16 }}>
           <div className={labelCls} style={{ marginBottom: 14 }}>{t('costs.byCategory')}</div>
-          <CategoryBreakdown />
+          {CategoryBreakdown()}
         </div>
       </div>
     )
@@ -775,7 +795,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
           </div>
         </div>
       </div>
-      {canEdit && <RowActions onEdit={() => { setEditing(e); setModalOpen(true) }} onDelete={() => handleDelete(e.id)} deleteLabel={t('common.delete')} />}
+      {canEdit && RowActions({ onEdit: () => { setEditing(e); setModalOpen(true) }, onDelete: () => handleDelete(e.id), deleteLabel: t('common.delete') })}
       </div>
     )
   }
@@ -817,6 +837,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   }
 
   function BalancesList({ balances }: { balances: SettlementData['balances'] }) {
+    if (settlementError) return loadFailed()
     const rows = people.map(p => balances.find(b => b.user_id === p.id) || { user_id: p.id, username: p.username, avatar_url: null, balance: 0 })
     const max = Math.max(1, ...rows.map(r => Math.abs(r.balance)))
     return (
@@ -1445,7 +1466,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
                     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 130px auto', gap: 8, alignItems: 'center' }}>
                       <input
                         type="text"
-                        placeholder="Item name"
+                        placeholder={t('costs.ticketItemName')}
                         value={item.name}
                         onChange={e => handleUpdateItemName(item.id, e.target.value)}
                         className="bg-surface-input border border-edge text-content"
@@ -1468,7 +1489,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
                     </div>
 
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center' }}>
-                      <span className="text-content-faint" style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', marginRight: 4 }}>Splitting:</span>
+                      <span className="text-content-faint" style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', marginRight: 4 }}>{t('costs.ticketSplitting')}</span>
                       {people.map((p, pIdx) => {
                         const active = item.participants.has(p.id)
                         return (
@@ -1492,12 +1513,12 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
               </div>
 
               <button type="button" onClick={handleAddEmptyItem} className="border border-dashed border-edge text-content-muted" style={{ padding: '8px 12px', borderRadius: 10, background: 'none', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                <Plus size={14} /> Add item
+                <Plus size={14} /> {t('costs.ticketAddItem')}
               </button>
 
               {ticketItems.length > 0 && (
                 <div className="bg-surface-secondary border border-edge" style={{ padding: 12, borderRadius: 10 }}>
-                  <div className="text-content" style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Individual Shares Summary</div>
+                  <div className="text-content" style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>{t('costs.ticketShares')}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {people.map(p => {
                       const share = ticketInfo.shares[p.id] || 0
@@ -1532,7 +1553,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
                             {sym(currency)}{(equalShares[p.id] || 0).toFixed(2)}
                           </span>
                         ) : (
-                          <span className="text-content-faint" style={{ fontSize: 12, textAlign: 'right', paddingRight: 10 }}>Excluded</span>
+                          <span className="text-content-faint" style={{ fontSize: 12, textAlign: 'right', paddingRight: 10 }}>{t('costs.excluded')}</span>
                         )
                       ) : (
                         on ? (
@@ -1557,9 +1578,13 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
                   </span>
                 ) : (
                   <span style={{ fontWeight: 600, color: customBalanced ? '#16a34a' : '#dc2626' }}>
-                    {customBalanced 
-                      ? 'Split matches total' 
-                      : `Sum of splits: ${sym(currency)}${splitSum.toFixed(2)} of ${sym(currency)}${totalNum.toFixed(2)} (${(totalNum - splitSum) > 0 ? 'under by' : 'over by'} ${sym(currency)}${Math.abs(totalNum - splitSum).toFixed(2)})`}
+                    {customBalanced
+                      ? t('costs.splitBalanced')
+                      : t(totalNum - splitSum > 0 ? 'costs.splitSumUnder' : 'costs.splitSumOver', {
+                          sum: sym(currency) + splitSum.toFixed(2),
+                          total: sym(currency) + totalNum.toFixed(2),
+                          diff: sym(currency) + Math.abs(totalNum - splitSum).toFixed(2),
+                        })}
                   </span>
                 )}
               </div>

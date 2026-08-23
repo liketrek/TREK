@@ -137,5 +137,13 @@ const budget: TranslationStrings = {
   'costs.filter.allCategories': '所有类别',
   'costs.filter.allDays': '所有日期',
   'costs.expensesCount': '{count} 笔支出',
+  'costs.ticketItemName': '项目名称',
+  'costs.ticketSplitting': '分摊：',
+  'costs.ticketAddItem': '添加项目',
+  'costs.ticketShares': '每人份额',
+  'costs.excluded': '不参与',
+  'costs.splitBalanced': '分摊金额与总额相符',
+  'costs.splitSumUnder': '分摊合计：{total} 中的 {sum}（少 {diff}）',
+  'costs.splitSumOver': '分摊合计：{total} 中的 {sum}（多 {diff}）',
 };
 export default budget;

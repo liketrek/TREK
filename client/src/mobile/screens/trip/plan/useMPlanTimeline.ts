@@ -347,12 +347,12 @@ export function useMPlanTimeline(planner: TripPlanner) {
   const activePlugins = usePluginStore(s => s.plugins)
   const routeModeOptions = useMemo(() => {
     const opts: Array<{ key: string; label: string }> = [
-      { key: 'driving', label: 'Driving' },
-      { key: 'walking', label: 'Walking' },
+      { key: 'driving', label: t('mobileTrip.profileDriving') },
+      { key: 'walking', label: t('mobileTrip.profileWalking') },
     ]
     for (const p of activePlugins) for (const prof of p.routeProfiles ?? []) opts.push({ key: `plugin:${p.id}/${prof.id}`, label: prof.label })
     return opts
-  }, [activePlugins])
+  }, [activePlugins, t])
 
   // Set the mode of the leg leaving a stop — optimistic, then persisted; null clears
   // the override back to the day default. Sticky against the whole-day picker.

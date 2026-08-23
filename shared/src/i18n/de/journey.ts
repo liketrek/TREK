@@ -589,5 +589,9 @@ const journey: TranslationStrings = {
   'journey.studio.saveConflict': 'Jemand anderes hat dieses Buch gespeichert',
   'journey.studio.saveTakeTheirs': 'Deren Fassung',
   'journey.studio.saveKeepMine': 'Meine behalten',
+  'journey.studio.rotate': 'Drehen',
+  'journey.studio.rotateLeft': 'Nach links drehen',
+  'journey.studio.rotateRight': 'Nach rechts drehen',
+  'journey.studio.saveReadOnly': 'Nur lesen, nichts wird gespeichert',
 };
 export default journey;

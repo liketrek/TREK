@@ -138,5 +138,13 @@ const budget: TranslationStrings = {
   'costs.filter.allCategories': 'Všechny kategorie',
   'costs.filter.allDays': 'Všechny dny',
   'costs.expensesCount': '{count} výdajů',
+  'costs.ticketItemName': 'Název položky',
+  'costs.ticketSplitting': 'Dělí se mezi:',
+  'costs.ticketAddItem': 'Přidat položku',
+  'costs.ticketShares': 'Podíl každého',
+  'costs.excluded': 'Nezahrnuto',
+  'costs.splitBalanced': 'Rozdělení sedí s celkem',
+  'costs.splitSumUnder': 'Součet podílů: {sum} z {total} (chybí {diff})',
+  'costs.splitSumOver': 'Součet podílů: {sum} z {total} (o {diff} více)',
 };
 export default budget;

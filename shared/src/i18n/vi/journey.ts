@@ -589,5 +589,9 @@ const journey: TranslationStrings = {
   'journey.studio.saveConflict': 'Người khác đã lưu cuốn sách này',
   'journey.studio.saveTakeTheirs': 'Bản của họ',
   'journey.studio.saveKeepMine': 'Bản của tôi',
+  'journey.studio.rotate': 'Xoay',
+  'journey.studio.rotateLeft': 'Xoay trái',
+  'journey.studio.rotateRight': 'Xoay phải',
+  'journey.studio.saveReadOnly': 'Chỉ đọc, không lưu',
 };
 export default journey;

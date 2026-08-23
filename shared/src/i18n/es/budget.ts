@@ -138,5 +138,13 @@ const budget: TranslationStrings = {
   'costs.filter.allCategories': 'Todas las categorías',
   'costs.filter.allDays': 'Todos los días',
   'costs.expensesCount': '{count} gastos',
+  'costs.ticketItemName': 'Nombre del artículo',
+  'costs.ticketSplitting': 'Se reparte entre:',
+  'costs.ticketAddItem': 'Añadir artículo',
+  'costs.ticketShares': 'Parte de cada uno',
+  'costs.excluded': 'Excluido',
+  'costs.splitBalanced': 'El reparto cuadra con el total',
+  'costs.splitSumUnder': 'Suma de las partes: {sum} de {total} (faltan {diff})',
+  'costs.splitSumOver': 'Suma de las partes: {sum} de {total} (sobran {diff})',
 };
 export default budget;

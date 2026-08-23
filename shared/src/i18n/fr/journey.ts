@@ -590,5 +590,9 @@ const journey: TranslationStrings = {
   'journey.studio.saveConflict': 'Quelqu’un d’autre a enregistré ce livre',
   'journey.studio.saveTakeTheirs': 'La leur',
   'journey.studio.saveKeepMine': 'La mienne',
+  'journey.studio.rotate': 'Pivoter',
+  'journey.studio.rotateLeft': 'Pivoter à gauche',
+  'journey.studio.rotateRight': 'Pivoter à droite',
+  'journey.studio.saveReadOnly': "Lecture seule, rien n'est enregistré",
 };
 export default journey;

@@ -138,5 +138,13 @@ const budget: TranslationStrings = {
   'costs.filter.allCategories': '모든 카테고리',
   'costs.filter.allDays': '모든 날짜',
   'costs.expensesCount': '지출 {count}건',
+  'costs.ticketItemName': '항목 이름',
+  'costs.ticketSplitting': '나눔:',
+  'costs.ticketAddItem': '항목 추가',
+  'costs.ticketShares': '개인별 부담',
+  'costs.excluded': '제외됨',
+  'costs.splitBalanced': '분할 금액이 합계와 일치합니다',
+  'costs.splitSumUnder': '분할 합계: {total} 중 {sum} ({diff} 부족)',
+  'costs.splitSumOver': '분할 합계: {total} 중 {sum} ({diff} 초과)',
 };
 export default budget;

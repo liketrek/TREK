@@ -328,7 +328,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:day-tint-provider':
     'Oznaczanie dni w planie dnia kolorami (na przykład do którego etapu podróży należy dany dzień)',
   'admin.plugins.perm.geolocation:read':
-    'Odczytywanie Twojej aktualnej lokalizacji, gdy otwarty jest któryś z jego widoków (przeglądarka i tak zapyta o zgodę)',
+    'Odczytywanie Twojej aktualnej lokalizacji, gdy otwarty jest któryś z jego widoków (TREK odczytuje ją z uprawnieniem do lokalizacji tej witryny, a nie z własnym uprawnieniem wtyczki)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Dołączanie sekcji tekstowych do eksportu PDF podróży',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Wyróżnianie krajów na mapie świata Atlasu (np. listy życzeń lub ostrzeżenia dla podróżnych)',

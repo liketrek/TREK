@@ -138,5 +138,13 @@ const budget: TranslationStrings = {
   'costs.splitEqually': 'Gleichmäßig',
   'costs.splitCustom': 'Individuell',
   'costs.splitTicket': 'Beleg',
+  'costs.ticketItemName': 'Artikelname',
+  'costs.ticketSplitting': 'Aufteilen auf:',
+  'costs.ticketAddItem': 'Artikel hinzufügen',
+  'costs.ticketShares': 'Anteil pro Person',
+  'costs.excluded': 'Nicht dabei',
+  'costs.splitBalanced': 'Aufteilung passt zur Summe',
+  'costs.splitSumUnder': 'Summe der Anteile: {sum} von {total} (es fehlen {diff})',
+  'costs.splitSumOver': 'Summe der Anteile: {sum} von {total} ({diff} zu viel)',
 };
 export default budget;

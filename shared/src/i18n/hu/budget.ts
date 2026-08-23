@@ -138,5 +138,13 @@ const budget: TranslationStrings = {
   'costs.filter.allCategories': 'Összes kategória',
   'costs.filter.allDays': 'Összes nap',
   'costs.expensesCount': '{count} kiadás',
+  'costs.ticketItemName': 'Tétel neve',
+  'costs.ticketSplitting': 'Megosztva:',
+  'costs.ticketAddItem': 'Tétel hozzáadása',
+  'costs.ticketShares': 'Egyéni részek',
+  'costs.excluded': 'Kihagyva',
+  'costs.splitBalanced': 'A felosztás megegyezik a végösszeggel',
+  'costs.splitSumUnder': 'A részek összege: {sum} / {total} (hiányzik {diff})',
+  'costs.splitSumOver': 'A részek összege: {sum} / {total} ({diff} a többlet)',
 };
 export default budget;
