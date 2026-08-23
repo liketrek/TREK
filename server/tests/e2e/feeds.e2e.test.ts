@@ -18,6 +18,7 @@ import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
 import { DatabaseModule } from '../../src/nest/database/database.module';
 import { Test } from '@nestjs/testing';
+import { APP_GUARD } from '@nestjs/core';
 import { seedUser, sessionCookie } from './harness';
 
 const { db } = vi.hoisted(() => {
@@ -73,6 +74,9 @@ import { FeedsModule } from '../../src/nest/feeds/feeds.module';
 import { CalendarService } from '../../src/nest/calendar/calendar.service';
 import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { AppConfigModule } from '../../src/nest/app-config/app-config.module';
+import { GlobalAuthGuard } from '../../src/nest/auth/global-auth.guard';
+import { MfaPolicyGuard } from '../../src/nest/auth/mfa-policy.guard';
 
 const BASE = 'https://trek.example.test';
 
@@ -82,7 +86,18 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
   let prevAppUrl: string | undefined;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, FeedsModule] }).compile();
+    // The global guards decide whether a route answers a stranger, and they live
+    // in AppModule — a suite that pins 'anonymous feed → 200' has to boot them,
+    // or it proves nothing about the app that actually runs (a missing @Public()
+    // on the feed controller passed here while production 401'd every calendar
+    // client).
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppConfigModule, DatabaseModule, RealtimeModule, FeedsModule],
+      providers: [
+        { provide: APP_GUARD, useClass: GlobalAuthGuard },
+        { provide: APP_GUARD, useClass: MfaPolicyGuard },
+      ],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());

@@ -2,13 +2,26 @@ import { METHOD_METADATA, PATH_METADATA, GUARDS_METADATA } from '@nestjs/common/
 import { ModulesContainer } from '@nestjs/core';
 import type { INestApplication } from '@nestjs/common';
 import { IS_PUBLIC, OPTIONAL_AUTH } from '../auth/public.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CookieAuthGuard } from '../auth/cookie-auth.guard';
+import { OptionalJwtGuard } from '../auth/optional-jwt.guard';
 
 export interface RouteGuardEntry {
   /** `ControllerClass.methodName` */
   id: string;
   /** How the route is covered, for the failure message. */
-  cover: 'public' | 'optional-auth' | 'declared-guards';
+  cover: 'public' | 'optional-auth' | 'declared-guards' | 'declared-guards-anonymous';
 }
+
+/**
+ * The guards that actually resolve a caller. GlobalAuthGuard stands down for ANY
+ * declared chain, so a chain built only from other guards answers anonymously —
+ * that is what separates 'declared-guards' from 'declared-guards-anonymous'.
+ * TripAccessGuard and friends are absent on purpose: they refuse a request with
+ * no req.user, but they never resolve one, so they only ever appear behind one
+ * of these three.
+ */
+const AUTHENTICATING_GUARDS: unknown[] = [JwtAuthGuard, CookieAuthGuard, OptionalJwtGuard];
 
 /**
  * Boot-time gate: every registered route must be authenticated, or say why not.
@@ -23,7 +36,9 @@ export interface RouteGuardEntry {
  * declared @UseGuards chain (on the handler or the class). Everything else falls
  * to GlobalAuthGuard, which is fine — that is the default — so this gate does
  * not fail on it. What it reports is the inventory, so the exempt set is a list
- * somebody can read.
+ * somebody can read. A declared chain is split in two, because GlobalAuthGuard
+ * stands down on any chain at all: one that authenticates, and one that answers
+ * strangers.
  */
 export function collectRouteGuards(app: INestApplication): RouteGuardEntry[] {
   const container = app.get(ModulesContainer, { strict: false });
@@ -53,7 +68,10 @@ export function collectRouteGuards(app: INestApplication): RouteGuardEntry[] {
 
         if (isPublic) entries.push({ id, cover: 'public' });
         else if (isOptional) entries.push({ id, cover: 'optional-auth' });
-        else if (classGuards.length > 0 || handlerGuards.length > 0) entries.push({ id, cover: 'declared-guards' });
+        else if (classGuards.length > 0 || handlerGuards.length > 0) {
+          const authenticates = [...handlerGuards, ...classGuards].some((g) => AUTHENTICATING_GUARDS.includes(g));
+          entries.push({ id, cover: authenticates ? 'declared-guards' : 'declared-guards-anonymous' });
+        }
       }
     }
   }
@@ -62,9 +80,11 @@ export function collectRouteGuards(app: INestApplication): RouteGuardEntry[] {
 }
 
 /**
- * The routes that answer without a session. Reviewed as a list on purpose: this
- * is the whole anonymous surface of the server in one place, and a diff that
- * grows it is a diff that widens what strangers can reach.
+ * The routes that answer without a session because they carry @Public().
+ * Reviewed as a list on purpose: together with
+ * ANONYMOUS_GUARDED_ROUTE_ALLOW_LIST this is the whole anonymous surface of the
+ * server in one place, and a diff that grows either is a diff that widens what
+ * strangers can reach.
  *
  * Entries are `ControllerClass.methodName`. Sorted, no duplicates.
  */
@@ -89,6 +109,10 @@ export const PUBLIC_ROUTE_ALLOW_LIST: string[] = [
   'FeaturesController.features',
   // The container/uptime probe.
   'FeaturesController.health',
+  // Subscribable ICS feeds. The token in the path is the credential, and the
+  // calendar client polling it has no TREK session to send.
+  'FeedsPublicController.tripFeed',
+  'FeedsPublicController.userFeed',
   // The download link carries its own short-lived token.
   'FilesDownloadController.download',
   'HelpController.asset',
@@ -119,17 +143,38 @@ export const PUBLIC_ROUTE_ALLOW_LIST: string[] = [
 ];
 
 /**
- * Throws when a route carries @Public() without being listed above, or when a
+ * The other half of the anonymous surface: routes with no @Public() that still
+ * answer without a session, because the guards they declare never resolve a
+ * caller. GlobalAuthGuard stands down on a declared chain, so this is not a
+ * hole the gate should close — it is one it has to keep visible.
+ */
+export const ANONYMOUS_GUARDED_ROUTE_ALLOW_LIST: string[] = [
+  // The passkey login ceremony, which by definition runs before a session
+  // exists. PasskeyEnabledGuard only 404s when the admin toggle is off.
+  'PasskeyController.loginOptions',
+  'PasskeyController.loginVerify',
+];
+
+/**
+ * Throws when a route answers anonymously without being listed above, or when a
  * listed route no longer exists. Stale entries fail too, for the same reason the
  * body-contract gate fails on them: a list nobody prunes stops being a list.
  */
-export function validateRouteGuards(app: INestApplication, allowList: string[] = PUBLIC_ROUTE_ALLOW_LIST): void {
+export function validateRouteGuards(
+  app: INestApplication,
+  allowList: string[] = PUBLIC_ROUTE_ALLOW_LIST,
+  anonymousGuardedAllowList: string[] = ANONYMOUS_GUARDED_ROUTE_ALLOW_LIST,
+): void {
   const entries = collectRouteGuards(app);
   const publicIds = entries.filter((e) => e.cover === 'public').map((e) => e.id);
+  const anonymousIds = entries.filter((e) => e.cover === 'declared-guards-anonymous').map((e) => e.id);
   const allowed = new Set(allowList);
+  const anonymousAllowed = new Set(anonymousGuardedAllowList);
 
   const undeclared = publicIds.filter((id) => !allowed.has(id));
   const stale = allowList.filter((id) => !publicIds.includes(id));
+  const undeclaredAnonymous = anonymousIds.filter((id) => !anonymousAllowed.has(id));
+  const staleAnonymous = anonymousGuardedAllowList.filter((id) => !anonymousIds.includes(id));
 
   const problems: string[] = [];
   if (undeclared.length > 0) {
@@ -140,6 +185,17 @@ export function validateRouteGuards(app: INestApplication, allowList: string[] =
   if (stale.length > 0) {
     problems.push(
       `PUBLIC_ROUTE_ALLOW_LIST entries that are no longer @Public():\n  ${stale.join('\n  ')}`,
+    );
+  }
+  if (undeclaredAnonymous.length > 0) {
+    problems.push(
+      'route(s) whose declared guard chain never authenticates, but not in ' +
+        `ANONYMOUS_GUARDED_ROUTE_ALLOW_LIST:\n  ${undeclaredAnonymous.join('\n  ')}`,
+    );
+  }
+  if (staleAnonymous.length > 0) {
+    problems.push(
+      `ANONYMOUS_GUARDED_ROUTE_ALLOW_LIST entries that now authenticate or are gone:\n  ${staleAnonymous.join('\n  ')}`,
     );
   }
   if (problems.length > 0) {

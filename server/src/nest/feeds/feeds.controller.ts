@@ -16,6 +16,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { User } from '../../types';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { Public } from '../auth/public.decorator';
 
 // Resolve the public origin used to build feed URLs. APP_URL wins — it is the
 // canonical externally-reachable URL behind a reverse proxy. When it is unset
@@ -35,6 +36,7 @@ function resolveFeedBase(req: Request): string {
  * The secret token in the URL acts as the access credential.
  */
 @Controller('api/feed')
+@Public('the secret token in the feed URL is the credential; calendar clients never send a session')
 export class FeedsPublicController {
   constructor(private readonly feeds: FeedsService) {}
 
