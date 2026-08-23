@@ -37,8 +37,14 @@ export default function MFileLightbox({ files, index, onIndexChange, onClose, t 
   const fileMimeType = file?.mime_type
 
   useEffect(() => {
+    // Swiping is faster than the resource-token round trip, so a stale token must
+    // not overwrite the file the user is looking at now.
+    let cancelled = false
     setImgSrc('')
-    if (fileUrl && !isVideo(fileMimeType)) getAuthUrl(fileUrl, 'download').then(setImgSrc)
+    if (fileUrl && !isVideo(fileMimeType)) {
+      getAuthUrl(fileUrl, 'download').then(url => { if (!cancelled) setImgSrc(url) })
+    }
+    return () => { cancelled = true }
   }, [fileUrl, fileMimeType])
 
   const hasPrev = index > 0

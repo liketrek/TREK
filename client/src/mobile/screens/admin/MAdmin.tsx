@@ -230,12 +230,14 @@ export default function MAdmin() {
           }}
           collabFeatures={collabFeatures}
           onToggleCollabFeature={async (key: string) => {
-            const next = { ...collabFeatures, [key]: !collabFeatures[key] }
-            setCollabFeatures(next)
+            const previous = collabFeatures[key]
+            setCollabFeatures({ ...collabFeatures, [key]: !previous })
             try {
-              await adminApi.updateCollabFeatures({ [key]: next[key] })
+              await adminApi.updateCollabFeatures({ [key]: !previous })
             } catch {
-              setCollabFeatures(collabFeatures)
+              // Only this key rolls back — a slower request must not undo a toggle
+              // the admin made in the meantime.
+              setCollabFeatures(prev => ({ ...prev, [key]: previous }))
             }
           }}
         />

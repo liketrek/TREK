@@ -12,6 +12,7 @@ import { useExchangeRates } from '../../../../hooks/useExchangeRates'
 import { formatMoney, localizeAmountInput, cleanAmount } from '../../../../utils/formatters'
 import { SYMBOLS, SPLIT_COLORS, currenciesWith } from '../../../../components/Budget/BudgetPanel.constants'
 import { COST_CATEGORY_LIST, catMeta } from '../../../../components/Budget/costsCategories'
+import { localToday } from '../../../../components/Planner/today'
 import { calculateTicketShares, hasTicketSplit, NOTE_MAX, readTicketItems, readUserNote, splitEqualShares, writeTicketItems, type TicketItem } from '../../../../components/Budget/CostsPanel.helpers'
 import type { ExpensePrefill } from '../../../../components/Budget/CostsPanel'
 import { payersBalanced, rebalancePayers } from '../../../../components/Budget/CostsPanel.helpers'
@@ -72,7 +73,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   const [catOpen, setCatOpen] = useState(false)
   const [note, setNote] = useState(() => readUserNote(editing))
   const [currency, setCurrency] = useState((editing?.currency || base).toUpperCase())
-  const [day, setDay] = useState(editing?.expense_date || new Date().toISOString().slice(0, 10))
+  const [day, setDay] = useState(editing?.expense_date || localToday())
   const [total, setTotal] = useState<string>(() => {
     if (editing) return editing.total_price ? String(cleanAmount(editing.total_price)) : ''
     if (prefill?.amount != null) return String(prefill.amount)
@@ -296,6 +297,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
         <span
           style={{
             width: size, height: size, borderRadius: '50%', background: SPLIT_COLORS[idx % SPLIT_COLORS.length].gradient,
+            // theme-lint-disable — white initial on the member's tint, and the glyph scales with the avatar
             color: '#fff', display: 'grid', placeItems: 'center', fontSize: size * 0.4, fontWeight: 700, flexShrink: 0, opacity: dim ? 0.45 : 1,
           }}
         >
@@ -608,7 +610,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                   {participants.size > 0 && t('costs.splitSummary', { count: participants.size, amount: sym(currency) + each.toFixed(2) })}
                 </span>
               ) : (
-                <span className={`font-semibold ${customBalanced ? 'text-[#16a34a]' : 'text-[color:var(--m-st-danger)]'}`}>
+                <span className={`font-semibold ${customBalanced ? 'text-[color:var(--m-st-confirmed)]' : 'text-[color:var(--m-st-danger)]'}`}>
                   {customBalanced
                     ? t('costs.splitSummary', { count: participants.size, amount: sym(currency) + each.toFixed(2) })
                     : `${sym(currency)}${splitSum.toFixed(2)} / ${sym(currency)}${totalNum.toFixed(2)}`}

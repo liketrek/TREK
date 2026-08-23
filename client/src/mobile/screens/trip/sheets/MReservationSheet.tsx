@@ -4,6 +4,7 @@ import MSheet from '../../../components/MSheet'
 import { useAddonStore } from '../../../../store/addonStore'
 import { useTranslation } from '../../../../i18n'
 import { resolveDayId } from '../../../../utils/formatters'
+import { parseReservationMetadata } from '../../../../utils/flightLegs'
 import { typeToCostCategory } from '@trek/shared'
 import CustomSelect from '../../../../components/shared/CustomSelect'
 import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
@@ -86,7 +87,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
 
     const res = editingReservation
     if (res) {
-      const meta = typeof res.metadata === 'string' ? JSON.parse(res.metadata || '{}') : (res.metadata || {})
+      const meta = parseReservationMetadata(res)
       const rawEnd = res.reservation_end_time || ''
       let endDate = '', endTime = rawEnd
       if (rawEnd.includes('T')) { endDate = rawEnd.split('T')[0]; endTime = rawEnd.split('T')[1]?.slice(0, 5) || '' }

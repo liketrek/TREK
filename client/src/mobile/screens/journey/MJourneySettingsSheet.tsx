@@ -131,6 +131,27 @@ export default function MJourneySettingsSheet({
     }
   }
 
+  const copyShareUrl = async () => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareUrl)
+      } else {
+        // Fallback for non-secure contexts (plain HTTP) where navigator.clipboard is unavailable
+        const ta = document.createElement('textarea')
+        ta.value = shareUrl
+        ta.style.position = 'fixed'
+        ta.style.left = '-9999px'
+        document.body.appendChild(ta)
+        ta.focus()
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      }
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* ignore */ }
+  }
+
   const toggleSharePerm = async (key: 'share_timeline' | 'share_gallery' | 'share_map') => {
     if (!shareLink) return
     const updated = { ...shareLink, [key]: !shareLink[key] }
@@ -333,11 +354,7 @@ export default function MJourneySettingsSheet({
               <span className="min-w-0 flex-1 truncate font-geist text-[0.6875rem] text-m-muted">{shareUrl}</span>
               <button
                 type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(shareUrl)
-                  setCopied(true)
-                  setTimeout(() => setCopied(false), 2000)
-                }}
+                onClick={copyShareUrl}
                 className="flex-none rounded-full bg-m-act px-3 py-[5px] font-geist text-[0.65625rem] font-bold text-m-actfg"
               >
                 {copied ? t('journey.share.copied') : t('journey.share.copy')}

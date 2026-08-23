@@ -417,8 +417,8 @@ function TimelineHeader({ tl, dayLabel, openLabel, onOpenDay }: {
 
 /** Icon-coded like the demo, colour-tinted per the audit (green in / red out). */
 function HotelChipIcon({ variant }: { variant: 'checkout' | 'checkin' | 'stay' }) {
-  if (variant === 'checkout') return <LogOut size={12} strokeWidth={2.2} className="text-[#D6273B]" />
-  if (variant === 'checkin') return <LogIn size={12} strokeWidth={2.2} className="text-[#3BA55C]" />
+  if (variant === 'checkout') return <LogOut size={12} strokeWidth={2.2} className="text-[color:var(--m-st-danger)]" />
+  if (variant === 'checkin') return <LogIn size={12} strokeWidth={2.2} className="text-[color:var(--m-st-confirmed)]" />
   return <BedDouble size={12} strokeWidth={2.2} className="text-m-muted" />
 }
 

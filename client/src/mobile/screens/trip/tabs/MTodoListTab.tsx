@@ -5,6 +5,7 @@ import { useAuthStore } from '../../../../store/authStore'
 import { useTranslation } from '../../../../i18n'
 import { avatarSrc } from '../../../../utils/avatarSrc'
 import { formatDate } from '../../../../utils/formatters'
+import { localToday } from '../../../../components/Planner/today'
 import type { TodoItem, TripMember } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
 import { TabScroller } from './tabChrome'
@@ -39,7 +40,9 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
   const [editingItemId, setEditingItemId] = useState<number | null>(null)
   const [creatingTask, setCreatingTask] = useState(false)
 
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
+  // The user's calendar day, not UTC's — an overdue task must turn overdue at
+  // the traveller's midnight, not eight hours either side of it.
+  const today = useMemo(() => localToday(), [])
   const categories = useMemo(() => todoCategories(items), [items])
   const counts = todoCounts(items, currentUserId, today)
   const rows = useMemo(

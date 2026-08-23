@@ -89,6 +89,13 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
     setError('')
   }, [trip, open])
 
+  // The local file preview is a blob url; release it once a new cover replaces it
+  // or the sheet goes away. Server and Unsplash urls are left alone.
+  useEffect(() => {
+    if (!coverPreview?.startsWith('blob:')) return
+    return () => { URL.revokeObjectURL(coverPreview) }
+  }, [coverPreview])
+
   // Moving the start keeps the trip length (same rule as TripFormModal).
   const changeStart = (value: string) => {
     if (value && endDate && startDate && endDate >= startDate) {

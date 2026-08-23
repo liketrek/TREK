@@ -127,7 +127,13 @@ export default function MSettingsNotifications() {
     try {
       await notificationsApi.updatePreferences(updated)
     } catch {
-      setMatrix((m) => (m ? { ...m, preferences: matrix.preferences } : m))
+      // Only this cell rolls back — restoring the whole snapshot would also undo a
+      // toggle the user made while this request was in flight.
+      setMatrix((m) => (m ? {
+        ...m,
+        preferences: { ...m.preferences, [eventType]: { ...m.preferences[eventType], [channel]: current } },
+      } : m))
+      toast.error(t('common.error'))
     } finally {
       setSaving(false)
     }

@@ -101,6 +101,11 @@ export default function MJourneyEntrySheet({
     [addons],
   )
 
+  // Minting the preview inside the tile markup would hand out a fresh blob URL on
+  // every keystroke in the story field, and nothing would ever release them.
+  const pendingPreviews = useMemo(() => pendingFiles.map(f => URL.createObjectURL(f)), [pendingFiles])
+  useEffect(() => () => { pendingPreviews.forEach(url => URL.revokeObjectURL(url)) }, [pendingPreviews])
+
   useEffect(() => {
     if (readOnly) return
     // App.tsx loads the addon list on boot, so this only reacts to it. Kicking off
@@ -536,13 +541,13 @@ export default function MJourneyEntrySheet({
                   <button
                     type="button"
                     onClick={() => {
-                      setPhotos(prev => {
-                        const next = [...prev]
-                        const [moved] = next.splice(idx, 1)
-                        next.unshift(moved)
-                        next.forEach((ph, i) => { journeyApi.updatePhoto(ph.id, { sort_order: i }).catch(() => {}) })
-                        return next
-                      })
+                      // The PATCHes stay outside the updater — StrictMode invokes it
+                      // twice in dev and would send the whole batch a second time.
+                      const next = [...photos]
+                      const [moved] = next.splice(idx, 1)
+                      next.unshift(moved)
+                      setPhotos(next)
+                      next.forEach((ph, i) => { journeyApi.updatePhoto(ph.id, { sort_order: i }).catch(() => {}) })
                     }}
                     className="absolute bottom-[3px] left-[3px] rounded-full bg-black/60 px-[6px] py-[1px] font-geist text-[0.5rem] font-bold text-white"
                   >
@@ -568,9 +573,9 @@ export default function MJourneyEntrySheet({
                 )}
               </div>
             ))}
-            {pendingFiles.map((f, i) => (
+            {pendingFiles.map((_, i) => (
               <div key={`pending-${i}`} className="relative h-16 w-16 overflow-hidden rounded-[13px]">
-                <img src={URL.createObjectURL(f)} alt="" className="h-full w-full object-cover" />
+                <img src={pendingPreviews[i]} alt="" className="h-full w-full object-cover" />
                 <button
                   type="button"
                   onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))}

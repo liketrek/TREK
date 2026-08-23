@@ -135,7 +135,9 @@ export default function MJourneyDetail() {
   const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
-    (async () => {
+    let active = true
+    const ac = new AbortController()
+    ;(async () => {
       try {
         const addonsData = await addonsApi.enabled()
         const enabled = (addonsData.addons || []).filter(
@@ -144,13 +146,14 @@ export default function MJourneyDetail() {
         const connected: { id: string; name: string }[] = []
         for (const p of enabled) {
           try {
-            const res = await fetch(`/api/integrations/memories/${p.id}/status`, { credentials: 'include' })
+            const res = await fetch(`/api/integrations/memories/${p.id}/status`, { credentials: 'include', signal: ac.signal })
             if (res.ok && (await res.json()).connected) connected.push({ id: p.id, name: p.name })
           } catch { /* provider stays hidden */ }
         }
-        setAvailableProviders(connected)
+        if (active) setAvailableProviders(connected)
       } catch { /* no providers */ }
     })()
+    return () => { active = false; ac.abort() }
   }, [])
 
   const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

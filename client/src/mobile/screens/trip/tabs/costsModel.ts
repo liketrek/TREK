@@ -215,8 +215,12 @@ export interface CsvBuildOptions {
 /** Ports `CostsPanel.tsx`'s `handleExportCsv` row-building 1:1; the Blob/download is a DOM concern left to the caller. */
 export function buildCostsCsv(items: BudgetItem[], opts: CsvBuildOptions): { filename: string; content: string } {
   const sep = ';'
+  // A cell starting with =, +, -, @, TAB or CR is evaluated as a formula by Excel
+  // and Sheets, and the name/note columns are free text any trip member can write.
+  // Mirrors the same guard in `CostsPanel.tsx`'s exporter.
   const esc = (v: unknown) => {
-    const s = String(v ?? '')
+    let s = String(v ?? '')
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s
     return s.includes(sep) || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s
   }
   const fmtDate = (iso: string) => {
