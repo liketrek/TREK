@@ -3,21 +3,25 @@ import { resetAllStores, seedStore } from '../../../tests/helpers/store'
 import { useTripStore } from '../../store/tripStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import WhatsNextWidget from './WhatsNextWidget'
-import { afterEach, beforeEach, describe, it, expect } from 'vitest'
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 
-// Dynamic date helpers
-const today = new Date().toISOString().split('T')[0]
+// Dynamic date helpers, in local calendar dates like the widget itself uses
+function localDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+const today = localDate(new Date())
 
 function getFutureDate(daysAhead: number): string {
   const d = new Date()
   d.setDate(d.getDate() + daysAhead)
-  return d.toISOString().split('T')[0]
+  return localDate(d)
 }
 
 function getPastDate(daysBack: number): string {
   const d = new Date()
   d.setDate(d.getDate() - daysBack)
-  return d.toISOString().split('T')[0]
+  return localDate(d)
 }
 
 const tomorrow = getFutureDate(1)
@@ -256,6 +260,29 @@ describe('WhatsNextWidget', () => {
     expect(tomorrowHeaders).toHaveLength(1)
     expect(screen.getByText('Breakfast')).toBeInTheDocument()
     expect(screen.getByText('Lunch')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-WHATSNEXT-016: keeps remaining events for the local day west of UTC after the UTC date rolls over', () => {
+    const prevTz = process.env.TZ
+    process.env.TZ = 'America/New_York'
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      // 20:00 in New York, already the next calendar day in UTC
+      vi.setSystemTime(new Date('2026-08-24T00:00:00Z'))
+      seedStore(useTripStore, {
+        days: [{ id: 1, trip_id: 1, date: '2026-08-23', title: null, day_number: 0, assignments: [], notes_items: [], notes: null }],
+        assignments: {
+          '1': [makeAssignment(80, { name: 'Late Show', place_time: '21:00' })],
+        },
+      })
+      render(<WhatsNextWidget />)
+      expect(screen.getByText('Late Show')).toBeInTheDocument()
+      expect(screen.getByText(/today/i)).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+      if (prevTz === undefined) delete process.env.TZ
+      else process.env.TZ = prevTz
+    }
   })
 
   it('FE-COMP-WHATSNEXT-015: today past-time event is excluded', () => {

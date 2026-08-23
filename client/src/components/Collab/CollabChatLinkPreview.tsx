@@ -2,7 +2,12 @@ import { useState, useEffect } from 'react'
 import { collabApi } from '../../api/client'
 
 /* ── Link Preview ── */
-const previewCache = {}
+// linkPreview is trip-scoped on the server, so the cache key has to be too.
+// Capped as well: a long chat session would otherwise keep every preview it ever
+// rendered for as long as the tab lives.
+const previewCache = new Map()
+const cacheKey = (tripId: number, url: string): string => `${tripId} ${url}`
+const MAX_CACHED_PREVIEWS = 200
 
 interface LinkPreviewProps {
   url: string
@@ -12,17 +17,23 @@ interface LinkPreviewProps {
 }
 
 export function LinkPreview({ url, tripId, own, onLoad }: LinkPreviewProps) {
-  const [data, setData] = useState(previewCache[url] || null)
-  const [loading, setLoading] = useState(!previewCache[url])
+  const [data, setData] = useState(previewCache.get(cacheKey(tripId, url)) || null)
+  const [loading, setLoading] = useState(!previewCache.has(cacheKey(tripId, url)))
 
   useEffect(() => {
-    if (previewCache[url]) return
+    const key = cacheKey(tripId, url)
+    const cached = previewCache.get(key)
+    if (cached) { setData(cached); setLoading(false); return }
+    let current = true
     collabApi.linkPreview(tripId, url).then(d => {
-      previewCache[url] = d
+      if (previewCache.size >= MAX_CACHED_PREVIEWS) previewCache.delete(previewCache.keys().next().value)
+      previewCache.set(key, d)
+      if (!current) return
       setData(d)
       setLoading(false)
       if (d?.title || d?.description || d?.image) onLoad?.()
-    }).catch(() => setLoading(false))
+    }).catch(() => { if (current) setLoading(false) })
+    return () => { current = false }
   }, [url, tripId])
 
   if (loading || !data || (!data.title && !data.description && !data.image)) return null

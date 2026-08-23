@@ -12,7 +12,7 @@ vi.mock('../../api/websocket', () => ({
 
 import { render, screen, waitFor, fireEvent, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { http, HttpResponse, delay } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
@@ -234,7 +234,7 @@ describe('CollabPolls', () => {
 
     // Get the WS listener that was registered
     const listener = (addListener as ReturnType<typeof vi.fn>).mock.calls[0][0];
-    listener({ type: 'collab:poll:created', poll: buildPoll({ id: 77, question: 'Live poll?' }) });
+    listener({ tripId: 1, type: 'collab:poll:created', poll: buildPoll({ id: 77, question: 'Live poll?' }) });
 
     await screen.findByText('Live poll?');
   });
@@ -249,7 +249,7 @@ describe('CollabPolls', () => {
     await screen.findByText('Best destination?');
 
     const listener = (addListener as ReturnType<typeof vi.fn>).mock.calls[0][0];
-    listener({ type: 'collab:poll:deleted', pollId: 3 });
+    listener({ tripId: 1, type: 'collab:poll:deleted', pollId: 3 });
 
     await waitFor(() =>
       expect(screen.queryByText('Best destination?')).not.toBeInTheDocument(),
@@ -658,8 +658,8 @@ describe('CollabPolls details', () => {
     const handler = wsHandler();
     await act(async () => {
       handler({});
-      handler({ type: 'collab:poll:deleted' });
-      handler({ type: 'collab:poll:created', poll: { id: 40, question: 'Best destination?' } });
+      handler({ tripId: 1, type: 'collab:poll:deleted' });
+      handler({ tripId: 1, type: 'collab:poll:created', poll: { id: 40, question: 'Best destination?' } });
     });
     expect(screen.getAllByText('Best destination?')).toHaveLength(1);
   });
@@ -671,20 +671,50 @@ describe('CollabPolls details', () => {
     const handler = wsHandler();
 
     await act(async () => {
-      handler({ type: 'collab:poll:voted', poll: buildPoll({ id: 41, question: 'Voted live' }) });
+      handler({ tripId: 1, type: 'collab:poll:voted', poll: buildPoll({ id: 41, question: 'Voted live' }) });
     });
     expect(await screen.findByText('Voted live')).toBeInTheDocument();
     expect(screen.getByText('Other poll')).toBeInTheDocument();
 
     await act(async () => {
-      handler({ type: 'collab:poll:closed', poll: { id: 41 } });
+      handler({ tripId: 1, type: 'collab:poll:closed', poll: { id: 41 } });
     });
     await waitFor(() => expect(screen.getAllByText('Closed')).toHaveLength(2));
 
     await act(async () => {
-      handler({ type: 'collab:poll:deleted', poll: { id: 42 } });
+      handler({ tripId: 1, type: 'collab:poll:deleted', poll: { id: 42 } });
     });
     await waitFor(() => expect(screen.queryByText('Other poll')).not.toBeInTheDocument());
+  });
+
+  it('FE-W5CPL-027: a WebSocket event for another trip is ignored', async () => {
+    servePolls({ polls: [] });
+    render(<CollabPolls {...defaultProps} />);
+    await screen.findByText(/no polls yet|collab.polls.empty/i);
+    const handler = wsHandler();
+    await act(async () => {
+      handler({ tripId: 2, type: 'collab:poll:created', poll: buildPoll({ id: 88, question: 'Other trip poll?' }) });
+    });
+    expect(screen.queryByText('Other trip poll?')).not.toBeInTheDocument();
+  });
+
+  it('FE-W5CPL-028: a slow load for the trip we left does not overwrite the new one', async () => {
+    server.use(
+      http.get('/api/trips/1/collab/polls', async () => {
+        await delay(80);
+        return HttpResponse.json({ polls: [buildPoll({ id: 1, question: 'Trip one poll?' })] });
+      }),
+      http.get('/api/trips/2/collab/polls', () =>
+        HttpResponse.json({ polls: [buildPoll({ id: 2, question: 'Trip two poll?' })] }),
+      ),
+    );
+    const { rerender } = render(<CollabPolls {...defaultProps} />);
+    rerender(<CollabPolls tripId={2} currentUser={currentUser} />);
+
+    await screen.findByText('Trip two poll?');
+    await act(async () => { await delay(150); });
+    expect(screen.queryByText('Trip one poll?')).not.toBeInTheDocument();
+    expect(screen.getByText('Trip two poll?')).toBeInTheDocument();
   });
 
   it('FE-W5CPL-026: a poll with a live deadline starts the countdown ticker', async () => {

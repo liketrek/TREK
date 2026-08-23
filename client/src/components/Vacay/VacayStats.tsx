@@ -98,7 +98,7 @@ interface StatCardProps {
   canEdit: boolean
   selectedYear: number
   isShiftedYear: boolean
-  onSave: (userId: number, year: number, days: number) => Promise<void>
+  onSave: (year: number, days: number, targetUserId: number) => Promise<void>
   t: TranslationFn
 }
 

@@ -359,15 +359,25 @@ export default function CollabPolls({ tripId, currentUser }: CollabPollsProps) {
   const [showForm, setShowForm] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
+    setLoading(true)
     collabApi.getPolls(tripId).then(data => {
-      setPolls(Array.isArray(data) ? data : data.polls || [])
-    }).catch(() => {}).finally(() => setLoading(false))
+      if (!cancelled) setPolls(Array.isArray(data) ? data : data.polls || [])
+    }).catch(() => {
+      if (!cancelled) setPolls([])
+    }).finally(() => {
+      if (!cancelled) setLoading(false)
+    })
+    return () => { cancelled = true }
   }, [tripId])
 
   // WebSocket
   useEffect(() => {
     const handler = (msg) => {
       if (!msg?.type) return
+      // The panel is not remounted on a trip change, so an event still in flight
+      // from the trip we just left must not land in this list.
+      if (String(msg.tripId) !== String(tripId)) return
       if (msg.type === 'collab:poll:created' && msg.poll) {
         setPolls(prev => prev.some(p => p.id === msg.poll.id) ? prev : [msg.poll, ...prev])
       }
@@ -384,7 +394,7 @@ export default function CollabPolls({ tripId, currentUser }: CollabPollsProps) {
     }
     addListener(handler)
     return () => removeListener(handler)
-  }, [])
+  }, [tripId])
 
   const handleCreate = useCallback(async (data) => {
     try {

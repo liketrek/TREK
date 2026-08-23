@@ -1,4 +1,5 @@
 import apiClient from '../../api/client'
+import { useSettingsStore } from '../../store/settingsStore'
 import { SCHOOL_HOLIDAY_COUNTRY_CONFIG } from '../../vacay/schoolHolidayCountries'
 
 // Loads the subdivision (state/region) options for a holiday-calendar country.
@@ -48,31 +49,40 @@ type OpenHolidayOption = {
   children?: OpenHolidayOption[] | null
 }
 
-function localizedName(names: LocalizedName[] | undefined, fallback: string): string {
-  return names?.find(n => n.language?.toUpperCase() === 'DE')?.text
+// OpenHolidays ships every region name in several languages, so pick the one the
+// user actually reads before falling back to English.
+function localizedName(names: LocalizedName[] | undefined, fallback: string, lang: string): string {
+  const want = lang.slice(0, 2).toUpperCase()
+  return names?.find(n => n.language?.toUpperCase() === want)?.text
     || names?.find(n => n.language?.toUpperCase() === 'EN')?.text
     || names?.[0]?.text
     || fallback
 }
 
-function flattenOptions(items: OpenHolidayOption[] | undefined, prefix = ''): { value: string; label: string }[] {
+function flattenOptions(items: OpenHolidayOption[] | undefined, lang: string, prefix = ''): { value: string; label: string }[] {
   const result: { value: string; label: string }[] = []
   for (const item of items ?? []) {
-    const label = localizedName(item.name, item.shortName || item.code)
+    const label = localizedName(item.name, item.shortName || item.code, lang)
     result.push({ value: item.code, label: prefix ? `${prefix} / ${label}` : label })
-    result.push(...flattenOptions(item.children ?? undefined, prefix ? `${prefix} / ${label}` : label))
+    result.push(...flattenOptions(item.children ?? undefined, lang, prefix ? `${prefix} / ${label}` : label))
   }
   return result
 }
 
-export async function fetchSchoolHolidayRegionOptions(country: string): Promise<{ value: string; label: string }[]> {
+// Read outside React: the two settings screens hand this function nothing but the
+// country, and threading the language through both of them buys nothing.
+function activeLanguage(): string {
+  return useSettingsStore.getState().settings.language || 'en'
+}
+
+export async function fetchSchoolHolidayRegionOptions(country: string, lang = activeLanguage()): Promise<{ value: string; label: string }[]> {
   const config = SCHOOL_HOLIDAY_COUNTRY_CONFIG[country]
   if (!config || config.strategy === 'country') return []
 
   try {
     const r = await apiClient.get(`/addons/vacay/school-holidays/regions/${country}`)
     if (config.strategy === 'groups') {
-      return flattenOptions(r.data.groups)
+      return flattenOptions(r.data.groups, lang)
         .map(opt => ({
           value: `${country}|group:${opt.value}`,
           label: opt.label,
@@ -80,7 +90,7 @@ export async function fetchSchoolHolidayRegionOptions(country: string): Promise<
         .sort((a, b) => a.label.localeCompare(b.label))
     }
 
-    return flattenOptions(r.data.subdivisions)
+    return flattenOptions(r.data.subdivisions, lang)
       .map(opt => ({ value: opt.value, label: opt.label }))
       .sort((a, b) => a.label.localeCompare(b.label))
   } catch {

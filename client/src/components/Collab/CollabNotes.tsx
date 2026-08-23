@@ -89,6 +89,9 @@ function useCollabNotes({ tripId, currentUser }: CollabNotesProps) {
     if (!tripId) return
 
     const handler = (msg) => {
+      // The panel is not remounted on a trip change, so an event still in flight
+      // from the trip we just left must not land in this list.
+      if (String(msg?.tripId) !== String(tripId)) return
       if (msg.type === 'collab:note:created' && msg.note) {
         setNotes(prev => {
           if (prev.some(n => n.id === msg.note.id)) return prev
@@ -161,16 +164,28 @@ function useCollabNotes({ tripId, currentUser }: CollabNotesProps) {
     }
   }, [tripId, toast, t])
 
+  // A colour or a rename is N single-note writes; if one of them is rejected the
+  // rest still have to run, and the list has to be re-read so it stops showing a
+  // change the server never took. handleUpdateNote already toasts each failure.
+  const resyncNotes = useCallback(async () => {
+    try {
+      const fresh = await collabApi.getNotes(tripId)
+      setNotes(fresh?.notes || fresh || [])
+    } catch {}
+  }, [tripId])
+
   const saveCategoryColors = useCallback(async (newMap) => {
+    let failed = 0
     // Update notes with changed colors
     for (const [cat, color] of Object.entries(newMap)) {
       const notesInCat = notes.filter(n => n.category === cat)
       if (notesInCat.length > 0 && categoryColors[cat] !== color) {
         for (const n of notesInCat) {
-          await handleUpdateNote(n.id, { color })
+          try { await handleUpdateNote(n.id, { color }) } catch { failed++ }
         }
       }
     }
+    if (failed > 0) await resyncNotes()
     // Save all categories (including empty ones) to localStorage
     const emptyCats = {}
     for (const [cat, color] of Object.entries(newMap)) {
@@ -179,7 +194,17 @@ function useCollabNotes({ tripId, currentUser }: CollabNotesProps) {
       }
     }
     saveEmptyCategories(emptyCats)
-  }, [categoryColors, notes, handleUpdateNote])
+  }, [categoryColors, notes, handleUpdateNote, resyncNotes])
+
+  const renameCategory = useCallback(async (oldName, newName) => {
+    // Update all notes with this category in DB
+    const toUpdate = notes.filter(n => n.category === oldName)
+    let failed = 0
+    for (const n of toUpdate) {
+      try { await handleUpdateNote(n.id, { category: newName }) } catch { failed++ }
+    }
+    if (failed > 0) await resyncNotes()
+  }, [notes, handleUpdateNote, resyncNotes])
 
   const handleEditSubmit = useCallback(async (data) => {
     if (!editingNote) return
@@ -232,7 +257,7 @@ function useCollabNotes({ tripId, currentUser }: CollabNotesProps) {
     notes, loading, showNewModal, setShowNewModal, editingNote, setEditingNote,
     viewingNote, setViewingNote, previewFile, setPreviewFile, showSettings, setShowSettings,
     activeCategory, setActiveCategory, categoryColors, getCategoryColor,
-    handleCreateNote, handleUpdateNote, saveCategoryColors, handleEditSubmit,
+    handleCreateNote, handleUpdateNote, saveCategoryColors, renameCategory, handleEditSubmit,
     handleDeleteNoteFile, handleDeleteNote, categories, sortedNotes,
     pendingDeleteNoteId, setPendingDeleteNoteId,
   }
@@ -462,7 +487,7 @@ export default function CollabNotes(props: CollabNotesProps) {
     loading, tripId, t, categories, categoryColors, getCategoryColor, notes,
     viewingNote, showNewModal, editingNote, previewFile, showSettings,
     setShowNewModal, setEditingNote, setPreviewFile, setShowSettings,
-    handleCreateNote, handleEditSubmit, handleDeleteNoteFile, saveCategoryColors, handleUpdateNote,
+    handleCreateNote, handleEditSubmit, handleDeleteNoteFile, saveCategoryColors, renameCategory, handleUpdateNote,
     handleDeleteNote, pendingDeleteNoteId, setPendingDeleteNoteId,
   } = S
 
@@ -511,13 +536,7 @@ export default function CollabNotes(props: CollabNotesProps) {
           categories={categories}
           categoryColors={categoryColors}
           onSave={saveCategoryColors}
-          onRenameCategory={async (oldName, newName) => {
-            // Update all notes with this category in DB
-            const toUpdate = notes.filter(n => n.category === oldName)
-            for (const n of toUpdate) {
-              await handleUpdateNote(n.id, { category: newName })
-            }
-          }}
+          onRenameCategory={renameCategory}
           t={t}
         />
       )}

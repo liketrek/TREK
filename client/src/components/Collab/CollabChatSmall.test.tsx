@@ -1,4 +1,4 @@
-// FE-W4CCS-001 to FE-W4CCS-016
+// FE-W4CCS-001 to FE-W4CCS-019
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render'
 import type { ChatReaction } from './CollabChat.types'
@@ -11,6 +11,7 @@ import { TwemojiImg } from './CollabChatTwemojiImg'
 import { ReactionBadge } from './CollabChatReactionBadge'
 import { UserAvatar } from './CollabNotesUserAvatar'
 import { WebsiteThumbnail } from './CollabNotesWebsiteThumbnail'
+import { LinkPreview } from './CollabChatLinkPreview'
 
 function reaction(overrides: Partial<ChatReaction> = {}): ChatReaction {
   return { emoji: '👍', count: 1, users: [{ id: 1, username: 'ada' }], ...overrides } as unknown as ChatReaction
@@ -147,13 +148,26 @@ describe('WebsiteThumbnail', () => {
     expect(screen.getByText('example.com')).toBeInTheDocument()
   })
 
-  it('FE-W4CCS-014: falls back to a link label for an unparseable url and a failing preview', async () => {
+  it('FE-W4CCS-014: keeps the domain chip when the preview request fails', async () => {
     linkPreview.mockRejectedValue(new Error('blocked'))
-    render(<WebsiteThumbnail url="not a url" tripId={4} color="#000" />)
+    render(<WebsiteThumbnail url="https://blocked.example/a" tripId={4} color="#000" />)
 
-    expect(screen.getByText('link')).toBeInTheDocument()
+    expect(screen.getByText('blocked.example')).toBeInTheDocument()
     await waitFor(() => expect(linkPreview).toHaveBeenCalled())
-    expect(screen.getByRole('link')).toHaveAttribute('title', 'not a url')
+    expect(screen.getByRole('link')).toHaveAttribute('title', 'https://blocked.example/a')
+  })
+
+  it('FE-W4CCS-017: a url that is not http(s) is shown but neither linked nor previewed', async () => {
+    const { unmount } = render(<WebsiteThumbnail url="javascript:alert(1)" tripId={4} color="#000" />)
+
+    expect(screen.queryByRole('link')).toBeNull()
+    expect(screen.getByTitle('javascript:alert(1)')).toBeInTheDocument()
+    unmount()
+
+    render(<WebsiteThumbnail url="not a url" tripId={4} color="#000" />)
+    expect(screen.getByText('link')).toBeInTheDocument()
+    expect(screen.queryByRole('link')).toBeNull()
+    expect(linkPreview).not.toHaveBeenCalled()
   })
 
   it('FE-W4CCS-015: caches per trip, because the preview endpoint is trip-scoped', async () => {
@@ -183,5 +197,36 @@ describe('WebsiteThumbnail', () => {
 
     await waitFor(() => expect(container.querySelector('img')).not.toBeNull())
     expect(container.querySelector('img')).toHaveAttribute('src', 'https://cdn.example/b.png')
+  })
+})
+
+describe('LinkPreview', () => {
+  it('FE-W4CCS-018: caches per trip, because the preview endpoint is trip-scoped', async () => {
+    const shared = 'https://example.com/preview'
+    linkPreview.mockResolvedValue({ title: 'Trip 4', image: null })
+    const first = render(<LinkPreview url={shared} tripId={4} own={false} onLoad={undefined} />)
+    expect(await screen.findByText('Trip 4')).toBeInTheDocument()
+    first.unmount()
+
+    linkPreview.mockResolvedValue({ title: 'Trip 9', image: null })
+    render(<LinkPreview url={shared} tripId={9} own={false} onLoad={undefined} />)
+
+    expect(await screen.findByText('Trip 9')).toBeInTheDocument()
+    expect(linkPreview).toHaveBeenCalledTimes(2)
+    expect(linkPreview).toHaveBeenLastCalledWith(9, shared)
+  })
+
+  it('FE-W4CCS-019: a preview that resolves after the url changed is not shown', async () => {
+    let resolveFirst: (v: { title: string; image: string | null }) => void = () => {}
+    linkPreview.mockImplementationOnce(() => new Promise(res => { resolveFirst = res }))
+    const { rerender } = render(<LinkPreview url="https://slow.example/a" tripId={4} own={false} onLoad={undefined} />)
+
+    linkPreview.mockResolvedValue({ title: 'Second', image: null })
+    rerender(<LinkPreview url="https://fast.example/b" tripId={4} own={false} onLoad={undefined} />)
+    expect(await screen.findByText('Second')).toBeInTheDocument()
+
+    resolveFirst({ title: 'First', image: null })
+    await waitFor(() => expect(screen.queryByText('First')).toBeNull())
+    expect(screen.getByText('Second')).toBeInTheDocument()
   })
 })

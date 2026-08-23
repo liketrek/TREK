@@ -1,7 +1,9 @@
-// FE-COMP-VCYREG-001 to FE-COMP-VCYREG-007
+// FE-COMP-VCYREG-001 to FE-COMP-VCYREG-009
 import { describe, it, expect, beforeEach } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../../tests/helpers/msw/server'
+import { resetAllStores, seedStore } from '../../../tests/helpers/store'
+import { useSettingsStore } from '../../store/settingsStore'
 import { fetchRegionOptions, fetchSchoolHolidayRegionOptions } from './holidayRegions'
 
 function holidaysRespond(rows: unknown) {
@@ -14,6 +16,7 @@ function regionsRespond(body: unknown) {
 
 beforeEach(() => {
   server.resetHandlers()
+  resetAllStores()
 })
 
 describe('fetchRegionOptions', () => {
@@ -80,7 +83,8 @@ describe('fetchSchoolHolidayRegionOptions', () => {
     ])
   })
 
-  it('FE-COMP-VCYREG-007: a subdivision country prefers the German name and falls back to the code', async () => {
+  it('FE-COMP-VCYREG-007: a subdivision country takes the name in the active language and falls back to the code', async () => {
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, language: 'de' } })
     regionsRespond({
       groups: [],
       subdivisions: [
@@ -92,6 +96,19 @@ describe('fetchSchoolHolidayRegionOptions', () => {
     expect(await fetchSchoolHolidayRegionOptions('DE')).toEqual([
       { value: 'DE-BY', label: 'Bayern' },
       { value: 'DE-XX', label: 'DE-XX' },
+    ])
+  })
+
+  it('FE-COMP-VCYREG-009: a language the data has no name for falls back to English', async () => {
+    regionsRespond({
+      groups: [],
+      subdivisions: [
+        { code: 'DE-BY', name: [{ language: 'DE', text: 'Bayern' }, { language: 'EN', text: 'Bavaria' }] },
+      ],
+    })
+
+    expect(await fetchSchoolHolidayRegionOptions('DE', 'fr')).toEqual([
+      { value: 'DE-BY', label: 'Bavaria' },
     ])
   })
 
