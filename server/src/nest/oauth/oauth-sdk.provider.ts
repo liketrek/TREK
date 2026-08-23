@@ -173,7 +173,9 @@ export class TrekOAuthProvider implements OAuthServerProvider {
         if (pending.resource && resourceStr && pending.resource !== resourceStr)
             throw new Error('Authorization grant is invalid.');
 
-        if (codeVerifier && !this.oauth.verifyPKCE(codeVerifier, pending.codeChallenge))
+        // A missing verifier is a failed exchange, not a skipped check — the live
+        // token endpoint refuses it the same way (oauth-public.controller.ts).
+        if (!codeVerifier || !this.oauth.verifyPKCE(codeVerifier, pending.codeChallenge))
             throw new Error('Authorization grant is invalid.');
 
         const tokens = this.oauth.issueTokens(client.client_id, pending.userId, pending.scopes, null, pending.resource ?? null);

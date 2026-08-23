@@ -25,7 +25,8 @@ export interface McpContext {
   isStaticToken: boolean;
   /**
    * Fire-once static-token deprecation notice closure (built per session in
-   * src/mcp/index.ts and threaded through registerTools → registry.attach).
+   * src/nest/mcp-transport/mcp-transport.service.ts and threaded through
+   * registerTools → registry.attach).
    * Optional so direct createTestRegistry ctxs without it keep working —
    * consumers (list_trips / get_trip_summary) treat absence as "no notice".
    */
@@ -38,11 +39,10 @@ export interface McpContext {
  * a group come from the access policy in `src/mcp/nest-mcp-policy.ts`, not
  * from here.
  */
-// The registry pattern requires an empty single-extends interface — the
-// keys ARE the contract, so the lint's "no members" finding is a false
-// positive.
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface McpAccessGroupRegistry extends Record<ScopeGroup, true> {}
+// A plain alias, not an empty interface: the empty single-extends form only
+// existed so an external host could augment the union, and since the fold into
+// the server there is no such host. `keyof` resolves the same either way.
+export type McpAccessGroupRegistry = Record<ScopeGroup, true>;
 
 export type McpAccessGroup = keyof McpAccessGroupRegistry extends never
   ? string
@@ -54,8 +54,7 @@ export type McpAccessGroup = keyof McpAccessGroupRegistry extends never
  * could only be expressed as opaque predicates, which the boot gate in
  * `src/mcp/nest-mcp-policy.ts` cannot check.
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface McpAccessModeRegistry extends Record<ScopeMode, true> {}
+export type McpAccessModeRegistry = Record<ScopeMode, true>;
 
 export type McpAccessMode = keyof McpAccessModeRegistry extends never
   ? 'read' | 'write'

@@ -246,6 +246,7 @@ describe('PluginsService instance config', () => {
   it('encrypts secret fields on write and masks them on read; keeps plaintext for non-secrets', () => {
     testDb.prepare("INSERT INTO plugins (id, name, status, config) VALUES ('x','X','inactive','{}')").run();
     testDb.prepare("INSERT INTO plugin_settings_fields (plugin_id, field_key, scope, secret) VALUES ('x','api_key','instance',1)").run();
+    testDb.prepare("INSERT INTO plugin_settings_fields (plugin_id, field_key, scope, secret) VALUES ('x','server','instance',0)").run();
 
     const svc = new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn)));
     const masked = svc.updateInstanceConfig('x', { api_key: 'super-secret', server: 'https://h' });
@@ -265,6 +266,19 @@ describe('PluginsService instance config', () => {
     expect(still.api_key).toBe(stored.api_key);
 
     expect(svc.getInstanceConfig('x').api_key).toBe('••••••••');
+  });
+
+  it('drops a key the plugin never declared, like the user-scope sibling does', () => {
+    testDb.prepare("INSERT INTO plugins (id, name, status, config) VALUES ('y','Y','inactive','{}')").run();
+    testDb.prepare("INSERT INTO plugin_settings_fields (plugin_id, field_key, scope, secret) VALUES ('y','server','instance',0)").run();
+
+    const svc = new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn)));
+    const masked = svc.updateInstanceConfig('y', { server: 'https://h', smuggled: 'nope' });
+
+    expect(masked.server).toBe('https://h');
+    expect(masked.smuggled).toBeUndefined();
+    const stored = JSON.parse((testDb.prepare("SELECT config FROM plugins WHERE id='y'").get() as { config: string }).config);
+    expect(stored).toEqual({ server: 'https://h' });
   });
 
   it('throws for an unknown plugin', () => {

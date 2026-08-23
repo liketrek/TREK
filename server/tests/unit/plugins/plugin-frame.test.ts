@@ -15,16 +15,36 @@ import { PluginFrameController } from '../../../src/nest/plugins/plugin-frame.co
 import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
 
 let codeRoot: string;
+let outsideRoot: string;
+// Windows only lets an unprivileged process create a directory junction.
+const dirLink = process.platform === 'win32' ? 'junction' : 'dir';
+let symlinksAvailable = true;
+
 beforeAll(() => {
   codeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'trekplug-frame-'));
+  outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'trekplug-outside-'));
   process.env.TREK_PLUGINS_DIR = codeRoot;
   const dir = path.join(codeRoot, 'widget', 'client');
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'index.html'), '<!doctype html><body>hi</body>');
+
+  // Something worth stealing, plus a link out of client/ that points at it.
+  fs.mkdirSync(path.join(outsideRoot, 'secrets'), { recursive: true });
+  fs.writeFileSync(path.join(outsideRoot, 'secrets', 'leak.js'), 'TOP SECRET');
+  // A dev-linked plugin: the whole tree is a link, which must still be served.
+  fs.mkdirSync(path.join(outsideRoot, 'linked', 'client'), { recursive: true });
+  fs.writeFileSync(path.join(outsideRoot, 'linked', 'client', 'index.html'), '<!doctype html><body>dev</body>');
+  try {
+    fs.symlinkSync(path.join(outsideRoot, 'secrets'), path.join(dir, 'esc'), dirLink);
+    fs.symlinkSync(path.join(outsideRoot, 'linked'), path.join(codeRoot, 'linked'), dirLink);
+  } catch {
+    symlinksAvailable = false;
+  }
 });
 afterAll(() => {
   delete process.env.TREK_PLUGINS_DIR;
   fs.rmSync(codeRoot, { recursive: true, force: true });
+  fs.rmSync(outsideRoot, { recursive: true, force: true });
 });
 
 function fakeRes() {
@@ -156,5 +176,24 @@ describe('PluginFrameController', () => {
     const res = fakeRes();
     new PluginFrameController(runtime(true)).serve('widget', req('missing.js'), res as never);
     expect(res.statusCode).toBe(404);
+  });
+
+  // The lexical guard above cannot see through a link, and statSync follows one.
+  it('403 on a symlink inside client/ that points out of the plugin', () => {
+    if (!symlinksAvailable) return;
+    const res = fakeRes();
+    new PluginFrameController(runtime(true)).serve('widget', req('esc/leak.js'), res as never);
+    expect(res.statusCode).toBe(403);
+    expect(res.filePath).toBeUndefined();
+  });
+
+  // Dev-link mode: the plugin directory itself is a link, so the containment
+  // check has to resolve BOTH sides or local development stops working.
+  it('still serves a dev-linked plugin whose whole tree is a symlink', () => {
+    if (!symlinksAvailable) return;
+    const res = fakeRes();
+    new PluginFrameController(runtime(true)).serve('linked', req(''), res as never);
+    expect(res.statusCode).toBe(200);
+    expect(res.filePath).toContain('index.html');
   });
 });

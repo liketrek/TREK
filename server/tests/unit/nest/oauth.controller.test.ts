@@ -339,7 +339,8 @@ describe('OauthApiController', () => {
   });
 
   it('authorize: denied returns a redirect with access_denied, approved issues a code', () => {
-    const denied = new OauthApiController(osvc(), rl()).authorize(user, { client_id: 'c', redirect_uri: 'https://cb', scope: 's', code_challenge: 'cc', code_challenge_method: 'S256', approved: false }, req);
+    const deniedSvc = osvc({ validateAuthorizeRequest: vi.fn().mockReturnValue({ valid: true, scopes: ['s'] }) });
+    const denied = new OauthApiController(deniedSvc, rl()).authorize(user, { client_id: 'c', redirect_uri: 'https://cb', scope: 's', code_challenge: 'cc', code_challenge_method: 'S256', approved: false }, req);
     expect((denied as { redirect: string }).redirect).toContain('error=access_denied');
     const svc = osvc({ validateAuthorizeRequest: vi.fn().mockReturnValue({ valid: true, scopes: ['s'], resource: null }), saveConsent: vi.fn(), createAuthCode: vi.fn().mockReturnValue('the_code') });
     const ok = new OauthApiController(svc, rl()).authorize(user, { client_id: 'c', redirect_uri: 'https://cb', scope: 's', code_challenge: 'cc', code_challenge_method: 'S256', approved: true }, req);
@@ -405,13 +406,23 @@ describe('OauthApiController', () => {
   });
 
   it('authorize: carries the state through both the denied and approved redirects', () => {
-    const denied = new OauthApiController(osvc(), rl()).authorize(user, { client_id: 'c', redirect_uri: 'https://cb', scope: 's', state: 'xyz', code_challenge: 'cc', code_challenge_method: 'S256', approved: false }, req);
+    const deniedSvc = osvc({ validateAuthorizeRequest: vi.fn().mockReturnValue({ valid: true, scopes: ['s'] }) });
+    const denied = new OauthApiController(deniedSvc, rl()).authorize(user, { client_id: 'c', redirect_uri: 'https://cb', scope: 's', state: 'xyz', code_challenge: 'cc', code_challenge_method: 'S256', approved: false }, req);
     expect((denied as { redirect: string }).redirect).toContain('state=xyz');
 
     const svc = osvc({ validateAuthorizeRequest: vi.fn().mockReturnValue({ valid: true, scopes: ['s'], resource: 'https://aud' }), saveConsent: vi.fn(), createAuthCode: vi.fn().mockReturnValue('the_code') });
     const ok = new OauthApiController(svc, rl()).authorize(user, { client_id: 'c', redirect_uri: 'https://cb', scope: 's', state: 'xyz', code_challenge: 'cc', code_challenge_method: 'S256', approved: true }, req);
     expect((ok as { redirect: string }).redirect).toContain('code=the_code');
     expect((ok as { redirect: string }).redirect).toContain('state=xyz');
+  });
+
+  it('authorize: a denial is validated too, so the redirect can only be a registered URI', () => {
+    const validateAuthorizeRequest = vi.fn().mockReturnValue({ valid: false, error: 'invalid_redirect_uri', error_description: 'Invalid redirect URI' });
+    const svc = osvc({ validateAuthorizeRequest, saveConsent: vi.fn(), createAuthCode: vi.fn() });
+    expect(thrown(() => new OauthApiController(svc, rl())
+      .authorize(user, { client_id: 'c', redirect_uri: 'not a url', scope: 's', code_challenge: 'cc', code_challenge_method: 'S256', approved: false }, req)))
+      .toEqual({ status: 400, body: { error: 'invalid_redirect_uri', error_description: 'Invalid redirect URI' } });
+    expect(validateAuthorizeRequest).toHaveBeenCalled();
   });
 
   it('client/session errors default the status to 400 when the service omits it', () => {

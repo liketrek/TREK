@@ -73,13 +73,6 @@ export class OauthApiController {
     if (!this.oauth.mcpEnabled()) {
       throw new HttpException({ error: 'MCP is not enabled' }, 403);
     }
-    if (!body.approved) {
-      const url = new URL(body.redirect_uri);
-      url.searchParams.set('error', 'access_denied');
-      url.searchParams.set('error_description', 'User denied the authorization request');
-      if (body.state) url.searchParams.set('state', body.state);
-      return { redirect: url.toString() };
-    }
     const params: AuthorizeParams = {
       response_type: 'code',
       client_id: body.client_id,
@@ -90,9 +83,20 @@ export class OauthApiController {
       code_challenge_method: body.code_challenge_method,
       resource: body.resource,
     };
+    // Validate before branching on approved: the deny path builds a redirect out
+    // of body.redirect_uri too, and only validateAuthorizeRequest checks it
+    // against the client's registered URIs. A string that is not a URL at all
+    // would additionally throw out of `new URL()` as a 500.
     const validation = this.oauth.validateAuthorizeRequest(params, user.id);
     if (!validation.valid) {
       throw new HttpException({ error: validation.error, error_description: validation.error_description }, 400);
+    }
+    if (!body.approved) {
+      const url = new URL(body.redirect_uri);
+      url.searchParams.set('error', 'access_denied');
+      url.searchParams.set('error_description', 'User denied the authorization request');
+      if (body.state) url.searchParams.set('state', body.state);
+      return { redirect: url.toString() };
     }
     const scopes = validation.scopes!;
     this.oauth.saveConsent(body.client_id, user.id, scopes, ip);

@@ -26,6 +26,13 @@ const ACTION_LABELS: Record<string, string> = {
   'immich.private_ip_configured': 'configured Immich with private IP',
 };
 
+/**
+ * Collapses line breaks so a trip title (free user text) cannot forge a second
+ * log line. Scoped to the audit lines rather than the shared logger, which
+ * still has to print multi-line stack traces as they are.
+ */
+const oneLine = (s: string): string => s.replace(/[\r\n\u2028\u2029]+/g, ' ');
+
 function buildInfoSummary(action: string, details?: Record<string, unknown>): string {
   if (!details || Object.keys(details).length === 0) return '';
   if (action === 'trip.create') return ` "${details.title}"`;
@@ -87,12 +94,12 @@ export class AuditService {
       const email = this.resolveUserEmail(entry.userId);
       const label = ACTION_LABELS[entry.action] || entry.action;
       const brief = buildInfoSummary(entry.action, entry.details);
-      logInfo(`${email} ${label}${brief} ip=${entry.ip || '-'}`);
+      logInfo(oneLine(`${email} ${label}${brief} ip=${entry.ip || '-'}`));
 
       if (entry.debugDetails && Object.keys(entry.debugDetails).length > 0) {
-        logDebug(`AUDIT ${entry.action} userId=${entry.userId} ${JSON.stringify(entry.debugDetails)}`);
+        logDebug(oneLine(`AUDIT ${entry.action} userId=${entry.userId} ${JSON.stringify(entry.debugDetails)}`));
       } else if (detailsJson) {
-        logDebug(`AUDIT ${entry.action} userId=${entry.userId} ${detailsJson}`);
+        logDebug(oneLine(`AUDIT ${entry.action} userId=${entry.userId} ${detailsJson}`));
       }
     } catch (e) {
       logError(`Audit write failed: ${e instanceof Error ? e.message : e}`);

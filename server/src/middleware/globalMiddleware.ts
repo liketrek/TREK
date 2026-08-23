@@ -30,13 +30,23 @@ export const SENSITIVE_KEYS = new Set([
   'secretaccesskey',
 ]);
 
+/**
+ * Suffixes that make a field sensitive whatever its prefix. Matched on the end of
+ * the key, not anywhere in it: `accessKeyId` is an identifier and stays readable,
+ * while `refresh_token`, `code_verifier`, `mapbox_access_token` and the whole
+ * `*_api_key` family are secrets nobody needs in a debug log.
+ */
+const SENSITIVE_SUFFIXES = ['_token', '_key', '_secret', '_password', '_pass', '_verifier'];
+
 /** Deep-redacts every key in `SENSITIVE_KEYS` (case-insensitive) from a request-log value. */
 export function redact(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value;
   if (Array.isArray(value)) return (value as unknown[]).map(redact);
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-    out[k] = SENSITIVE_KEYS.has(k.toLowerCase()) ? '[REDACTED]' : redact(v);
+    const lower = k.toLowerCase();
+    const sensitive = SENSITIVE_KEYS.has(lower) || SENSITIVE_SUFFIXES.some((suffix) => lower.endsWith(suffix));
+    out[k] = sensitive ? '[REDACTED]' : redact(v);
   }
   return out;
 }
@@ -155,7 +165,7 @@ export function applyGlobalMiddleware(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'wasm-unsafe-eval'", "'unsafe-eval'"],
+        scriptSrc: ["'self'", "'wasm-unsafe-eval'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com"],
         imgSrc: ["'self'", "data:", "blob:", "https:"],
         connectSrc: [
@@ -197,11 +207,24 @@ export function applyGlobalMiddleware(
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   }));
 
+  // The instance's own hostname, when the operator configured one. The redirect
+  // below is a 301, so echoing a client-supplied Host header would let a stranger
+  // park a foreign origin in a visitor's cache. Falls back to the request Host for
+  // instances that never set APP_URL, which is what it always did.
+  const configuredHost = (() => {
+    const url = readEnv().app.appUrl;
+    try {
+      return url ? new URL(url).host : null;
+    } catch {
+      return null;
+    }
+  })();
+
   if (shouldForceHttps) {
     app.use((req: Request, res: Response, next: NextFunction) => {
       if (req.path === '/api/health') return next();
       if (req.secure || req.headers['x-forwarded-proto'] === 'https') return next();
-      res.redirect(301, 'https://' + req.headers.host + req.url);
+      res.redirect(301, 'https://' + (configuredHost ?? req.headers.host) + req.url);
     });
   }
 

@@ -45,6 +45,25 @@ describe('globalMiddleware request-log redaction', () => {
     });
   });
 
+  it('redacts secret-shaped keys by suffix — the OAuth token body and the settings API keys', () => {
+    const out = redact({
+      refresh_token: 'rt-1',
+      code_verifier: 'cv-1',
+      llm_api_key: 'sk-1',
+      mapbox_access_token: 'pk-1',
+      grant_type: 'refresh_token',
+    }) as Record<string, unknown>;
+    expect(out.refresh_token).toBe('[REDACTED]');
+    expect(out.code_verifier).toBe('[REDACTED]');
+    expect(out.llm_api_key).toBe('[REDACTED]');
+    expect(out.mapbox_access_token).toBe('[REDACTED]');
+    expect(out.grant_type).toBe('refresh_token');
+  });
+
+  it('matches the suffix on the end of the key only, so identifiers stay readable', () => {
+    expect(redact({ accessKeyId: 'ak-1', tokenCount: 5 })).toEqual({ accessKeyId: 'ak-1', tokenCount: 5 });
+  });
+
   it('passes non-object values through untouched', () => {
     expect(redact('plain string')).toBe('plain string');
     expect(redact(42)).toBe(42);

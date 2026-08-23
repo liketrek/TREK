@@ -820,20 +820,42 @@ describe('POST /api/oauth/authorize', () => {
 
     it('OAUTH-030 — user denied returns redirect with error=access_denied', async () => {
         const { user } = createUser(testDb);
+        const r = createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
+        const { challenge } = makePkce();
 
         const res = await request(app)
             .post('/api/oauth/authorize')
             .set('Cookie', authCookie(user.id))
             .send({
                 approved: false,
-                client_id: 'any',
+                client_id: r.client!.client_id,
                 redirect_uri: 'https://app.example.com/cb',
                 scope: 'trips:read',
-                code_challenge: 'c',
+                code_challenge: challenge,
                 code_challenge_method: 'S256',
             });
         expect(res.status).toBe(200);
         expect(res.body.redirect).toContain('error=access_denied');
+    });
+
+    it('OAUTH-030b — a denial for an unregistered redirect_uri is refused, not redirected', async () => {
+        const { user } = createUser(testDb);
+        const r = createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
+        const { challenge } = makePkce();
+
+        const res = await request(app)
+            .post('/api/oauth/authorize')
+            .set('Cookie', authCookie(user.id))
+            .send({
+                approved: false,
+                client_id: r.client!.client_id,
+                redirect_uri: 'https://attacker.example.com/cb',
+                scope: 'trips:read',
+                code_challenge: challenge,
+                code_challenge_method: 'S256',
+            });
+        expect(res.status).toBe(400);
+        expect(res.body.error).toBe('invalid_redirect_uri');
     });
 
     it('OAUTH-031 — invalid params returns 400', async () => {

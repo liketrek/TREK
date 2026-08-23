@@ -61,10 +61,12 @@ afterAll(() => {
 });
 
 function makeReq(options: {
+  ip?: string;
   xff?: string | string[];
   remoteAddress?: string;
 } = {}): Request {
   return {
+    ip: options.ip,
     headers: {
       ...(options.xff !== undefined ? { 'x-forwarded-for': options.xff } : {}),
     },
@@ -75,33 +77,34 @@ function makeReq(options: {
 // ── getClientIp (pure, moved 1:1) ─────────────────────────────────────────────
 
 describe('getClientIp', () => {
-  it('AUDIT-SVC-001: returns first IP from comma-separated X-Forwarded-For string', () => {
-    expect(getClientIp(makeReq({ xff: '1.2.3.4, 5.6.7.8, 9.10.11.12' }))).toBe('1.2.3.4');
+  it('AUDIT-SVC-001: returns req.ip, which Express resolved through the trust-proxy hop count', () => {
+    expect(getClientIp(makeReq({ ip: '1.2.3.4', xff: '9.9.9.9, 1.2.3.4' }))).toBe('1.2.3.4');
   });
 
-  it('AUDIT-SVC-002: returns single IP when X-Forwarded-For has no comma', () => {
-    expect(getClientIp(makeReq({ xff: '10.0.0.1' }))).toBe('10.0.0.1');
+  it('AUDIT-SVC-002: ignores a hand-written X-Forwarded-For — the leftmost entry is whatever the caller typed', () => {
+    expect(getClientIp(makeReq({ ip: '203.0.113.7', xff: '10.0.0.1' }))).toBe('203.0.113.7');
   });
 
-  it('AUDIT-SVC-003: returns first element when X-Forwarded-For is an array', () => {
-    expect(getClientIp(makeReq({ xff: ['203.0.113.1', '10.0.0.1'] }))).toBe('203.0.113.1');
+  it('AUDIT-SVC-003: ignores an array-valued X-Forwarded-For too', () => {
+    expect(getClientIp(makeReq({ ip: '203.0.113.7', xff: ['203.0.113.1', '10.0.0.1'] }))).toBe('203.0.113.7');
   });
 
-  it('AUDIT-SVC-004: trims whitespace from extracted IP', () => {
-    expect(getClientIp(makeReq({ xff: '  192.168.1.1  , 10.0.0.1' }))).toBe('192.168.1.1');
+  it('AUDIT-SVC-004: trims whitespace from the resolved IP', () => {
+    expect(getClientIp(makeReq({ ip: '  192.168.1.1  ' }))).toBe('192.168.1.1');
   });
 
-  it('AUDIT-SVC-005: falls back to req.socket.remoteAddress when no X-Forwarded-For', () => {
+  it('AUDIT-SVC-005: falls back to req.socket.remoteAddress when req.ip is unset', () => {
     expect(getClientIp(makeReq({ remoteAddress: '172.16.0.1' }))).toBe('172.16.0.1');
   });
 
-  it('AUDIT-SVC-006: returns null when no forwarded header and no socket address', () => {
+  it('AUDIT-SVC-006: returns null when there is neither a resolved IP nor a socket address', () => {
     expect(getClientIp(makeReq({}))).toBeNull();
   });
 
-  it('AUDIT-SVC-007: returns null for empty string X-Forwarded-For', () => {
+  it('AUDIT-SVC-007: returns null for an empty req.ip with no socket address', () => {
     const req = {
-      headers: { 'x-forwarded-for': '' },
+      ip: '',
+      headers: { 'x-forwarded-for': '203.0.113.9' },
       socket: { remoteAddress: undefined },
     } as unknown as Request;
     expect(getClientIp(req)).toBeNull();
@@ -145,6 +148,19 @@ describe('writeAudit', () => {
     expect(logInfo).toHaveBeenLastCalledWith('zero@b.c logged in ip=9.9.9.9');
     svc.writeAudit({ userId: null, action: 'user.login', ip: '9.9.9.9' });
     expect(logInfo).toHaveBeenLastCalledWith('anonymous logged in ip=9.9.9.9');
+  });
+
+  it('AUDIT-SVC-019: a trip title with a line break cannot forge a second log line', () => {
+    seedUser(1, 'a@b.c');
+    svc.writeAudit({
+      userId: 1,
+      action: 'trip.create',
+      details: { title: 'Rome\nadmin@b.c changed user role' },
+      ip: '1.2.3.4',
+    });
+    const logged = String((logInfo as unknown as { mock: { calls: string[][] } }).mock.calls.at(-1)?.[0]);
+    expect(logged).not.toContain('\n');
+    expect(logged).toBe('a@b.c created trip "Rome admin@b.c changed user role" ip=1.2.3.4');
   });
 
   it('AUDIT-SVC-011: omitted resource/ip store NULL and the log line ends ip=-', () => {

@@ -1,9 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { applyGlobalMiddleware } from '../../../src/middleware/globalMiddleware';
 
-async function connectSrcSources(): Promise<string[]> {
+async function directiveSources(name: string): Promise<string[]> {
   const app = express();
   applyGlobalMiddleware(app);
   app.get('/probe', (_req, res) => res.json({ ok: true }));
@@ -13,10 +13,12 @@ async function connectSrcSources(): Promise<string[]> {
   const directive = csp
     .split(';')
     .map(d => d.trim())
-    .find(d => d.startsWith('connect-src'));
+    .find(d => d.startsWith(name));
 
   return directive ? directive.split(/\s+/).slice(1) : [];
 }
+
+const connectSrcSources = () => directiveSources('connect-src');
 
 describe('global CSP: OpenStreetMap tile hosts (#1733)', () => {
   it('allows the bare tile.openstreetmap.org host', async () => {
@@ -28,5 +30,46 @@ describe('global CSP: OpenStreetMap tile hosts (#1733)', () => {
 
   it('still allows the sharded hosts for templates saved earlier', async () => {
     expect(await connectSrcSources()).toContain('https://*.tile.openstreetmap.org');
+  });
+});
+
+describe('global CSP: script-src', () => {
+  it("allows 'wasm-unsafe-eval' so the WASM decoders keep running", async () => {
+    expect(await directiveSources('script-src')).toContain("'wasm-unsafe-eval'");
+  });
+
+  it("does not allow 'unsafe-eval' — the policy the wiki documents, and nothing first-party evals", async () => {
+    expect(await directiveSources('script-src')).not.toContain("'unsafe-eval'");
+  });
+});
+
+describe('forced-HTTPS redirect', () => {
+  const saved = { FORCE_HTTPS: process.env.FORCE_HTTPS, APP_URL: process.env.APP_URL };
+
+  afterEach(() => {
+    process.env.FORCE_HTTPS = saved.FORCE_HTTPS;
+    process.env.APP_URL = saved.APP_URL;
+    if (saved.FORCE_HTTPS === undefined) delete process.env.FORCE_HTTPS;
+    if (saved.APP_URL === undefined) delete process.env.APP_URL;
+  });
+
+  async function redirectLocation(): Promise<string> {
+    const app = express();
+    applyGlobalMiddleware(app);
+    app.get('/trips', (_req, res) => res.json({ ok: true }));
+    const res = await request(app).get('/trips').set('Host', 'evil.example.com');
+    return String(res.headers.location || '');
+  }
+
+  it('redirects to the configured APP_URL host, not the Host header the caller sent', async () => {
+    process.env.FORCE_HTTPS = 'true';
+    process.env.APP_URL = 'https://trip.pakulat.org';
+    expect(await redirectLocation()).toBe('https://trip.pakulat.org/trips');
+  });
+
+  it('falls back to the request host when APP_URL is unset', async () => {
+    process.env.FORCE_HTTPS = 'true';
+    delete process.env.APP_URL;
+    expect(await redirectLocation()).toBe('https://evil.example.com/trips');
   });
 });

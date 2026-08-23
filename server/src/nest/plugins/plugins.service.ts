@@ -166,8 +166,9 @@ export class PluginsService {
 
   /**
    * Merge instance-scope settings into the plugin's config, encrypting fields
-   * declared secret (unless the value is the unchanged mask sentinel). Returns
-   * the config with secrets masked for the client.
+   * declared secret (unless the value is the unchanged mask sentinel). Only keys
+   * declared as `scope:'instance'` fields are accepted, same as updateUserConfig.
+   * Returns the config with secrets masked for the client.
    */
   updateInstanceConfig(id: string, patch: Record<string, unknown>): Record<string, unknown> {
     const row = this.db.prepare('SELECT config FROM plugins WHERE id = ?').get(id) as { config: string } | undefined;
@@ -181,8 +182,17 @@ export class PluginsService {
       ).map((r) => r.field_key),
     );
 
+    const allowed = new Set(
+      (
+        this.db
+          .prepare("SELECT field_key FROM plugin_settings_fields WHERE plugin_id = ? AND scope = 'instance'")
+          .all(id) as Array<{ field_key: string }>
+      ).map((r) => r.field_key),
+    );
+
     const config = safeParse(row.config);
     for (const [k, v] of Object.entries(patch)) {
+      if (!allowed.has(k)) continue; // never store an undeclared key
       if (secretKeys.has(k)) {
         if (v === SECRET_MASK) continue; // unchanged secret — keep stored ciphertext
         config[k] = maybe_encrypt_api_key(v);

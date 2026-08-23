@@ -307,7 +307,13 @@ export class AuthController {
 
   @Post('ws-token')
   @HttpCode(200)
-  wsToken(@CurrentUser() user: User) {
+  wsToken(@CurrentUser() user: User, @Req() req: Request) {
+    // Own bucket, not 'login': a client that reconnects its socket in a loop
+    // must not be able to lock itself out of signing in. The ceiling is far
+    // above any real client, which mints one token per socket connect, but it
+    // stops a single account from filling the process-wide ephemeral store and
+    // 503-ing every other user's ws and download tokens.
+    this.limit('ws_token', req, 120);
     const result = this.tokens.createWsToken(user.id);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
@@ -317,7 +323,8 @@ export class AuthController {
 
   @Post('resource-token')
   @HttpCode(200)
-  resourceToken(@CurrentUser() user: User, @Body() body: ResourceTokenDto) {
+  resourceToken(@CurrentUser() user: User, @Body() body: ResourceTokenDto, @Req() req: Request) {
+    this.limit('resource_token', req, 120);
     const token = this.tokens.createResourceToken(user.id, body.purpose);
     if (!token) {
       throw new HttpException({ error: 'Service unavailable' }, 503);

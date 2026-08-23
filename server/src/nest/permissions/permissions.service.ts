@@ -78,7 +78,7 @@ export class PermissionsService {
   private loadPermissions(): Map<string, PermissionLevel> {
     const cached = getPermissionsCache();
     if (cached) return cached;
-    const cache = setPermissionsCache(new Map<string, PermissionLevel>());
+    const cache = new Map<string, PermissionLevel>();
     try {
       const rows = this.dbs.all<{ key: string; value: string }>(
         "SELECT key, value FROM app_settings WHERE key LIKE 'perm_%'"
@@ -99,8 +99,14 @@ export class PermissionsService {
       // real DB failure that must not stay invisible (we still serve defaults).
       const msg = e instanceof Error ? e.message : String(e);
       if (!msg.includes('no such table')) logError(`Permissions load failed: ${msg}`);
+      // Serve defaults for THIS call, but do not install them: a half-built
+      // cache would freeze every later reader on the defaults until somebody
+      // invalidates by hand, which is how a stricter admin setting silently
+      // stops applying. The next call retries the read instead.
+      return cache;
     }
-    return cache;
+    // Only a completed read becomes the shared cache.
+    return setPermissionsCache(cache);
   }
 
   invalidatePermissionsCache(): void {

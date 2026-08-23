@@ -43,7 +43,10 @@ import { runMigrations } from '../../../src/db/migrations';
 import { logError } from '../../../src/nest/audit/audit-log.logger';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { PermissionsService, PERMISSION_ACTIONS } from '../../../src/nest/permissions/permissions.service';
-import { invalidatePermissionsCache as invalidateSharedCache } from '../../../src/nest/permissions/permissions-cache';
+import {
+  getPermissionsCache,
+  invalidatePermissionsCache as invalidateSharedCache,
+} from '../../../src/nest/permissions/permissions-cache';
 
 const svc = new PermissionsService(new DatabaseService(testDb));
 
@@ -190,6 +193,22 @@ describe('load failures', () => {
     expect(bareSvc.getPermissionLevel('trip_edit')).toBe('trip_owner');
     expect(logError).toHaveBeenCalledWith(expect.stringMatching(/^Permissions load failed: /));
     svc.invalidatePermissionsCache(); // don't leak the bare-DB cache to later tests
+  });
+
+  it('PERM-SVC-024: a failed read serves defaults without installing them, and a later read populates the cache', () => {
+    const failing = { all: vi.fn((): { key: string; value: string }[] => { throw new Error('database connection is closed'); }) };
+    const flakySvc = new PermissionsService(failing as unknown as DatabaseService);
+    flakySvc.invalidatePermissionsCache();
+
+    expect(flakySvc.getPermissionLevel('trip_edit')).toBe('trip_owner');
+    // Nothing installed: an admin's stricter stored level would otherwise stay
+    // invisible until somebody invalidated by hand.
+    expect(getPermissionsCache()).toBe(null);
+
+    failing.all.mockReturnValue([{ key: 'perm_trip_edit', value: 'trip_member' }]);
+    expect(flakySvc.getPermissionLevel('trip_edit')).toBe('trip_member');
+    expect(getPermissionsCache()).not.toBe(null);
+    svc.invalidatePermissionsCache(); // don't leak the stub cache to later tests
   });
 
   it('PERM-SVC-023: an all-skipped save writes nothing and leaves the cache untouched', () => {

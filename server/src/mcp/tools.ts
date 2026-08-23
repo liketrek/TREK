@@ -1,69 +1,17 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { McpAttachOptions, McpRegistry } from '../nest-mcp';
 
+/**
+ * Attaches the MCP surface to a session's server.
+ *
+ * Every domain registers through an @McpController class the container
+ * discovers, so there is nothing to wire here by hand any more. What is left
+ * is the seam that supplies the default arguments and the null-registry
+ * escape hatch. Production passes the container-discovered McpRegistryService
+ * (injected into the transport service); the no-Nest harness hands in
+ * createTestRegistry()'s build. A null registry (direct callers without either)
+ * skips the attach.
+ */
 export function registerTools(registry: McpRegistry | null, server: McpServer, userId: number, scopes: string[] | null, isStaticToken = false, getDeprecationNotice: () => string | null = () => null, onInvoke?: McpAttachOptions['onInvoke']): void {
-  // The trip tools moved to the DI-discovered src/nest/trips/trips.mcp.ts and
-  // the share-link tools to src/nest/share/share.mcp.ts (@McpController,
-  // attached via the nest-mcp registry below — getDeprecationNotice rides the
-  // attach ctx).
-
-  // The place tools moved to the DI-discovered src/nest/places/places.mcp.ts
-  // (@McpController, attached via the nest-mcp registry below).
-
-  // The collection tools moved to the DI-discovered src/nest/collections/
-  // collections.mcp.ts (@McpController, attached via the nest-mcp registry below).
-
-  // The budget tools moved to the DI-discovered src/nest/budget/budget.mcp.ts
-  // (@McpController, attached via the nest-mcp registry below).
-
-  // The packing tools moved to the DI-discovered src/nest/packing/packing.mcp.ts
-  // (@McpController, attached via the nest-mcp registry below).
-
-  // The reservation tools moved to the DI-discovered src/nest/reservations/
-  // reservations.mcp.ts (@McpController, attached via the nest-mcp registry below).
-
-  // The day + accommodation tools moved to the DI-discovered src/nest/days/
-  // days.mcp.ts (@McpController, attached via the nest-mcp registry below).
-
-  // The assignment tools moved to the DI-discovered src/nest/assignments/
-  // assignments.mcp.ts (@McpController, attached via the nest-mcp registry below).
-
-  // The weather tools moved to the DI-discovered src/nest/weather/weather.mcp.ts
-  // and the airport tools to src/nest/airports/airports.mcp.ts (@McpController,
-  // attached via the nest-mcp registry below).
-
-  // The notification tools moved to the DI-discovered src/nest/notifications/
-  // notifications.mcp.ts (@McpController, attached via the nest-mcp registry below).
-
-  // The atlas tools moved to the DI-discovered src/nest/atlas/atlas.mcp.ts
-  // (@McpController, attached via the nest-mcp registry below).
-
-  // The collab tools moved to the DI-discovered src/nest/collab/collab.mcp.ts
-  // (@McpController, attached via the nest-mcp registry below).
-
-  // The transport tools moved to the DI-discovered
-  // src/nest/reservations/reservations.mcp.ts — a transport is a reservation,
-  // same table and same service (@McpController, attached via the nest-mcp
-  // registry below).
-
-  // The transit tools moved to the DI-discovered src/nest/transit/transit.mcp.ts
-  // (@McpController, attached via the nest-mcp registry below).
-
-
-  // The vacay tools moved to the DI-discovered src/nest/vacay/vacay.mcp.ts
-  // (@McpController, attached via the nest-mcp registry below).
-
-  // The todo tools moved to the DI-discovered src/nest/todo/todo.mcp.ts
-  // (@McpController, attached via the nest-mcp registry below).
-
-  // The prompts moved to the DI-discovered @McpController classes:
-  // packing-list to packing.mcp.ts, budget-overview to budget.mcp.ts and the
-  // static-token notice to auth.mcp.ts (its `if (isStaticToken)` became a
-  // `when` gate — the registry hands `when` the session context).
-
-  // Decorator-registered domains (src/nest-mcp). Production passes the
-  // container-discovered McpRegistryService (injected into the transport
-  // service); the no-Nest harness hands in createTestRegistry()'s build.
-  // A null registry (direct callers without either) ⇒ skip.
   if (registry) registry.attach(server, { userId, scopes, isStaticToken, getDeprecationNotice }, { onInvoke });
 }

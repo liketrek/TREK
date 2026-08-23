@@ -15,6 +15,7 @@ import {
   armSseKeepalive,
   countSessionsForUser,
   jsonRpcError,
+  sameScopes,
   setAuthChallenge,
 } from '../../../src/nest/mcp-transport/mcp-transport.service';
 import { McpTransportController } from '../../../src/nest/mcp-transport/mcp-transport.controller';
@@ -67,6 +68,21 @@ describe('setAuthChallenge', () => {
     );
     setAuthChallenge(res as never, 'insufficient_scope');
     expect(res.set).toHaveBeenLastCalledWith('WWW-Authenticate', expect.stringContaining('error="insufficient_scope"'));
+  });
+});
+
+describe('sameScopes', () => {
+  it('MCPT-008: full access only matches full access', () => {
+    expect(sameScopes(null, null)).toBe(true);
+    expect(sameScopes(null, ['trips:read'])).toBe(false);
+    expect(sameScopes(['trips:read'], null)).toBe(false);
+  });
+
+  it('MCPT-009: order does not matter, membership does', () => {
+    expect(sameScopes(['a', 'b'], ['b', 'a'])).toBe(true);
+    expect(sameScopes(['a', 'b'], ['a'])).toBe(false);
+    expect(sameScopes(['a'], ['b'])).toBe(false);
+    expect(sameScopes([], [])).toBe(true);
   });
 });
 

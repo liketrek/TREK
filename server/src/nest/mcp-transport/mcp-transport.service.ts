@@ -78,6 +78,15 @@ export function jsonRpcError(message: string, code = -32000): object {
   return { jsonrpc: '2.0', error: { code, message }, id: null };
 }
 
+/** Scope sets as the session froze them: null (full access) only matches null. */
+export function sameScopes(a: string[] | null, b: string[] | null): boolean {
+  if (a === null || b === null) return a === b;
+  if (a.length !== b.length) return false;
+  const left = [...a].sort();
+  const right = [...b].sort();
+  return left.every((scope, i) => scope === right[i]);
+}
+
 export function setAuthChallenge(res: Response, error = 'invalid_token'): void {
   const base = (getMcpSafeUrl() || '').replace(/\/+$/, '');
   // RFC 9728 §5: resource with path component /mcp → PRM URL must include the path
@@ -174,6 +183,15 @@ export class McpTransportService {
       if (session.clientId !== clientId) {
         setAuthChallenge(res);
         res.status(403).json({ error: 'Session was created with a different OAuth client' });
+        return;
+      }
+      // The tool surface is frozen at initialize (registerTools takes the scopes
+      // the session was created with), so a token that was later narrowed would
+      // otherwise ride the old session's full set of tools. Refusing here makes
+      // the client re-initialize, which is what re-authorizing should cost.
+      if (!sameScopes(session.scopes, scopes)) {
+        setAuthChallenge(res, 'insufficient_scope');
+        res.status(403).json({ error: 'Session was created with different scopes' });
         return;
       }
       session.lastActivity = Date.now();
@@ -273,6 +291,17 @@ export class McpTransportService {
       sessionIdGenerator: () => randomUUID(),
       onsessioninitialized: (sid) => {
         sessions.set(sid, { server, transport, userId: user.id, scopes, clientId, isStaticToken, lastActivity: Date.now(), lastClientIp: createIp });
+        // The cap was checked before the handler ran, and registration only
+        // happens here — so concurrent initializes all passed the same
+        // pre-registration count. Re-check now that the entry exists, or the
+        // overshoot stays in the map (each entry holding a full McpServer)
+        // until the TTL sweep. The new session has the freshest lastActivity,
+        // so it is never the one evicted; the sid guard covers a cap of 1.
+        while (countSessionsForUser(user.id) > MAX_SESSIONS_PER_USER) {
+          const dropped = evictOldestSessionForUser(user.id);
+          if (!dropped || dropped === sid) break;
+          console.log(`[MCP] Session limit (${MAX_SESSIONS_PER_USER}) exceeded for user ${user.id} — evicted idle session ${dropped}`);
+        }
         const authMethod = isStaticToken ? 'static-token' : scopes ? `oauth(${scopes.join(',')})` : 'jwt';
         console.log(`[MCP] Session ${sid} created for user ${user.id} [${authMethod}]. Active sessions: ${sessions.size}`);
       },

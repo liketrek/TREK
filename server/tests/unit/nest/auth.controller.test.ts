@@ -249,8 +249,23 @@ describe('AuthController (authenticated)', () => {
   });
 
   it('resource-token 503 when unavailable, else returns the token payload', () => {
-    expect(thrown(() => ac(asvc({}), rl(), { createResourceToken: vi.fn().mockReturnValue(null) }).resourceToken(user, {}))).toEqual({ status: 503, body: { error: 'Service unavailable' } });
-    expect(ac(asvc({}), rl(), { createResourceToken: vi.fn().mockReturnValue({ token: 'rt' }) }).resourceToken(user, { purpose: 'download' })).toEqual({ token: 'rt' });
+    expect(thrown(() => ac(asvc({}), rl(), { createResourceToken: vi.fn().mockReturnValue(null) }).resourceToken(user, {}, req))).toEqual({ status: 503, body: { error: 'Service unavailable' } });
+    expect(ac(asvc({}), rl(), { createResourceToken: vi.fn().mockReturnValue({ token: 'rt' }) }).resourceToken(user, { purpose: 'download' }, req)).toEqual({ token: 'rt' });
+  });
+
+  it('ws/resource tokens throttle on their own buckets, so a mint loop cannot drain the store or block login', () => {
+    const s = rl();
+    const now = Date.now();
+    for (let i = 0; i < 120; i++) s.check('ws_token', '9.9.9.9', 120, 15 * 60 * 1000, now);
+    expect(thrown(() => ac(asvc({}), s, { createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) }).wsToken(user, req)))
+      .toEqual({ status: 429, body: { error: 'Too many attempts. Please try again later.' } });
+    // The login bucket is untouched: an exhausted socket loop must not lock the account out.
+    expect(s.check('login', '9.9.9.9', 5, 15 * 60 * 1000, now)).toBe(true);
+
+    const s2 = rl();
+    for (let i = 0; i < 120; i++) s2.check('resource_token', '9.9.9.9', 120, 15 * 60 * 1000, now);
+    expect(thrown(() => ac(asvc({}), s2, { createResourceToken: vi.fn().mockReturnValue({ token: 'rt' }) }).resourceToken(user, {}, req)))
+      .toEqual({ status: 429, body: { error: 'Too many attempts. Please try again later.' } });
   });
 
   it('rate-limited account ops throw 429 once the bucket is exhausted', () => {
@@ -385,8 +400,8 @@ describe('AuthController (authenticated)', () => {
   });
 
   it('ws-token maps error, else returns the token', () => {
-    expect(thrown(() => ac(asvc({}), rl(), { createWsToken: vi.fn().mockReturnValue({ error: 'down', status: 503 }) }).wsToken(user))).toEqual({ status: 503, body: { error: 'down' } });
-    expect(ac(asvc({}), rl(), { createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) }).wsToken(user)).toEqual({ token: 'ws' });
+    expect(thrown(() => ac(asvc({}), rl(), { createWsToken: vi.fn().mockReturnValue({ error: 'down', status: 503 }) }).wsToken(user, req))).toEqual({ status: 503, body: { error: 'down' } });
+    expect(ac(asvc({}), rl(), { createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) }).wsToken(user, req)).toEqual({ token: 'ws' });
   });
 
   it('avatar saves when not in demo mode (env present but email is not a demo email)', async () => {

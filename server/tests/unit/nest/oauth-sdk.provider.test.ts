@@ -374,10 +374,15 @@ describe('TrekOAuthProvider.exchangeAuthorizationCode', () => {
   it('SDKP-046: a pending code without a resource issues a null-audience token', async () => {
     const oauth = makeOauth({ consumeAuthCode: vi.fn(() => pending({ resource: null })) });
     const { provider } = makeProvider(oauth);
-    await provider.exchangeAuthorizationCode(clientInfo(), 'code');
+    await provider.exchangeAuthorizationCode(clientInfo(), 'code', 'verifier');
     expect(oauth.issueTokens).toHaveBeenCalledWith('cid-1', 7, ['trips:read'], null, null);
-    // No codeVerifier was supplied, so PKCE verification is skipped entirely.
-    expect(oauth.verifyPKCE).not.toHaveBeenCalled();
+  });
+
+  it('SDKP-047: a missing codeVerifier is refused, not waved through', async () => {
+    const oauth = makeOauth({ consumeAuthCode: vi.fn(() => pending()) });
+    const { provider } = makeProvider(oauth);
+    await expect(provider.exchangeAuthorizationCode(clientInfo(), 'code')).rejects.toThrow(invalid);
+    expect(oauth.issueTokens).not.toHaveBeenCalled();
   });
 });
 

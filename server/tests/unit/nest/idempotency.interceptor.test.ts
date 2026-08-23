@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
-import { of, lastValueFrom } from 'rxjs';
+import { from, of, lastValueFrom } from 'rxjs';
 import { IdempotencyInterceptor } from '../../../src/nest/common/idempotency.interceptor';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
 
@@ -179,6 +179,62 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
     const returned = res.json({ ok: true });
     expect(run).toHaveBeenCalledTimes(1);
     expect(returned).toEqual({ ok: true });
+  });
+
+  it('makes an overlapping replay of the same key wait, then answers it from the first response', async () => {
+    // The row only appears once the first request answers, so without the
+    // in-flight map both of these would miss the SELECT and both would run.
+    const rows = new Map<string, { status_code: number; response_body: string }>();
+    const db = makeDb({
+      get: vi.fn((_sql: string, ...params: unknown[]) => rows.get(String(params[0]))) as unknown as DatabaseService['get'],
+      run: vi.fn((_sql: string, ...params: unknown[]) => {
+        rows.set(String(params[0]), { status_code: Number(params[4]), response_body: String(params[5]) });
+        return {} as never;
+      }) as unknown as DatabaseService['run'],
+    });
+    const interceptor = new IdempotencyInterceptor(db);
+
+    // The first handler is still running when the second request arrives.
+    let finish!: (value: unknown) => void;
+    const slow = { handle: vi.fn(() => from(new Promise((resolve) => { finish = resolve; }))) };
+    const firstRes = makeRes();
+    const first = lastValueFrom(interceptor.intercept(ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: 1 } }, firstRes), slow));
+
+    const secondHandler = handler({ id: 'second' });
+    const secondRes = makeRes();
+    const second = lastValueFrom(interceptor.intercept(ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: 1 } }, secondRes), secondHandler));
+
+    firstRes.statusCode = 201;
+    firstRes.json({ id: 'first' });
+    finish({ id: 'first' });
+
+    expect(await first).toEqual({ id: 'first' });
+    expect(await second).toEqual({ id: 'first' });
+    expect(secondHandler.handle).not.toHaveBeenCalled();
+    expect(secondRes.status).toHaveBeenCalledWith(201);
+  });
+
+  it('runs the waiting request itself when the first one cached nothing', async () => {
+    const db = makeDb({ get: vi.fn().mockReturnValue(undefined), run: vi.fn() });
+    const interceptor = new IdempotencyInterceptor(db);
+
+    let finish!: (value: unknown) => void;
+    const slow = { handle: vi.fn(() => from(new Promise((resolve) => { finish = resolve; }))) };
+    const first = lastValueFrom(interceptor.intercept(
+      ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: 1 } }, makeRes()),
+      slow,
+    ));
+
+    const secondHandler = handler({ id: 'second' });
+    const second = lastValueFrom(interceptor.intercept(
+      ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: 1 } }, makeRes()),
+      secondHandler,
+    ));
+
+    finish({ id: 'first' });
+    await first;
+    expect(await second).toEqual({ id: 'second' });
+    expect(secondHandler.handle).toHaveBeenCalled();
   });
 
   it('treats a PATCH as a mutating method', async () => {
