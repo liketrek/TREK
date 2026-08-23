@@ -98,7 +98,7 @@ function buildHook(over: Record<string, unknown> = {}): Record<string, unknown> 
     unlinkTrip: null, setUnlinkTrip: vi.fn(),
     showSettings: false, setShowSettings: vi.fn(),
     hideSkeletons: false, setHideSkeletons: vi.fn(),
-    mapRef: { current: null }, fullMapRef: { current: null },
+    mapRef: { current: null }, fullMapRef: { current: null }, galleryUploadRef: { current: null },
     activeLocationId: null, handleMarkerClick: vi.fn(), handleLocationClick: vi.fn(),
     mapEntries: [], sidebarMapItems: [], tripDates: new Set<string>(), isMobile: false,
     feedEdge: { atTop: true, atBottom: true }, scrollFeedTo: vi.fn(),

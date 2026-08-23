@@ -1,4 +1,4 @@
-// FE-APISURF-001 to FE-APISURF-052
+// FE-APISURF-001 to FE-APISURF-054
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import type { AxiosResponse } from 'axios'
 import { http, HttpResponse } from 'msw'
@@ -9,7 +9,7 @@ import {
   tagsApi, categoriesApi, adminApi, addonsApi, pluginsApi, airtrailApi, journeyApi,
   mapsApi, airportsApi, budgetApi, filesApi, reservationsApi, healthApi, weatherApi,
   configApi, helpApi, settingsApi, accommodationsApi, dayNotesApi, collabApi, backupApi,
-  shareApi, transitApi, tripInviteApi, notificationsApi, inAppNotificationsApi,
+  shareApi, transitApi, tripInviteApi, notificationsApi, inAppNotificationsApi, memoriesApi,
 } from './client'
 
 interface Recorded { method: string; url: string; body: unknown }
@@ -394,6 +394,20 @@ describe('client > endpoint wiring', () => {
       { n: 'deleteShareLink', r: () => journeyApi.deleteShareLink(2), e: 'DELETE /api/journeys/2/share-link' },
       { n: 'getPublicJourney', r: () => journeyApi.getPublicJourney('pub-tok'), e: 'GET /api/public/journey/pub-tok' },
     ])
+  })
+
+  it('FE-APISURF-053: memoriesApi maps the photo-provider endpoints', async () => {
+    await assertCalls([
+      { n: 'status', r: () => memoriesApi.status('immich'), e: 'GET /api/integrations/memories/immich/status' },
+      { n: 'search', r: () => memoriesApi.search('immich', { from: '2026-01-01', to: '2026-01-02', page: 1, size: 50 }), e: 'POST /api/integrations/memories/immich/search' },
+      { n: 'albums', r: () => memoriesApi.albums('immich'), e: 'GET /api/integrations/memories/immich/albums' },
+      { n: 'albumPhotos', r: () => memoriesApi.albumPhotos('immich', 'alb-1'), e: 'GET /api/integrations/memories/immich/albums/alb-1/photos' },
+    ])
+  })
+
+  it('FE-APISURF-054: memoriesApi passes the album passphrase as a query parameter', async () => {
+    const rec = await traceOne(() => memoriesApi.albumPhotos('synologyphotos', 'alb-2', 'p/w?'))
+    expect(rec.url).toBe('/api/integrations/memories/synologyphotos/albums/alb-2/photos?passphrase=p%2Fw%3F')
   })
 
   it('FE-APISURF-016: mapsApi and airportsApi map the geo endpoints', async () => {

@@ -81,6 +81,9 @@ export default function AppearanceSettingsTab(): React.ReactElement {
 
   const [cfg, setCfg] = useState<AppearanceConfig>(() => normalizeAppearance(settings.appearance))
   const persistTimer = useRef<number | undefined>(undefined)
+  // What the pending timer would have written, so leaving the tab inside the
+  // debounce window still saves instead of silently dropping the change.
+  const pendingWrite = useRef<AppearanceConfig | null>(null)
 
   // Re-sync when settings change elsewhere (e.g. server reconcile / another tab).
   useEffect(() => {
@@ -89,8 +92,11 @@ export default function AppearanceSettingsTab(): React.ReactElement {
 
   // Flush any pending persist on unmount.
   useEffect(() => () => {
-    if (persistTimer.current) window.clearTimeout(persistTimer.current)
-  }, [])
+    if (!persistTimer.current) return
+    window.clearTimeout(persistTimer.current)
+    // The component is gone, so a failure has nowhere to be shown.
+    if (pendingWrite.current) updateSetting('appearance', pendingWrite.current).catch(() => {})
+  }, [updateSetting])
 
   const isDark =
     settings.dark_mode === true ||
@@ -103,7 +109,9 @@ export default function AppearanceSettingsTab(): React.ReactElement {
     setCfg(next)
     applyAppearance({ darkMode: settings.dark_mode, appearance: next, isSharedPage: false })
     if (persistTimer.current) window.clearTimeout(persistTimer.current)
+    pendingWrite.current = next
     persistTimer.current = window.setTimeout(() => {
+      pendingWrite.current = null
       updateSetting('appearance', next).catch((e: unknown) =>
         toast.error(e instanceof Error ? e.message : t('common.error'))
       )

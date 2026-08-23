@@ -298,4 +298,35 @@ describe('AppearanceSettingsTab – dashboard widgets', () => {
       PERSIST,
     );
   });
+
+  // The scheme is already on the DOM by then, so dropping the write would revert the
+  // choice on the next load without ever telling the user.
+  it('FE-COMP-APPEARANCE-023: leaving the tab before the debounce fires flushes the pending save once', async () => {
+    const user = userEvent.setup();
+    const updateSetting = seedAppearance();
+    const { unmount } = render(<AppearanceSettingsTab />);
+
+    await user.click(screen.getByText('Indigo'));
+    unmount();
+
+    const calls = updateSetting.mock.calls.filter(c => c[0] === 'appearance');
+    expect(calls).toHaveLength(1);
+    expect(calls[0][1]).toMatchObject({ schemeId: 'indigo' });
+
+    // The timer is cancelled, so nothing lands a second time.
+    await new Promise(resolve => setTimeout(resolve, 500));
+    expect(updateSetting.mock.calls.filter(c => c[0] === 'appearance')).toHaveLength(1);
+  });
+
+  it('FE-COMP-APPEARANCE-024: a debounce that already fired is not written again on unmount', async () => {
+    const user = userEvent.setup();
+    const updateSetting = seedAppearance();
+    const { unmount } = render(<AppearanceSettingsTab />);
+
+    await user.click(screen.getByText('Teal'));
+    await waitFor(() => expect(updateSetting.mock.calls.filter(c => c[0] === 'appearance')).toHaveLength(1), PERSIST);
+
+    unmount();
+    expect(updateSetting.mock.calls.filter(c => c[0] === 'appearance')).toHaveLength(1);
+  });
 });

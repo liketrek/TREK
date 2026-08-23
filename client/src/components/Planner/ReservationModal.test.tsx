@@ -1423,4 +1423,27 @@ describe('ReservationModal', () => {
     // Hotel place picker still shows its placeholder — no crash on the missing record.
     expect(screen.getByText('—')).toBeInTheDocument();
   });
+
+  // A legacy or corrupted metadata column used to throw straight out of the open
+  // effect and take the whole planner route down.
+  it('FE-PLANNER-RESMODAL-087: unparseable metadata opens the modal with empty check-in times', () => {
+    const res = buildReservation({ id: 17, title: 'Grand Hotel', type: 'hotel' });
+    (res as unknown as { metadata: string }).metadata = '{not json';
+    render(<ReservationModal {...defaultProps} reservation={res} days={reviewDays()} />);
+
+    expect(screen.getByDisplayValue('Grand Hotel')).toBeInTheDocument();
+    const times = screen.getAllByTestId('time-picker') as HTMLInputElement[];
+    expect(times.map(i => i.value)).toEqual(['', '', '']);
+  });
+
+  it('FE-PLANNER-RESMODAL-088: double-encoded metadata still fills the check-in times', () => {
+    const res = buildReservation({ id: 18, title: 'Grand Hotel', type: 'hotel' });
+    (res as unknown as { metadata: string }).metadata =
+      JSON.stringify(JSON.stringify({ check_in_time: '16:00', check_out_time: '10:30' }));
+    render(<ReservationModal {...defaultProps} reservation={res} days={reviewDays()} />);
+
+    const times = screen.getAllByTestId('time-picker') as HTMLInputElement[];
+    expect(times[0].value).toBe('16:00');
+    expect(times[2].value).toBe('10:30');
+  });
 });

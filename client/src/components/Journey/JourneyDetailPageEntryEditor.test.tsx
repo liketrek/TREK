@@ -586,11 +586,11 @@ describe('EntryEditor', () => {
     expect(stripImg.getAttribute('src')).toBe('/api/photos/100/original')
   })
 
-  it('FE-JRN-EDITOR-029: reorders photos locally even when persisting the order fails', async () => {
+  it('FE-JRN-EDITOR-029: rolls the order back when persisting it fails', async () => {
     let attempts = 0
     server.use(http.patch('/api/journeys/photos/:id', () => {
       attempts += 1
-      return new HttpResponse(null, { status: 500 })
+      return HttpResponse.json({ error: 'sort rejected' }, { status: 500 })
     }))
     const user = userEvent.setup()
     const { container } = mountEditor(buildEntry({ id: 10, photos: [buildPhoto(100), buildPhoto(101)] }))
@@ -598,8 +598,9 @@ describe('EntryEditor', () => {
     await user.click(screen.getByRole('button', { name: 'Make 1st' }))
 
     await waitFor(() => expect(attempts).toBe(2))
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('sort rejected', 'error', undefined))
     const order = Array.from(container.querySelectorAll('.w-20.h-20 img')).map(i => i.getAttribute('src'))
-    expect(order).toEqual(['/api/photos/101/thumbnail', '/api/photos/100/thumbnail'])
+    expect(order).toEqual(['/api/photos/100/thumbnail', '/api/photos/101/thumbnail'])
   })
 
   it('FE-JRN-EDITOR-030: dropping an unsaved gallery pick cancels its link', async () => {
@@ -863,6 +864,32 @@ describe('EntryEditor', () => {
 
     await waitFor(() => expect(onSave).toHaveBeenCalled())
     expect(onSave.mock.calls[0][0]).toEqual(expect.objectContaining({ entry_time: null }))
+  })
+
+  it('FE-JRN-EDITOR-044: reports a rejected save and keeps the editor open', async () => {
+    const user = userEvent.setup()
+    const { onSave, onDone } = mountEditor(buildEntry({ id: 10, title: 'Old' }))
+    onSave.mockRejectedValueOnce(new Error('server said no'))
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('server said no', 'error', undefined))
+    expect(onDone).not.toHaveBeenCalled()
+    expect(screen.getByRole('heading', { name: 'Edit Entry' })).toBeInTheDocument()
+  })
+
+  it('FE-JRN-EDITOR-046: gives the preview blob URLs back when the editor closes', async () => {
+    const revoke = vi.spyOn(URL, 'revokeObjectURL')
+    const { container, unmount } = mountEditor(buildEntry())
+
+    fireEvent.change(container.querySelector('input[type="file"]') as HTMLInputElement, {
+      target: { files: [new File(['a'], 'a.jpg', { type: 'image/jpeg' })] },
+    })
+    await waitFor(() => expect(container.querySelector('img[src="blob:preview"]')).toBeInTheDocument())
+
+    unmount()
+    expect(revoke).toHaveBeenCalledWith('blob:preview')
+    revoke.mockRestore()
   })
 
   it('FE-JRN-EDITOR-043: the camera route is its own input, so the library picker survives', () => {

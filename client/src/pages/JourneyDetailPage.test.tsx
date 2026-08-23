@@ -3720,13 +3720,15 @@ describe('JourneyDetailPage', () => {
     it('clicking Copy on share link copies to clipboard', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-      // Mock clipboard
+      // Mock clipboard. jsdom leaves isSecureContext undefined, which the copy
+      // handler reads as plain HTTP and answers with its execCommand fallback.
       const mockWriteText = vi.fn().mockResolvedValue(undefined);
       Object.defineProperty(navigator, 'clipboard', {
         value: { writeText: mockWriteText },
         writable: true,
         configurable: true,
       });
+      Object.defineProperty(window, 'isSecureContext', { value: true, writable: true, configurable: true });
 
       server.use(
         http.get('/api/journeys/1/share-link', () => {

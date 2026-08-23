@@ -1,9 +1,9 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { X, Plus, Image, Minus, Check, MapPin, Locate, Camera } from 'lucide-react'
 import { normalizeImageFiles } from '../../utils/convertHeic'
 import { type ResilientResult, type UploadProgress } from '../../utils/uploadQueue'
 import { useTranslation } from '../../i18n'
-import { journeyApi, mapsApi, addonsApi } from '../../api/client'
+import { journeyApi, mapsApi, addonsApi, memoriesApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
 import { getCurrentPositionOnce } from '../../hooks/useGeolocation'
 import { getApiErrorMessage } from '../../types'
@@ -52,6 +52,10 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null)
   const [photos, setPhotos] = useState<(JourneyPhoto | GalleryPhoto)[]>(entry.photos || [])
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  // Minting the preview URL inline in the JSX would hand out a fresh blob on
+  // every keystroke in the story field and never give one back.
+  const pendingUrls = useMemo(() => pendingFiles.map(f => URL.createObjectURL(f)), [pendingFiles])
+  useEffect(() => () => { pendingUrls.forEach(u => URL.revokeObjectURL(u)) }, [pendingUrls])
   const [pendingLinkIds, setPendingLinkIds] = useState<number[]>([])
   const [showGalleryPick, setShowGalleryPick] = useState(false)
   const [photoTab, setPhotoTab] = useState<'upload' | 'gallery' | 'external'>('upload')
@@ -103,8 +107,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
         const connected: { id: string; name: string }[] = []
         for (const provider of enabled) {
           try {
-            const response = await fetch(`/api/integrations/memories/${provider.id}/status`, { credentials: 'include' })
-            if (response.ok && (await response.json()).connected) connected.push({ id: provider.id, name: provider.name })
+            if ((await memoriesApi.status(provider.id)).connected) connected.push({ id: provider.id, name: provider.name })
           } catch {}
         }
         setAvailableProviders(connected)
@@ -186,6 +189,11 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
         setPendingProviderGroups([])
       }
       onDone()
+    } catch (err) {
+      // Neither the page callback nor journeyStore toasts, so without this the
+      // whole entry just fails to save with no sign of it.
+      toast.error(getApiErrorMessage(err, t('journey.settings.saveFailed')))
+      return
     } finally {
       setSaving(false)
     }
@@ -436,13 +444,18 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
                         <button
                           onClick={e => {
                             e.stopPropagation()
-                            setPhotos(prev => {
-                              const next = [...prev]
-                              const [moved] = next.splice(idx, 1)
-                              next.unshift(moved)
-                              next.forEach((ph, i) => { journeyApi.updatePhoto(ph.id, { sort_order: i }).catch(() => {}) })
-                              return next
-                            })
+                            const prevOrder = photos
+                            const next = [...photos]
+                            const [moved] = next.splice(idx, 1)
+                            next.unshift(moved)
+                            setPhotos(next)
+                            // The order is shared: other members, the share view and the
+                            // PDF all read it, so a rejected write has to go back.
+                            Promise.all(next.map((ph, i) => journeyApi.updatePhoto(ph.id, { sort_order: i })))
+                              .catch(err => {
+                                setPhotos(prevOrder)
+                                toast.error(getApiErrorMessage(err, t('common.error')))
+                              })
                           }}
                           className="absolute bottom-0.5 left-0.5 px-1.5 py-0.5 rounded bg-black/60 text-white text-[8px] font-semibold opacity-0 group-hover:opacity-100 transition-opacity"
                         >
@@ -468,7 +481,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
                   ))}
                   {pendingFiles.map((f, i) => (
                     <div key={`pending-${i}`} className="w-20 h-20 rounded-xl overflow-hidden relative group">
-                      <img src={URL.createObjectURL(f)} className="w-full h-full object-cover" alt="" />
+                      <img src={pendingUrls[i]} className="w-full h-full object-cover" alt="" />
                       <button
                         onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))}
                         className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"

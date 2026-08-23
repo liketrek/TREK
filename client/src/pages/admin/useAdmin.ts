@@ -7,7 +7,31 @@ import { useAddonStore } from '../../store/addonStore'
 import { useTranslation } from '../../i18n'
 import { getApiErrorMessage } from '../../types'
 import { useToast } from '../../components/shared/Toast'
+import { managedAdminTabs } from '../../managed'
 import type { AdminUser, AdminStats, OidcConfig, UpdateInfo } from './adminModel'
+
+/**
+ * Every tab id AdminPage can render a panel for, whatever this install offers.
+ *
+ * ?tab= is user input and was taken as read: an id with no panel behind it —
+ * a typo, or a link from an install that has tabs this one does not — opened
+ * the admin page on an empty content area with nothing selected in the
+ * sidebar. Labels and icons stay in AdminPage; this is only the vocabulary.
+ */
+const ADMIN_TAB_IDS = [
+  'users', 'defaults', 'config', 'settings', 'addons', 'plugins', 'storage',
+  'notifications', 'mcp-tokens', 'github', 'backup', 'audit', 'dev-notifications',
+]
+
+/**
+ * The ones a managed install deliberately does not offer.
+ *
+ * The sidebar entries are built conditionally, but the panels are not, so
+ * ?tab=backup opened a backup schedule that competes with the real one on a
+ * hosted instance. Checked in an effect rather than in the initial state
+ * because `managed` arrives with /app-config, after the first render.
+ */
+const MANAGED_HIDDEN = ['storage', 'github', 'backup']
 
 /**
  * Admin page logic — owns every admin data slice (users, stats, invites, auth
@@ -29,7 +53,11 @@ export function useAdmin() {
   // page with eleven of them. Read once for the initial value and written back
   // on every change, so the address bar keeps saying where the reader is.
   const [searchParams, setSearchParams] = useSearchParams()
-  const [activeTab, setActiveTabState] = useState<string>(() => searchParams.get('tab') || 'users')
+  const [activeTab, setActiveTabState] = useState<string>(() => {
+    const asked = searchParams.get('tab')
+    const known = [...ADMIN_TAB_IDS, ...managedAdminTabs.map(tab => tab.id)]
+    return asked && known.includes(asked) ? asked : 'users'
+  })
   const setActiveTab = useCallback((tab: string) => {
     setActiveTabState(tab)
     // replace, not push: eleven tabs would otherwise fill the back button with
@@ -41,6 +69,10 @@ export function useAdmin() {
       return next
     }, { replace: true })
   }, [setSearchParams])
+  useEffect(() => {
+    if (managed && MANAGED_HIDDEN.includes(activeTab)) setActiveTab('users')
+  }, [managed, activeTab, setActiveTab])
+
   const [users, setUsers] = useState<AdminUser[]>([])
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)

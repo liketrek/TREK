@@ -1,4 +1,4 @@
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { buildAdmin } from '../../tests/helpers/factories';
 import { server } from '../../tests/helpers/msw/server';
@@ -27,16 +27,21 @@ vi.mock('../components/Admin/AddonManager', () => ({
   default: ({
     bagTrackingEnabled,
     onToggleBagTracking,
+    collabFeatures,
     onToggleCollabFeature,
   }: {
     bagTrackingEnabled: boolean;
     onToggleBagTracking: () => void;
+    collabFeatures: Record<string, boolean>;
     onToggleCollabFeature: (key: string) => void;
   }) => (
     <div data-testid="addon-manager">
       <span data-testid="bag-tracking-state">{String(bagTrackingEnabled)}</span>
+      <span data-testid="collab-chat-state">{String(collabFeatures?.chat)}</span>
+      <span data-testid="collab-notes-state">{String(collabFeatures?.notes)}</span>
       <button onClick={() => onToggleBagTracking()}>toggle bag tracking</button>
       <button onClick={() => onToggleCollabFeature('chat')}>toggle chat</button>
+      <button onClick={() => onToggleCollabFeature('notes')}>toggle notes</button>
     </div>
   ),
 }));
@@ -1569,8 +1574,38 @@ describe('AdminPage', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /toggle chat/i }));
 
-      // The rollback re-renders the stub; the addon panel stays mounted either way
-      await waitFor(() => expect(screen.getByTestId('addon-manager')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByTestId('collab-chat-state')).toHaveTextContent('true'));
+    });
+
+    // A snapshot-wide rollback would undo the second toggle as well, leaving the
+    // panel disagreeing with the server until a reload.
+    it('a failing collab toggle keeps a second toggle made while it was in flight', async () => {
+      server.use(
+        http.get('/api/admin/collab-features', () =>
+          HttpResponse.json({ chat: true, notes: true, polls: true, whatsnext: true })
+        ),
+        http.put('/api/admin/collab-features', async ({ request }) => {
+          const body = (await request.json()) as Record<string, unknown>;
+          if ('chat' in body) {
+            await delay(30);
+            return HttpResponse.json({}, { status: 500 });
+          }
+          return HttpResponse.json({ success: true });
+        })
+      );
+
+      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
+      render(<AdminPage />);
+
+      await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: /^addons$/i }));
+      await waitFor(() => expect(screen.getByTestId('collab-chat-state')).toHaveTextContent('true'));
+
+      fireEvent.click(screen.getByRole('button', { name: /toggle chat/i }));
+      fireEvent.click(screen.getByRole('button', { name: /toggle notes/i }));
+
+      await waitFor(() => expect(screen.getByTestId('collab-chat-state')).toHaveTextContent('true'));
+      expect(screen.getByTestId('collab-notes-state')).toHaveTextContent('false');
     });
   });
 

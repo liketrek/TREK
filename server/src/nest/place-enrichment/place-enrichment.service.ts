@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
+import { placeWebsiteSchema } from '@trek/shared';
 import type {
   MapsPlaceEnrichmentRequest,
   MapsPlaceEnrichmentResult,
@@ -173,8 +174,11 @@ export function collectFacts(details: Record<string, unknown> | null): PlaceFact
   // OSM writes several cuisines semicolon-separated and underscored.
   if (cuisine) push('cuisine', cuisine.split(';').map((c) => c.replace(/_/g, ' ').trim()).filter(Boolean).join(', '));
 
-  const menu = typeof details.menu_url === 'string' ? details.menu_url : null;
-  if (menu) push('menu', null, menu);
+  // `menu_url` is a community-editable OSM tag that becomes an href on the
+  // client, so it goes through the same allow-list as a place's website —
+  // anything but http(s) is dropped rather than rendered as a link.
+  const menu = typeof details.menu_url === 'string' ? details.menu_url.trim() : '';
+  if (placeWebsiteSchema.safeParse(menu).success) push('menu', null, menu);
 
   if (yesNo(details.outdoor_seating) === 'yes') push('outdoorSeating', null);
   if (yesNo(details.takeaway) === 'yes') push('takeaway', null);

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
 import { X, Check, Calendar, ChevronRight, Camera } from 'lucide-react'
 import { useTranslation } from '../../i18n'
+import { memoriesApi } from '../../api/client'
 import type { JourneyEntry, JourneyTrip } from '../../store/journeyStore'
 import { groupPhotosByDate, sortProviderPhotos, type GeoPoint } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 import { ScrollTrigger } from './JourneyDetailPageScrollTrigger'
@@ -64,21 +65,14 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
     setSearchTo(to)
     setSearchPage(page)
     try {
-      const res = await fetch(`/api/integrations/memories/${provider}/search`, {
-        method: 'POST', credentials: 'include', signal,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from, to, page, size: 50 }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        const assets = data.assets || []
-        setPhotos(prev => append ? [...prev, ...assets] : assets)
-        setHasMore(!!data.hasMore)
-      } else {
-        setHasMore(false)
-      }
-    } catch (e: any) {
-      if (e.name !== 'AbortError') setHasMore(false)
+      const data = await memoriesApi.search(provider, { from, to, page, size: 50 }, signal)
+      const assets = data.assets || []
+      setPhotos(prev => append ? [...prev, ...assets] : assets)
+      setHasMore(!!data.hasMore)
+    } catch {
+      // A cancelled request is about to be replaced by the next one, so leave
+      // its paging state alone.
+      if (!signal.aborted) setHasMore(false)
     }
     if (!signal.aborted) { setLoading(false); setLoadingMore(false) }
   }
@@ -94,17 +88,14 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
     setPhotos([])
     setHasMore(false)
     try {
-      const qs = album.passphrase ? `?passphrase=${encodeURIComponent(album.passphrase)}` : ''
-      const res = await fetch(`/api/integrations/memories/${provider}/albums/${album.id}/photos${qs}`, { credentials: 'include', signal })
-      if (res.ok) setPhotos((await res.json()).assets || [])
-    } catch (e: any) { if (e.name !== 'AbortError') {} }
+      setPhotos((await memoriesApi.albumPhotos(provider, album.id, album.passphrase, signal)).assets || [])
+    } catch { /* ignore */ }
     if (!signal.aborted) setLoading(false)
   }
 
   const loadAlbums = async () => {
     try {
-      const res = await fetch(`/api/integrations/memories/${provider}/albums`, { credentials: 'include' })
-      if (res.ok) setAlbums((await res.json()).albums || [])
+      setAlbums((await memoriesApi.albums(provider)).albums || [])
     } catch {}
   }
 

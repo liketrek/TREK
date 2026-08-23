@@ -22,6 +22,7 @@ beforeEach(() => {
   writeText.mockClear()
   window.__addToast = toastSpy
   Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true, writable: true })
+  Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true, writable: true })
 })
 
 afterEach(() => {
@@ -35,6 +36,18 @@ describe('JourneyShareSection', () => {
 
     expect(await screen.findByRole('button', { name: /create share link/i })).toBeInTheDocument()
     expect(screen.getByText('Public Share')).toBeInTheDocument()
+  })
+
+  it('FE-JRN-SHARE-001b: renders nothing at all when the link is not this user to manage', async () => {
+    // Anyone but the owner gets 403 on the read, and would be refused on the
+    // create too - so the section stays out of the dialog rather than offering
+    // a button that cannot work.
+    server.use(http.get('/api/journeys/7/share-link', () => HttpResponse.json({ error: 'Not allowed' }, { status: 403 })))
+
+    const { container } = render(<JourneyShareSection journeyId={JOURNEY_ID} />)
+
+    await waitFor(() => expect(container).toBeEmptyDOMElement())
+    expect(screen.queryByText('Public Share')).not.toBeInTheDocument()
   })
 
   it('FE-JRN-SHARE-002: renders nothing while the share link is still loading', async () => {
@@ -99,7 +112,7 @@ describe('JourneyShareSection', () => {
       act(() => { copyBtn.click() })
 
       expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/public/journey/tok-abc`)
-      expect(screen.getByRole('button', { name: 'Copied!' })).toBeInTheDocument()
+      expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument()
 
       act(() => { vi.advanceTimersByTime(2100) })
       expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument()
@@ -178,5 +191,24 @@ describe('JourneyShareSection', () => {
     render(<JourneyShareSection journeyId={JOURNEY_ID} />)
 
     expect(await screen.findByRole('button', { name: /create share link/i })).toBeInTheDocument()
+  })
+
+  // A self-hosted install served over plain HTTP has no navigator.clipboard, and the
+  // unguarded call used to throw before the button ever showed feedback.
+  it('FE-JRN-SHARE-012: copies through execCommand when the clipboard API is unavailable', async () => {
+    server.use(http.get('/api/journeys/7/share-link', () => HttpResponse.json({ link: existingLink() })))
+    Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true, writable: true })
+    Object.defineProperty(window, 'isSecureContext', { value: false, configurable: true, writable: true })
+    const execCommand = vi.fn(() => true)
+    Object.defineProperty(document, 'execCommand', { value: execCommand, configurable: true, writable: true })
+    render(<JourneyShareSection journeyId={JOURNEY_ID} />)
+
+    const copyBtn = await screen.findByRole('button', { name: 'Copy' })
+    act(() => { copyBtn.click() })
+
+    await waitFor(() => expect(execCommand).toHaveBeenCalledWith('copy'))
+    expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument()
+    // The temporary textarea is removed again.
+    expect(document.querySelector('textarea')).toBeNull()
   })
 })

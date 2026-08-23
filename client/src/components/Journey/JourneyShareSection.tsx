@@ -9,10 +9,20 @@ export default function JourneyShareSection({ journeyId }: { journeyId: number }
   const [link, setLink] = useState<{ token: string; share_timeline: boolean; share_gallery: boolean; share_map: boolean } | null>(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
+  /** The share token is the owner's to manage; a contributor is refused. */
+  const [manageable, setManageable] = useState(true)
   const toast = useToast()
 
   useEffect(() => {
-    journeyApi.getShareLink(journeyId).then(d => setLink(d.link || null)).catch(() => {}).finally(() => setLoading(false))
+    journeyApi.getShareLink(journeyId)
+      .then(d => setLink(d.link || null))
+      .catch((err: { response?: { status?: number } }) => {
+        // A 403 is the server saying this is not yours to manage. Showing the
+        // section anyway would offer an editor a "create link" button that is
+        // refused the moment they press it.
+        if (err?.response?.status === 403) setManageable(false)
+      })
+      .finally(() => setLoading(false))
   }, [journeyId])
 
   const createLink = async () => {
@@ -42,13 +52,28 @@ export default function JourneyShareSection({ journeyId }: { journeyId: number }
 
   const shareUrl = link ? `${window.location.origin}/public/journey/${link.token}` : ''
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(shareUrl)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const copyLink = async () => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareUrl)
+      } else {
+        // Fallback for non-secure contexts (plain HTTP) where navigator.clipboard is unavailable
+        const ta = document.createElement('textarea')
+        ta.value = shareUrl
+        ta.style.position = 'fixed'
+        ta.style.left = '-9999px'
+        document.body.appendChild(ta)
+        ta.focus()
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      }
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* ignore */ }
   }
 
-  if (loading) return null
+  if (loading || !manageable) return null
 
   return (
     <div>

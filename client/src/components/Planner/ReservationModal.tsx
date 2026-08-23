@@ -12,6 +12,7 @@ import { useTranslation } from '../../i18n'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import { openFile } from '../../utils/fileDownload'
+import { parseReservationMetadata } from '../../utils/flightLegs'
 import { resolveDayId } from '../../utils/formatters'
 import type { Day, Place, Reservation, TripFile, AssignmentsMap, Accommodation, BudgetItem } from '../../types'
 import { BookingCostsSection } from './BookingCostsSection'
@@ -133,7 +134,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
 
     setTravelerIds(new Set((reservation?.travelers || []).map(tv => tv.user_id)))
     if (reservation) {
-      const meta = typeof reservation.metadata === 'string' ? JSON.parse(reservation.metadata || '{}') : (reservation.metadata || {})
+      const meta = parseReservationMetadata(reservation)
       const rawEnd = reservation.reservation_end_time || ''
       let endDate = ''
       let endTime = rawEnd

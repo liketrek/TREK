@@ -4,7 +4,7 @@ import { normalizeImageFiles } from '../../utils/convertHeic'
 import { isVideoFile } from '../../utils/videoPoster'
 import { useJourneyStore } from '../../store/journeyStore'
 import { useTranslation } from '../../i18n'
-import { journeyApi, addonsApi } from '../../api/client'
+import { journeyApi, addonsApi, memoriesApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
 import { getApiErrorMessage } from '../../types'
 import type { JourneyEntry, GalleryPhoto, JourneyTrip } from '../../store/journeyStore'
@@ -42,11 +42,8 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
         const connected: { id: string; name: string }[] = []
         for (const p of enabledProviders) {
           try {
-            const res = await fetch(`/api/integrations/memories/${p.id}/status`, { credentials: 'include' })
-            if (res.ok) {
-              const status = await res.json()
-              if (status.connected) connected.push({ id: p.id, name: p.name })
-            }
+            const status = await memoriesApi.status(p.id)
+            if (status.connected) connected.push({ id: p.id, name: p.name })
           } catch {}
         }
         setAvailableProviders(connected)

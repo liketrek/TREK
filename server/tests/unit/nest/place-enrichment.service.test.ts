@@ -729,6 +729,19 @@ describe('collectFacts', () => {
     expect(facts.find((f) => f.kind === 'internetAccess')).toEqual({ kind: 'internetAccess', value: null, url: null });
   });
 
+  it('ENRICH-052c: drops a menu_url that is not http(s)', () => {
+    // Anyone can edit the OSM tag and the client turns it into an href.
+    for (const menu_url of ['javascript:alert(1)', 'data:text/html,<script>1</script>', 'ftp://host/menu', '']) {
+      expect(collectFacts(osm({ menu_url })).map((f) => f.kind)).toEqual([]);
+    }
+  });
+
+  it('ENRICH-052d: keeps an http menu_url and trims the surrounding whitespace', () => {
+    expect(collectFacts(osm({ menu_url: '  http://example.org/menu  ' }))).toEqual([
+      { kind: 'menu', value: null, url: 'http://example.org/menu' },
+    ]);
+  });
+
   it('ENRICH-053: takes no chips at all from a Google place', () => {
     expect(collectFacts(null)).toEqual([]);
     // cuisine/outdoor_seating are OSM tagging and never appear on a Google blob;

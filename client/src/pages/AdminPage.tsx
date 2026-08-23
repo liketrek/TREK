@@ -161,9 +161,15 @@ function AdminPageDesktop(): React.ReactElement {
                 setBagTrackingEnabled(next)
                 try { await adminApi.updateBagTracking(next) } catch { setBagTrackingEnabled(!next) }
               }} collabFeatures={collabFeatures} onToggleCollabFeature={async (key: string) => {
-                const next = { ...collabFeatures, [key]: !collabFeatures[key] }
-                setCollabFeatures(next)
-                try { await adminApi.updateCollabFeatures({ [key]: next[key] }) } catch { setCollabFeatures(collabFeatures) }
+                const previous = collabFeatures[key]
+                setCollabFeatures({ ...collabFeatures, [key]: !previous })
+                try {
+                  await adminApi.updateCollabFeatures({ [key]: !previous })
+                } catch {
+                  // Only this key rolls back — a slower request must not undo a toggle
+                  // the admin made in the meantime.
+                  setCollabFeatures(prev => ({ ...prev, [key]: previous }))
+                }
               }} />
             </div>
           )}

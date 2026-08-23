@@ -1,4 +1,4 @@
-// FE-ADMHOOK-001 to FE-ADMHOOK-045
+// FE-ADMHOOK-001 to FE-ADMHOOK-049
 import { http, HttpResponse } from 'msw';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -32,8 +32,13 @@ function wrapper({ children }: { children: React.ReactNode }) {
 }
 
 /** Mounts the hook and waits until the initial parallel loads have settled. */
-async function mountAdmin() {
-  const view = renderHook(() => useAdmin(), { wrapper });
+async function mountAdmin(url = '/admin') {
+  const at = ({ children }: { children: React.ReactNode }) => (
+    <MemoryRouter initialEntries={[url]}>
+      <TranslationProvider>{children}</TranslationProvider>
+    </MemoryRouter>
+  );
+  const view = renderHook(() => useAdmin(), { wrapper: url === '/admin' ? wrapper : at });
   await waitFor(() => expect(view.result.current.isLoading).toBe(false));
   return view;
 }
@@ -730,6 +735,36 @@ describe('useAdmin', () => {
 
     expect(toastCalls).toContainEqual({ type: 'error', message: 'busy' });
     expect(result.current.users).toHaveLength(2);
+  });
+
+  it('FE-ADMHOOK-046: opens on the tab the URL asks for', async () => {
+    const { result } = await mountAdmin('/admin?tab=audit');
+    expect(result.current.activeTab).toBe('audit');
+  });
+
+  /*
+   * A tab id with no panel behind it — a typo, or a link from an install that
+   * has tabs this one does not — used to open the page on an empty content
+   * area with nothing selected in the sidebar.
+   */
+  it('FE-ADMHOOK-047: falls back to users when the URL names a tab that does not exist', async () => {
+    const { result } = await mountAdmin('/admin?tab=nonsense');
+    expect(result.current.activeTab).toBe('users');
+  });
+
+  /*
+   * The sidebar entries are built conditionally but the panels are not, so a
+   * hosted install had its hidden panels one URL away.
+   */
+  it('FE-ADMHOOK-048: refuses a tab a managed install hides', async () => {
+    seedStore(useAuthStore, { isAuthenticated: true, user: me, managed: true });
+    const { result } = await mountAdmin('/admin?tab=backup');
+    await waitFor(() => expect(result.current.activeTab).toBe('users'));
+  });
+
+  it('FE-ADMHOOK-049: keeps that same tab on an install that runs itself', async () => {
+    const { result } = await mountAdmin('/admin?tab=backup');
+    expect(result.current.activeTab).toBe('backup');
   });
 
   it('FE-ADMHOOK-044: mcpEnabled follows the addon store', async () => {
