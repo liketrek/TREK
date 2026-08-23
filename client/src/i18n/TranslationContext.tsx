@@ -133,7 +133,9 @@ export function TranslationProvider({ children }: TranslationProviderProps) {
       let val: string = (strings[key] ?? en[key] ?? key) as string
       if (params) {
         Object.entries(params).forEach(([k, v]) => {
-          val = val.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v))
+          // Function replacement: a value carrying `$&` or `$1` (a trip named
+          // "A$&B") would otherwise be expanded as a replacement pattern.
+          val = val.replace(new RegExp(`\\{${k}\\}`, 'g'), () => String(v))
         })
       }
       return val
@@ -145,7 +147,7 @@ export function TranslationProvider({ children }: TranslationProviderProps) {
         Object.entries(params).forEach(([k, v]) => {
           // Escape BEFORE substitution so a user-controlled value with `<` or
           // `&` cannot break out of the surrounding template's markup.
-          val = val.replace(new RegExp(`\\{${k}\\}`, 'g'), escapeHtml(String(v)))
+          val = val.replace(new RegExp(`\\{${k}\\}`, 'g'), () => escapeHtml(String(v)))
         })
       }
       // Then re-sanitise the fully-built string: even if a translator ships a

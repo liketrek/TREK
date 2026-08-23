@@ -89,6 +89,22 @@ describe('uploadFilesResilient', () => {
     expect(res.failed).toEqual([f])
   })
 
+  it('FE-W4UPQ-007b: retries a 429 rather than dropping the file', async () => {
+    let calls = 0
+    const uploadOne = vi.fn(async (f: File) => {
+      calls++
+      // A proxy in front of a self-hosted instance rate-limits the batch.
+      if (calls === 1) throw { response: { status: 429 } }
+      return [f.name]
+    })
+
+    const res = await uploadFilesResilient([file('a.txt')], uploadOne, { retries: 1 })
+
+    expect(calls).toBe(2)
+    expect(res.succeeded).toEqual(['a.txt'])
+    expect(res.failed).toEqual([])
+  })
+
   it('FE-W4UPQ-008: retries a 5xx up to the limit then gives up', async () => {
     const uploadOne = vi.fn(async () => { throw { response: { status: 502 } } })
     const f = file('a.txt')

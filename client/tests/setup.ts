@@ -21,8 +21,16 @@ vi.mock('../src/api/websocket', () => ({
   removeListener: vi.fn(),
 }));
 
-// MSW lifecycle
-beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
+// MSW lifecycle. A cross-origin request nobody mocked is the dangerous kind: 'warn'
+// lets it through, so the runner really talks to frankfurter or a tile server and settles
+// a promise after the test environment is gone (see handlers/external.ts). Those fail now.
+// An unhandled same-origin call stays a warning: that is a missing handler, not egress.
+beforeAll(() => server.listen({
+  onUnhandledRequest: (request, print) => {
+    if (new URL(request.url).origin === location.origin) print.warning();
+    else print.error();
+  },
+}));
 afterEach(() => {
   server.resetHandlers();
   cleanup();

@@ -19,6 +19,14 @@ export interface PlacesSlice {
   updatePlacesMany: (tripId: number | string, placeIds: number[], patch: Partial<Place>) => Promise<void>
 }
 
+/** Swap the pool place embedded in an assignment while keeping the assignment's
+ *  own times: the day view shows COALESCE(assignment_time, place_time), so
+ *  overwriting them with the pool row would wipe a per-stop schedule. Exported
+ *  because the WS applier in remoteEventHandler has to merge the same way. */
+export function mergeAssignmentPlace(a: Assignment, place: Place): Assignment {
+  return { ...a, place: { ...place, place_time: a.place.place_time, end_time: a.place.end_time } }
+}
+
 /** Replace a place in the pool and in every day-assignment that embeds it,
  *  preserving the assignment's own times (mirrors updatePlace's reconciliation). */
 function applyUpdatedPlace(set: SetState, placeId: number, place: Place): void {
@@ -28,7 +36,7 @@ function applyUpdatedPlace(set: SetState, placeId: number, place: Place): void {
     for (const [dayId, items] of Object.entries(state.assignments)) {
       if (items.some((a: Assignment) => a.place?.id === placeId)) {
         updatedAssignments[dayId] = items.map((a: Assignment) =>
-          a.place?.id === placeId ? { ...a, place: { ...place, place_time: a.place.place_time, end_time: a.place.end_time } } : a
+          a.place?.id === placeId ? mergeAssignmentPlace(a, place) : a
         )
         changed = true
       }

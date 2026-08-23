@@ -4,6 +4,7 @@ import type { TripStoreState } from '../tripStore'
 import type { Assignment, Place, Day, DayNote, PackingItem, TodoItem, BudgetItem, BudgetItemMember, Reservation, Trip, TripFile, WebSocketEvent } from '../../types'
 import { offlineDb } from '../../db/offlineDb'
 import { useAuthStore } from '../authStore'
+import { mergeAssignmentPlace } from './placesSlice'
 
 type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
@@ -212,7 +213,7 @@ export const STATE_APPLIERS: Partial<Record<TrekWsTripEventName, StateApplier>> 
     assignments: Object.fromEntries(
       Object.entries(state.assignments).map(([dayId, items]) => [
         dayId,
-        items.map(a => a.place?.id === (payload.place as Place).id ? { ...a, place: payload.place as Place } : a)
+        items.map(a => a.place?.id === (payload.place as Place).id ? mergeAssignmentPlace(a, payload.place as Place) : a)
       ])
     ),
   }),

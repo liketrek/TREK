@@ -1,6 +1,19 @@
-// FE-OAUTH-SCOPES-001 to FE-OAUTH-SCOPES-010
+// FE-OAUTH-SCOPES-001 to FE-OAUTH-SCOPES-011
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { SCOPE_GROUPS, ALL_SCOPES, SCOPE_GROUP_NAMES, getScopesByGroup } from './oauthScopes'
+
+// The consent page mirrors the server's scope list by hand, so read the server
+// file and compare. Parsing keeps this a client-only test (no server import).
+function readServerScopes(): string[] {
+  const here = dirname(fileURLToPath(import.meta.url))
+  const src = readFileSync(resolve(here, '../../../server/src/mcp/scopes.ts'), 'utf8')
+  const block = src.slice(src.indexOf('export const SCOPES = {'))
+  const body = block.slice(0, block.indexOf('} as const;'))
+  return [...body.matchAll(/^\s*[A-Z_]+:\s*'([a-z]+:[a-z]+)'/gm)].map(m => m[1])
+}
 
 describe('SCOPE_GROUPS', () => {
   it('FE-OAUTH-SCOPES-001: contains all expected scope keys', () => {
@@ -34,8 +47,16 @@ describe('SCOPE_GROUPS', () => {
 })
 
 describe('ALL_SCOPES', () => {
-  it('FE-OAUTH-SCOPES-003: contains exactly 29 scopes', () => {
-    expect(ALL_SCOPES).toHaveLength(29)
+  it('FE-OAUTH-SCOPES-003: contains exactly as many scopes as the server defines', () => {
+    expect(ALL_SCOPES).toHaveLength(readServerScopes().length)
+  })
+
+  it('FE-OAUTH-SCOPES-011: matches server/src/mcp/scopes.ts exactly', () => {
+    const serverScopes = readServerScopes()
+    // Guards the parse itself: a moved file or a reformatted list must fail
+    // here rather than quietly compare two empty sets.
+    expect(serverScopes.length).toBeGreaterThan(0)
+    expect(new Set(ALL_SCOPES)).toEqual(new Set(serverScopes))
   })
 
   it('FE-OAUTH-SCOPES-004: matches Object.keys(SCOPE_GROUPS)', () => {

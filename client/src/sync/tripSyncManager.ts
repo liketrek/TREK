@@ -52,8 +52,15 @@ interface TripBundle {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// Trip dates are plain local calendar dates, so format ours the same way.
+// toISOString() would hand back the UTC day and drop an ongoing trip a day
+// early west of UTC (and keep a finished one a day too long east of it).
+function ymd(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function todayStr(): string {
-  return new Date().toISOString().slice(0, 10)
+  return ymd(new Date())
 }
 
 /**
@@ -76,7 +83,7 @@ function isStale(trip: Trip): boolean {
   if (!trip.end_date) return false
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - 7)
-  return trip.end_date < cutoff.toISOString().slice(0, 10)
+  return trip.end_date < ymd(cutoff)
 }
 
 function isPhoto(file: TripFile): boolean {
@@ -123,6 +130,9 @@ async function cacheFilesForTrip(tripId: number, files: TripFile[]): Promise<voi
   let downloaded = 0
 
   for (const file of nonPhotos) {
+    // A logout mid-loop repoints offlineDb at the anonymous database, so anything
+    // written after it would leave the previous account's documents on the device.
+    if (!isAuthed()) return
     // Skip if already cached
     const existing = await offlineDb.blobCache.get(file.url!)
     if (existing) { present++; continue }
@@ -189,6 +199,9 @@ export const tripSyncManager = {
       const toSync = await reconcileTrips(trips)
 
       for (const trip of toSync) {
+        // The gate is re-read per trip: a logout halfway through must not keep
+        // writing the old account's rows into the (now anonymous) offline DB.
+        if (!isAuthed()) return
         try {
           await syncTrip(trip.id)
         } catch (err) {
@@ -204,6 +217,7 @@ export const tripSyncManager = {
       const cacheTiles = getOfflinePrefs().cacheTiles
       const tileUrl = useSettingsStore.getState().settings.map_tile_url || undefined
       for (const trip of toSync) {
+        if (!isAuthed()) return
         const files = await offlineDb.tripFiles.where('trip_id').equals(trip.id).toArray()
         cacheFilesForTrip(trip.id, files).catch(console.error)
       }
@@ -246,6 +260,7 @@ export const tripSyncManager = {
       // 1) Trip bundles (structured data).
       let i = 0
       for (const trip of toSync) {
+        if (!isAuthed()) return 0
         onProgress?.({ phase: 'trips', current: ++i, total, label: trip.title })
         try {
           await syncTrip(trip.id)
@@ -263,6 +278,7 @@ export const tripSyncManager = {
       // 2) File blobs — awaited so "prepared" really means downloaded.
       i = 0
       for (const trip of toSync) {
+        if (!isAuthed()) return 0
         onProgress?.({ phase: 'files', current: ++i, total, label: trip.title })
         const files = await offlineDb.tripFiles.where('trip_id').equals(trip.id).toArray()
         await cacheFilesForTrip(trip.id, files).catch(console.error)
@@ -273,6 +289,7 @@ export const tripSyncManager = {
         const tileUrl = useSettingsStore.getState().settings.map_tile_url || undefined
         i = 0
         for (const trip of toSync) {
+          if (!isAuthed()) return 0
           onProgress?.({ phase: 'tiles', current: ++i, total, label: trip.title })
           const places = await offlineDb.places.where('trip_id').equals(trip.id).toArray()
           await prefetchTilesForTrip(trip.id, places, tileUrl, true).catch(console.error)

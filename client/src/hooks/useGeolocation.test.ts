@@ -1,4 +1,5 @@
 // FE-HOOK-GEO-001 to FE-HOOK-GEO-023
+import { StrictMode } from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { GeoOnceError, getCurrentPositionOnce, useGeolocation } from './useGeolocation';
 
@@ -219,6 +220,26 @@ describe('useGeolocation', () => {
     expect(result.current.mode).toBe('off');
     expect(result.current.position).toBeNull();
     expect(clearWatch).toHaveBeenCalledWith(7);
+  });
+
+  it('FE-HOOK-GEO-015b: the updater form sees the freshest mode and starts one watch', async () => {
+    // The side effects run outside the state updater (React may invoke an
+    // updater more than once per commit, and startWatch awaits the iOS
+    // orientation prompt before it records the watch id), so the previous mode
+    // comes from a ref that setMode keeps in step within a batch.
+    const requestPermission = vi.fn().mockResolvedValue('granted');
+    vi.stubGlobal('DeviceOrientationEvent', Object.assign(function () {}, { requestPermission }));
+
+    const { result } = renderHook(() => useGeolocation(), { wrapper: StrictMode });
+
+    await act(async () => {
+      result.current.setMode('show');
+      result.current.setMode(prev => (prev === 'show' ? 'follow' : 'off'));
+      await Promise.resolve();
+    });
+
+    expect(result.current.mode).toBe('follow');
+    expect(watchPosition).toHaveBeenCalledTimes(1);
   });
 
   it('FE-HOOK-GEO-016: asks iOS for orientation permission and proceeds either way', async () => {

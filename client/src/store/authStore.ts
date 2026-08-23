@@ -7,7 +7,7 @@ import { getApiErrorMessage } from '../types'
 import { tripSyncManager } from '../sync/tripSyncManager'
 import { reopenForUser, deleteCurrentUserDb } from '../db/offlineDb'
 import { setAuthed } from '../sync/authGate'
-import { unregisterSyncTriggers } from '../sync/syncTriggers'
+import { registerSyncTriggers, unregisterSyncTriggers } from '../sync/syncTriggers'
 import { useSystemNoticeStore } from './systemNoticeStore.js'
 import { clearAppearanceSnapshot } from '../theme/applyAppearance'
 import { clearAllPluginSessions } from './pluginStore'
@@ -95,6 +95,10 @@ async function onAuthSuccess(userId: number): Promise<void> {
   } catch (err) {
     console.error('[auth] failed to open user-scoped offline DB', err)
   }
+  // logout() tears the triggers down, and App's mount effect never runs again in
+  // an SPA session, so a second login in the same tab would leave the mutation
+  // queue without a flush trigger. Re-registering is a no-op while they are up.
+  registerSyncTriggers()
 }
 
 export const useAuthStore = create<AuthState>()(

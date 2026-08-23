@@ -82,6 +82,10 @@ describe('syncTriggers', () => {
     expect(flush).toHaveBeenCalled();
     expect(syncAll).toHaveBeenCalled();
     expect(hydrate).toHaveBeenCalledWith('7');
+    // The order is the point: re-seeding Dexie before the queue drains would
+    // overwrite edits that have not been sent yet.
+    expect(flush.mock.invocationCallOrder[0]).toBeLessThan(syncAll.mock.invocationCallOrder[0]);
+    expect(flush.mock.invocationCallOrder[0]).toBeLessThan(hydrate.mock.invocationCallOrder[0]);
   });
 
   it('online event retries the settings load when it has not yet succeeded (#1618)', async () => {

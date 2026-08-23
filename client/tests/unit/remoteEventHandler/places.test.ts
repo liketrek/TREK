@@ -51,6 +51,29 @@ describe('remoteEventHandler > places', () => {
     expect(assignments['10'][0].place?.name).toBe('Cascaded Update');
   });
 
+  it('FE-WSEVT-PLACE-004b: place:updated keeps the assignment its own times', () => {
+    // The day view renders COALESCE(assignment_time, place_time), so the copy
+    // embedded in an assignment carries the per-stop schedule. A broadcast about
+    // the pool row must not overwrite it (the local reducer merges the same way).
+    const place = buildPlace({ id: 1, name: 'Original', place_time: '08:00', end_time: '09:00' });
+    const assignment = buildAssignment({
+      id: 100,
+      day_id: 10,
+      place: { ...place, place_time: '14:00', end_time: '15:30' },
+    });
+    useTripStore.setState({ places: [place], assignments: { '10': [assignment] } });
+
+    useTripStore.getState().handleRemoteEvent({
+      type: 'place:updated',
+      place: buildPlace({ id: 1, name: 'Renamed', place_time: '08:00', end_time: '09:00' }),
+    });
+
+    const embedded = useTripStore.getState().assignments['10'][0].place!;
+    expect(embedded.name).toBe('Renamed');
+    expect(embedded.place_time).toBe('14:00');
+    expect(embedded.end_time).toBe('15:30');
+  });
+
   it('FE-WSEVT-PLACE-005: place:deleted removes place from places array', () => {
     seedData();
     useTripStore.getState().handleRemoteEvent({ type: 'place:deleted', placeId: 1 });

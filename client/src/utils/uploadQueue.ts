@@ -22,6 +22,10 @@ const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms))
 function isRetryable(err: unknown): boolean {
   if (err && typeof err === 'object' && 'response' in err) {
     const status = (err as { response?: { status?: number } }).response?.status
+    // 408/425/429: timeout / too-early / rate-limited. TREK's own upload routes
+    // do not send them, but a proxy in front of a self-hosted instance does, and
+    // dropping the file for one of those loses a photo we could have re-sent.
+    if (status === 408 || status === 425 || status === 429) return true
     if (status !== undefined && status >= 400 && status < 500) return false
   }
   return true
