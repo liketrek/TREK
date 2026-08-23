@@ -971,9 +971,14 @@ export const journeyApi = {
 
 // Photo providers (Immich, Synology Photos, …) behind /api/integrations/memories.
 // The provider sits on the user's own hardware and the server proxies through to
-// it, so these get a longer leash than the 8s default — a cold Immich answering a
-// date-range search regularly needs more.
-const MEMORIES_TIMEOUT = 20000
+// it, so the 8s default does not apply — and neither does any number picked
+// here. The server already holds the deadline, and its worst case is longer than
+// anything that would look reasonable in this file: a Synology call is 30s, and
+// an expired session makes it re-authenticate and try again. A client cap below
+// that turns a slow NAS into a NAS that reads as disconnected, which is what
+// these calls looked like before they moved off raw fetch (which had no timeout
+// either). Callers that need to give up early pass an AbortSignal.
+const MEMORIES_TIMEOUT = 0
 
 export const memoriesApi = {
   status: (provider: string): Promise<{ connected: boolean }> =>

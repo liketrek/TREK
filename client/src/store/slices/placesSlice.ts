@@ -19,12 +19,30 @@ export interface PlacesSlice {
   updatePlacesMany: (tripId: number | string, placeIds: number[], patch: Partial<Place>) => Promise<void>
 }
 
-/** Swap the pool place embedded in an assignment while keeping the assignment's
- *  own times: the day view shows COALESCE(assignment_time, place_time), so
- *  overwriting them with the pool row would wipe a per-stop schedule. Exported
- *  because the WS applier in remoteEventHandler has to merge the same way. */
+/**
+ * Swap the pool place embedded in an assignment, resolving its times the way
+ * the server does.
+ *
+ * The embedded copy is a projection, not the pool row: assignments.service
+ * selects COALESCE(da.assignment_time, p.place_time). So a per-stop override
+ * wins and has to survive a pool edit, and where there is no override the pool
+ * time is what the day card shows - which means a pool edit must reach it.
+ * Pinning the old embedded times instead would keep a renamed place's schedule
+ * frozen until the next reload.
+ *
+ * Exported because the WS applier in remoteEventHandler has to merge
+ * identically; two spellings of this rule is how the two paths drifted apart in
+ * the first place.
+ */
 export function mergeAssignmentPlace(a: Assignment, place: Place): Assignment {
-  return { ...a, place: { ...place, place_time: a.place.place_time, end_time: a.place.end_time } }
+  return {
+    ...a,
+    place: {
+      ...place,
+      place_time: a.assignment_time ?? place.place_time,
+      end_time: a.assignment_end_time ?? place.end_time,
+    },
+  }
 }
 
 /** Replace a place in the pool and in every day-assignment that embeds it,

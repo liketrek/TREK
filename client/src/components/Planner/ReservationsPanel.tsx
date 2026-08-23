@@ -12,7 +12,7 @@ import {
   TramFront, Footprints, StickyNote, ParkingSquare,
 } from 'lucide-react'
 import { openFile } from '../../utils/fileDownload'
-import { safeHttpUrl } from '../../utils/safeUrl'
+import { safeExternalHref } from '../../utils/safeUrl'
 import { TransitTitle, TransitLegChips, TransitMetaBadges, fmtTransitDuration } from './transitDisplay'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -117,9 +117,10 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
   })()
   const attachedFiles = files.filter(f => f.reservation_id === r.id || (f.linked_reservation_ids || []).includes(r.id))
   const linked = r.assignment_id ? assignmentLookup[r.assignment_id] : null
-  // A booking link is free-form text on rows written before the contract checked it,
-  // so only an http(s) value becomes a real anchor — the rest stays readable text.
-  const bookingUrl = safeHttpUrl(r.url)
+  // A booking link is deliberately free-form - people paste bare hosts and long
+  // provider deep links - so this refuses the schemes that execute in this
+  // origin and leaves everything else linkable.
+  const bookingUrl = safeExternalHref(r.url)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const handleDelete = async () => {

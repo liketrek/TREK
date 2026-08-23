@@ -144,6 +144,12 @@ export const mutationQueue = {
         .sortBy('createdAt')
 
       for (const mutation of pending) {
+        // Re-checked every pass, not just on entry: this loop writes server
+        // responses straight into Dexie, and after a logout the proxy points at
+        // the shared anonymous database. A flush that started before logout
+        // would otherwise seed it with the previous account's rows.
+        if (!isAuthed()) break
+
         // Mark as syncing so UI can show progress. The stamp is what lets the
         // next flush tell an in-flight row from one a killed tab abandoned.
         await offlineDb.mutationQueue.update(mutation.id, { status: 'syncing', syncingSince: Date.now() })

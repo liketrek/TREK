@@ -28,6 +28,11 @@ describe('placesSlice', () => {
       const assignment = buildAssignment({
         id: 100,
         day_id: 3,
+        // The override is what makes the embedded copy differ from the pool row:
+        // the server projects COALESCE(assignment_time, place_time), so without
+        // it these two could not disagree in the first place.
+        assignment_time: '09:00',
+        assignment_end_time: '10:30',
         place: { ...place, place_time: '09:00', end_time: '10:30' },
       });
       seedStore(useTripStore, { places: [place], assignments: { '3': [assignment] } });
@@ -43,7 +48,7 @@ describe('placesSlice', () => {
       expect(useTripStore.getState().places[0].image_url).toBe('/uploads/places/pic.jpg');
       const embedded = useTripStore.getState().assignments['3'][0].place;
       expect(embedded.image_url).toBe('/uploads/places/pic.jpg');
-      // The assignment owns its own times — the fresh place must not overwrite them.
+      // The assignment owns these times, so the fresh place must not overwrite them.
       expect(embedded.place_time).toBe('09:00');
       expect(embedded.end_time).toBe('10:30');
     });

@@ -51,14 +51,16 @@ describe('remoteEventHandler > places', () => {
     expect(assignments['10'][0].place?.name).toBe('Cascaded Update');
   });
 
-  it('FE-WSEVT-PLACE-004b: place:updated keeps the assignment its own times', () => {
-    // The day view renders COALESCE(assignment_time, place_time), so the copy
-    // embedded in an assignment carries the per-stop schedule. A broadcast about
-    // the pool row must not overwrite it (the local reducer merges the same way).
+  it('FE-WSEVT-PLACE-004b: place:updated keeps a per-stop override', () => {
+    // The day view renders COALESCE(assignment_time, place_time), so an
+    // assignment that carries its own time keeps it when the pool row changes
+    // (the local reducer merges the same way).
     const place = buildPlace({ id: 1, name: 'Original', place_time: '08:00', end_time: '09:00' });
     const assignment = buildAssignment({
       id: 100,
       day_id: 10,
+      assignment_time: '14:00',
+      assignment_end_time: '15:30',
       place: { ...place, place_time: '14:00', end_time: '15:30' },
     });
     useTripStore.setState({ places: [place], assignments: { '10': [assignment] } });
@@ -72,6 +74,31 @@ describe('remoteEventHandler > places', () => {
     expect(embedded.name).toBe('Renamed');
     expect(embedded.place_time).toBe('14:00');
     expect(embedded.end_time).toBe('15:30');
+  });
+
+  it('FE-WSEVT-PLACE-004c: without an override the pool time reaches the day card', () => {
+    // The other half of the COALESCE. An assignment with no assignment_time
+    // shows whatever the pool row says, so a collaborator moving the place from
+    // 08:00 to 10:00 has to land here - freezing the embedded copy would leave
+    // the day plan wrong until the next reload.
+    const place = buildPlace({ id: 1, name: 'Original', place_time: '08:00', end_time: '09:00' });
+    const assignment = buildAssignment({
+      id: 100,
+      day_id: 10,
+      assignment_time: null,
+      assignment_end_time: null,
+      place: { ...place },
+    });
+    useTripStore.setState({ places: [place], assignments: { '10': [assignment] } });
+
+    useTripStore.getState().handleRemoteEvent({
+      type: 'place:updated',
+      place: buildPlace({ id: 1, name: 'Original', place_time: '10:00', end_time: '11:00' }),
+    });
+
+    const embedded = useTripStore.getState().assignments['10'][0].place!;
+    expect(embedded.place_time).toBe('10:00');
+    expect(embedded.end_time).toBe('11:00');
   });
 
   it('FE-WSEVT-PLACE-005: place:deleted removes place from places array', () => {

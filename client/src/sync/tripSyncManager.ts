@@ -209,9 +209,11 @@ export const tripSyncManager = {
         }
       }
 
-      // Cache global user data (tags + categories) — fire-and-forget
-      tagsApi.list().then(d => upsertTags(d.tags)).catch(() => {})
-      categoriesApi.list().then(d => upsertCategories(d.categories)).catch(() => {})
+      // Cache global user data (tags + categories) — fire-and-forget, so the
+      // gate has to be re-read when the response lands, not when it was issued:
+      // a logout in between would put these rows in the anonymous database.
+      tagsApi.list().then(d => { if (isAuthed()) upsertTags(d.tags) }).catch(() => {})
+      categoriesApi.list().then(d => { if (isAuthed()) upsertCategories(d.categories) }).catch(() => {})
 
       // Cache file blobs + map tiles in background (don't block syncAll)
       const cacheTiles = getOfflinePrefs().cacheTiles

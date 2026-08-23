@@ -16,3 +16,31 @@ import { placeWebsiteSchema } from '@trek/shared'
 export function safeHttpUrl(value: string | null | undefined): string | null {
   return typeof value === 'string' && placeWebsiteSchema.safeParse(value).success ? value : null
 }
+
+/**
+ * A user-pasted link, made safe for an href without narrowing what people are
+ * allowed to paste.
+ *
+ * Different job from safeHttpUrl above. That one guards fields whose contract
+ * really is http(s)-only and capped. A booking url is deliberately free-form -
+ * shared's reservationUrlSchema says so in as many words, because people paste
+ * bare hosts and very long provider deep links - so holding it to the stricter
+ * contract would turn a link somebody saved last year into dead text.
+ *
+ * Only the schemes that execute in this origin are refused. A value with no
+ * scheme gets https://, which is what an address bar does with the same input;
+ * without it the browser would resolve "www.hotel.com" against the current page
+ * and navigate inside the app.
+ */
+export function safeExternalHref(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  // Browsers strip control characters before they resolve a scheme, so the test
+  // has to run against the same string they will see.
+  const collapsed = Array.from(trimmed).filter(c => c > ' ').join('')
+  if (/^https?:\/\//i.test(collapsed)) return trimmed
+  // Any other scheme, executing or merely unexpected, stays unlinked.
+  if (/^[a-z][a-z0-9+.-]*:/i.test(collapsed)) return null
+  return `https://${trimmed}`
+}
