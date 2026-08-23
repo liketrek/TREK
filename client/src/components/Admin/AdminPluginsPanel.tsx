@@ -641,7 +641,7 @@ export default function AdminPluginsPanel() {
 
   const runUpdate = (p: PluginRow) => {
     setBusy(p.id); setMenu(null)
-    adminApi.pluginUpdate(p.id)
+    return adminApi.pluginUpdate(p.id)
       .then((r: { version: string; activated: boolean; newPermissions: string[]; newEgress: string[] }) => {
         if (r.activated || (r.newPermissions.length === 0 && r.newEgress.length === 0)) toast.success(t('admin.plugins.updated'))
         else setConsentQueue(qq => [...qq, { plugin: p, version: r.version, newPermissions: r.newPermissions, newEgress: r.newEgress }])
@@ -675,6 +675,12 @@ export default function AdminPluginsPanel() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const updatable = useMemo(() => plugins.filter(updateAvailable), [plugins, latest])
+
+  // One after another: busy is a single slot, so parallel updates would leave the
+  // other rows clickable mid-install and refresh once per plugin.
+  const updateAll = async () => {
+    for (const p of updatable) await runUpdate(p)
+  }
 
   // Installed list after search / type / status filters + sort.
   const shownInstalled = useMemo(() => {
@@ -865,7 +871,7 @@ export default function AdminPluginsPanel() {
               <div className="mx-1.5 sm:mx-3 mb-2 mt-1 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-warning-soft border border-warning/30">
                 <ArrowUpCircle size={16} className="text-warning shrink-0" />
                 <span className="text-xs text-content-secondary">{t('admin.plugins.updatesAvailable', { count: updatable.length })}</span>
-                <button onClick={() => updatable.forEach(runUpdate)}
+                <button onClick={() => void updateAll()}
                   className="ml-auto text-xs font-semibold px-3 py-1.5 rounded-lg bg-warning text-white hover:opacity-90 transition-opacity">
                   {t('admin.plugins.updateAll')}
                 </button>

@@ -1,4 +1,4 @@
-// FE-COMP-TODO-001 to FE-COMP-TODO-052
+// FE-COMP-TODO-001 to FE-COMP-TODO-079
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -24,6 +24,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   Object.defineProperty(window, 'innerWidth', { value: 0, writable: true, configurable: true });
 });
 
@@ -200,6 +201,25 @@ describe('TodoListPanel', () => {
     fireEvent.click(overdueBtn!);
     expect(screen.getByText('Overdue Task')).toBeInTheDocument();
     expect(screen.queryByText('Future Task')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-TODO-079: Overdue uses the local calendar day, not the UTC one', () => {
+    // Freeze on an instant whose UTC date differs from the local one, so a UTC-derived
+    // "today" would move the cut-off a day in whichever direction this runner sits.
+    const offset = new Date(2026, 4, 15, 12).getTimezoneOffset();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 4, 15, offset > 0 ? 23 : 0, 30));
+    const items = [
+      buildTodoItem({ id: 1, name: 'Due Today', checked: 0, due_date: '2026-05-15' }),
+      buildTodoItem({ id: 2, name: 'Due Yesterday', checked: 0, due_date: '2026-05-14' }),
+    ];
+    render(<TodoListPanel tripId={1} items={items} />);
+    const overdueBtn = screen.getAllByRole('button').find(
+      b => b.textContent?.includes('Overdue') || b.getAttribute('title') === 'Overdue'
+    );
+    fireEvent.click(overdueBtn!);
+    expect(screen.getByText('Due Yesterday')).toBeInTheDocument();
+    expect(screen.queryByText('Due Today')).not.toBeInTheDocument();
   });
 
   it('FE-COMP-TODO-017: My Tasks filter shows only items assigned to current user', async () => {

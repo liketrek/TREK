@@ -1,7 +1,7 @@
-// FE-W4LBX-001 to FE-W4LBX-019
+// FE-W4LBX-001 to FE-W4LBX-020
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { TripFile } from '../../types'
-import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render'
+import { render, screen, fireEvent, waitFor, act } from '../../../tests/helpers/render'
 
 const getAuthUrl = vi.fn(async (url: string, _kind: string) => `${url}?token=abc`)
 const openFile = vi.fn(async (_url: string, _name: string) => {})
@@ -220,6 +220,23 @@ describe('ImageLightbox', () => {
 
     expect(second).toHaveBeenCalledOnce()
     expect(first).not.toHaveBeenCalled()
+  })
+
+  it('FE-W4LBX-020: a mint that lands after the gallery moved on does not paint', async () => {
+    const pending: Record<string, (url: string) => void> = {}
+    getAuthUrl.mockImplementation((url: string) => new Promise<string>(resolve => { pending[url] = resolve }))
+    const { container } = render(<ImageLightbox files={IMAGES} initialIndex={0} onClose={() => {}} />)
+    await waitFor(() => expect(getAuthUrl).toHaveBeenCalledWith('/f/a.jpg', 'download'))
+
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    await waitFor(() => expect(getAuthUrl).toHaveBeenCalledWith('/f/b.jpg', 'download'))
+    // The token for the image we already left resolves last.
+    await act(async () => {
+      pending['/f/b.jpg']('/f/b.jpg?token=b')
+      pending['/f/a.jpg']('/f/a.jpg?token=a')
+    })
+
+    expect(container.querySelector('img[alt="b.jpg"]')).toHaveAttribute('src', '/f/b.jpg?token=b')
   })
 
   it('FE-W4LBX-019: the strip mints thumbnail tokens only for thumbs in view', async () => {

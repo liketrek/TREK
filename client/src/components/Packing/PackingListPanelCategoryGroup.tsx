@@ -99,16 +99,13 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
   }
 
   // togglePackingItem rolls its own optimistic update back and reports the
-  // failure itself, so the bulk actions just drive it item by item.
+  // failure itself, so the bulk actions just drive it item by item. They go out
+  // together: serialised, a long list costs one round trip per item.
   const handleCheckAll = async () => {
-    for (const item of Array.from(items)) {
-      if (!item.checked) await togglePackingItem(tripId, item.id, true)
-    }
+    await Promise.all(items.filter(i => !i.checked).map(i => togglePackingItem(tripId, i.id, true)))
   }
   const handleUncheckAll = async () => {
-    for (const item of Array.from(items)) {
-      if (item.checked) await togglePackingItem(tripId, item.id, false)
-    }
+    await Promise.all(items.filter(i => i.checked).map(i => togglePackingItem(tripId, i.id, false)))
   }
   const handleDeleteAll = async () => {
     await onDeleteAll(items)

@@ -298,6 +298,18 @@ describe('ModalRenderer', () => {
     expect(screen.getByText('Hello Alice, welcome to TREK')).toBeTruthy();
   });
 
+  it('FE-SN-MODAL-057: a body param is inserted literally, not as a replacement pattern', async () => {
+    const notice = makeNotice({
+      bodyKey: 'Version {version} is here',
+      bodyParams: { version: '4.0.0 ($&)' },
+    });
+    render(<ModalRenderer notices={[notice]} />);
+
+    await flushGraceDelay();
+
+    expect(screen.getByText('Version 4.0.0 ($&) is here')).toBeTruthy();
+  });
+
   it('FE-SN-MODAL-008: empty notices renders nothing', () => {
     const { container } = render(<ModalRenderer notices={[]} />);
     expect(container.firstChild).toBeNull();

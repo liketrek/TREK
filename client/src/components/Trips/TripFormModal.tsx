@@ -40,6 +40,8 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const isEditing = !!trip
   const fileRef = useRef<HTMLInputElement>(null)
   const coverSearchSeq = useRef(0)
+  // The staged cover lives on as an object URL until it is replaced or the modal goes.
+  const previewUrlRef = useRef<string | null>(null)
   const toast = useToast()
   const { t } = useTranslation()
   const currentUser = useAuthStore(s => s.user)
@@ -104,6 +106,10 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       setCoverPreview(null)
       setCoverSearchQuery('')
     }
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current)
+      previewUrlRef.current = null
+    }
     setPendingCoverFile(null)
     setPendingUnsplashUrl(null)
     setCoverSearchResults([])
@@ -112,16 +118,17 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     setPendingDateShift(null)
     setDateShiftMode('keep_bookings')
     setError('')
+    setExistingMembers([])
+    // The planner keeps this modal mounted while it is closed, so nothing may be
+    // fetched until it is actually open.
     if (isOpen) {
       authApi.getAppConfig().then((c: { trip_reminders_enabled?: boolean }) => {
         if (c?.trip_reminders_enabled !== undefined) setTripRemindersEnabled(c.trip_reminders_enabled)
       }).catch(() => {})
-    }
-    authApi.listUsers().then(d => setAllUsers(d.users || [])).catch(() => {})
-    if (trip) {
-      tripsApi.getMembers(trip.id).then(d => setExistingMembers(d.members || [])).catch(() => {})
-    } else {
-      setExistingMembers([])
+      authApi.listUsers().then(d => setAllUsers(d.users || [])).catch(() => {})
+      if (trip) {
+        tripsApi.getMembers(trip.id).then(d => setExistingMembers(d.members || [])).catch(() => {})
+      }
     }
   }, [trip, isOpen])
 
@@ -130,6 +137,12 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       setFormData(prev => ({ ...prev, reminder_days: tripRemindersEnabled ? 3 : 0 }))
     }
   }, [tripRemindersEnabled])
+
+  // A staged cover that never got uploaded would otherwise pin the full image for
+  // as long as the tab lives.
+  useEffect(() => () => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -219,7 +232,9 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     } else {
       // New trip: stage for upload after creation
       setPendingCoverFile(normalized)
-      setCoverPreview(URL.createObjectURL(normalized))
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
+      previewUrlRef.current = URL.createObjectURL(normalized)
+      setCoverPreview(previewUrlRef.current)
     }
   }
 

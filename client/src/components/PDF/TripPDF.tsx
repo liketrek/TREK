@@ -81,6 +81,13 @@ function escHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
+// The style attribute is decoded back into raw quotes before the CSS is parsed, so
+// escHtml alone cannot stop a cover_image from closing the url() and appending its own
+// declaration. Percent-encoding is transparent to the fetch.
+function cssUrl(url) {
+  return String(url).replace(/["'()\\\s]/g, c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
+}
+
 function absUrl(url) {
   if (!url) return null
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url
@@ -703,7 +710,7 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
 
 <!-- Cover -->
 <div class="cover">
-  ${coverImg ? `<div class="cover-bg" style="background-image:url('${escHtml(coverImg)}')"></div>` : ''}
+  ${coverImg ? `<div class="cover-bg" style="background-image:url('${escHtml(cssUrl(coverImg))}')"></div>` : ''}
   <div class="cover-dim"></div>
   <div class="cover-brand"><img src="${absUrl('/logo-light.svg')}" style="height:28px;opacity:0.5;" /></div>
   <div class="cover-body">

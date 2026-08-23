@@ -1862,3 +1862,43 @@ describe('AdminPluginsPanel signature fingerprints and dismissals', () => {
     await waitFor(() => expect(uploaded).toBe(false))
   })
 })
+
+// FE-W5PLG-030 — Update all drives the same single-slot busy flag as a per-row update,
+// so the requests have to go out one after another.
+describe('AdminPluginsPanel — update all', () => {
+  const updatableRow = (over: Record<string, unknown> = {}) => plugin({
+    id: 'a-widget', name: 'Alpha Widget', type: 'widget', version: '1.0.0', operatorEgress: false, ...over,
+  })
+
+  it('FE-W5PLG-030: Update all sends the second update only after the first came back', async () => {
+    const started: string[] = []
+    let release = () => {}
+    const gate = new Promise<void>(resolve => { release = resolve })
+    server.use(
+      http.get('*/api/admin/plugins', () => HttpResponse.json({
+        enabled: true, devLink: false,
+        plugins: [updatableRow(), updatableRow({ id: 'b-widget', name: 'Beta Widget' })],
+      })),
+      http.get('*/api/admin/plugins/registry', () => HttpResponse.json([
+        { id: 'a-widget', name: 'Alpha Widget', author: 'acme', description: 'd', type: 'widget', latest: '2.0.0' },
+        { id: 'b-widget', name: 'Beta Widget', author: 'acme', description: 'd', type: 'widget', latest: '2.0.0' },
+      ])),
+      http.post('*/api/admin/plugins/:id/update', async ({ params }) => {
+        started.push(String(params.id))
+        if (started.length === 1) await gate
+        return HttpResponse.json({ version: '2.0.0', activated: true, newPermissions: [], newEgress: [] })
+      }),
+    )
+    render(<AdminPluginsPanel />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /update all/i }))
+
+    await waitFor(() => expect(started).toHaveLength(1))
+    // Give a parallel dispatch every chance to show up before releasing the first.
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(started).toEqual(['a-widget'])
+
+    release()
+    await waitFor(() => expect(started).toEqual(['a-widget', 'b-widget']))
+  })
+})

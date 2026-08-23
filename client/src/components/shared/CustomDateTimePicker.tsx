@@ -240,6 +240,10 @@ export function CustomDatePicker({
     }
     const year = y < 100 ? 2000 + y : y;
     if (m < 1 || m > 12 || d < 1 || d > 31) return;
+    // 31.02. parses fine as numbers but is no day at all; without the round-trip it would
+    // travel on as '2026-02-31' and come back out of new Date() as 3 March.
+    const probe = new Date(Date.UTC(year, m - 1, d));
+    if (probe.getUTCFullYear() !== year || probe.getUTCMonth() !== m - 1 || probe.getUTCDate() !== d) return;
     const iso = `${year}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     if (isOutOfRange(iso)) return;
     onChange(iso);

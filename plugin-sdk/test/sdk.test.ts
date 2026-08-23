@@ -669,6 +669,21 @@ describe('dev-server SDK injection', () => {
   });
 });
 
+describe('dev-server preview', () => {
+  // The preview plays the host, so it has to refuse what the host refuses. A preview
+  // that answered trek:geolocation without the grant green-lights a plugin production
+  // then breaks — the one drift direction this package cannot afford.
+  it('gates the geolocation bridge on geolocation:read, like PluginFrame', async () => {
+    const { preview } = await import('../src/cli/dev.js');
+    const without = preview('demo', 'widget', 1, {});
+    expect(without).toContain('var GEO_ALLOWED=false;');
+    expect(without).toContain('if(!GEO_ALLOWED){');
+    expect(without).toContain('error:"forbidden"');
+
+    expect(preview('demo', 'widget', 1, { geoAllowed: true })).toContain('var GEO_ALLOWED=true;');
+  });
+});
+
 describe('dev db bind shapes', () => {
   let tmp: string;
   beforeEach(() => { tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'devdb-')); });

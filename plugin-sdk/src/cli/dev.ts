@@ -456,7 +456,7 @@ export async function runDev(dir: string, opts: { port?: number } = {}): Promise
       // renders into docs/screenshot.png. ?theme=dark picks the dark palette.
       const chrome = url.searchParams.get('chrome') !== '0';
       const theme = url.searchParams.get('theme') === 'dark' ? 'dark' : 'light';
-      return send(200, preview(id, String(manifest.type), previewTripId, { chrome, theme }), 'text/html; charset=utf-8');
+      return send(200, preview(id, String(manifest.type), previewTripId, { chrome, theme, geoAllowed: grants.has('geolocation:read') }), 'text/html; charset=utf-8');
     }
 
     // Static plugin UI at /ui (page/widget client bundle). The iframe loads
@@ -598,7 +598,7 @@ ${LIVE_RELOAD}`;
  * toggle), proxies trek:invoke to the dev server's /api routes with the dev user,
  * and surfaces resize/notify/navigate. This is where the design kit renders themed.
  */
-function preview(id: string, type: string, tripId: number, opts: { chrome?: boolean; theme?: 'light' | 'dark' } = {}): string {
+export function preview(id: string, type: string, tripId: number, opts: { chrome?: boolean; theme?: 'light' | 'dark'; geoAllowed?: boolean } = {}): string {
   const maxW = type === 'widget' ? '440px' : '1000px';
   // `trek-plugin shot` renders this page into docs/screenshot.png — the image the plugin store
   // shows. The theme picker and the "runs sandboxed at an opaque origin" note are DEV furniture:
@@ -666,6 +666,7 @@ function postCtx(){ if(f.contentWindow) f.contentWindow.postMessage(ctx(),"*"); 
 var tt; function toast(msg){var el=document.getElementById("toast");el.textContent=msg;el.classList.add("on");clearTimeout(tt);tt=setTimeout(function(){el.classList.remove("on");},2200);}
 var SESSION_PREFIX="trek:plugin-session:1:"+encodeURIComponent(${JSON.stringify(id)})+":";
 var SESSION_MAX_KEYS=32,SESSION_MAX_KEY_LENGTH=64,SESSION_MAX_VALUE_BYTES=1024;
+var GEO_ALLOWED=${opts.geoAllowed ? 'true' : 'false'};
 function sessionFail(m,code,message){f.contentWindow.postMessage({type:"trek:error",requestId:m.requestId,code:code,message:message},"*");}
 function sessionMessage(m){
   try {
@@ -715,7 +716,11 @@ window.addEventListener("message", function(ev){
   }
   else if(m.type==="trek:geolocation"){
     // Mirror the host's geolocation bridge with a fixed dev position, so
-    // trek.geolocation.* works in the preview without a permission prompt.
+    // trek.geolocation.* works in the preview without a browser prompt. The grant
+    // still gates it: without geolocation:read the host answers "forbidden"
+    // (PluginFrame.tsx), and a preview that answered anyway would green-light a
+    // plugin that production then refuses.
+    if(!GEO_ALLOWED){ f.contentWindow.postMessage({type:"trek:geolocation:result",requestId:m.requestId,error:"forbidden"},"*"); return; }
     var pos={lat:52.5163,lng:13.3777,accuracy:12,heading:null,speed:null,timestamp:Date.now()};
     var act=m.action||"get";
     if(act==="clear"){ clearInterval(geoTick); geoTick=null; f.contentWindow.postMessage({type:"trek:geolocation:result",requestId:m.requestId,cleared:true},"*"); }

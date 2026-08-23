@@ -126,6 +126,26 @@ describe('CustomDatePicker', () => {
     expect(onChange).toHaveBeenCalledWith('2026-07-17');
   });
 
+  it('FE-COMP-DATEPICKER-031: text input rejects a day the month does not have', async () => {
+    const user = userEvent.setup();
+    render(<CustomDatePicker value="" onChange={onChange} />);
+    await user.click(screen.getByRole('button', { name: /enter date manually/i }));
+    const input = screen.getByPlaceholderText('DD.MM.YYYY');
+    fireEvent.change(input, { target: { value: '31.02.2026' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-DATEPICKER-032: text input still accepts 29 February in a leap year', async () => {
+    const user = userEvent.setup();
+    render(<CustomDatePicker value="" onChange={onChange} />);
+    await user.click(screen.getByRole('button', { name: /enter date manually/i }));
+    const input = screen.getByPlaceholderText('DD.MM.YYYY');
+    fireEvent.change(input, { target: { value: '29.02.2024' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onChange).toHaveBeenCalledWith('2024-02-29');
+  });
+
   it('FE-COMP-DATEPICKER-014: Escape in text input cancels text mode', async () => {
     const user = userEvent.setup();
     render(<CustomDatePicker value="" onChange={onChange} />);

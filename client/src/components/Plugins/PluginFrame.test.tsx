@@ -1,4 +1,4 @@
-// FE-PLUGINS-FRAME-001 to 046
+// FE-PLUGINS-FRAME-001 to 061
 import { render, cleanup, waitFor, fireEvent, screen, act } from '@testing-library/react';
 import PluginFrame from './PluginFrame';
 import { usePluginStore } from '../../store/pluginStore';
@@ -340,12 +340,12 @@ describe('PluginFrame', () => {
 
     function mount(granted: boolean) {
       grant(granted);
-      const { container, unmount } = render(<PluginFrame pluginId="demo" />);
-      const iframe = container.querySelector('iframe')!;
+      const view = render(<PluginFrame pluginId="demo" />);
+      const iframe = view.container.querySelector('iframe')!;
       const posted: Array<Record<string, unknown>> = [];
       (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) =>
         posted.push(m as Record<string, unknown>);
-      return { iframe, posted, unmount };
+      return { ...view, iframe, posted };
     }
 
     it('FE-PLUGINS-FRAME-015: refuses an ungranted plugin without touching the browser API', () => {
@@ -378,6 +378,33 @@ describe('PluginFrame', () => {
 
       // Unmounting must never leave a live GPS watch behind.
       unmount();
+      expect(geo.clearWatch).toHaveBeenCalledWith(7);
+    });
+
+    it('FE-PLUGINS-FRAME-060: a host settings change re-bridges without dropping the watch', () => {
+      let tick: ((p: unknown) => void) | null = null;
+      geo.watchPosition.mockImplementation((ok: (p: unknown) => void) => { tick = ok; return 7; });
+      const { iframe, posted, rerender } = mount(true);
+      act(() => { fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g20', action: 'watch' }); });
+
+      // Any settings write re-runs the bridge effect; the watch must survive it.
+      host.settings = { ...DEFAULT_SETTINGS, distance_unit: 'imperial' };
+      act(() => { rerender(<PluginFrame pluginId="demo" />); });
+
+      expect(geo.clearWatch).not.toHaveBeenCalled();
+      const before = posted.length;
+      act(() => tick!({ coords: { latitude: 5, longitude: 6, accuracy: 5, heading: null, speed: null }, timestamp: 3 }));
+      expect(posted.length).toBe(before + 1);
+    });
+
+    it('FE-PLUGINS-FRAME-061: a frame that navigates itself has its watch released', () => {
+      const { iframe } = mount(true);
+      act(() => { fireEvent.load(iframe); });
+      act(() => { fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g21', action: 'watch' }); });
+
+      // Second load = the frame navigated away, so nothing receives the stream any more.
+      act(() => { fireEvent.load(iframe); });
+
       expect(geo.clearWatch).toHaveBeenCalledWith(7);
     });
 

@@ -229,6 +229,33 @@ describe('KategorieGruppe — bulk actions', () => {
     await waitFor(() => expect(puts).toEqual([1]))
   })
 
+  it('FE-W5CAT-011a: Check All sends the items together, not one round trip after another', async () => {
+    const started: number[] = []
+    let release = () => {}
+    const gate = new Promise<void>(resolve => { release = resolve })
+    server.use(
+      http.put('/api/trips/1/packing/:itemId', async ({ params }) => {
+        started.push(Number(params.itemId))
+        // The first item only answers once the second one has been sent, so a
+        // serialised loop would never get its second request out.
+        if (started.length === 1) await gate
+        return HttpResponse.json({ item: buildPackingItem({ id: Number(params.itemId) }) })
+      }),
+    )
+    const { container } = setup({
+      items: [
+        buildPackingItem({ id: 1, name: 'Tent', checked: 0 }),
+        buildPackingItem({ id: 2, name: 'Rope', checked: 0 }),
+      ],
+    })
+    openCategoryMenu(container)
+
+    fireEvent.click(screen.getByText('Check All'))
+
+    await waitFor(() => expect(started).toHaveLength(2))
+    release()
+  })
+
   it('FE-W5CAT-012: a failing PUT during Check All is reported by the store, once', async () => {
     server.use(http.put('/api/trips/1/packing/:itemId', () => new HttpResponse(null, { status: 500 })))
     seedStore(useTripStore, { packingItems: [buildPackingItem({ id: 1, name: 'Tent', checked: 0 })] })

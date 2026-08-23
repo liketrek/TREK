@@ -650,8 +650,6 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
       window.removeEventListener('message', onMessage)
       themeObserver.disconnect()
       if (wsForward) removeListener(wsForward)
-      // The frame is going away (or re-bridging) — never leave a live GPS watch behind.
-      if (geoWatchRef.current != null) { navigator.geolocation.clearWatch(geoWatchRef.current); geoWatchRef.current = null }
     }
   }, [pluginId, tripId, fill, navigate, postFrame, buildContext, userId])
 
@@ -664,6 +662,11 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
     setHeight(null)
     confirmReqRef.current = null
     setConfirmReq(null)
+    // Only a real teardown may kill the watch: the bridge above re-runs on any
+    // settings, locale or breakpoint change, and nothing would re-arm it.
+    return () => {
+      if (geoWatchRef.current != null) { navigator.geolocation.clearWatch(geoWatchRef.current); geoWatchRef.current = null }
+    }
   }, [pluginId])
 
   const answerConfirm = (confirmed: boolean) => {
@@ -689,7 +692,14 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
           // Deliver the context as soon as the document is parsed (the plugin sets up its
           // message listener during parse), closing the trek:ready race so the theme is
           // right on first paint. A 2nd load is a self-navigation — don't bridge to it.
-          onLoad={() => { setLoadFailed(false); loadsRef.current += 1; if (loadsRef.current === 1) postFrame(buildContext()) }}
+          onLoad={() => {
+            setLoadFailed(false)
+            loadsRef.current += 1
+            if (loadsRef.current === 1) postFrame(buildContext())
+            // A self-navigated frame is no longer bridged, so its watch is only
+            // burning battery for positions nobody receives.
+            else if (geoWatchRef.current != null) { navigator.geolocation.clearWatch(geoWatchRef.current); geoWatchRef.current = null }
+          }}
           onError={() => setLoadFailed(true)}
           sandbox="allow-scripts allow-forms"
           referrerPolicy="no-referrer"

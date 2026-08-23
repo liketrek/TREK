@@ -483,7 +483,12 @@ export const TREK_THEME_JS = `(function () {
   var seq = 0;
   var lastH = -1;
 
-  function send(msg) { try { window.parent.postMessage(msg, '*'); } catch (e) {} }
+  function send(msg) { try { window.parent.postMessage(msg, '*'); return true; } catch (e) { return false; } }
+  // postMessage throws synchronously on a value structured clone cannot carry (a
+  // function, a DOM node, a Proxy). Swallowing that left the request registered and
+  // the promise pending forever, so the same call rejects under the mock host and
+  // hangs in the real one. Drop the entry and reject with the host's own code.
+  function unsendable(bucket, id, code, message) { delete bucket[id]; var e = new Error(message); e.code = code; return e; }
   function setFlag(name, on) { if (on) { docEl.setAttribute(name, ''); } else { docEl.removeAttribute(name); } }
 
   function applyContext(m) {
@@ -593,28 +598,28 @@ export const TREK_THEME_JS = `(function () {
       var id = 's' + (++seq);
       return new Promise(function (resolve, reject) {
         pending[id] = { resolve: resolve, reject: reject };
-        send({ type: 'trek:session:get', requestId: id, key: key, scope: opts && opts.scope });
+        if (!send({ type: 'trek:session:get', requestId: id, key: key, scope: opts && opts.scope })) { reject(unsendable(pending, id, 'SESSION_INVALID_VALUE', 'session value must be JSON-serialisable')); }
       });
     },
     set: function (key, value, opts) {
       var id = 's' + (++seq);
       return new Promise(function (resolve, reject) {
         pending[id] = { resolve: resolve, reject: reject };
-        send({ type: 'trek:session:set', requestId: id, key: key, value: value, scope: opts && opts.scope });
+        if (!send({ type: 'trek:session:set', requestId: id, key: key, value: value, scope: opts && opts.scope })) { reject(unsendable(pending, id, 'SESSION_INVALID_VALUE', 'session value must be JSON-serialisable')); }
       });
     },
     remove: function (key, opts) {
       var id = 's' + (++seq);
       return new Promise(function (resolve, reject) {
         pending[id] = { resolve: resolve, reject: reject };
-        send({ type: 'trek:session:remove', requestId: id, key: key, scope: opts && opts.scope });
+        if (!send({ type: 'trek:session:remove', requestId: id, key: key, scope: opts && opts.scope })) { reject(unsendable(pending, id, 'SESSION_INVALID_VALUE', 'session value must be JSON-serialisable')); }
       });
     },
     clear: function (opts) {
       var id = 's' + (++seq);
       return new Promise(function (resolve, reject) {
         pending[id] = { resolve: resolve, reject: reject };
-        send({ type: 'trek:session:clear', requestId: id, scope: opts && opts.scope });
+        if (!send({ type: 'trek:session:clear', requestId: id, scope: opts && opts.scope })) { reject(unsendable(pending, id, 'SESSION_INVALID_VALUE', 'session value must be JSON-serialisable')); }
       });
     }
   };
@@ -641,7 +646,7 @@ export const TREK_THEME_JS = `(function () {
       var id = 'c' + (++seq);
       return new Promise(function (resolve) {
         pendingConfirms[id] = resolve;
-        send({ type: 'trek:confirm', requestId: id, title: opts.title, message: opts.message, confirmLabel: opts.confirmLabel, cancelLabel: opts.cancelLabel, danger: opts.danger });
+        if (!send({ type: 'trek:confirm', requestId: id, title: opts.title, message: opts.message, confirmLabel: opts.confirmLabel, cancelLabel: opts.cancelLabel, danger: opts.danger })) { delete pendingConfirms[id]; resolve(false); }
       });
     },
     // Core-event names for the trip in view ({ event, tripId } only, no payloads) —
@@ -655,7 +660,7 @@ export const TREK_THEME_JS = `(function () {
       var id = 'r' + (++seq);
       return new Promise(function (resolve, reject) {
         pending[id] = { resolve: resolve, reject: reject };
-        send({ type: 'trek:invoke', requestId: id, sub: sub, method: opts.method, body: opts.body });
+        if (!send({ type: 'trek:invoke', requestId: id, sub: sub, method: opts.method, body: opts.body })) { reject(unsendable(pending, id, 'error', 'invoke body must be JSON-serialisable')); }
       });
     },
     // Host-brokered browser position (needs the geolocation:read grant; the

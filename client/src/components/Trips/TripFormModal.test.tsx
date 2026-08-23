@@ -1,4 +1,4 @@
-// FE-COMP-TRIPFORM-001 to FE-COMP-TRIPFORM-082
+// FE-COMP-TRIPFORM-001 to FE-COMP-TRIPFORM-084
 import type { Mock } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -1213,5 +1213,38 @@ describe('TripFormModal', () => {
     await screen.findByRole('button', { name: /Use Unsplash photo by Fresh/i });
     await waitFor(() => expect(staleResolved).toBe(true));
     expect(screen.queryByText('Stale failure')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-TRIPFORM-083: a closed modal fetches nothing until it is opened', async () => {
+    // The trip planner keeps the modal mounted behind the page.
+    const seen: string[] = [];
+    server.use(
+      http.get('/api/auth/users', () => { seen.push('users'); return HttpResponse.json({ users: [] }); }),
+      http.get('/api/trips/:id/members', () => { seen.push('members'); return HttpResponse.json({ members: [] }); }),
+    );
+    const trip = buildTrip({ id: 5 });
+    const { rerender } = render(<TripFormModal {...defaultProps} isOpen={false} trip={trip} />);
+
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(seen).toEqual([]);
+
+    rerender(<TripFormModal {...defaultProps} isOpen trip={trip} />);
+    await waitFor(() => expect(seen).toContain('users'));
+    expect(seen).toContain('members');
+  });
+
+  it('FE-COMP-TRIPFORM-084: staging another cover revokes the preview it replaces', async () => {
+    const revokeObjectURL = vi.fn();
+    const original = URL.revokeObjectURL;
+    Object.defineProperty(URL, 'revokeObjectURL', { writable: true, configurable: true, value: revokeObjectURL });
+    createObjectURL.mockReturnValueOnce('blob:first').mockReturnValueOnce('blob:second');
+    render(<TripFormModal {...defaultProps} trip={null} />);
+
+    fireEvent.change(fileInput(), { target: { files: [pngFile()] } });
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(1));
+    fireEvent.change(fileInput(), { target: { files: [pngFile()] } });
+
+    await waitFor(() => expect(revokeObjectURL).toHaveBeenCalledWith('blob:first'));
+    Object.defineProperty(URL, 'revokeObjectURL', { writable: true, configurable: true, value: original });
   });
 });

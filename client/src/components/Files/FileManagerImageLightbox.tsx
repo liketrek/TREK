@@ -27,7 +27,12 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
     setImgSrc('')
     // Images use a one-shot signed URL; a video must use the plain same-origin
     // URL (cookie auth) so its many Range requests all authenticate (#823).
-    if (file && !isVideo(file.mime_type)) getAuthUrl(file.url, 'download').then(setImgSrc)
+    if (!file || isVideo(file.mime_type)) return
+    // Arrowing through the gallery leaves several mints in flight; only the one for
+    // the file still on screen may paint.
+    let current = true
+    getAuthUrl(file.url, 'download').then(u => { if (current) setImgSrc(u) }).catch(() => {})
+    return () => { current = false }
   }, [file?.url, file?.mime_type])
 
   const goPrev = () => setIndex(i => Math.max(0, i - 1))

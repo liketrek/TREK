@@ -70,3 +70,55 @@ describe('design kit', () => {
     expect(out.match(/<style data-trek-ui>/g)?.length).toBe(2);
   });
 });
+
+/**
+ * Boot the kit bootstrap against a stub window, so the bridge's promise handling can be
+ * exercised without a DOM. `document.readyState` stays 'loading', which parks boot() on
+ * DOMContentLoaded and leaves only the message plumbing live. The stub's postMessage runs
+ * structuredClone first, exactly like the browser's — a value it cannot carry throws.
+ */
+function bootBridge() {
+  const sent: Record<string, unknown>[] = [];
+  const parent = { postMessage: (msg: Record<string, unknown>) => { structuredClone(msg); sent.push(msg); } };
+  let onMessage: ((ev: { source: unknown; data: unknown }) => void) | null = null;
+  const win: Record<string, unknown> = {
+    parent,
+    addEventListener: (type: string, cb: (ev: { source: unknown; data: unknown }) => void) => { if (type === 'message') onMessage = cb; },
+  };
+  const docEl = { setAttribute: () => {}, removeAttribute: () => {}, style: { setProperty: () => {} } };
+  const doc = { documentElement: docEl, readyState: 'loading', addEventListener: () => {}, body: null };
+  new Function('window', 'document', TREK_THEME_JS)(win, doc);
+  return {
+    trek: win.trek as {
+      session: { set: (k: string, v: unknown) => Promise<unknown>; get: (k: string) => Promise<unknown> };
+      invoke: (sub: string, opts?: { body?: unknown }) => Promise<unknown>;
+      confirm: (opts: unknown) => Promise<boolean>;
+    },
+    sent,
+    deliver: (data: unknown) => onMessage?.({ source: parent, data }),
+  };
+}
+
+describe('bridge requests never hang', () => {
+  it('rejects session.set with a value the frame cannot post, instead of pending forever', async () => {
+    const { trek, sent } = bootBridge();
+    // A function can't be structured-cloned: postMessage throws synchronously and the
+    // request never reaches the host, so the promise has to settle here.
+    await expect(trek.session.set('k', () => 1)).rejects.toMatchObject({ code: 'SESSION_INVALID_VALUE' });
+    expect(sent).toEqual([]);
+  });
+
+  it('rejects invoke with an unpostable body and resolves confirm as declined', async () => {
+    const { trek } = bootBridge();
+    await expect(trek.invoke('/x', { body: { cb: () => 1 } })).rejects.toMatchObject({ code: 'error' });
+    await expect(trek.confirm({ message: 'ok?', title: () => 'x' })).resolves.toBe(false);
+  });
+
+  it('still settles a normal request from the host response', async () => {
+    const { trek, sent, deliver } = bootBridge();
+    const p = trek.session.get('k');
+    expect(sent).toHaveLength(1);
+    deliver({ type: 'trek:response', requestId: sent[0].requestId, data: 'v' });
+    await expect(p).resolves.toBe('v');
+  });
+});

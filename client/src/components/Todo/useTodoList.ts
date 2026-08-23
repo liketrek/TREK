@@ -6,6 +6,7 @@ import { useTranslation } from '../../i18n'
 import apiClient from '../../api/client'
 import { formatDate as fmtDate } from '../../utils/formatters'
 import type { TodoItem } from '../../types'
+import { localToday } from '../Planner/today'
 import type { FilterType, Member } from './todoListModel'
 
 /**
@@ -65,7 +66,9 @@ export function useTodoList(tripId: number, items: TodoItem[], addItemSignal: nu
     return Array.from(cats).sort()
   }, [items])
 
-  const today = new Date().toISOString().split('T')[0]
+  // due_date is a bare calendar date, so "today" has to be the user's calendar
+  // day: toISOString() hands over the UTC one and shifts the overdue cut-off.
+  const today = localToday()
 
   const filtered = useMemo(() => {
     let result: TodoItem[]

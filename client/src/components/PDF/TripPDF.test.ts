@@ -300,6 +300,18 @@ describe('downloadTripPDF', () => {
     expect(iframe!.srcdoc).toContain('cover.jpg')
   })
 
+  it('FE-COMP-TRIPPDF-023: a cover url cannot close url() and add a second declaration', async () => {
+    // cover_image is a free string on the write path, and the style attribute is decoded
+    // before the CSS is parsed, so the quote and the paren have to be encoded.
+    const hostile = "http://host/a.jpg');background-image:url('http://elsewhere/leak.jpg"
+    await downloadTripPDF({ ...richArgs, trip: { ...richArgs.trip, cover_image: hostile } as any })
+    const iframe = getIframe()
+    const style = /<div class="cover-bg" style="([^"]*)"/.exec(iframe!.srcdoc)![1]
+
+    expect(style.split('url(')).toHaveLength(2)
+    expect(style.match(/'/g)).toHaveLength(2)
+  })
+
   it('FE-COMP-TRIPPDF-015: renders accommodation section when accommodations exist', async () => {
     server.use(
       http.get('/api/trips/:id/accommodations', () =>

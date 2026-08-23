@@ -7,7 +7,8 @@ import { server } from '../tests/helpers/msw/server'
 import { useAuthStore } from './store/authStore'
 import { useSettingsStore } from './store/settingsStore'
 import { resetAllStores } from '../tests/helpers/store'
-import { buildUser, buildSettings } from '../tests/helpers/factories'
+import { buildUser, buildSettings, buildTrip } from '../tests/helpers/factories'
+import { offlineDb } from './db/offlineDb'
 import { SETTINGS_WAIT_MS } from './utils/startDestination'
 import App from './App'
 
@@ -140,6 +141,26 @@ describe('RootRedirect — startup destination', () => {
 
     renderApp('/')
     await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument())
+  })
+
+  it('FE-COMP-APP-028b: opens the cached active trip when the launch is offline', async () => {
+    seedAuth({ isAuthenticated: true, user: buildUser() })
+    useSettingsStore.setState({
+      isLoaded: true,
+      settings: buildSettings({ start_page: 'active_trip' }),
+    })
+    const today = new Date()
+    const iso = (d: Date) => d.toISOString().slice(0, 10)
+    await offlineDb.trips.put(buildTrip({ id: 42, title: 'Japan', start_date: iso(today), end_date: iso(today) }))
+    const onLine = Object.getOwnPropertyDescriptor(Navigator.prototype, 'onLine')
+    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true })
+
+    renderApp('/')
+    await waitFor(() => expect(screen.getByText('TripPlanner')).toBeInTheDocument())
+
+    if (onLine) Object.defineProperty(Navigator.prototype, 'onLine', onLine)
+    delete (navigator as unknown as { onLine?: boolean }).onLine
+    await offlineDb.trips.clear()
   })
 
   // The whole point of the localStorage mirror: the default launch must not pay

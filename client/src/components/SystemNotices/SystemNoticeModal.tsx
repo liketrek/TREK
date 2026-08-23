@@ -617,13 +617,17 @@ function useSystemNoticeModal(notices: SystemNoticeDTO[]) {
 
 type NoticeState = ReturnType<typeof useSystemNoticeModal>;
 
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // Build the NoticeContent props for a given notice + pager slot index.
 function makeContentProps(S: NoticeState, n: SystemNoticeDTO, slotIdx: number): ContentProps {
   const { t, isDark, canPage, notices, handleDismissAll, handleCTA, handleSecondaryCTA, handlePrev, handleNext, handleGoto } = S;
   const rawBody = t(n.bodyKey);
+  // The key is escaped into the pattern and the value goes in through a function, so a
+  // value carrying $&, $1 or $` is inserted as typed instead of being expanded.
   const body = n.bodyParams
     ? Object.entries(n.bodyParams).reduce(
-        (s, [k, v]) => s.replace(new RegExp(`\\{${k}\\}`, 'g'), v),
+        (s, [k, v]) => s.replace(new RegExp(`\\{${escapeRe(k)}\\}`, 'g'), () => v),
         rawBody
       )
     : rawBody;

@@ -19,7 +19,8 @@ import ErrorBoundary from './components/shared/ErrorBoundary'
 import { lazyWithRetry } from './utils/lazyWithRetry'
 import { useIsPhone } from './mobile/useIsPhone'
 import { TranslationProvider, useTranslation } from './i18n'
-import { authApi, tripsApi } from './api/client'
+import { authApi } from './api/client'
+import { tripRepo } from './repo/tripRepo'
 import { readStartDestination, tripStartPath, DEFAULT_START_PAGE, DEFAULT_START_TRIP_TAB, SETTINGS_WAIT_MS, START_DESTINATION_ROUTE } from './utils/startDestination'
 import { usePermissionsStore, PermissionLevel } from './store/permissionsStore'
 import { useInAppNotificationListener } from './hooks/useInAppNotificationListener.ts'
@@ -244,7 +245,9 @@ function RootRedirect() {
       : (mirrored ?? { page: DEFAULT_START_PAGE, tab: DEFAULT_START_TRIP_TAB })
     if (page !== 'active_trip') { setTarget('/dashboard'); return }
     let cancelled = false
-    tripsApi.active()
+    // Through the repo, not the api: offline this answers from Dexie instead of
+    // bouncing a cached trip to the dashboard.
+    tripRepo.active()
       .then(({ trip }) => { if (!cancelled) setTarget(trip ? tripStartPath(trip.id, tab) : '/dashboard') })
       .catch(() => { if (!cancelled) setTarget('/dashboard') })
     return () => { cancelled = true }

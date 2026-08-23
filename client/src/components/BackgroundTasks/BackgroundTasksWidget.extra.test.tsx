@@ -1,4 +1,4 @@
-// FE-W4BGT-001 to FE-W4BGT-020
+// FE-W4BGT-001 to FE-W4BGT-022
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { screen, act, waitFor } from '@testing-library/react'
 import { render, fireEvent } from '../../../tests/helpers/render'
@@ -182,6 +182,34 @@ describe('BackgroundTasksWidget — rehydrate', () => {
 
     await waitFor(() => expect(reservationsApi.importJobStatus).toHaveBeenCalled())
     expect(useBackgroundTasksStore.getState().tasks).toHaveLength(1)
+  })
+})
+
+describe('BackgroundTasksWidget — poll backstop', () => {
+  it('FE-W4BGT-021: a job the server drops mid-poll ends as an error instead of spinning on', async () => {
+    vi.useFakeTimers()
+    useBackgroundTasksStore.setState({ tasks: [task({ status: 'running', items: undefined })] })
+    vi.mocked(reservationsApi.importJobStatus)
+      .mockResolvedValueOnce({ status: 'running', done: 0, total: 1 } as never)
+      .mockRejectedValue({ response: { status: 404 } })
+
+    render(<BackgroundTasksWidget />)
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000) })
+
+    expect(useBackgroundTasksStore.getState().tasks[0].status).toBe('error')
+  })
+
+  it('FE-W4BGT-022: a transient poll failure leaves the job running', async () => {
+    vi.useFakeTimers()
+    useBackgroundTasksStore.setState({ tasks: [task({ status: 'running', items: undefined })] })
+    vi.mocked(reservationsApi.importJobStatus)
+      .mockResolvedValueOnce({ status: 'running', done: 0, total: 1 } as never)
+      .mockRejectedValue({ response: { status: 500 } })
+
+    render(<BackgroundTasksWidget />)
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000) })
+
+    expect(useBackgroundTasksStore.getState().tasks[0].status).toBe('running')
   })
 })
 
