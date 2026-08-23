@@ -830,3 +830,41 @@ describe('getWeather error paths', () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 });
+
+// ── coordinate boundary validation ───────────────────────────────────────────
+
+describe('coordinate validation', () => {
+  beforeEach(() => {
+    vi.mocked(fetch).mockReset();
+  });
+
+  it.each([
+    ['not-a-number', '10'],
+    ['', '10'],
+    ['91', '10'],
+    ['10', '181'],
+    ['10', '&forecast_days=16&latitude=0'],
+  ])('WEATHER-COORD-001: getWeather rejects lat=%s lng=%s with a 400 before any fetch', async (lat, lng) => {
+    await expect(getWeather(lat, lng, undefined, 'en')).rejects.toMatchObject({ status: 400 });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('WEATHER-COORD-002: getDetailedWeather rejects an out-of-range latitude', async () => {
+    await expect(getDetailedWeather('120', '10', dateOffset(2), 'en')).rejects.toMatchObject({ status: 400 });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('WEATHER-COORD-003: a body over the declared size cap is a 502, not a parsed answer', async () => {
+    const date = dateOffset(5);
+    const body = {
+      daily: { time: [date], temperature_2m_max: [20], temperature_2m_min: [10], weathercode: [0] },
+    };
+    const oversized = {
+      ...mockResponse(body),
+      headers: { get: (h: string) => (h === 'content-length' ? String(5 * 1024 * 1024) : null) },
+    } as unknown as Response;
+    vi.mocked(fetch).mockResolvedValue(oversized);
+
+    await expect(getWeather('42.40', '9.41', date, 'en')).rejects.toMatchObject({ status: 502 });
+  });
+});

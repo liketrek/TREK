@@ -421,9 +421,12 @@ export class AdminService {
   }
 
   async getGithubReleases(perPage: string = '10', page: string = '1') {
-    const data = await this.fetchGithub(
-      `https://api.github.com/repos/liketrek/TREK/releases?per_page=${perPage}&page=${page}`,
-    );
+    // The query arrives as raw strings from the admin UI; clamp to what the
+    // GitHub API accepts instead of interpolating them into the URL as given.
+    const per = Math.min(Math.max(Number.parseInt(perPage, 10) || 10, 1), 100);
+    const pg = Math.max(Number.parseInt(page, 10) || 1, 1);
+    const qs = new URLSearchParams({ per_page: String(per), page: String(pg) });
+    const data = await this.fetchGithub(`https://api.github.com/repos/liketrek/TREK/releases?${qs}`);
     return Array.isArray(data) ? data : [];
   }
 

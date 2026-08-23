@@ -1,6 +1,7 @@
 import { existsSync, promises as fs } from 'fs';
 import path from 'path';
 import { readEnv } from '../../app-config';
+import { exceedsDeclaredLength, readCapped, readCappedText } from '../../utils/cappedFetch';
 
 /**
  * In-app Help/Wiki content, sourced from the `wiki/**` directory that ships with
@@ -17,6 +18,12 @@ import { readEnv } from '../../app-config';
 const REPO = 'liketrek/TREK';
 const RAW_BASE = `https://raw.githubusercontent.com/${REPO}/main/wiki`;
 const TTL_MS = 60 * 60 * 1000; // remote fallback only: refresh from GitHub at most hourly
+// Remote fallback only: raw.githubusercontent.com is a third party on the
+// request path, so it gets a deadline and a size budget like every other
+// outbound client. A page or a screenshot over the budget falls through to the
+// stale-cache path instead of being buffered whole.
+const WIKI_TIMEOUT_MS = 8000;
+const WIKI_MAX_BYTES = 2 * 1024 * 1024;
 const SLUG_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 /**
@@ -78,9 +85,11 @@ async function fetchText(file: string): Promise<string> {
   try {
     const res = await fetch(`${RAW_BASE}/${encodeURIComponent(file)}`, {
       headers: { 'User-Agent': 'TREK-help', Accept: 'text/plain' },
+      signal: AbortSignal.timeout(WIKI_TIMEOUT_MS),
     });
-    if (res.ok) {
-      const text = await res.text();
+    if (res.ok && !exceedsDeclaredLength(res, WIKI_MAX_BYTES)) {
+      const { text, truncated } = await readCappedText(res, WIKI_MAX_BYTES);
+      if (truncated) throw new Error('wiki page exceeds size limit');
       textCache.set(file, { data: text, ts: Date.now() });
       return text;
     }
@@ -245,9 +254,11 @@ export async function getWikiAsset(assetPath: string): Promise<{ buf: Buffer; ty
   try {
     const res = await fetch(`${RAW_BASE}/${assetPath.split('/').map(encodeURIComponent).join('/')}`, {
       headers: { 'User-Agent': 'TREK-help' },
+      signal: AbortSignal.timeout(WIKI_TIMEOUT_MS),
     });
-    if (res.ok) {
-      const buf = Buffer.from(await res.arrayBuffer());
+    if (res.ok && !exceedsDeclaredLength(res, WIKI_MAX_BYTES)) {
+      const { bytes: buf, truncated } = await readCapped(res, WIKI_MAX_BYTES);
+      if (truncated) throw new Error('wiki asset exceeds size limit');
       assetCache.set(assetPath, { buf, type, ts: Date.now() });
       return { buf, type };
     }

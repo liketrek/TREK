@@ -78,6 +78,14 @@ describe('unsplashService.searchUnsplashPhotos', () => {
     expect(await searchUnsplashPhotos('   ')).toEqual({ error: 'Search query is required', status: 400 });
   });
 
+  it('UNSPLASH-002a: gives the search request a deadline so a hung upstream cannot pin the caller', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(fakeRes({ ok: true, type: 'application/json', json: { results: [] } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await searchUnsplashPhotos('paris');
+    expect(fetchMock.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+  });
+
   it('UNSPLASH-003: maps a non-ok response to an error', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(fakeRes({ ok: false, status: 429, type: 'application/json', json: { errors: ['Rate limited'] } })));
     expect(await searchUnsplashPhotos('paris')).toEqual({ error: 'Rate limited', status: 429 });
@@ -215,6 +223,53 @@ describe('unsplashService.saveUnsplashCover', () => {
     safeFetch.mockResolvedValue(fakeRes({ ok: true, type: 'image/png', bytes: 16 * 1024 * 1024 }));
     await expect(saveUnsplashCover('https://images.unsplash.com/photo-1')).rejects.toThrow('Cover image too large');
     expect(writtenCovers()).toEqual([]);
+  });
+
+  it('UNSPLASH-008a: rejects on the declared length before the body is buffered', async () => {
+    const arrayBuffer = vi.fn(async () => new ArrayBuffer(8));
+    safeFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: {
+        get: (h: string) => (h.toLowerCase() === 'content-type' ? 'image/png' : String(20 * 1024 * 1024)),
+      },
+      arrayBuffer,
+    } as unknown as Response);
+
+    await expect(saveUnsplashCover('https://images.unsplash.com/photo-1')).rejects.toThrow('Cover image too large');
+    expect(arrayBuffer).not.toHaveBeenCalled();
+    expect(writtenCovers()).toEqual([]);
+  });
+
+  it('UNSPLASH-008b: stops a chunked oversized body mid-stream instead of buffering it', async () => {
+    let cancelled = false;
+    let served = 0;
+    safeFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'image/png' : null) },
+      body: {
+        getReader: () => ({
+          read: async () => {
+            served++;
+            return { done: false, value: new Uint8Array(4 * 1024 * 1024) };
+          },
+          cancel: async () => { cancelled = true; },
+        }),
+      },
+    } as unknown as Response);
+
+    await expect(saveUnsplashCover('https://images.unsplash.com/photo-1')).rejects.toThrow('Cover image too large');
+    expect(cancelled).toBe(true);
+    // 15MB budget, 4MB chunks: the read stops on the fourth, not after an endless body.
+    expect(served).toBe(4);
+    expect(writtenCovers()).toEqual([]);
+  });
+
+  it('UNSPLASH-008c: passes a deadline through safeFetch', async () => {
+    safeFetch.mockResolvedValue(fakeRes({ ok: true, type: 'image/jpeg', bytes: 32 }));
+    await saveUnsplashCover('https://images.unsplash.com/photo-1');
+    expect(safeFetch.mock.calls[0][1]).toEqual(expect.objectContaining({ signal: expect.any(AbortSignal) }));
   });
 
   it('UNSPLASH-009: throws when the download fails', async () => {

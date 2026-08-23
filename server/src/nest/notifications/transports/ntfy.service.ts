@@ -51,7 +51,11 @@ export function resolveAdminNtfyUrl(adminCfg: NtfyConfig): string | null {
 
 function encodeHeaderValue(value: string): string {
   for (let i = 0; i < value.length; i++) {
-    if (value.charCodeAt(i) > 0x7f) {
+    const code = value.charCodeAt(i);
+    // Control characters go through the same RFC 2047 wrapper as non-ASCII: a
+    // trip title with a stray newline in it would otherwise be rejected by
+    // undici as an invalid header value and drop the notification silently.
+    if (code > 0x7f || code < 0x20 || code === 0x7f) {
       return `=?UTF-8?B?${Buffer.from(value, 'utf8').toString('base64')}?=`;
     }
   }

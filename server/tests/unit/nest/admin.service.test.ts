@@ -395,6 +395,31 @@ describe('getGithubReleases', () => {
     expect(result).toHaveLength(2);
     expect((result as any[])[0].tag_name).toBe('v3.0.0');
   });
+
+  it('ADMIN-SVC-053a — clamps the paging query instead of interpolating it raw', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, text: async () => '[]' });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await getGithubReleases('9999', '0');
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'https://api.github.com/repos/liketrek/TREK/releases?per_page=100&page=1',
+    );
+
+    await getGithubReleases('10&per_page=999', 'abc');
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      'https://api.github.com/repos/liketrek/TREK/releases?per_page=10&page=1',
+    );
+  });
+
+  it('ADMIN-SVC-053b — round-trips the paging the admin UI actually sends', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, text: async () => '[]' });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await getGithubReleases('20', '2');
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'https://api.github.com/repos/liketrek/TREK/releases?per_page=20&page=2',
+    );
+  });
 });
 
 // ── checkVersion ──────────────────────────────────────────────────────────────

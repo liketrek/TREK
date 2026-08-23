@@ -175,6 +175,27 @@ describe('wiki — GitHub fallback when no wiki is on disk', () => {
     expect(after.title).toBe(before.title);
   });
 
+  it('passes a deadline to every GitHub request', async () => {
+    const wiki = await loadWiki(MISSING_WIKI);
+    fetchSpy.mockResolvedValue(ok('# Timed'));
+
+    await wiki.getWikiPage('Home');
+
+    expect(fetchSpy.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('falls through to WikiNotFound when GitHub declares a body over the cap', async () => {
+    const wiki = await loadWiki(MISSING_WIKI);
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: (h: string) => (h === 'content-length' ? String(5 * 1024 * 1024) : null) },
+      text: async () => '# Huge',
+    } as unknown as Response);
+
+    await expect(wiki.getWikiPage('Home')).rejects.toBeInstanceOf(wiki.WikiNotFound);
+  });
+
   it('404s when GitHub is unreachable and nothing is cached', async () => {
     const wiki = await loadWiki(MISSING_WIKI);
     fetchSpy.mockRejectedValue(new Error('network down'));

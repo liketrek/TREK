@@ -486,6 +486,33 @@ describe('sendNtfy', () => {
     expect(calledOpts.headers['Tags']).toBeUndefined(); // empty tags = no header
   });
 
+  it('NTFY-009a — a title carrying CR/LF is RFC 2047 encoded instead of reaching the header raw', async () => {
+    // undici rejects a header value with a control character, so a trip titled
+    // with a stray newline used to drop the notification for every recipient.
+    const mockFetch = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
+    mockFetch.mockResolvedValueOnce({ ok: true, text: async () => '' } as never);
+
+    const result = await sendNtfy(ntfyUrl, null, { ...payload, title: 'Trip\r\nX-Injected: 1' });
+
+    expect(result).toBe(true);
+    const [, calledOpts] = mockFetch.mock.calls[0];
+    const encoded = calledOpts.headers['Title'] as string;
+    expect(encoded).toMatch(/^=\?UTF-8\?B\?/);
+    expect(encoded).not.toContain('\n');
+    const b64 = encoded.replace(/^=\?UTF-8\?B\?/, '').replace(/\?=$/, '');
+    expect(Buffer.from(b64, 'base64').toString('utf8')).toBe('Trip\r\nX-Injected: 1');
+  });
+
+  it('NTFY-009b — a plain ASCII title is still sent verbatim', async () => {
+    const mockFetch = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
+    mockFetch.mockResolvedValueOnce({ ok: true, text: async () => '' } as never);
+
+    await sendNtfy(ntfyUrl, null, { ...payload, title: 'Rome 2026 - day 3' });
+
+    const [, calledOpts] = mockFetch.mock.calls[0];
+    expect(calledOpts.headers['Title']).toBe('Rome 2026 - day 3');
+  });
+
   it('NTFY-009 — title with non-Latin-1 chars is RFC 2047 encoded', async () => {
     const mockFetch = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
     mockFetch.mockResolvedValueOnce({ ok: true, text: async () => '' } as never);

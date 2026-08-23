@@ -2,6 +2,7 @@ import { Readable } from 'node:stream';
 import { v4 as uuidv4 } from 'uuid';
 import { Injectable } from '@nestjs/common';
 import { safeFetch } from '../../utils/ssrfGuard';
+import { exceedsDeclaredLength, readCapped } from '../../utils/cappedFetch';
 import { resolveApiKey } from '../settings/instance-api-keys';
 import { DatabaseService } from '../database/database.service';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
@@ -31,6 +32,9 @@ export interface UnsplashPhoto {
 
 const UNSPLASH_IMAGE_HOST = 'images.unsplash.com';
 const MAX_COVER_BYTES = 15 * 1024 * 1024;
+// Unsplash is a third party on the request path; safeFetch adds no deadline of
+// its own, so both the search and the cover download carry one.
+const UNSPLASH_TIMEOUT_MS = 10_000;
 const COVER_EXT_BY_TYPE: Record<string, string> = {
   'image/jpeg': '.jpg',
   'image/png': '.png',
@@ -86,8 +90,10 @@ export class UnsplashService {
           Authorization: `Client-ID ${accessKey}`,
           'Accept-Version': 'v1',
         },
+        signal: AbortSignal.timeout(UNSPLASH_TIMEOUT_MS),
       })
     : await fetch(`https://unsplash.com/napi/search/photos?${params.toString()}`, {
+        signal: AbortSignal.timeout(UNSPLASH_TIMEOUT_MS),
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0',
           Accept: '*/*',
@@ -144,13 +150,16 @@ export class UnsplashService {
  */
   async saveUnsplashCover(url: string): Promise<string> {
     if (!this.isUnsplashCoverUrl(url)) throw new Error('Not an Unsplash image URL');
-  const res = await safeFetch(url);
+  const res = await safeFetch(url, { signal: AbortSignal.timeout(UNSPLASH_TIMEOUT_MS) });
   if (!res.ok) throw new Error(`Unsplash image download failed (HTTP ${res.status})`);
   const type = (res.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
   const ext = COVER_EXT_BY_TYPE[type];
   if (!ext) throw new Error(`Unsupported cover image type: ${type || 'unknown'}`);
-  const buf = Buffer.from(await res.arrayBuffer());
-  if (buf.byteLength > MAX_COVER_BYTES) throw new Error('Cover image too large');
+  // Reject on the declared length and again while streaming: buffering the whole
+  // body first put the 15MB limit behind the allocation it was meant to prevent.
+  if (exceedsDeclaredLength(res, MAX_COVER_BYTES)) throw new Error('Cover image too large');
+  const { bytes: buf, truncated } = await readCapped(res, MAX_COVER_BYTES);
+  if (truncated) throw new Error('Cover image too large');
   const filename = `${uuidv4()}${ext}`;
   await this.storage.put('covers', filename, Readable.from(buf));
   return filename;
