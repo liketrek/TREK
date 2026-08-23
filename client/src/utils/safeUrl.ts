@@ -42,5 +42,9 @@ export function safeExternalHref(value: string | null | undefined): string | nul
   if (/^https?:\/\//i.test(collapsed)) return trimmed
   // Any other scheme, executing or merely unexpected, stays unlinked.
   if (/^[a-z][a-z0-9+.-]*:/i.test(collapsed)) return null
-  return `https://${trimmed}`
+  // A bare host gets https://, the way an address bar would take it. Free text
+  // does not: "www.hotel.com" is a site somebody meant to link, "call the hotel"
+  // is a note, and turning the second into a link is worse than leaving it flat.
+  if (/^[^\s/?#]+\.[^\s/?#]+/.test(trimmed)) return `https://${trimmed}`
+  return null
 }
