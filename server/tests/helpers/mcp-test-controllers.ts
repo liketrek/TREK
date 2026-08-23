@@ -119,8 +119,9 @@ export function createMcpTestRegistry(): McpRegistry {
   const journeyDomain = new JourneyDomainService(dbService, realtimeService, new TrekPhotosRepository(dbService));
   // The last three were previously omitted, which left them `undefined` at
   // runtime — silently fine while nothing called them, a TypeError the moment
-  // the journey skeleton hooks landed on the place write paths. tsconfig only
-  // includes `src`, so nothing here is typechecked; pass them for real.
+  // the journey skeleton hooks landed on the place write paths. tsconfig.tests.json
+  // covers `tests` now and CI runs it (npm run typecheck:tests), so a missed
+  // dependency fails the build — pass them for real regardless of the gate.
   const placesService = new PlacesService(
     dbService, permissionsService, realtimeService, mapsService, queryHelpersService,
     new UnsplashService(dbService, new RuntimeEnvService(), generalStorage),

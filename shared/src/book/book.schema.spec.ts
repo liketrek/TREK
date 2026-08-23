@@ -3,6 +3,7 @@ import {
   bookBadgeElementSchema,
   bookIconElementSchema,
   bookSpreadSchema,
+  bookStatsElementSchema,
   bookTextElementSchema,
   normalizeBookDocument,
 } from './book.schema';
@@ -136,6 +137,22 @@ describe('a badge code', () => {
   });
 });
 
+describe('the figures a stats element carries', () => {
+  const stats = (over: Record<string, unknown> = {}) => ({ id: 's1', kind: 'stats', frame, ...over });
+
+  it('keeps the metrics it is drawn from', () => {
+    const parsed = bookStatsElementSchema.parse(stats({ values: { distance: 1420000, days: 12 } }));
+    expect(parsed.values).toEqual({ distance: 1420000, days: 12 });
+  });
+
+  it('drops a key no reader could ever index by, without failing the element', () => {
+    // Dropped rather than rejected: a rejected stats element is stripped as
+    // unreadable, which loses the page the figures were on.
+    const parsed = bookStatsElementSchema.parse(stats({ values: { distance: 12, sneaky: 1, ['x'.repeat(5000)]: 2 } }));
+    expect(parsed.values).toEqual({ distance: 12 });
+  });
+});
+
 describe('normalizeBookDocument', () => {
   it('keeps the nine elements it can read when the tenth is from another version', () => {
     const nine = Array.from({ length: 9 }, (_, i) => text({ id: `t${i + 1}`, text: `line ${i + 1}` }));
@@ -170,6 +187,34 @@ describe('normalizeBookDocument', () => {
 
     expect(out.spreads[0]!.elements.map((el) => el.id)).toEqual(['a', 'b']);
     expect(out.page.pageWidth).toBe(210);
+  });
+
+  it('falls back to the preset for a page dimension nothing could be printed at', () => {
+    // A page block that fails takes the whole document with it, and the empty
+    // book that comes back is what the server then writes down. So each of
+    // these degrades to its default and the spread survives.
+    for (const bad of [0, -5, 1e12]) {
+      const out = normalizeBookDocument({
+        ...doc([text({ id: 'a' })]),
+        page: { preset: 'square-210', pageWidth: bad, pageHeight: 210, bleed: 3, safe: 5 },
+      });
+      expect(out.page.pageWidth).toBe(210);
+      expect(out.spreads[0]!.elements.map((el) => el.id)).toEqual(['a']);
+    }
+
+    const negativeBleed = normalizeBookDocument({
+      ...doc([text({ id: 'a' })]),
+      page: { preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: -3, safe: 5 },
+    });
+    expect(negativeBleed.page.bleed).toBe(3);
+    expect(negativeBleed.spreads[0]!.elements).toHaveLength(1);
+  });
+
+  it('drops an element parked a kilometre off the spread rather than the book', () => {
+    const out = normalizeBookDocument(doc([text({ id: 'a' }), text({ id: 'far', frame: { x: 1e9, y: 0, w: 60, h: 40 } })]));
+
+    expect(out.spreads[0]!.elements.map((el) => el.id)).toEqual(['a']);
+    expect(out.title).toBe('Iceland, end to end');
   });
 
   it('hands back an empty book for something that is not a document at all', () => {

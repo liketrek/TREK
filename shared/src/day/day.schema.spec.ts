@@ -35,6 +35,15 @@ describe('dayNoteCreateRequestSchema', () => {
   it('accepts null time/icon (moveDayNote re-sends the nullable entity fields)', () => {
     expect(dayNoteCreateRequestSchema.safeParse({ text: 'ok', time: null, icon: null }).success).toBe(true);
   });
+
+  it('takes an icon as a label and not as a payload', () => {
+    // Both shapes the field is written in: a lucide export name from NOTE_ICONS
+    // and a plain emoji, plus the longest ZWJ sequence anyone types.
+    expect(dayNoteCreateRequestSchema.safeParse({ text: 'ok', icon: 'ParkingSquare' }).success).toBe(true);
+    expect(dayNoteCreateRequestSchema.safeParse({ text: 'ok', icon: '👩‍👩‍👧‍👦' }).success).toBe(true);
+    expect(dayNoteCreateRequestSchema.safeParse({ text: 'ok', icon: 'x'.repeat(64) }).success).toBe(true);
+    expect(dayNoteCreateRequestSchema.safeParse({ text: 'ok', icon: 'x'.repeat(65) }).success).toBe(false);
+  });
 });
 
 describe('dayNoteUpdateRequestSchema', () => {
@@ -42,6 +51,7 @@ describe('dayNoteUpdateRequestSchema', () => {
     expect(dayNoteUpdateRequestSchema.safeParse({}).success).toBe(true);
     expect(dayNoteUpdateRequestSchema.safeParse({ icon: '🍽️' }).success).toBe(true);
     expect(dayNoteUpdateRequestSchema.safeParse({ text: 'x'.repeat(501) }).success).toBe(false);
+    expect(dayNoteUpdateRequestSchema.safeParse({ icon: 'x'.repeat(65) }).success).toBe(false);
   });
 
   it('accepts an explicit null time (clears the label)', () => {

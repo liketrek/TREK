@@ -11,6 +11,13 @@ on:
       - 'client/**'
       - 'shared/**'
       - 'plugin-sdk/**'
+      # npm workspaces hoist every dependency into the single root lockfile, so
+      # a dependency bump touches none of the four directories above — and a
+      # native binding like better-sqlite3 is exactly what needs the suite.
+      - 'package.json'
+      - 'package-lock.json'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
       - '.github/workflows/test.yml'
 
 jobs:

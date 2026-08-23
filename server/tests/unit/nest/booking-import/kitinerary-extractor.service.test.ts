@@ -8,10 +8,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  * at all, and every branch that resolves it is a filesystem lookup that behaves
  * differently on the three platforms TREK ships to.
  */
-const { existsSync, readdirSync, readEnv } = vi.hoisted(() => ({
+const { existsSync, readdirSync, readEnv, execSync, execFile } = vi.hoisted(() => ({
   existsSync: vi.fn(),
   readdirSync: vi.fn(),
   readEnv: vi.fn(),
+  execSync: vi.fn(),
+  // A plain function, because the service promisifies it at module load.
+  execFile: vi.fn(),
 }));
 
 vi.mock('node:fs', () => ({
@@ -20,6 +23,10 @@ vi.mock('node:fs', () => ({
   writeFileSync: vi.fn(),
   unlinkSync: vi.fn(),
 }));
+// The last branch of the probe shells out. Unmocked, the suite spawns a real
+// process on every machine and comes back green-or-red depending on whether the
+// developer happens to have KItinerary installed.
+vi.mock('node:child_process', () => ({ execSync, execFile }));
 vi.mock('../../../../src/app-config', () => ({ readEnv }));
 
 import { KitineraryExtractorService } from '../../../../src/nest/booking-import/kitinerary-extractor.service';
@@ -35,6 +42,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   existsSync.mockReturnValue(false);
   readdirSync.mockReturnValue([]);
+  execSync.mockImplementation(() => { throw new Error('command not found'); });
 });
 
 describe('KitineraryExtractorService binary probe', () => {
@@ -69,5 +77,11 @@ describe('KitineraryExtractorService binary probe', () => {
 
   it('KIT-EXT-006: extracting without a binary fails loudly', async () => {
     await expect(boot().extract(Buffer.from(''), 'x.pdf')).rejects.toThrow('not available');
+  });
+
+  it('KIT-EXT-007: falls back to the binary on PATH when nothing is on disk', () => {
+    execSync.mockReturnValue(Buffer.from(''));
+    expect(boot().isAvailable()).toBe(true);
+    expect(execSync).toHaveBeenCalledWith('kitinerary-extractor --version', expect.objectContaining({ timeout: 3000 }));
   });
 });

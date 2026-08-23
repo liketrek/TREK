@@ -352,7 +352,7 @@ export const TREK_WS_EVENTS = {
   },
 } as const satisfies Record<string, TrekWsEventContract>;
 
-/** Every registered event name (65 trip-scoped + 29 user-scoped). */
+/** Every registered event name. The registry above is the count; this derives from it. */
 export type TrekWsEventName = keyof typeof TREK_WS_EVENTS;
 
 /** Names broadcast to a trip room (`{ type, tripId, ...payload }` envelope). */

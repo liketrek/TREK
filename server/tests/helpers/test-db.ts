@@ -218,6 +218,20 @@ export function resetTestDb(db: Database.Database): void {
 }
 
 /**
+ * Byte-for-byte the statement in src/db/database.ts.
+ *
+ * Exported because the same query is copied into ~90 test files, and every one
+ * of those copies had dropped `t.currency` — so the budget domain, which reads
+ * exactly that column off the access row, was only ever exercising its 'EUR'
+ * fallback. Import this instead of retyping it.
+ */
+export const CAN_ACCESS_TRIP_SQL = `
+        SELECT t.id, t.user_id, t.currency FROM trips t
+        LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
+        WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
+      `;
+
+/**
  * Returns the mock factory for vi.mock('../../src/db/database', ...).
  * The returned object mirrors the shape of database.ts exports.
  *
@@ -266,11 +280,7 @@ export function buildDbMock(testDb: Database.Database) {
       };
     },
     canAccessTrip: (tripId: number | string, userId: number) => {
-      return testDb.prepare(`
-        SELECT t.id, t.user_id FROM trips t
-        LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
-        WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-      `).get(userId, tripId, userId);
+      return testDb.prepare(CAN_ACCESS_TRIP_SQL).get(userId, tripId, userId);
     },
     isOwner: (tripId: number | string, userId: number) => {
       return !!testDb.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId);

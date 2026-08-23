@@ -9,8 +9,10 @@ import { z } from 'zod';
  * Trip-scoped, both gated by the 'day_edit' permission. Served by the Nest
  * DaysController / DayNotesController (server/src/nest/days/). Day rows (with
  * their assignments) are wide and DB-derived, so list responses stay open. Day
- * notes cap text at 500 and time at 150 chars (the legacy
- * validateStringLengths middleware) — reproduced in the controller.
+ * note writes are capped field by field: text 500, time 2000, icon 64, color 9.
+ * Time is wider than the legacy validateStringLengths middleware's 150 because
+ * the raw-body route it replaced already accepted more, and narrowing it now
+ * would reject payloads today's client is allowed to send.
  */
 
 /**
@@ -86,7 +88,9 @@ export type DayTransportRequest = z.infer<typeof dayTransportRequestSchema>;
 export const dayNoteCreateRequestSchema = z.object({
   text: z.string().min(1).max(500),
   time: z.string().max(2000).nullable().optional(),
-  icon: z.string().nullable().optional(),
+  // A lucide name from NOTE_ICONS or a single emoji; 64 leaves room for a ZWJ
+  // sequence with skin-tone modifiers and still keeps the column a label.
+  icon: z.string().max(64).nullable().optional(),
   /** One of NOTE_COLORS, or null for the neutral card (#1629). */
   color: z.string().max(9).nullable().optional(),
   sort_order: z.number().optional(),
@@ -96,7 +100,7 @@ export type DayNoteCreateRequest = z.infer<typeof dayNoteCreateRequestSchema>;
 export const dayNoteUpdateRequestSchema = z.object({
   text: z.string().max(500).optional(),
   time: z.string().max(2000).nullable().optional(),
-  icon: z.string().nullable().optional(),
+  icon: z.string().max(64).nullable().optional(),
   color: z.string().max(9).nullable().optional(),
   sort_order: z.number().optional(),
 });

@@ -221,7 +221,10 @@ describe('File download path traversal', () => {
     const res = await request(app)
       .get(`/api/trips/${trip.id}/files/${fileId}/download`)
       .set(authHeader(user.id));
-    // path.basename() strips traversal in the download controller; normalized file does not exist in uploads
-    expect(res.status).not.toBe(200);
+    // path.basename() strips traversal in the download controller; the normalized
+    // name does not exist in uploads, so the answer is the same 404 a missing file
+    // gets. Pinned exactly: a 500 from a thrown guard would also be "not 200".
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'File not found' });
   });
 });

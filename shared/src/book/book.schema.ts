@@ -25,8 +25,16 @@ import { z } from 'zod';
  * edits the text in Studio, which sets `overridden` and stops the sync.
  */
 
-/** Two decimals of a millimetre. Anything finer is below print resolution. */
-const mm = z.number().finite().transform(v => Math.round(v * 100) / 100);
+/**
+ * Two decimals of a millimetre. Anything finer is below print resolution.
+ *
+ * Bounded at ten metres in either direction, which is four orders of magnitude
+ * past the largest book anyone binds and still leaves room for an element
+ * parked well off the spread. Without a bound a stored `1e9` is a legal
+ * millimetre, and the editor and the PDF renderer both try to draw a sheet a
+ * thousand kilometres wide.
+ */
+const mm = z.number().finite().min(-10000).max(10000).transform(v => Math.round(v * 100) / 100);
 
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'expected #rrggbb');
 
@@ -491,8 +499,21 @@ export const bookStatsElementSchema = z.object({
   layout: z.enum(['grid', 'row', 'column']).default('grid'),
   showIcons: z.boolean().default(true),
   units: bookUnitsSchema.default('metric'),
-  /** Metric to value. Distance is metres, everything else a plain count. */
-  values: z.record(z.string(), z.number().finite()).default({}),
+  /**
+   * Metric to value. Distance is metres, everything else a plain count.
+   *
+   * Anything that is not a metric is dropped rather than rejected: both readers
+   * only ever index by a `BOOK_METRICS` member, so a stray key is payload that
+   * gets persisted and re-served to every viewer without ever being drawn.
+   * Filtered instead of typed as `z.record(z.enum(BOOK_METRICS), …)`, because on
+   * zod 4 an enum key makes the record exhaustive — every metric would become
+   * required and every stats element written so far would fail, then be thrown
+   * away as unreadable.
+   */
+  values: z.record(z.string(), z.number().finite()).default({})
+    .transform(v => Object.fromEntries(
+      Object.entries(v).filter(([k]) => (BOOK_METRICS as readonly string[]).includes(k)),
+    )),
 });
 
 export const bookCountriesElementSchema = z.object({
@@ -729,11 +750,19 @@ export type BookPageNumbers = z.infer<typeof bookPageNumbersSchema>;
 
 export const bookPageSetupSchema = z.object({
   preset: z.enum(['square-210', 'square-300', 'a4-landscape', 'a4-portrait', 'a5-landscape', 'custom']).default('square-210'),
-  /** A single page. A double spread is drawn twice this wide. */
-  pageWidth: mm.default(210),
-  pageHeight: mm.default(210),
-  bleed: mm.default(3),
-  safe: mm.default(5),
+  /**
+   * A single page. A double spread is drawn twice this wide.
+   *
+   * These four fall back rather than fail, like `version` below. The salvage
+   * pass only strips unreadable *elements*, so a page block the contract
+   * cannot read takes the whole book down to an empty one — and that empty
+   * book is what the server writes back. A nonsense dimension degrading to the
+   * preset is the smaller loss by a long way.
+   */
+  pageWidth: mm.refine(v => v > 0, 'page width must be positive').catch(210).default(210),
+  pageHeight: mm.refine(v => v > 0, 'page height must be positive').catch(210).default(210),
+  bleed: mm.refine(v => v >= 0, 'bleed cannot be negative').catch(3).default(3),
+  safe: mm.refine(v => v >= 0, 'safe margin cannot be negative').catch(5).default(5),
   pageNumbers: bookPageNumbersSchema.default(() => bookPageNumbersSchema.parse({})),
 });
 export type BookPageSetup = z.infer<typeof bookPageSetupSchema>;
