@@ -29,6 +29,8 @@ export function useJourneyDetail() {
   const { current, loading, notFound, loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto } = useJourneyStore()
   const mapRef = useRef<JourneyMapHandle>(null)
   const fullMapRef = useRef<JourneyMapHandle>(null)
+  /** The gallery hands its file picker up here, so the hero button can open it. */
+  const galleryUploadRef = useRef<(() => void) | null>(null)
   const [activeLocationId, setActiveLocationId] = useState<string | null>(null)
 
   const isMobile = useIsMobile()
@@ -382,7 +384,7 @@ export function useJourneyDetail() {
     showInvite, setShowInvite, showAddTrip, setShowAddTrip,
     unlinkTrip, setUnlinkTrip, showSettings, setShowSettings,
     hideSkeletons, setHideSkeletons,
-    mapRef, fullMapRef, activeLocationId, handleMarkerClick, handleLocationClick,
+    mapRef, fullMapRef, galleryUploadRef, activeLocationId, handleMarkerClick, handleLocationClick,
     mapEntries, sidebarMapItems, tripDates, isMobile, tracks,
     feedEdge, scrollFeedTo,
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,

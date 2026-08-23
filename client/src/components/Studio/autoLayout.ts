@@ -1369,7 +1369,7 @@ function summarySpread(input: AutoInput): BookSpread | null {
     els.push(badgeEl(
       { x: rx + 8 + lineW * 0.5 - 17, y: y - 11, w: 34, h: 8 },
       'distance',
-      { text: formatKm(stats.furthest) },
+      { text: formatKm(stats.furthest, input.locale) },
       { style: 'chip', textScale: 0.7 },
     ))
     els.push(text({ x: rx + 4, y: y + 4, w: lineW * 0.5, h: 5 }, (home.label || '').toUpperCase(), {
@@ -1396,9 +1396,9 @@ function furthestPoint(stats: JourneyStats) {
   return best
 }
 
-/** Metres as the books print them: "1,189 km". */
-function formatKm(metres: number): string {
-  return `${Math.round(metres / 1000).toLocaleString('en-US')} km`
+/** Metres as the books print them: "1,189 km", in the book's own language. */
+function formatKm(metres: number, locale: string): string {
+  return `${Math.round(metres / 1000).toLocaleString(locale)} km`
 }
 
 function countriesSpread(input: AutoInput, names: string[]): BookSpread | null {
@@ -1477,7 +1477,7 @@ function backSpread(input: AutoInput): BookSpread {
   if (input.stats) {
     const closing: BookMetric[] = ([
       ['days', input.stats.days],
-      ['places', input.stats.places || input.stats.steps],
+      ['places', input.stats.places],
       ['photos', input.stats.photos],
     ] as [BookMetric, number][])
       .filter(([, v]) => v > 0)

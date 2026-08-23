@@ -221,7 +221,7 @@ function fillBadge(el: BookElement & { kind: 'badge' }, entry: TemplateEntry, ct
     }
   }
   if (el.variant === 'distance' && ctx.stats?.distance) {
-    el.text = `${Math.round(ctx.stats.distance / 1000).toLocaleString('en-US')} km`
+    el.text = `${Math.round(ctx.stats.distance / 1000).toLocaleString(ctx.locale)} km`
   }
 }
 

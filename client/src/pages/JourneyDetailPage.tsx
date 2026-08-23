@@ -1,4 +1,3 @@
-import { useRef } from 'react'
 import { useAuthStore } from '../store/authStore'
 import { journeyApi } from '../api/client'
 import Navbar from '../components/Layout/Navbar'
@@ -45,13 +44,11 @@ function JourneyDetailPageDesktop() {
     showInvite, setShowInvite, showAddTrip, setShowAddTrip,
     unlinkTrip, setUnlinkTrip, showSettings, setShowSettings,
     hideSkeletons, setHideSkeletons,
-    mapRef, fullMapRef, activeLocationId, handleMarkerClick, handleLocationClick,
+    mapRef, fullMapRef, galleryUploadRef, activeLocationId, handleMarkerClick, handleLocationClick,
     mapEntries, sidebarMapItems, tripDates, isMobile, tracks,
     feedEdge, scrollFeedTo,
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,
   } = useJourneyDetail()
-
-  const galleryUploadRef = useRef<(() => void) | null>(null)
 
   if (loading || !current) {
     return (

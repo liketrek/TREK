@@ -55,6 +55,8 @@ export type SaveState =
   | { status: 'saving' }
   | { status: 'saved'; at: number }
   | { status: 'conflict'; current: BookRecord }
+  /** The journey is open to this user, but they may not write it (role 'viewer'). */
+  | { status: 'readonly' }
   | { status: 'error' }
 
 export function useBookStore(
@@ -72,6 +74,9 @@ export function useBookStore(
   const firstDirtyAt = useRef<number | null>(null)
   const pending = useRef<{ document: BookDocument; title: string } | null>(null)
   const inFlight = useRef(false)
+
+  /** The title the last queued save carried, so a re-queue does not lose it. */
+  const lastTitle = useRef('')
 
   /**
    * The document the server and this client agree on, by identity.
@@ -173,6 +178,15 @@ export function useBookStore(
       if (res?.status === 409 && res.data?.current) {
         blocked.current = true
         setState({ status: 'conflict', current: res.data.current })
+      } else if (res?.status === 403) {
+        /*
+         * A viewer can open Studio - the book is part of the journey they were
+         * invited to - but the server will not take their writes. Stop trying
+         * on the first refusal and say so: retrying forever would let someone
+         * lay out an entire book before finding out none of it was ever saved.
+         */
+        blocked.current = true
+        setState({ status: 'readonly' })
       } else {
         setState({ status: 'error' })
       }
@@ -193,6 +207,7 @@ export function useBookStore(
    */
   const queueSave = useCallback((document: BookDocument, title: string) => {
     latest.current = document
+    lastTitle.current = title
     // The document we already agree on is not an edit — see `synced`.
     if (document === synced.current) return
     pending.current = { document, title }
@@ -207,7 +222,10 @@ export function useBookStore(
 
   /** Write immediately — for closing the editor, or a save the user asked for. */
   const saveNow = useCallback((document?: BookDocument, title?: string) => {
-    if (document) pending.current = { document, title: title ?? '' }
+    if (document) {
+      if (title != null) lastTitle.current = title
+      pending.current = { document, title: title ?? lastTitle.current }
+    }
     if (timer.current != null) window.clearTimeout(timer.current)
     return write()
   }, [write])
@@ -236,8 +254,20 @@ export function useBookStore(
   const keepMine = useCallback((current: BookRecord) => {
     version.current = current.version
     blocked.current = false
+    /*
+     * The refused document has to be queued again here, because write() cleared
+     * the queue before it made the request that came back 409. Without this,
+     * choosing "keep mine" left the work sitting in the tab: the autosave only
+     * fires on the next change, and closing the editor writes whatever is
+     * queued, which is nothing.
+     */
+    if (latest.current && latest.current !== synced.current) {
+      pending.current = { document: latest.current, title: lastTitle.current }
+      void write()
+      return
+    }
     setState({ status: 'idle' })
-  }, [])
+  }, [write])
 
   /**
    * Someone else saved.

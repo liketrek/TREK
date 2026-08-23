@@ -1,4 +1,4 @@
-// FE-PAGE-JOIN-001 to FE-PAGE-JOIN-008
+// FE-PAGE-JOIN-001 to FE-PAGE-JOIN-011
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { tripInviteApi } from '../../api/client';
 import { useJoinTrip } from './useJoinTrip';
@@ -11,8 +11,12 @@ vi.mock('react-router', () => ({
   useParams: () => params,
 }));
 
+const addToast = vi.fn();
+
 beforeEach(() => {
   navigate.mockClear();
+  addToast.mockClear();
+  window.__addToast = addToast;
   params = { token: 'inv-1' };
   vi.spyOn(tripInviteApi, 'preview').mockResolvedValue({ title: 'Japan 2026' } as never);
   vi.spyOn(tripInviteApi, 'accept').mockResolvedValue({ trip_id: 42 } as never);
@@ -20,6 +24,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  delete window.__addToast;
 });
 
 describe('useJoinTrip', () => {
@@ -74,14 +79,42 @@ describe('useJoinTrip', () => {
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/trips/7', { replace: true }));
   });
 
-  it('FE-PAGE-JOIN-006: falls back to invalid when redeeming fails', async () => {
-    vi.mocked(tripInviteApi.accept).mockRejectedValue(new Error('already a member'));
+  it('FE-PAGE-JOIN-006: falls back to invalid when the invite itself is gone', async () => {
+    vi.mocked(tripInviteApi.accept).mockRejectedValue({ response: { status: 404, data: { error: 'Invalid or expired invite link' } } });
     const { result } = renderHook(() => useJoinTrip());
     await waitFor(() => expect(result.current.state).toBe('ready'));
 
     act(() => result.current.accept());
     await waitFor(() => expect(result.current.state).toBe('invalid'));
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  // A rate limit or a 500 is not an expired invite: saying so burns a link that
+  // still works, and the invalid screen offers no way back.
+  it('FE-PAGE-JOIN-010: a server failure reports itself and leaves the invite retryable', async () => {
+    vi.mocked(tripInviteApi.accept).mockRejectedValue({ response: { status: 429, data: { error: 'Too many attempts. Please try again later.' } } });
+    const { result } = renderHook(() => useJoinTrip());
+    await waitFor(() => expect(result.current.state).toBe('ready'));
+
+    act(() => result.current.accept());
+    await waitFor(() => expect(result.current.state).toBe('ready'));
+    expect(addToast).toHaveBeenCalledWith('Too many attempts. Please try again later.', 'error', undefined);
+    expect(navigate).not.toHaveBeenCalled();
+
+    // And the second press really does go out again.
+    vi.mocked(tripInviteApi.accept).mockResolvedValue({ trip_id: 42 } as never);
+    await act(() => { result.current.accept(); return Promise.resolve(); });
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/trips/42', { replace: true }));
+  });
+
+  it('FE-PAGE-JOIN-011: a network failure with no status is reported, not called invalid', async () => {
+    vi.mocked(tripInviteApi.accept).mockRejectedValue(new Error('Network Error'));
+    const { result } = renderHook(() => useJoinTrip());
+    await waitFor(() => expect(result.current.state).toBe('ready'));
+
+    act(() => result.current.accept());
+    await waitFor(() => expect(addToast).toHaveBeenCalled());
+    expect(result.current.state).toBe('ready');
   });
 
   it('FE-PAGE-JOIN-007: accept is a no-op without a token', () => {

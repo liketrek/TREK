@@ -389,9 +389,21 @@ export function useJourneyStudio() {
   useEffect(() => {
     if (!Number.isFinite(journeyId)) return
     let cancelled = false
+    /*
+     * The frozen layout input is patched too, not just the state.
+     *
+     * The build effect runs as soon as the book and the figures are in, which is
+     * usually before this answers, and what it froze is what the Auto layout
+     * buttons hand to buildBook afterwards. Without the patch a relayout drew
+     * the straight line between stops over a route somebody had walked.
+     */
+    const applyPath = (p: [number, number][][]) => {
+      setPath(p)
+      if (autoInput.current) autoInput.current = { ...autoInput.current, path: p }
+    }
     journeyApi.listTracks(journeyId)
-      .then(data => { if (!cancelled) setPath(bookPath(data.tracks)) })
-      .catch(() => { if (!cancelled) setPath([]) })
+      .then(data => { if (!cancelled) applyPath(bookPath(data.tracks)) })
+      .catch(() => { if (!cancelled) applyPath([]) })
     return () => { cancelled = true }
   }, [journeyId])
 
@@ -589,8 +601,13 @@ export function useJourneyStudio() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName
-      const typing = tag === 'INPUT' || tag === 'TEXTAREA'
+      const el = e.target as HTMLElement | null
+      const typing = el?.tagName === 'INPUT' || el?.tagName === 'TEXTAREA' || el?.isContentEditable === true
+
+      // Undo belongs to the field while somebody is in one: Studio text commits
+      // on blur, so the sentence being typed is not in the history yet and the
+      // document-level undo would take back the change before it instead.
+      if (typing) return
 
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault()

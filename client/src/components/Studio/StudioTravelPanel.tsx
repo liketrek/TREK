@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { BookElement, BookMetric, BookPageSetup, JourneyStats } from '@trek/shared'
 import { BOOK_METRICS } from '@trek/shared'
 import { useStudioStore } from '../../store/studioStore'
@@ -94,6 +95,19 @@ export function StudioTravelPanel({
   const doc = useStudioStore(s => s.doc)
   const spread = doc?.spreads[active]
   const single = !!spread && spread.role !== 'inner'
+
+  /*
+   * The road lookups still running when the panel goes away.
+   *
+   * fetchRoads walks the legs at a deliberate pace, so a twenty-stop map keeps
+   * asking a public router for minutes after Studio is closed, and the answer
+   * lands in whatever document the store holds by then.
+   */
+  const roadJobs = useRef(new Set<AbortController>())
+  useEffect(() => () => {
+    roadJobs.current.forEach(c => c.abort())
+    roadJobs.current.clear()
+  }, [])
 
   const centre = (w: number, h: number) => {
     const W = single ? page.pageWidth : page.pageWidth * 2
@@ -304,13 +318,17 @@ export function StudioTravelPanel({
      * free, and a failure leaves the leg exactly as it was.
      */
     if (placed.kind === 'map' && placed.points.length > 1) {
-      void fetchRoads(placed.points.map(pt => ({ lat: pt.lat, lng: pt.lng })))
+      const job = new AbortController()
+      roadJobs.current.add(job)
+      void fetchRoads(placed.points.map(pt => ({ lat: pt.lat, lng: pt.lng })), { signal: job.signal })
         .then(roads => {
+          if (job.signal.aborted) return
           if (roads.some(r => r && r.length > 1)) {
             updateElement(active, placed.id, { roads } as Partial<BookElement>)
           }
         })
         .catch(() => { /* No roads is a state the map already draws. */ })
+        .finally(() => { roadJobs.current.delete(job) })
     }
   }
 

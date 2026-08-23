@@ -172,6 +172,21 @@ describe('ListEditorModal', () => {
     expect(actions.createCollection).not.toHaveBeenCalled()
   })
 
+  it('FE-COMP-LISTEDITOR-026: a second Enter while the create is in flight does not make a second list', async () => {
+    let release: (value: { id: number; owner_id: number; name: string }) => void = () => {}
+    actions.createCollection.mockReturnValueOnce(new Promise(resolve => { release = resolve }))
+    const { props } = setup()
+    const nameInput = screen.getByPlaceholderText('e.g. Tokyo 2025')
+    fireEvent.change(nameInput, { target: { value: 'Lisbon' } })
+    fireEvent.keyDown(nameInput, { key: 'Enter' })
+    await waitFor(() => expect(actions.createCollection).toHaveBeenCalledTimes(1))
+    fireEvent.keyDown(nameInput, { key: 'Enter' })
+    release({ id: 77, owner_id: 1, name: 'Lisbon' })
+    await waitFor(() => expect(props.onClose).toHaveBeenCalled())
+    expect(actions.createCollection).toHaveBeenCalledTimes(1)
+    expect(props.onCreated).toHaveBeenCalledTimes(1)
+  })
+
   it('FE-COMP-LISTEDITOR-011: picking a swatch changes the saved colour', async () => {
     setup()
     fireEvent.change(screen.getByPlaceholderText('e.g. Tokyo 2025'), { target: { value: 'Oslo' } })
