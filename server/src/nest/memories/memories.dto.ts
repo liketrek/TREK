@@ -5,6 +5,7 @@ import {
   immichSearchSchema,
   immichSettingsSchema,
   immichTestSchema,
+  removeTripPhotoSchema,
   setTripPhotoSharingSchema,
   synologySearchSchema,
   synologySettingsSchema,
@@ -31,4 +32,5 @@ export class SynologySearchDto extends createZodDto(synologySearchSchema) {}
 
 export class AddTripPhotosDto extends createZodDto(addTripPhotosSchema) {}
 export class SetTripPhotoSharingDto extends createZodDto(setTripPhotoSharingSchema) {}
+export class RemoveTripPhotoDto extends createZodDto(removeTripPhotoSchema) {}
 export class CreateAlbumLinkDto extends createZodDto(createAlbumLinkSchema) {}

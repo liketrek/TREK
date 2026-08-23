@@ -10,6 +10,10 @@ const MUTATION_METHODS = new Set<RequestMethod>([
   RequestMethod.POST,
   RequestMethod.PUT,
   RequestMethod.PATCH,
+  // DELETE belongs here too. It is rare for one to read a body, but the two that
+  // do are writes like any other, and leaving the method out meant their bodies
+  // reached the handler with nothing having looked at them.
+  RequestMethod.DELETE,
 ]);
 
 /**

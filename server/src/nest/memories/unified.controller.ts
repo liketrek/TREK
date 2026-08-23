@@ -5,7 +5,7 @@ import type { Selection } from './memories.helpers';
 import { MemoriesService } from './memories.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { AddTripPhotosDto, CreateAlbumLinkDto, SetTripPhotoSharingDto } from './memories.dto';
+import { AddTripPhotosDto, CreateAlbumLinkDto, RemoveTripPhotoDto, SetTripPhotoSharingDto } from './memories.dto';
 
 /**
  * /api/integrations/memories/unified — provider-agnostic trip photo + album-link
@@ -69,7 +69,7 @@ export class UnifiedMemoriesController {
   async removePhoto(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: Record<string, unknown>,
+    @Body() body: RemoveTripPhotoDto,
     @Res() res: Response,
   ): Promise<void> {
     const result = this.memories.removeTripPhoto(tripId, user.id, Number(body?.photo_id));

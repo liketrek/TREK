@@ -5,7 +5,7 @@
  * stale allow-list entries must refuse boot too (the list only ratchets down).
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { Body, Controller, Get, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post, Put } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
 import { createZodDto } from 'nestjs-zod';
@@ -41,6 +41,14 @@ class BadController {
   }
 }
 
+@Controller('gate-test/delete-body')
+class DeleteBodyController {
+  @Delete()
+  remove(@Body() body: Record<string, unknown>) {
+    return body;
+  }
+}
+
 @Controller('gate-test/subfield')
 class SubfieldController {
   @Post()
@@ -60,15 +68,17 @@ describe('validateBodyContracts (fail-closed boot gate)', () => {
   let goodApp: INestApplication;
   let badApp: INestApplication;
   let subfieldApp: INestApplication;
+  let deleteBodyApp: INestApplication;
 
   beforeAll(async () => {
     goodApp = await buildApp([GoodController]);
     badApp = await buildApp([GoodController, BadController]);
     subfieldApp = await buildApp([SubfieldController]);
+    deleteBodyApp = await buildApp([DeleteBodyController]);
   });
 
   afterAll(async () => {
-    await Promise.all([goodApp.close(), badApp.close(), subfieldApp.close()]);
+    await Promise.all([goodApp.close(), badApp.close(), subfieldApp.close(), deleteBodyApp.close()]);
   });
 
   it('GATE-001 — passes when every mutation body is a createZodDto class', () => {
@@ -81,6 +91,10 @@ describe('validateBodyContracts (fail-closed boot gate)', () => {
 
   it('GATE-003 — @Body(\'field\') sub-reads are unvalidated and flagged too', () => {
     expect(() => validateBodyContracts(subfieldApp, [])).toThrow(/SubfieldController\.reorder/);
+  });
+
+  it('GATE-007 — a DELETE that reads a body is held to the same contract', () => {
+    expect(() => validateBodyContracts(deleteBodyApp, [])).toThrow(/DeleteBodyController\.remove/);
   });
 
   it('GATE-004 — an allow-listed legacy route passes', () => {

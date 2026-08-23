@@ -92,6 +92,11 @@ export const setTripPhotoSharingSchema = z.looseObject({
   shared: z.unknown().optional(),
 });
 
+/** The photo to unlink from the trip. Same shape the sharing toggle takes. */
+export const removeTripPhotoSchema = z.looseObject({
+  photo_id: looseNumber,
+});
+
 export const createAlbumLinkSchema = z.looseObject({
   provider: z.unknown().optional(),
   album_id: z.unknown().optional(),
@@ -108,4 +113,5 @@ export type SynologySearchInput = z.infer<typeof synologySearchSchema>;
 export type PhotoSelectionInput = z.infer<typeof photoSelectionSchema>;
 export type AddTripPhotosInput = z.infer<typeof addTripPhotosSchema>;
 export type SetTripPhotoSharingInput = z.infer<typeof setTripPhotoSharingSchema>;
+export type RemoveTripPhotoInput = z.infer<typeof removeTripPhotoSchema>;
 export type CreateAlbumLinkInput = z.infer<typeof createAlbumLinkSchema>;
