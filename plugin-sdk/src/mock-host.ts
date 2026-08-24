@@ -107,6 +107,18 @@ export interface MockHostOptions {
   aiResults?: Record<string, unknown>[];
   /** The acting user's connected-service token for ctx.oauth.getAccessToken (default null). */
   oauthAccessToken?: string | null;
+  /** Daily cap on ctx.ai.complete/ctx.ai.extract calls, mirroring the host's
+   * per-plugin daily-budget broker (daily-budget.ts). Default 200; `0` disables
+   * the broker entirely, so the FIRST call fails with the exhaustion string.
+   * Unlike the real host, this is a plain in-memory counter for the life of this
+   * mock host: it never rolls over at UTC midnight — there is no timer here, and
+   * no wall-clock window. A test that wants to see the budget "reset" should
+   * create a fresh mock host rather than wait. */
+  aiPerDay?: number;
+  /** Same idea as `aiPerDay`, for ctx.notify.send. Default 100; `0` disables the
+   * broker (first call fails with the exhaustion string). See `aiPerDay` for the
+   * no-rollover caveat — this counter never resets on its own either. */
+  notifyPerDay?: number;
 }
 
 /** Drives a plugin's OWN entry points against the mock ctx — the missing half of a
@@ -233,6 +245,12 @@ function settingsBlob(src: Record<string, unknown> | undefined, what: string): R
 // The REST string caps the host mirrors on the plugin write path (rpc-host.ts).
 const PLACE_STR_LIMITS: Record<string, number> = { name: 200, description: 2000, address: 500, notes: 2000 };
 const TRIP_STR_LIMITS: Record<string, number> = { title: 200, description: 2000 };
+
+// ctx.meta quotas, mirrored from meta.rpc.ts's disk-DoS guard: value size (UTF-8
+// bytes of the serialized JSON), key length, and keys per (plugin, entity).
+const META_VALUE_MAX = 64 * 1024;
+const META_KEY_MAX = 256;
+const META_KEYS_MAX = 100;
 
 export function createMockHost(opts: MockHostOptions = {}): MockHost {
   const grants = new Set(opts.grants ?? []);
@@ -371,6 +389,14 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
   // In-memory namespaced metadata store for ctx.meta (per mock plugin).
   const metaStore: Record<string, unknown> = {};
   const metaKey = (et: string, eid: number, key: string) => `${et}:${eid}:${key}`;
+
+  // Per-host daily budgets for ai.*/notify.send, mirroring daily-budget.ts. Plain
+  // counters, no timers: this mock never rolls the window over at UTC midnight (see
+  // the MockHostOptions docblocks) — a test wanting a fresh budget creates a new host.
+  const aiPerDay = opts.aiPerDay ?? 200;
+  const notifyPerDay = opts.notifyPerDay ?? 100;
+  let aiUsed = 0;
+  let notifyUsed = 0;
 
   const buildCtx = (actingUserId: number | undefined): PluginContext => {
     const requireActingUser = (): number => {
@@ -816,6 +842,8 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
             if (!input.link.startsWith('/') || input.link.startsWith('//')) throw new Error('link must be an in-app path starting with /');
             link = input.link.slice(0, 512);
           }
+          if (notifyUsed >= notifyPerDay) throw new Error('daily notification budget exhausted (resets at UTC midnight)');
+          notifyUsed += 1;
           notifications.push({ title, body, ...(link ? { link } : {}), scope, targetId: input.targetId });
           return { sent: true };
         },
@@ -823,10 +851,14 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
       ai: {
         async complete() {
           need('ai:invoke', 'ai.complete');
+          if (aiUsed >= aiPerDay) throw new Error('daily AI budget exhausted (resets at UTC midnight)');
+          aiUsed += 1;
           return { text: opts.aiText ?? '' };
         },
         async extract() {
           need('ai:invoke', 'ai.extract');
+          if (aiUsed >= aiPerDay) throw new Error('daily AI budget exhausted (resets at UTC midnight)');
+          aiUsed += 1;
           return { results: opts.aiResults ?? [] };
         },
       },
@@ -1351,7 +1383,19 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         async set(entityType, entityId, key, value) {
           need('db:meta', 'meta.set');
           metaGate(entityType, entityId);
-          metaStore[metaKey(entityType, entityId, key)] = value ?? null;
+          // Quota order mirrors meta.rpc.ts: key length -> value size -> key count.
+          if (key.length > META_KEY_MAX) throw new Error(`metadata key too long (>${META_KEY_MAX} chars)`);
+          const json = JSON.stringify(value ?? null);
+          if (Buffer.byteLength(json, 'utf8') > META_VALUE_MAX) {
+            throw new Error(`metadata value too large (>${META_VALUE_MAX} bytes)`);
+          }
+          const fullKey = metaKey(entityType, entityId, key);
+          if (!(fullKey in metaStore)) {
+            const prefix = `${entityType}:${entityId}:`;
+            const count = Object.keys(metaStore).filter((k) => k.startsWith(prefix)).length;
+            if (count >= META_KEYS_MAX) throw new Error(`too many metadata keys on this ${entityType} (max ${META_KEYS_MAX})`);
+          }
+          metaStore[fullKey] = value ?? null;
           return { key, value: value ?? null };
         },
         async list(entityType, entityId) {
