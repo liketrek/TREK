@@ -128,11 +128,14 @@ with core events.
 
 **Needs:** `events:subscribe`
 
-Handlers run with no user and get the event name + tripId only (never the payload).
+Handlers run with no user and get `{ event, tripId, entity?, entityId?, snapshot? }` —
+the `snapshot` (a whitelisted field view of the changed entity) is delivered only when
+your plugin also holds that family's `db:read:*` grant; deletes/bulk/reorder events
+carry none.
 
 ```js
 events: [
-  { on: 'file:created', async handler({ tripId }, ctx) {
+  { on: 'file:created', async handler({ tripId, entityId }, ctx) {
       await notifySlack(`New file on trip ${tripId}`)   // needs http:outbound
   } },
 ]
@@ -599,7 +602,7 @@ module.exports = {
 
 ## Write across every subsystem
 
-Beyond places/days/itinerary, TREK 3.3.0 opens create/update/delete on almost every trip subsystem. Each is membership-checked against the acting user and needs its `db:write:*` scope **plus** the app's edit permission — declare only what you use.
+Beyond places/days/itinerary, TREK opens create/update/delete on almost every trip subsystem. Each is membership-checked against the acting user and needs its `db:write:*` scope **plus** the app's edit permission — declare only what you use.
 
 ```js
 // Bookings & lodging — needs 'reservation_edit' / 'day_edit'

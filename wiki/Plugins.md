@@ -287,7 +287,7 @@ registry entry, so you never hand-compute a SHA-256 or hand-write registry JSON:
 |---|---|
 | `trek-plugin validate [dir]` | Runs the manifest + layout checks locally (a subset of registry CI, which additionally verifies the release, the artifact SHA-256, and the README over the network). |
 | `trek-plugin pack [dir] [--out plugin.zip] [--json]` | Builds `plugin.zip` in the installer's exact layout and prints its SHA-256 + byte size. Refuses native binaries; `docs/` is intentionally not shipped (the store fetches the screenshot from your repo). |
-| `trek-plugin entry --repo <o/n> --tag <vX> [--zip z] [--merge entry.json] [--out f]` | Emits the registry entry — `commitSha`, `downloadUrl`, `sha256`, `size` and `minTrekVersion` (derived from the manifest `trek` range) all filled in. `--merge` prepends the new version onto an existing entry for updates. |
+| `trek-plugin entry --repo <o/n> --tag <vX> [--zip z] [--merge entry.json] [--out f]` | Emits the registry entry — `commitSha`, `downloadUrl`, `sha256`, `size` and the manifest's `trek` range (verbatim) all filled in. `--merge` prepends the new version onto an existing entry for updates. |
 | `trek-plugin release [dir] --repo <o/n> --tag <vX>` | The one-shot: `pack` → create the GitHub release → print the entry. |
 
 Run them via `npx trek-plugin-sdk …`. See [[Plugin Development|Plugin-Development]]

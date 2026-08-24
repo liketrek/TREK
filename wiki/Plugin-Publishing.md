@@ -90,6 +90,9 @@ Between them they now catch, **offline**, nearly everything the registry rejects
 - an `egress[]` host with no matching `http:outbound:<host>` permission — TREK builds
   the network allow-list and the iframe CSP from those permissions only and never reads
   `egress[]`, so such a host is silently unreachable at runtime
+- a permission TREK doesn't know — the SDK and registry CI check against the same
+  63-entry list the host enforces, so a typo'd permission fails here instead of at
+  install on every instance
 
 Only **four** gates genuinely need the network, and they all need the release to exist:
 that the tag resolves to the commit the entry pins, that the released artifact downloads
@@ -244,16 +247,19 @@ changed `registry/plugins/*.json`. Nearly every rule below is a pure function of
 you have tagged anything — you should never learn any of this from CI.
 
 **Entry** (`validate-entry.mjs`): valid schema · `id` matches the filename and
-the slug pattern `^[a-z][a-z0-9-]{2,39}$` · your `id` is bound to your GitHub
+the slug pattern `^[a-z][a-z0-9-]{2,39}$` and is not one of the reserved ids
+`registry`/`install`/`rescan` (they collide with admin API route segments — CI and
+the install loader both refuse them) · your `id` is bound to your GitHub
 owner on first registration, so nobody can repoint it later (owner changes need a
-maintainer override) · homoglyph/mixed-script name check · the release tag exists
+maintainer override) · homoglyph/mixed-script name check · `versions[]` sorted
+newest-first · the release tag exists
 and resolves to `commitSha` · manifest parity at that commit (`id`, `version`,
-`type`, `apiVersion`, and `nativeModules` must not be `true`) · **the downloaded
+`type`, `apiVersion`, and `nativeModules` must not be `true`) · every declared
+permission is on TREK's known-permission list (or a valid `http:outbound:<host>`) ·
+**the downloaded
 artifact's SHA-256 matches the pin** and its size is within bounds · **no native
 binaries** in the archive · `egress[]` present (and no bare `*`) when
-`http:outbound` is declared. Any unique slug is fine **except `registry`,
-`install` and `rescan`**, which the install loader refuses (they collide with
-admin API route segments).
+`http:outbound` is declared.
 
 **README** (`check-readme.mjs`, fetched at the pinned commit): must exist at the
 repo root, contain the sections **What it does / Screenshots / Permissions /
