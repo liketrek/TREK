@@ -32,4 +32,13 @@ describe('validateManifest normalized output', () => {
     expect(r.ok).toBe(true);
     expect(r.manifest!.capabilities?.routeProfiles?.[0].icon).toBe('Mountain');
   });
+
+  it('drops a non-string routeProfiles icon instead of rejecting the manifest', () => {
+    const r = validateManifest({
+      id: 'rt-plug', name: 'R', version: '1.0.0', type: 'integration', trek: '>=3.4.0 <5.0.0',
+      permissions: ['hook:route-provider'], capabilities: { routeProfiles: [{ id: 'hike', label: 'Hiking', icon: 42 }] },
+    });
+    expect(r.ok).toBe(true);
+    expect(r.manifest!.capabilities?.routeProfiles?.[0].icon).toBeUndefined();
+  });
 });

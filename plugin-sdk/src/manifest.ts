@@ -253,6 +253,10 @@ export function validateManifest(raw: unknown): ValidationResult {
   // Mirrors the server's routeProfiles parsing: the planner's route picker shows these,
   // so they must be well-formed and only exist alongside the routeProvider grant.
   const routeProfiles = capabilities?.routeProfiles;
+  // Normalized routeProfiles entries (icon dropped when non-string, like the server's
+  // optStr()) — populated only when routeProfiles is present and shaped as an array;
+  // used to build the output below in place of the raw, possibly-dirty input array.
+  let normalizedRouteProfiles: Array<{ id: string; label: string; icon?: string }> | undefined;
   if (routeProfiles !== undefined) {
     if (!permissions.includes('hook:route-provider')) {
       errors.push('capabilities.routeProfiles requires the "hook:route-provider" permission');
@@ -261,6 +265,7 @@ export function validateManifest(raw: unknown): ValidationResult {
     else {
       if (routeProfiles.length > 3) errors.push('capabilities.routeProfiles: at most 3 profiles');
       const seen = new Set<string>();
+      normalizedRouteProfiles = [];
       for (const v of routeProfiles) {
         const p = (v && typeof v === 'object' ? v : {}) as { id?: unknown; label?: unknown; icon?: unknown };
         const id = typeof p.id === 'string' ? p.id : '';
@@ -269,9 +274,12 @@ export function validateManifest(raw: unknown): ValidationResult {
         else seen.add(id);
         const label = typeof p.label === 'string' ? p.label.trim() : '';
         if (!label || label.length > 40) errors.push('capabilities.routeProfiles: label is required (max 40 chars)');
-        // icon is optional and, like the server, never rejected for length — the server
-        // slices to 40 chars at install time rather than refusing the manifest.
-        if (p.icon !== undefined && typeof p.icon !== 'string') errors.push('capabilities.routeProfiles: icon must be a string');
+        // icon is optional; a non-string icon is silently dropped, not rejected — mirrors
+        // the server's optStr() (server/src/nest/plugins/install/manifest.ts:519-521),
+        // which returns undefined for a non-string value rather than throwing. Length is
+        // never rejected either — the server slices to 40 chars at install time.
+        const icon = typeof p.icon === 'string' ? p.icon : undefined;
+        normalizedRouteProfiles.push(icon !== undefined ? { id, label, icon } : { id, label });
       }
     }
   }
@@ -356,8 +364,15 @@ export function validateManifest(raw: unknown): ValidationResult {
     requiredAddons,
     pluginDependencies,
   };
-  // Carried through verbatim when present — absent stays absent (no undefined keys).
-  if (m.capabilities !== undefined) manifest.capabilities = m.capabilities as ManifestCapabilities;
+  // Carried through verbatim when present — absent stays absent (no undefined keys) — except
+  // routeProfiles, which is rebuilt from normalizedRouteProfiles so a dropped (non-string)
+  // icon doesn't leak the raw input value back out.
+  if (m.capabilities !== undefined) {
+    const rawCapabilities = m.capabilities as ManifestCapabilities;
+    manifest.capabilities = normalizedRouteProfiles !== undefined
+      ? { ...rawCapabilities, routeProfiles: normalizedRouteProfiles }
+      : rawCapabilities;
+  }
   if (m.settings !== undefined) manifest.settings = m.settings as ManifestSettingField[];
   if (m.actions !== undefined) manifest.actions = m.actions as ManifestAction[];
   if (m.operatorEgress !== undefined) manifest.operatorEgress = m.operatorEgress as boolean;
