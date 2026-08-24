@@ -32,6 +32,9 @@ export interface PluginContext {
   settings: {
     get(key: string): Promise<unknown>;
   };
+  /** Your OWN sqlite database (`db:own`) — a separate file the plugin never gets a
+   * path or connection to directly. Quota: 256 MB per plugin (writes past it fail);
+   * result sets are capped at 100,000 rows. See `tx()` below for the atomic-batch cap. */
   db: {
     query<T = unknown>(sql: string, ...args: unknown[]): Promise<T[]>;
     exec(sql: string, ...args: unknown[]): Promise<{ changes: number }>;
@@ -42,10 +45,15 @@ export interface PluginContext {
     tx(ops: Array<{ sql: string; args?: unknown[] }>): Promise<{ results: Array<{ changes?: number; rows?: unknown[] }> }>;
   };
   trips: {
-    getById(tripId: number, asUserId?: number): Promise<Trip | null>;
-    getPlaces(tripId: number, asUserId?: number): Promise<Place[]>;
+    // `asUserId` is accepted for source compatibility but IGNORED by the host —
+    // trip reads are always membership-checked against the authenticated user of
+    // the current invocation (the request's `req.user`), which the plugin cannot
+    // override. Only reachable from a route handler (a user context); a job has
+    // no user and its trip reads are refused.
+    getById(tripId: number, /** @deprecated ignored by the host */ asUserId?: number): Promise<Trip | null>;
+    getPlaces(tripId: number, /** @deprecated ignored by the host */ asUserId?: number): Promise<Place[]>;
     /** Hydrated like the REST list: each row carries `endpoints`, `day_positions` + the day/place joins. */
-    getReservations(tripId: number, asUserId?: number): Promise<Reservation[]>;
+    getReservations(tripId: number, /** @deprecated ignored by the host */ asUserId?: number): Promise<Reservation[]>;
     /** The trip's days with their `assignments` + `notes_items` (the planner GET's shape). Needs `db:read:trips`. */
     getDays(tripId: number): Promise<Day[]>;
     /** The trip's lodging blocks (day_accommodations) with joined place fields. Needs `db:read:trips`. */
@@ -97,7 +105,9 @@ export interface PluginContext {
     update(tripId: number, itemId: number, input: Record<string, unknown>): Promise<PackingItem>;
     /** Delete a packing item. Needs `db:write:packing` + packing_edit. */
     delete(tripId: number, itemId: number): Promise<{ deleted: boolean }>;
-    /** List/create/update/delete packing bags + set members (no privacy). Needs `db:write:packing` + packing_edit. */
+    // List/create/update/delete packing bags + set members (no privacy). Needs
+    // `db:write:packing` + packing_edit.
+    /** Needs 'db:write:packing' (intentional — bags are the write-side structure; packing.list is the read surface). */
     listBags(tripId: number): Promise<unknown[]>;
     createBag(tripId: number, input: { name: string; color?: string }): Promise<unknown>;
     updateBag(tripId: number, bagId: number, input: Record<string, unknown>): Promise<unknown>;
@@ -133,13 +143,17 @@ export interface PluginContext {
   };
   /** Host-mediated notification. The plugin supplies only target + plain text; the host
    * owns delivery + preferences. Recipient is FORCED to the acting user (scope 'user',
-   * targetId = the acting user) or a trip they belong to (scope 'trip'). Needs `notify:send`. */
+   * targetId = the acting user) or a trip they belong to (scope 'trip'). Needs `notify:send`.
+   * Daily budget: 100/day per plugin (UTC midnight rollover); past it `send` throws
+   * "daily notification budget exhausted (resets at UTC midnight)". See README § Runtime limits. */
   notify: {
     send(input: { title: string; body: string; link?: string; scope: 'user' | 'trip'; targetId: number }): Promise<{ sent: boolean }>;
   };
   /** Host-mediated LLM using the admin/user-configured provider — the plugin never holds a
    * key. `complete` returns { text }; `extract` returns { results } for your JSON schema.
-   * Output is DATA: to persist it, push it through the gated write methods yourself. Needs `ai:invoke`. */
+   * Output is DATA: to persist it, push it through the gated write methods yourself. Needs `ai:invoke`.
+   * Daily budget: 200/day per plugin (UTC midnight rollover); past it these throw
+   * "daily AI budget exhausted (resets at UTC midnight)". See README § Runtime limits. */
   ai: {
     complete(prompt: string, system?: string): Promise<{ text: string }>;
     extract(text: string, jsonSchema: object, prompt?: string): Promise<{ results: Record<string, unknown>[] }>;
@@ -147,7 +161,17 @@ export interface PluginContext {
   /** Host-brokered outbound OAuth: a short-lived access token for the ACTING USER of a
    * third-party service the host connected on their behalf (Settings → Plugins → Connect).
    * Returns null when the user hasn't connected or in a userless context. The host holds
-   * the refresh token + client secret — you never see them. Needs `oauth:client`. */
+   * the refresh token + client secret — you never see them. Needs `oauth:client`.
+   *
+   * The host runs the whole flow (authorize -> callback -> token exchange -> refresh)
+   * with PKCE + a 10-minute state TTL. Provider config is the plugin's admin-owned
+   * INSTANCE settings — declare `scope:'instance'` manifest fields named
+   * `oauth_authorize_url`, `oauth_token_url`, `oauth_scopes` (optional),
+   * `oauth_client_id`, `oauth_client_secret` and the admin fills them in. Both
+   * endpoint URLs must be https and may not point at loopback/`.local`/`.internal`/
+   * private/metadata addresses. The host exposes
+   * `/api/plugin-oauth/:id/status|connect|callback|disconnect` for the connect UI —
+   * plugin code only ever calls `getAccessToken()`. See README § OAuth broker. */
   oauth: {
     getAccessToken(): Promise<string | null>;
   };
@@ -282,7 +306,9 @@ export interface PluginContext {
   };
   // Your OWN namespaced key/value store on a trip/place/day (#1429) — enrich core
   // entities without forking the schema. Needs `db:meta`; the entity must belong to
-  // a trip the current user can access. Values are JSON-serialisable.
+  // a trip the current user can access. Values are JSON-serialisable. Quotas (per
+  // plugin + entity): 64 KB serialized JSON per value, 256 chars per key, 100 keys.
+  // See README § Runtime limits.
   meta: {
     get(entityType: 'trip' | 'place' | 'day' | 'reservation' | 'accommodation', entityId: number, key: string): Promise<unknown>;
     set(entityType: 'trip' | 'place' | 'day' | 'reservation' | 'accommodation', entityId: number, key: string, value: unknown): Promise<unknown>;
@@ -361,7 +387,8 @@ export interface Photo {
 export interface PhotoProvider {
   /** Search your photo backend. `ctx` is the last arg so you can reach it via
    * ctx.settings/oauth/http. Needs `hook:photo-provider`. Surfaced in the photo picker
-   * and at `GET /api/plugin-photos/search`; thumbnail/full URLs must be http/https. */
+   * and at `GET /api/plugin-photos/search`; thumbnail/full URLs must be http/https.
+   * The host caps results at 60 photos per page. */
   search(query: string, opts: { page: number; limit: number }, ctx: PluginContext): Promise<{ photos: Photo[]; total: number; hasMore: boolean }>;
   getById(id: string, ctx: PluginContext): Promise<Photo | null>;
 }
@@ -421,18 +448,21 @@ export interface CalendarSource {
   // start/end are ISO strings — the host->plugin boundary is JSON, so a Date would
   // arrive as a string anyway (kept in lockstep with the runtime SDK copy). `ctx` is the
   // last arg. Aggregated for the signed-in user at `GET /api/plugin-calendar`.
+  // The host caps results at 500 events per source per request.
   getEvents(userId: number, start: string, end: string, ctx: PluginContext): Promise<CalendarEvent[]>;
 }
 /** One row of extra place info TREK renders natively (reviews/ratings/links/…). */
 export interface PlaceDetailItem { label: string; value?: string; url?: string; }
 export interface PlaceDetailProvider {
-  /** Extra info for a place; core calls this for a `place-detail` panel. Needs `hook:place-detail-provider`. */
+  /** Extra info for a place; core calls this for a `place-detail` panel. Needs `hook:place-detail-provider`.
+   * The host caps results at 12 items per provider. */
   getDetails(placeId: number, ctx: PluginContext): Promise<PlaceDetailItem[]>;
 }
 /** A validation/warning a plugin raises on a trip; TREK surfaces it in the planner. */
 export interface TripWarning { level: 'info' | 'warning' | 'error'; message: string; dayId?: number; placeId?: number; }
 export interface WarningProvider {
-  /** Problems/warnings for a trip (e.g. overpacked day, place closed). Needs `hook:trip-warning-provider`. */
+  /** Problems/warnings for a trip (e.g. overpacked day, place closed). Needs `hook:trip-warning-provider`.
+   * The host caps results at 20 warnings per provider, each message truncated to 300 chars. */
   getWarnings(tripId: number, ctx: PluginContext): Promise<TripWarning[]>;
 }
 
@@ -466,7 +496,8 @@ export type TableContribution = TableColumnContribution | TableActionContributio
 export interface TableContributor {
   /** `view` is one of 'reservations' | 'places' | 'day' | 'costs' | 'packing' | 'files'.
    * Runs with the current user bound, on a short timeout; a slow/failing call is
-   * skipped, never fatal. Needs `hook:table-contributor`. */
+   * skipped, never fatal. Needs `hook:table-contributor`. The host caps results at
+   * 20 columns and 10 actions per entity. */
   getContributions(view: string, tripId: number, ctx: PluginContext): Promise<TableContribution[]>;
 }
 
@@ -485,7 +516,7 @@ export interface MapMarkerContribution {
 export interface MapMarkerProvider {
   /** Return markers to overlay on a trip's map. Runs with the current user bound,
    * on a short timeout; the host caps the marker count and skips a failing call.
-   * Needs `hook:map-marker-provider`. */
+   * Needs `hook:map-marker-provider`. The host caps results at 200 markers per provider. */
   getMarkers(tripId: number, ctx: PluginContext): Promise<MapMarkerContribution[]>;
 }
 
@@ -652,7 +683,8 @@ export interface PdfSection {
 export interface PdfSectionProvider {
   /** Return sections to append to a trip's PDF export. Runs with the current user
    * bound, on a short timeout; the host caps counts/lengths and skips a failing
-   * call. Needs `hook:pdf-section-provider`. */
+   * call. Needs `hook:pdf-section-provider`. The host caps results at 5 sections
+   * per provider (see `PdfSection` above for the per-section paragraph/table caps). */
   getSections(tripId: number, ctx: PluginContext): Promise<PdfSection[]>;
 }
 
@@ -668,7 +700,8 @@ export interface AtlasLayerProvider {
   /** Return tint layers for the ACTING USER's Atlas map. User-scoped — the host binds
    * the current user; the hook takes no target parameter. Runs on a short timeout;
    * the host caps the layer/country counts and skips a failing call.
-   * Needs `hook:atlas-layer-provider`. */
+   * Needs `hook:atlas-layer-provider`. The host caps results at 3 layers per provider
+   * (see `AtlasLayer` above for the per-layer country cap). */
   getLayers(ctx: PluginContext): Promise<AtlasLayer[]>;
 }
 
@@ -687,7 +720,8 @@ export interface TripCardProvider {
   /** Return badges for the dashboard trip cards currently on screen. `tripIds` are
    * exactly those cards (each already access-checked for the acting user). Runs with
    * the current user bound, on a short timeout; the host caps the badge count and
-   * skips a failing call. Needs `hook:trip-card-provider`. */
+   * skips a failing call. Needs `hook:trip-card-provider`. The host caps results at
+   * 4 badges per trip, 240 total per provider. */
   getCards(tripIds: number[], ctx: PluginContext): Promise<TripCardContribution[]>;
 }
 

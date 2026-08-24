@@ -140,6 +140,54 @@ const { ctx, broadcasts } = createMockHost({
 // degrades gracefully when a permission is missing.
 ```
 
+## Runtime limits
+
+The host enforces these limits on every ctx call and hook invocation. They are generous
+for a legitimate plugin and only bite a runaway or abusive one — build against them so
+`dev`/`mock-host` behavior matches production.
+
+| Area | Limit |
+|---|---|
+| `ctx.ai` | 200 calls/day per plugin (UTC midnight rollover); past it throws `"daily AI budget exhausted (resets at UTC midnight)"` |
+| `ctx.notify` | 100 calls/day per plugin (UTC midnight rollover); past it throws `"daily notification budget exhausted (resets at UTC midnight)"` |
+| RPC (every `ctx.*` call) | burst 60, sustained 20/s, 16 in-flight per plugin; a throttled call is refused with `HOST_ERROR` |
+| `ctx.db` (your own sqlite) | 256 MB per plugin |
+| `ctx.meta` | 64 KB per value, 256 chars per key, 100 keys per (plugin, entity) |
+| Plugin process | 300 MB RSS ceiling; auto-disabled after 5 crashes in 5 minutes |
+| Event redelivery buffer | 200 events held per plugin, dropped unreplayed after 15 minutes |
+
+Hook contribution caps (declarative content the host renders — a slow/failing call is
+skipped, never fatal):
+
+| Hook | Cap |
+|---|---|
+| `pdfSectionProvider` | ≤5 sections per provider |
+| `atlasLayerProvider` | ≤3 layers per provider |
+| `mapMarkerProvider` | ≤200 markers per provider |
+| `warningProvider` | ≤20 warnings per provider, each message ≤300 chars |
+| `placeDetailProvider` | ≤12 items per provider |
+| `photoProvider` | ≤60 photos per page |
+| `calendarSource` | ≤500 events per source per request |
+| `tableContributor` | ≤20 columns / ≤10 actions per entity |
+| `tripCardProvider` | ≤4 badges per trip, ≤240 total per provider |
+
+## OAuth broker
+
+`ctx.oauth.getAccessToken()` is host-brokered outbound OAuth: the plugin never becomes a
+direct OAuth client. The host runs the whole flow (authorize → callback → token exchange
+→ refresh) with PKCE and a 10-minute state TTL, and holds the refresh token + client
+secret — a plugin only ever sees a short-lived access token for the ACTING USER, or
+`null` when they haven't connected (or in a userless context).
+
+Provider config is the plugin's admin-owned INSTANCE settings — declare `scope:'instance'`
+manifest fields named `oauth_authorize_url`, `oauth_token_url`, `oauth_scopes` (optional),
+`oauth_client_id`, `oauth_client_secret`, and the admin fills them in from Settings →
+Plugins → Connect. Both endpoint URLs must be `https` and may not point at loopback,
+`.local`/`.internal` names, or private/metadata addresses — the host refuses to start a
+flow against them. The host exposes
+`/api/plugin-oauth/:id/status|connect|callback|disconnect` to drive the connect UI;
+plugin code itself only ever calls `getAccessToken()`.
+
 ## Capture the screenshot
 
 The registry requires a screenshot that resolves to a real image, and the store card
