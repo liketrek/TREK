@@ -12,7 +12,7 @@ const { testDb } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
   const db = new Database(':memory:');
   db.exec(`CREATE TABLE plugins (
-    id TEXT PRIMARY KEY, status TEXT, enabled INTEGER DEFAULT 0, version TEXT, permissions TEXT DEFAULT '[]', operator_egress INTEGER DEFAULT 0, granted_permissions TEXT DEFAULT '',
+    id TEXT PRIMARY KEY, status TEXT, enabled INTEGER DEFAULT 0, version TEXT, api_version INTEGER DEFAULT 1, permissions TEXT DEFAULT '[]', operator_egress INTEGER DEFAULT 0, granted_permissions TEXT DEFAULT '',
     config TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', capabilities TEXT DEFAULT '{}', last_error TEXT, updated_at TEXT,
     -- Activation refuses a plugin that declares no TREK range, so the fixtures default to a
     -- satisfied one: these tests are about permissions/dependencies, and every row would
@@ -720,5 +720,41 @@ describe('TREK host-version gating', () => {
     testDb.prepare("INSERT INTO plugins (id, status, enabled, permissions, granted_permissions, config, trek_range) VALUES ('both-wrong','inactive',0,'[\"db:own\"]','[]','{}','>=3.2.0 <4.0.0')").run();
     await expect(createPluginRuntime(new DatabaseService(dbConn)).activate('both-wrong')).rejects.toMatchObject({ code: 'TREK_VERSION_INCOMPATIBLE' });
     cleanup('both-wrong');
+  });
+});
+
+/**
+ * The activation gate also refuses a plugin whose manifest `apiVersion` is newer than
+ * what this TREK's plugin-API surface supports (`PLUGIN_API_VERSION`) — mirrors the
+ * TREK-version gate above, just for the plugin-API surface instead of the host version.
+ */
+describe('plugin-API version gating', () => {
+  const seedApi = (id: string, apiVersion: number) => {
+    fs.mkdirSync(path.join(codeRoot, id, 'server'), { recursive: true });
+    fs.writeFileSync(path.join(codeRoot, id, 'server', 'index.js'), 'module.exports = { async onLoad() {} };');
+    testDb
+      .prepare(
+        "INSERT INTO plugins (id, status, enabled, permissions, granted_permissions, config, trek_range, api_version) VALUES (?, 'inactive', 0, '[]', '[]', '{}', '>=3.0.0', ?)",
+      )
+      .run(id, apiVersion);
+  };
+  const cleanup = (...ids: string[]) => { for (const id of ids) testDb.prepare('DELETE FROM plugins WHERE id = ?').run(id); };
+
+  it('refuses to activate a plugin whose apiVersion this TREK does not support', async () => {
+    seedApi('future-api', 2);
+    const err = await createPluginRuntime(new DatabaseService(dbConn)).activate('future-api').catch((e) => e);
+    expect(err).toBeInstanceOf(PluginDependencyError);
+    expect(err).toMatchObject({ code: 'API_VERSION_INCOMPATIBLE' });
+    expect(err.message).toBe('plugin requires plugin-API v2; this TREK supports v1');
+    cleanup('future-api');
+  });
+
+  it('activates normally when apiVersion is within what this TREK supports', async () => {
+    seedApi('current-api', 1);
+    const rt = createPluginRuntime(new DatabaseService(dbConn));
+    await rt.activate('current-api');
+    expect(rt.isActive('current-api')).toBe(true);
+    await rt.deactivate('current-api');
+    cleanup('current-api');
   });
 });

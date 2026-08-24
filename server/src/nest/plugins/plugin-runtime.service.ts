@@ -33,7 +33,7 @@ import type { PluginDependency } from './install/manifest';
 import type { VersionMismatch, PluginDepRow } from './dependencies';
 import { parseDependencies, disabledRequiredAddons, resolveDependencyState, enableOrder, findDependentsTransitive, DependencyCycleError } from './dependencies';
 
-import { HTTP_OUTBOUND_PREFIX as HTTP_OUTBOUND } from './protocol/envelope';
+import { HTTP_OUTBOUND_PREFIX as HTTP_OUTBOUND, PLUGIN_API_VERSION } from './protocol/envelope';
 
 // Mirrors HOST_RE in install/manifest.ts: an exact hostname or a `*.`-prefixed wildcard
 // with a real multi-label suffix. Rejects a bare `*`, a whole-TLD wildcard, a scheme and
@@ -85,7 +85,9 @@ export type PluginDependencyCode =
   /** The plugin's declared TREK range doesn't admit the running host. */
   | 'TREK_VERSION_INCOMPATIBLE'
   /** The plugin never declared a range, so we can't know that it does. */
-  | 'TREK_VERSION_UNKNOWN';
+  | 'TREK_VERSION_UNKNOWN'
+  /** The plugin's manifest apiVersion is newer than this TREK's plugin-API surface. */
+  | 'API_VERSION_INCOMPATIBLE';
 
 /**
  * Thrown when a plugin can't activate because a required addon is disabled, a declared
@@ -481,8 +483,8 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
    * permission re-consent → required addon disabled → missing/mismatched plugin dependency.
    */
   private assertActivatable(id: string, installed: Map<string, PluginDepRow>, consentWiden: boolean): void {
-    const row = this.db.prepare('SELECT permissions, granted_permissions, dependencies, trek_range FROM plugins WHERE id = ?').get(id) as
-      | { permissions: string; granted_permissions: string; dependencies: string | null; trek_range: string | null }
+    const row = this.db.prepare('SELECT permissions, granted_permissions, dependencies, trek_range, api_version FROM plugins WHERE id = ?').get(id) as
+      | { permissions: string; granted_permissions: string; dependencies: string | null; trek_range: string | null; api_version: number | null }
       | undefined;
     if (!row) throw new Error(`plugin ${id} not found`);
 
@@ -503,6 +505,16 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
         `plugin ${id} requires TREK ${row.trek_range} — this is TREK ${hostVersion()}`,
         'TREK_VERSION_INCOMPATIBLE',
         { trekRange: row.trek_range, hostVersion: hostVersion() },
+      );
+    }
+    // Same reasoning as the TREK-version gate above: a plugin whose manifest apiVersion
+    // outpaces this TREK's plugin-API surface can never run correctly, so it must be
+    // refused before any consent dialog is offered.
+    const apiVersion = row.api_version ?? 1;
+    if (apiVersion > PLUGIN_API_VERSION) {
+      throw new PluginDependencyError(
+        `plugin requires plugin-API v${apiVersion}; this TREK supports v${PLUGIN_API_VERSION}`,
+        'API_VERSION_INCOMPATIBLE',
       );
     }
 

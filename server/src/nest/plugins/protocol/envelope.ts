@@ -7,6 +7,14 @@
  * or the websocket server. Keep it dependency-free.
  */
 
+/**
+ * The plugin-API surface version (#plugins, M4) — bumped on any breaking change to the
+ * ctx methods / manifest shape a plugin author can rely on. Mirrored into every
+ * manifest as `apiVersion`; the install and activation gates refuse a plugin declaring
+ * a version newer than this one.
+ */
+export const PLUGIN_API_VERSION = 1;
+
 export type PluginErrCode =
   | 'PERMISSION_DENIED' // a real method the plugin was not granted
   | 'UNKNOWN_METHOD' // not a method the host exposes at all

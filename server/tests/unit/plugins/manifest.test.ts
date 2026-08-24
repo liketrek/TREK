@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest';
 import { parseManifest, ManifestError } from '../../../src/nest/plugins/install/manifest';
 
 const base = { id: 'flight-tracker', name: 'Flight', version: '1.2.0', type: 'widget', apiVersion: 1 };
+const withApi = (apiVersion: unknown) => ({ ...base, apiVersion, trek: '>=3.2.0 <4.0.0' });
 
 describe('parseManifest', () => {
   it('parses a valid manifest with defaults', () => {
@@ -96,6 +97,22 @@ describe('parseManifest', () => {
   ])('rejects: %s', (_label, input, re) => {
     expect(() => parseManifest(input)).toThrow(ManifestError);
     expect(() => parseManifest(input)).toThrow(re as RegExp);
+  });
+});
+
+describe('apiVersion', () => {
+  it.each([[0], [-3], [1.5], ['1']])('rejects non-positive-integer %p', (v) => {
+    expect(() => parseManifest(withApi(v))).toThrow('apiVersion must be a positive integer');
+  });
+  it('defaults to 1 when absent', () => {
+    expect(parseManifest(base).apiVersion).toBe(1);
+  });
+  it('tolerates a future apiVersion under discovery (no requireTrek)', () => {
+    expect(parseManifest(withApi(2)).apiVersion).toBe(2);
+  });
+  it('refuses a future apiVersion on install paths (requireTrek)', () => {
+    expect(() => parseManifest(withApi(2), { requireTrek: true }))
+      .toThrow('plugin requires plugin-API v2; this TREK supports v1');
   });
 });
 

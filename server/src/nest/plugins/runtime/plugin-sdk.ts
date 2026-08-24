@@ -9,7 +9,7 @@
  */
 
 /** Mirrors the published package's constant — bumped on any breaking API change. */
-export const PLUGIN_API_VERSION = 1 as const;
+export { PLUGIN_API_VERSION } from '../protocol/envelope';
 
 export interface PluginContext {
   readonly id: string;
