@@ -37,7 +37,7 @@ export function emitPluginEvent(tripId: number, event: string, meta?: PluginEven
 // from leaking: e.g. `budget:member-paid-updated` carries { itemId, userId } and we
 // deliberately only read itemId, never userId. Families not listed (settlement/bag
 // sub-entities, reorders, bulk position updates) yield no entityId, which is correct.
-const ENTITY_ID_KEYS: Readonly<Record<string, readonly string[]>> = {
+export const ENTITY_ID_KEYS: Readonly<Record<string, readonly string[]>> = {
   place: ['placeId', 'place.id'],
   day: ['dayId', 'day.id'],
   reservation: ['reservationId', 'reservation.id'],

@@ -21,6 +21,7 @@ import {
   HOOK_PERMISSION, KNOWN_METHODS, KNOWN_PERMISSIONS, METHOD_PERMISSION,
   EVENTS_PERMISSION, JOBS_PERMISSION, USER_DATA_PERMISSION, HTTP_OUTBOUND_PREFIX,
 } from '../src/nest/plugins/protocol/envelope';
+import { SNAPSHOT_GRANT, ENTITY_ID_KEYS } from '../src/plugin-event-sink';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -43,6 +44,8 @@ const pairs = (o: Readonly<Record<string, string>>) =>
  * source-breaking type change for any plugin author doing a dynamic lookup. Strictness
  * belongs on the host side, where the data source lives.
  */
+const EVENT_FAMILIES = [...new Set([...Object.keys(ENTITY_ID_KEYS), ...Object.keys(SNAPSHOT_GRANT)])].sort();
+
 const SDK_FACTS = `${HEADER}
 export const HOOK_PERMISSION: Readonly<Record<string, string>> = {
 ${pairs(HOOK_PERMISSION)}
@@ -64,6 +67,21 @@ export const USER_DATA_PERMISSION = '${USER_DATA_PERMISSION}';
 export const EVENTS_PERMISSION = '${EVENTS_PERMISSION}';
 export const JOBS_PERMISSION = '${JOBS_PERMISSION}';
 export const HTTP_OUTBOUND_PREFIX = '${HTTP_OUTBOUND_PREFIX}';
+
+/**
+ * Core-event catalog. Delivery names are the WebSocket broadcast names,
+ * \`<family>:<verb>\` (e.g. \`place:created\`). A subscribed plugin receives
+ * \`{event, tripId, entity?, entityId?, snapshot?}\`; \`snapshot\` is delivered only
+ * when the plugin also holds EVENT_SNAPSHOT_GRANT[family]. Delete/reorder/bulk
+ * events carry no snapshot.
+ */
+export const EVENT_FAMILIES: readonly string[] = [
+${list(EVENT_FAMILIES)}
+];
+
+export const EVENT_SNAPSHOT_GRANT: Readonly<Record<string, string>> = {
+${pairs(SNAPSHOT_GRANT)}
+};
 `;
 
 const SHARED_FACTS = `${HEADER}
