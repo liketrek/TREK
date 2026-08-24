@@ -4,11 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What TREK is
 
-A self-hosted, real-time collaborative travel planner. npm-workspaces monorepo with four workspaces:
+A self-hosted, real-time collaborative travel planner. npm-workspaces monorepo with three workspaces:
 
 - **`shared/`** (`@trek/shared`) — Zod schemas that are the **single source of truth** for API contracts, consumed by both server and client. Also owns all i18n locale files. Must be built before server/client typecheck or run.
-- **`nest-mcp/`** (`@trek/nest-mcp`) — decorator-driven MCP tool/resource/prompt registration for NestJS, consumed by the server. Deliberately **extraction-clean**: no imports from `@trek/server`/`@trek/shared`, no TREK semantics.
-- **`server/`** (`@trek/server`) — NestJS API (Express adapter), SQLite via `better-sqlite3`, WebSocket sync, built-in MCP server, sandboxed plugin runtime.
+- **`server/`** (`@trek/server`) — NestJS API (Express adapter), SQLite via `better-sqlite3`, WebSocket sync, built-in MCP server (decorator-driven registration layer in `server/src/nest-mcp/`, formerly the `@trek/nest-mcp` workspace), sandboxed plugin runtime.
 - **`client/`** (`@trek/client`) — React 19 + Vite + Zustand + Tailwind PWA, offline-first via Dexie/IndexedDB.
 
 **`plugin-sdk/`** (`trek-plugin-sdk`) also lives in the repo but is **not a root workspace** — it has its own lockfile, is published to npm independently, and must ship standalone. Run its commands from `plugin-sdk/`, not the root.
@@ -17,16 +16,16 @@ Each package has its own `CLAUDE.md` with internals; this file covers the monore
 
 ## Commands
 
-Run from the repo root unless noted. Per the user's preference, **use `npm run ... --workspace=<pkg>`, not `npm -w <pkg>`**.
+Run from the repo root unless noted. **Use `npm run ... --workspace=<pkg>`, not `npm -w <pkg>`**.
 
 ```bash
-npm run dev                       # build shared + nest-mcp, then watch shared + server + client concurrently
-npm run build                     # build shared → nest-mcp → server → client (order matters)
-npm run lint                      # lint all four workspaces
-npm run format                    # prettier --write all four
+npm run dev                       # build shared, then watch shared + server + client concurrently
+npm run build                     # build shared → server → client (order matters)
+npm run lint                      # lint all three workspaces
+npm run format                    # prettier --write all three
 ```
 
-Tests (the user runs client tests as `cd client && npm run test`):
+Tests:
 
 ```bash
 npm run test                                       # all workspaces
@@ -89,12 +88,12 @@ Offline-first, with a layered data flow. A Page never owns state directly:
 - A route is "done" only once its contract lives in `shared/` and both sides import the inferred types. Edit the Zod schema in `shared/src/<domain>/`, rebuild shared, then both server (validation + DTO types) and client (typed requests) pick it up.
 - **i18n locale files live in `shared/src/i18n/<locale>/`**, one file per domain. `en/` is canonical. When you add/change a translation key, **add it to every locale** or `i18n:parity:strict` fails CI. The client resolves keys via `client/src/i18n/TranslationContext.tsx` (`t(key)`), which only reads top-level string keys.
 
-## Project direction (from the 2026 full-repo audit)
+## Project direction
 
-A verified audit of the whole repo lives in `audit_report/TREK_audit_reports/` (`00_MASTER_SUMMARY.md` is the entrypoint, `01_STEERING_ROADMAP.md` the plan). Its verdict shapes how all new code should be written:
+These principles come out of a verified 2026 full-repo audit and shape how all new code should be written:
 
 - **Protect the crown jewels.** The client's offline-first data core (repos + mutation queue + Dexie), the out-of-process plugin sandbox, the Zod contract layer, and the auth primitives are production-grade. Extend them; never route around them or rewrite them in anger.
-- **No "modern shell over legacy core."** The debt pattern is a modern frame delegating to the old approach underneath (historically Nest controllers over legacy `services/*` — that migration is done; on the client it's feature components calling the raw API past the offline core, still ~190 files). New code goes all-in on the target architecture; when touching a legacy seam, migrate it rather than adding another wrapper.
+- **No "modern shell over legacy core."** The debt pattern is a modern frame delegating to the old approach underneath (historically Nest controllers over legacy `services/*` — that migration is done; on the client it's the long tail of feature components calling the raw API past the offline core). New code goes all-in on the target architecture; when touching a legacy seam, migrate it rather than adding another wrapper.
 - **Single source of truth over manual synchronization.** Never add a hand-mirrored copy of state, schema, or contract (server↔Dexie↔Zustand, schema↔SQL, the plugin contract). Derive from one source, or guard the copy with a parity test that cannot silently skip.
 - **DI over global mutable module state.** The `db` proxy, `ws` singleton, and event-sink globals are what force `require()`-to-dodge-cycles and load-bearing boot ordering. New server code injects its dependencies; new client code avoids `window`-global buses and mutable module state.
 - **Use the runtime's native idioms.** Prefer React 19 features (`useOptimistic`, Actions, `use()`/Suspense) and Nest subsystems (DI providers, pipes, guards, `@nestjs/schedule`) over hand-rolled equivalents of the same machinery.
@@ -105,7 +104,7 @@ A verified audit of the whole repo lives in `audit_report/TREK_audit_reports/` (
 - **Target the `dev` branch** for PRs, not `main` (exception: `wiki/`-only changes).
 - **Discuss first**: outside contributions must be pitched in the `#github-pr` Discord channel before any code is written — undiscussed PRs are closed.
 - **PRs follow `.github/PULL_REQUEST_TEMPLATE.md`** and require a linked issue (`Closes #N`) for bug fixes or an approved feature-request discussion for features — no issue/discussion, no PR.
-- **Conventional commits** (`fix(maps): ...`, `feat(budget): ...`). Per user preference, **do not add Co-Authored-By Claude attribution**.
+- **Conventional commits** (`fix(maps): ...`, `feat(budget): ...`). **Do not add Co-Authored-By or other tool-attribution trailers** to commit messages.
 - One focused change per PR; no breaking changes; no unrelated reformatting/refactors. Tests required — the project holds **80%+ coverage** (the `src/nest/**` vitest coverage gate enforces ≥80%).
 - When migrating/adding a route, **parity is law**: same URL, method, query/body, HTTP status, `Set-Cookie`, and JSON body — including bespoke error strings (e.g. reproduce `{ error: 'Admin only' }` exactly rather than relying on a generic guard message). Note Nest defaults POST to 201; add `@HttpCode(200)` where the legacy contract returned 200. Declare static sub-routes (`/reorder`, `/in-app/all`) **before** `:id` param routes.
 

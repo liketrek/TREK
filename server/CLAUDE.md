@@ -10,6 +10,7 @@ Scope: the **`@trek/server`** workspace. See the repo-root `CLAUDE.md` for the m
 npm run dev               # scripts/dev.mjs: tsc -w then node --watch dist/index.js (server on :3001)
 npm run build             # scripts/build.mjs — see "emit-anyway" note below
 npm run typecheck         # tsc --noEmit (the real type gate; build does NOT fail on type errors)
+npm run typecheck:tests   # tsc over tests/ — CI runs this too; vitest green does NOT mean typed mocks compile
 npm run lint              # eslint --fix on src/apps/libs/test
 npm run lint:check        # eslint, no fix
 npm run test              # vitest run (all of tests/**)
@@ -18,6 +19,8 @@ npm run test:integration  # tests/integration
 npm run test:ws           # tests/websocket
 npm run test:e2e          # tests/e2e (boots Nest modules against a temp in-memory SQLite)
 npm run test:coverage     # istanbul coverage; per-domain ratchet over src/nest/** (floor ≥80%)
+npm run gen:plugin-facts  # regenerate the plugin-protocol tables into plugin-sdk/ + shared/
+npm run check:plugin-facts # CI gate — fails if the generated copies drifted from envelope.ts
 ```
 
 Single test:
@@ -41,10 +44,11 @@ Nest owns everything: the strangler migration **completed 2026-08-10**, and the 
 - **`src/db/`** — `better-sqlite3` (WAL, FK on). `database.ts` boots and runs `schema.ts` → `migrations.ts` → `seeds.ts`. `NODE_ENV=test` ⇒ isolated `:memory:` DB per vitest worker; `TREK_DB_FILE` ⇒ explicit file DB (Playwright harness).
 - **`src/websocket.ts`** — JWT-authed `ws` server on `/ws`, room-per-trip, heartbeat, per-connection rate limiting. Trip mutations forward `X-Socket-Id` so the originating client doesn't echo its own change.
 - **`src/mcp/`** — process-wide MCP state (scopes, sessionManager, tuning knobs, rate-limit map, `nest-mcp-policy.ts` boot gate). The HTTP transport is `src/nest/mcp-transport/` (a `@Public` controller + service); the tools/resources/prompts live in decorator-driven `<domain>.mcp.ts` files under `src/nest/` — `src/mcp/tools.ts` is registry-attach-only. Every tool invocation writes an `mcp.tool_call` audit row (user, OAuth client, tool name, ip) via the nest-mcp `onInvoke` seam.
+- **`src/nest-mcp/`** — the decorator/registry layer itself (`@McpController`/`@Tool`/`@Resource`/`@Prompt`, `McpRegistry`, `McpModule`, result helpers) that the `<domain>.mcp.ts` files build on. Formerly the standalone `@trek/nest-mcp` workspace, folded in 2026-08-22; see its `README.md` for the API and invariants (self-contained apart from a type-only `../mcp/scopes` import; no scope semantics of its own). Tests: `tests/unit/nest-mcp/`.
 - **`src/nest/scheduling/`** — `CronRegistrarService`, the one way TREK schedules a cron (`@nestjs/schedule` + the `cron` package). Every job is a `*.job.ts` provider in its owning domain, registered from `onApplicationBootstrap`; the registrar refuses to schedule under `NODE_ENV=test` (the shared `buildApp()` harness must never tick — `tests/integration/scheduler-gate.test.ts` pins it) and stops everything on `nestApp.close()`. Never use a `@Cron` decorator — decorator jobs bypass the gate.
-- **`src/nest/plugins/`** — sandboxed plugin runtime in three layers: `supervisor/` + `runtime/plugin-host-entry.ts` + `protocol/envelope.ts` (forked child per plugin, IPC envelopes, rate/RSS policing — **intentionally not Nest**, it's the security boundary); `host/rpc-host.ts` (enforcement: a method is registered at spawn only if the plugin holds the unlocking permission — registration = authorization); `host/plugin-host-deps.factory.ts` (dependency wiring — an `@Injectable()` factory injecting the domain services; the RPC surface is decorator-driven since 2026-08-09, with `PluginsModule` split into four and per-domain coverage gates) + `host/plugin-host-state.ts` (process-wide data-DB/budget maps, module-level on purpose). Install-time gates in `install/` (manifest, safe-extract, Ed25519 signature verify, egress). ⚠️ `runtime/egress-policy.ts` and `HOOK_PERMISSION` in `supervisor/plugin-supervisor.ts` are mirrored (egress-policy **byte-identical**) into `plugin-sdk/` and guarded by parity tests there — keep both sides in sync when touching either.
+- **`src/nest/plugins/`** — sandboxed plugin runtime in three layers: `supervisor/` + `runtime/plugin-host-entry.ts` + `protocol/envelope.ts` (forked child per plugin, IPC envelopes, rate/RSS policing — **intentionally not Nest**, it's the security boundary); `host/rpc-host.ts` (enforcement: a method is registered at spawn only if the plugin holds the unlocking permission — registration = authorization); `host/plugin-host-deps.factory.ts` (dependency wiring — an `@Injectable()` factory injecting the domain services; the RPC surface is decorator-driven since 2026-08-09, with `PluginsModule` split into four and per-domain coverage gates) + `host/plugin-host-state.ts` (process-wide data-DB/budget maps, module-level on purpose). Install-time gates in `install/` (manifest, safe-extract, Ed25519 signature verify, egress). ⚠️ The protocol tables — permissions, RPC methods, hooks, and the core-event catalog — live in `protocol/envelope.ts` (+ `src/plugin-event-sink.ts` for the event families) and are **generated** into `plugin-sdk/src/generated/host-facts.ts` and `shared/src/plugin-permissions.ts` by `npm run gen:plugin-facts`; `check:plugin-facts` is the CI gate, so run it after touching any of them and commit the regenerated files. `runtime/egress-policy.ts` is still a hand-kept **byte-identical** mirror into `plugin-sdk/`, guarded by parity tests there — keep both sides in sync when touching either.
 
-## Direction (from the 2026 audit — `audit_report/TREK_audit_reports/`)
+## Direction (post-migration guardrails, from the 2026 audit)
 
 **Nest is the destination — and as of 2026-08-10 the code is there.** These rules now guard against regression rather than describe a migration in flight:
 
