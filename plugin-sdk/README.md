@@ -150,7 +150,7 @@ for a legitimate plugin and only bite a runaway or abusive one — build against
 |---|---|
 | `ctx.ai` | 200 calls/day per plugin (UTC midnight rollover); past it throws `"daily AI budget exhausted (resets at UTC midnight)"` |
 | `ctx.notify` | 100 calls/day per plugin (UTC midnight rollover); past it throws `"daily notification budget exhausted (resets at UTC midnight)"` |
-| RPC (every `ctx.*` call) | burst 60, sustained 20/s, 16 in-flight per plugin; a throttled call is refused with `HOST_ERROR` |
+| RPC (every `ctx.*` call) | burst 60, sustained 20/s, 16 in-flight per plugin; a throttled call is refused with `HOST_ERROR: rate limit exceeded — slow down ctx.* calls` |
 | `ctx.db` (your own sqlite) | 256 MB per plugin |
 | `ctx.meta` | 64 KB per value, 256 chars per key, 100 keys per (plugin, entity) |
 | Plugin process | 300 MB RSS ceiling; auto-disabled after 5 crashes in 5 minutes |

@@ -246,8 +246,9 @@ function settingsBlob(src: Record<string, unknown> | undefined, what: string): R
 const PLACE_STR_LIMITS: Record<string, number> = { name: 200, description: 2000, address: 500, notes: 2000 };
 const TRIP_STR_LIMITS: Record<string, number> = { title: 200, description: 2000 };
 
-// ctx.meta quotas, mirrored from meta.rpc.ts's disk-DoS guard: value size (UTF-8
-// bytes of the serialized JSON), key length, and keys per (plugin, entity).
+// ctx.meta quotas, mirrored from meta.rpc.ts's disk-DoS guard: value size (characters
+// of the serialized JSON, matching the host — UTF-16 code units, not UTF-8 bytes),
+// key length, and keys per (plugin, entity).
 const META_VALUE_MAX = 64 * 1024;
 const META_KEY_MAX = 256;
 const META_KEYS_MAX = 100;
@@ -1386,7 +1387,9 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
           // Quota order mirrors meta.rpc.ts: key length -> value size -> key count.
           if (key.length > META_KEY_MAX) throw new Error(`metadata key too long (>${META_KEY_MAX} chars)`);
           const json = JSON.stringify(value ?? null);
-          if (Buffer.byteLength(json, 'utf8') > META_VALUE_MAX) {
+          // Matches the host exactly: json.length (UTF-16 code units of the serialized
+          // JSON), not Buffer.byteLength (UTF-8 bytes) — see meta.rpc.ts:71.
+          if (json.length > META_VALUE_MAX) {
             throw new Error(`metadata value too large (>${META_VALUE_MAX} bytes)`);
           }
           const fullKey = metaKey(entityType, entityId, key);

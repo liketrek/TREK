@@ -41,6 +41,7 @@ export interface PluginManifest {
   id: string;
   name: string;
   version: string;
+  /** The semver RANGE of TREK versions this plugin supports (">=3.4.0 <5.0.0"). */
   trek: string;
   type: 'integration' | 'page' | 'widget' | 'trip-page';
   apiVersion?: number;

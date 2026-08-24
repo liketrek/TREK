@@ -23,6 +23,11 @@ export interface BudgetItem { id: number; trip_id?: number; name?: string; total
 export interface Assignment { id: number; day_id?: number; place_id?: number; notes?: string | null; [k: string]: unknown }
 export interface User { id: number; username?: string; display_name?: string | null; avatar?: string | null; [k: string]: unknown }
 
+/** Every ctx.* call is rate-limited per plugin at the host RPC dispatch boundary:
+ * burst 60, sustained 20/s, 16 in-flight. A throttled call is refused (retryable)
+ * rather than executed, with:
+ *   HOST_ERROR: rate limit exceeded — slow down ctx.* calls
+ * A legitimate plugin never hits the generous burst. See README § Runtime limits. */
 export interface PluginContext {
   readonly id: string;
   readonly config: Readonly<Record<string, unknown>>;
