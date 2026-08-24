@@ -138,13 +138,13 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
     author: opts.author || 'Your Name',
     description: opts.description || (isChannel ? `Deliver TREK notifications over ${displayName}.` : 'Describe what your plugin does.'),
     type,
-    // 3.4.0, not 3.3.0. The `ctx` namespaces this scaffold is written against — ctx.meta,
-    // ctx.places, ctx.days, ctx.itinerary, ctx.costs, ctx.packing, ctx.files — only exist from
-    // 3.4.0. Claiming 3.3.0 lets the plugin install on a host where they are `undefined`, which
-    // fails at the first call with a TypeError instead of a clear "incompatible" at install.
-    // ceiling 5.0.0: 4.x verified compatible for the scaffold surface; matches registry
-    // convergence 2026-08.
-    trek: '>=3.4.0 <5.0.0',
+    // Floor 4.0.0: the host surface this scaffold is written against — the enforced
+    // apiVersion gate, the generated core-event catalog (EVENT_FAMILIES /
+    // EVENT_SNAPSHOT_GRANT), the OAuth-broker settings contract — is the TREK 4 surface.
+    // Claiming an older floor lets the plugin install on a host where parts of it are
+    // missing, which fails at the first call instead of a clear "incompatible" at install.
+    // Ceiling 5.0.0: bounded, per the trek-range rule; widen only against a tested host.
+    trek: '>=4.0.0 <5.0.0',
     nativeModules: false,
     permissions: perms,
     // Dependency declarations (empty by default). `requiredAddons` lists addon ids

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateManifest } from '../src/manifest.js';
 
-const base = () => ({ id: 'my-plugin', name: 'My Plugin', version: '1.0.0', type: 'integration', trek: '>=3.4.0 <5.0.0' });
+const base = () => ({ id: 'my-plugin', name: 'My Plugin', version: '1.0.0', type: 'integration', trek: '>=4.0.0 <5.0.0' });
 const withSetting = (extra: object) => ({ ...base(), settings: [{ key: 'mode', ...extra }] });
 
 describe('validateManifest settings[].options / settings[].oauth', () => {

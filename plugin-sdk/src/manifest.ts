@@ -41,7 +41,7 @@ export interface PluginManifest {
   id: string;
   name: string;
   version: string;
-  /** The semver RANGE of TREK versions this plugin supports (">=3.4.0 <5.0.0"). */
+  /** The semver RANGE of TREK versions this plugin supports (">=4.0.0 <5.0.0"). */
   trek: string;
   type: 'integration' | 'page' | 'widget' | 'trip-page';
   apiVersion?: number;
@@ -168,8 +168,8 @@ export function validateManifest(raw: unknown): ValidationResult {
   if (!isSatisfiableRange(m.trek)) {
     errors.push(
       typeof m.trek === 'string' && m.trek
-        ? `"trek" is not a satisfiable semver range: "${m.trek}" (e.g. ">=3.4.0 <5.0.0")`
-        : 'missing "trek" — declare the TREK versions this plugin supports, e.g. ">=3.4.0 <5.0.0"',
+        ? `"trek" is not a satisfiable semver range: "${m.trek}" (e.g. ">=4.0.0 <5.0.0")`
+        : 'missing "trek" — declare the TREK versions this plugin supports, e.g. ">=4.0.0 <5.0.0"',
     );
   }
   if (m.apiVersion !== undefined && typeof m.apiVersion !== 'number') errors.push('apiVersion must be a number');

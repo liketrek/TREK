@@ -106,7 +106,7 @@ const manifestTrekRange: OfflineCheck = {
       ? fail(
           `trek: "${trek}"`,
           'This claims support for every TREK version, including ones that do not exist yet. It opts you out of the\n' +
-            'one mechanism that stops your plugin running on a host it was never tested against. Pin a range like ">=3.4.0 <5.0.0".',
+            'one mechanism that stops your plugin running on a host it was never tested against. Pin a range like ">=4.0.0 <5.0.0".',
         )
       : pass(trek);
   },

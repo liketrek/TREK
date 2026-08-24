@@ -56,7 +56,7 @@ interface Entry {
 }
 
 /**
- * Lower bound of a `trek` range like ">=3.4.0 <5.0.0" -> "3.4.0" (matches the server).
+ * Lower bound of a `trek` range like ">=4.0.0 <5.0.0" -> "4.0.0" (matches the server).
  *
  * Read off the range with semver rather than by finding the first version-shaped substring:
  * for "<4.0.0" the first such substring is 4.0.0, which is the range's *upper* bound and
@@ -91,7 +91,7 @@ export function buildEntry(opts: {
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(opts.repo)) throw new Error(`--repo must be "owner/name", got "${opts.repo}"`);
   // minVersion() is null for a range nothing can satisfy (">=4.0.0 <3.0.0" parses fine), so
   // this doubles as the satisfiability check — TREK would refuse to install such a plugin.
-  if (!minTrekFrom(manifest.trek)) throw new Error('manifest has no valid "trek" version range (e.g. "trek": ">=3.4.0 <5.0.0")');
+  if (!minTrekFrom(manifest.trek)) throw new Error('manifest has no valid "trek" version range (e.g. "trek": ">=4.0.0 <5.0.0")');
   if (!fs.existsSync(opts.zipPath)) throw new Error(`artifact not found: ${opts.zipPath} — run \`trek-plugin pack\` first`);
 
   const buf = fs.readFileSync(opts.zipPath);
