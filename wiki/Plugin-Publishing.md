@@ -29,8 +29,20 @@ The order is the point. A GitHub release is effectively immutable: the registry 
 its sha256, so overwriting the bytes breaks the checksum for everyone who already
 installed that version. So the local gates run **first** — if one fails, nothing is
 packed, tagged, pushed or released, and you can fix it and re-run against the same
-version. (Before this, the checks ran *after* the release was cut, and an author who
-failed them had burned their `v1.0.0` tag on an unwritten README.)
+version.
+
+And when a **later** step fails — a preflight or PR problem after the release is
+cut — `publish` rolls back exactly what that run created: the GitHub release, the
+pushed tag, and the local tag, so the same tag is free to re-run against once you
+have fixed the problem. Anything that existed before the run is never touched, and
+`--keep-release` opts out (the error then prints the manual cleanup commands). A
+leftover tag from an earlier failed run — one with no release that no longer points
+at `HEAD` — is recognised as debris and **moved to your current commit** rather than
+silently releasing the stale one. And for a stranded state you already have,
+`trek-plugin unrelease <vX.Y.Z> --repo you/repo` deletes the release, the remote
+tag, and the local tag in one go — after checking the published registry index and
+**refusing, with no override, to touch a version that is actually published** (its
+artifact is immutable; ship a new version instead).
 
 It prints the PR URL at the end. In a terminal it **offers to sign** the release (and
 creates the key if you have none); scripts and CI are never prompted and pass `--sign`.
@@ -221,7 +233,9 @@ npx trek-plugin-sdk submit --repo you/trek-plugin-flight-tracker --tag v1.0.0
 ```
 
 It forks [TREK-Plugins](https://github.com/liketrek/TREK-Plugins) (once),
-branches off the current `main`, writes (or, for an update, merges into)
+**fast-forwards your fork from the registry** (a diverged fork warns with the
+`gh repo sync --force` command to reset it, and the submit continues), branches off
+the registry's current `main`, writes (or, for an update, merges into)
 `registry/plugins/<id>.json`, pushes, and opens the PR — printing its URL. Add
 `--draft` for a draft PR, `--registry <owner/name>` for a mirror. (Requires `gh`,
 authenticated.)
@@ -336,7 +350,12 @@ next to its `sha256`:
 Signing is **opt-in**, and it is a one-way door you may walk through **late**. An
 entry without `authorPublicKey`/`signature` installs on `sha256` alone; **going
 unsigned → signed later breaks nobody**, because nothing is pinned until a signed
-version installs — adding a key at v1.4.0 is a real option, not a lost cause. What
+version installs — adding a key at v1.4.0 is a real option, not a lost cause. The
+registry does require every version signed once your key appears in the entry, and
+the SDK handles that for you: your first signed update **retro-signs the older
+versions** (each pinned artifact is downloaded, verified against its `sha256`, and
+signed with the same key — a byte mismatch refuses, since that artifact no longer
+matches its pin). What
 you can never do is go back: once a plugin has shipped signed, an *unsigned* update
 is refused (`SIGNATURE_MISSING`) on every instance that already has it, and a key
 *rotation* needs a registry maintainer override (`allow-key-change`) plus an admin

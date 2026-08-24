@@ -1373,12 +1373,19 @@ trek-plugin release [dir] --repo owner/name --tag vX.Y.Z [--sign] [--merge entry
 
 # Fork the registry, write registry/plugins/<id>.json, open the PR. Needs `gh`.
 trek-plugin submit [dir] --repo owner/name --tag vX.Y.Z [--registry o/n] [--draft]
+
+# Delete a stranded release + remote tag + local tag in one go. Checks the published
+# registry index first and REFUSES a version that is actually published (immutable);
+# --yes consents when the index can't be reached.
+trek-plugin unrelease vX.Y.Z [dir] --repo owner/name [--yes]
 ```
 
 `publish` chains those last steps in the order that matters: **check → pack → release →
 preflight → submit**. The local gates run *before* anything is tagged or released,
-because a GitHub release is effectively immutable — the registry pins its sha256. See
-[[Publishing a Plugin|Plugin-Publishing]].
+because a GitHub release is effectively immutable — the registry pins its sha256 —
+and a failure *after* the release is cut rolls back everything that run created (the
+release, both tags), so the same tag is free to re-run against (`--keep-release`
+opts out). See [[Publishing a Plugin|Plugin-Publishing]].
 
 ## Registry & publishing
 
