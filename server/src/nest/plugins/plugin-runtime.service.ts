@@ -480,7 +480,8 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
   /**
    * Read-only activation gate for one plugin — throws (without mutating) if it may
    * not activate. Checks run most- to least-severe: TREK-version compatibility →
-   * permission re-consent → required addon disabled → missing/mismatched plugin dependency.
+   * plugin-API version compatibility → permission re-consent → required addon disabled →
+   * missing/mismatched plugin dependency.
    */
   private assertActivatable(id: string, installed: Map<string, PluginDepRow>, consentWiden: boolean): void {
     const row = this.db.prepare('SELECT permissions, granted_permissions, dependencies, trek_range, api_version FROM plugins WHERE id = ?').get(id) as

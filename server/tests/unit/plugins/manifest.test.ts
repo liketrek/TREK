@@ -105,7 +105,8 @@ describe('apiVersion', () => {
     expect(() => parseManifest(withApi(v))).toThrow('apiVersion must be a positive integer');
   });
   it('defaults to 1 when absent', () => {
-    expect(parseManifest(base).apiVersion).toBe(1);
+    const { apiVersion: _omitted, ...noApi } = base;
+    expect(parseManifest(noApi).apiVersion).toBe(1);
   });
   it('tolerates a future apiVersion under discovery (no requireTrek)', () => {
     expect(parseManifest(withApi(2)).apiVersion).toBe(2);
