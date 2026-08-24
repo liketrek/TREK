@@ -11,12 +11,13 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { readJsonFile } from './json.js';
+import { needsRetroSign, retroSignVersions } from './retro-sign.js';
 
 const DEFAULT_REGISTRY = 'liketrek/TREK-Plugins';
 
 interface EntryLike {
   id: string; name?: string; authorPublicKey?: string;
-  versions: { version: string }[];
+  versions: { version: string; downloadUrl: string; sha256: string; signature?: string }[];
 }
 
 function git(cwd: string, ...a: string[]): string {
@@ -42,7 +43,7 @@ function mergeOnto(existing: EntryLike, fresh: EntryLike): EntryLike {
   return merged;
 }
 
-export function submitEntry(entry: EntryLike, opts: { registry?: string; branch?: string; draft?: boolean; keep?: boolean } = {}): { prUrl: string } {
+export async function submitEntry(entry: EntryLike, opts: { registry?: string; branch?: string; draft?: boolean; keep?: boolean; signKeyPath?: string } = {}): Promise<{ prUrl: string }> {
   const registry = opts.registry || DEFAULT_REGISTRY;
   const name = registry.split('/')[1];
   const login = gh('api', 'user', '--jq', '.login');
@@ -50,6 +51,17 @@ export function submitEntry(entry: EntryLike, opts: { registry?: string; branch?
 
   // Ensure the fork exists (idempotent — prints "already exists" if it does).
   try { gh('repo', 'fork', registry, '--clone=false'); } catch { /* already forked */ }
+
+  // Fast-forward the fork from the registry. The PR branch is based on upstream/main either
+  // way, but a fork left far behind has broken pushes and PRs in the wild — and costs nothing
+  // to keep current. Best-effort: a diverged fork can't be fast-forwarded, and that alone
+  // must not sink the submit.
+  try { gh('repo', 'sync', `${login}/${name}`, '--source', registry); } catch {
+    console.error(
+      `! could not fast-forward your fork ${login}/${name} (diverged?) — continuing, the PR branch is based on the registry's main.\n` +
+      `  If the push or PR fails, reset the fork with: gh repo sync ${login}/${name} --force`,
+    );
+  }
 
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'trek-submit-'));
   try {
@@ -76,6 +88,19 @@ export function submitEntry(entry: EntryLike, opts: { registry?: string; branch?
       const existing = readJsonFile<EntryLike>(abs);
       toWrite = mergeOnto(existing, entry);
       action = 'update';
+    }
+    // First signed update onto an unsigned history: the registry refuses a mixed entry (key
+    // present, older versions unsigned) — see retro-sign.ts for why. Sign the older versions
+    // with the same key, or say exactly what is missing.
+    if (needsRetroSign(toWrite)) {
+      if (!opts.signKeyPath) {
+        throw new Error(
+          `this update adds your signing key, but ${toWrite.versions.filter((v) => !v.signature).length} older version(s) are unsigned — ` +
+          'the registry requires every version signed once a key is present. Re-run with --sign so they can be signed for you.',
+        );
+      }
+      console.error('      older versions are unsigned — signing them with your key so the registry accepts the update');
+      await retroSignVersions(toWrite, opts.signKeyPath, (line) => console.error(line));
     }
     fs.mkdirSync(path.dirname(abs), { recursive: true });
     fs.writeFileSync(abs, JSON.stringify(toWrite, null, 2) + '\n');

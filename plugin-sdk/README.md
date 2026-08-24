@@ -228,7 +228,28 @@ Needs `git` and an authenticated `gh`. It prints the PR URL at the end.
 
 **Updating** a listed plugin: bump `version` in the manifest, commit, and run
 `publish` again with the new tag — it detects the existing entry and prepends the
-new version, newest-first.
+new version, newest-first. Your TREK-Plugins fork is fast-forwarded automatically
+before the PR branch is cut, so a fork left behind doesn't break the submit (a
+*diverged* fork gets a warning and the `gh repo sync --force` command to fix it).
+
+### When a publish fails
+
+A failure **after** the release is cut (a preflight or PR problem) rolls back
+exactly what that run created — the GitHub release, the pushed tag, the local
+tag — so the same tag is free to re-run against once you've fixed the problem.
+Nothing that existed before the run is ever touched. Pass `--keep-release` to
+keep the release instead; the error then prints the manual cleanup commands.
+
+Two related conveniences:
+
+- A leftover tag from an earlier failed run (it has no release and doesn't point
+  at `HEAD`) is recognised as debris and **moved to your current commit** instead
+  of silently releasing the stale one.
+- `trek-plugin unrelease <vX.Y.Z> --repo you/repo` deletes a stranded release +
+  remote tag + local tag in one go. It checks the published registry index first
+  and **refuses to touch a version that is actually published** — those artifacts
+  are immutable (the registry pins their sha256), so the only way forward there is
+  a new version.
 
 Prefer to drive the steps yourself? They still exist individually — `pack`,
 `release` (pack → GitHub release → entry), `preflight`, `submit` (opens the PR),
@@ -247,7 +268,10 @@ It is a one-way door you may walk through **late**:
 
 - Unsigned throughout is fine — the sha256 pin is the only guarantee, and TREK accepts it.
 - **Unsigned → signed later breaks nobody.** Nothing is pinned until a signed version
-  installs, so adding a key at v1.4.0 is a real option, not a lost cause.
+  installs, so adding a key at v1.4.0 is a real option, not a lost cause. The registry
+  does require every version signed once your key appears in the entry — your first
+  signed update **retro-signs the older versions for you** (each pinned artifact is
+  downloaded, verified against its sha256, and signed with the same key).
 - **Signed → unsigned is refused forever**, on every instance that already has the plugin.
   `publish` refuses that at step 1, before anything is tagged or released.
 
@@ -290,6 +314,7 @@ bin if you install the package). `trek-plugin help <command>` — or
 - `preflight [dir] --repo o/n --tag vX [--entry f] [--all]` — the registry checks that need the network: the tag resolves to the pinned commit, the released artifact downloads and hashes, the id is not bound to another owner, and an update does not drop or rotate a published signing key.
 - `submit [dir] --repo o/n --tag vX [--registry o/n] [--draft]` — open the registry PR for you.
 - `release [dir] --repo o/n --tag vX [--sign [key]] [--merge f]` — pack → GitHub release → entry, without opening the PR.
+- `unrelease <vX.Y.Z> [dir] --repo o/n [--yes]` — delete a stranded release + remote tag + local tag. Refuses a version that is published in the registry (immutable); `--yes` consents when the registry index can't be checked.
 
 ## Update notice
 

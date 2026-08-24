@@ -18,7 +18,7 @@ export const VERSION_LINE = (v: string): string => `trek-plugin-sdk ${v}`;
 export const PATH_COMMANDS = ['create', 'dev', 'status', 'publish'] as const;
 
 /** Real, supported, and not what a newcomer needs to see first. */
-export const OTHER_COMMANDS = ['validate', 'pack', 'shot', 'keygen', 'sign', 'entry', 'preflight', 'submit', 'release'] as const;
+export const OTHER_COMMANDS = ['validate', 'pack', 'shot', 'keygen', 'sign', 'entry', 'preflight', 'submit', 'release', 'unrelease'] as const;
 
 export interface CommandHelp {
   /** One line, for the top-level list. */
@@ -85,7 +85,7 @@ you like.`,
 
   publish: {
     summary: 'release + open the registry PR',
-    usage: 'trek-plugin publish [dir] --repo <owner/name> --tag <vX.Y.Z> [--sign]',
+    usage: 'trek-plugin publish [dir] --repo <owner/name> --tag <vX.Y.Z> [--sign] [--keep-release]',
     body: `The whole release, in order:
 
   1. check       every registry gate that can be checked locally
@@ -97,6 +97,12 @@ you like.`,
 Step 1 comes first for a reason: a GitHub release is effectively immutable, because the registry
 pins its sha256. If a check fails, NOTHING is packed, tagged, pushed or released — so you can fix
 it and re-run against the same version.
+
+And when a LATER step fails, publish rolls back exactly what the run created — the release, the
+pushed tag, the local tag — so the same tag is free to re-run against once you have fixed the
+problem. Pass --keep-release to leave them in place instead (the error then prints the manual
+cleanup). Anything that existed before the run is never touched. A leftover tag from an earlier
+failed run is recognised (no release for it, not on HEAD) and moved to HEAD rather than reused.
 
 In a terminal it OFFERS TO SIGN, and creates a key for you if you have none. A signature proves the
 artifact came from you, not just that its bytes match what the registry saw. You can add signing
@@ -216,6 +222,19 @@ hand, or to re-check a release you have already cut.
     usage: 'trek-plugin release [dir] --repo <owner/name> --tag <vX.Y.Z> [--sign] [--merge entry.json]',
     body: `Packs, cuts the GitHub release, and prints the registry entry — but does NOT open the registry PR.
 For when you want to release now and submit later. \`publish\` is the whole thing.`,
+  },
+  unrelease: {
+    summary: 'delete a stranded tag + release (never a published one)',
+    usage: 'trek-plugin unrelease <vX.Y.Z> [dir] --repo <owner/name> [--registry owner/name] [--yes]',
+    body: `Undoes a release that never made it into the registry: deletes the GitHub release, the remote
+tag, and the local tag — each reported, each skipped when already gone. For when a publish
+failed halfway (though \`publish\` now rolls its own failures back), or you changed your mind
+before the registry PR merged.
+
+The one hard rule: a version that IS published in the registry is immutable — the registry pins
+the artifact's sha256, so deleting its release breaks install/update for everyone who has it.
+unrelease checks the published index first and refuses those outright, with no override. If the
+registry cannot be reached to check, it refuses unless you pass --yes.`,
   },
 };
 

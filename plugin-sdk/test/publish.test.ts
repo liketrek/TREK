@@ -6,6 +6,11 @@ import path from 'node:path';
 // publish shells out to git + gh; drive those from here so we can assert what it WOULD run.
 const calls: Array<{ bin: string; args: string[] }> = [];
 let releaseExistsOnRemote = false;
+/** The commit the local tag points at; null = no local tag. `git tag` mutates it like git would. */
+let localTagSha: string | null = null;
+let remoteTagOnOrigin = false;
+let failPrCreate = false;
+const HEAD_SHA = 'headfeedheadfeedheadfeedheadfeedheadfeed';
 
 vi.mock('node:child_process', () => ({
   execFileSync: (bin: string, args: string[]) => {
@@ -14,8 +19,24 @@ vi.mock('node:child_process', () => ({
       if (!releaseExistsOnRemote) throw new Error('release not found');
       return Buffer.from('');
     }
-    // `git rev-parse <tag>^{commit}` — pretend the tag does not exist yet.
-    if (bin === 'git' && args.includes('rev-parse')) throw new Error('unknown revision');
+    if (bin === 'gh' && args[0] === 'pr' && args[1] === 'create' && failPrCreate) throw new Error('pr create exploded');
+    if (bin === 'gh' && args[0] === 'api') return Buffer.from('someone');
+    if (bin === 'git' && args.includes('ls-remote')) {
+      return Buffer.from(remoteTagOnOrigin ? `${HEAD_SHA}\trefs/tags/v1.0.0` : '');
+    }
+    if (bin === 'git' && args.includes('tag')) {
+      // Mirror git's behaviour so later rev-parses see what the run did.
+      const i = args.indexOf('tag');
+      if (args[i + 1] === '-d') localTagSha = null;
+      else localTagSha = HEAD_SHA; // `git tag <t>` and `git tag -f <t>` both land on HEAD
+      return Buffer.from('');
+    }
+    if (bin === 'git' && args.includes('rev-parse')) {
+      const target = args[args.indexOf('rev-parse') + 1];
+      if (target === 'HEAD') return Buffer.from(HEAD_SHA);
+      if (localTagSha === null) throw new Error('unknown revision');
+      return Buffer.from(localTagSha);
+    }
     return Buffer.from('');
   },
 }));
@@ -23,6 +44,12 @@ vi.mock('node:child_process', () => ({
 const { publishPlugin } = await import('../src/cli/publish.js');
 const { scaffold } = await import('../src/cli/create.js');
 const { makePublishable } = await import('./helpers.js');
+
+beforeEach(() => {
+  localTagSha = null;
+  remoteTagOnOrigin = false;
+  failPrCreate = false;
+});
 
 describe('publish — a released artifact is immutable', () => {
   let tmp: string;
@@ -139,6 +166,105 @@ describe('publish — the local gates run before anything is cut', () => {
  * cut at step 3 — so the author learned it with their tag already burned, for a fact that was
  * knowable before a single byte was packed. The check belongs in step 1, and this pins it there.
  */
+/**
+ * The cleanup half of the immutability story. Step 3 creates a local tag, pushes it, and cuts
+ * the release; when step 4/5 then failed, all three were stranded and the author had to delete
+ * them by hand before re-running. A failed publish now rolls back exactly what IT created —
+ * and only that: anything that existed before the run (a merged release, a pre-pushed tag) is
+ * never touched.
+ */
+describe('publish — a failed run rolls back what it created', () => {
+  let tmp: string;
+  let dir: string;
+
+  beforeEach(() => {
+    calls.length = 0;
+    releaseExistsOnRemote = false;
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'publish-rollback-'));
+    scaffold('rollback-plug', 'integration', tmp);
+    dir = path.join(tmp, 'rollback-plug');
+    makePublishable(dir);
+  });
+  afterEach(() => { fs.rmSync(tmp, { recursive: true, force: true }); });
+
+  const run = (opts: { force?: boolean; keepRelease?: boolean } = {}) => publishPlugin({
+    dir, repo: 'someone/trek-plugin-rollback-plug', tag: 'v1.0.0',
+    now: '2026-01-01T00:00:00Z', skipPreflight: true, log: () => {}, ...opts,
+  });
+
+  it('deletes the release, remote tag, and local tag this run created', async () => {
+    failPrCreate = true;
+    await expect(run()).rejects.toThrow(/rolled back/i);
+    expect(calls.some((c) => c.bin === 'gh' && c.args[0] === 'release' && c.args[1] === 'delete' && c.args.includes('v1.0.0'))).toBe(true);
+    expect(calls.some((c) => c.bin === 'git' && c.args.includes(':refs/tags/v1.0.0'))).toBe(true);
+    expect(calls.some((c) => c.bin === 'git' && c.args.includes('tag') && c.args.includes('-d'))).toBe(true);
+  });
+
+  it('--keep-release leaves everything in place and prints the manual cleanup', async () => {
+    failPrCreate = true;
+    await expect(run({ keepRelease: true })).rejects.toThrow(/gh release delete/);
+    expect(calls.some((c) => c.bin === 'gh' && c.args[1] === 'delete')).toBe(false);
+    expect(calls.some((c) => c.args.includes(':refs/tags/v1.0.0'))).toBe(false);
+  });
+
+  it('never deletes a release or remote tag that existed BEFORE the run', async () => {
+    releaseExistsOnRemote = true;
+    remoteTagOnOrigin = true;
+    failPrCreate = true;
+    await run({ force: true }).catch(() => {});
+    expect(calls.some((c) => c.bin === 'gh' && c.args[1] === 'delete')).toBe(false);
+    expect(calls.some((c) => c.args.includes(':refs/tags/v1.0.0'))).toBe(false);
+    // the local tag WAS created by this run, so that one goes
+    expect(calls.some((c) => c.bin === 'git' && c.args.includes('tag') && c.args.includes('-d'))).toBe(true);
+  });
+});
+
+/**
+ * The stale-tag trap: a failed publish leaves a tag; the author commits a fix and re-runs; the
+ * old flow silently reused the stale tag and released the UNFIXED code. A tag that does not
+ * point at HEAD and has no release is debris — move it. One that HAS a release is immutable.
+ */
+describe('publish — a stale tag from a failed run is moved, not reused', () => {
+  let tmp: string;
+  let dir: string;
+
+  beforeEach(() => {
+    calls.length = 0;
+    releaseExistsOnRemote = false;
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'publish-stale-'));
+    scaffold('stale-plug', 'integration', tmp);
+    dir = path.join(tmp, 'stale-plug');
+    makePublishable(dir);
+  });
+  afterEach(() => { fs.rmSync(tmp, { recursive: true, force: true }); });
+
+  const run = () => publishPlugin({
+    dir, repo: 'someone/trek-plugin-stale-plug', tag: 'v1.0.0',
+    now: '2026-01-01T00:00:00Z', skipPreflight: true, log: () => {},
+  });
+
+  it('re-points a debris tag (no release) at HEAD and force-pushes it', async () => {
+    localTagSha = 'stalestalestalestalestalestalestalestale';
+    await run().catch(() => {});
+    expect(calls.some((c) => c.bin === 'git' && c.args.includes('tag') && c.args.includes('-f'))).toBe(true);
+    const push = calls.find((c) => c.bin === 'git' && c.args.includes('push') && c.args.includes('v1.0.0'));
+    expect(push?.args).toContain('--force');
+  });
+
+  it('refuses a mismatched tag whose release already exists', async () => {
+    localTagSha = 'stalestalestalestalestalestalestalestale';
+    releaseExistsOnRemote = true;
+    await expect(run()).rejects.toThrow(/points at/i);
+    expect(calls.some((c) => c.bin === 'git' && c.args.includes('-f'))).toBe(false);
+  });
+
+  it('reuses a tag already on HEAD without touching it', async () => {
+    localTagSha = HEAD_SHA;
+    await run().catch(() => {});
+    expect(calls.some((c) => c.bin === 'git' && c.args.includes('tag') && !c.args.includes('-d'))).toBe(false);
+  });
+});
+
 describe('publish — a signed plugin cannot quietly go unsigned', () => {
   let tmp: string;
   let dir: string;

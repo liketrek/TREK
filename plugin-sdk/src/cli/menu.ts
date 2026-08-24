@@ -38,6 +38,7 @@ export const ADVANCED_MENU: MenuItem[] = [
   { value: 'preflight', label: 'Preflight', hint: 'The registry checks that need the release to exist' },
   { value: 'submit', label: 'Submit', hint: 'Open the registry PR' },
   { value: 'release', label: 'Release', hint: 'Pack → GitHub release → print entry' },
+  { value: 'unrelease', label: 'Unrelease', hint: 'Delete a stranded tag + release (never a published one)' },
   { value: 'back', label: '← Back', hint: '' },
 ];
 

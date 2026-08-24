@@ -24,6 +24,8 @@ import { runShot } from './shot.js';
 import { preflight } from './preflight.js';
 import { submitEntry } from './submit.js';
 import { publishPlugin } from './publish.js';
+import { unrelease } from './unrelease.js';
+import { needsRetroSign, retroSignVersions } from './retro-sign.js';
 import { loadContext } from './checks/context.js';
 import { runOffline } from './checks/index.js';
 import { renderPlain } from './checks/report.js';
@@ -81,7 +83,8 @@ const COMMAND_FLAGS: Record<string, readonly string[]> = {
   preflight: ['repo', 'tag', 'entry', 'zip', 'commit', 'sign', 'key', 'all', 'registry'],
   submit: ['repo', 'tag', 'zip', 'commit', 'sign', 'key', 'registry', 'branch', 'draft', 'keep'],
   release: ['repo', 'tag', 'out', 'notes', 'commit', 'merge', 'sign', 'key'],
-  publish: ['repo', 'tag', 'sign', 'key', 'registry', 'draft', 'notes', 'no-preflight', 'no-checks', 'force'],
+  publish: ['repo', 'tag', 'sign', 'key', 'registry', 'draft', 'notes', 'no-preflight', 'no-checks', 'force', 'keep-release'],
+  unrelease: ['repo', 'tag', 'registry', 'yes'],
 };
 
 function assertKnownFlags(command: string, f: Flags): void {
@@ -105,6 +108,26 @@ function listFlag(v: string | undefined): string[] | undefined {
 function signKey(f: Flags): string | undefined {
   if (!f.sign) return undefined;
   return f.sign === 'true' ? (f.key || defaultKeyPath()) : f.sign;
+}
+
+/**
+ * First signed update onto an unsigned history (`--merge` + `--sign`): the registry requires
+ * every version signed once a key is present, so sign the older versions too — or say exactly
+ * what is missing. See retro-sign.ts.
+ */
+async function maybeRetroSign(
+  entry: { authorPublicKey?: string; versions: Array<{ version: string; downloadUrl: string; sha256: string; signature?: string }> },
+  keyPath: string | undefined,
+): Promise<void> {
+  if (!needsRetroSign(entry)) return;
+  if (!keyPath) {
+    fail(
+      `this entry carries your signing key, but ${entry.versions.filter((v) => !v.signature).length} older version(s) are unsigned — ` +
+      'the registry requires every version signed once a key is present. Re-run with --sign so they can be signed for you.',
+    );
+  }
+  console.error('older versions are unsigned — signing them with your key so the registry accepts the update');
+  await retroSignVersions(entry, keyPath!, (line) => console.error(line));
 }
 
 /**
@@ -322,6 +345,7 @@ async function dispatch(command: string, f: Flags, positional: string[]): Promis
       commit: f.commit, asset: f.asset, mergePath: f.merge,
       signKeyPath: signKey(f), now: new Date().toISOString(),
     });
+    await maybeRetroSign(entry, signKey(f));
     const json = JSON.stringify(entry, null, 2) + '\n';
     if (f.out) {
       fs.writeFileSync(f.out, json);
@@ -384,6 +408,7 @@ async function dispatch(command: string, f: Flags, positional: string[]): Promis
       dir, repo, tag,
       signKeyPath, signing, registry: f.registry, draft: !!f.draft,
       notes: f.notes, skipPreflight: !!f['no-preflight'], skipChecks: !!f['no-checks'], force: !!f.force,
+      keepRelease: !!f['keep-release'],
       now: new Date().toISOString(),
       log: tui ? clackLogSink : undefined,
     });
@@ -400,12 +425,12 @@ async function dispatch(command: string, f: Flags, positional: string[]): Promis
       const ok = await promptConfirm({ message: 'Open the registry PR now?', initialValue: true });
       if (!ok) { outro('Cancelled — no PR opened.'); return; }
       const s = spinner(); s.start('Opening the registry PR');
-      const { prUrl } = submitEntry(entry, { registry: f.registry, branch: f.branch, draft: !!f.draft, keep: !!f.keep });
+      const { prUrl } = await submitEntry(entry, { registry: f.registry, branch: f.branch, draft: !!f.draft, keep: !!f.keep, signKeyPath: signKey(f) });
       s.stop('Registry PR opened');
       console.log(prUrl);
     } else {
       console.error(`Opening a registry PR for ${entry.id} ${entry.versions[0].version}…`);
-      const { prUrl } = submitEntry(entry, { registry: f.registry, branch: f.branch, draft: !!f.draft, keep: !!f.keep });
+      const { prUrl } = await submitEntry(entry, { registry: f.registry, branch: f.branch, draft: !!f.draft, keep: !!f.keep, signKeyPath: signKey(f) });
       console.log(prUrl);
     }
   } else if (command === 'release') {
@@ -421,6 +446,7 @@ async function dispatch(command: string, f: Flags, positional: string[]): Promis
       execFileSync('gh', ['release', 'create', tag, packed.artifact, '--repo', repo, '--title', tag, '--notes', f.notes || `Release ${tag}`], { stdio: 'pipe' });
       s.stop(`Released ${tag} on ${repo}`);
       const entry = buildEntry({ dir, repo, tag, zipPath: packed.artifact, commit: f.commit, mergePath: f.merge, signKeyPath: signKey(f), now: new Date().toISOString() });
+      await maybeRetroSign(entry, signKey(f));
       logInfo(`Registry entry (add as registry/plugins/${entry.id}.json, or run \`npx trek-plugin-sdk submit\`):`);
       process.stdout.write(JSON.stringify(entry, null, 2) + '\n');
     } else {
@@ -429,9 +455,28 @@ async function dispatch(command: string, f: Flags, positional: string[]): Promis
       console.error(`Creating GitHub release ${tag} on ${repo}…`);
       execFileSync('gh', ['release', 'create', tag, packed.artifact, '--repo', repo, '--title', tag, '--notes', f.notes || `Release ${tag}`], { stdio: 'inherit' });
       const entry = buildEntry({ dir, repo, tag, zipPath: packed.artifact, commit: f.commit, mergePath: f.merge, signKeyPath: signKey(f), now: new Date().toISOString() });
+      await maybeRetroSign(entry, signKey(f));
       console.error('\nRegistry entry (add as registry/plugins/' + entry.id + '.json in a TREK-Plugins PR, or run `npx trek-plugin-sdk submit`):\n');
       process.stdout.write(JSON.stringify(entry, null, 2) + '\n');
     }
+  } else if (command === 'unrelease') {
+    if (positional[0]) f.tag = positional[0];
+    const { repo, tag } = await ensureRepoTag(f, 'unrelease needs a tag and --repo <owner/name>: trek-plugin unrelease vX.Y.Z --repo <owner/name>');
+    const dir = positional[1] || '.';
+    let yes = !!f.yes;
+    if (tui && !yes) {
+      const ok = await promptConfirm({
+        message: `Delete the GitHub release, remote tag and local tag ${tag} on ${repo}?`,
+        initialValue: false,
+      });
+      if (!ok) { outro('Cancelled — nothing was deleted.'); return; }
+      yes = true; // the human just consented — that covers the registry-unreachable guard too
+    }
+    const { deleted } = await unrelease({ dir, tag, repo, registry: f.registry, yes, log: tui ? clackLogSink : undefined });
+    const summary = deleted.length
+      ? `Deleted: ${deleted.join(', ')} — ${tag} is free to publish again.`
+      : `Nothing to delete — no release or tags found for ${tag}.`;
+    if (tui) logSuccess(summary); else console.error(summary);
   } else {
     console.error(`unknown command: ${command}\n${USAGE}`);
     process.exit(2);
