@@ -268,7 +268,7 @@ export const PERMISSION_CATALOG: { value: string; label: string; hint: string; f
   );
 
 /** Every grantable permission id. Derived — never hand-maintained. */
-export const KNOWN_PERMISSIONS: string[] = PERMISSION_CATALOG.map((p) => p.value);
+export const PICKER_PERMISSIONS: string[] = PERMISSION_CATALOG.map((p) => p.value);
 
 // ── reporter seam (for commands that log their own progress, e.g. publish) ────
 
