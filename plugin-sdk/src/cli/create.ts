@@ -57,6 +57,23 @@ export interface ScaffoldOptions {
 
 export const TEMPLATES = ['blank', 'notification-channel'] as const;
 
+/**
+ * The credential fields the OAuth broker (server-side `oauth.getToken`) needs to run the
+ * authorization-code flow on the plugin's behalf. ALL `scope: 'instance'` — unlike the
+ * notification-channel template's `scope: 'user'` settings above, these are configured ONCE
+ * per install by an admin, not per recipient: the broker itself reads them at token-exchange
+ * time, there is no per-user client id/secret. Deliberately not user-scoped.
+ */
+const OAUTH_SETTINGS: Array<{
+  key: string; label: string; input_type: string; required: boolean; secret?: boolean; scope: 'instance';
+}> = [
+  { key: 'oauth_authorize_url', label: 'OAuth authorize URL', input_type: 'text', required: true, scope: 'instance' },
+  { key: 'oauth_token_url', label: 'OAuth token URL', input_type: 'text', required: true, scope: 'instance' },
+  { key: 'oauth_scopes', label: 'OAuth scopes (space-separated)', input_type: 'text', required: false, scope: 'instance' },
+  { key: 'oauth_client_id', label: 'OAuth client id', input_type: 'text', required: true, scope: 'instance' },
+  { key: 'oauth_client_secret', label: 'OAuth client secret', input_type: 'text', required: true, secret: true, scope: 'instance' },
+];
+
 /** Mirrors the server's widget slots (and the manifest validator's). */
 export const WIDGET_SLOTS = ['sidebar', 'hero', 'place-detail', 'day-detail', 'reservation-detail'] as const;
 export type WidgetSlot = (typeof WIDGET_SLOTS)[number];
@@ -184,6 +201,16 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
         scope: 'user',
       },
     ];
+  }
+  // The broker (ctx.oauth.getToken) needs somewhere to read the authorize/token URLs and the
+  // app's client id/secret — an admin configures them once, instance-wide, and the broker
+  // reads them at token-exchange time. Merge with any settings the template above already
+  // wrote (a channel template never grants oauth:client today, so there is no real overlap,
+  // but keys are deduped anyway rather than trusting that stays true).
+  if (perms.includes('oauth:client')) {
+    const existing = (manifest.settings as Array<{ key: string }> | undefined) ?? [];
+    const seen = new Set(existing.map((s) => s.key));
+    manifest.settings = [...existing, ...OAUTH_SETTINGS.filter((s) => !seen.has(s.key))];
   }
 
   fs.writeFileSync(path.join(root, 'trek-plugin.json'), JSON.stringify(manifest, null, 2) + '\n');

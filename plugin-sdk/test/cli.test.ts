@@ -245,3 +245,36 @@ describe('capabilities.notificationChannel validation', () => {
     expect(r.errors!.join(' ')).toMatch(/requires the "hook:notification-channel" permission/);
   });
 });
+
+describe('scaffold oauth:client settings', () => {
+  let tmp: string;
+  beforeEach(() => { tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'oauth-')); });
+  afterEach(() => { fs.rmSync(tmp, { recursive: true, force: true }); });
+
+  const OAUTH_KEYS = ['oauth_authorize_url', 'oauth_token_url', 'oauth_scopes', 'oauth_client_id', 'oauth_client_secret'];
+
+  it('scaffolds the five instance-scoped broker settings when oauth:client is granted', () => {
+    scaffold('oauth-plug', 'integration', tmp, { permissions: ['db:own', 'oauth:client'] });
+    const m = JSON.parse(fs.readFileSync(path.join(tmp, 'oauth-plug', 'trek-plugin.json'), 'utf8'));
+    const settings = m.settings as Array<{ key: string; secret?: boolean; scope?: string }>;
+    for (const key of OAUTH_KEYS) {
+      expect(settings.some((s) => s.key === key), `missing setting "${key}"`).toBe(true);
+    }
+    const secret = settings.find((s) => s.key === 'oauth_client_secret')!;
+    expect(secret.secret).toBe(true);
+    for (const key of OAUTH_KEYS) {
+      const s = settings.find((x) => x.key === key)!;
+      expect(s.scope, `${key}.scope`).toBe('instance');
+    }
+    expect(validateManifest(m).ok).toBe(true);
+  });
+
+  it('scaffolds none of the broker settings without oauth:client', () => {
+    scaffold('plain-oauth-plug', 'integration', tmp, { permissions: ['db:own'] });
+    const m = JSON.parse(fs.readFileSync(path.join(tmp, 'plain-oauth-plug', 'trek-plugin.json'), 'utf8'));
+    const settings = (m.settings ?? []) as Array<{ key: string }>;
+    for (const key of OAUTH_KEYS) {
+      expect(settings.some((s) => s.key === key), `unexpected setting "${key}"`).toBe(false);
+    }
+  });
+});
