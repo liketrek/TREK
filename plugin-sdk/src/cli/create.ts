@@ -125,7 +125,9 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
     // ctx.places, ctx.days, ctx.itinerary, ctx.costs, ctx.packing, ctx.files — only exist from
     // 3.4.0. Claiming 3.3.0 lets the plugin install on a host where they are `undefined`, which
     // fails at the first call with a TypeError instead of a clear "incompatible" at install.
-    trek: '>=3.4.0 <4.0.0',
+    // ceiling 5.0.0: 4.x verified compatible for the scaffold surface; matches registry
+    // convergence 2026-08.
+    trek: '>=3.4.0 <5.0.0',
     nativeModules: false,
     permissions: perms,
     // Dependency declarations (empty by default). `requiredAddons` lists addon ids
