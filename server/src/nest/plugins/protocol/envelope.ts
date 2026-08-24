@@ -210,6 +210,10 @@ export const METHOD_PERMISSION = {
   'packing.create': 'db:write:packing',
   'packing.update': 'db:write:packing',
   'packing.delete': 'db:write:packing',
+  // Intentional: bags are the write-side organizational structure of packing —
+  // a read-only consumer uses packing.list; only bag-managing (write) plugins
+  // need the bag tree. Moving this to db:read:packing would strip access from
+  // every installed write-only plugin and force consent re-prompts.
   'packing.listBags': 'db:write:packing',
   'packing.createBag': 'db:write:packing',
   'packing.updateBag': 'db:write:packing',
