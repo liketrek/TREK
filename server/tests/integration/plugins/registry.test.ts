@@ -824,6 +824,14 @@ describe('TREK-version gating on install', () => {
       const bytes = makeArtifact({ id: 'my-upload', name: 'Up', version: '1.0.0', type: 'integration', trek: undefined });
       expect(() => svc.stageUpload(bytes)).toThrow(/missing "trek"/);
     });
+
+    it('refuses an uploaded archive declaring apiVersion 2 (this TREK only speaks plugin-API v1), and writes nothing to the plugin code dir', () => {
+      // trek range is satisfiable on its own — parseManifest's apiVersion check must
+      // fire (and stop the upload) before assertHostCompatible is ever reached.
+      const bytes = makeArtifact({ id: 'my-upload', name: 'Up', version: '1.0.0', type: 'integration', apiVersion: 2 });
+      expect(() => svc.stageUpload(bytes)).toThrow('plugin requires plugin-API v2; this TREK supports v1');
+      expect(fs.existsSync(path.join(codeRoot, 'my-upload'))).toBe(false);
+    });
   });
 
   it('installWithDependencies installs the version it RESOLVED, not versions[0]', async () => {

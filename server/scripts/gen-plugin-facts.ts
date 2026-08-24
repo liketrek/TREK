@@ -27,7 +27,7 @@ const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 
 const HEADER = [
   '// GENERATED — do not edit by hand.',
-  '// Source: server/src/nest/plugins/protocol/envelope.ts',
+  '// Source: server/src/nest/plugins/protocol/envelope.ts + server/src/plugin-event-sink.ts',
   '// Regenerate: node --import tsx server/scripts/gen-plugin-facts.ts',
   '',
 ].join('\n');

@@ -93,8 +93,12 @@ export interface PluginContext {
     update(tripId: number, itemId: number, input: Record<string, unknown>): Promise<unknown>;
     /** Delete a packing item. Needs 'db:write:packing' + 'packing_edit'. */
     delete(tripId: number, itemId: number): Promise<{ deleted: boolean }>;
-    /** List/create/update/delete packing bags + set members (no privacy). Needs 'db:write:packing' + 'packing_edit'. */
-    /** Needs 'db:write:packing' (intentional — bags are the write-side structure; packing.list is the read surface). */
+    /**
+     * List/create/update/delete packing bags + set members (no privacy). Bag methods need
+     * 'db:write:packing' + the acting user's 'packing_edit' trip permission — except this
+     * one: listBags is a read, but the envelope still gates it on the write scope
+     * (intentional — bags are the write-side structure; packing.list is the read surface).
+     */
     listBags(tripId: number): Promise<unknown[]>;
     createBag(tripId: number, input: { name: string; color?: string }): Promise<unknown>;
     updateBag(tripId: number, bagId: number, input: Record<string, unknown>): Promise<unknown>;
