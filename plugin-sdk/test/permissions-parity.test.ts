@@ -15,7 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { HOOK_PERMISSION } from '../src/permissions.js';
-import { PLUGIN_SESSION_MAX_KEYS, PLUGIN_SESSION_MAX_KEY_LENGTH, PLUGIN_SESSION_MAX_VALUE_BYTES } from '../src/index.js';
+import { PLUGIN_SESSION_MAX_KEYS, PLUGIN_SESSION_MAX_KEY_LENGTH, PLUGIN_SESSION_MAX_VALUE_BYTES, EVENT_FAMILIES, EVENT_SNAPSHOT_GRANT, KNOWN_PERMISSIONS } from '../src/index.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const serverPlugins = path.resolve(here, '../../server/src/nest/plugins');
@@ -83,6 +83,16 @@ describe.skipIf(!fs.existsSync(hostFrame))('parity with the host frame', () => {
     for (const code of ['SESSION_INVALID_KEY', 'SESSION_INVALID_VALUE', 'SESSION_VALUE_TOO_LARGE', 'SESSION_KEY_LIMIT', 'NO_TRIP_CONTEXT', 'SESSION_STORAGE_ERROR']) {
       expect(frame, `${code} missing from the host frame`).toContain(`'${code}'`);
       expect(devServer, `${code} missing from the dev preview`).toContain(`"${code}"`);
+    }
+  });
+});
+
+describe.skipIf(!inMonorepo)('core event catalog', () => {
+  it('event snapshot grants are known read permissions on known families', () => {
+    expect(EVENT_FAMILIES.length).toBeGreaterThan(0);
+    for (const [family, perm] of Object.entries(EVENT_SNAPSHOT_GRANT)) {
+      expect(EVENT_FAMILIES).toContain(family);
+      expect(KNOWN_PERMISSIONS).toContain(perm);
     }
   });
 });

@@ -737,11 +737,12 @@ export interface JournalEntryProvider {
 /** A core-event subscription (#1429 eco). Handlers run with NO user (like a job).
  * Needs `events:subscribe`. */
 export interface PluginEventSubscription {
-  /** A core event name (e.g. `place:created`, `day:updated`, `file:created`) or `*` for all. */
+  /** A core event name `<family>:<verb>` (e.g. `place:created`, `day:updated`, `file:created`)
+   * where `<family>` is a value in EVENT_FAMILIES, or `*` for all. */
   on: string;
   // `entity` = the event family (e.g. 'reservation'); `entityId` = WHICH entity changed,
   // when known. `snapshot` = a whitelisted field view of the changed entity, delivered
-  // only when the plugin also holds the family's db:read:* grant — never user ids,
+  // only when the plugin also holds EVENT_SNAPSHOT_GRANT[family] — never user ids,
   // private packing items or secrets; delete/reorder/bulk events carry none. Still no
   // acting user: a trip read from the handler is refused.
   handler(payload: { event: string; tripId: number; entity?: string; entityId?: number; snapshot?: Record<string, unknown> }, ctx: PluginContext): Promise<void> | void;
@@ -830,6 +831,10 @@ export {
   PermissionDenied, HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, JOBS_PERMISSION,
   grantGaps, grantedHosts, type GrantGap, type PluginEntryPoints,
 } from './permissions.js';
+// The core-event catalog: families and the snapshot-delivery permission each family requires.
+export {
+  EVENT_FAMILIES, EVENT_SNAPSHOT_GRANT, KNOWN_PERMISSIONS,
+} from './generated/host-facts.js';
 
 /** Scope for host-managed, per-user session state in a sandboxed plugin UI. */
 export type PluginSessionStorageScope = 'plugin' | 'trip';
