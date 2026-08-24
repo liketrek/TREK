@@ -778,7 +778,16 @@ export function definePlugin(def: PluginDefinition): PluginDefinition {
   return def;
 }
 
-export { validateManifest, CHANNEL_EVENTS, type PluginManifest, type ValidationResult } from './manifest.js';
+export {
+  validateManifest,
+  CHANNEL_EVENTS,
+  type PluginManifest,
+  type NormalizedManifest,
+  type ValidationResult,
+  type ManifestSettingField,
+  type ManifestAction,
+  type ManifestCapabilities,
+} from './manifest.js';
 export { createMockHost, type MockHostOptions } from './mock-host.js';
 // The permissions TREK enforces OUTSIDE ctx — hooks, events, jobs, egress. An entry
 // point you implement without its grant is never called in production, silently; these

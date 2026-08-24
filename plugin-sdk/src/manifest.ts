@@ -10,24 +10,68 @@ export interface PluginDependency {
   id: string;
   version: string;
 }
+export interface ManifestSettingField {
+  key: string;
+  label?: string;
+  input_type?: string;
+  placeholder?: string;
+  hint?: string;
+  required?: boolean;
+  secret?: boolean;
+  scope?: 'instance' | 'user';
+  options?: Array<string | number | { value: string | number; label?: string }>;
+  oauth?: { initPath?: string; callbackPath?: string };
+}
+export interface ManifestAction {
+  key: string;
+  label?: string;
+  hint?: string;
+  danger?: boolean;
+}
+export interface ManifestCapabilities {
+  settingsUi?: boolean;
+  widget?: { title?: string; defaultSize?: string; slot?: 'sidebar' | 'hero' | 'place-detail' | 'day-detail' | 'reservation-detail' };
+  tripPage?: { replaces?: string[]; position?: number };
+  notificationChannel?: { title?: string; events?: string[] };
+  routeProfiles?: Array<{ id: string; label: string; icon?: string }>;
+  provides?: string[];
+  emits?: string[];
+}
 export interface PluginManifest {
   id: string;
   name: string;
   version: string;
-  apiVersion: number;
-  /** The semver RANGE of TREK versions this plugin supports (">=3.2.0 <4.0.0"). */
   trek: string;
   type: 'integration' | 'page' | 'widget' | 'trip-page';
+  apiVersion?: number;
+  permissions?: string[];
+  egress?: string[];
+  nativeModules?: boolean;
+  operatorEgress?: boolean;
+  requiredAddons?: string[];
+  pluginDependencies?: PluginDependency[];
+  capabilities?: ManifestCapabilities;
+  settings?: ManifestSettingField[];
+  actions?: ManifestAction[];
+  icon?: string;
+  author?: string;
+  description?: string;
+  homepage?: string;
+  tags?: string[];
+  license?: string;
+}
+export interface NormalizedManifest extends PluginManifest {
+  apiVersion: number;
   permissions: string[];
   egress: string[];
-  nativeModules?: boolean;
+  nativeModules: false;
   requiredAddons: string[];
   pluginDependencies: PluginDependency[];
 }
 export interface ValidationResult {
   ok: boolean;
   errors: string[];
-  manifest?: PluginManifest;
+  manifest?: NormalizedManifest;
 }
 
 const ID_RE = /^[a-z][a-z0-9-]{2,39}$/;
@@ -218,13 +262,16 @@ export function validateManifest(raw: unknown): ValidationResult {
       if (routeProfiles.length > 3) errors.push('capabilities.routeProfiles: at most 3 profiles');
       const seen = new Set<string>();
       for (const v of routeProfiles) {
-        const p = (v && typeof v === 'object' ? v : {}) as { id?: unknown; label?: unknown };
+        const p = (v && typeof v === 'object' ? v : {}) as { id?: unknown; label?: unknown; icon?: unknown };
         const id = typeof p.id === 'string' ? p.id : '';
         if (!/^[a-z][a-z0-9-]{0,23}$/.test(id)) errors.push('capabilities.routeProfiles: id must be lowercase [a-z][a-z0-9-], max 24 chars');
         else if (seen.has(id)) errors.push(`capabilities.routeProfiles: duplicate id "${id}"`);
         else seen.add(id);
         const label = typeof p.label === 'string' ? p.label.trim() : '';
         if (!label || label.length > 40) errors.push('capabilities.routeProfiles: label is required (max 40 chars)');
+        // icon is optional and, like the server, never rejected for length — the server
+        // slices to 40 chars at install time rather than refusing the manifest.
+        if (p.icon !== undefined && typeof p.icon !== 'string') errors.push('capabilities.routeProfiles: icon must be a string');
       }
     }
   }
@@ -296,23 +343,31 @@ export function validateManifest(raw: unknown): ValidationResult {
   const pluginDependencies = validatePluginDependencies(m.pluginDependencies, typeof m.id === 'string' ? m.id : '', errors);
 
   if (errors.length) return { ok: false, errors };
-  return {
-    ok: true,
-    errors: [],
-    manifest: {
-      id: m.id as string,
-      name: m.name as string,
-      version: m.version as string,
-      apiVersion: typeof m.apiVersion === 'number' ? m.apiVersion : 1,
-      trek: m.trek as string,
-      type: m.type as PluginManifest['type'],
-      permissions,
-      egress,
-      nativeModules: false,
-      requiredAddons,
-      pluginDependencies,
-    },
+  const manifest: NormalizedManifest = {
+    id: m.id as string,
+    name: m.name as string,
+    version: m.version as string,
+    apiVersion: typeof m.apiVersion === 'number' ? m.apiVersion : 1,
+    trek: m.trek as string,
+    type: m.type as PluginManifest['type'],
+    permissions,
+    egress,
+    nativeModules: false,
+    requiredAddons,
+    pluginDependencies,
   };
+  // Carried through verbatim when present — absent stays absent (no undefined keys).
+  if (m.capabilities !== undefined) manifest.capabilities = m.capabilities as ManifestCapabilities;
+  if (m.settings !== undefined) manifest.settings = m.settings as ManifestSettingField[];
+  if (m.actions !== undefined) manifest.actions = m.actions as ManifestAction[];
+  if (m.operatorEgress !== undefined) manifest.operatorEgress = m.operatorEgress as boolean;
+  if (m.icon !== undefined) manifest.icon = m.icon as string;
+  if (m.author !== undefined) manifest.author = m.author as string;
+  if (m.description !== undefined) manifest.description = m.description as string;
+  if (m.homepage !== undefined) manifest.homepage = m.homepage as string;
+  if (m.tags !== undefined) manifest.tags = m.tags as string[];
+  if (m.license !== undefined) manifest.license = m.license as string;
+  return { ok: true, errors: [], manifest };
 }
 
 // Export/event names exposed to other plugins (dots allowed for event names).
