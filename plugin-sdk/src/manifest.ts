@@ -243,6 +243,33 @@ export function validateManifest(raw: unknown): ValidationResult {
       if (s.scope !== undefined && s.scope !== 'user' && s.scope !== 'instance') {
         errors.push(`settings["${key}"].scope must be "user" or "instance"`);
       }
+      if (s.options !== undefined) {
+        if (!Array.isArray(s.options)) {
+          errors.push('settings option list must be an array');
+        } else {
+          for (const o of s.options) {
+            if (typeof o === 'string' || typeof o === 'number') continue;
+            if (o && typeof o === 'object') {
+              const value = (o as { value?: unknown }).value;
+              if (value === undefined || value === null || String(value) === '') {
+                errors.push('settings option must have a non-empty "value"');
+              }
+            } else {
+              errors.push(`invalid settings option ${JSON.stringify(o)} (expected a string or { value, label })`);
+            }
+          }
+        }
+      }
+      if (s.oauth !== undefined) {
+        if (!s.oauth || typeof s.oauth !== 'object' || Array.isArray(s.oauth)) {
+          errors.push('settings oauth must be an object');
+        } else {
+          for (const k of ['initPath', 'callbackPath'] as const) {
+            const v = (s.oauth as Record<string, unknown>)[k];
+            if (v !== undefined && typeof v !== 'string') errors.push(`settings oauth.${k} must be a string`);
+          }
+        }
+      }
     }
   }
   // Settings-page action buttons ("Test connection"). Keys share the settings-key rules.
