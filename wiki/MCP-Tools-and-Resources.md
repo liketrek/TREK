@@ -76,8 +76,8 @@ Requires `trips:read` or `trips:write` scope.
 | `update_assignment_time` | Set start/end times for a place assignment (e.g. `"09:00"` – `"11:30"`). Pass `null` to clear. Requires `places:write`. |
 | `move_assignment` | Move a place assignment to a different day. Requires `places:write`. |
 | `set_leg_transport_mode` | Set the travel mode of a route leg for a place assignment. `direction` `"outgoing"` (default) targets the leg leaving the stop, `"incoming"` the arriving one. Pass `null` to inherit the day default. Requires `places:write`. |
-| `get_assignment_participants` | Get users participating in a specific place assignment. |
-| `set_assignment_participants` | Set participants for a place assignment (replaces current list). |
+| `get_assignment_participants` | Get users participating in a specific place assignment. Requires `places:read` or `places:write`. |
+| `set_assignment_participants` | Set participants for a place assignment (replaces current list). Requires `places:write`. |
 
 ### Day Notes
 

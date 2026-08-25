@@ -14,7 +14,7 @@ OAuth sessions are created when a user authorizes an MCP client via the OAuth 2.
 
 | Column | Description |
 |--------|-------------|
-| Client name | The name of the registered OAuth client. Granted scopes are shown as badges below the name (up to 6 are shown; click "+N more" to expand) |
+| Client | The name of the registered OAuth client. Granted scopes are shown as badges below the name (up to 6 are shown; click "+N more" to expand) |
 | Owner | The username of the user who authorized the session |
 | Created | Date the session was established |
 | (actions) | Trash icon button to revoke |

@@ -50,7 +50,7 @@ Each item row contains:
 - A **quantity** field (always visible).
 - When bag tracking is enabled: a **weight** field (in grams) and a **bag picker**.
 
-Hovering over an item reveals a **category picker** (colored dot), a **rename** button (pencil icon), and a **delete** button. Add new items using the inline "add item" row at the bottom of each category, or bring a whole list in at once with **Import** (below).
+Each row also carries a **category picker** (colored dot), a **rename** button (pencil icon), and a **delete** button. Add new items using the inline "add item" row at the bottom of each category, or bring a whole list in at once with **Import** (below).
 
 On phones the row keeps the name and reduces everything else: sharing shows as an icon rather than a sentence, a weight nobody entered prints nothing, and edit/delete sit behind the **⋯** button at the end of the row while the list is in edit mode.
 
@@ -94,7 +94,7 @@ Open an item's **Sharing** control (the share icon on the row) to move it betwee
 - **Personal** — *Private — only you can see it.*
 - **Shared with…** — pick specific trip members below the two tier options. The item then shows only on your list and on theirs. (If you're the only one on the trip, this reads *No one else on this trip yet*.)
 
-New items inherit the view you add them in: adding an item while in **My list** makes it Personal, adding it in **Shared** makes it Common. To share an item with specific people, add it first, then open its Sharing control and choose them.
+New items inherit the view you add them in: adding an item while in **My list** makes it Personal, adding it in **Shared** puts it in the shared group pool. To share an item with specific people, add it first, then open its Sharing control and choose them.
 
 Only the item's owner (the person bringing it) can change its sharing. Someone you shared an item *with* just sees it on their **My list** with a **by {name}** badge and can tick it off — they don't manage who else it's shared with.
 

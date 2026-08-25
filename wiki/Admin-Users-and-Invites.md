@@ -28,7 +28,7 @@ Click the pencil icon on any row to open the edit form. You can change:
 - **Username**
 - **Email address**
 - **Role** — a dropdown with **User** and **Administrator**
-- **Password** — set a new password; must be at least 8 characters
+- **Password** — set a new password. It must be at least 8 characters and contain an uppercase letter, a lowercase letter, a number and a special character; commonly used passwords and strings made of a single repeated character are rejected. The same rules apply to the password you set under [Creating a user directly](#creating-a-user-directly). See [Login and Registration](Login-and-Registration#password-requirements).
 
 Click **Save** to apply changes.
 

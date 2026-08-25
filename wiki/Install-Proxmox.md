@@ -84,7 +84,6 @@ If your Proxmox host has multiple network interfaces and you want TREK to listen
 
 ```
 HOST=10.0.0.72   # bind only on this LAN interface
-PORT=3001
 ```
 
 > **Note:** `HOST` is only relevant for source-based and Proxmox installs. Do not use it in Docker or any containerised deployment.

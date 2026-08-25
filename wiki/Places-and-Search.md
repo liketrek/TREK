@@ -25,7 +25,7 @@ When a key is present, the autocomplete uses the Google Places API, which can re
 
 ### Without a Google Maps API key
 
-TREK falls back to OpenStreetMap (Nominatim) automatically — no API key needed. A notice appears above the search box explaining that OpenStreetMap is in use and that photos, ratings, and opening hours are unavailable. Results include name, address, and coordinates.
+TREK falls back to OpenStreetMap (Nominatim) automatically — no API key needed. A notice appears above the search box — *Using OpenStreetMap. A Google API key adds ratings and opening hours.* Results include name, address, and coordinates.
 
 ## Place details while searching
 
@@ -36,7 +36,7 @@ The column shows:
 - **Pictures** near or of the place. Click one to make it that place's thumbnail; click it again to clear the choice. The picture then appears everywhere the place does — list, map marker, itinerary, PDF export and shared trips — exactly like a [custom place image](#custom-place-image).
 - **A description**, when one is available. It is *not* written into the place automatically. Use **Use this text** to copy it into the description field; the button is disabled while you already have a description of your own, so nothing you wrote gets overwritten.
 
-Every picture is credited under its thumbnail with its author, its licence and a link to the source page. Most Wikimedia Commons pictures are CC BY or CC BY-SA, which means the credit has to travel with the picture — so once you pick one, the credit stays visible under the thumbnail in the place's detail panel too.
+One credit line sits under the picture grid, and it belongs to the picture in play: the tile you are hovering, or failing that the one you picked, or the first picture before you have done either. It names the author, links that name to the source page, and adds the licence with a link to its terms. The other tiles carry author and licence as a tooltip only, without the links. Google's pictures get an author line and nothing else, because Google grants no reusable licence for them. Most Wikimedia Commons pictures are CC BY or CC BY-SA, which means the credit has to travel with the picture, so once you pick one, the credit stays visible under the thumbnail in the place's detail panel too.
 
 ### Where the information comes from
 

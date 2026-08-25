@@ -28,12 +28,12 @@ The toolbar provides filter tabs, in this order: **All**, a star icon for **Star
 
 ## Previewing files
 
-Clicking a non-image file (e.g., PDF) opens an inline preview modal with options to open in a new tab or download. Clicking an image file opens a full-screen lightbox. You can:
+Clicking a file that is neither an image nor a video (e.g., PDF or Markdown) opens an inline preview modal with options to open in a new tab or download. `.pkpass` and `.pkpasses` Wallet passes are the exception: clicking one downloads it straight away, so the OS can hand it to Apple Wallet rather than forcing it into the in-app preview. Clicking an image or video file opens a full-screen lightbox. You can:
 
-- Navigate between images using the **arrow buttons** or the **left/right arrow keys**.
+- Navigate between images and videos using the **arrow buttons** or the **left/right arrow keys**.
 - Swipe left/right on touch devices.
-- Jump to a specific image using the **thumbnail strip** at the bottom.
-- Download or open the image in a new tab from the lightbox header.
+- Jump to a specific file using the **thumbnail strip** at the bottom. Videos have no stored thumbnail and show a play placeholder there.
+- Download or open the file in a new tab from the lightbox header.
 
 ## Starring
 

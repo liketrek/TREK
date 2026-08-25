@@ -80,7 +80,7 @@ Flights, trains, cars, and cruises can be drawn as overlays between their endpoi
 
 **Bulk options**, alongside the per-booking toggle:
 
-- **Show all / hide all** — a route icon button in the day-plan toolbar (next to Undo/Reorder) flips every routable booking on the trip on or off at once, without affecting bookings you've toggled individually.
+- **Show all / hide all** — a route icon button in the day-plan toolbar (next to Undo/Reorder) flips the whole trip between showing every routable booking and showing none. It is a clean slate rather than a layer on top: whatever you had set with the per-booking **Route** icons is discarded, so pressing it twice leaves you with all routes on or all off, not back where you started. (Automated public-transit journeys have a second gate of their own — see the transit bullet.)
 - **Always show booking routes** (Settings → General → Travel & map) — an account-wide default that shows every booking's route automatically on any trip you haven't touched before. It sets the *default* only — a trip where you've already used the per-booking toggle or the bulk button keeps its own choice even if you change this setting afterwards.
 
 > **Tip:** Whether endpoint text labels appear on the endpoint markers is your own choice — the **Booking route labels** setting in Settings → General → Travel & map (`map_booking_labels`). It is off by default; with it off, the endpoint markers show only the transport icon.

@@ -24,7 +24,7 @@ TREK is a self-hosted, real-time collaborative travel planner licensed under AGP
 ### Collaboration
 - **Real-Time Sync** — WebSocket-based live sync; changes appear instantly for all connected users
 - **Multi-User** — invite members with role-based access
-- **Invite Links** — one-time registration links with configurable max uses and expiry
+- **Invite Links** — registration links with configurable max uses (1–5 or unlimited) and expiry
 - **OIDC SSO** — sign in with Google, Apple, Authentik, Keycloak, or any OIDC provider
 - **Two-Factor Authentication** — TOTP-based 2FA with QR code setup
 - **Passkeys** _(admin-enabled)_ — passwordless WebAuthn sign-in with Touch ID, Windows Hello, Android screen lock, or a hardware key; owning one also satisfies the require-2FA policy (see [Passkeys](Passkeys))

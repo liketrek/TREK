@@ -14,7 +14,7 @@ Putting TREK behind a TLS-terminating reverse proxy is strongly recommended for 
 Whatever proxy you use, it must satisfy three constraints:
 
 1. **WebSocket upgrades on `/ws`** — TREK uses WebSockets for real-time sync. Set `proxy_read_timeout 86400` (Nginx) or rely on Caddy's automatic upgrade handling.
-2. **Body size ≥ 500 MB** — backup restore ZIPs can include the full uploads directory. Set `client_max_body_size 500m` (Nginx) or `request_body_max_size 500mb` (Caddy) if you restore large backups.
+2. **Body size ≥ 500 MB** — backup restore ZIPs can include the full uploads directory. Set `client_max_body_size 500m` (Nginx); Caddy imposes no request-body limit of its own, so it already passes them — just keep any `request_body { max_size … }` block you have at `500mb` or more.
 3. **Pass the `Mcp-Session-Id` header through on `/mcp`** — if you use MCP. See below.
 
 ## Nginx
@@ -43,8 +43,11 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 86400;
-        # File uploads are capped at 50 MB; backup restore ZIPs can include the full
-        # uploads directory and may exceed that — raise this value if restores fail.
+        # Documents are capped at 50 MB and photos/covers at 20 MB, but video
+        # uploads go up to 500 MB — both journey gallery clips and videos in a
+        # trip's file manager. Backup restore ZIPs can include the full uploads
+        # directory and may exceed even that (see BACKUP_UPLOAD_LIMIT_MB, default
+        # 500) — raise this value if uploads or restores fail.
         client_max_body_size 500m;
     }
 
@@ -75,11 +78,13 @@ trek.yourdomain.com {
 }
 ```
 
-For large backup restores, add:
+Caddy applies no request-body limit by default, so large backup restores already pass through the config above. Only add `request_body` if you want to cap uploads deliberately — and then keep the cap at 500 MB or more. It is a block, not a one-line directive:
 
 ```
 trek.yourdomain.com {
-    request_body max_size 500mb
+    request_body {
+        max_size 500mb
+    }
     reverse_proxy localhost:3000
 }
 ```

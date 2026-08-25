@@ -51,7 +51,7 @@ On screens narrower than 768 px, TREK does not squeeze the three-pane layout —
 
 ## Undo
 
-The planner tracks your recent actions — adding places, assigning them to days, reordering, and removing assignments — in a short undo ring. The **Undo** button appears in the Day Plan Sidebar toolbar (at the top of the sidebar) whenever an undoable action is available. It shows the name of the last action as a tooltip on hover and reverses it when clicked.
+The planner tracks your recent actions — adding places, assigning them to days, reordering, and removing assignments — in a short undo ring. The **Undo** button sits in the Day Plan Sidebar toolbar (at the top of the sidebar); it is greyed out until an undoable action is available. It shows the name of the last action as a tooltip on hover and reverses it when clicked.
 
 ## Splash Screen
 

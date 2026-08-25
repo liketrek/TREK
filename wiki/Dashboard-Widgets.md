@@ -31,11 +31,11 @@ The currency converter lets you quickly convert an amount between two currencies
 1. Enter an amount in the input field.
 2. Select a source currency from the left selector.
 3. Select a target currency from the right selector.
-4. The converted amount is displayed immediately below.
+4. The converted amount appears in the right-hand ("To") field, directly opposite the amount you entered and above the target-currency selector — shown to two decimals, without a currency symbol. Below the row, the current rate is printed as `1 EUR = 1.0850 USD`; if no rate could be fetched, the field shows `—` and the line reads "Rate unavailable".
 
 You can also click the swap arrow to reverse source and target.
 
-**Exchange rates** are fetched from [Frankfurter](https://frankfurter.dev) using the `https://api.frankfurter.dev/v2/rates?base={from}` endpoint. Rates are refreshed each time you change a currency or click the refresh icon.
+**Exchange rates** are fetched from [Frankfurter](https://frankfurter.dev) using the `https://api.frankfurter.dev/v2/rates?base={from}` endpoint. One request returns every quote for the source currency, so rates are re-fetched when you change the source currency (including via the swap arrow) or click the refresh icon; changing only the target currency re-uses the rates already loaded.
 
 **Supported currencies:** 165 currencies are available in the selector — the full set Frankfurter v2 supports, including all major fiat currencies (USD, EUR, GBP, JPY, etc.) and many minor ones.
 

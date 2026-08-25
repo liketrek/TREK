@@ -12,7 +12,7 @@ AI parsing does not replace [KDE Itinerary](Reservations-and-Bookings) — it ba
 
 1. Every uploaded file is parsed by KDE Itinerary first.
 2. Only files that Itinerary returns **nothing** for are sent to the AI model.
-3. Every reservation the AI produces is flagged **Review** so you can confirm it before (or after) saving.
+3. Because LLM extraction is less certain, every reservation the AI produces is marked for review internally, and the import walks you through the normal editor item by item to confirm and correct it before it is saved. The mark never becomes a visible badge: the review editor saves each booking as reviewed, so a saved AI import carries no **Review** flag.
 
 So structured tickets keep being parsed the fast, deterministic way; the AI only steps in for the documents that would otherwise fail. If the addon is disabled, import behaves exactly as before. On an install without the extractor there is nothing to back up — every file goes straight to the model.
 
@@ -83,7 +83,7 @@ It is a retry, not a different route — on a normal import the model has alread
 The model is asked to capture the full booking — including **every leg of a multi-segment flight** — and, on save, TREK wires each item into the trip:
 
 - **Fields** — booking/confirmation code, dates and times, and per type: seat, class, platform, total price and currency; hotels bring their address, rental cars their company, restaurants and events their venue with phone and website.
-- **Places** — hotel, restaurant and event venues (and un-geocoded transport stops) are geocoded and added as trip places, so the map pin appears.
+- **Places** — only a **hotel** booking becomes a trip place. On save the review editor reuses an existing trip place whose name matches; otherwise the reviewed address is geocoded and a new place is created and linked, so the map pin appears. Transport stops are geocoded while the files are parsed, but they are stored on the booking as its **From → To endpoints**, not as trip places — a stop that could not be located is listed as a warning on the parse result and is dropped when you save, so fix it in the review editor first. Restaurant and event venues arrive only as the booking's location text: the editor can link a place that already exists in the trip, but it never creates one for you.
 - **Accommodations** — a hotel booking creates the accommodation on the matching check-in/check-out days.
 - **Linked cost** — if the [Costs/Budget addon](Budget-Tracking) is enabled and the booking has a price, a linked expense is created. Without that addon, the price stays on the reservation only.
 - **Source document** — the uploaded file is attached to the reservation's files.

@@ -155,7 +155,7 @@ The panel loads 100 entries at a time by default. Click **Load more** at the bot
 
 The client IP is the one Express resolves after applying `TRUST_PROXY`, not whatever the `X-Forwarded-For` header happens to say. That distinction matters: the header is written by the caller, and an audit row an attacker can address to someone else's IP is worse than no row at all.
 
-`TRUST_PROXY` is **the number of proxy hops in front of TREK**, and it has to be accurate. With `TRUST_PROXY=1` (the default) TREK trusts exactly one hop, so a request that passed through two proxies is recorded as coming from the *inner* one. If your setup is Cloudflare in front of nginx in front of TREK, set `TRUST_PROXY=2`. Set it to `0` to trust nothing and always record the socket address.
+`TRUST_PROXY` is **the number of proxy hops in front of TREK**, and it has to be accurate. With `TRUST_PROXY=1` (the default) TREK trusts exactly one hop, so a request that passed through two proxies is recorded as coming from the *outer* one — the Cloudflare edge in the example below, not nginx and not the real client. If your setup is Cloudflare in front of nginx in front of TREK, set `TRUST_PROXY=2`. Set it to `0` to trust nothing and always record the socket address.
 
 See [Environment-Variables](Environment-Variables).
 

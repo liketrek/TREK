@@ -43,7 +43,7 @@ Each entry corresponds to a day in your journey. The entry editor provides:
 
 ### Getting around a long journal
 
-Everything that adds to a journal sits at the top of the page — the **Add Entry** button, the gallery upload — while what you were last reading sits at the bottom. Two small buttons ride along the left edge of the timeline once there is more than a screenful to travel: one jumps back to the top, the other to the last entry. Each appears only when there is somewhere to go in that direction.
+Everything that adds to a journal sits at the top of the page — the **Add Entry** button, the gallery upload — while what you were last reading sits at the bottom. On desktop, two small round buttons float centred over the timeline, just above its bottom edge, once there is more than 400 px of scroll to travel: one jumps back to the top, the other to the last entry. Each appears only when there is somewhere to go in that direction.
 
 ### External photos
 

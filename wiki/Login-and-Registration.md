@@ -21,7 +21,7 @@ The **Remember me** switch below the password field decides how long the session
 
 Both durations are configurable per instance, see [Environment-Variables](Environment-Variables). Your choice is carried through the MFA step, through a password change, and through SSO sign-in. While you keep using TREK the cookie is silently re-issued once the token is past half its lifetime, with the same Remember me semantics, so an active session never expires mid-use. Only cookie sessions are renewed this way — API and MCP clients authenticating with a bearer token are not.
 
-Sign-ins that never pass through this switch — registration, the **"Try demo"** button and passkey sign-in — get the historical default instead: a persistent cookie lasting `SESSION_DURATION`.
+Sign-ins that never pass through this switch — registration, the demo button and passkey sign-in — get the historical default instead: a persistent cookie lasting `SESSION_DURATION`.
 
 ### Forced password change
 
@@ -89,7 +89,7 @@ Forgot-password requests are rate-limited to **3 attempts per 15-minute window**
 
 ## Demo mode
 
-When the server is started with `DEMO_MODE=true`, a **"Try demo"** button appears below the login form. Clicking it signs you in as the demo user without entering credentials. The demo credentials (`demo@trek.app` / `demo12345`) are also displayed in the app config for reference, but the one-click button is the intended entry point.
+When the server is started with `DEMO_MODE=true`, a **"Try the demo — no registration needed"** button appears below the login form. Clicking it signs you in as the demo user without entering credentials. The demo credentials (`demo@trek.app` / `demo12345`) are also displayed in the app config for reference, but the one-click button is the intended entry point.
 
 ## SSO
 

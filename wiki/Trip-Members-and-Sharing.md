@@ -4,8 +4,8 @@
 
 ## Opening the Members Panel
 
-- From the **dashboard**: click the share/members icon on a trip card.
 - From the **trip planner**: click the Share button in the top navigation bar.
+- On **mobile**: open the trip, then **More** → **Share Trip**.
 
 When you have the `share_manage` permission the modal opens to a two-column layout on wider screens (members on the left, share link on the right). Without that permission only the members column is shown. On narrow screens the columns always stack.
 
@@ -111,7 +111,7 @@ Changes to toggles take effect immediately for an existing link.
 
 ### Deleting a Link
 
-Click **Delete link** (red button below the URL) to revoke access. The token is invalidated and existing viewers are redirected.
+Click **Delete link** (red button below the URL) to revoke access. The token is invalidated; anyone who opens the old URL now sees *Link expired or invalid*.
 
 ## Trip Invite Link
 

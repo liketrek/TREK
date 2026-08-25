@@ -63,7 +63,7 @@ Toggle the **Priority** button in the sidebar to sort the current task list from
 
 ## Adding tasks
 
-Click the **+ Add task** button in the top-right corner of the Lists panel header (visible when the **Todo** sub-tab is active). A new-task form opens as a modal where you can set all fields before saving. On mobile it slides up from the bottom of the screen.
+Click the **+ Add new task** button in the top-right corner of the Lists panel header (visible when the **To-Do** sub-tab is active). A new-task form opens as a modal where you can set all fields before saving. On mobile it slides up from the bottom of the screen.
 
 ## Permissions
 

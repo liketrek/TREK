@@ -14,7 +14,7 @@ Open the Day Plan sidebar in the trip planner and click the **Export** button in
 
 ### Cover page
 
-- Blurred cover image as background (if the trip has one), with the same image in a circular badge
+- Faded cover image as background (if the trip has one), with the same image in a circular badge
 - Trip title and description
 - Date range (first day to last day)
 - Stat tiles:

@@ -1,6 +1,6 @@
 # Collections
 
-Collections is a personal, server-wide library of saved places that lives outside of any single trip. Keep multiple named lists of places you have discovered — a "Norway road trip" wishlist, "Best coffee in Lisbon", "Someday" — each with a want-to-go / visited status, and share a list with other users.
+Collections is a personal, server-wide library of saved places that lives outside of any single trip. Keep multiple named lists of places you have discovered — a "Norway road trip" wishlist, "Best coffee in Lisbon", "Someday" — each place carrying an idea / want-to-go / visited status, and share a list with other users.
 
 > **Admin:** enable Collections in [Admin-Addons](Admin-Addons).
 
@@ -90,7 +90,7 @@ When sharing, the owner assigns each member a permission role, and can change it
 
 | Role | Can do |
 |---|---|
-| **Viewer** | View the list and copy its places into their own trips, and filter by label — no changes to the list. |
+| **Viewer** | View the list, cast their own star rating on its places, copy its places into their own trips, and filter by label — no other changes to the list. |
 | **Editor** *(default)* | Add new places and edit existing ones, and manage + assign the list's labels. |
 | **Admin** | Everything an editor can, plus delete places. |
 

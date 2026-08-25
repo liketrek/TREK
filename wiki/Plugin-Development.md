@@ -701,10 +701,12 @@ context, so media queries inside it measure the frame, and they work.
 ## Settings
 
 Declare settings in the manifest; TREK renders the form (you write no settings
-UI). `scope: "instance"` settings are set once by the admin; `scope: "user"`
-settings are per-user. `secret: true` fields are stored encrypted and delivered
-decrypted through `ctx.config` (server-side only) — never to the iframe. Resolved
-values arrive in `ctx.config`.
+UI). `scope: "instance"` settings are set once by the admin and arrive resolved in
+`ctx.config`; `scope: "user"` settings are per-user and are read one key at a time
+with `await ctx.settings.get(key)` (a userless job / `onLoad` gets `undefined` —
+fall back to `ctx.config` there). `secret: true` fields are stored encrypted and
+delivered decrypted through whichever of the two applies (server-side only) —
+never to the iframe.
 
 ### A custom settings page (`capabilities.settingsUi`)
 
@@ -744,8 +746,8 @@ if (!token) return { status: 401, body: 'connect this plugin first' }
 Grant `hook:user-data` and implement either handler to honour data-subject rights. Both are **userless** — the plugin only receives the `userId` and acts on its **own** `ctx.db`:
 
 ```js
+// trek-plugin.json: "permissions": ["db:own", "hook:user-data"]
 module.exports = definePlugin({
-  permissions: ['db:own', 'hook:user-data'],
   async deleteUserData({ userId }, ctx) {           // erasure
     await ctx.db.exec('DELETE FROM my_prefs WHERE user_id = ?', userId)
   },
@@ -989,8 +991,8 @@ place/day/reservation/accommodation/assignment/trip, `db:read:costs` for budget,
 file). Without that grant you get exactly the id hint, as before:
 
 ```js
+// trek-plugin.json: "permissions": ["events:subscribe", "db:read:trips"]
 module.exports = definePlugin({
-  permissions: ['events:subscribe', 'db:read:trips'],
   events: [
     { on: 'reservation:created', async handler({ event, tripId, entityId, snapshot }, ctx) {
         // with db:read:trips the snapshot carries the reservation's fields
@@ -1318,7 +1320,7 @@ guard optional `ctx.*` namespaces.
 | `db:meta` | `ctx.meta.*` — your own namespaced data on a trip/place/day/reservation/accommodation |
 | `db:read:users` | `ctx.users.getById` |
 | `events:subscribe` | receive core activity events via `events: [...]` (event name + tripId + a { entity, entityId } hint, plus a whitelisted entity **snapshot** when the plugin also holds the family's `db:read:*` grant; never a user) |
-| `hook:trip-card-provider` | `hooks.tripCardProvider` — small badges on the dashboard trip cards |
+| `hook:trip-card-provider` | `hooks.tripCardProvider` — small badges on the dashboard trip cards (`getCards(tripIds, ctx)` → `{ tripId, id, label, value?, icon?, tone?, url? }[]`; `id` is required — a badge without one is dropped; the host bounds every field and access-checks each tripId) |
 | `jobs:run` | run declared background `jobs` on their cron schedule **and** `ctx.scheduler` runtime timers → `scheduled` handler (opt-in; no user, so trip reads are refused) |
 | `ws:broadcast:trip` | `ctx.ws.broadcastToTrip` |
 | `ws:broadcast:user` | `ctx.ws.broadcastToUser` |
@@ -1334,7 +1336,6 @@ guard optional `ctx.*` namespaces.
 | `hook:pdf-section-provider` | `hooks.pdfSectionProvider` — sections appended to the trip PDF export |
 | `hook:atlas-layer-provider` | `hooks.atlasLayerProvider` — per-user country tint layers on the Atlas map |
 | `hook:journal-entry-provider` | `hooks.journalEntryProvider` — extra rows on a journal entry card |
-| `hook:trip-card-provider` | `hooks.tripCardProvider` — small badges on the dashboard trip cards (`getCards(tripIds, ctx)` → `{ tripId, label, value?, icon?, tone?, url? }[]`; host bounds every field + access-checks each tripId) |
 | `hook:user-data` | `deleteUserData` / `exportUserData` handlers — honour GDPR erasure (durable, retried) and data-export for a deleted/requesting user (userless; own db only) |
 | `hook:photo-provider` | `hooks.photoProvider` — a photo source for Memories, aggregated at `GET /api/plugin-photos/search` (see [Provider hooks](#provider-hooks)) |
 | `hook:calendar-source` | `hooks.calendarSource` — calendar events for the signed-in user, aggregated at `GET /api/plugin-calendar` (see [Provider hooks](#provider-hooks)) |
@@ -1357,10 +1358,10 @@ guard optional `ctx.*` namespaces.
 | `oauth` | `{ initPath, callbackPath }` for OAuth flows. |
 
 **Page nav:** the host builds a page plugin's nav entry from the top-level `name`
-and `icon` — the installed-manifest parser only consumes `capabilities.widget`, so
-there is nothing else to set. `icon` must be a real lucide name: TREK resolves it at
-render time and silently falls back to `Blocks`, which makes a typo invisible locally,
-so `validate` rejects one.
+and `icon` — there is no `capabilities.nav`, so there is nothing else to set.
+`icon` must be a real lucide name: TREK resolves it at render time and silently
+falls back to `Blocks`, which makes a typo invisible locally, so `validate`
+rejects one.
 
 See [[Plugin Permissions|Plugin-Permissions]] for the full permission model.
 
@@ -1374,7 +1375,7 @@ whatever else it needs. Pass a command explicitly to skip the menu (and for scri
 CI). `trek-plugin help <command>` — or `trek-plugin <command> --help` — prints a full
 page for any command.
 
-**The path is four commands**, and the other nine are steps one of them already does:
+**The path is four commands**, and the other ten are steps one of them already does:
 
 ```bash
 trek-plugin create [name] [--type integration|page|widget|trip-page]

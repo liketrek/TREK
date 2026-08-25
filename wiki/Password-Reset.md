@@ -14,7 +14,7 @@ TREK supports email-based self-service password reset. On the login page, click 
 2. Enter your email address and submit.
 3. Open the reset link from your email (or console) — valid for **60 minutes**.
 4. Enter a new password. If your account has **MFA enabled**, you must also supply a valid TOTP code or backup code before the reset completes.
-5. After a successful reset you are redirected to login. **All existing sessions are invalidated** — every device is signed out immediately.
+5. After a successful reset the page shows a **Password updated** confirmation ("You can now sign in with your new password.") with a **Sign In** button back to the login page — there is no automatic redirect. **All existing sessions are invalidated** — every device is signed out immediately.
 
 ### Security properties
 

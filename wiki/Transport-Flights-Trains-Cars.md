@@ -6,11 +6,11 @@ Log flights, trains, car rentals, and cruises with departure and arrival endpoin
 
 ## Where to create
 
-Open the **Transports** tab in the trip planner and click **Add**, or open the planner from a day view and use the transport shortcut. Transport records appear in the [Reservations](Reservations-and-Bookings) panel alongside other bookings.
+Open the **Transports** tab in the trip planner and click **Add**, or open the planner from a day view and use the transport shortcut. Transport records stay on the **Transports** tab — the [Bookings](Reservations-and-Bookings) tab lists only the non-transport reservations (accommodation, restaurant, event, tour, parking, other), so the same record never shows up on both. Transports do appear next to your other bookings in two other places: inline in the day plan, and on a [public share link](Public-Share-Links), whose single **Bookings** tab lists reservations and transport together.
 
 ## Public transit search
 
-The **Add transport** dialog has two modes: **Manual transport** (the classic form) and **Automated transport** — a public-transit route search powered by [Transitous](https://transitous.org/), free open data with no API key or paid provider. The **transit button** (tram icon) on each day header opens the dialog straight in the Automated mode. (The rename pencil this button replaced moved next to the day name in the day detail panel.)
+The **Add transport** dialog has two modes: **Manual** (the classic form) and **Automated** — a public-transit route search powered by [Transitous](https://transitous.org/), free open data with no API key or paid provider. The **transit button** (tram icon) on each day header opens the dialog straight in the Automated mode. (The rename pencil this button replaced moved next to the day name in the day detail panel.)
 
 You can also start the search from a single leg: click the travel-time connector between two stops in the day plan and pick **Public transit** from the menu. The search opens with that leg's start and end already filled in and the departure time taken from the stop you are leaving.
 
@@ -19,7 +19,7 @@ The mode switch only appears when the trip has a **start date and an end date** 
 - Pick **from** and **to** (stop/station search; the day's own places and hotels appear as quick picks), a **depart/arrive** time, and filter by mode: train, subway, tram, bus, ferry, cable car.
 - Rank the results by **best route**, **fewer transfers**, or **less walking**.
 - Each result shows local departure/arrival times, duration, transfers, walking time and the line badges in their official colors; expand it for the stop-by-stop breakdown.
-- **Add to day** saves the chosen connection as a first-class **transit** entry. It slots into the day timeline at its departure time and shows its line badges, transfers and walking time right in the plan. Clicking it opens the **journey view**: the full stop-by-stop itinerary together with the editable booking fields (title, status, confirmation code, notes), a **Change route** action that re-runs the search and replaces the itinerary, and delete. In the Transports tab these journeys appear in their own **Automated public transit** section.
+- **Add to day** saves the chosen connection as a first-class **transit** entry. It slots into the day timeline at its departure time and shows its line badges, transfers and walking time right in the plan. Clicking it opens the **journey view**: the full stop-by-stop itinerary together with the editable title and notes, a **Change route** action that re-runs the search and replaces the itinerary, and delete. In the Transports tab these journeys appear in their own **Automated public transit** section.
 
 Self-hosters can point the `TRANSIT_API_URL` environment variable at their own MOTIS instance.
 
@@ -54,16 +54,19 @@ Once you select an airport, the **timezone** for that airport appears next to th
 
 ### Trains, cars, and cruises
 
-Departure and arrival fields use the **generic location picker** — search by place name or enter a free-text location. Results come from the maps search service.
+Departure and arrival fields use the **generic location picker** — type at least three characters and pick one of the search results; a name that is only typed, never picked, is not saved. Results come from the maps search service.
 
 For the **Car** type the date fields are relabelled to match a rental: the departure side reads **Pickup** and **Pickup time**, the arrival side **Return** and **Return time**. There is no separate car-rental type — a rental and your own car are both logged as Car.
 
 ## Flight-specific fields
 
-When the type is set to Flight, two additional fields appear:
+When the type is set to Flight, three additional fields appear on every leg:
 
 - **Airline** — carrier name (e.g. Lufthansa)
 - **Flight number** — (e.g. LH 123)
+- **Seat** — seat number (e.g. 12A)
+
+A flight with more than two airports gets a fourth per-leg field, its own **booking / confirmation code**, so each segment of a connecting itinerary can carry its own reference.
 
 ## Train-specific fields (multi-leg route)
 

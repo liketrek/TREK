@@ -12,7 +12,7 @@ The compose file ships with several hardening options enabled by default:
 
 | Setting | What it does |
 |---|---|
-| `read_only: true` | Mounts the container filesystem read-only; only the two named volumes and `/tmp` are writable |
+| `read_only: true` | Mounts the container filesystem read-only; only the two mounted volumes (`/app/data`, `/app/uploads`) and `/tmp` are writable |
 | `security_opt: no-new-privileges:true` | Prevents the process from gaining additional Linux privileges via setuid/setgid executables |
 | `cap_drop: [ALL]` | Drops all Linux capabilities from the container |
 | `cap_add: [CHOWN, SETUID, SETGID]` | Adds back only the capabilities needed for the entrypoint to drop privileges to the `node` user |

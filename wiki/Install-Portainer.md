@@ -64,7 +64,7 @@ How you update depends on the tag you chose:
 
 ![Edit stack page with an arrow pointing to the Update the stack button](assets/portainer-update-stack.png)
 
-> Back up your data before any update. Go to **Admin Panel → Backups** or copy your `./data` and `./uploads` directories. See [Backups](Backups).
+> Back up your data before any update. Go to **Admin Panel → Backup** or copy your `./data` and `./uploads` directories. See [Backups](Backups).
 
 ## Volumes
 

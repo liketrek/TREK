@@ -10,7 +10,9 @@ for the permission catalogue see [[Plugin Permissions|Plugin-Permissions]].
 > need that user's `*_edit` permission. A read/write you're not allowed to do fails
 > loudly; it never silently escalates.
 
-The complete, runnable version of these recipes is the
+A runnable version of a handful of these recipes — reading a trip's places and
+bookings, raising validation warnings, contributing a place-detail row, and the
+entity metadata behind it — is the
 [`trip-doctor`](https://github.com/liketrek/TREK/tree/main/plugin-sdk/examples/trip-doctor)
 example plugin.
 
@@ -137,14 +139,14 @@ carry none.
 ```js
 events: [
   { on: 'file:created', async handler({ tripId, entityId }, ctx) {
-      await notifySlack(`New file on trip ${tripId}`)   // needs http:outbound
+      await notifySlack(`New file on trip ${tripId}`)   // needs http:outbound:<host>
   } },
 ]
 ```
 
 Fire-and-forget on a short timeout — never blocks a core write. Trip reads are
-refused (no user); use `ctx.db`, `ctx.ws.*`, or an outbound call. Your own
-`plugin:*` broadcasts are never re-delivered, so handlers can't loop.
+refused (no user), and so are `ctx.ws.*` broadcasts; use `ctx.db` or an outbound
+call. Your own `plugin:*` broadcasts are never re-delivered, so handlers can't loop.
 
 ## Depend on another plugin — call it and hear its events
 
@@ -324,7 +326,7 @@ Output is **data**. To store it, push it through a gated write yourself (e.g. `c
 
 ## Call a third-party API the user connected
 
-**Needs:** `oauth:client` (and `http:outbound` for the fetch)
+**Needs:** `oauth:client` (and `http:outbound:<host>` for the fetch)
 
 The user connects the service under Settings → Plugins → Connect. The host keeps the refresh token and client secret; you only ever get a short-lived access token for the acting user.
 
@@ -354,7 +356,7 @@ Tenant-free and cached upstream — no trip access needed.
 
 **Needs:** `jobs:run`
 
-Two flavours: a fixed **cron job** declared in the manifest, or a **dynamic timer** you set at runtime via `ctx.scheduler`.
+Two flavours: a fixed **cron job** declared on the plugin definition, or a **dynamic timer** you set at runtime via `ctx.scheduler`.
 
 ```js
 module.exports = {

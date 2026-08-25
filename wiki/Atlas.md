@@ -51,7 +51,7 @@ Your Atlas statistics panel shows:
 - **Countries visited** — total number of distinct countries you have actually been to. Countries from upcoming trips are counted separately and shown next to this number.
 - **Trips** — total number of trips across all time.
 - **Places** — total number of individual places logged in trips.
-- **Cities** — total number of distinct cities visited. Derived from the addresses of your places, read from the administrative end of the address and cross-checked against the region the map resolved for that place, so a restaurant or a street is never mistaken for a city.
+- **Cities** — total number of distinct cities visited, derived from the addresses of your places. TREK drops the last comma-separated part (the country), then walks back through the remaining parts and takes the first one that is still non-empty once digits, hyphens and postal marks are stripped, lower-cased so spelling variants collapse into a single entry. This is a heuristic over a formatted address string rather than a lookup, so the figure is approximate: a short address such as `Osteria Francescana, Italy` leaves nothing but the place's own name, and an address whose administrative tail ends on a state or prefecture (`…, Shibuya, Tokyo, 150-0002, Japan`) counts that region rather than the city.
 - **Travel days** — total days spent travelling.
 - **Continent breakdown** — number of countries visited per continent (Europe, Asia, North America, South America, Africa, Oceania). Antarctica joins the row once you have been.
 - **Travel streak** — number of consecutive years in which you have taken at least one trip.

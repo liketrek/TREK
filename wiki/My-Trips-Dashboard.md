@@ -22,7 +22,7 @@ Trips without dates are treated as past.
 
 ## Spotlight Card
 
-The first ongoing trip — or the next upcoming trip if none is ongoing — is promoted to a full-width **Spotlight card** at the top of the grid on desktop. On mobile this card appears as a hero at the top of the page. The spotlight card shows a progress bar for ongoing trips and a stats strip (days, places, travel companions).
+The first ongoing trip — or the next upcoming trip if none is ongoing — is promoted to a full-width **Spotlight card** at the top of the grid on desktop, where it shows the travel companions, the trip dates, a countdown and the places as a boarding pass. On mobile this card appears as a hero at the top of the page, with a progress bar for ongoing trips and a stats strip (days, places, travel companions).
 
 If you have no trips yet, the spotlight card is not shown.
 
@@ -44,7 +44,7 @@ See [Dashboard-Widgets](Dashboard-Widgets) for full usage details.
 
 ## Per-Trip Actions
 
-On desktop, hover over a card (or open the row actions in list view) to reveal the action buttons — they appear on mouse-over only. On mobile, action buttons are always visible directly on the card cover. The available actions are:
+On desktop the action buttons sit on the card cover at all times — hovering the card only lifts them from a slightly dimmed resting state to full opacity, and list rows carry the same buttons on their cover. On mobile, action buttons are always visible directly on the card cover. The available actions are:
 
 | Action | Permission required |
 |---|---|

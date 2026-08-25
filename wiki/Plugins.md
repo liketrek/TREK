@@ -141,7 +141,7 @@ blue pulse = starting, red = error, amber = disabled/incompatible, faint = inact
 the name and version, a **Reviewed** shield if applicable, a **Sideloaded** tag
 for manually-uploaded plugins (see [Installing](#installing-a-plugin)), and
 **capability chips** derived from its declared permissions — "Reads your trips",
-"Reads costs" / "Writes costs", "Dashboard widget", "Real-time updates",
+"Reads your costs" / "Adds costs", "Dashboard widget", "Real-time updates",
 "Provides photos", outbound hosts, and so on — so a plugin's real reach is
 legible without opening anything.
 
@@ -237,9 +237,11 @@ install. But a plugin that talks to a **self-hosted service** — a Gotify, an n
 Uptime Kuma — cannot know *your* hostname when it is published. Such a plugin declares
 `operatorEgress`, and you supply the hosts yourself.
 
-The plugin card shows a **"+ hosts"** chip when it works this way. Open **⋯ → Allowed
-hosts** and add the hostname (e.g. `gotify.mydomain.com`). TREK restarts the plugin so it
-picks up the new list.
+Before install, the detail modal marks such a plugin with a **"+ hosts you add"** pill
+under *Connects to*. On the installed row it shows an **Add allowed host** chip
+(**{n} allowed host(s)** once you have added some). Open **⋯ → Allowed hosts** and add
+the hostname (e.g. `gotify.mydomain.com`). TREK restarts the plugin so it picks up the
+new list.
 
 What this does *not* let anyone do:
 
@@ -265,7 +267,8 @@ plugin took while acting for you — across all plugins, newest first: each trip
 cost it read, each place it wrote, each outbound call TREK made on its behalf.
 
 This is the user-facing half of TREK's tamper-evident (hash-chained) plugin
-audit: admins see the per-plugin view in **Admin → Plugins**, while this view is
+audit: the same chain is readable per plugin over the admin API
+(`GET /api/admin/plugins/:id/audit`), while this view is
 **never admin-gated** — anyone can review what was done with their own data. It's
 what keeps a plugin's deliberately broad read grants accountable to the person
 whose data is read. See [[Plugin Permissions|Plugin-Permissions]] for what each

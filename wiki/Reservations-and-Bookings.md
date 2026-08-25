@@ -60,7 +60,7 @@ Each card displays:
   - Flights: airline name, flight number
   - Trains: train number, platform, seat
   - Hotels: check-in window, check-out time (see [Accommodations](Accommodations))
-- **Location / address** — for non-hotel, non-transport types
+- **Location / address** — whenever the booking has one; for a hotel this is the address from its hotel block
 - **Linked accommodation** — hotel name, if this reservation is linked to an accommodation record
 - **Day-plan assignment** — the day and place this reservation is linked to
 - **Link** — the booking URL, opened in a new tab. A link with a scheme TREK refuses to open is shown as plain text instead
@@ -143,7 +143,7 @@ With the **AirTrail** integration addon enabled and your instance connected unde
 
 When selected flights form a connection — each leg departs from the airport the previous one landed at, onward within 24 hours — the picker groups them and offers to **import them as one flight with a layover**. The offer is on by default; untick it to keep separate bookings. A joined booking keeps each leg's own airline, flight number, times and seat, the connection airport becomes a layover **stop** on the route, and each leg files into its own day in the planner. Since a stop is not a destination, the layover country no longer shows up as visited in Atlas.
 
-AirTrail itself has no multi-leg flights, so a joined booking is imported **without live sync** (it shows the *Not synced* badge). Its source flights stay recognised — the picker will not offer them for import again. The same applies when you add a stop to a synced single flight by hand: the booking detaches from AirTrail instead of syncing a shape AirTrail cannot represent.
+AirTrail itself has no multi-leg flights, so a joined booking is imported **without live sync**. It keeps the blue **AirTrail** badge — hover it and the tooltip says the layover has no single AirTrail flight to sync back to. The grey *Not synced* badge means something else: that flight was removed in AirTrail. Its source flights stay recognised — the picker will not offer them for import again. The same applies when you add a stop to a synced single flight by hand: the booking detaches from AirTrail instead of syncing a shape AirTrail cannot represent.
 
 ## Editing and deleting
 

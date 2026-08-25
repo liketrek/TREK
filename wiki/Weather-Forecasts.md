@@ -26,7 +26,7 @@ The Day Detail panel weather widget displays:
 | Date range | Data source | Cache TTL |
 |---|---|---|
 | Within 16 days (today −1 day to today +16 days) | Open-Meteo forecast API | 1 hour |
-| More than 1 day in the past | Open-Meteo archive API (actual historical data) | 24 hours |
+| More than 1 day in the past | Open-Meteo archive API (actual historical data), for the compact sidebar badge. The Day Detail panel asks the forecast API for past days too | 24 hours (1 hour in the Day Detail panel) |
 | More than 16 days in the future | Climate estimate from the same date in the prior year | 24 hours |
 
 Far-future estimates are labeled with a **Ø** prefix (e.g. "Ø 18 °C") to make it clear they are climate estimates, not a real forecast. The compact sidebar badge re-fetches silently in the background if a cached climate estimate could be upgraded to a live forecast.

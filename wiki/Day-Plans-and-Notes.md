@@ -24,7 +24,7 @@ Items are sorted by their time or position index.
 
 ![Adding a place by dragging](assets/DayItineraryAddPlaceDragging.gif)
 
-- **Add button** — Click on the day and then click the **+** button inside an expanded day section to open an inline search panel; find the place and tap it to assign.
+- **Add button** — click a day header to select it, then click the **+** on a place in the right-hand Places sidebar; the place is assigned to the selected day straight away.
 
 ![Adding a place by button](assets/DayItineraryAddPlaceByButton.gif)
 
