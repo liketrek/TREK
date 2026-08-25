@@ -219,7 +219,7 @@ export default function JourneyPublicPage() {
                   id: String(p.id),
                   src: photoUrl(p, token!, 'original'),
                   caption: p.caption,
-                  mediaType: (p as any).media_type,
+                  mediaType: p.media_type,
                 }));
 
                 const isActive = activeEntryId === String(entry.id);
@@ -248,7 +248,7 @@ export default function JourneyPublicPage() {
                       >
                         <div className={`relative h-64 w-full ${photos[0].media_type === 'video' ? 'bg-black' : ''}`}>
                           <img
-                            src={photoUrl(photos[0], token!, 'thumbnail')}
+                            src={photoUrl(photos[0], token!, photos[0].media_type === 'video' ? 'thumbnail' : 'original')}
                             className={`h-full w-full ${photos[0].media_type === 'video' ? 'object-contain' : 'object-cover'
                               }`}
                             alt=""
@@ -519,7 +519,7 @@ export default function JourneyPublicPage() {
                 id: String(p.id),
                 src: photoUrl(p, token!, 'original'),
                 caption: p.caption,
-                mediaType: (p as any).media_type,
+                mediaType: p.media_type,
               })),
               index: idx,
             })
@@ -527,14 +527,14 @@ export default function JourneyPublicPage() {
         >
           <img
             src={photoUrl(photo, token!, 'thumbnail')}
-            className={`h-full w-full transition-transform hover:scale-105 ${(photo as any).media_type === 'video'
+            className={`h-full w-full transition-transform hover:scale-105 ${photo.media_type === 'video'
               ? 'object-contain bg-black'
               : 'object-cover'
               }`}
             alt=""
             loading="lazy"
           />
-          {(photo as any).media_type === 'video' && (
+          {photo.media_type === 'video' && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur">
                 <Play size={16} className="ml-0.5" fill="currentColor" />
@@ -952,7 +952,7 @@ export default function JourneyPublicPage() {
                 id: String(p.id),
                 src: photoUrl(p as any, token!, 'original'),
                 caption: (p as any).caption ?? null,
-                mediaType: (p as any).media_type,
+                mediaType: p.media_type,
               })),
               index: idx,
             })

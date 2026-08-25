@@ -10,7 +10,6 @@ export function PhotoImg({ photo, className, style }: { photo: JourneyPhoto; cla
     <div
       className={`relative overflow-hidden ${isVideo ? 'bg-black' : ''} ${className || ''}`}
       style={style}
-      onClick={onClick}
     >
       <img
         src={src}
