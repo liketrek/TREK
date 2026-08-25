@@ -53,7 +53,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./uploads:/app/uploads
-#      - ./storage-config.json:/app/data/storage-config.json:ro # optional seed-once storage provisioning (README → Storage)
+#      - ./storage-config.json:/app/data/storage-config.json:ro # optional seed-once storage provisioning (wiki: Admin-Storage)
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]

@@ -143,8 +143,29 @@ For scripted deployments, place a `storage-config.json` in the data directory
 (in Docker: mount it at `/app/data/storage-config.json`). It is imported
 exactly once — on the first boot that has no stored storage configuration —
 then ignored (a log line says so). An invalid file aborts boot with the exact
-validation error. Example and the compose mount line: see the
-[README Storage section](https://github.com/liketrek/TREK#storage).
+validation error.
+
+```jsonc
+// storage-config.json - secrets may be plaintext (encrypted on import)
+// or already-encrypted enc:v1: values.
+{
+  "backends": [
+    { "name": "off-site", "type": "s3", "options": {
+      "endpoint": "https://s3.example.com", "bucket": "trek",
+      "accessKeyId": "...", "secretAccessKey": "..." } },
+    { "name": "backups-mirror", "type": "mirror", "options": {
+      "primary": "backups-local", "replicas": ["off-site"] } }
+  ],
+  "categories": { "backups": "backups-mirror" }
+}
+```
+
+The panel presents this exact setup as **Mirror targets** on `backups-local`.
+
+```yaml
+# docker-compose: add under the trek service's volumes
+      - ./storage-config.json:/app/data/storage-config.json:ro
+```
 
 To reset storage configuration (or re-import a seed file): stop the server,
 `sqlite3 data/travel.db "DELETE FROM app_settings WHERE key LIKE 'storage.%';"`,
