@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import nodemailer from 'nodemailer';
 import { PASSWORD_RESET_I18N } from '@trek/shared/i18n/externalNotifications';
 import { readEnv } from '../../../app-config';
-import { logError, logInfo, logDebug } from '../../audit/audit-log.logger';
+import { logError, logInfo, logDebug, logWarn } from '../../audit/audit-log.logger';
 import { decrypt_api_key } from '../../common/crypto/apiKeyCrypto';
 import { DatabaseService } from '../../database/database.service';
 import { buildEmailHtml, buildPasswordResetHtml } from './email-html';
@@ -28,6 +28,8 @@ interface SmtpConfig {
  */
 @Injectable()
 export class MailerService {
+  private skippedTlsWarned = false;
+
   constructor(private readonly db: DatabaseService) {}
 
   private getAppSetting(key: string): string | null {
@@ -61,13 +63,33 @@ export class MailerService {
    */
   private createTransport(config: SmtpConfig) {
     const skipTls = readEnv().smtp.skipTlsVerify || this.getAppSetting('smtp_skip_tls_verify') === 'true';
+    if (skipTls) this.warnOnceAboutSkippedTls(config);
     return nodemailer.createTransport({
       host: config.host,
       port: config.port,
       secure: config.secure,
       auth: config.user ? { user: config.user, pass: config.pass } : undefined,
+      // The operator's opt-out for a relay with a self-signed certificate, off by
+      // default and reachable only through SMTP_SKIP_TLS_VERIFY or the matching
+      // admin setting. It stays because self-hosted installs behind an internal
+      // relay depend on it; warnOnceAboutSkippedTls is what keeps it from being a
+      // silent downgrade.
       ...(skipTls ? { tls: { rejectUnauthorized: false } } : {}),
     });
+  }
+
+  /**
+   * Once per process, not once per mail — a transport is built on every send, and
+   * a line on every notification would train the operator to scroll past it.
+   */
+  private warnOnceAboutSkippedTls(config: SmtpConfig): void {
+    if (this.skippedTlsWarned) return;
+    this.skippedTlsWarned = true;
+    logWarn(
+      `SECURITY: SMTP certificate verification is disabled for ${config.host}:${config.port}. ` +
+        'Mail — including password-reset links and the SMTP credentials — travels over a channel an ' +
+        'active attacker can impersonate. Keep this on only for a relay you control on a trusted network.',
+    );
   }
 
   /** Is SMTP configured at the instance level? (Independent of any one user's address.) */
