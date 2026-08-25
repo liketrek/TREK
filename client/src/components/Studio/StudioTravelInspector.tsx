@@ -52,7 +52,7 @@ export function TravelInspector({ el, stats, set, t }: TravelInspectorProps) {
       {stale && (
         <div className="st-section">
           <p className="st-stale">{t('journey.studio.staleHint')}</p>
-          <button
+          <button type="button"
             className="st-chip"
             onClick={() => {
               if (!stats) return
@@ -85,7 +85,7 @@ export function TravelInspector({ el, stats, set, t }: TravelInspectorProps) {
           {BOOK_FONT_ORDER.map(id => {
             const font = BOOK_FONTS[id]
             return (
-              <button
+              <button type="button"
                 key={id}
                 className={`st-font ${el.font === id ? 'is-on' : ''}`}
                 style={{ fontFamily: font.stack }}
@@ -480,7 +480,7 @@ function MapProps({ el, set, t, stats }: Props<BookMapElement> & { stats: Journe
           </Line>
           {hasRoads && roadState !== 'busy' && (
             <div className="st-row" style={{ marginTop: 8 }}>
-              <button className="st-chip" onClick={() => void loadRoads()}>
+              <button type="button" className="st-chip" onClick={() => void loadRoads()}>
                 {t('journey.studio.roadsAgain')}
               </button>
             </div>

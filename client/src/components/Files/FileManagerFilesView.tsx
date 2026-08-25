@@ -51,7 +51,7 @@ export function FilesView(S: FileManagerState) {
           { id: 'doc', label: t('files.filterDocs') },
           ...(files.some(f => f.note_id) ? [{ id: 'collab', label: t('files.filterCollab') || 'Collab' }] : []),
         ].map(tab => (
-          <button key={tab.id} onClick={() => setFilterType(tab.id)} style={{
+          <button type="button" key={tab.id} onClick={() => setFilterType(tab.id)} style={{
             padding: '4px 12px', borderRadius: 99, border: 'none', cursor: 'pointer', fontSize: 'calc(12px * var(--fs-scale-body, 1))',
             fontFamily: 'inherit', transition: 'all 0.12s',
             background: filterType === tab.id ? 'var(--accent)' : 'transparent',

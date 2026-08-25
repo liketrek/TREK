@@ -67,8 +67,8 @@ function localParts(now: Date, timeZone: string | null): { day: number; minutes:
     }).formatToParts(now)
     const value = (type: Intl.DateTimeFormatPartTypes) => parts.find(p => p.type === type)?.value ?? ''
     const day = WEEKDAY_NUMBER[value('weekday')]
-    const hour = parseInt(value('hour'), 10)
-    const minute = parseInt(value('minute'), 10)
+    const hour = Number.parseInt(value('hour'), 10)
+    const minute = Number.parseInt(value('minute'), 10)
     if (day === undefined || Number.isNaN(hour) || Number.isNaN(minute)) return null
     return {
       day,

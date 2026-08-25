@@ -49,7 +49,7 @@ export default function PackingShareControl({ item, tripMembers, currentUserId, 
   }
 
   const btn = (onClick: () => void, title: string, active: boolean, node: React.ReactNode) => (
-    <button onClick={onClick} title={title}
+    <button type="button" onClick={onClick} title={title}
       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 4px', borderRadius: 6, display: 'flex', color: active ? 'var(--accent)' : 'var(--text-faint)' }}
       onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--text-secondary)' }}
       onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--text-faint)' }}>
@@ -72,7 +72,7 @@ export default function PackingShareControl({ item, tripMembers, currentUserId, 
 
   return (
     <div style={{ display: 'flex' }}>
-      <button ref={btnRef} onClick={toggle} title={t('packing.share')}
+      <button type="button" ref={btnRef} onClick={toggle} title={t('packing.share')}
         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 4px', borderRadius: 6, display: 'flex', color: visibility !== 'common' ? 'var(--accent)' : 'var(--text-faint)' }}
         onMouseEnter={e => { if (visibility === 'common') e.currentTarget.style.color = 'var(--text-secondary)' }}
         onMouseLeave={e => { if (visibility === 'common') e.currentTarget.style.color = 'var(--text-faint)' }}>
@@ -97,7 +97,7 @@ export default function PackingShareControl({ item, tripMembers, currentUserId, 
             ) : others.map(m => {
               const on = recipientIds.includes(m.id)
               return (
-                <button key={m.id} onClick={() => toggleRecipient(m.id)}
+                <button type="button" key={m.id} onClick={() => toggleRecipient(m.id)}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', background: 'none', fontFamily: 'inherit', fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-primary)' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}>
@@ -117,7 +117,7 @@ export default function PackingShareControl({ item, tripMembers, currentUserId, 
 
 function Row({ icon, label, sub, active, onClick }: { icon: React.ReactNode; label: string; sub: string; active: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick}
+    <button type="button" onClick={onClick}
       style={{ display: 'flex', alignItems: 'flex-start', gap: 8, width: '100%', padding: '7px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', background: active ? 'var(--bg-tertiary)' : 'none', fontFamily: 'inherit', textAlign: 'left' }}
       onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--bg-tertiary)' }}
       onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'none' }}>

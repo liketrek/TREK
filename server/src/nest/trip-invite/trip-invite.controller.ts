@@ -47,7 +47,7 @@ export class TripInviteLinkController {
   ) {
     this.requireManage(tripId, user);
     const days = body?.expires_in_days != null && String(body.expires_in_days).trim() !== ''
-      ? parseInt(String(body.expires_in_days))
+      ? Number.parseInt(String(body.expires_in_days))
       : null;
     const info = this.invites.createOrRotate(tripId, user.id, Number.isFinite(days as number) ? days : null);
     this.audit.writeAudit({ userId: user.id, action: 'trip.invite_link_create', resource: tripId, ip: getClientIp(req), details: { expires_in_days: days } });

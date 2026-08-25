@@ -315,7 +315,7 @@ export class BookingImportService {
             reservationData.metadata && typeof reservationData.metadata === 'object'
               ? (reservationData.metadata as Record<string, unknown>)
               : null;
-          const price = meta && meta.price != null ? Number(meta.price) : NaN;
+          const price = meta && meta.price != null ? Number(meta.price) : Number.NaN;
           if (Number.isFinite(price) && price > 0) {
             try {
               const budgetData = {

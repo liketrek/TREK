@@ -24,7 +24,7 @@ export default function MobileTopBar() {
         className="md:hidden flex items-center justify-end gap-2 px-4"
         style={{ paddingTop: 'calc(10px + env(safe-area-inset-top, 0px))', paddingBottom: 10 }}
       >
-        <button
+        <button type="button"
           onClick={() => navigate('/notifications')}
           aria-label={t('notifications.title')}
           className="relative grid place-items-center rounded-full active:scale-95 transition-transform"
@@ -35,7 +35,7 @@ export default function MobileTopBar() {
             <span style={{ position: 'absolute', top: 7, right: 7, width: 8, height: 8, borderRadius: '50%', background: 'oklch(0.7 0.17 38)', boxShadow: '0 0 0 2px var(--bg, #fff)' }} />
           )}
         </button>
-        <button
+        <button type="button"
           onClick={() => setShowProfile(true)}
           aria-label={t('nav.profile')}
           className="grid place-items-center rounded-full text-white font-semibold text-[12px] active:scale-95 transition-transform"
@@ -90,7 +90,7 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
         <div className="h-px bg-zinc-100 dark:bg-zinc-800 mx-4" />
 
         <div className="py-2 px-2">
-          <button
+          <button type="button"
             onClick={() => handleNav('/settings')}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 active:bg-zinc-100 dark:active:bg-zinc-800 transition-colors"
           >
@@ -99,7 +99,7 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
           </button>
 
           {user?.role === 'admin' && (
-            <button
+            <button type="button"
               onClick={() => handleNav('/admin')}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 active:bg-zinc-100 dark:active:bg-zinc-800 transition-colors"
             >
@@ -112,7 +112,7 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
         <div className="h-px bg-zinc-100 dark:bg-zinc-800 mx-4" />
 
         <div className="py-2 px-2">
-          <button
+          <button type="button"
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left hover:bg-red-50 dark:hover:bg-red-900/20 active:bg-red-100 transition-colors"
           >

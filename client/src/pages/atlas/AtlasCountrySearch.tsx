@@ -113,7 +113,7 @@ export default function AtlasCountrySearch({
             }}
           />
           {search.trim() && (
-            <button
+            <button type="button"
               onClick={() => {
                 setSearch('')
                 setResults([])
@@ -142,7 +142,7 @@ export default function AtlasCountrySearch({
             }}
           >
             {results.map((r) => (
-              <button
+              <button type="button"
                 key={r.code}
                 onClick={() => onSelect(r.code)}
                 style={{
@@ -187,7 +187,7 @@ export default function AtlasCountrySearch({
               </div>
             )}
             {placeResults.map((p) => (
-              <button
+              <button type="button"
                 key={`${p.lat},${p.lng},${p.name}`}
                 onClick={() => onSelectPlace(p)}
                 style={{

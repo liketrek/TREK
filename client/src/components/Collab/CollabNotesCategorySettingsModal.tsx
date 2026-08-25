@@ -79,7 +79,7 @@ export function CategorySettingsModal({ onClose, categories, categoryColors, onS
           <h3 style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
             {t('collab.notes.categorySettings') || 'Category Settings'}
           </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 2, display: 'flex' }}>
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 2, display: 'flex' }}>
             <X size={16} />
           </button>
         </div>
@@ -96,7 +96,7 @@ export function CategorySettingsModal({ onClose, categories, categoryColors, onS
               {/* Color swatches */}
               <div style={{ display: 'flex', gap: 4 }}>
                 {NOTE_COLORS.map(c => (
-                  <button key={c.value} onClick={() => handleColorChange(cat, c.value)} style={{
+                  <button type="button" key={c.value} onClick={() => handleColorChange(cat, c.value)} style={{
                     width: 20, height: 20, borderRadius: 6, background: c.value, border: 'none', cursor: 'pointer', padding: 0,
                     outline: (localColors[cat] || NOTE_COLORS[0].value) === c.value ? '2px solid var(--text-primary)' : '2px solid transparent',
                     outlineOffset: 1, transition: 'transform 0.1s',
@@ -107,7 +107,7 @@ export function CategorySettingsModal({ onClose, categories, categoryColors, onS
               {/* Category name — editable */}
               <EditableCatName name={cat} onRename={(newName) => handleRenameCategory(cat, newName)} />
               {/* Delete */}
-              <button onClick={() => handleRemoveCategory(cat)} style={{
+              <button type="button" onClick={() => handleRemoveCategory(cat)} style={{
                 background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 3, display: 'flex',
               }}
                 onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
@@ -126,7 +126,7 @@ export function CategorySettingsModal({ onClose, categories, categoryColors, onS
                 flex: 1, border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 12px',
                 fontSize: 'calc(13px * var(--fs-scale-body, 1))', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none',
               }} />
-            <button onClick={handleAddCategory} disabled={!newCatName.trim()} style={{
+            <button type="button" onClick={handleAddCategory} disabled={!newCatName.trim()} style={{
               background: newCatName.trim() ? 'var(--accent)' : 'var(--border-primary)', color: 'var(--accent-text)',
               border: 'none', borderRadius: 10, padding: '8px 14px', cursor: newCatName.trim() ? 'pointer' : 'default',
               display: 'flex', alignItems: 'center', flexShrink: 0,
@@ -136,7 +136,7 @@ export function CategorySettingsModal({ onClose, categories, categoryColors, onS
           </div>
 
           {/* Save */}
-          <button onClick={handleSave} style={{
+          <button type="button" onClick={handleSave} style={{
             width: '100%', borderRadius: 99, padding: '9px 14px', background: 'var(--accent)', color: 'var(--accent-text)',
             fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, border: 'none', cursor: 'pointer', marginTop: 8,
           }}>

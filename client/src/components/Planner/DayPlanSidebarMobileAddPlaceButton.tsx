@@ -24,7 +24,7 @@ export function MobileAddPlaceButton({ dayId, places, assignments, onAssign, onA
   return (
     <div className="md:hidden" style={{ padding: '8px 12px 12px' }}>
       {!open ? (
-        <button
+        <button type="button"
           onClick={e => { e.stopPropagation(); setOpen(true) }}
           style={{
             width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -47,7 +47,7 @@ export function MobileAddPlaceButton({ dayId, places, assignments, onAssign, onA
               placeholder={t('dayplan.mobile.searchPlaces')}
               style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'inherit', color: 'var(--text-primary)' }}
             />
-            <button onClick={() => { setOpen(false); setSearch('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-faint)' }}>
+            <button type="button" onClick={() => { setOpen(false); setSearch('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-faint)' }}>
               <X size={14} />
             </button>
           </div>
@@ -58,7 +58,7 @@ export function MobileAddPlaceButton({ dayId, places, assignments, onAssign, onA
               </div>
             )}
             {filtered.slice(0, 20).map(p => (
-              <button
+              <button type="button"
                 key={p.id}
                 onClick={() => {
                   onAssign?.(p.id, dayId)
@@ -77,7 +77,7 @@ export function MobileAddPlaceButton({ dayId, places, assignments, onAssign, onA
             ))}
           </div>
           {onAddNew && (
-            <button
+            <button type="button"
               onClick={() => { onAddNew(); setOpen(false); setSearch('') }}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,

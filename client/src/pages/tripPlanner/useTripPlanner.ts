@@ -48,7 +48,7 @@ export function useTripPlanner() {
   // The route param is a string; convert once here so every downstream component
   // prop and store call gets a real number. An absent/invalid id becomes NaN,
   // which stays falsy in the `if (tripId)` guards below.
-  const tripId = id ? Number(id) : NaN
+  const tripId = id ? Number(id) : Number.NaN
   const navigate = useNavigate()
   const toast = useToast()
   const { t, language } = useTranslation()

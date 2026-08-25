@@ -547,7 +547,7 @@ export default function DemoBanner(): React.ReactElement | null {
               {t.selfHostLink}
             </a>
           </div>
-          <button
+          <button type="button"
             onClick={() => setDismissed(true)}
             style={{
               background: '#111827',

@@ -171,7 +171,7 @@ export default function MobileMapTimeline({
         />
         {!readOnly && onAddEntry && (
           <div className="fixed right-4 z-30" style={{ bottom: 'calc(var(--bottom-nav-h, 84px) + 16px)' }}>
-            <button
+            <button type="button"
               onClick={onAddEntry}
               className="w-12 h-12 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
             >
@@ -244,7 +244,7 @@ export default function MobileMapTimeline({
           className="fixed right-4 z-30"
           style={{ bottom: 'calc(var(--bottom-nav-h, 84px) + 168px)' }}
         >
-          <button
+          <button type="button"
             onClick={onAddEntry}
             className="w-12 h-12 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
           >

@@ -38,8 +38,8 @@ function startMonthDay(s: VacayYearSettings): { month: number; day: number } {
   if (s.year_type === 'anniversary') {
     if (!s.hire_date) return { month: 1, day: 1 }
     const parts = s.hire_date.split('-')
-    month = parseInt(parts[1], 10) || 1
-    day = parseInt(parts[2], 10) || 1
+    month = Number.parseInt(parts[1], 10) || 1
+    day = Number.parseInt(parts[2], 10) || 1
   }
   month = Math.min(12, Math.max(1, month))
   return { month, day: Math.min(day, daysAlwaysInMonth(month)) }

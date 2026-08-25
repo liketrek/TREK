@@ -236,7 +236,7 @@ export default function BackendForm({
       )}
 
       <div className="flex items-center gap-3">
-        <button
+        <button type="button"
           onClick={apply}
           disabled={!canApply}
           style={{
@@ -248,7 +248,7 @@ export default function BackendForm({
         >
           {t('storage.form.apply')}
         </button>
-        <button
+        <button type="button"
           onClick={onCancel}
           style={{
             padding: '8px 20px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',

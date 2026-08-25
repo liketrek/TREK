@@ -20,7 +20,7 @@ export function Swatches({ value, onPick }: { value: string; onPick: (c: string)
   return (
     <div className="st-swatches">
       {SWATCHES.map(c => (
-        <button
+        <button type="button"
           key={c}
           className={`st-swatch ${value.toLowerCase() === c ? 'is-on' : ''}`}
           style={{ background: c }} // theme-lint-disable — a colour picker shows the colours themselves

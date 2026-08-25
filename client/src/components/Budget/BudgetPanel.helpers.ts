@@ -48,7 +48,7 @@ export function hexLighten(hex: string, amount: number): string {
   const m = hex.replace('#', '').match(/.{2}/g)
   if (!m || m.length !== 3) return hex
   const mix = (c: number) => Math.min(255, Math.round(c + (255 - c) * amount))
-  const [r, g, b] = m.map(x => parseInt(x, 16))
+  const [r, g, b] = m.map(x => Number.parseInt(x, 16))
   return `#${[mix(r), mix(g), mix(b)].map(v => v.toString(16).padStart(2, '0')).join('')}`
 }
 

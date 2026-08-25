@@ -85,7 +85,7 @@ function parseInTz(isoLocal: string, tz: string): number {
   // minutes) makes Date.UTC NaN; bail before formatToParts, which throws on a
   // non-finite date and would blank the whole trip. computeDuration's finiteness
   // check then drops the duration cleanly.
-  if (!Number.isFinite(guess)) return NaN
+  if (!Number.isFinite(guess)) return Number.NaN
   const fmt = new Intl.DateTimeFormat('en-US', {
     timeZone: tz, hour12: false,
     year: 'numeric', month: '2-digit', day: '2-digit',

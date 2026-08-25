@@ -306,7 +306,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
         assignmentId: dragDataRef.current.assignmentId || '',
         noteId: dragDataRef.current.noteId || '',
         reservationId: dragDataRef.current.reservationId || '',
-        fromDayId: parseInt(dragDataRef.current.fromDayId) || 0,
+        fromDayId: Number.parseInt(dragDataRef.current.fromDayId) || 0,
         phase: (dragDataRef.current.phase || 'single') as 'single' | 'start' | 'middle' | 'end',
       }
     }
@@ -990,7 +990,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       setDraggingId(null); setDropTargetKey(null); dragDataRef.current = null; window.__dragData = null; return
     }
     if (placeId) {
-      onAssignToDay?.(parseInt(placeId), dayId)
+      onAssignToDay?.(Number.parseInt(placeId), dayId)
     } else if (assignmentId && fromDayId !== dayId) {
       const srcAssignment = (useTripStore.getState().assignments[String(fromDayId)] || []).find(a => a.id === Number(assignmentId))
       const capturedFromDayId = fromDayId
@@ -1739,7 +1739,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     )
                   })()
                 ) : (
-                  <button onClick={e => toggleDay(day.id, e)} className="text-content-faint" style={{ alignSelf: 'flex-start', flexShrink: 0, background: 'none', border: 'none', padding: 6, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                  <button type="button" onClick={e => toggleDay(day.id, e)} className="text-content-faint" style={{ alignSelf: 'flex-start', flexShrink: 0, background: 'none', border: 'none', padding: 6, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                     {isExpanded ? <ChevronDown size={16} strokeWidth={1.8} /> : <ChevronRight size={16} strokeWidth={1.8} />}
                   </button>
                 )}
@@ -1765,7 +1765,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       const toLegIndex = legPart ? Number(legPart.slice(3)) : null
 
                       if (placeId) {
-                        onAssignToDay?.(parseInt(placeId), day.id)
+                        onAssignToDay?.(Number.parseInt(placeId), day.id)
                       } else if (fromReservationId && fromDayId !== day.id) {
                         const r = reservations.find(x => x.id === Number(fromReservationId))
                         if (r) { const update = computeMultiDayMove(r, day.id, phase); tripActions.updateReservation(tripId, r.id, update).catch((err: unknown) => toast.error(err instanceof Error ? err.message : t('common.unknownError'))) }
@@ -1791,7 +1791,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     }
                     if (!assignmentId && !noteId && !placeId) { dragDataRef.current = null; window.__dragData = null; return }
                     if (placeId) {
-                      onAssignToDay?.(parseInt(placeId), day.id)
+                      onAssignToDay?.(Number.parseInt(placeId), day.id)
                       setDropTargetKey(null); window.__dragData = null; return
                     }
                     if (assignmentId && fromDayId !== day.id) {
@@ -1909,7 +1909,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               const { placeId, assignmentId: fromAssignmentId, noteId, reservationId: fromReservationId, fromDayId, phase } = getDragData(e)
                               if (placeId) {
                                 const pos = placeItems.findIndex(i => i.data.id === assignment.id)
-                                onAssignToDay?.(parseInt(placeId), day.id, pos >= 0 ? pos : undefined)
+                                onAssignToDay?.(Number.parseInt(placeId), day.id, pos >= 0 ? pos : undefined)
                                 setDropTargetKey(null); window.__dragData = null
                               } else if (fromReservationId && fromDayId !== day.id) {
                                 const r = reservations.find(x => x.id === Number(fromReservationId))
@@ -2154,15 +2154,15 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               )}
                             </div>
                             {canEditDays && <div className="reorder-buttons" style={{ flexShrink: 0, display: 'flex', gap: 1, transition: 'opacity 0.15s' }}>
-                              <button onClick={moveUp} disabled={idx === 0} className={idx === 0 ? 'text-[var(--border-primary)]' : 'text-content-faint'} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: idx === 0 ? 'default' : 'pointer', display: 'flex', lineHeight: 1 }}>
+                              <button type="button" onClick={moveUp} disabled={idx === 0} className={idx === 0 ? 'text-[var(--border-primary)]' : 'text-content-faint'} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: idx === 0 ? 'default' : 'pointer', display: 'flex', lineHeight: 1 }}>
                                 <ChevronUp size={12} strokeWidth={2} />
                               </button>
-                              <button onClick={moveDown} disabled={idx === merged.length - 1} className={idx === merged.length - 1 ? 'text-[var(--border-primary)]' : 'text-content-faint'} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: idx === merged.length - 1 ? 'default' : 'pointer', display: 'flex', lineHeight: 1 }}>
+                              <button type="button" onClick={moveDown} disabled={idx === merged.length - 1} className={idx === merged.length - 1 ? 'text-[var(--border-primary)]' : 'text-content-faint'} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: idx === merged.length - 1 ? 'default' : 'pointer', display: 'flex', lineHeight: 1 }}>
                                 <ChevronDown size={12} strokeWidth={2} />
                               </button>
                             </div>}
                             {canEditDays && onAddBookingToAssignment && hoveredAssignmentId === assignment.id && (
-                              <button
+                              <button type="button"
                                 onClick={e => {
                                   e.stopPropagation()
                                   onAddBookingToAssignment(day.id, assignment.id)
@@ -2289,7 +2289,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               const insertAfter = e.clientY > rect.top + rect.height / 2
                               const { placeId, assignmentId: fromAssignmentId, noteId, reservationId: fromReservationId, fromDayId, phase } = getDragData(e)
                               if (placeId) {
-                                onAssignToDay?.(parseInt(placeId), day.id)
+                                onAssignToDay?.(Number.parseInt(placeId), day.id)
                               } else if (fromReservationId && fromDayId !== day.id) {
                                 const r2 = reservations.find(x => x.id === Number(fromReservationId))
                                 if (r2) { const update = computeMultiDayMove(r2, day.id, phase); tripActions.updateReservation(tripId, r2.id, update).catch((err: unknown) => toast.error(err instanceof Error ? err.message : t('common.unknownError'))) }
@@ -2464,7 +2464,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               const tm = getMergedItems(day.id)
                               const noteIdx = tm.findIndex(i => i.type === 'note' && i.data.id === note.id)
                               const pos = tm.slice(0, noteIdx).filter(i => i.type === 'place').length
-                              onAssignToDay?.(parseInt(placeId), day.id, pos)
+                              onAssignToDay?.(Number.parseInt(placeId), day.id, pos)
                               setDropTargetKey(null); window.__dragData = null
                             } else if (fromReservationId && fromDayId !== day.id) {
                               const r = reservations.find(x => x.id === Number(fromReservationId))
@@ -2549,12 +2549,12 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             every note a shorter line for the whole time you are
                             not hovering. */}
                         {canEditDays && <div className="note-edit-buttons bg-surface-card" style={{ position: 'absolute', right: 5, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, padding: 4, borderRadius: 999, border: '1px solid var(--border-faint)', boxShadow: '0 4px 14px rgba(0,0,0,0.10)', opacity: 0, transition: 'opacity 0.15s' }}>
-                          <button onClick={e => openEditNote(day.id, note, e)} aria-label={t('dayplan.noteEdit')} title={t('dayplan.noteEdit')} className="text-content-faint note-edit-btn" style={{ background: 'none', border: 'none', width: 30, height: 30, borderRadius: 999, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0 }}><Pencil size={15} /></button>
-                          <button onClick={e => { e.stopPropagation(); setPendingDeleteNote({ dayId: day.id, noteId: note.id }) }} aria-label={t('dayplan.noteDelete')} title={t('dayplan.noteDelete')} className="text-content-faint note-edit-btn note-edit-btn-danger" style={{ background: 'none', border: 'none', width: 30, height: 30, borderRadius: 999, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0 }}><Trash2 size={15} /></button>
+                          <button type="button" onClick={e => openEditNote(day.id, note, e)} aria-label={t('dayplan.noteEdit')} title={t('dayplan.noteEdit')} className="text-content-faint note-edit-btn" style={{ background: 'none', border: 'none', width: 30, height: 30, borderRadius: 999, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0 }}><Pencil size={15} /></button>
+                          <button type="button" onClick={e => { e.stopPropagation(); setPendingDeleteNote({ dayId: day.id, noteId: note.id }) }} aria-label={t('dayplan.noteDelete')} title={t('dayplan.noteDelete')} className="text-content-faint note-edit-btn note-edit-btn-danger" style={{ background: 'none', border: 'none', width: 30, height: 30, borderRadius: 999, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0 }}><Trash2 size={15} /></button>
                         </div>}
                         {canEditDays && <div className="reorder-buttons" style={{ flexShrink: 0, display: 'flex', gap: 1, transition: 'opacity 0.15s' }}>
-                          <button onClick={e => { e.stopPropagation(); moveNote(day.id, note.id, 'up') }} disabled={noteIdx === 0} className={noteIdx === 0 ? 'text-[var(--border-primary)]' : 'text-content-faint'} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: noteIdx === 0 ? 'default' : 'pointer', display: 'flex', lineHeight: 1 }}><ChevronUp size={12} strokeWidth={2} /></button>
-                          <button onClick={e => { e.stopPropagation(); moveNote(day.id, note.id, 'down') }} disabled={noteIdx === merged.length - 1} className={noteIdx === merged.length - 1 ? 'text-[var(--border-primary)]' : 'text-content-faint'} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: noteIdx === merged.length - 1 ? 'default' : 'pointer', display: 'flex', lineHeight: 1 }}><ChevronDown size={12} strokeWidth={2} /></button>
+                          <button type="button" onClick={e => { e.stopPropagation(); moveNote(day.id, note.id, 'up') }} disabled={noteIdx === 0} className={noteIdx === 0 ? 'text-[var(--border-primary)]' : 'text-content-faint'} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: noteIdx === 0 ? 'default' : 'pointer', display: 'flex', lineHeight: 1 }}><ChevronUp size={12} strokeWidth={2} /></button>
+                          <button type="button" onClick={e => { e.stopPropagation(); moveNote(day.id, note.id, 'down') }} disabled={noteIdx === merged.length - 1} className={noteIdx === merged.length - 1 ? 'text-[var(--border-primary)]' : 'text-content-faint'} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: noteIdx === merged.length - 1 ? 'default' : 'pointer', display: 'flex', lineHeight: 1 }}><ChevronDown size={12} strokeWidth={2} /></button>
                         </div>}
                         </div>
                         </React.Fragment>
@@ -2580,7 +2580,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       const { placeId, assignmentId, noteId, reservationId: fromReservationId, fromDayId, phase } = getDragData(e)
                       // Neuer Ort von der Orte-Liste
                       if (placeId) {
-                        onAssignToDay?.(parseInt(placeId), day.id)
+                        onAssignToDay?.(Number.parseInt(placeId), day.id)
                         setDropTargetKey(null); window.__dragData = null; return
                       }
                       if (fromReservationId && fromDayId !== day.id) {
@@ -2618,7 +2618,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                   {(isSelected || (showRouteToolsWhenExpanded && isExpanded)) && routeToolsRoutable && (
                     <div style={{ padding: '10px 16px 12px', borderTop: '1px solid var(--border-faint)', display: 'flex', flexDirection: 'column', gap: 7 }}>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
-                        <button
+                        <button type="button"
                           onClick={() => {
                             if (showRouteToolsWhenExpanded) {
                               // Mobile: toggle this day's inline leg distances in place.
@@ -2647,7 +2647,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           {t('dayplan.route')}
                         </button>
                         {/* Open the day's stops as a route in Google Maps (planned order). #1255 */}
-                        <button
+                        <button type="button"
                           onClick={() => {
                             const url = generateGoogleMapsUrl(dayExportStops())
                             if (url) window.open(url, '_blank', 'noopener,noreferrer')
@@ -2666,7 +2666,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         {/* The same day, handed to CoMaps for offline navigation (#1904). The
                             day's own travel mode rides along, so the route it builds walks
                             when the plan walks. */}
-                        <button
+                        <button type="button"
                           onClick={() => {
                             const url = generateCoMapsUrl(dayExportStops(), day.default_transport_mode ?? routeProfile)
                             if (url) window.open(url, '_blank', 'noopener,noreferrer')
@@ -2688,7 +2688,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             sat against both edges as soon as the row filled up, and
                             the row gained a button when CoMaps arrived. The label
                             stays as the accessible name and the tooltip. */}
-                        <button
+                        <button type="button"
                           onClick={() => handleOptimize(day.id)}
                           aria-label={t('dayplan.optimize')}
                           title={t('dayplan.optimize')}
@@ -2706,7 +2706,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             const ModeIcon = p.key === 'driving' ? Car : p.key === 'walking' ? Footprints : Zap
                             const active = (day.default_transport_mode ?? routeProfile) === p.key
                             return (
-                              <button
+                              <button type="button"
                                 key={p.key}
                                 onClick={() => setDayDefaultMode(day.id, p.key)}
                                 aria-label={p.label}

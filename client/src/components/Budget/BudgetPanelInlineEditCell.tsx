@@ -23,7 +23,7 @@ export default function InlineEditCell({ value, onSave, type = 'text', style = {
   const save = () => {
     setEditing(false)
     let v: string | number | null = editValue
-    if (type === 'number') { const p = parseFloat(String(editValue).replace(',', '.')); v = isNaN(p) ? null : p }
+    if (type === 'number') { const p = Number.parseFloat(String(editValue).replace(',', '.')); v = isNaN(p) ? null : p }
     if (v !== value) onSave(v)
   }
 

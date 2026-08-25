@@ -104,7 +104,7 @@ function AdminPageDesktop(): React.ReactElement {
                 <p className="text-sm font-semibold text-amber-900">Demo Baseline</p>
                 <p className="text-xs text-amber-700">Save current state as the hourly reset point. All admin trips and settings will be preserved.</p>
               </div>
-              <button
+              <button type="button"
                 onClick={async () => {
                   try {
                     await adminApi.saveDemoBaseline()

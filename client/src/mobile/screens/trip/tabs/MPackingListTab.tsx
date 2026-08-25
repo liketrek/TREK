@@ -598,8 +598,8 @@ function PackingCategoryCard({
 
   return (
     <div className="mt-[10px] overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop">
-      {/* A <div role="button"> rather than a real <button> — the rename input and
-          the assign/menu triggers below are interactive elements a <button> may
+      {/* A <div role="button"> rather than a real <button type="button"> — the rename input and
+          the assign/menu triggers below are interactive elements a <button type="button"> may
           not contain (invalid HTML); this stays keyboard-operable via onKeyDown. */}
       <div
         role="button"

@@ -30,7 +30,7 @@ export function PlacesHeader(S: SidebarState) {
   } = S
   return (
     <div className="border-b border-edge-faint" style={{ padding: '14px 16px 10px', flexShrink: 0 }}>
-      {canEditPlaces && <button
+      {canEditPlaces && <button type="button"
         onClick={onAddPlace}
         className="bg-accent text-accent-text"
         style={{
@@ -44,7 +44,7 @@ export function PlacesHeader(S: SidebarState) {
       </button>}
       {canEditPlaces && <>
       <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-        <button
+        <button type="button"
           onClick={() => setFileImportOpen(true)}
           className="border border-dashed border-edge text-content-faint"
           style={{
@@ -56,7 +56,7 @@ export function PlacesHeader(S: SidebarState) {
         >
           <FileDown size={11} strokeWidth={2} /> {t('places.importFile')}
         </button>
-        <button
+        <button type="button"
           onClick={() => setListImportOpen(true)}
           className="border border-dashed border-edge text-content-faint"
           style={{
@@ -101,7 +101,7 @@ export function PlacesHeader(S: SidebarState) {
             {tabs.map(f => {
               const active = filter === f.id
               return (
-                <button
+                <button type="button"
                   key={f.id}
                   onClick={() => { setFilter(f.id); setSelectedIds(new Set()) }}
                   className={active ? 'bg-accent text-accent-text' : 'bg-surface-card text-content'}
@@ -145,7 +145,7 @@ export function PlacesHeader(S: SidebarState) {
           }}
         />
         {search && (
-          <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+          <button type="button" onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
             <X size={12} strokeWidth={2} color="var(--text-faint)" />
           </button>
         )}
@@ -162,7 +162,7 @@ export function PlacesHeader(S: SidebarState) {
             : `${categoryFilters.size} ${t('places.categoriesSelected')}`
         return (
           <div style={{ marginTop: 6, position: 'relative', display: 'flex', gap: 6, alignItems: 'stretch' }}>
-            {categories.length > 0 && <button onClick={() => setCatDropOpen(v => !v)} className="bg-surface-card text-content" style={{
+            {categories.length > 0 && <button type="button" onClick={() => setCatDropOpen(v => !v)} className="bg-surface-card text-content" style={{
               flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-primary)',
               fontSize: 'calc(12px * var(--fs-scale-body, 1))',
@@ -173,7 +173,7 @@ export function PlacesHeader(S: SidebarState) {
             </button>}
             {/* Minimum-stars filter (#1435), same floors as the collections bar. */}
             <Tooltip label={t('places.filterByRating')} placement="bottom">
-              <button
+              <button type="button"
                 onClick={() => { setStarDropOpen(v => !v); setCatDropOpen(false) }}
                 aria-label={t('places.filterByRating')}
                 aria-expanded={starDropOpen}
@@ -203,7 +203,7 @@ export function PlacesHeader(S: SidebarState) {
                 {(['all', 5, 4, 3, 2, 1] as const).map(opt => {
                   const active = ratingFilter === opt
                   return (
-                    <button
+                    <button type="button"
                       key={String(opt)}
                       onClick={() => { setRatingFilter(opt as number | 'all'); setStarDropOpen(false) }}
                       className={`text-content ${active ? 'bg-surface-hover' : 'bg-transparent'}`}
@@ -230,7 +230,7 @@ export function PlacesHeader(S: SidebarState) {
             )}
             {canEditPlaces && (
               <Tooltip label={t('common.select')} placement="bottom">
-              <button
+              <button type="button"
                 onClick={() => { setSelectMode(v => !v); setSelectedIds(new Set()) }}
                 aria-label={t('common.select')}
                 aria-pressed={selectMode}
@@ -273,7 +273,7 @@ export function PlacesHeader(S: SidebarState) {
                   const active = categoryFilters.has(String(c.id))
                   const CatIcon = getCategoryIcon(c.icon)
                   return (
-                    <button key={c.id} onClick={() => toggleCategoryFilter(String(c.id))} className={`text-content ${active ? 'bg-surface-hover' : 'bg-transparent'}`} style={{
+                    <button type="button" key={c.id} onClick={() => toggleCategoryFilter(String(c.id))} className={`text-content ${active ? 'bg-surface-hover' : 'bg-transparent'}`} style={{
                       display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                       padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
                       fontFamily: 'inherit', fontSize: 'calc(12px * var(--fs-scale-body, 1))',
@@ -295,7 +295,7 @@ export function PlacesHeader(S: SidebarState) {
                 {places.some(p => p.category_id == null) && (() => {
                   const active = categoryFilters.has('uncategorized')
                   return (
-                    <button onClick={() => toggleCategoryFilter('uncategorized')} className={`text-content-muted ${active ? 'bg-surface-hover' : 'bg-transparent'}`} style={{
+                    <button type="button" onClick={() => toggleCategoryFilter('uncategorized')} className={`text-content-muted ${active ? 'bg-surface-hover' : 'bg-transparent'}`} style={{
                       display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                       padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
                       fontFamily: 'inherit', fontSize: 'calc(12px * var(--fs-scale-body, 1))',
@@ -314,7 +314,7 @@ export function PlacesHeader(S: SidebarState) {
                   )
                 })()}
                 {categoryFilters.size > 0 && (
-                  <button onClick={() => setCategoryFilters(new Set())} className="bg-transparent text-content-faint" style={{
+                  <button type="button" onClick={() => setCategoryFilters(new Set())} className="bg-transparent text-content-faint" style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                     width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
                     fontFamily: 'inherit', fontSize: 'calc(11px * var(--fs-scale-caption, 1))',

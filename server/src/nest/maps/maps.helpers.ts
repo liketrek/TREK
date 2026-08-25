@@ -328,10 +328,10 @@ function osmPeriods(dayIdx: number, timePart: string): OpeningPeriod[] {
   const day = (dayIdx + 1) % 7;
   const periods: OpeningPeriod[] = [];
   for (const match of timePart.matchAll(OSM_TIME_RANGE)) {
-    const openHour = parseInt(match[1], 10);
-    const openMinute = parseInt(match[2], 10);
-    let closeHour = parseInt(match[3], 10);
-    const closeMinute = parseInt(match[4], 10);
+    const openHour = Number.parseInt(match[1], 10);
+    const openMinute = Number.parseInt(match[2], 10);
+    let closeHour = Number.parseInt(match[3], 10);
+    const closeMinute = Number.parseInt(match[4], 10);
     if (openHour > 23 || openMinute > 59 || closeHour > 24 || closeMinute > 59) continue;
     // OSM writes the end of a day as 24:00, a clock reading Google's numbering has no
     // hour 24 — that is midnight of the following day, same as any range that wraps.
@@ -421,8 +421,8 @@ export function parseOpeningHours(ohString: string): {
     if (timeRanges.length > 0) {
       const nowMins = now.getHours() * 60 + now.getMinutes();
       openNow = timeRanges.some((m) => {
-        const start = parseInt(m[1]) * 60 + parseInt(m[2]);
-        const end = parseInt(m[3]) * 60 + parseInt(m[4]);
+        const start = Number.parseInt(m[1]) * 60 + Number.parseInt(m[2]);
+        const end = Number.parseInt(m[3]) * 60 + Number.parseInt(m[4]);
         return end > start ? nowMins >= start && nowMins < end : nowMins >= start || nowMins < end;
       });
     }

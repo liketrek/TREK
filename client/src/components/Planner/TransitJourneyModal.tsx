@@ -142,7 +142,7 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
       footer={
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           {canEdit && (
-            <button onClick={() => setConfirmDelete(true)} aria-label={t('common.delete')} title={t('common.delete')} style={{
+            <button type="button" onClick={() => setConfirmDelete(true)} aria-label={t('common.delete')} title={t('common.delete')} style={{
               display: 'inline-flex', alignItems: 'center', gap: 5, padding: isMobile ? '9px 11px' : '8px 14px', borderRadius: 10,
               border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.06)', color: '#ef4444',
               fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
@@ -152,7 +152,7 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
           )}
           <div style={{ flex: 1 }} />
           {canEdit && (
-            <button onClick={onChangeRoute} className="text-content-muted" style={{
+            <button type="button" onClick={onChangeRoute} className="text-content-muted" style={{
               display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10,
               border: '1px solid var(--border-primary)', background: 'none',
               fontSize: 'calc(12px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit',
@@ -161,7 +161,7 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
             </button>
           )}
           {canEdit ? (
-            <button onClick={save} disabled={saving || !title.trim() || !dirty} className="bg-[var(--text-primary)] text-[var(--bg-primary)]" style={{
+            <button type="button" onClick={save} disabled={saving || !title.trim() || !dirty} className="bg-[var(--text-primary)] text-[var(--bg-primary)]" style={{
               padding: '8px 20px', borderRadius: 10, border: 'none',
               fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
               opacity: saving || !title.trim() || !dirty ? 0.5 : 1,
@@ -169,7 +169,7 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
               {saving ? t('common.saving') : t('common.save')}
             </button>
           ) : (
-            <button onClick={onClose} className="bg-accent text-accent-text" style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <button type="button" onClick={onClose} className="bg-accent text-accent-text" style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
               {t('common.close')}
             </button>
           )}
@@ -198,7 +198,7 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
               <div className="text-content" style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 'calc(17px * var(--fs-scale-subtitle, 1))', fontWeight: 700, letterSpacing: '-0.015em', minWidth: 0 }}>
                 <span style={{ minWidth: 0, overflow: 'hidden' }}><TransitTitle title={title} iconSize={15} /></span>
                 {canEdit && (
-                  <button onClick={() => setEditingTitle(true)} aria-label={t('common.edit')} title={t('common.edit')} className="text-content-faint" style={{ border: 'none', background: 'none', padding: 3, cursor: 'pointer', display: 'flex', flexShrink: 0 }}>
+                  <button type="button" onClick={() => setEditingTitle(true)} aria-label={t('common.edit')} title={t('common.edit')} className="text-content-faint" style={{ border: 'none', background: 'none', padding: 3, cursor: 'pointer', display: 'flex', flexShrink: 0 }}>
                     <Pencil size={13} strokeWidth={1.8} />
                   </button>
                 )}

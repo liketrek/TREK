@@ -126,7 +126,7 @@ export function sortProviderPhotos<T extends ProviderPhotoAsset>(photos: T[], lo
     .map((photo, index) => ({
       photo,
       index,
-      distance: isValidGeoPoint({ lat: photo.lat ?? NaN, lng: photo.lng ?? NaN })
+      distance: isValidGeoPoint({ lat: photo.lat ?? Number.NaN, lng: photo.lng ?? Number.NaN })
         ? distanceBetweenGeoPoints(location, { lat: photo.lat!, lng: photo.lng! })
         : null,
     }))

@@ -191,7 +191,7 @@ export default function BackupPanel() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <button type="button"
               onClick={loadBackups}
               disabled={isLoading}
               className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
@@ -208,7 +208,7 @@ export default function BackupPanel() {
               className="hidden"
               onChange={handleUploadRestore}
             />
-            <button
+            <button type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
               className="flex items-center gap-2 border border-gray-200 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 text-sm font-medium disabled:opacity-60"
@@ -222,7 +222,7 @@ export default function BackupPanel() {
               <span className="hidden sm:inline">{isUploading ? t('backup.uploading') : t('backup.upload')}</span>
             </button>
 
-            <button
+            <button type="button"
               onClick={handleCreate}
               disabled={isCreating}
               className="flex items-center gap-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-3 sm:px-4 py-2 rounded-lg hover:bg-slate-900 text-sm font-medium disabled:opacity-60"
@@ -247,7 +247,7 @@ export default function BackupPanel() {
           <div className="text-center py-12 text-gray-400">
             <HardDrive className="w-10 h-10 mb-3 mx-auto opacity-40" />
             <p className="text-sm">{t('backup.empty')}</p>
-            <button onClick={handleCreate} className="mt-4 text-slate-700 text-sm hover:underline">
+            <button type="button" onClick={handleCreate} className="mt-4 text-slate-700 text-sm hover:underline">
               {t('backup.createFirst')}
             </button>
           </div>
@@ -274,14 +274,14 @@ export default function BackupPanel() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <button
+                  <button type="button"
                     onClick={() => backupApi.download(backup.filename).catch(() => toast.error(t('backup.toast.downloadError')))}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50"
                   >
                     <Download className="w-3.5 h-3.5" />
                     {t('backup.download')}
                   </button>
-                  <button
+                  <button type="button"
                     onClick={() => handleRestore(backup.filename)}
                     disabled={restoringFile === backup.filename}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-50 disabled:opacity-60"
@@ -292,7 +292,7 @@ export default function BackupPanel() {
                     }
                     {t('backup.restore')}
                   </button>
-                  <button
+                  <button type="button"
                     onClick={() => handleDelete(backup.filename)}
                     className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                   >
@@ -322,7 +322,7 @@ export default function BackupPanel() {
               <span className="text-sm font-medium text-gray-900">{t('backup.auto.enable')}</span>
               <p className="text-xs text-gray-500 mt-0.5">{t('backup.auto.enableHint')}</p>
             </div>
-            <button
+            <button type="button"
               onClick={() => handleAutoSettingsChange('enabled', !autoSettings.enabled)}
               className="relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors"
               style={{ background: autoSettings.enabled ? 'var(--text-primary)' : 'var(--border-primary)' }}
@@ -339,7 +339,7 @@ export default function BackupPanel() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('backup.auto.interval')}</label>
                 <div className="flex flex-wrap gap-2">
                   {INTERVAL_OPTIONS.map(opt => (
-                    <button
+                    <button type="button"
                       key={opt.value}
                       onClick={() => handleAutoSettingsChange('interval', opt.value)}
                       className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
@@ -360,7 +360,7 @@ export default function BackupPanel() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('backup.auto.hour')}</label>
                   <CustomSelect
                     value={String(autoSettings.hour)}
-                    onChange={v => handleAutoSettingsChange('hour', parseInt(String(v), 10))}
+                    onChange={v => handleAutoSettingsChange('hour', Number.parseInt(String(v), 10))}
                     size="sm"
                     options={HOURS.map(h => {
                       let label: string
@@ -386,7 +386,7 @@ export default function BackupPanel() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('backup.auto.dayOfWeek')}</label>
                   <div className="flex flex-wrap gap-2">
                     {DAYS_OF_WEEK.map(opt => (
-                      <button
+                      <button type="button"
                         key={opt.value}
                         onClick={() => handleAutoSettingsChange('day_of_week', opt.value)}
                         className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
@@ -408,7 +408,7 @@ export default function BackupPanel() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('backup.auto.dayOfMonth')}</label>
                   <CustomSelect
                     value={String(autoSettings.day_of_month)}
-                    onChange={v => handleAutoSettingsChange('day_of_month', parseInt(String(v), 10))}
+                    onChange={v => handleAutoSettingsChange('day_of_month', Number.parseInt(String(v), 10))}
                     size="sm"
                     options={DAYS_OF_MONTH.map(d => ({ value: String(d), label: String(d) }))}
                   />
@@ -421,7 +421,7 @@ export default function BackupPanel() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('backup.auto.keepLabel')}</label>
                 <div className="flex flex-wrap gap-2">
                   {KEEP_OPTIONS.map(opt => (
-                    <button
+                    <button type="button"
                       key={opt.value}
                       onClick={() => handleAutoSettingsChange('keep_days', opt.value)}
                       className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
@@ -440,7 +440,7 @@ export default function BackupPanel() {
 
           {/* Save button */}
           <div className="flex justify-end pt-2 border-t border-gray-100">
-            <button
+            <button type="button"
               onClick={handleSaveAutoSettings}
               disabled={autoSettingsSaving || !autoSettingsDirty}
               className="flex items-center gap-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-5 py-2 rounded-lg hover:bg-slate-900 text-sm font-medium disabled:opacity-50 transition-colors"
@@ -497,14 +497,14 @@ export default function BackupPanel() {
 
             {/* Footer */}
             <div style={{ padding: '0 24px 20px', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button
+              <button type="button"
                 onClick={() => setRestoreConfirm(null)}
                 className="text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                 style={{ padding: '9px 20px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
               >
                 {t('common.cancel')}
               </button>
-              <button
+              <button type="button"
                 onClick={executeRestore}
                 className="bg-[#dc2626] text-white"
                 style={{ padding: '9px 20px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}

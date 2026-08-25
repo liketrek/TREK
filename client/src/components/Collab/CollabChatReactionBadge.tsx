@@ -18,7 +18,7 @@ export function ReactionBadge({ reaction, currentUserId, onReact }: ReactionBadg
 
   return (
     <>
-      <button ref={ref} onClick={onReact}
+      <button type="button" ref={ref} onClick={onReact}
         onMouseEnter={() => {
           if (ref.current) {
             const rect = ref.current.getBoundingClientRect()

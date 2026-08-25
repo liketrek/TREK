@@ -159,8 +159,8 @@ export default function CollectionPlaceDetail({
 
   const save = async () => {
     const cleanLinks = links.map(l => ({ label: l.label?.trim() || undefined, url: normalizeLinkUrl(l.url) })).filter(l => l.url)
-    const latNum = lat.trim() ? Number(lat) : NaN
-    const lngNum = lng.trim() ? Number(lng) : NaN
+    const latNum = lat.trim() ? Number(lat) : Number.NaN
+    const lngNum = lng.trim() ? Number(lng) : Number.NaN
     setSaving(true)
     try {
       await onSave({ name: name.trim() || place.name, description: description.trim() || null, links: cleanLinks, category_id: categoryId, label_ids: labelIds, address: address.trim() || null, lat: Number.isFinite(latNum) ? latNum : null, lng: Number.isFinite(lngNum) ? lngNum : null })

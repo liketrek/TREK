@@ -75,7 +75,7 @@ export default function BudgetSummary({ theme, currency, locale, grandTotal, has
             {/* Settlement dropdown inside the total card */}
             {hasMultipleMembers && settlement && settlement.flows.length > 0 && (
               <div style={{ marginTop: 16, borderTop: `1px solid ${theme.divider}`, paddingTop: 12 }}>
-                <button onClick={() => setSettlementOpen(v => !v)} style={{
+                <button type="button" onClick={() => setSettlementOpen(v => !v)} style={{
                   display: 'flex', alignItems: 'center', gap: 6, width: '100%',
                   background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit',
                   color: theme.sub, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, letterSpacing: 0.5,

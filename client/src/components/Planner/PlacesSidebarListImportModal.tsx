@@ -25,7 +25,7 @@ export function ListImportModal(S: SidebarState) {
         {hasMultipleListImportProviders && (
           <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
             {availableListImportProviders.map(provider => (
-              <button
+              <button type="button"
                 key={provider}
                 onClick={() => setListImportProvider(provider)}
                 className={listImportProvider === provider ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-muted'}
@@ -67,7 +67,7 @@ export function ListImportModal(S: SidebarState) {
           </div>
         )}
         <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
-          <button
+          <button type="button"
             onClick={() => { setListImportOpen(false); setListImportUrl('') }}
             className="text-content"
             style={{
@@ -78,7 +78,7 @@ export function ListImportModal(S: SidebarState) {
           >
             {t('common.cancel')}
           </button>
-          <button
+          <button type="button"
             onClick={handleListImport}
             disabled={!listImportUrl.trim() || listImportLoading}
             className={!listImportUrl.trim() || listImportLoading ? 'bg-surface-tertiary text-content-faint' : 'bg-accent text-accent-text'}

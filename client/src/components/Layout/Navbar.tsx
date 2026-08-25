@@ -115,7 +115,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
           being centred on top of both (#1983). */}
       <div className="flex items-center gap-3 min-w-0 flex-1 basis-0">
         {showBack && (
-          <button onClick={onBack}
+          <button type="button" onClick={onBack}
             className="trek-back-btn p-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm flex-shrink-0 text-content-muted"
             onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
@@ -215,7 +215,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
 
       {/* Share button */}
       {onShare && (
-        <button onClick={onShare}
+        <button type="button" onClick={onShare}
           className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border transition-colors text-sm font-medium flex-shrink-0 border-edge text-content-secondary bg-surface-card"
           onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
           onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-card)'}>
@@ -235,7 +235,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
       )}
 
       {/* Dark mode toggle (light ↔ dark, overrides auto) — hidden on mobile */}
-      <button onClick={toggleDarkMode} title={dark ? t('nav.lightMode') : t('nav.darkMode')}
+      <button type="button" onClick={toggleDarkMode} title={dark ? t('nav.lightMode') : t('nav.darkMode')}
         className="p-2 rounded-lg transition-colors flex-shrink-0 hidden sm:flex relative w-8 h-8 items-center justify-center text-content-muted"
         onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
@@ -252,7 +252,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
       {/* User menu */}
       {user && (
         <div className="relative">
-          <button onClick={() => setUserMenuOpen(!userMenuOpen)}
+          <button type="button" onClick={() => setUserMenuOpen(!userMenuOpen)}
             className="flex items-center gap-2 py-1.5 px-3 rounded-lg transition-colors"
             onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
@@ -313,7 +313,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
                 </div>
 
                 <div className="py-1 border-t border-edge-secondary">
-                  <button onClick={handleLogout}
+                  <button type="button" onClick={handleLogout}
                     className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors">
                     <LogOut className="w-4 h-4" />
                     {t('nav.logout')}

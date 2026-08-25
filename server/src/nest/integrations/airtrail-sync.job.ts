@@ -22,7 +22,7 @@ export class AirtrailSyncJob implements OnApplicationBootstrap {
   onApplicationBootstrap(): void {
     if (!this.registrar.isEnabled()) return;
     const value = this.db.get<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', 'airtrail_poll_interval_minutes')?.value;
-    const raw = parseInt(value || '5', 10);
+    const raw = Number.parseInt(value || '5', 10);
     const minutes = Number.isFinite(raw) && raw >= 1 && raw <= 59 ? raw : 5;
     logInfo(`AirTrail sync: scheduled every ${minutes}m`);
     this.registrar.register('airtrail-sync', `*/${minutes} * * * *`, () => this.tick());

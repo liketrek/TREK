@@ -87,8 +87,8 @@ export default function MPackItemSheet({
     const trimmedName = name.trim()
     setSaving(true)
     try {
-      const qty = Math.max(1, Math.min(999, parseInt(quantity, 10) || 1))
-      const weightVal = weight.trim() === '' ? null : Math.max(0, parseInt(weight, 10) || 0)
+      const qty = Math.max(1, Math.min(999, Number.parseInt(quantity, 10) || 1))
+      const weightVal = weight.trim() === '' ? null : Math.max(0, Number.parseInt(weight, 10) || 0)
       await tripActions.updatePackingItem(tripId, item.id, {
         name: trimmedName,
         quantity: qty,

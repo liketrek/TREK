@@ -27,7 +27,7 @@ export function compareVersions(a: string, b: string): number {
   const parse = (v: string) => {
     const [base, pre] = v.split('-pre.');
     const parts = base.split('.').map(Number);
-    const n = pre !== undefined ? parseInt(pre, 10) : null;
+    const n = pre !== undefined ? Number.parseInt(pre, 10) : null;
     const preN = n !== null && Number.isFinite(n) ? n : null;
     return { parts, preN };
   };

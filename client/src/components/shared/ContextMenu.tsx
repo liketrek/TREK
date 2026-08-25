@@ -79,7 +79,7 @@ export function ContextMenu({ menu, onClose }: ContextMenuProps) {
         if (item.divider) return <div key={i} style={{ height: 1, background: 'var(--border-faint)', margin: '3px 6px' }} />
         const Icon = item.icon
         return (
-          <button key={i} onClick={() => { item.onClick?.(); onClose() }} style={{
+          <button type="button" key={i} onClick={() => { item.onClick?.(); onClose() }} style={{
             display: 'flex', alignItems: 'center', gap: 8, width: '100%',
             padding: '7px 10px', borderRadius: 7, border: 'none',
             background: 'none', cursor: 'pointer', fontFamily: 'inherit',

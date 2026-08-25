@@ -88,13 +88,13 @@ export default function CopyTripDialog({ isOpen, tripTitle, onClose, onConfirm }
         </div>
 
         <div className="flex justify-end gap-3 mt-5">
-          <button
+          <button type="button"
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium rounded-lg transition-colors text-content-secondary border border-edge-secondary"
           >
             {t('common.cancel')}
           </button>
-          <button
+          <button type="button"
             onClick={() => { onConfirm(); onClose() }}
             className="px-4 py-2 text-sm font-medium rounded-lg transition-opacity hover:opacity-90 bg-content text-surface-card"
           >

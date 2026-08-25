@@ -61,7 +61,7 @@ export default function TodoRow({ item, members, categories, today, isSelected, 
       )}
 
       {/* Checkbox */}
-      <button onClick={e => { e.stopPropagation(); if (canEdit) onToggle(item.id, !done) }}
+      <button type="button" onClick={e => { e.stopPropagation(); if (canEdit) onToggle(item.id, !done) }}
         style={{ background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', padding: 0, flexShrink: 0,
           color: done ? '#22c55e' : 'var(--border-primary)' }}>
         {done ? <CheckSquare size={18} /> : <Square size={18} />}

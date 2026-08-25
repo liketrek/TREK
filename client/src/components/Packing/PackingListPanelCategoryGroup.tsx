@@ -115,7 +115,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
   return (
     <div style={{ marginBottom: 6, background: 'var(--bg-card)', borderRadius: 14, border: '1px solid var(--border-secondary)', overflow: 'visible' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: offen ? '1px solid var(--border-secondary)' : 'none' }}>
-        <button onClick={() => setOffen(o => !o)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: 'var(--text-faint)', flexShrink: 0 }}>
+        <button type="button" onClick={() => setOffen(o => !o)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: 'var(--text-faint)', flexShrink: 0 }}>
           {offen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
         </button>
 
@@ -165,7 +165,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
           ))}
           {canEdit && (
           <div ref={assigneeDropdownRef} style={{ position: 'relative' }}>
-            <button onClick={e => { e.stopPropagation(); setShowAssigneeDropdown(v => !v) }}
+            <button type="button" onClick={e => { e.stopPropagation(); setShowAssigneeDropdown(v => !v) }}
               style={{
                 width: 20, height: 20, borderRadius: '50%', border: '1.5px dashed var(--border-primary)',
                 background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -185,7 +185,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
                 {tripMembers.map(m => {
                   const isAssigned = assignees.some(a => a.user_id === m.id)
                   return (
-                    <button key={m.id} onClick={e => {
+                    <button type="button" key={m.id} onClick={e => {
                       e.stopPropagation()
                       const newIds = isAssigned
                         ? assignees.filter(a => a.user_id !== m.id).map(a => a.user_id)
@@ -236,7 +236,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
         </span>
 
         <div style={{ position: 'relative' }}>
-          <button ref={menuBtnRef} onClick={() => setShowMenu(m => !m)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}
+          <button type="button" ref={menuBtnRef} onClick={() => setShowMenu(m => !m)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}
             onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
             <MoreHorizontal size={15} />
           </button>
@@ -300,18 +300,18 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
                 style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-primary)', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontFamily: 'inherit', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-input)' }}
               />
               {/* disabled while the field is empty, so no extra guard here */}
-              <button onClick={() => { onAddItem(kategorie, newItemName.trim()); setNewItemName(''); setTimeout(() => addItemRef.current?.focus(), 30) }}
+              <button type="button" onClick={() => { onAddItem(kategorie, newItemName.trim()); setNewItemName(''); setTimeout(() => addItemRef.current?.focus(), 30) }}
                 disabled={!newItemName.trim()}
                 style={{ padding: '5px 8px', borderRadius: 8, border: 'none', background: newItemName.trim() ? 'var(--text-primary)' : 'var(--border-primary)', color: 'var(--bg-primary)', cursor: newItemName.trim() ? 'pointer' : 'default', display: 'flex' }}>
                 <Plus size={14} />
               </button>
-              <button onClick={() => { setShowAddItem(false); setNewItemName('') }}
+              <button type="button" onClick={() => { setShowAddItem(false); setNewItemName('') }}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', color: 'var(--text-faint)' }}>
                 <X size={14} />
               </button>
             </div>
           ) : (
-            <button onClick={() => { setShowAddItem(true); setTimeout(() => addItemRef.current?.focus(), 30) }}
+            <button type="button" onClick={() => { setShowAddItem(true); setTimeout(() => addItemRef.current?.focus(), 30) }}
               style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', margin: '2px 4px', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', fontFamily: 'inherit' }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
               onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
@@ -333,7 +333,7 @@ interface MenuItemProps {
 
 function MenuItem({ icon, label, onClick, danger = false }: MenuItemProps) {
   return (
-    <button onClick={onClick} style={{
+    <button type="button" onClick={onClick} style={{
       display: 'flex', alignItems: 'center', gap: 8, width: '100%',
       padding: '7px 10px', background: 'none', border: 'none', cursor: 'pointer',
       fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontFamily: 'inherit', borderRadius: 7, textAlign: 'left',

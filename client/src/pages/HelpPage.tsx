@@ -72,7 +72,7 @@ export default function HelpPage() {
         {/* Content */}
         <main className="flex-1 min-w-0" ref={contentRef}>
           {/* Mobile nav toggle */}
-          <button
+          <button type="button"
             onClick={() => setNavOpen(true)}
             className="lg:hidden inline-flex items-center gap-2 mb-4 px-3 py-2 rounded-lg bg-surface-card border border-edge text-[13px] font-medium text-content"
           >
@@ -109,7 +109,7 @@ export default function HelpPage() {
               <span className="text-[14px] font-bold text-content flex items-center gap-2">
                 <BookOpen size={16} className="text-accent" /> {t('help.title')}
               </span>
-              <button onClick={() => setNavOpen(false)} className="text-content-faint">
+              <button type="button" onClick={() => setNavOpen(false)} className="text-content-faint">
                 <X size={18} />
               </button>
             </div>

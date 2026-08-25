@@ -106,7 +106,7 @@ function expandV6(ip: string): number[] | null {
   const groups =
     halves.length === 2 ? [...head, ...Array(8 - head.length - tail.length).fill('0'), ...tail] : head;
   if (groups.length !== 8) return null;
-  const nums = groups.map((x) => (x === '' ? NaN : parseInt(x, 16)));
+  const nums = groups.map((x) => (x === '' ? Number.NaN : Number.parseInt(x, 16)));
   return nums.some((n) => !Number.isInteger(n) || n < 0 || n > 0xffff) ? null : nums;
 }
 

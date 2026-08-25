@@ -158,7 +158,7 @@ function normalizeYearType(value: unknown): 'calendar' | 'fiscal' | 'anniversary
  * ending on Jan 1 (the calendar default) stops inside the previous year.
  */
 function windowEndYear(end: string): number {
-  const y = parseInt(end.slice(0, 4), 10);
+  const y = Number.parseInt(end.slice(0, 4), 10);
   return end.endsWith('-01-01') ? y - 1 : y;
 }
 
@@ -255,8 +255,8 @@ export class VacayService {
     let day = s.year_start_day || 1;
     if (s.year_type === 'anniversary') {
       const parts = s.hire_date!.split('-');
-      month = parseInt(parts[1], 10) || 1;
-      day = parseInt(parts[2], 10) || 1;
+      month = Number.parseInt(parts[1], 10) || 1;
+      day = Number.parseInt(parts[2], 10) || 1;
     }
     month = Math.min(12, Math.max(1, month));
     // A Feb 29 hire date (or a stored Feb 30) would name a boundary that most years
@@ -272,7 +272,7 @@ export class VacayService {
    * plain calendar year, which is exactly what a 'calendar' user resolves to.
    */
   private viewerWindow(year: number | string, viewerId?: number): { start: string; end: string } {
-    const y = typeof year === 'number' ? year : parseInt(year, 10);
+    const y = typeof year === 'number' ? year : Number.parseInt(year, 10);
     // A non-numeric year matched nothing under the old date prefix; an empty range
     // matches nothing either, so a bad parameter still yields an empty result.
     if (!Number.isFinite(y)) return { start: '', end: '' };
@@ -316,8 +316,8 @@ export class VacayService {
     data: { year_type?: unknown; year_start_month?: unknown; year_start_day?: unknown; hire_date?: unknown },
   ): VacayUserSettings {
     const type = normalizeYearType(data.year_type);
-    const month = Math.min(12, Math.max(1, parseInt(String(data.year_start_month ?? 1), 10) || 1));
-    const day = Math.min(31, Math.max(1, parseInt(String(data.year_start_day ?? 1), 10) || 1));
+    const month = Math.min(12, Math.max(1, Number.parseInt(String(data.year_start_month ?? 1), 10) || 1));
+    const day = Math.min(31, Math.max(1, Number.parseInt(String(data.year_start_day ?? 1), 10) || 1));
     const hire = typeof data.hire_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.hire_date) ? data.hire_date : null;
     this.db.run(`
     INSERT INTO vacay_user_settings (user_id, year_type, year_start_month, year_start_day, hire_date)

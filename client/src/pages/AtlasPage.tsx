@@ -183,7 +183,7 @@ function AtlasPageDesktop(): React.ReactElement {
 
             {confirmAction.type === 'choose' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <button onClick={async () => {
+                <button type="button" onClick={async () => {
                   try {
                     await apiClient.post(`/addons/atlas/country/${confirmAction.code}/mark`)
                     setData(prev => (prev ? withCountryMarkedVisited(prev, confirmAction.code) : prev))
@@ -217,7 +217,7 @@ function AtlasPageDesktop(): React.ReactElement {
                   const wishlistItems = bucketList.filter(b => b.country_code === confirmAction.code)
                   if (wishlistItems.length === 0) return null
                   return (
-                    <button onClick={async () => {
+                    <button type="button" onClick={async () => {
                       await Promise.all(wishlistItems.map(item => handleDeleteBucketItem(item.id)))
                       setConfirmAction(null)
                     }}
@@ -285,12 +285,12 @@ function AtlasPageDesktop(): React.ReactElement {
               <>
                 <p className="text-content-muted" style={{ margin: '0 0 20px', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{t('atlas.confirmUnmark')}</p>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                  <button onClick={() => setConfirmAction(null)}
+                  <button type="button" onClick={() => setConfirmAction(null)}
                     className="border border-edge text-content-muted"
                     style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('common.cancel')}
                   </button>
-                  <button onClick={executeConfirmAction}
+                  <button type="button" onClick={executeConfirmAction}
                     className="bg-[#ef4444] text-white"
                     style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('atlas.unmark')}
@@ -306,7 +306,7 @@ function AtlasPageDesktop(): React.ReactElement {
                 )}
                 <p className="text-content-muted" style={{ margin: '0 0 20px', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{t('atlas.confirmUnmarkRegion')}</p>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                  <button onClick={() => setConfirmAction(null)}
+                  <button type="button" onClick={() => setConfirmAction(null)}
                     className="border border-edge text-content-muted"
                     style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('common.cancel')}
@@ -391,7 +391,7 @@ function AtlasPageDesktop(): React.ReactElement {
                     style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('common.back')}
                   </button>
-                  <button onClick={async () => {
+                  <button type="button" onClick={async () => {
                     const targetDate = bucketMonth > 0 && bucketYear > 0 ? `${bucketYear}-${String(bucketMonth).padStart(2, '0')}` : null
                     // #1898: one entry per target date. The dialog stays open on a
                     // duplicate so another month can be picked right away.
@@ -424,12 +424,12 @@ function AtlasPageDesktop(): React.ReactElement {
               <>
                 <p className="text-content-muted" style={{ margin: '0 0 20px', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{t('atlas.confirmMark')}</p>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                  <button onClick={() => setConfirmAction(null)}
+                  <button type="button" onClick={() => setConfirmAction(null)}
                     className="border border-edge text-content-muted"
                     style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('common.cancel')}
                   </button>
-                  <button onClick={executeConfirmAction}
+                  <button type="button" onClick={executeConfirmAction}
                     className="bg-content text-white"
                     style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('atlas.markVisited')}
@@ -506,7 +506,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
   const tabBar = (
     <div style={{ display: 'flex', gap: 4, padding: '12px 16px 0', marginBottom: 4 }}>
       {[{ id: 'stats', label: t('atlas.statsTab'), icon: Globe }, { id: 'bucket', label: t('atlas.bucketTab'), icon: Star }].map(tab => (
-        <button key={tab.id} onClick={() => setBucketTab(tab.id as any)}
+        <button type="button" key={tab.id} onClick={() => setBucketTab(tab.id as any)}
           style={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
             padding: '7px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
@@ -552,7 +552,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
             return <span className="text-[9px] mt-0.5 text-center" style={{ color: tf }}>{label}</span>
           })()}
           {!item.target_date && item.notes && <span className="text-[9px] mt-0.5 text-center" style={{ color: tf, maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.notes}</span>}
-          <button onClick={() => onDeleteBucket(item.id)}
+          <button type="button" onClick={() => onDeleteBucket(item.id)}
             className="opacity-0 group-hover:opacity-100"
             style={{ position: 'absolute', top: 4, right: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: tf, display: 'flex', transition: 'opacity 0.15s' }}>
             <X size={10} />
@@ -579,7 +579,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
               style={{ flex: 1, padding: '6px 10px', borderRadius: 8, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
             />
             {!bucketForm.name && (
-              <button onClick={onSearchBucket} disabled={bucketSearching}
+              <button type="button" onClick={onSearchBucket} disabled={bucketSearching}
                 className="bg-accent text-accent-text"
                 style={{ padding: '6px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                 <Search size={12} />
@@ -616,7 +616,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
               zIndex: 99999, borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.12)', overflowY: 'auto',
             }}>
               {bucketSearchResults.slice(0, 6).map((r, i) => (
-                <button key={i} onClick={() => onSelectBucketPoi(r)} className="border-b border-edge-faint" style={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%', padding: '6px 10px', borderTop: 'none', borderLeft: 'none', borderRight: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}>
+                <button type="button" key={i} onClick={() => onSelectBucketPoi(r)} className="border-b border-edge-faint" style={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%', padding: '6px 10px', borderTop: 'none', borderLeft: 'none', borderRight: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}>
                   <span className="text-content" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500 }}>{r.name}</span>
                   {r.address && <span className="text-content-faint" style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))' }}>{r.address}</span>}
                 </button>
@@ -643,12 +643,12 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-          <button onClick={() => { setShowBucketAdd(false); setBucketForm({ name: '', notes: '', lat: '', lng: '', target_date: '' }); setBucketSearch(''); setBucketSearchResults([]); setBucketPoiMonth(0); setBucketPoiYear(0) }}
+          <button type="button" onClick={() => { setShowBucketAdd(false); setBucketForm({ name: '', notes: '', lat: '', lng: '', target_date: '' }); setBucketSearch(''); setBucketSearchResults([]); setBucketPoiMonth(0); setBucketPoiYear(0) }}
             className="border border-edge text-content-muted"
             style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', padding: '4px 10px', borderRadius: 6, background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
             {t('common.cancel')}
           </button>
-          <button onClick={onAddBucket} disabled={!bucketForm.name.trim()}
+          <button type="button" onClick={onAddBucket} disabled={!bucketForm.name.trim()}
             className="bg-[#fbbf24] text-[#1a1a1a]"
             style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', padding: '4px 12px', borderRadius: 6, border: 'none', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: bucketForm.name.trim() ? 1 : 0.5 }}>
             {t('common.add')}
@@ -657,7 +657,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
       </div>
     ) : (
       <div style={{ padding: '4px 16px 8px' }}>
-        <button onClick={() => setShowBucketAdd(true)}
+        <button type="button" onClick={() => setShowBucketAdd(true)}
           className="border border-dashed border-edge"
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, width: '100%', padding: '5px 0', borderRadius: 8, background: 'none', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: tf, cursor: 'pointer', fontFamily: 'inherit' }}>
           <Plus size={11} /> {t('atlas.addPoi')}
@@ -756,7 +756,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
               <p className="text-[10px] mb-1" style={{ color: tf }}>{countryDetail.places.length} {t('atlas.places')} · {countryDetail.trips.length} {t('atlas.tripPlural')}</p>
               <div className="flex flex-wrap gap-1">
                 {countryDetail.trips.slice(0, 3).map(trip => (
-                  <button key={trip.id} onClick={() => onTripClick(trip.id)}
+                  <button type="button" key={trip.id} onClick={() => onTripClick(trip.id)}
                     className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition-opacity hover:opacity-75"
                     style={{ background: bg(0.08), color: tp }}>
                     <Briefcase size={9} style={{ color: tm }} />
@@ -764,7 +764,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
                   </button>
                 ))}
                 {countryDetail.manually_marked && onUnmarkCountry && (
-                  <button onClick={() => onUnmarkCountry(selectedCountry!)}
+                  <button type="button" onClick={() => onUnmarkCountry(selectedCountry!)}
                     className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition-opacity hover:opacity-75 bg-[rgba(239,68,68,0.1)] text-[#ef4444]">
                     <X size={9} />
                     {t('atlas.unmark')}

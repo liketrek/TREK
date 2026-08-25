@@ -84,7 +84,7 @@ export class TripMembersController {
     if (!access) {
       throw new HttpException({ error: 'Trip not found' }, 404);
     }
-    const targetId = parseInt(userId);
+    const targetId = Number.parseInt(userId);
     if (targetId !== user.id && !this.roster.can('member_manage', user.role, access.user_id, user.id, access.user_id !== user.id)) {
       throw new HttpException({ error: 'No permission to remove members' }, 403);
     }
@@ -139,7 +139,7 @@ export class TripMembersController {
   @RequireTripOwner('Only the owner can manage guests', { param: 'id' })
   renameGuest(@CurrentUser() user: User, @Param('id') id: string, @Param('userId') userId: string, @Body() body: TripRenameGuestDto) {
     try {
-      if (!this.roster.renameGuest(id, parseInt(userId), body.name)) {
+      if (!this.roster.renameGuest(id, Number.parseInt(userId), body.name)) {
         throw new HttpException({ error: 'Guest not found' }, 404);
       }
       return { success: true };
@@ -154,7 +154,7 @@ export class TripMembersController {
   @UseGuards(TripOwnerGuard)
   @RequireTripOwner('Only the owner can manage guests', { param: 'id' })
   deleteGuest(@CurrentUser() user: User, @Param('id') id: string, @Param('userId') userId: string) {
-    if (!this.roster.deleteGuest(id, parseInt(userId))) {
+    if (!this.roster.deleteGuest(id, Number.parseInt(userId))) {
       throw new HttpException({ error: 'Guest not found' }, 404);
     }
     return { success: true };

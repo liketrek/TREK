@@ -38,7 +38,7 @@ export interface DayVisualContext {
 function hexToHsl(hex: string): { h: number; s: number; l: number } | null {
   const m = /^#([0-9a-f]{6})$/i.exec(hex.trim())
   if (!m) return null
-  const n = parseInt(m[1], 16)
+  const n = Number.parseInt(m[1], 16)
   const r = ((n >> 16) & 255) / 255
   const g = ((n >> 8) & 255) / 255
   const b = (n & 255) / 255

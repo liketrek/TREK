@@ -59,7 +59,7 @@ export default function PageSidebar({
       <div
         className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-edge"
       >
-        <button
+        <button type="button"
           onClick={() => setMobileOpen(true)}
           className="w-9 h-9 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-hover)] text-content"
           aria-label="Open navigation"
@@ -110,7 +110,7 @@ export default function PageSidebar({
               >
                 {sidebarLabel}
               </span>
-              <button
+              <button type="button"
                 onClick={() => setMobileOpen(false)}
                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-hover)] text-content"
                 aria-label="Close navigation"
@@ -177,7 +177,7 @@ function SidebarInner({
                     {tab.group}
                   </div>
                 )}
-                <button
+                <button type="button"
                   onClick={() => onTabChange(tab.id)}
                   className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left transition-colors ${active ? 'text-content font-semibold' : 'text-content-secondary font-medium'}`}
                   style={{

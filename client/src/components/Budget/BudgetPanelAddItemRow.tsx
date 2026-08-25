@@ -19,7 +19,7 @@ export default function AddItemRow({ onAdd, t }: AddItemRowProps) {
 
   const handleAdd = () => {
     if (!name.trim()) return
-    onAdd({ name: name.trim(), total_price: parseFloat(String(price).replace(',', '.')) || 0, persons: parseInt(persons) || null, days: parseInt(days) || null, note: note.trim() || null, expense_date: expenseDate || null })
+    onAdd({ name: name.trim(), total_price: Number.parseFloat(String(price).replace(',', '.')) || 0, persons: Number.parseInt(persons) || null, days: Number.parseInt(days) || null, note: note.trim() || null, expense_date: expenseDate || null })
     setName(''); setPrice(''); setPersons(''); setDays(''); setNote(''); setExpenseDate('')
     setTimeout(() => nameRef.current?.focus(), 50)
   }
@@ -57,7 +57,7 @@ export default function AddItemRow({ onAdd, t }: AddItemRowProps) {
         <input value={note} onChange={e => setNote(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} placeholder={t('budget.table.note')} style={inp} />
       </td>
       <td style={{ padding: '4px 6px', textAlign: 'center' }}>
-        <button onClick={handleAdd} disabled={!name.trim()} title={t('reservations.add')}
+        <button type="button" onClick={handleAdd} disabled={!name.trim()} title={t('reservations.add')}
           style={{ background: name.trim() ? 'var(--text-primary)' : 'var(--border-primary)', border: 'none', borderRadius: 4, color: 'var(--bg-primary)',
             cursor: name.trim() ? 'pointer' : 'default', padding: '4px 8px', display: 'inline-flex', alignItems: 'center' }}>
           <Plus size={14} />

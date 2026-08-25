@@ -580,7 +580,7 @@ export function ActionButton({ onClick, variant, icon, label, ref }: ActionButto
   }
   const s = base[variant] || base.ghost
   return (
-    <button
+    <button type="button"
       ref={ref}
       onClick={onClick}
       style={{
@@ -676,7 +676,7 @@ function ParticipantsBox({ tripMembers, participantIds, allJoined, onSetParticip
         {/* Add button */}
         {availableToAdd.length > 0 && (
           <div style={{ position: 'relative' }}>
-            <button onClick={() => setShowAdd(!showAdd)} className="text-content-faint" style={{
+            <button type="button" onClick={() => setShowAdd(!showAdd)} className="text-content-faint" style={{
               width: 22, height: 22, borderRadius: '50%', border: '1.5px dashed var(--border-primary)',
               background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 'calc(12px * var(--fs-scale-body, 1))', transition: 'all 0.12s',
@@ -692,7 +692,7 @@ function ParticipantsBox({ tripMembers, participantIds, allJoined, onSetParticip
                 boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 140,
               }}>
                 {availableToAdd.map(member => (
-                  <button key={member.id} onClick={() => handleAdd(member.id)} className="text-content" style={{
+                  <button type="button" key={member.id} onClick={() => handleAdd(member.id)} className="text-content" style={{
                     display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '5px 8px',
                     borderRadius: 6, border: 'none', background: 'none', cursor: 'pointer',
                     fontFamily: 'inherit', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', textAlign: 'left',
@@ -807,7 +807,7 @@ function PlaceInspectorHeader({ openNow, place, category, t, editingName, nameIn
               </div>
             )}
           </div>
-          <button
+          <button type="button"
             onClick={onClose}
             className="bg-surface-hover"
             style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, alignSelf: 'flex-start', transition: 'background 0.15s' }}
@@ -940,7 +940,7 @@ function TrackColorRow({ place, trackColor, onUpdatePlace, t }: any) {
   const [open, setOpen] = useState(false)
   return (
     <div className="bg-surface-hover" style={{ borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <button
+      <button type="button"
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
         style={{
@@ -980,7 +980,7 @@ function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpand
           <div className={`grid grid-cols-1 ${openingHours?.length > 0 ? 'sm:grid-cols-2' : ''} gap-2`}>
           {openingHours && openingHours.length > 0 && (
             <div className="bg-surface-hover" style={{ borderRadius: 10, overflow: 'hidden' }}>
-              <button
+              <button type="button"
                 onClick={() => setHoursExpanded(h => !h)}
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -1111,7 +1111,7 @@ function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpand
           {(placeFiles.length > 0 || onFileUpload) && (
             <div className="bg-surface-hover" style={{ borderRadius: 10, overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', gap: 6 }}>
-                <button
+                <button type="button"
                   onClick={() => setFilesExpanded(f => !f)}
                   style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', textAlign: 'left' }}
                 >
@@ -1135,7 +1135,7 @@ function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpand
               {filesExpanded && placeFiles.length > 0 && (
                 <div style={{ padding: '0 12px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {placeFiles.map(f => (
-                    <button key={f.id} onClick={() => openFile(f.url).catch(() => {})} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', cursor: 'pointer', background: 'none', border: 'none', width: '100%', textAlign: 'left' }}>
+                    <button type="button" key={f.id} onClick={() => openFile(f.url).catch(() => {})} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', cursor: 'pointer', background: 'none', border: 'none', width: '100%', textAlign: 'left' }}>
                       {(f.mime_type || '').startsWith('image/') ? <FileImage size={12} color="#6b7280" /> : <File size={12} color="#6b7280" />}
                       <span className="text-content-secondary" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
                       {f.file_size && <span className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', flexShrink: 0 }}>{formatFileSize(f.file_size)}</span>}

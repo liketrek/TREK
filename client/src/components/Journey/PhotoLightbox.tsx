@@ -86,7 +86,7 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props
           <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500 }}>
             {idx + 1} / {photos.length}
           </span>
-          <button onClick={onClose} style={{
+          <button type="button" onClick={onClose} style={{
             background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%',
             width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: '#fff', cursor: 'pointer',
@@ -97,7 +97,7 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props
 
         {/* Prev button — visible on hover (desktop), always visible (mobile) */}
         {hasPrev && (
-          <button onClick={prev} className="flex sm:opacity-0 sm:group-hover/lightbox:opacity-100 transition-opacity" style={{
+          <button type="button" onClick={prev} className="flex sm:opacity-0 sm:group-hover/lightbox:opacity-100 transition-opacity" style={{
             position: 'absolute', left: 16, zIndex: 5,
             width: 44, height: 44, borderRadius: '50%',
             background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)',
@@ -127,7 +127,7 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props
 
         {/* Next button */}
         {hasNext && (
-          <button onClick={next} className="flex sm:opacity-0 sm:group-hover/lightbox:opacity-100 transition-opacity" style={{
+          <button type="button" onClick={next} className="flex sm:opacity-0 sm:group-hover/lightbox:opacity-100 transition-opacity" style={{
             position: 'absolute', right: 16, zIndex: 5,
             width: 44, height: 44, borderRadius: '50%',
             background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)',

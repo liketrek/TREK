@@ -196,7 +196,7 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
                           <span className={`hidden sm:inline text-xs font-medium ${bagTrackingEnabled ? 'text-content' : 'text-content-faint'}`}>
                             {bagTrackingEnabled ? t('admin.addons.enabled') : t('admin.addons.disabled')}
                           </span>
-                          <button onClick={onToggleBagTracking}
+                          <button type="button" onClick={onToggleBagTracking}
                             className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
                             style={{ background: bagTrackingEnabled ? 'var(--text-primary)' : 'var(--border-primary)' }}>
                             <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
@@ -222,7 +222,7 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
                                   <span className={`hidden sm:inline text-xs font-medium ${enabled ? 'text-content' : 'text-content-faint'}`}>
                                     {enabled ? t('admin.addons.enabled') : t('admin.addons.disabled')}
                                   </span>
-                                  <button onClick={() => onToggleCollabFeature(feat.key)}
+                                  <button type="button" onClick={() => onToggleCollabFeature(feat.key)}
                                     className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
                                     style={{ background: enabled ? 'var(--text-primary)' : 'var(--border-primary)' }}>
                                     <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
@@ -269,7 +269,7 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
                                 <span className={`hidden sm:inline text-xs font-medium ${provider.enabled ? 'text-content' : 'text-content-faint'}`}>
                                   {provider.enabled ? t('admin.addons.enabled') : t('admin.addons.disabled')}
                                 </span>
-                                <button
+                                <button type="button"
                                   onClick={provider.toggle}
                                   className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
                                   style={{ background: provider.enabled ? 'var(--text-primary)' : 'var(--border-primary)' }}
@@ -459,7 +459,7 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
             <div className="space-y-3 rounded-lg border border-edge-secondary bg-surface p-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-content-secondary">Installed on the server</span>
-                <button onClick={loadModels} disabled={loadingModels} className="text-xs text-content-muted underline disabled:opacity-60">
+                <button type="button" onClick={loadModels} disabled={loadingModels} className="text-xs text-content-muted underline disabled:opacity-60">
                   {loadingModels ? 'Loading…' : 'Refresh'}
                 </button>
               </div>
@@ -470,7 +470,7 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
               {installed.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {installed.map(name => (
-                    <button
+                    <button type="button"
                       key={name}
                       title={name}
                       onClick={() => setModel(name)}
@@ -509,11 +509,11 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
                           )}
                         </div>
                         {installedHere ? (
-                          <button onClick={() => setModel(m.id)} disabled={active} className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${active ? 'bg-surface-tertiary text-content-muted' : 'border border-edge-secondary text-content-secondary hover:border-edge'}`}>
+                          <button type="button" onClick={() => setModel(m.id)} disabled={active} className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${active ? 'bg-surface-tertiary text-content-muted' : 'border border-edge-secondary text-content-secondary hover:border-edge'}`}>
                             {active ? 'Selected' : 'Use'}
                           </button>
                         ) : (
-                          <button onClick={() => pull(m.id)} disabled={!!pulling} className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-text disabled:opacity-60">
+                          <button type="button" onClick={() => pull(m.id)} disabled={!!pulling} className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-text disabled:opacity-60">
                             {isPulling ? 'Pulling…' : 'Pull'}
                           </button>
                         )}
@@ -526,7 +526,7 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
           )}
         </section>
 
-        <button onClick={save} disabled={saving} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-text transition-opacity disabled:opacity-60">
+        <button type="button" onClick={save} disabled={saving} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-text transition-opacity disabled:opacity-60">
           {saving ? 'Saving…' : 'Save'}
         </button>
       </div>
@@ -589,7 +589,7 @@ function AddonRow({ addon, onToggle, t, nameOverride, descriptionOverride, statu
           {isComingSoon ? t('admin.addons.disabled') : enabledState ? t('admin.addons.enabled') : t('admin.addons.disabled')}
         </span>
         {!hideToggle && (
-          <button
+          <button type="button"
             onClick={() => !isComingSoon && onToggle(addon)}
             disabled={isComingSoon}
             className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"

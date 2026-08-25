@@ -16,7 +16,7 @@ export function worldDots(): { x: number; y: number }[] {
   const out: { x: number; y: number }[] = [];
   let cursor = 0;
   for (const part of PACKED.split('.')) {
-    cursor += parseInt(part, 36);
+    cursor += Number.parseInt(part, 36);
     out.push({ x: cursor % WORLD_GRID_W, y: Math.floor(cursor / WORLD_GRID_W) });
   }
   return out;

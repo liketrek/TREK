@@ -118,14 +118,14 @@ export default function AirTrailConnectionSection(): React.ReactElement {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <button
+          <button type="button"
             onClick={handleSave}
             disabled={saving || loading || !canSave}
             className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm hover:bg-slate-700 disabled:bg-slate-400"
           >
             <Save className="w-4 h-4" /> {t('common.save')}
           </button>
-          <button
+          <button type="button"
             onClick={handleTest}
             disabled={testing || loading || !url.trim()}
             className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm hover:bg-slate-50"

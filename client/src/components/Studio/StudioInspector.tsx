@@ -204,7 +204,7 @@ export function StudioInspector({
           {sel.length > 1 && <em>{sel.length}</em>}
         </span>
         <span className="st-head-acts">
-          <button
+          <button type="button"
             className="st-act"
             onClick={() => duplicate(spreadIndex, selection)}
             title={t('journey.studio.duplicate')}
@@ -212,7 +212,7 @@ export function StudioInspector({
           >
             <Copy size={14} />
           </button>
-          <button
+          <button type="button"
             className={`st-act ${el.locked ? 'is-on' : ''}`}
             onClick={() => set({ locked: !el.locked })}
             title={t(el.locked ? 'journey.studio.unlock' : 'journey.studio.lock')}
@@ -221,7 +221,7 @@ export function StudioInspector({
           >
             {el.locked ? <Lock size={14} /> : <Unlock size={14} />}
           </button>
-          <button
+          <button type="button"
             className="st-act is-danger"
             onClick={() => removeElements(spreadIndex, selection)}
             title={t('journey.studio.delete')}
@@ -285,7 +285,7 @@ export function StudioInspector({
                 {BOOK_FONT_ORDER.map(id => {
                   const font = BOOK_FONTS[id]
                   return (
-                    <button
+                    <button type="button"
                       key={id}
                       className={`st-font ${el.font === id ? 'is-on' : ''}`}
                       style={{ fontFamily: font.stack }}
@@ -319,7 +319,7 @@ export function StudioInspector({
                 <Line label={t('journey.studio.align')}>
                   <div className="st-row">
                     {([['left', AlignLeft], ['center', AlignCenter], ['right', AlignRight], ['justify', AlignJustify]] as const).map(([a, Icon]) => (
-                      <button
+                      <button type="button"
                         key={a}
                         className={`st-chip is-icon ${el.align === a ? 'is-on' : ''}`}
                         onClick={() => set({ align: a })}
@@ -331,7 +331,7 @@ export function StudioInspector({
                     {/* Italic sits with the alignment because both are things
                         you do to a line rather than to a typeface. It had no
                         control at all before, though the renderer drew it. */}
-                    <button
+                    <button type="button"
                       className={`st-chip is-icon ${el.italic ? 'is-on' : ''}`}
                       onClick={() => set({ italic: !el.italic })}
                       title={t('journey.studio.italic')}
@@ -450,7 +450,7 @@ export function StudioInspector({
 
             <Section label={t('journey.studio.mask')} defaultOpen={false}>
               <div className="st-mini-shapes">
-                <button
+                <button type="button"
                   className={`st-mini-shape ${el.mask ? '' : 'is-on'}`}
                   onClick={() => set({ mask: null })}
                   title={t('journey.studio.maskNone')}
@@ -458,7 +458,7 @@ export function StudioInspector({
                   <span className="st-mini-none" />
                 </button>
                 {FRAME_SHAPES.filter(sh => sh !== 'rect').map(sh => (
-                  <button
+                  <button type="button"
                     key={sh}
                     className={`st-mini-shape ${el.mask === sh ? 'is-on' : ''}`}
                     onClick={() => set({ mask: sh })}
@@ -480,7 +480,7 @@ export function StudioInspector({
                   deleting and re-adding would not. */}
               <div className="st-mini-shapes">
                 {SHAPE_GROUPS.flatMap(g => g.shapes).map((sh: BookShapeId) => (
-                  <button
+                  <button type="button"
                     key={sh}
                     className={`st-mini-shape ${el.shape === sh ? 'is-on' : ''}`}
                     onClick={() => set({ shape: sh })}
@@ -608,7 +608,7 @@ export function StudioInspector({
                 {iconChoices.map(name => {
                   const Glyph = iconComponent(name)
                   return (
-                    <button
+                    <button type="button"
                       key={name}
                       className={`st-mini-shape ${el.name === name ? 'is-on' : ''}`}
                       onClick={() => set({ name })}
@@ -683,16 +683,16 @@ export function StudioInspector({
 
         <Section label={t('journey.studio.arrange')} defaultOpen={false}>
           <div className="st-row">
-            <button className="st-chip is-icon" onClick={() => raise(spreadIndex, el.id, 'front')} title={t('journey.studio.toFront')}>
+            <button type="button" className="st-chip is-icon" onClick={() => raise(spreadIndex, el.id, 'front')} title={t('journey.studio.toFront')}>
               <ChevronsUp size={14} />
             </button>
-            <button className="st-chip is-icon" onClick={() => raise(spreadIndex, el.id, 'up')} title={t('journey.studio.forward')}>
+            <button type="button" className="st-chip is-icon" onClick={() => raise(spreadIndex, el.id, 'up')} title={t('journey.studio.forward')}>
               <ArrowUp size={14} />
             </button>
-            <button className="st-chip is-icon" onClick={() => raise(spreadIndex, el.id, 'down')} title={t('journey.studio.backward')}>
+            <button type="button" className="st-chip is-icon" onClick={() => raise(spreadIndex, el.id, 'down')} title={t('journey.studio.backward')}>
               <ArrowDown size={14} />
             </button>
-            <button className="st-chip is-icon" onClick={() => raise(spreadIndex, el.id, 'back')} title={t('journey.studio.toBack')}>
+            <button type="button" className="st-chip is-icon" onClick={() => raise(spreadIndex, el.id, 'back')} title={t('journey.studio.toBack')}>
               <ChevronsDown size={14} />
             </button>
           </div>

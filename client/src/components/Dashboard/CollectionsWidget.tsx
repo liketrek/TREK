@@ -38,7 +38,7 @@ export default function CollectionsWidget({ onOpen }: { onOpen: () => void }): R
     <div className="tool">
       <div className="tool-head">
         <div className="tool-title"><Bookmark size={14} /> {t('collections.widget.title')}</div>
-        <button className="tool-action" aria-label={t('collections.widget.title')} onClick={onOpen}>
+        <button type="button" className="tool-action" aria-label={t('collections.widget.title')} onClick={onOpen}>
           <ArrowRight size={14} />
         </button>
       </div>
@@ -47,7 +47,7 @@ export default function CollectionsWidget({ onOpen }: { onOpen: () => void }): R
       ) : (
         <div className="col-badges">
           {lists.slice(0, 6).map(list => (
-            <button
+            <button type="button"
               key={list.id}
               className="col-badge"
               style={{ ['--badge-color' as string]: list.color || '#6366f1' }}

@@ -218,7 +218,7 @@ export default function VacayCalendar() {
       {/* Floating toolbar — lift above the mobile bottom nav (z-60). On desktop --bottom-nav-h is 0px. */}
       <div className="sticky mt-3 sm:mt-4 flex items-center justify-center px-2" style={{ bottom: 'calc(var(--bottom-nav-h, 0px) + 12px)', zIndex: 61 }}>
         <div className="vg-card flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-full">
-          <button
+          <button type="button"
             onClick={() => setMode('vacation')}
             className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-[background-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]"
             style={mode === 'vacation'
@@ -229,7 +229,7 @@ export default function VacayCalendar() {
             {selectedUser ? selectedUser.username : t('vacay.modeVacation')}
           </button>
           {companyHolidaysEnabled && (
-            <button
+            <button type="button"
               onClick={() => setMode('company')}
               className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-[background-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]"
               style={companyMode
@@ -243,7 +243,7 @@ export default function VacayCalendar() {
           {/* Divider — comp/flex and half-day are modifiers, not modes. */}
           <span className="w-px self-stretch my-0.5" style={{ background: 'var(--vg-line)' }} aria-hidden />
 
-          <button
+          <button type="button"
             onClick={() => setCompDay(v => !v)}
             title={t('vacay.modeCompHint')}
             aria-pressed={compDay}
@@ -262,7 +262,7 @@ export default function VacayCalendar() {
             {t('vacay.modeComp')}
           </button>
 
-          <button
+          <button type="button"
             onClick={() => setHalfDay(v => !v)}
             title={t('vacay.modeHalfHint')}
             aria-pressed={halfDay}

@@ -22,7 +22,7 @@ export function splitCents(amount: number, n: number): number[] {
 
 /** Sum the amounts of the selected payers. */
 export function payerSum(amounts: Record<number, string>, ids: Set<number>): number {
-  return [...ids].reduce((a, id) => a + (parseFloat(amounts[id]) || 0), 0)
+  return [...ids].reduce((a, id) => a + (Number.parseFloat(amounts[id]) || 0), 0)
 }
 
 /** True when the payer amounts add up to the expense total, to the cent. */
@@ -45,7 +45,7 @@ export function rebalancePayers(
   if (free.length === 0) return amounts
   const pinnedSum = all
     .filter(id => pinned.has(id))
-    .reduce((a, id) => a + (parseFloat(amounts[id]) || 0), 0)
+    .reduce((a, id) => a + (Number.parseFloat(amounts[id]) || 0), 0)
   const shares = splitCents(total - pinnedSum, free.length)
   const next = { ...amounts }
   free.forEach((id, i) => { next[id] = shares[i] ? shares[i].toFixed(2) : '' })
@@ -153,7 +153,7 @@ export function calculateTicketShares(items: TicketItem[]): { shares: Record<num
   const everyone = [...new Set(items.flatMap(i => [...i.participants]))].sort((a, b) => a - b)
 
   for (const item of items) {
-    const priceNum = parseFloat(item.price) || 0
+    const priceNum = Number.parseFloat(item.price) || 0
     const priceCents = Math.round(priceNum * 100)
     totalCents += priceCents
 

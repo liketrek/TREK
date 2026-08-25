@@ -56,7 +56,7 @@ export function DayReorderPopup({ isOpen, days, t, locale, onReorder, onAddDay, 
       size="md"
       footer={
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <button
+          <button type="button"
             onClick={onClose}
             style={{
               padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500,
@@ -66,7 +66,7 @@ export function DayReorderPopup({ isOpen, days, t, locale, onReorder, onAddDay, 
           >
             {t('common.close')}
           </button>
-          <button
+          <button type="button"
             onClick={onAddDay}
             className="bg-accent text-accent-text"
             style={{

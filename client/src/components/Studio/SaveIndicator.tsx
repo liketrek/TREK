@@ -33,10 +33,10 @@ export function SaveIndicator({
           pretending otherwise would be worse than saying so: one of these
           documents is going to be the book.
         */}
-        <button onClick={() => onAcceptTheirs(state.current)}>
+        <button type="button" onClick={() => onAcceptTheirs(state.current)}>
           {t('journey.studio.saveTakeTheirs')}
         </button>
-        <button onClick={() => onKeepMine(state.current)}>
+        <button type="button" onClick={() => onKeepMine(state.current)}>
           {t('journey.studio.saveKeepMine')}
         </button>
       </div>
@@ -59,7 +59,7 @@ export function SaveIndicator({
 
   if (state.status === 'error') {
     return (
-      <button className="st-save is-error" onClick={onRetry} title={t('journey.studio.saveRetry')}>
+      <button type="button" className="st-save is-error" onClick={onRetry} title={t('journey.studio.saveRetry')}>
         <CloudOff size={13} />
         <span>{t('journey.studio.saveFailed')}</span>
       </button>

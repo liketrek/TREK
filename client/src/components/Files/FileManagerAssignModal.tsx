@@ -22,7 +22,7 @@ export function AssignModal(S: FileManagerState) {
               {files.find(f => f.id === assignFileId)?.original_name || ''}
             </div>
           </div>
-          <button onClick={() => setAssignFileId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 4, display: 'flex', flexShrink: 0 }}>
+          <button type="button" onClick={() => setAssignFileId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 4, display: 'flex', flexShrink: 0 }}>
             <X size={18} />
           </button>
         </div>
@@ -67,7 +67,7 @@ export function AssignModal(S: FileManagerState) {
             const placeBtn = (p: Place, idx: number) => {
               const isLinked = file.place_id === p.id || (file.linked_place_ids || []).includes(p.id)
               return (
-                <button key={`${p.id}-${idx}`} onClick={async () => {
+                <button type="button" key={`${p.id}-${idx}`} onClick={async () => {
                   if (isLinked) {
                     if (file.place_id === p.id) {
                       await handleAssign(file.id, { place_id: null })
@@ -142,7 +142,7 @@ export function AssignModal(S: FileManagerState) {
               const isLinked = file.reservation_id === r.id || (file.linked_reservation_ids || []).includes(r.id)
               const Icon = TRANSPORT_TYPES.has(r.type) ? transportIcon(r.type) : Ticket
               return (
-                <button key={r.id} onClick={async () => {
+                <button type="button" key={r.id} onClick={async () => {
                   if (isLinked) {
                     if (file.reservation_id === r.id) {
                       await handleAssign(file.id, { reservation_id: null })

@@ -89,7 +89,7 @@ export function IcsSubscribeModal({ endpoint, title, description, onClose }: Ics
             <Calendar size={16} strokeWidth={2} style={{ color: 'var(--accent, #6366f1)' }} />
             <span style={{ fontWeight: 600, fontSize: 14 }}>{title}</span>
           </div>
-          <button
+          <button type="button"
             onClick={onClose}
             style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: 4,
@@ -110,7 +110,7 @@ export function IcsSubscribeModal({ endpoint, title, description, onClose }: Ics
           </div>
         ) : !feedUrl ? (
           <>
-            <button
+            <button type="button"
               onClick={() => mutate('POST')}
               disabled={busy}
               style={{
@@ -133,7 +133,7 @@ export function IcsSubscribeModal({ endpoint, title, description, onClose }: Ics
             <SubscribeLinks httpsUrl={httpsUrl} webcalUrl={webcalUrl} />
 
             <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border-faint)', display: 'flex', gap: 8 }}>
-              <button
+              <button type="button"
                 onClick={() => mutate('PUT')}
                 disabled={busy}
                 style={{
@@ -148,7 +148,7 @@ export function IcsSubscribeModal({ endpoint, title, description, onClose }: Ics
                 <RefreshCw size={11} strokeWidth={2} style={{ animation: busy ? 'spin 0.8s linear infinite' : 'none' }} />
                 Regenerate
               </button>
-              <button
+              <button type="button"
                 onClick={() => mutate('DELETE')}
                 disabled={busy}
                 style={{

@@ -101,16 +101,16 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
     const clean = raw.replace(/[^0-9:]/g, '')
     if (/^\d{1,2}:\d{2}$/.test(clean)) {
       const [hh, mm] = clean.split(':')
-      const h = Math.min(23, Math.max(0, parseInt(hh)))
-      const m = Math.min(59, Math.max(0, parseInt(mm)))
+      const h = Math.min(23, Math.max(0, Number.parseInt(hh)))
+      const m = Math.min(59, Math.max(0, Number.parseInt(mm)))
       onChange(String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'))
     } else if (/^\d{3,4}$/.test(clean)) {
       const s = clean.padStart(4, '0')
-      const h = Math.min(23, Math.max(0, parseInt(s.slice(0, 2))))
-      const m = Math.min(59, Math.max(0, parseInt(s.slice(2))))
+      const h = Math.min(23, Math.max(0, Number.parseInt(s.slice(0, 2))))
+      const m = Math.min(59, Math.max(0, Number.parseInt(s.slice(2))))
       onChange(String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'))
     } else if (/^\d{1,2}$/.test(clean)) {
-      const h = Math.min(23, Math.max(0, parseInt(clean)))
+      const h = Math.min(23, Math.max(0, Number.parseInt(clean)))
       onChange(String(h).padStart(2, '0') + ':00')
     }
   }

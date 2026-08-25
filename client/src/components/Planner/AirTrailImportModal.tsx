@@ -236,7 +236,7 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
     const isSelected = selected.has(f.id)
     const label = f.flightNumber ? `${f.airline ? `${f.airline} ` : ''}${f.flightNumber}` : `${f.fromCode ?? '?'} → ${f.toCode ?? '?'}`
     return (
-      <button
+      <button type="button"
         key={f.id}
         onClick={() => !already && toggle(f.id)}
         disabled={already}
@@ -279,7 +279,7 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
     return (
       <div key={chainKey(chain)} style={{ border: '1px solid var(--border-primary)', borderRadius: 12, padding: '8px 8px 0', marginBottom: 8 }}>
         {chain.map(renderFlight)}
-        <button
+        <button type="button"
           onClick={() => toggleJoin(chain)}
           className="bg-transparent"
           style={{
@@ -327,7 +327,7 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
           <div style={{ flex: 1, fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 700, color: 'var(--text-primary)' }}>
             {t('reservations.airtrail.title')}
           </div>
-          <button onClick={handleClose} className="bg-transparent text-content-faint" style={{ border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}>
+          <button type="button" onClick={handleClose} className="bg-transparent text-content-faint" style={{ border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}>
             <X size={16} />
           </button>
         </div>
@@ -371,13 +371,13 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
         </div>
 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-faint)' }}>
-          <button
+          <button type="button"
             onClick={handleClose}
             style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', color: 'var(--text-primary)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
           >
             {t('common.cancel')}
           </button>
-          <button
+          <button type="button"
             onClick={handleImport}
             disabled={selectableCount === 0 || importing}
             className={selectableCount > 0 && !importing ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-faint'}

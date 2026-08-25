@@ -149,7 +149,7 @@ function StopPicker({ label, value, onPick, quickPicks, near, placeholder }: {
         <div className="bg-surface-card border border-edge" style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,0.14)', zIndex: 30, overflow: 'hidden', maxHeight: 240, overflowY: 'auto' }}>
           {results.length > 0
             ? results.map((r, i) => (
-              <button key={i} onClick={() => { onPick({ name: r.name, lat: r.lat, lng: r.lng }); setText(''); setResults([]); setOpen(false) }}
+              <button type="button" key={i} onClick={() => { onPick({ name: r.name, lat: r.lat, lng: r.lng }); setText(''); setResults([]); setOpen(false) }}
                 className="text-content"
                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px 10px', border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
@@ -162,7 +162,7 @@ function StopPicker({ label, value, onPick, quickPicks, near, placeholder }: {
               </button>
             ))
             : quickPicks.map((p, i) => (
-              <button key={i} onClick={() => { onPick(p); setText(''); setOpen(false) }}
+              <button type="button" key={i} onClick={() => { onPick(p); setText(''); setOpen(false) }}
                 className="text-content"
                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px 10px', border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
@@ -206,7 +206,7 @@ function ItineraryCard({ it, tzFrom, tzTo, is12h, expanded, onToggle, onAdd, add
   const walkMins = Math.round(it.walkSeconds / 60)
   return (
     <div className="bg-surface-card border border-edge" style={{ borderRadius: 14, overflow: 'hidden' }}>
-      <button onClick={onToggle} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '12px 14px', border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+      <button type="button" onClick={onToggle} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '12px 14px', border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
           <span className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 700, letterSpacing: '-0.01em' }}>
             {fmtTimeInTz(it.startTime, tzFrom, is12h)} – {fmtTimeInTz(it.endTime, tzTo, is12h)}
@@ -289,7 +289,7 @@ function ItineraryCard({ it, tzFrom, tzTo, is12h, expanded, onToggle, onAdd, add
               {[...new Set(transitLegs.map(l => l.agency).filter(Boolean))].join(' · ')}
             </div>
           )}
-          <button
+          <button type="button"
             onClick={onAdd}
             disabled={adding}
             className="bg-accent text-accent-text"
@@ -507,7 +507,7 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
         <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8, alignItems: isMobile ? 'stretch' : 'flex-end' }}>
           <StopPicker label={t('transit.from')} value={from} onPick={setFrom} quickPicks={quickPicks} near={near} placeholder={t('transit.searchStop')} />
           {!isMobile && (
-            <button
+            <button type="button"
               onClick={() => { const f = from; setFrom(to); setTo(f) }}
               aria-label={t('transit.swap')}
               title={t('transit.swap')}
@@ -525,8 +525,8 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 9, padding: 3 }}>
-                <button onClick={() => setArriveBy(false)} style={segBtn(!arriveBy)}>{t('transit.depart')}</button>
-                <button onClick={() => setArriveBy(true)} style={segBtn(arriveBy)}>{t('transit.arrive')}</button>
+                <button type="button" onClick={() => setArriveBy(false)} style={segBtn(!arriveBy)}>{t('transit.depart')}</button>
+                <button type="button" onClick={() => setArriveBy(true)} style={segBtn(arriveBy)}>{t('transit.arrive')}</button>
               </div>
               <div style={{ width: 110 }}>
                 <CustomTimePicker value={time} onChange={setTime} />
@@ -552,7 +552,7 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
               {MODE_GROUPS.map(m => {
                 const active = activeModes.has(m.key)
                 return (
-                  <button key={m.key} onClick={() => toggleMode(m.key)}
+                  <button type="button" key={m.key} onClick={() => toggleMode(m.key)}
                     className={active ? 'bg-surface-card text-content' : 'text-content-faint'}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 99,
@@ -569,7 +569,7 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
                 )
               })}
             </div>
-            <button
+            <button type="button"
               onClick={search}
               disabled={!from || !to || loading}
               className="bg-accent text-accent-text"

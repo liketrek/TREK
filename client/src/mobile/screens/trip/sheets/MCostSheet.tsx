@@ -125,8 +125,8 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   const isTicketMode = splitMode === 'ticket'
   const ticketInfo = useMemo(() => calculateTicketShares(ticketItems), [ticketItems])
 
-  const totalNum = isTicketMode ? ticketInfo.total : (parseFloat(total) || 0)
-  const splitSum = [...participants].reduce((sum, id) => sum + (parseFloat(customAmounts[id]) || 0), 0)
+  const totalNum = isTicketMode ? ticketInfo.total : (Number.parseFloat(total) || 0)
+  const splitSum = [...participants].reduce((sum, id) => sum + (Number.parseFloat(customAmounts[id]) || 0), 0)
   const customBalanced = Math.round(splitSum * 100) === Math.round(totalNum * 100)
   const each = participants.size > 0 ? totalNum / participants.size : 0
   const equalShares = useMemo(
@@ -139,12 +139,12 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
     if (emptyParts.length === 0) return {}
     const enteredSum = [...participants]
       .filter(id => customAmounts[id])
-      .reduce((sum, id) => sum + (parseFloat(customAmounts[id]) || 0), 0)
+      .reduce((sum, id) => sum + (Number.parseFloat(customAmounts[id]) || 0), 0)
     const remaining = Math.max(0, totalNum - enteredSum)
     return splitEqualShares(remaining, emptyParts.map(id => ({ user_id: id })), editing?.id || 0)
   }, [totalNum, participants, customAmounts, editing])
 
-  const ticketValid = ticketItems.length > 0 && ticketItems.every(item => item.name.trim().length > 0 && (parseFloat(item.price) || 0) > 0 && item.participants.size > 0)
+  const ticketValid = ticketItems.length > 0 && ticketItems.every(item => item.name.trim().length > 0 && (Number.parseFloat(item.price) || 0) > 0 && item.participants.size > 0)
   const payersOk = !multiPayer || (payerIds.size > 0 && payersBalanced(payerAmounts, payerIds, totalNum))
   const valid = name.trim().length > 0 && payersOk && (
     isTicketMode
@@ -237,12 +237,12 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
     // server re-derives total_price from the payer sum (CostsPanel.helpers), so
     // dropping the payer would store the entry with a total of 0.
     const payerList = multiPayer
-      ? [...payerIds].map(id => ({ user_id: id, amount: parseFloat(payerAmounts[id]) || 0 })).filter(p => p.amount > 0)
+      ? [...payerIds].map(id => ({ user_id: id, amount: Number.parseFloat(payerAmounts[id]) || 0 })).filter(p => p.amount > 0)
       : payerId > 0 ? [{ user_id: payerId, amount: totalNum }] : []
     const memberList = [...participants].map(id => ({
       user_id: id,
       amount: splitMode === 'custom'
-        ? (parseFloat(customAmounts[id]) || 0)
+        ? (Number.parseFloat(customAmounts[id]) || 0)
         : splitMode === 'ticket'
           ? (ticketInfo.shares[id] || 0)
           : null,

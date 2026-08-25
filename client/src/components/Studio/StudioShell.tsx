@@ -46,7 +46,7 @@ export default function StudioShell() {
         <div style={{ fontSize: 13.5, color: 'var(--ink-3)', maxWidth: 320, lineHeight: 1.55 }}>
           {s.t('journey.studio.desktopOnlyHint')}
         </div>
-        <button
+        <button type="button"
           onClick={() => navigate(s.backTo, { replace: true })}
           className="st-tool is-primary"
           style={{ marginTop: 6 }}
@@ -122,7 +122,7 @@ function StudioBar({
 }: { s: Studio; bookView: boolean; setBookView: (v: boolean) => void; onExport: () => void }) {
   return (
     <div className="st-bar">
-      <button onClick={s.close} className="st-back" title={s.t('journey.studio.backToJourney')}>
+      <button type="button" onClick={s.close} className="st-back" title={s.t('journey.studio.backToJourney')}>
         <ArrowLeft size={16} />
         {s.coverUrl
           ? <img src={s.coverUrl} alt="" className="st-cover" />
@@ -154,7 +154,7 @@ function StudioBar({
       />
 
       <div className="st-bar-group">
-        <button
+        <button type="button"
           className={`st-tool ${bookView ? 'is-on' : ''}`}
           onClick={() => setBookView(!bookView)}
           title={s.t('journey.studio.bookView')}
@@ -169,7 +169,7 @@ function StudioBar({
 
         <div className="st-sep" />
 
-        <button
+        <button type="button"
           className="st-tool is-icon"
           disabled={!s.canUndo}
           onClick={s.undo}
@@ -178,7 +178,7 @@ function StudioBar({
         >
           <Undo2 size={15} />
         </button>
-        <button
+        <button type="button"
           className="st-tool is-icon"
           disabled={!s.canRedo}
           onClick={s.redo}
@@ -191,7 +191,7 @@ function StudioBar({
         <div className="st-sep" />
 
         <AutoLayoutButton s={s} />
-        <button
+        <button type="button"
           className="st-tool is-primary"
           onClick={onExport}
           disabled={!s.doc}
@@ -235,7 +235,7 @@ function AutoLayoutButton({ s }: { s: Studio }) {
 
   return (
     <div className="st-picker" ref={box}>
-      <button
+      <button type="button"
         className="st-tool"
         onClick={() => setOpen(o => !o)}
         aria-haspopup="menu"
@@ -249,7 +249,7 @@ function AutoLayoutButton({ s }: { s: Studio }) {
 
       {open && (
         <div className="st-menu" role="menu">
-          <button
+          <button type="button"
             className="st-menu-item"
             role="menuitem"
             disabled={!s.canRelayoutSpread}
@@ -262,7 +262,7 @@ function AutoLayoutButton({ s }: { s: Studio }) {
               </span>
             </span>
           </button>
-          <button
+          <button type="button"
             className="st-menu-item"
             role="menuitem"
             onClick={() => { s.relayoutBook(); setOpen(false) }}
@@ -312,7 +312,7 @@ function FormatPicker({ s }: { s: Studio }) {
 
   return (
     <div className="st-picker" ref={box}>
-      <button
+      <button type="button"
         className="st-tool"
         onClick={() => setOpen(o => !o)}
         aria-haspopup="listbox"
@@ -333,7 +333,7 @@ function FormatPicker({ s }: { s: Studio }) {
             const p = PAGE_PRESETS[id]
             const on = id === s.preset
             return (
-              <button
+              <button type="button"
                 key={id}
                 role="option"
                 aria-selected={on}
@@ -434,14 +434,14 @@ function Workbench({ s, bookView }: { s: Studio; bookView: boolean }) {
       </div>
 
       <div className="st-zoom">
-        <button onClick={() => s.stepZoom(-1)} disabled={!s.canZoomOut} aria-label={s.t('journey.studio.zoomOut')}>
+        <button type="button" onClick={() => s.stepZoom(-1)} disabled={!s.canZoomOut} aria-label={s.t('journey.studio.zoomOut')}>
           <Minus size={15} />
         </button>
         <span className="st-zoom-value">{s.zoomPercent}%</span>
-        <button onClick={() => s.stepZoom(1)} disabled={!s.canZoomIn} aria-label={s.t('journey.studio.zoomIn')}>
+        <button type="button" onClick={() => s.stepZoom(1)} disabled={!s.canZoomIn} aria-label={s.t('journey.studio.zoomIn')}>
           <Plus size={15} />
         </button>
-        <button onClick={s.zoomToFit} aria-label={s.t('journey.studio.zoomFit')} title={s.t('journey.studio.zoomFit')}>
+        <button type="button" onClick={s.zoomToFit} aria-label={s.t('journey.studio.zoomFit')} title={s.t('journey.studio.zoomFit')}>
           <Maximize2 size={14} />
         </button>
         {/*
@@ -453,7 +453,7 @@ function Workbench({ s, bookView }: { s: Studio; bookView: boolean }) {
           photographs, which is the thing worth passing on.
         */}
         <span className="st-zoom-sep" />
-        <button
+        <button type="button"
           onClick={() => s.spread && downloadSpread(s.spread, s.page, s.journey?.title || 'spread')}
           disabled={!s.spread}
           aria-label={s.t('journey.studio.downloadSpread')}

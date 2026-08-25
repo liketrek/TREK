@@ -60,7 +60,7 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
     <div className="fixed inset-0 z-[9999] bg-white dark:bg-zinc-950 flex flex-col overflow-hidden" style={{ height: '100dvh' }}>
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 flex-shrink-0">
-        <button
+        <button type="button"
           onClick={onClose}
           className="w-9 h-9 rounded-lg flex items-center justify-center text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
         >
@@ -68,14 +68,14 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
         </button>
         {!readOnly && (
           <div className="flex items-center gap-1.5">
-            <button
+            <button type="button"
               onClick={() => { onClose(); onEdit(); }}
               className="h-8 px-3 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[12px] font-medium flex items-center gap-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
             >
               <Pencil size={13} />
               {t('common.edit')}
             </button>
-            <button
+            <button type="button"
               onClick={() => { onClose(); onDelete(); }}
               className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-colors"
             >

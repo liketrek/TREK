@@ -320,7 +320,7 @@ function IntegrationsMcpSection(props: any) {
               <code className="flex-1 px-3 py-2 rounded-lg text-sm font-mono border bg-surface-secondary border-edge text-content">
                 {mcpEndpoint}
               </code>
-              <button onClick={() => handleCopy(mcpEndpoint, 'endpoint')}
+              <button type="button" onClick={() => handleCopy(mcpEndpoint, 'endpoint')}
                 className="p-2 rounded-lg border border-edge transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
                 title={t('settings.mcp.copy')}>
                 {copiedKey === 'endpoint' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-content-secondary" />}
@@ -330,14 +330,14 @@ function IntegrationsMcpSection(props: any) {
 
           {/* Sub-tab bar */}
           <div className="flex gap-1 rounded-lg p-1 border bg-surface-secondary border-edge">
-            <button
+            <button type="button"
               onClick={() => setActiveMcpTab('oauth')}
               className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 activeMcpTab === 'oauth' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}>
               {t('settings.oauth.clients')}
             </button>
-            <button
+            <button type="button"
               onClick={() => setActiveMcpTab('apitokens')}
               className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2 ${
                 activeMcpTab === 'apitokens' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -354,7 +354,7 @@ function IntegrationsMcpSection(props: any) {
             <>
               {/* JSON config — OAuth (collapsible) */}
               <div className="rounded-lg border overflow-hidden border-edge">
-                <button
+                <button type="button"
                   onClick={() => setConfigOpenOAuth(o => !o)}
                   className="w-full flex items-center justify-between px-3 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 bg-surface-secondary">
                   <span className="text-sm font-medium text-content-secondary">{t('settings.mcp.clientConfig')}</span>
@@ -363,7 +363,7 @@ function IntegrationsMcpSection(props: any) {
                 {configOpenOAuth && (
                   <div className="p-3 border-t border-edge">
                     <div className="flex justify-end mb-1.5">
-                      <button onClick={() => handleCopy(mcpJsonConfigOAuth, 'json-oauth')}
+                      <button type="button" onClick={() => handleCopy(mcpJsonConfigOAuth, 'json-oauth')}
                         className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 border-edge text-content-secondary">
                         {copiedKey === 'json-oauth' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
                         {copiedKey === 'json-oauth' ? t('settings.mcp.copied') : t('settings.mcp.copy')}
@@ -381,7 +381,7 @@ function IntegrationsMcpSection(props: any) {
                 <p className="text-xs mb-3" style={{ color: 'var(--text-tertiary)' }}>{t('settings.oauth.clientsHint')}</p>
 
                 <div className="flex justify-end mb-2">
-                  <button onClick={() => { setOauthCreateOpen(true); setOauthCreatedClient(null); setOauthNewName(''); setOauthNewUris(''); setOauthNewScopes([]); setOauthIsMachine(false) }}
+                  <button type="button" onClick={() => { setOauthCreateOpen(true); setOauthCreatedClient(null); setOauthNewName(''); setOauthNewUris(''); setOauthNewScopes([]); setOauthIsMachine(false) }}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-slate-900 text-white hover:bg-slate-700">
                     <Plus className="w-3.5 h-3.5" /> {t('settings.oauth.createClient')}
                   </button>
@@ -424,12 +424,12 @@ function IntegrationsMcpSection(props: any) {
                               )}
                             </div>
                           </div>
-                          <button onClick={() => setOauthRotateId(client.id)}
+                          <button type="button" onClick={() => setOauthRotateId(client.id)}
                             className="p-1.5 rounded-lg transition-colors hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/20"
                             style={{ color: 'var(--text-tertiary)' }} title={t('settings.oauth.rotateSecret')}>
                             <RefreshCw className="w-4 h-4" />
                           </button>
-                          <button onClick={() => setOauthDeleteId(client.id)}
+                          <button type="button" onClick={() => setOauthDeleteId(client.id)}
                             className="p-1.5 rounded-lg transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
                             style={{ color: 'var(--text-tertiary)' }} title={t('settings.oauth.deleteClient')}>
                             <Trash2 className="w-4 h-4" />
@@ -455,7 +455,7 @@ function IntegrationsMcpSection(props: any) {
                             <span className="ml-3">{t('settings.oauth.sessionExpires')} {new Date(session.access_token_expires_at).toLocaleDateString(locale)}</span>
                           </p>
                         </div>
-                        <button onClick={() => setOauthRevokeId(session.id)}
+                        <button type="button" onClick={() => setOauthRevokeId(session.id)}
                           className="px-2.5 py-1 rounded text-xs border transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 border-edge"
                           style={{ color: 'var(--text-tertiary)' }}>
                           {t('settings.oauth.revoke')}
@@ -478,7 +478,7 @@ function IntegrationsMcpSection(props: any) {
 
               {/* JSON config — API Token (collapsible) */}
               <div className="rounded-lg border overflow-hidden border-edge">
-                <button
+                <button type="button"
                   onClick={() => setConfigOpenToken(o => !o)}
                   className="w-full flex items-center justify-between px-3 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 bg-surface-secondary">
                   <span className="text-sm font-medium text-content-secondary">{t('settings.mcp.clientConfig')}</span>
@@ -487,7 +487,7 @@ function IntegrationsMcpSection(props: any) {
                 {configOpenToken && (
                   <div className="p-3 border-t border-edge">
                     <div className="flex justify-end mb-1.5">
-                      <button onClick={() => handleCopy(mcpJsonConfig, 'json-token')}
+                      <button type="button" onClick={() => handleCopy(mcpJsonConfig, 'json-token')}
                         className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 border-edge text-content-secondary">
                         {copiedKey === 'json-token' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
                         {copiedKey === 'json-token' ? t('settings.mcp.copied') : t('settings.mcp.copy')}
@@ -502,7 +502,7 @@ function IntegrationsMcpSection(props: any) {
               </div>
 
               <div className="flex justify-end">
-                <button onClick={() => { setMcpModalOpen(true); setMcpCreatedToken(null); setMcpNewName('') }}
+                <button type="button" onClick={() => { setMcpModalOpen(true); setMcpCreatedToken(null); setMcpNewName('') }}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors opacity-60 text-content-secondary bg-surface-tertiary">
                   <Plus className="w-3.5 h-3.5" /> {t('settings.mcp.createToken')}
                 </button>
@@ -526,7 +526,7 @@ function IntegrationsMcpSection(props: any) {
                           )}
                         </p>
                       </div>
-                      <button onClick={() => setMcpDeleteId(token.id)}
+                      <button type="button" onClick={() => setMcpDeleteId(token.id)}
                         className="p-1.5 rounded-lg transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
                         style={{ color: 'var(--text-tertiary)' }} title={t('settings.mcp.deleteTokenTitle')}>
                         <Trash2 className="w-4 h-4" />
@@ -564,11 +564,11 @@ function McpTokenModals(props: any) {
                     autoFocus />
                 </div>
                 <div className="flex gap-2 justify-end pt-1">
-                  <button onClick={() => setMcpModalOpen(false)}
+                  <button type="button" onClick={() => setMcpModalOpen(false)}
                     className="px-4 py-2 rounded-lg text-sm border border-edge text-content-secondary">
                     {t('common.cancel')}
                   </button>
-                  <button onClick={handleCreateMcpToken} disabled={!mcpNewName.trim() || mcpCreating}
+                  <button type="button" onClick={handleCreateMcpToken} disabled={!mcpNewName.trim() || mcpCreating}
                     className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-slate-900 hover:bg-slate-700 disabled:opacity-50">
                     {mcpCreating ? t('settings.mcp.modal.creating') : t('settings.mcp.modal.create')}
                   </button>
@@ -585,14 +585,14 @@ function McpTokenModals(props: any) {
                   <pre className="p-3 pr-10 rounded-lg text-xs font-mono break-all border whitespace-pre-wrap bg-surface-secondary border-edge text-content">
                     {mcpCreatedToken}
                   </pre>
-                  <button onClick={() => handleCopy(mcpCreatedToken, 'new-token')}
+                  <button type="button" onClick={() => handleCopy(mcpCreatedToken, 'new-token')}
                     className="absolute top-2 right-2 p-1.5 rounded transition-colors hover:bg-slate-200 dark:hover:bg-slate-600 text-content-secondary"
                     title={t('settings.mcp.copy')}>
                     {copiedKey === 'new-token' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                   </button>
                 </div>
                 <div className="flex justify-end">
-                  <button onClick={() => { setMcpModalOpen(false); setMcpCreatedToken(null) }}
+                  <button type="button" onClick={() => { setMcpModalOpen(false); setMcpCreatedToken(null) }}
                     className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-slate-900 hover:bg-slate-700">
                     {t('settings.mcp.modal.done')}
                   </button>
@@ -611,11 +611,11 @@ function McpTokenModals(props: any) {
             <h3 className="text-base font-semibold text-content">{t('settings.mcp.deleteTokenTitle')}</h3>
             <p className="text-sm text-content-secondary">{t('settings.mcp.deleteTokenMessage')}</p>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setMcpDeleteId(null)}
+              <button type="button" onClick={() => setMcpDeleteId(null)}
                 className="px-4 py-2 rounded-lg text-sm border border-edge text-content-secondary">
                 {t('common.cancel')}
               </button>
-              <button onClick={() => handleDeleteMcpToken(mcpDeleteId)}
+              <button type="button" onClick={() => handleDeleteMcpToken(mcpDeleteId)}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700">
                 {t('settings.mcp.deleteTokenTitle')}
               </button>
@@ -697,11 +697,11 @@ function OAuthClientModals(props: any) {
                 </div>
 
                 <div className="flex gap-2 justify-end pt-1">
-                  <button onClick={() => setOauthCreateOpen(false)}
+                  <button type="button" onClick={() => setOauthCreateOpen(false)}
                     className="px-4 py-2 rounded-lg text-sm border border-edge text-content-secondary">
                     {t('common.cancel')}
                   </button>
-                  <button onClick={handleCreateOAuthClient}
+                  <button type="button" onClick={handleCreateOAuthClient}
                     disabled={!oauthNewName.trim() || (!oauthIsMachine && !oauthNewUris.trim()) || oauthCreating}
                     className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-slate-900 hover:bg-slate-700 disabled:opacity-50">
                     {oauthCreating ? t('settings.oauth.modal.creating') : t('settings.oauth.modal.create')}
@@ -723,7 +723,7 @@ function OAuthClientModals(props: any) {
                       <code className="flex-1 px-3 py-2 rounded-lg text-xs font-mono border bg-surface-secondary border-edge text-content">
                         {oauthCreatedClient.client_id}
                       </code>
-                      <button onClick={() => handleCopy(oauthCreatedClient.client_id, 'new-client-id')}
+                      <button type="button" onClick={() => handleCopy(oauthCreatedClient.client_id, 'new-client-id')}
                         className="p-2 rounded-lg border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 border-edge">
                         {copiedKey === 'new-client-id' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-content-secondary" />}
                       </button>
@@ -735,7 +735,7 @@ function OAuthClientModals(props: any) {
                       <code className="flex-1 px-3 py-2 rounded-lg text-xs font-mono border break-all bg-surface-secondary border-edge text-content">
                         {oauthCreatedClient.client_secret}
                       </code>
-                      <button onClick={() => handleCopy(oauthCreatedClient.client_secret!, 'new-client-secret')}
+                      <button type="button" onClick={() => handleCopy(oauthCreatedClient.client_secret!, 'new-client-secret')}
                         className="p-2 rounded-lg border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 border-edge">
                         {copiedKey === 'new-client-secret' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-content-secondary" />}
                       </button>
@@ -750,7 +750,7 @@ function OAuthClientModals(props: any) {
                 )}
 
                 <div className="flex justify-end">
-                  <button onClick={() => { setOauthCreateOpen(false); setOauthCreatedClient(null) }}
+                  <button type="button" onClick={() => { setOauthCreateOpen(false); setOauthCreatedClient(null) }}
                     className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-slate-900 hover:bg-slate-700">
                     {t('settings.mcp.modal.done')}
                   </button>
@@ -769,11 +769,11 @@ function OAuthClientModals(props: any) {
             <h3 className="text-base font-semibold text-content">{t('settings.oauth.deleteClient')}</h3>
             <p className="text-sm text-content-secondary">{t('settings.oauth.deleteClientMessage')}</p>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setOauthDeleteId(null)}
+              <button type="button" onClick={() => setOauthDeleteId(null)}
                 className="px-4 py-2 rounded-lg text-sm border border-edge text-content-secondary">
                 {t('common.cancel')}
               </button>
-              <button onClick={() => handleDeleteOAuthClient(oauthDeleteId)}
+              <button type="button" onClick={() => handleDeleteOAuthClient(oauthDeleteId)}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700">
                 {t('settings.oauth.deleteClient')}
               </button>
@@ -790,11 +790,11 @@ function OAuthClientModals(props: any) {
             <h3 className="text-base font-semibold text-content">{t('settings.oauth.rotateSecret')}</h3>
             <p className="text-sm text-content-secondary">{t('settings.oauth.rotateSecretMessage')}</p>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setOauthRotateId(null)}
+              <button type="button" onClick={() => setOauthRotateId(null)}
                 className="px-4 py-2 rounded-lg text-sm border border-edge text-content-secondary">
                 {t('common.cancel')}
               </button>
-              <button onClick={() => handleRotateSecret(oauthRotateId)} disabled={oauthRotating}
+              <button type="button" onClick={() => handleRotateSecret(oauthRotateId)} disabled={oauthRotating}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-slate-900 hover:bg-slate-700 disabled:opacity-50">
                 {oauthRotating ? t('settings.oauth.rotateSecretConfirming') : t('settings.oauth.rotateSecretConfirm')}
               </button>
@@ -818,14 +818,14 @@ function OAuthClientModals(props: any) {
                 <code className="flex-1 px-3 py-2 rounded-lg text-xs font-mono border break-all bg-surface-secondary border-edge text-content">
                   {oauthRotatedSecret}
                 </code>
-                <button onClick={() => handleCopy(oauthRotatedSecret, 'rotated-secret')}
+                <button type="button" onClick={() => handleCopy(oauthRotatedSecret, 'rotated-secret')}
                   className="p-2 rounded-lg border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 border-edge">
                   {copiedKey === 'rotated-secret' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-content-secondary" />}
                 </button>
               </div>
             </div>
             <div className="flex justify-end">
-              <button onClick={() => setOauthRotatedSecret(null)}
+              <button type="button" onClick={() => setOauthRotatedSecret(null)}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-slate-900 hover:bg-slate-700">
                 {t('settings.mcp.modal.done')}
               </button>
@@ -842,11 +842,11 @@ function OAuthClientModals(props: any) {
             <h3 className="text-base font-semibold text-content">{t('settings.oauth.revokeSession')}</h3>
             <p className="text-sm text-content-secondary">{t('settings.oauth.revokeSessionMessage')}</p>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setOauthRevokeId(null)}
+              <button type="button" onClick={() => setOauthRevokeId(null)}
                 className="px-4 py-2 rounded-lg text-sm border border-edge text-content-secondary">
                 {t('common.cancel')}
               </button>
-              <button onClick={() => handleRevokeSession(oauthRevokeId)}
+              <button type="button" onClick={() => handleRevokeSession(oauthRevokeId)}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700">
                 {t('settings.oauth.revoke')}
               </button>

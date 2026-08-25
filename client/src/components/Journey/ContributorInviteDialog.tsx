@@ -49,7 +49,7 @@ export default function ContributorInviteDialog({ journeyId, existingUserIds, on
 
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
           <h2 className="text-[16px] font-bold text-zinc-900 dark:text-white">{t('journey.contributors.invite')}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+          <button type="button" onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
             <X size={16} />
           </button>
         </div>
@@ -102,7 +102,7 @@ export default function ContributorInviteDialog({ journeyId, existingUserIds, on
             <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2">{t('journey.invite.role')}</label>
             <div className="flex gap-2">
               {(['viewer', 'editor'] as const).map(r => (
-                <button
+                <button type="button"
                   key={r}
                   onClick={() => setRole(r)}
                   className={`flex-1 py-2 rounded-lg text-[12px] font-medium border transition-all ${
@@ -119,10 +119,10 @@ export default function ContributorInviteDialog({ journeyId, existingUserIds, on
         </div>
 
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
-          <button onClick={onClose} className="px-3.5 py-2 rounded-lg border border-zinc-200 dark:border-zinc-600 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700">
+          <button type="button" onClick={onClose} className="px-3.5 py-2 rounded-lg border border-zinc-200 dark:border-zinc-600 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700">
             {t('common.cancel')}
           </button>
-          <button
+          <button type="button"
             onClick={handleInvite}
             disabled={!selectedUserId || sending}
             className="px-3.5 py-2 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[13px] font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed"

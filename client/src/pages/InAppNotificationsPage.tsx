@@ -44,7 +44,7 @@ function InAppNotificationsPageDesktop(): React.ReactElement {
             {/* Bulk actions */}
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
-                <button
+                <button type="button"
                   onClick={markAllRead}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors text-content-secondary bg-surface-hover"
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
@@ -55,7 +55,7 @@ function InAppNotificationsPageDesktop(): React.ReactElement {
                 </button>
               )}
               {notifications.length > 0 && (
-                <button
+                <button type="button"
                   onClick={deleteAll}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors text-red-500 hover:bg-red-500/10"
                 >
@@ -68,13 +68,13 @@ function InAppNotificationsPageDesktop(): React.ReactElement {
 
           {/* Filter toggle */}
           <div className="flex gap-2 mb-4">
-            <button
+            <button type="button"
               onClick={() => setUnreadOnly(false)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${!unreadOnly ? 'bg-content text-surface' : 'bg-surface-hover text-content-secondary'}`}
             >
               {t('notifications.all')}
             </button>
-            <button
+            <button type="button"
               onClick={() => setUnreadOnly(true)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${unreadOnly ? 'bg-content text-surface' : 'bg-surface-hover text-content-secondary'}`}
             >

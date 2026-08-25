@@ -396,7 +396,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
               <button type="button" onClick={onClose} className={ghostBtnCls}>
                 {t('common.cancel')}
               </button>
-              <button onClick={handleSubmit} disabled={isLoading} className={primaryBtnCls}>
+              <button type="button" onClick={handleSubmit} disabled={isLoading} className={primaryBtnCls}>
                 {isLoading
                   ? <><div className="w-4 h-4 border-2 border-accent-text/30 border-t-accent-text rounded-full animate-spin" />{t('common.saving')}</>
                   : isEditing ? t('common.update') : t('dashboard.createTrip')}

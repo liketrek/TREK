@@ -348,7 +348,7 @@ function YearTypeRows() {
               value={String(yearSettings.year_start_month)}
               placeholder={t('vacay.yearStartMonth')}
               options={monthOptions}
-              onChange={v => save({ year_start_month: parseInt(v, 10) })}
+              onChange={v => save({ year_start_month: Number.parseInt(v, 10) })}
             />
           </span>
           <span className="w-[86px] flex-none">
@@ -356,7 +356,7 @@ function YearTypeRows() {
               value={String(yearSettings.year_start_day)}
               placeholder={t('vacay.yearStartDay')}
               options={Array.from({ length: monthDayCap(yearSettings.year_start_month) }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }))}
-              onChange={v => save({ year_start_day: parseInt(v, 10) })}
+              onChange={v => save({ year_start_day: Number.parseInt(v, 10) })}
             />
           </span>
         </div>

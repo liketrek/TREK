@@ -43,7 +43,7 @@ export function BulkImportModal(S: PackingState) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <input ref={csvInputRef} type="file" accept=".csv,.txt" style={{ display: 'none' }} onChange={handleCsvFile} />
-            <button onClick={() => csvInputRef.current?.click()} style={{
+            <button type="button" onClick={() => csvInputRef.current?.click()} style={{
               display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px',
               border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none',
               fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', cursor: 'pointer', fontFamily: 'inherit',
@@ -52,11 +52,11 @@ export function BulkImportModal(S: PackingState) {
             </button>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => setShowImportModal(false)} style={{
+            <button type="button" onClick={() => setShowImportModal(false)} style={{
               fontSize: 'calc(12px * var(--fs-scale-body, 1))', background: 'none', border: '1px solid var(--border-primary)',
               borderRadius: 8, padding: '6px 14px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'inherit',
             }}>{t('common.cancel')}</button>
-            <button onClick={handleBulkImport} disabled={!importText.trim()} style={{
+            <button type="button" onClick={handleBulkImport} disabled={!importText.trim()} style={{
               fontSize: 'calc(12px * var(--fs-scale-body, 1))', background: 'var(--accent)', color: 'var(--accent-text)',
               border: 'none', borderRadius: 8, padding: '6px 16px', cursor: 'pointer', fontWeight: 600,
               fontFamily: 'inherit', opacity: importText.trim() ? 1 : 0.5,

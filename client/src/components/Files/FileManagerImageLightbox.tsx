@@ -53,7 +53,7 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
   const hasPrev = index > 0
   const hasNext = index < files.length - 1
   const navBtn = (side: 'left' | 'right', onClick: () => void, show: boolean): React.ReactNode => show ? (
-    <button onClick={e => { e.stopPropagation(); onClick() }}
+    <button type="button" onClick={e => { e.stopPropagation(); onClick() }}
       style={{
         position: 'absolute', top: '50%', [side]: 12, transform: 'translateY(-50%)', zIndex: 10,
         background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: 40, height: 40,
@@ -86,19 +86,19 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
           <span style={{ marginLeft: 8, color: 'rgba(255,255,255,0.4)' }}>{index + 1} / {files.length}</span>
         </span>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-          <button
+          <button type="button"
             onClick={() => openFileUrl(file.url, file.original_name).catch(() => {})}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 4 }}
             title={t('files.openTab')}>
             <ExternalLink size={16} />
           </button>
-          <button
+          <button type="button"
             onClick={() => triggerDownload(file.url, file.original_name)}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 4 }}
             title={t('files.download') || 'Download'}>
             <Download size={16} />
           </button>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 4 }}>
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 4 }}>
             <X size={18} />
           </button>
         </div>
@@ -156,7 +156,7 @@ function ThumbImg({ file, active, onClick }: { file: TripFile & { url: string };
   }, [file.url, fileIsVideo, visible])
 
   return (
-    <button ref={ref} onClick={onClick} style={{
+    <button type="button" ref={ref} onClick={onClick} style={{
       width: 48, height: 48, borderRadius: 6, overflow: 'hidden', border: active ? '2px solid #fff' : '2px solid transparent',
       opacity: active ? 1 : 0.5, cursor: 'pointer', padding: 0, background: '#111', flexShrink: 0, transition: 'opacity 0.15s',
       display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.7)',

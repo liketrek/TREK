@@ -84,7 +84,7 @@ export default function BottomNav() {
   const renderItem = ({ to, label, icon: Icon }: NavItem) => {
     const active = isActive(to)
     return (
-      <button
+      <button type="button"
         key={to}
         onClick={() => navigate(to)}
         className="flex flex-col items-center gap-1 py-1 px-1 min-w-0"
@@ -115,7 +115,7 @@ export default function BottomNav() {
     >
       <div className="flex flex-1 items-center justify-around min-w-0">{left.map(renderItem)}</div>
 
-      <button
+      <button type="button"
         onClick={create.run}
         aria-label={create.label}
         className="flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"

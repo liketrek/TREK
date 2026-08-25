@@ -187,7 +187,7 @@ const PERM_KEYS = PLUGIN_PERMISSIONS
 const KNOWN_TYPES = ['widget', 'page', 'integration', 'trip-page']
 
 function isNewer(a: string, b: string): boolean {
-  const nums = (v: string) => v.split('-')[0].split('.').map(n => parseInt(n, 10) || 0)
+  const nums = (v: string) => v.split('-')[0].split('.').map(n => Number.parseInt(n, 10) || 0)
   const pa = nums(a), pb = nums(b)
   for (let i = 0; i < 3; i++) {
     const x = pa[i] || 0, y = pb[i] || 0
@@ -850,7 +850,7 @@ export default function MAdminPluginsPanel() {
             <div className={`flex items-center gap-2.5 rounded-[18px] border px-3.5 py-2.5 ${PENDING_CARD}`}>
               <ArrowUpCircle size={16} className="shrink-0 text-[color:var(--m-st-pending)]" />
               <span className="text-[0.6875rem] text-m-muted">{t('admin.plugins.updatesAvailable', { count: updatable.length })}</span>
-              <button onClick={() => updatable.forEach(runUpdate)}
+              <button type="button" onClick={() => updatable.forEach(runUpdate)}
                 className="ml-auto rounded-full bg-[color:var(--m-st-pending)] px-3 py-1.5 text-[0.6875rem] font-bold text-white">
                 {t('admin.plugins.updateAll')}
               </button>
@@ -956,7 +956,7 @@ export default function MAdminPluginsPanel() {
                 {egressFor.hosts.map(h => (
                   <div key={h} className="flex items-center justify-between gap-2 rounded-xl border border-[color:var(--m-rowbr)] px-3 py-2">
                     <span className="break-all font-mono text-sm text-m-ink">{h}</span>
-                    <button
+                    <button type="button"
                       disabled={egressSaving}
                       onClick={() => saveEgress(egressFor.hosts.filter(x => x !== h))}
                       className="text-m-faint disabled:opacity-50"
@@ -1163,7 +1163,7 @@ function InstalledRow({ p, t, busy, hasUpdate, latestVer, blocked, onToggle, onU
         <div className="mt-2 flex items-center gap-1.5 text-[11.5px] text-[color:var(--m-st-pending)]">
           <ShieldAlert size={13} className="shrink-0" />
           <span className="truncate">{t('admin.plugins.updateBlocked', { reason: p.updateBlock.detail ?? p.updateBlock.code })}</span>
-          <button onClick={onReviewBlock}
+          <button type="button" onClick={onReviewBlock}
             className="shrink-0 font-semibold underline underline-offset-2">
             {t('admin.plugins.reviewBlock')}
           </button>
@@ -1186,7 +1186,7 @@ function InstalledRow({ p, t, busy, hasUpdate, latestVer, blocked, onToggle, onU
               Actionable, and warning-toned until at least one host exists, because
               until then the plugin cannot reach anything and looks silently broken. */}
           {p.operatorEgress && (
-            <button
+            <button type="button"
               onClick={onEgress}
               title={t('admin.plugins.allowedHosts.hint')}
               className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-[3px] text-[11px] font-medium ${p.egressHostCount > 0 ? CHIP_INFO : CHIP_PENDING}`}
@@ -1212,7 +1212,7 @@ function InstalledRow({ p, t, busy, hasUpdate, latestVer, blocked, onToggle, onU
 
       {hasUpdate && (
         <div className="mt-2.5 border-t border-[color:var(--m-rowbr)] pt-2.5">
-          <button onClick={onUpdate} disabled={busy === p.id} title={t('admin.plugins.updateTo', { version: latestVer })}
+          <button type="button" onClick={onUpdate} disabled={busy === p.id} title={t('admin.plugins.updateTo', { version: latestVer })}
             className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11.5px] font-bold disabled:opacity-50 ${CHIP_PENDING}`}>
             <ArrowUpCircle size={13} /> {t('admin.plugins.updateTo', { version: latestVer })}
           </button>
@@ -1267,7 +1267,7 @@ function EmptyState({ t, onDiscover }: { t: T; onDiscover: () => void }) {
         <PackageOpen size={26} className="text-m-faint" />
       </div>
       <p className="text-sm font-medium text-m-muted">{t('admin.plugins.empty')}</p>
-      <button onClick={onDiscover} className={`mt-4 ${ACT_PILL}`}>
+      <button type="button" onClick={onDiscover} className={`mt-4 ${ACT_PILL}`}>
         <Download size={14} /> {t('admin.plugins.tabDiscover')}
       </button>
     </div>
@@ -1340,7 +1340,7 @@ function RegistryList({ items, onInstall, onOpenDetail, busy, t, installedIds, f
                     <Download size={11} /> {formatCompactCount(item.downloadCount)}
                   </span>
                 )}
-                <button onClick={e => { e.stopPropagation(); onInstall(item.id, offer.version) }}
+                <button type="button" onClick={e => { e.stopPropagation(); onInstall(item.id, offer.version) }}
                   disabled={busy === item.id || installed || offer.blocked}
                   title={installed ? undefined : offer.title}
                   className={`ml-auto ${ACT_PILL}`}>
@@ -1401,7 +1401,7 @@ function PluginDetailSheet({ item, installed, busy, onInstall, onClose, t, local
       <div className="relative flex-none">
         <Screenshot url={item.screenshotUrl} className="aspect-[16/9] w-full" iconSize={36} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-        <button onClick={onClose} aria-label={t('common.close')} className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-lg bg-black/40 text-white"><X size={16} /></button>
+        <button type="button" onClick={onClose} aria-label={t('common.close')} className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-lg bg-black/40 text-white"><X size={16} /></button>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -1416,7 +1416,7 @@ function PluginDetailSheet({ item, installed, busy, onInstall, onClose, t, local
             </div>
             <p className="mt-0.5 text-[12.5px] text-m-faint">{item.author}{item.latest ? ` · v${item.latest}` : ''}</p>
           </div>
-          <button onClick={() => onInstall(item.id, offer.version)}
+          <button type="button" onClick={() => onInstall(item.id, offer.version)}
             disabled={busy === item.id || installed || offer.blocked}
             title={installed ? undefined : offer.title}
             className={`${ACT_PILL} self-end`}>
@@ -1711,7 +1711,7 @@ function DependencyResolveSheet({ data, t, busy, installedIds, onDownload, onClo
                     : t('admin.plugins.dep.requires', { version: r.constraint })}
                 </div>
               </div>
-              <button onClick={() => onDownload(r.id, r.constraint)} disabled={busy}
+              <button type="button" onClick={() => onDownload(r.id, r.constraint)} disabled={busy}
                 className={`shrink-0 ${ACT_PILL}`}>
                 <Download size={13} /> {r.installed ? t('admin.plugins.dep.update') : t('admin.plugins.dep.download')}
               </button>
@@ -1748,7 +1748,7 @@ function SecurityInfo({ t }: { t: T }) {
         <ShieldCheck size={14} className="mt-0.5 shrink-0 text-m-faint" />
         <p className="text-xs text-m-muted">{t('admin.plugins.reviewedMeaning')}</p>
       </div>
-      <button onClick={() => setOpen(o => !o)}
+      <button type="button" onClick={() => setOpen(o => !o)}
         className="flex w-full items-center justify-between gap-2 border-t border-[color:var(--m-rowbr)] px-4 py-3 text-xs font-medium text-m-muted">
         <span className="flex items-center gap-2"><Lock size={13} className="shrink-0" /> <span className="text-left">{t('admin.plugins.security.title')}</span></span>
         <ChevronDown size={15} className={`shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />

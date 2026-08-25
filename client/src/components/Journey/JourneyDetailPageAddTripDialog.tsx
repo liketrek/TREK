@@ -47,7 +47,7 @@ export function AddTripDialog({ journeyId, existingTripIds, onClose, onAdded }: 
 
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
           <h2 className="text-[16px] font-bold text-zinc-900 dark:text-white">{t('journey.trips.linkTrip')}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+          <button type="button" onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
             <X size={16} />
           </button>
         </div>
@@ -81,7 +81,7 @@ export function AddTripDialog({ journeyId, existingTripIds, onClose, onAdded }: 
                     </div>
                   )}
                 </div>
-                <button
+                <button type="button"
                   onClick={() => handleAdd(trip.id)}
                   disabled={adding === trip.id}
                   className="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-50"

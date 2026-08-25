@@ -47,7 +47,7 @@ export function formatSize(bytes: number): string {
 export function parseIntField(raw: unknown, fallback: number): number {
   if (typeof raw === 'number' && Number.isFinite(raw)) return Math.floor(raw);
   if (typeof raw === 'string' && raw.trim() !== '') {
-    const n = parseInt(raw, 10);
+    const n = Number.parseInt(raw, 10);
     if (Number.isFinite(n)) return n;
   }
   return fallback;

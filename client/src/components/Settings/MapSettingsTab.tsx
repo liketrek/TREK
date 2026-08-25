@@ -449,7 +449,7 @@ export default function MapSettingsTab(): React.ReactElement {
         </div>
       </div>
 
-      <button
+      <button type="button"
         onClick={saveMapSettings}
         disabled={saving}
         className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm hover:bg-slate-700 disabled:bg-slate-400"

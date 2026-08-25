@@ -163,7 +163,7 @@ export class MapsController {
     // empty result, not a missing resource, and one 404 per photo-less place gets
     // the user's IP banned by any 404-rate IPS in front of TREK (#1727).
     try {
-      return await this.maps.photo(user.id, placeId, parseFloat(lat as string), parseFloat(lng as string), name);
+      return await this.maps.photo(user.id, placeId, Number.parseFloat(lat as string), Number.parseFloat(lng as string), name);
     } catch (err: unknown) {
       const status = (err as { status?: number }).status || 500;
       if (status >= 500) console.error('Place photo error:', err);

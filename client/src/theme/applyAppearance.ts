@@ -59,9 +59,9 @@ function accentTextFor(hex: string): string {
   const c = hex.replace('#', '')
   const full = c.length === 3 ? c.split('').map((x) => x + x).join('') : c
   const toLin = (v: number) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4))
-  const r = toLin(parseInt(full.slice(0, 2), 16) / 255)
-  const g = toLin(parseInt(full.slice(2, 4), 16) / 255)
-  const b = toLin(parseInt(full.slice(4, 6), 16) / 255)
+  const r = toLin(Number.parseInt(full.slice(0, 2), 16) / 255)
+  const g = toLin(Number.parseInt(full.slice(2, 4), 16) / 255)
+  const b = toLin(Number.parseInt(full.slice(4, 6), 16) / 255)
   const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
   return luminance > 0.45 ? '#111827' : '#ffffff'
 }

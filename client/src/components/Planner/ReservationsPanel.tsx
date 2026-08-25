@@ -229,7 +229,7 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
             maxWidth: 140, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{r.title}</span>
           {canEdit && (
-            <button onClick={() => onEdit(r)} title={t('common.edit')} className="bg-transparent text-content-faint" style={{
+            <button type="button" onClick={() => onEdit(r)} title={t('common.edit')} className="bg-transparent text-content-faint" style={{
               appearance: 'none', border: 'none',
               width: 26, height: 26, borderRadius: 6, display: 'grid', placeItems: 'center',
               cursor: 'pointer', flexShrink: 0,
@@ -240,7 +240,7 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
             </button>
           )}
           {canEdit && (
-            <button onClick={() => setShowDeleteConfirm(true)} title={t('common.delete')} className="bg-transparent text-content-faint" style={{
+            <button type="button" onClick={() => setShowDeleteConfirm(true)} title={t('common.delete')} className="bg-transparent text-content-faint" style={{
               appearance: 'none', border: 'none',
               width: 26, height: 26, borderRadius: 6, display: 'grid', placeItems: 'center',
               cursor: 'pointer', flexShrink: 0,
@@ -522,11 +522,11 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
               {t('reservations.confirm.deleteBody', { name: r.title })}
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
-              <button onClick={() => setShowDeleteConfirm(false)} className="text-content-muted" style={{
+              <button type="button" onClick={() => setShowDeleteConfirm(false)} className="text-content-muted" style={{
                 fontSize: 'calc(12px * var(--fs-scale-body, 1))', background: 'none', border: '1px solid var(--border-primary)',
                 borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: 'inherit',
               }}>{t('common.cancel')}</button>
-              <button onClick={handleDelete} className="bg-[#ef4444] text-white" style={{
+              <button type="button" onClick={handleDelete} className="bg-[#ef4444] text-white" style={{
                 fontSize: 'calc(12px * var(--fs-scale-body, 1))',
                 border: 'none', borderRadius: 8, padding: '6px 16px', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
               }}>{t('common.confirm')}</button>
@@ -561,7 +561,7 @@ function Section({ title, count, children, defaultOpen = true, accent, storageKe
   }, [open, storageKey])
   return (
     <div style={{ marginBottom: 28 }}>
-      <button onClick={() => setOpen(o => !o)} style={{
+      <button type="button" onClick={() => setOpen(o => !o)} style={{
         display: 'flex', alignItems: 'center', gap: 8, width: '100%',
         background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginBottom: 12, fontFamily: 'inherit',
         userSelect: 'none',
@@ -632,7 +632,7 @@ function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit, tripId, contri
           </div>
         </div>
         {canEdit && (
-          <button
+          <button type="button"
             onClick={e => { e.stopPropagation(); setConfirmOpen(true) }}
             title={t('common.delete')}
             className="bg-transparent text-content-faint"
@@ -680,8 +680,8 @@ function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit, tripId, contri
             <div className="text-content" style={{ fontWeight: 600, fontSize: 'calc(14px * var(--fs-scale-body, 1))', marginBottom: 6 }}>{t('reservations.confirm.deleteTitle')}</div>
             <div className="text-content-muted" style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', marginBottom: 14 }}>{t('reservations.confirm.deleteBody', { name: r.title })}</div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button onClick={e => { e.stopPropagation(); setConfirmOpen(false) }} className="text-content-muted" style={{ padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border-primary)', background: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>{t('common.cancel')}</button>
-              <button onClick={e => { e.stopPropagation(); setConfirmOpen(false); onDelete(r.id) }} style={{ padding: '7px 14px', borderRadius: 9, border: 'none', background: '#ef4444', color: '#fff', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{t('common.delete')}</button>
+              <button type="button" onClick={e => { e.stopPropagation(); setConfirmOpen(false) }} className="text-content-muted" style={{ padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border-primary)', background: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>{t('common.cancel')}</button>
+              <button type="button" onClick={e => { e.stopPropagation(); setConfirmOpen(false); onDelete(r.id) }} style={{ padding: '7px 14px', borderRadius: 9, border: 'none', background: '#ef4444', color: '#fff', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{t('common.delete')}</button>
             </div>
           </div>
         </div>,
@@ -837,7 +837,7 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
             <>
               <div className="hidden md:block" style={{ width: 1, height: 22, background: 'var(--border-faint)', flexShrink: 0 }} />
               <div className="hidden md:inline-flex" style={{ gap: 4, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
-                <button
+                <button type="button"
                   onClick={() => { setTypeFilters(new Set()); sessionStorage.removeItem(storageKey) }}
                   className={typeFilters.size === 0 ? 'bg-surface-card text-content' : 'bg-transparent text-content-muted'}
                   style={{
@@ -859,7 +859,7 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
                   const active = typeFilters.has(opt.value)
                   const Icon = opt.Icon
                   return (
-                    <button
+                    <button type="button"
                       key={opt.value}
                       onClick={() => toggleTypeFilter(opt.value)}
                       className={active ? 'bg-surface-card text-content' : 'bg-transparent text-content-muted'}
@@ -896,7 +896,7 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
           {canEdit && (
             <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', flexShrink: 0 }}>
               {onImport && bookingImportAvailable && (
-                <button onClick={onImport} className="bg-surface-card text-content" style={{
+                <button type="button" onClick={onImport} className="bg-surface-card text-content" style={{
                   appearance: 'none', border: '1px solid var(--border-primary)', cursor: 'pointer', fontFamily: 'inherit',
                   display: 'inline-flex', alignItems: 'center', gap: 6,
                   padding: '8px 13px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
@@ -911,7 +911,7 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
                 </button>
               )}
               {onAirTrailImport && airTrailAvailable && (
-                <button onClick={onAirTrailImport} className="bg-surface-secondary text-content" style={{
+                <button type="button" onClick={onAirTrailImport} className="bg-surface-secondary text-content" style={{
                   appearance: 'none', border: '1px solid var(--border-primary)', cursor: 'pointer', fontFamily: 'inherit',
                   display: 'inline-flex', alignItems: 'center', gap: 6,
                   padding: '8px 14px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, boxSizing: 'border-box',
@@ -925,7 +925,7 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
                   <span className="hidden sm:inline">{t('reservations.airtrail.cta')}</span>
                 </button>
               )}
-              <button onClick={onAdd} className="bg-accent text-accent-text" style={{
+              <button type="button" onClick={onAdd} className="bg-accent text-accent-text" style={{
                 appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '9px 14px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
@@ -952,7 +952,7 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
             // page, so the import in particular went unnoticed (#2007).
             action={canEdit ? (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-                <button onClick={onAdd} className="bg-accent text-accent-text" style={CTA_STYLE}>
+                <button type="button" onClick={onAdd} className="bg-accent text-accent-text" style={CTA_STYLE}>
                   <Plus size={14} strokeWidth={2} />
                   {t(addManualKey)}
                 </button>
