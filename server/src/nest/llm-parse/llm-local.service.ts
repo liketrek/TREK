@@ -23,7 +23,11 @@ export class LlmLocalService {
     if (url.protocol !== 'http:' && url.protocol !== 'https:') {
       throw new HttpException({ error: 'Base URL must be http(s)' }, 400);
     }
-    return raw.replace(/\/+$/, '').replace(/\/v1$/, '');
+    // Trailing slashes are scanned off instead of `/\/+$/`-replaced: that pattern
+    // re-walks the slash run from every start position of the admin-supplied URL.
+    let end = raw.length;
+    while (end > 0 && raw.charCodeAt(end - 1) === 47 /* '/' */) end--;
+    return raw.slice(0, end).replace(/\/v1$/, '');
   }
 
   /** List models already pulled on the local server. */

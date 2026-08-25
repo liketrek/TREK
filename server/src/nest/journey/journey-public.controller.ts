@@ -91,7 +91,7 @@ export class JourneyPublicController {
       { userId: effectiveOwnerId, ownerId: effectiveOwnerId, assetId },
       wantThumb,
     );
-    if (!streaming) {
+    if (streaming === null) {
       res.status(404).json({ error: 'Provider not supported' });
       return;
     }

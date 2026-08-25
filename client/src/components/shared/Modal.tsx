@@ -59,6 +59,10 @@ export default function Modal({
 
   return createPortal(
     <div
+      // Backdrop and panel are plain boxes: the backdrop only catches the
+      // click-away, the panel only keeps that click from reaching it. Escape
+      // and the header's close button are the keyboard route out.
+      role="presentation"
       className="fixed inset-0 z-[10000] flex items-start sm:items-center justify-center px-4 trek-modal-backdrop trek-backdrop-enter bg-[rgba(15,23,42,0.5)]"
       style={{ paddingTop: 70, paddingBottom: 'calc(20px + var(--bottom-nav-h))', overflow: 'hidden' }}
       onMouseDown={e => { mouseDownTarget.current = e.target }}
@@ -68,6 +72,7 @@ export default function Modal({
       }}
     >
       <div
+        role="presentation"
         className={`
           trek-modal-enter
           rounded-2xl overflow-hidden shadow-2xl w-full ${sizeClasses[size] || sizeClasses.md}

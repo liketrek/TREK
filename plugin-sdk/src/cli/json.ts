@@ -7,5 +7,5 @@ import fs from 'node:fs';
  */
 export function readJsonFile<T = unknown>(p: string): T {
   const text = fs.readFileSync(p, 'utf8');
-  return JSON.parse(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text) as T;
+  return JSON.parse(text.codePointAt(0) === 0xfeff ? text.slice(1) : text) as T;
 }

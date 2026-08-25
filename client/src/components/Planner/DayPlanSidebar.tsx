@@ -1466,6 +1466,20 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
       { label: t('dayplan.transportMode.useDefault'), icon: RotateCcw, onClick: () => setIncomingLegMode(assignmentId, dayId, null) },
     ])
   }
+
+  // Enter/Space on a route connector opens the same mode menu a click opens. A key
+  // event carries no pointer position, so the menu is anchored to the connector.
+  const openLegMenuByKey = (e: React.KeyboardEvent<HTMLDivElement>, open: (m: React.MouseEvent) => void) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    const rect = e.currentTarget.getBoundingClientRect()
+    open({
+      clientX: rect.left,
+      clientY: rect.bottom,
+      preventDefault: () => e.preventDefault(),
+      stopPropagation: () => e.stopPropagation(),
+    } as unknown as React.MouseEvent)
+  }
+
   return (
     <div data-touch-drag={dragDisabled ? undefined : ''} style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', fontFamily: "var(--font-system)" }}>
       {/* Toolbar */}
@@ -1500,6 +1514,13 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
       <div className={`scroll-container${draggingId ? '' : ' trek-stagger'}`} style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} ref={scrollContainerRef} onScroll={(e) => onScrollTopChange?.((e.currentTarget as HTMLElement).scrollTop)}>
         {days.map((day, index) => {
           const isSelected = selectedDayId === day.id
+          // Shared by the click and the key handler so the two can never drift
+          // apart — pressing Enter on the row has to toggle, not just select.
+          // Named for the selection, not the expand/collapse `toggleDay` above.
+          const toggleDaySelection = () => {
+            if (isSelected) { onSelectDay(null); if (onDayDetail) onDayDetail(null) }
+            else { onSelectDay(day.id); if (onDayDetail) onDayDetail(day) }
+          }
           const isExpanded = expandedDays.has(day.id)
           const da = getDayAssignments(day.id)
           const cost = dayTotalCost(day.id, assignments, costBase, currency, locale, fxRates)
@@ -1580,7 +1601,19 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                 className="dp-day-header"
                 data-selected={isSelected}
                 // Clicking the selected day again deselects it — same as the day panel's × (#2024).
-                onClick={() => { if (isSelected) { onSelectDay(null); if (onDayDetail) onDayDetail(null) } else { onSelectDay(day.id); if (onDayDetail) onDayDetail(day) } }}
+                // Selecting the day has no other trigger, so the row carries the
+                // button role itself. The badges inside it are buttons of their
+                // own, hence the key handler only answers for the row — and it
+                // toggles exactly like the click, rather than only selecting.
+                role="button"
+                tabIndex={0}
+                onClick={() => toggleDaySelection()}
+                onKeyDown={e => {
+                  if (e.target !== e.currentTarget) return
+                  if (e.key !== 'Enter' && e.key !== ' ') return
+                  e.preventDefault()
+                  toggleDaySelection()
+                }}
                 onDragOver={e => { e.preventDefault(); if (dragOverDayId !== day.id) setDragOverDayId(day.id) }}
                 onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragOverDayId(null) }}
                 onDrop={e => handleDropOnDay(e, day.id)}
@@ -1686,10 +1719,10 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         const isCheckOut = acc.end_day_id === day.id
                         const iconColor = isCheckOut && !isCheckIn ? '#ef4444' : isCheckIn ? '#22c55e' : 'var(--text-faint)'
                         return (
-                          <span key={acc.id} onClick={e => { e.stopPropagation(); if ((acc as any).place_id) onPlaceClick((acc as any).place_id) }} className="bg-surface-hover" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 1, minWidth: 0, cursor: (acc as any).place_id ? 'pointer' : 'default', borderRadius: 7, padding: '2px 7px 2px 6px' }}>
+                          <button type="button" key={acc.id} onClick={e => { e.stopPropagation(); if ((acc as any).place_id) onPlaceClick((acc as any).place_id) }} className="bg-surface-hover" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 1, minWidth: 0, cursor: (acc as any).place_id ? 'pointer' : 'default', borderRadius: 7, padding: '2px 7px 2px 6px', border: 'none', font: 'inherit', textAlign: 'left' }}>
                             <Hotel size={11} strokeWidth={1.8} style={{ color: iconColor, flexShrink: 0 }} />
                             <span className="text-content-muted" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(acc as any).place_name || (acc as any).reservation_title}</span>
-                          </span>
+                          </button>
                         )
                       })
                     })()}
@@ -1698,10 +1731,10 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       const activeRentals = getActiveRentalsForDay(day.id)
                       if (activeRentals.length === 0) return null
                       return activeRentals.map(r => (
-                        <span key={`rental-${r.id}`} onClick={e => { e.stopPropagation(); setTransportDetail(r) }} className="bg-surface-hover" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 1, minWidth: 0, cursor: 'pointer', borderRadius: 7, padding: '2px 7px 2px 6px' }}>
+                        <button type="button" key={`rental-${r.id}`} onClick={e => { e.stopPropagation(); setTransportDetail(r) }} className="bg-surface-hover" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 1, minWidth: 0, cursor: 'pointer', borderRadius: 7, padding: '2px 7px 2px 6px', border: 'none', font: 'inherit', textAlign: 'left' }}>
                           <Car size={11} strokeWidth={1.8} className="text-content-faint" style={{ flexShrink: 0 }} />
                           <span className="text-content-muted" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
-                        </span>
+                        </button>
                       ))
                     })()}
                   </div>
@@ -1721,19 +1754,19 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         {/* Public transit search (#1065) — replaced the rename pencil,
                             which moved next to the day name in the day detail view. */}
                         {onPlanTransit ? (
-                          <button onClick={e => { e.stopPropagation(); onPlanTransit(day.id) }} title={t('transit.title')} aria-label={t('transit.title')} style={{ ...cell, border: 'none', borderRight: div, borderBottom: div }}>
+                          <button type="button" onClick={e => { e.stopPropagation(); onPlanTransit(day.id) }} title={t('transit.title')} aria-label={t('transit.title')} style={{ ...cell, border: 'none', borderRight: div, borderBottom: div }}>
                             <TramFront size={14} strokeWidth={1.8} />
                           </button>
                         ) : <div style={{ borderRight: div, borderBottom: div }} />}
                         {onAddTransport ? (
-                          <button onClick={e => { e.stopPropagation(); onAddTransport(day.id) }} title={t('transport.addTransport')} style={{ ...cell, border: 'none', borderBottom: div }}>
+                          <button type="button" onClick={e => { e.stopPropagation(); onAddTransport(day.id) }} title={t('transport.addTransport')} style={{ ...cell, border: 'none', borderBottom: div }}>
                             <Plus size={14} strokeWidth={1.8} />
                           </button>
                         ) : <div style={{ borderBottom: div }} />}
-                        <button onClick={e => openAddNote(day.id, e)} aria-label={t('dayplan.addNote')} style={{ ...cell, border: 'none', borderRight: div }}>
+                        <button type="button" onClick={e => openAddNote(day.id, e)} aria-label={t('dayplan.addNote')} style={{ ...cell, border: 'none', borderRight: div }}>
                           <FileText size={14} strokeWidth={1.8} />
                         </button>
-                        <button onClick={e => toggleDay(day.id, e)} title={isExpanded ? t('common.collapse') : t('common.expand')} style={{ ...cell, border: 'none' }}>
+                        <button type="button" onClick={e => toggleDay(day.id, e)} title={isExpanded ? t('common.collapse') : t('common.expand')} style={{ ...cell, border: 'none' }}>
                           {isExpanded ? <ChevronDown size={15} strokeWidth={1.8} /> : <ChevronRight size={15} strokeWidth={1.8} />}
                         </button>
                       </div>
@@ -1816,7 +1849,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     const targetId = hotelLegs[day.id]?.top?.targetId
                     const connector = <HotelRouteConnector seg={hotelLegs[day.id]!.top!.seg} name={hotelLegs[day.id]!.top!.name} profile={routeProfile} placement="top" />
                     return canEditDays && targetId != null ? (
-                      <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openIncomingLegModeMenu(e, targetId, day.id, hotelLegs[day.id]!.top!.seg)} style={{ cursor: 'pointer' }}>
+                      <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openIncomingLegModeMenu(e, targetId, day.id, hotelLegs[day.id]!.top!.seg)} onKeyDown={e => openLegMenuByKey(e, m => openIncomingLegModeMenu(m, targetId, day.id, hotelLegs[day.id]!.top!.seg))} style={{ cursor: 'pointer' }}>
                         {connector}
                       </div>
                     ) : connector
@@ -1890,11 +1923,18 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         }
                         const moveUp = (e) => { e.stopPropagation(); arrowMove('up') }
                         const moveDown = (e) => { e.stopPropagation(); arrowMove('down') }
+                        const selectPlace = () => { onPlaceClick(isPlaceSelected ? null : place.id, isPlaceSelected ? null : assignment.id); if (!isPlaceSelected) onSelectDay(day.id, true) }
 
                         return (
                           <React.Fragment key={`place-${assignment.id}`}>
                           <div
                             className="dp-row"
+                            // Picking the place out of the day has no other trigger, so
+                            // the row is the control. Its grip, lock and arrows are
+                            // buttons in their own right, hence the key handler only
+                            // answers for the row itself.
+                            role="button"
+                            tabIndex={0}
                             draggable={canEditDays && !dragDisabled}
                             onDragStart={e => {
                               if (!canEditDays || dragDisabled) { e.preventDefault(); return }
@@ -1950,7 +1990,13 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               }
                             }}
                             onDragEnd={() => { setDraggingId(null); setDragOverDayId(null); setDropTargetKey(null); dragDataRef.current = null }}
-                            onClick={() => { onPlaceClick(isPlaceSelected ? null : place.id, isPlaceSelected ? null : assignment.id); if (!isPlaceSelected) onSelectDay(day.id, true) }}
+                            onClick={selectPlace}
+                            onKeyDown={e => {
+                              if (e.target !== e.currentTarget) return
+                              if (e.key !== 'Enter' && e.key !== ' ') return
+                              e.preventDefault()
+                              selectPlace()
+                            }}
                             onContextMenu={e => {
                               // Flat entries, one per app: the menu has room to
                               // grow and a submenu would need a component that
@@ -1998,11 +2044,13 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             {canEditDays && !dragDisabled && <div className="dp-grip" style={{ flexShrink: 0, color: 'var(--text-faint)', display: 'flex', alignItems: 'center', opacity: 0.3, transition: 'opacity 0.15s', cursor: 'grab' }}>
                               <GripVertical size={13} strokeWidth={1.8} />
                             </div>}
-                            <div
+                            <button
+                              type="button"
+                              aria-label={lockedIds.has(assignment.id) ? t('planner.clickToUnlock') : t('planner.keepPosition')}
                               onClick={e => { e.stopPropagation(); toggleLock(assignment.id) }}
                               onMouseEnter={e => { e.stopPropagation(); setLockHoverId(assignment.id) }}
                               onMouseLeave={() => setLockHoverId(null)}
-                              style={{ position: 'relative', flexShrink: 0, cursor: 'pointer' }}
+                              style={{ position: 'relative', flexShrink: 0, cursor: 'pointer', display: 'flex', background: 'none', border: 'none', padding: 0, font: 'inherit' }}
                             >
                               <PlaceAvatar place={place} category={cat} size={28} />
                               {/* Hover/locked overlay */}
@@ -2030,7 +2078,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                     : t('planner.keepPosition')}
                                 </div>
                               )}
-                            </div>
+                            </button>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden' }}>
                                 {cat && (() => {
@@ -2145,7 +2193,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                       marginLeft: pi > 0 ? -4 : 0, flexShrink: 0,
                                       overflow: 'hidden',
                                     }}>
-                                      {p.avatar ? <img src={avatarSrc(p.avatar)!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : p.username?.[0]?.toUpperCase()}
+                                      {p.avatar ? <img src={avatarSrc(p.avatar)!} alt={p.username ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : p.username?.[0]?.toUpperCase()}
                                     </div>
                                   ))}
                                   {assignment.participants.length > 5 && (
@@ -2191,7 +2239,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           </div>
                           {daySchedule.byAssignment[day.id]?.[assignment.id]?.map(si => <PluginDayScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
                           {routeLegs[day.id]?.[assignment.id] && (canEditDays ? (
-                            <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openLegModeMenu(e, assignment.id, day.id, routeLegs[day.id]![assignment.id])} style={{ cursor: 'pointer' }}>
+                            <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openLegModeMenu(e, assignment.id, day.id, routeLegs[day.id]![assignment.id])} onKeyDown={e => openLegMenuByKey(e, m => openLegModeMenu(m, assignment.id, day.id, routeLegs[day.id]![assignment.id]))} style={{ cursor: 'pointer' }}>
                               <RouteConnector seg={routeLegs[day.id]![assignment.id]} profile={routeProfile} />
                             </div>
                           ) : (
@@ -2247,22 +2295,34 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         const displayTime = getDisplayTimeForDay(res, day.id)
                         const legKey = res.__leg ? `leg${res.__leg.index}` : 'x'
 
+                        const openTransportRow = () => {
+                          const target = reservations.find(x => x.id === res.id) ?? res
+                          // A transit journey opens its own journey view — the rich
+                          // stop-by-stop breakdown with its booking fields, never the
+                          // generic edit form (#1065).
+                          if (transitMeta) {
+                            if (onOpenTransit) onOpenTransit(target)
+                            else setTransportDetail(target)
+                            return
+                          }
+                          if (!canEditDays) return
+                          if (TRANSPORT_TYPES.has(res.type)) onEditTransport?.(target)
+                          else onEditReservation?.(target)
+                        }
+
                         return (
                           <React.Fragment key={`transport-${res.id}-${legKey}-${day.id}`}>
                           <div
-                            onClick={() => {
-                              const target = reservations.find(x => x.id === res.id) ?? res
-                              // A transit journey opens its own journey view — the rich
-                              // stop-by-stop breakdown with its booking fields, never the
-                              // generic edit form (#1065).
-                              if (transitMeta) {
-                                if (onOpenTransit) onOpenTransit(target)
-                                else setTransportDetail(target)
-                                return
-                              }
-                              if (!canEditDays) return
-                              if (TRANSPORT_TYPES.has(res.type)) onEditTransport?.(target)
-                              else onEditReservation?.(target)
+                            // Opening the booking has no other trigger, so the row is
+                            // the control; the buttons inside it answer for themselves.
+                            role="button"
+                            tabIndex={0}
+                            onClick={openTransportRow}
+                            onKeyDown={e => {
+                              if (e.target !== e.currentTarget) return
+                              if (e.key !== 'Enter' && e.key !== ' ') return
+                              e.preventDefault()
+                              openTransportRow()
                             }}
                             onDragOver={e => {
                               e.preventDefault(); e.stopPropagation()
@@ -2433,7 +2493,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             const nextPlaceId = merged.slice(idx + 1).find(i => i.type === 'place' && i.data.place?.lat && i.data.place?.lng)?.data.id
                             const connector = <RouteConnector seg={routeLegs[day.id]![res.id]} profile={routeProfile} />
                             return canEditDays && nextPlaceId != null ? (
-                              <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openIncomingLegModeMenu(e, Number(nextPlaceId), day.id, routeLegs[day.id]![res.id])} style={{ cursor: 'pointer' }}>
+                              <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openIncomingLegModeMenu(e, Number(nextPlaceId), day.id, routeLegs[day.id]![res.id])} onKeyDown={e => openLegMenuByKey(e, m => openIncomingLegModeMenu(m, Number(nextPlaceId), day.id, routeLegs[day.id]![res.id]))} style={{ cursor: 'pointer' }}>
                                 {connector}
                               </div>
                             ) : connector
@@ -2567,7 +2627,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     const targetId = hotelLegs[day.id]?.bottom?.targetId
                     const connector = <HotelRouteConnector seg={hotelLegs[day.id]!.bottom!.seg} name={hotelLegs[day.id]!.bottom!.name} profile={routeProfile} placement="bottom" />
                     return canEditDays && targetId != null ? (
-                      <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openLegModeMenu(e, targetId, day.id, hotelLegs[day.id]!.bottom!.seg)} style={{ cursor: 'pointer' }}>
+                      <div role="button" tabIndex={0} title={t('dayplan.transportMode.change')} onClick={e => openLegModeMenu(e, targetId, day.id, hotelLegs[day.id]!.bottom!.seg)} onKeyDown={e => openLegMenuByKey(e, m => openLegModeMenu(m, targetId, day.id, hotelLegs[day.id]!.bottom!.seg))} style={{ cursor: 'pointer' }}>
                         {connector}
                       </div>
                     ) : connector

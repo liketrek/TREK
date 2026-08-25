@@ -1,6 +1,6 @@
 // FE-COMP-TRIPFORM-001 to FE-COMP-TRIPFORM-084
 import type { Mock } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
+import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { useAuthStore } from '../../store/authStore';
@@ -272,7 +272,7 @@ describe('TripFormModal', () => {
     const aliceChip = screen.getByText('alice');
     expect(aliceChip).toBeInTheDocument();
     // Click the chip to remove alice
-    await user.click(aliceChip.closest('span')!);
+    await user.click(aliceChip.closest('button')!);
     // alice chip should be gone
     await waitFor(() => expect(screen.queryByText('alice')).not.toBeInTheDocument());
   });
@@ -1071,9 +1071,11 @@ describe('TripFormModal', () => {
 
     await screen.findByText('alice');
     await user.click(screen.getByText('Add member').closest('button')!);
-    // alice is already a member, so only bob is offered.
-    expect(screen.queryAllByRole('button', { name: 'alice' })).toHaveLength(0);
-    await user.click(await screen.findByRole('button', { name: 'bob' }));
+    // alice is already a member, so the option list offers only bob (her chip
+    // outside the list is a button of its own — that is what removes her).
+    const bobOption = await screen.findByRole('button', { name: 'bob' });
+    expect(within(bobOption.parentElement!).queryByRole('button', { name: 'alice' })).toBeNull();
+    await user.click(bobOption);
 
     await waitFor(() => expect(identifier).toBe('bob'));
     expect(addToast).toHaveBeenCalledWith('bob added', 'success', undefined);

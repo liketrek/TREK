@@ -889,7 +889,6 @@
   box-shadow: var(--glass-shadow), var(--glass-highlight);
   backdrop-filter: blur(30px) saturate(1.8);
   -webkit-backdrop-filter: blur(30px) saturate(1.8);
-  z-index: 2;
 }
 .trek-dash .st-zoom button {
   width: 32px;

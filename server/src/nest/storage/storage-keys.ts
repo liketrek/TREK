@@ -17,8 +17,8 @@ import { StorageInvalidKeyError } from './storage.types';
 const MAX_KEY_LENGTH = 1024;
 
 function hasControlChars(value: string): boolean {
-  for (let i = 0; i < value.length; i++) {
-    const code = value.charCodeAt(i);
+  for (const char of value) {
+    const code = char.codePointAt(0) as number;
     if (code < 0x20 || code === 0x7f) return true;
   }
   return false;

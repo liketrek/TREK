@@ -1084,7 +1084,7 @@ describe('ModalRenderer', () => {
     render(<ModalRenderer notices={[noticeA, noticeB]} />);
     await flushGraceDelay();
 
-    const backdrop = screen.getByRole('presentation').children[1] as HTMLElement;
+    const backdrop = screen.getAllByRole('presentation')[1] as HTMLElement;
     await act(async () => {
       fireEvent.click(backdrop);
     });
@@ -1113,7 +1113,7 @@ describe('ModalRenderer', () => {
     expect(screen.getByRole('dialog').className).toContain('opacity-100');
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('presentation').children[1] as HTMLElement);
+      fireEvent.click(screen.getAllByRole('presentation')[1] as HTMLElement);
     });
 
     expect(dismissSpy).toHaveBeenCalledWith('n-a');
@@ -1326,7 +1326,7 @@ describe('ModalRenderer', () => {
     await flushGraceDelay();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('presentation').children[1] as HTMLElement);
+      fireEvent.click(screen.getAllByRole('presentation')[1] as HTMLElement);
     });
     expect(dismissSpy).not.toHaveBeenCalled();
 

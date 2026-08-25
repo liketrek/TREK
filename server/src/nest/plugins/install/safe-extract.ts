@@ -28,7 +28,7 @@ export class ExtractError extends Error {}
 
 /** Assert a member path stays within dest; return the safe absolute path. */
 export function safeJoin(dest: string, name: string): string {
-  const norm = name.replace(/\\/g, '/');
+  const norm = name.replaceAll(/\\/g, '/');
   if (norm.startsWith('/') || /^[a-zA-Z]:/.test(norm)) throw new ExtractError(`absolute path rejected: ${name}`);
   if (norm.split('/').some((seg) => seg === '..')) throw new ExtractError(`path traversal rejected: ${name}`);
   const resolved = path.resolve(dest, norm);
@@ -92,7 +92,7 @@ function readTarGz(buf: Buffer, lim: Required<ExtractLimits>): Member[] {
     if (!Number.isSafeInteger(size) || size < 0) {
       throw new ExtractError(`invalid entry size in tar header: ${block.subarray(124, 136).toString('utf8').replace(/\0.*$/, '').trim()}`);
     }
-    const typeflag = String.fromCharCode(block[156]);
+    const typeflag = String.fromCodePoint(block[156]);
     off += 512;
     const data = tar.subarray(off, off + size);
     off += Math.ceil(size / 512) * 512;

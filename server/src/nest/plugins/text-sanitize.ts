@@ -26,9 +26,12 @@ export function stripEmoji(s: string): string {
   const stripped = s.replace(EMOJI_RE, '');
   // Nothing removed → return verbatim so a plain string keeps its exact spacing and
   // paragraph breaks (matters for PDF paragraphs). Otherwise collapse only the
-  // horizontal gaps an emoji left, never newlines.
+  // horizontal gaps an emoji left, never newlines. The trailing-space trim carries the
+  // char in front of the run (or the line start) into the match and puts it back, so the
+  // run is only ever walked from its own start — plugin text must not make ` +$` restart
+  // inside every space of a long one.
   if (stripped === s) return s;
-  return stripped.replace(/[^\S\r\n]{2,}/g, ' ').replace(/ +$/gm, '').trim();
+  return stripped.replace(/[^\S\r\n]{2,}/g, ' ').replace(/(^|[^ ]) +$/gm, '$1').trim();
 }
 
 /** True if the string contains at least one emoji — used by the dev/validate warnings. */

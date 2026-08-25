@@ -18,7 +18,7 @@ beforeEach(() => {
   resetAllStores();
 });
 
-/** Template rows carry [chevron, edit, delete]; category headers [add item, edit, delete]. */
+/** Template rows carry [chevron, name, edit, delete]; category headers [add item, edit, delete]. */
 function rowButtons(name: string, selector: string): HTMLElement[] {
   const row = screen.getByText(name).closest(selector) as HTMLElement;
   return within(row).getAllByRole('button');
@@ -588,11 +588,11 @@ describe('PackingTemplateManager', () => {
     render(<><ToastContainer /><PackingTemplateManager /></>);
     await expandBeachTrip(user, 'Clothing');
 
-    await user.click(templateButtons('Beach Trip')[2]);
+    await user.click(templateButtons('Beach Trip')[3]);
     expect(await screen.findByText('Failed to delete template')).toBeInTheDocument();
     expect(screen.getByText('Clothing')).toBeInTheDocument();
 
-    await user.click(templateButtons('Beach Trip')[2]);
+    await user.click(templateButtons('Beach Trip')[3]);
     await screen.findByText('Template deleted');
     await waitFor(() => expect(screen.queryByText('Clothing')).not.toBeInTheDocument());
     expect(screen.getByText('No templates created yet')).toBeInTheDocument();
@@ -611,14 +611,14 @@ describe('PackingTemplateManager', () => {
     render(<><ToastContainer /><PackingTemplateManager /></>);
     await screen.findByText('Beach Trip');
 
-    await user.click(templateButtons('Beach Trip')[1]);
+    await user.click(templateButtons('Beach Trip')[2]);
     await user.clear(screen.getByDisplayValue('Beach Trip'));
     await user.type(screen.getByRole('textbox'), '{Enter}');
     await waitFor(() => expect(screen.getByText('Beach Trip')).toBeInTheDocument());
     expect(puts).toBe(0);
 
     // Blurring the field commits the pending name — here the request fails
-    await user.click(templateButtons('Beach Trip')[1]);
+    await user.click(templateButtons('Beach Trip')[2]);
     const input = screen.getByDisplayValue('Beach Trip');
     await user.clear(input);
     await user.type(input, 'Winter');

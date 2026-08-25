@@ -8,10 +8,12 @@ export function PdfPreviewModal(S: FileManagerState) {
   const { previewFile, setPreviewFile, previewFileUrl, toast, t } = S
   return createPortal(
     <div
+      role="presentation"
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={() => setPreviewFile(null)}
     >
       <div
+        role="presentation"
         style={{ width: '100%', maxWidth: 950, height: '94vh', background: 'var(--bg-card)', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
         onClick={e => e.stopPropagation()}
       >

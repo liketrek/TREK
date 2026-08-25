@@ -69,11 +69,11 @@ export function CategorySettingsModal({ onClose, categories, categoryColors, onS
       position: 'fixed', inset: 0, background: 'var(--overlay-bg, rgba(0,0,0,0.35))',
       backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16, fontFamily: FONT,
-    }} onClick={onClose}>
+    }} role="presentation" onClick={onClose}>
       <div style={{
         background: 'var(--bg-card)', borderRadius: 16, width: '100%', maxWidth: 420,
         maxHeight: '80vh', overflow: 'auto', border: '1px solid var(--border-faint)',
-      }} onClick={e => e.stopPropagation()}>
+      }} role="presentation" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 12px', borderBottom: '1px solid var(--border-faint)' }}>
           <h3 style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>

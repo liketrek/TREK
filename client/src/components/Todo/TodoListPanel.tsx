@@ -267,7 +267,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
         />
       )}
       {selectedItem && !isAddingNew && isMobile && (
-        <div onClick={e => { if (e.target === e.currentTarget) setSelectedId(null) }}
+        <div role="presentation" onClick={e => { if (e.target === e.currentTarget) setSelectedId(null) }}
           style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'flex-end', paddingBottom: 'var(--bottom-nav-h)' }}>
           <div style={{ width: '100%', maxHeight: '85vh', borderRadius: '16px 16px 0 0', overflow: 'auto' }}
             ref={el => { if (el) { const child = el.firstElementChild as HTMLElement; if (child) { child.style.width = '100%'; child.style.borderLeft = 'none'; child.style.borderRadius = '16px 16px 0 0' } } }}>
@@ -282,7 +282,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
         </div>
       )}
       {isAddingNew && !selectedItem && !isMobile && createPortal(
-        <div onClick={e => { if (e.target === e.currentTarget) setIsAddingNew(false) }}
+        <div role="presentation" onClick={e => { if (e.target === e.currentTarget) setIsAddingNew(false) }}
           className="trek-modal-backdrop"
           style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 'calc(var(--nav-h) + 60px)', paddingBottom: 40 }}>
           <div style={{ width: 'min(520px, 92vw)', maxHeight: 'calc(100vh - var(--nav-h) - 120px)', overflow: 'auto', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}
@@ -300,7 +300,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
         document.body
       )}
       {isAddingNew && !selectedItem && isMobile && createPortal(
-        <div onClick={e => { if (e.target === e.currentTarget) setIsAddingNew(false) }}
+        <div role="presentation" onClick={e => { if (e.target === e.currentTarget) setIsAddingNew(false) }}
           className="trek-modal-backdrop"
           style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'flex-end', paddingBottom: 'var(--bottom-nav-h)' }}>
           <div style={{ width: '100%', maxHeight: '85vh', borderRadius: '16px 16px 0 0', overflow: 'auto' }}

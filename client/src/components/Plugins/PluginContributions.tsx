@@ -108,8 +108,8 @@ export function PluginActions({ items, tripId, className }: { items: ViewContrib
         </button>
       ))}
       {frame && (
-        <div className="fixed inset-0 z-[4000] flex items-center justify-center bg-black/50 p-4" onClick={() => setFrame(null)}>
-          <div className="bg-surface-card rounded-xl shadow-xl w-full max-w-lg h-[70vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div role="presentation" className="fixed inset-0 z-[4000] flex items-center justify-center bg-black/50 p-4" onClick={() => setFrame(null)}>
+          <div role="presentation" className="bg-surface-card rounded-xl shadow-xl w-full max-w-lg h-[70vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-edge shrink-0">
               <span className="text-sm font-medium text-content truncate">{frame.label}</span>
               <button type="button" onClick={() => setFrame(null)} className="text-content-muted hover:text-content"><X size={16} /></button>

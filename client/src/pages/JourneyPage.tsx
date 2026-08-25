@@ -122,9 +122,10 @@ function JourneyPageDesktop() {
             {/* Active Journey Hero */}
             {activeJourney && (
               <div className="mb-10">
-                <div
+                <button
+                  type="button"
                   onClick={() => navigate(`/journey/${activeJourney.id}`)}
-                  className="relative rounded-[28px] overflow-hidden cursor-pointer h-[250px] md:h-[280px] transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 shadow-[0_2px_4px_rgba(0,0,0,0.06),0_20px_48px_-18px_rgba(0,0,0,0.32)]"
+                  className="block w-full text-left relative rounded-[28px] overflow-hidden cursor-pointer h-[250px] md:h-[280px] transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 shadow-[0_2px_4px_rgba(0,0,0,0.06),0_20px_48px_-18px_rgba(0,0,0,0.32)]"
                   style={{
                     background: activeJourney.cover_image
                       ? `linear-gradient(120deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 45%, rgba(0,0,0,0.05) 100%), url(/uploads/${activeJourney.cover_image}) center/cover`
@@ -188,7 +189,7 @@ function JourneyPageDesktop() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </button>
               </div>
             )}
 
@@ -283,16 +284,24 @@ function JourneyPageDesktop() {
                     upcoming: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
                   }
 
+                  const toggleTrip = () => {
+                    setSelectedTripIds(prev => {
+                      const next = new Set(prev)
+                      if (next.has(trip.id)) next.delete(trip.id)
+                      else next.add(trip.id)
+                      return next
+                    })
+                  }
+
                   return (
                     <div
                       key={trip.id}
-                      onClick={() => {
-                        setSelectedTripIds(prev => {
-                          const next = new Set(prev)
-                          if (next.has(trip.id)) next.delete(trip.id)
-                          else next.add(trip.id)
-                          return next
-                        })
+                      role="checkbox"
+                      aria-checked={selected}
+                      tabIndex={0}
+                      onClick={toggleTrip}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleTrip() }
                       }}
                       className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-[border-color,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] ${
                         selected
@@ -366,9 +375,10 @@ function JourneyCard({ journey, onClick }: { journey: Journey & { entry_count?: 
   const lifecycle = computeJourneyLifecycle(j.status, j.trip_date_min, j.trip_date_max)
 
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
-      className="vg-card rounded-[24px] overflow-hidden cursor-pointer transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 flex flex-col"
+      className="vg-card w-full text-left rounded-[24px] overflow-hidden cursor-pointer transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 flex flex-col"
     >
       {/* Cover with title overlay */}
       <div className="relative h-[200px] overflow-hidden" style={{ background: pickGradient(j.id) }}>
@@ -415,6 +425,6 @@ function JourneyCard({ journey, onClick }: { journey: Journey & { entry_count?: 
           ))}
         </div>
       </div>
-    </div>
+    </button>
   )
 }

@@ -171,17 +171,18 @@ export function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdi
                         onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)' }}
                         onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }} />
                     ) : (
-                      <div key={a.id} title={a.original_name} onClick={() => onPreviewFile?.(a)}
+                      <button type="button" key={a.id} title={a.original_name} aria-label={a.original_name} onClick={() => onPreviewFile?.(a)}
                         style={{
                           width: 48, height: 48, borderRadius: 8, cursor: 'pointer',
                           background: a.mime_type === 'application/pdf' ? '#ef44441a' : 'var(--bg-secondary)',
+                          border: 'none', padding: 0, fontFamily: 'inherit',
                           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
                           transition: 'transform 0.12s, box-shadow 0.12s',
                         }}
                         onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)' }}
                         onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }}>
                         <span style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 700, color: a.mime_type === 'application/pdf' ? '#ef4444' : 'var(--text-muted)', letterSpacing: 0.3 }}>{ext}</span>
-                      </div>
+                      </button>
                     )
                   })}
                   {(note.attachments?.length || 0) > (note.website ? 1 : 2) && (

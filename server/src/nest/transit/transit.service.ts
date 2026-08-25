@@ -190,7 +190,7 @@ export class TransitService {
 
     if (q.time) {
       const parsed = new Date(q.time);
-      if (isNaN(parsed.getTime())) bad('time must be an ISO date-time');
+      if (Number.isNaN(parsed.getTime())) bad('time must be an ISO date-time');
       params.set('time', parsed.toISOString());
     }
     if (q.arriveBy) params.set('arriveBy', 'true');

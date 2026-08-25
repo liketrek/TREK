@@ -240,10 +240,15 @@ function BookingCard({ res, planner, canEdit, compact }: {
                   {t('files.title')}
                 </div>
                 <div className="flex flex-col gap-1">
+                  {/* A span with a button role, not a <button>: the whole card body
+                      is already one, and buttons cannot nest. */}
                   {files.map(f => (
                     <span
                       key={f.id}
+                      role="button"
+                      tabIndex={0}
                       onClick={e => { e.stopPropagation(); openFile(f.url, f.original_name) }}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openFile(f.url, f.original_name) } }}
                       className="flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px]"
                     >
                       <FileText size={12} strokeWidth={2} className="flex-none text-m-muted" />

@@ -676,6 +676,7 @@ function MobileNoticeSheet(S: NoticeState) {
       {/* Backdrop */}
       <div
         className={`absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] transition-opacity ${dur} ${ease} ${visible ? 'opacity-100' : 'opacity-0'}`}
+        role="presentation"
         onClick={notice.dismissible ? animatedDismissAll : undefined}
       />
       {/* Bottom sheet */}
@@ -843,18 +844,22 @@ function DesktopNoticeModal(S: NoticeState) {
     <div
       className={`fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-[2px] transition-opacity ${dur} ${ease} ${visible ? 'opacity-100' : 'opacity-0'}`}
       role="presentation"
-      onClick={notice.dismissible && isLastPage ? handleDismissAll : undefined}
     >
       {/* Screen-reader page announcements */}
       <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{pageAnnouncement}</span>
-      <div className="absolute inset-0 flex items-center justify-center p-4">
+      {/* The dismiss lives on this layer: it covers the backdrop, and the
+          target check keeps a click inside the panel from closing the notice. */}
+      <div
+        className="absolute inset-0 flex items-center justify-center p-4"
+        role="presentation"
+        onClick={notice.dismissible && isLastPage ? (e => { if (e.target === e.currentTarget) handleDismissAll() }) : undefined}
+      >
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
           aria-describedby={bodyId}
           className={`w-full ${maxWidth} rounded-2xl overflow-hidden overflow-y-auto max-h-[90vh] shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all ${dur} ${ease} ${desktopMotion}`}
-          onClick={e => e.stopPropagation()}
         >
           <div ref={contentWrapperRef}>
             <NoticeContent {...makeContentProps(S, notice, idx)} />

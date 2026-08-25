@@ -1,4 +1,5 @@
 import { TextDecoder } from 'util';
+import { stripHtmlTags } from '../common/stripHtmlTags';
 
 export interface ParsedKmlPlacemark {
   name: string | null;
@@ -83,14 +84,14 @@ export function sanitizeKmlDescription(value: unknown): string | null {
 
   // Unwrap CDATA sections — present when fast-xml-parser returns raw node text
   // via stopNodes. Must happen before tag-stripping so the CDATA markers are
-  // not mis-parsed by the <[^>]+> regex.
+  // not mis-parsed as tags.
   const withoutCdata = raw.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
 
   const withLineBreaks = withoutCdata.replace(/<br\s*\/?>/gi, '\n');
-  const stripped = withLineBreaks.replace(/<[^>]+>/g, '');
+  const stripped = stripHtmlTags(withLineBreaks);
   const decoded = decodeHtmlEntities(stripped)
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n')
+    .replaceAll('\r\n', '\n')
+    .replaceAll('\r', '\n')
     .replace(/[\t\f\v]+/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     .trim();

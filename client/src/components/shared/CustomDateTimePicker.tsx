@@ -231,7 +231,7 @@ export function CustomDatePicker({
     let d = get('day'),
       m = get('month');
     const y = get('year');
-    if (isNaN(d) || isNaN(m) || isNaN(y)) return;
+    if (Number.isNaN(d) || Number.isNaN(m) || Number.isNaN(y)) return;
 
     // If locale order gives impossible month but valid swap, correct it
     if (m > 12 && d <= 12) {

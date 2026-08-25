@@ -38,20 +38,22 @@ const NTFY_DEFAULT_META = { priority: 3 as const, tags: [] as string[] };
 export function resolveNtfyUrl(adminCfg: NtfyConfig, userCfg: NtfyConfig | null): string | null {
   const topic = userCfg?.topic;
   if (!topic) return null;
-  const base = (userCfg?.server || adminCfg.server || 'https://ntfy.sh').replace(/\/+$/, '');
+  // The lookbehind pins the strip to the start of the trailing run. Without it a
+  // configured server of nothing but slashes retries from every one of them.
+  const base = (userCfg?.server || adminCfg.server || 'https://ntfy.sh').replace(/(?<!\/)\/+$/, '');
   return `${base}/${encodeURIComponent(topic)}`;
 }
 
 /** Resolve the ntfy POST URL for admin-scoped sends. Returns null if no admin topic. */
 export function resolveAdminNtfyUrl(adminCfg: NtfyConfig): string | null {
   if (!adminCfg.topic) return null;
-  const base = (adminCfg.server || 'https://ntfy.sh').replace(/\/+$/, '');
+  const base = (adminCfg.server || 'https://ntfy.sh').replace(/(?<!\/)\/+$/, '');
   return `${base}/${encodeURIComponent(adminCfg.topic)}`;
 }
 
 function encodeHeaderValue(value: string): string {
-  for (let i = 0; i < value.length; i++) {
-    const code = value.charCodeAt(i);
+  for (const ch of value) {
+    const code = ch.codePointAt(0)!;
     // Control characters go through the same RFC 2047 wrapper as non-ASCII: a
     // trip title with a stray newline in it would otherwise be rejected by
     // undici as an invalid header value and drop the notification silently.

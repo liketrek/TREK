@@ -44,6 +44,13 @@ function isWebauthnAbort(err: unknown): boolean {
   return name === 'NotAllowedError' || name === 'AbortError'
 }
 
+/** Drop trailing slashes for display, as a scan: without it /\/+$/ backtracks quadratically. */
+function trimTrailingSlashes(value: string): string {
+  let end = value.length
+  while (end > 0 && value[end - 1] === '/') end--
+  return value.slice(0, end)
+}
+
 /**
  * "Account" section — AccountTab parity: profile + avatar, password change,
  * TOTP 2FA (setup, backup codes, disable), passkeys and account deletion.
@@ -323,7 +330,7 @@ export default function MSettingsAccount() {
             </div>
             {oidcIssuer && (
               <div className="mt-[2px] font-geist text-[0.625rem] text-m-faint">
-                {t('settings.oidcLinked')} {oidcIssuer.replace('https://', '').replace(/\/+$/, '')}
+                {t('settings.oidcLinked')} {trimTrailingSlashes(oidcIssuer.replace('https://', ''))}
               </div>
             )}
           </div>

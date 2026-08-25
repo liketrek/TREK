@@ -313,7 +313,7 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     // a drain, and a pass awaits per-row delivery (up to the invoke timeout each), so
     // running two concurrently would select the SAME rows and deliver an erasure twice.
     // A caller that awaits still waits for a full pass (the in-flight one).
-    if (this.drainInFlight) return this.drainInFlight;
+    if (this.drainInFlight !== null) return this.drainInFlight;
     this.drainInFlight = this.runDrainOnce().finally(() => { this.drainInFlight = null; });
     return this.drainInFlight;
   }

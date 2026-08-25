@@ -84,6 +84,7 @@ export function NoteFormModal({ onClose, onSubmit, onDeleteFile, existingCategor
       }}
     >
       <form
+        role="presentation"
         style={{
           background: 'var(--bg-card)',
           borderRadius: 16,

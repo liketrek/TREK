@@ -218,10 +218,10 @@ function decodeQuotedPrintable(payload: string): Buffer {
   for (let i = 0; i < joined.length; i++) {
     const hex = joined[i] === '=' ? joined.slice(i + 1, i + 3) : '';
     if (/^[0-9a-fA-F]{2}$/.test(hex)) {
-      out[len++] = parseInt(hex, 16);
+      out[len++] = Number.parseInt(hex, 16);
       i += 2;
     } else {
-      out[len++] = joined.charCodeAt(i) & 0xff;
+      out[len++] = joined.codePointAt(i) & 0xff;
     }
   }
   return out.subarray(0, len);
@@ -245,7 +245,7 @@ function decodeEncodedWords(value: string): string {
   return value
     .replace(/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/g, (whole, charset: string, encoding: string, payload: string) => {
       const bytes =
-        encoding.toUpperCase() === 'B' ? decodeBase64(payload) : decodeQuotedPrintable(payload.replace(/_/g, ' '));
+        encoding.toUpperCase() === 'B' ? decodeBase64(payload) : decodeQuotedPrintable(payload.replaceAll('_', ' '));
       const decoded = decodeCharset(bytes, charset);
       return decoded || whole;
     })

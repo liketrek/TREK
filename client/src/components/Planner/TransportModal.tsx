@@ -55,11 +55,19 @@ function endpointFromLocation(l: LocationPoint, role: 'from' | 'to' | 'stop', se
   }
 }
 
+// "Paris Charles de Gaulle (CDG)" → "Paris Charles de Gaulle". Done as a trim
+// plus an anchored test instead of /\s*\([A-Z]{3}\)\s*$/, because the leading
+// \s* backtracks over every space in a long name for a quadratic worst case.
+function stripAirportCode(name: string): string {
+  const trimmed = name.trimEnd()
+  return /\([A-Z]{3}\)$/.test(trimmed) ? trimmed.slice(0, -5).trimEnd() : name
+}
+
 function airportFromEndpoint(e: ReservationEndpoint | undefined): Airport | null {
   if (!e || !e.code) return null
   return {
     iata: e.code, icao: null,
-    name: e.name, city: e.name.replace(/\s*\([A-Z]{3}\)\s*$/, ''),
+    name: e.name, city: stripAirportCode(e.name),
     country: '',
     lat: e.lat, lng: e.lng,
     tz: e.timezone || '',
@@ -1011,7 +1019,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
               <div key={f.id} className="bg-surface-secondary" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 8 }}>
                 <FileText size={12} className="text-content-muted" style={{ flexShrink: 0 }} />
                 <span className="text-content-secondary" style={{ flex: 1, fontSize: 'calc(12px * var(--fs-scale-body, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
-                <a href="#" onClick={(e) => { e.preventDefault(); openFile(f.url).catch(() => {}) }} className="text-content-faint" style={{ display: 'flex', flexShrink: 0, cursor: 'pointer' }}><ExternalLink size={11} /></a>
+                <button type="button" onClick={() => { openFile(f.url).catch(() => {}) }} aria-label={t('common.open')} className="text-content-faint" style={{ background: 'none', border: 'none', padding: 0, display: 'flex', flexShrink: 0, cursor: 'pointer' }}><ExternalLink size={11} /></button>
                 <button type="button" onClick={async () => {
                   if (f.reservation_id === reservation?.id) {
                     try { await apiClient.put(`/trips/${tripId}/files/${f.id}`, { reservation_id: null }) } catch { toast.error(t('reservations.toast.updateError')) }

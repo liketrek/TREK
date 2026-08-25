@@ -214,11 +214,14 @@ function stripLeadingComments(sql: string): string {
 // The host's stripEmoji (text-sanitize.ts), copied so notify.send cleans/rejects the
 // same strings without a server import: colour emoji + sequence glue removed, then
 // the horizontal gaps they leave are collapsed. An all-emoji title becomes ''.
-const EMOJI_RE = /\p{Emoji_Presentation}|\p{Emoji_Modifier}|\p{Regional_Indicator}|[\u200D\uFE00-\uFE0F\u20E3\u{E0020}-\u{E007F}]/gu;
+const EMOJI_RE = /\p{Emoji_Presentation}|\p{Emoji_Modifier}|\p{Regional_Indicator}|\u200D|[\uFE00-\uFE0F\u20E3\u{E0020}-\u{E007F}]/gu;
 function stripEmoji(s: string): string {
   const stripped = s.replace(EMOJI_RE, '');
   if (stripped === s) return s;
-  return stripped.replace(/[^\S\r\n]{2,}/g, ' ').replace(/ +$/gm, '').trim();
+  // Trailing-space trim as the host spells it: the char in front of the run (or the
+  // line start) comes into the match and goes back out, so the run is only walked
+  // from its own start instead of restarting inside every space of a long one.
+  return stripped.replace(/[^\S\r\n]{2,}/g, ' ').replace(/(^|[^ ]) +$/gm, '$1').trim();
 }
 
 // The host's settings-key rules (install/manifest.ts). A field the host would refuse to

@@ -1,6 +1,6 @@
 // FE-COMP-PACKING-001 to FE-COMP-PACKING-020
 import { vi } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
+import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -899,9 +899,10 @@ describe('PackingListPanel', () => {
     const packageBtn = container.querySelector('svg.lucide-package')?.closest('button');
     fireEvent.click(packageBtn!);
 
-    // Picker is open - find "Trolley" button inside the dropdown
-    // The dropdown renders as an absolute positioned div inside the item row
-    const trolleyBtn = await screen.findByRole('button', { name: /Trolley/ });
+    // Picker is open - find "Trolley" button inside the dropdown. The bag
+    // sidebar carries the same name on its own button, so scope the query to
+    // the picker (the dropdown is a sibling of the package button).
+    const trolleyBtn = await within(packageBtn!.parentElement!).findByRole('button', { name: /Trolley/ });
     fireEvent.click(trolleyBtn);
 
     await waitFor(() => expect(putBody).toMatchObject({ bag_id: 7 }));

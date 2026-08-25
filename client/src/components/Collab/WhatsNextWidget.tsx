@@ -179,7 +179,7 @@ export default function WhatsNextWidget({ tripMembers = [] }: WhatsNextWidgetPro
                                 overflow: 'hidden', flexShrink: 0,
                               }}>
                                 {p.avatar
-                                  ? <img src={avatarSrc(p.avatar)!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  ? <img src={avatarSrc(p.avatar)!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                   : p.username?.[0]?.toUpperCase()
                                 }
                               </div>

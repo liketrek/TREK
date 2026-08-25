@@ -77,6 +77,35 @@ function buildAssignmentLookup(days, assignments) {
 const fieldLabelClass = 'text-[10px] font-semibold uppercase tracking-[0.08em] text-content-faint mb-[5px]'
 const fieldValueClass = 'text-[13px] font-medium text-content px-[10px] py-[8px] bg-surface-tertiary rounded-[10px]'
 
+// A booking code is only a control while the blur setting is on: then it lifts on
+// hover and toggles on click or Enter. With blurring off it is plain text, so it
+// stays a plain element instead of a button that can never do anything.
+function ConfirmationCode({ code, blurred, revealed, onReveal }: {
+  code: React.ReactNode
+  blurred: boolean
+  revealed: boolean
+  onReveal: (next: boolean | ((v: boolean) => boolean)) => void
+}) {
+  const codeStyle: CSSProperties = {
+    fontFamily: '"SF Mono", "JetBrains Mono", Menlo, monospace', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))',
+    filter: blurred && !revealed ? 'blur(5px)' : 'none',
+    transition: 'filter 0.2s',
+  }
+  if (!blurred) return <div className={`${fieldValueClass} text-center`} style={{ ...codeStyle, cursor: 'default' }}>{code}</div>
+  return (
+    <button
+      type="button"
+      className={`${fieldValueClass} text-center`}
+      style={{ ...codeStyle, cursor: 'pointer', width: '100%' }}
+      onMouseEnter={() => onReveal(true)}
+      onMouseLeave={() => onReveal(false)}
+      onClick={() => onReveal(v => !v)}
+    >
+      {code}
+    </button>
+  )
+}
+
 interface ReservationCardProps {
   r: Reservation
   tripId: number
@@ -298,20 +327,7 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
         {hasCode && (
           <div>
             <div className={fieldLabelClass}>{t('reservations.confirmationCode')}</div>
-            <div
-              onMouseEnter={() => blurCodes && setCodeRevealed(true)}
-              onMouseLeave={() => blurCodes && setCodeRevealed(false)}
-              onClick={() => blurCodes && setCodeRevealed(v => !v)}
-              className={`${fieldValueClass} text-center`}
-              style={{
-                fontFamily: '"SF Mono", "JetBrains Mono", Menlo, monospace', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))',
-                filter: blurCodes && !codeRevealed ? 'blur(5px)' : 'none',
-                cursor: blurCodes ? 'pointer' : 'default',
-                transition: 'filter 0.2s',
-              }}
-            >
-              {r.confirmation_number}
-            </div>
+            <ConfirmationCode code={r.confirmation_number} blurred={!!blurCodes} revealed={codeRevealed} onReveal={setCodeRevealed} />
           </div>
         )}
 
@@ -350,20 +366,7 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
               {coded.map((l, i) => (
                 <div key={i}>
                   <div className={fieldLabelClass}>{[l.from, l.to].filter(Boolean).join(' → ') || t('reservations.confirmationCode')}</div>
-                  <div
-                    onMouseEnter={() => blurCodes && setCodeRevealed(true)}
-                    onMouseLeave={() => blurCodes && setCodeRevealed(false)}
-                    onClick={() => blurCodes && setCodeRevealed(v => !v)}
-                    className={`${fieldValueClass} text-center`}
-                    style={{
-                      fontFamily: '"SF Mono", "JetBrains Mono", Menlo, monospace', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))',
-                      filter: blurCodes && !codeRevealed ? 'blur(5px)' : 'none',
-                      cursor: blurCodes ? 'pointer' : 'default',
-                      transition: 'filter 0.2s',
-                    }}
-                  >
-                    {l.confirmation_number}
-                  </div>
+                  <ConfirmationCode code={l.confirmation_number} blurred={!!blurCodes} revealed={codeRevealed} onReveal={setCodeRevealed} />
                 </div>
               ))}
             </div>
@@ -463,10 +466,10 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
             <div className={fieldLabelClass}>{t('files.title')}</div>
             <div className={fieldValueClass} style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '6px 10px' }}>
               {attachedFiles.map(f => (
-                <a key={f.id} href="#" onClick={(e) => { e.preventDefault(); openFile(f.url).catch(() => {}) }} style={{ display: 'flex', alignItems: 'center', gap: 5, textDecoration: 'none', cursor: 'pointer' }}>
+                <button key={f.id} type="button" onClick={() => { openFile(f.url).catch(() => {}) }} style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', background: 'none', border: 'none', padding: 0, textAlign: 'left', fontFamily: 'inherit' }}>
                   <FileText size={11} className="text-content-faint" style={{ flexShrink: 0 }} />
                   <span style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-muted)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
-                </a>
+                </button>
               ))}
             </div>
           </div>
@@ -497,12 +500,12 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
 
       {/* Delete confirmation */}
       {showDeleteConfirm && createPortal(
-        <div className="bg-[rgba(0,0,0,0.3)]" style={{
+        <div className="bg-[rgba(0,0,0,0.3)]" role="presentation" style={{
           position: 'fixed', inset: 0, zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           backdropFilter: 'blur(3px)',
         }} onClick={() => setShowDeleteConfirm(false)}>
-          <div className="bg-surface-card" style={{
+          <div className="bg-surface-card" role="presentation" style={{
             width: 340, borderRadius: 16,
             boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
             display: 'flex', flexDirection: 'column', gap: 12,
@@ -610,6 +613,9 @@ function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit, tripId, contri
     <div
       className="bg-surface-card"
       onClick={() => onOpen(r)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onOpen(r) } }}
       style={{ borderRadius: 12, border: '1px solid rgba(124,58,237,0.22)', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 9, cursor: 'pointer', transition: 'box-shadow 0.15s ease' }}
       onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.06)'}
       onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
@@ -658,7 +664,7 @@ function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit, tripId, contri
         </div>
       )}
       {r.travelers && r.travelers.length > 0 && (
-        <div style={{ paddingLeft: 44 }} onClick={e => e.stopPropagation()}>
+        <div style={{ paddingLeft: 44 }} role="presentation" onClick={e => e.stopPropagation()}>
           <TravelerAvatarRow travelers={r.travelers} />
         </div>
       )}
@@ -666,7 +672,7 @@ function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit, tripId, contri
       {/* Reservation-detail plugin slots: sandboxed, scoped to this journey. The
           card itself is clickable, so keep frame interactions from opening it. */}
       {detailPlugins.length > 0 && (
-        <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div role="presentation" onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {detailPlugins.map(p => (
             <div key={p.id} className="bg-surface-hover" style={{ borderRadius: 10, overflow: 'hidden' }}>
               <PluginFrame pluginId={p.id} tripId={String(tripId)} reservationId={String(r.id)} title={p.name} surface="detail-slot" />
@@ -675,8 +681,8 @@ function TransitJourneyCard({ r, days, onOpen, onDelete, canEdit, tripId, contri
         </div>
       )}
       {confirmOpen && createPortal(
-        <div className="bg-[rgba(0,0,0,0.35)]" style={{ position: 'fixed', inset: 0, zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={e => { e.stopPropagation(); setConfirmOpen(false) }}>
-          <div className="bg-surface-card" style={{ borderRadius: 14, padding: 20, width: 340, boxShadow: '0 16px 48px rgba(0,0,0,0.22)' }} onClick={e => e.stopPropagation()}>
+        <div className="bg-[rgba(0,0,0,0.35)]" role="presentation" style={{ position: 'fixed', inset: 0, zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={e => { e.stopPropagation(); setConfirmOpen(false) }}>
+          <div className="bg-surface-card" role="presentation" style={{ borderRadius: 14, padding: 20, width: 340, boxShadow: '0 16px 48px rgba(0,0,0,0.22)' }} onClick={e => e.stopPropagation()}>
             <div className="text-content" style={{ fontWeight: 600, fontSize: 'calc(14px * var(--fs-scale-body, 1))', marginBottom: 6 }}>{t('reservations.confirm.deleteTitle')}</div>
             <div className="text-content-muted" style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', marginBottom: 14 }}>{t('reservations.confirm.deleteBody', { name: r.title })}</div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
@@ -957,13 +963,13 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
                   {t(addManualKey)}
                 </button>
                 {onImport && bookingImportAvailable && (
-                  <button onClick={onImport} className="bg-surface-card text-content" style={{ ...CTA_STYLE, border: '1px solid var(--border-primary)' }}>
+                  <button type="button" onClick={onImport} className="bg-surface-card text-content" style={{ ...CTA_STYLE, border: '1px solid var(--border-primary)' }}>
                     <Download size={14} strokeWidth={2} />
                     {t('reservations.import.cta')}
                   </button>
                 )}
                 {onAirTrailImport && airTrailAvailable && (
-                  <button onClick={onAirTrailImport} className="bg-surface-secondary text-content" style={{ ...CTA_STYLE, border: '1px solid var(--border-primary)' }}>
+                  <button type="button" onClick={onAirTrailImport} className="bg-surface-secondary text-content" style={{ ...CTA_STYLE, border: '1px solid var(--border-primary)' }}>
                     <Plane size={14} strokeWidth={2} />
                     {t('reservations.airtrail.cta')}
                   </button>

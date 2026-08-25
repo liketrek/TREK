@@ -377,7 +377,10 @@ describe('KategorieGruppe — assignees', () => {
     })
     fireEvent.click(container.querySelector('svg.lucide-user-plus')!.closest('button')!)
 
-    fireEvent.click(within(screen.getByRole('button', { name: /alice/ })).getByText('alice').closest('button')!)
+    // Scoped to the dropdown: an assigned member also has a chip button carrying
+    // their name, so an unscoped role query matches two elements.
+    const dropdown = within(container.querySelector('svg.lucide-user-plus')!.closest('div')!)
+    fireEvent.click(dropdown.getByRole('button', { name: /alice/ }))
 
     expect(onSetAssignees).toHaveBeenCalledWith('Gear', [1])
   })
@@ -388,8 +391,9 @@ describe('KategorieGruppe — assignees', () => {
       assignees: [{ user_id: 1, username: 'owner' }],
     })
     fireEvent.click(container.querySelector('svg.lucide-user-plus')!.closest('button')!)
-    const assigned = screen.getByRole('button', { name: /owner/ })
-    const free = screen.getByRole('button', { name: /alice/ })
+    const dropdown = within(container.querySelector('svg.lucide-user-plus')!.closest('div')!)
+    const assigned = dropdown.getByRole('button', { name: /owner/ })
+    const free = dropdown.getByRole('button', { name: /alice/ })
 
     fireEvent.mouseEnter(free)
     expect(free.style.background).toBe('var(--bg-tertiary)')

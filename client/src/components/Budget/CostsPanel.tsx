@@ -706,7 +706,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     return (
       <div className="exp-actions bg-surface-card border border-edge" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, flexShrink: 0, borderRadius: 999, padding: 5 }}>
         <button type="button" title={t('common.edit')} onClick={onEdit} className="text-content-muted transition-colors" style={btn}><Pencil size={13} /></button>
-        <button title={deleteLabel} onClick={onDelete} className="exp-action-danger transition-colors" style={{ ...btn, color: '#dc2626' }}><Trash2 size={13} /></button>
+        <button type="button" title={deleteLabel} onClick={onDelete} className="exp-action-danger transition-colors" style={{ ...btn, color: '#dc2626' }}><Trash2 size={13} /></button>
       </div>
     )
   }

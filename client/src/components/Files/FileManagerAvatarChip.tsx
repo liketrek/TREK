@@ -24,7 +24,7 @@ export function AvatarChip({ name, avatarUrl, size = 20 }: { name: string; avata
           cursor: 'default',
         }}>
         {avatarUrl
-          ? <img src={avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ? <img src={avatarUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : name?.[0]?.toUpperCase()
         }
       </div>

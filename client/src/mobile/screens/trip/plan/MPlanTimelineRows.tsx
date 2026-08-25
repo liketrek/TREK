@@ -142,7 +142,18 @@ export function PlaceRow({ assignment, fullPlace, linkedRes, chrome, reorder, dr
     : place?.address || place?.description || ''
 
   return (
-    <div {...dragProps(drag)} onClick={onOpen} className={`flex cursor-pointer items-center gap-2.5 py-1.5 ${dragClass(drag)}`}>
+    // Stays a div: in editing mode the row carries its own action circles and
+    // reorder controls, which may not be nested inside a <button>. The key
+    // handler is guarded on currentTarget so Enter/Space on one of those
+    // controls does not also open the row — a mouse click would not either.
+    <div
+      {...dragProps(drag)}
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onOpen() } }}
+      className={`flex cursor-pointer items-center gap-2.5 py-1.5 ${dragClass(drag)}`}
+    >
       {!chrome.editing && (
         <AvatarRing className="shadow-[0_3px_8px_-3px_rgba(0,0,0,.4)]">
           <PlaceAvatar
@@ -213,7 +224,14 @@ export function TransportRow({ res, dayId, chrome, reorder, drag, onOpen }: {
   const sub = transportSubtitle(res)
 
   return (
-    <div {...dragProps(drag)} onClick={onOpen} className={`mt-1.5 flex cursor-pointer items-center gap-2.5 ${dragClass(drag)}`}>
+    <div
+      {...dragProps(drag)}
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onOpen() } }}
+      className={`mt-1.5 flex cursor-pointer items-center gap-2.5 ${dragClass(drag)}`}
+    >
       {!chrome.editing && (
         <AvatarRing>
           <Icon size={14} strokeWidth={2} />
@@ -360,7 +378,14 @@ export function TransitRow({ res, transit, dayId, open, chrome, reorder, drag, o
         </AvatarRing>
       )}
       <div className="min-w-0 flex-1 overflow-hidden rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)]">
-        <div onClick={onToggle} className="cursor-pointer px-3 py-[9px]">
+        <div
+          role="button"
+          tabIndex={0}
+          aria-expanded={open}
+          onClick={onToggle}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } }}
+          className="cursor-pointer px-3 py-[9px]"
+        >
           <div className="flex items-center gap-[7px]">
             <span className="min-w-0 truncate text-[0.84375rem] font-bold">
               {to ? `${from} → ${to}` : res.title}
@@ -498,7 +523,10 @@ export function NoteRow({ note, chrome, reorder, drag, onEdit }: {
   return (
     <div
       {...dragProps(drag)}
+      role={chrome.editing ? 'button' : undefined}
+      tabIndex={chrome.editing ? 0 : undefined}
       onClick={chrome.editing ? onEdit : undefined}
+      onKeyDown={chrome.editing ? (e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onEdit() } }) : undefined}
       className={`my-[2px] flex items-center gap-2.5 ${chrome.editing ? 'cursor-pointer' : ''} ${dragClass(drag)}`}
     >
       {!chrome.editing && (

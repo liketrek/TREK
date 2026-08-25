@@ -59,11 +59,12 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
   const handleLogout = () => { onClose(); logout(); navigate('/login') }
 
   return (
-    <div className="fixed inset-0 z-[300] md:hidden" onClick={onClose}>
+    <div className="fixed inset-0 z-[300] md:hidden" role="presentation" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
         className="absolute bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-2xl overflow-hidden"
         style={{ animation: 'slideUp 0.25s ease-out', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        role="presentation"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex justify-center pt-3 pb-2">

@@ -311,6 +311,7 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
     <div
       className="bg-[rgba(0,0,0,0.4)]"
       style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      role="presentation"
       onMouseDown={e => { mouseDownTarget.current = e.target }}
       onClick={e => {
         if (e.target === e.currentTarget && mouseDownTarget.current === e.currentTarget) handleClose()
@@ -318,6 +319,7 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
       }}
     >
       <div
+        role="presentation"
         onClick={e => e.stopPropagation()}
         className="bg-surface-card"
         style={{ borderRadius: 16, width: '100%', maxWidth: 540, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)', fontFamily: 'var(--font-system)', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}

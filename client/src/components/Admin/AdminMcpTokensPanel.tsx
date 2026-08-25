@@ -214,7 +214,12 @@ export default function AdminMcpTokensPanel() {
       {/* Revoke OAuth session modal */}
       {revokeConfirmId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
-          onClick={e => { if (e.target === e.currentTarget) setRevokeConfirmId(null) }}>
+          role="button" tabIndex={0} aria-label={t('common.close')}
+          onClick={e => { if (e.target === e.currentTarget) setRevokeConfirmId(null) }}
+          onKeyDown={e => {
+            if (e.target !== e.currentTarget) return
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setRevokeConfirmId(null) }
+          }}>
           <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4 bg-surface-card">
             <h3 className="text-base font-semibold text-content">{t('admin.oauthSessions.revokeTitle')}</h3>
             <p className="text-sm text-content-secondary">{t('admin.oauthSessions.revokeMessage')}</p>
@@ -235,7 +240,12 @@ export default function AdminMcpTokensPanel() {
       {/* Delete MCP token modal */}
       {deleteConfirmId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
-          onClick={e => { if (e.target === e.currentTarget) setDeleteConfirmId(null) }}>
+          role="button" tabIndex={0} aria-label={t('common.close')}
+          onClick={e => { if (e.target === e.currentTarget) setDeleteConfirmId(null) }}
+          onKeyDown={e => {
+            if (e.target !== e.currentTarget) return
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDeleteConfirmId(null) }
+          }}>
           <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4 bg-surface-card">
             <h3 className="text-base font-semibold text-content">{t('admin.mcpTokens.deleteTitle')}</h3>
             <p className="text-sm text-content-secondary">{t('admin.mcpTokens.deleteMessage')}</p>

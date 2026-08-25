@@ -403,7 +403,8 @@ function ViewNoteModal(S: NotesState) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 10000, padding: 16,
       }}
-      onClick={() => setViewingNote(null)}
+      role="presentation"
+      onClick={e => { if (e.target === e.currentTarget) setViewingNote(null) }}
     >
       <div
         style={{
@@ -412,7 +413,6 @@ function ViewNoteModal(S: NotesState) {
           width: 'min(700px, calc(100vw - 32px))', maxHeight: '80vh',
           overflow: 'hidden', display: 'flex', flexDirection: 'column',
         }}
-        onClick={e => e.stopPropagation()}
       >
         <div style={{
           padding: '16px 20px 12px', borderBottom: '1px solid var(--border-primary)',
@@ -462,17 +462,18 @@ function ViewNoteModal(S: NotesState) {
                           onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)' }}
                           onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }} />
                       ) : (
-                        <div title={a.original_name} onClick={() => setPreviewFile(a)}
+                        <button type="button" title={a.original_name} onClick={() => setPreviewFile(a)}
                           style={{
                             width: 64, height: 64, borderRadius: 8, cursor: 'pointer',
                             background: a.mime_type === 'application/pdf' ? '#ef44441a' : 'var(--bg-secondary)',
                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
                             transition: 'transform 0.12s, box-shadow 0.12s',
+                            border: 'none', padding: 0, fontFamily: 'inherit',
                           }}
                           onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)' }}
                           onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }}>
                           <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: a.mime_type === 'application/pdf' ? '#ef4444' : 'var(--text-muted)', letterSpacing: 0.3 }}>{ext}</span>
-                        </div>
+                        </button>
                       )}
                       <span style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{a.original_name}</span>
                     </div>

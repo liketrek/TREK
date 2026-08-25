@@ -52,7 +52,7 @@ function tripGradient(id: number): string { return GRADIENTS[id % GRADIENTS.leng
 function splitDate(dateStr: string | null | undefined, locale: string): { d: string; m: string; y: string } | null {
   if (!dateStr) return null
   const date = new Date(dateStr + 'T00:00:00Z')
-  if (isNaN(date.getTime())) return null // malformed date — render a dash, never crash
+  if (Number.isNaN(date.getTime())) return null // malformed date — render a dash, never crash
   const otherYear = date.getUTCFullYear() !== new Date().getUTCFullYear()
   return {
     d: date.toLocaleDateString(locale, { day: 'numeric', timeZone: 'UTC' }),
@@ -67,7 +67,7 @@ function splitDate(dateStr: string | null | undefined, locale: string): { d: str
 function fullDate(dateStr: string | null | undefined, locale: string): string | null {
   if (!dateStr) return null
   const date = new Date(dateStr + 'T00:00:00Z')
-  if (isNaN(date.getTime())) return null
+  if (Number.isNaN(date.getTime())) return null
   const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', timeZone: 'UTC' }
   if (date.getUTCFullYear() !== new Date().getUTCFullYear()) opts.year = 'numeric'
   return date.toLocaleDateString(locale, opts)
@@ -393,7 +393,13 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
   )
 
   return (
-    <section className="hero-trip" onClick={onOpen}>
+    <div
+      className="hero-trip"
+      onClick={onOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onOpen() } }}
+    >
       {trip.cover_image
         ? <img className="bg" src={trip.cover_image} alt={trip.title} />
         : <div className="bg" style={{ background: tripGradient(trip.id) }} />}
@@ -424,12 +430,12 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
               ))}
             </div>
           )}
-          <div className="hero-pass" onClick={(e) => { e.stopPropagation(); onOpen() }}>
+          <div className="hero-pass" role="presentation" onClick={(e) => { e.stopPropagation(); onOpen() }}>
             <div className="hero-pass-inner">{passCells}</div>
           </div>
         </div>
       </div>
-    </section>
+    </div>
   )
 }
 
@@ -552,7 +558,13 @@ function TripCard({ trip, locale, badges, onOpen, onEdit, onCopy, onArchive, onD
   const stop = (e: React.MouseEvent, fn: () => void) => { e.stopPropagation(); fn() }
 
   return (
-    <article className="trip-card" onClick={onOpen}>
+    <div
+      className="trip-card"
+      onClick={onOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onOpen() } }}
+    >
       <div className="trip-cover">
         {trip.cover_image
           ? <img src={trip.cover_image} alt={trip.title} />
@@ -585,7 +597,7 @@ function TripCard({ trip, locale, badges, onOpen, onEdit, onCopy, onArchive, onD
         </div>
         <TripCardBadges items={badges ?? []} />
       </div>
-    </article>
+    </div>
   )
 }
 
@@ -793,7 +805,9 @@ function UpcomingTool({ items, locale, onOpen }: {
             const timeStr = parsed.time ? formatTime(parsed.time, locale, timeFormat) : null
             const typeClass = RES_TYPE_CLASS[r.type] || 'other'
             return (
-              <div className="upc-item" key={r.id} onClick={() => onOpen(r.trip_id)}>
+              <div className="upc-item" key={r.id} onClick={() => onOpen(r.trip_id)}
+                role="button" tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(r.trip_id) } }}>
                 <div className="upc-date"><div className="d mono">{dateStr?.d ?? '–'}</div><div className="m">{dateStr?.m ?? ''}</div></div>
                 <div className="upc-info">
                   <div className="t">{r.title}</div>

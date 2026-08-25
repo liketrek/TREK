@@ -19,7 +19,9 @@ export default function MDropdownPanel({ open, onClose, className = '', children
 
   return (
     <>
-      <div className="fixed inset-0 z-[35]" onClick={onClose} />
+      {/* Invisible dismiss layer — decoration to a reader, which is why it carries
+          no role of its own; the panel's own controls are the keyboard path. */}
+      <div className="fixed inset-0 z-[35]" role="presentation" onClick={onClose} />
       <div
         className={`m-pop-in fixed z-[36] w-[228px] rounded-[20px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[6px] text-m-ink shadow-[0_24px_60px_-20px_rgba(0,0,0,.5)] backdrop-blur-[30px] backdrop-saturate-[1.8] ${className}`}
       >

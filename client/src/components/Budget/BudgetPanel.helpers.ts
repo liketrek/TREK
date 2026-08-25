@@ -53,7 +53,7 @@ export function hexLighten(hex: string, amount: number): string {
 }
 
 export const fmtNum = (v: number | null | undefined, locale: string, cur: string) => {
-  if (v == null || isNaN(v)) return '-'
+  if (v == null || Number.isNaN(v)) return '-'
   const d = currencyDecimals(cur)
   return Number(v).toLocaleString(locale, { minimumFractionDigits: d, maximumFractionDigits: d }) + ' ' + (SYMBOLS[cur] || cur)
 }

@@ -50,7 +50,7 @@ export class PhotoResolverService {
     if (await this.cache.serveFresh(res, key)) return;
 
     const existing = this.cache.getInFlight(key);
-    if (existing) {
+    if (existing !== undefined) {
       const bytes = await existing;
       if (bytes && (await this.cache.serveFresh(res, key))) return;
       await fallback();

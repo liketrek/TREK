@@ -137,32 +137,43 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
 
         {/* Assignee chips */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 3, flex: 1, minWidth: 0, marginLeft: 4 }}>
-          {assignees.map(a => (
-            <div key={a.user_id} style={{ position: 'relative' }}
-              onClick={e => { e.stopPropagation(); if (canEdit) onSetAssignees(kategorie, assignees.filter(x => x.user_id !== a.user_id).map(x => x.user_id)) }}
-            >
-              <div className="assignee-chip"
-                style={{
-                  width: 22, height: 22, borderRadius: '50%', flexShrink: 0, cursor: canEdit ? 'pointer' : 'default',
-                  background: `hsl(${a.username.charCodeAt(0) * 37 % 360}, 55%, 55%)`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'white', textTransform: 'uppercase',
-                  border: '2px solid var(--bg-card)', transition: 'opacity 0.15s',
-                }}
+          {assignees.map(a => {
+            // The chip is only ever clickable for an editor, so read-only members
+            // get the plain div back rather than a focusable stop that does nothing.
+            const chip = (
+              <>
+                <div className="assignee-chip"
+                  style={{
+                    width: 22, height: 22, borderRadius: '50%', flexShrink: 0, cursor: canEdit ? 'pointer' : 'default',
+                    background: `hsl(${(a.username.codePointAt(0) ?? 0) * 37 % 360}, 55%, 55%)`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'white', textTransform: 'uppercase',
+                    border: '2px solid var(--bg-card)', transition: 'opacity 0.15s',
+                  }}
+                >
+                  {a.username[0]}
+                </div>
+                <div className="assignee-tooltip" style={{
+                  position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
+                  marginTop: 6, padding: '3px 8px', borderRadius: 6, zIndex: 60,
+                  background: 'var(--text-primary)', color: 'var(--bg-primary)',
+                  fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, whiteSpace: 'nowrap',
+                  pointerEvents: 'none', opacity: 0, transition: 'opacity 0.15s',
+                }}>
+                  {a.username}
+                </div>
+              </>
+            )
+            if (!canEdit) return <div key={a.user_id} style={{ position: 'relative' }}>{chip}</div>
+            return (
+              <button type="button" key={a.user_id}
+                style={{ position: 'relative', background: 'none', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer' }}
+                onClick={e => { e.stopPropagation(); onSetAssignees(kategorie, assignees.filter(x => x.user_id !== a.user_id).map(x => x.user_id)) }}
               >
-                {a.username[0]}
-              </div>
-              <div className="assignee-tooltip" style={{
-                position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
-                marginTop: 6, padding: '3px 8px', borderRadius: 6, zIndex: 60,
-                background: 'var(--text-primary)', color: 'var(--bg-primary)',
-                fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, whiteSpace: 'nowrap',
-                pointerEvents: 'none', opacity: 0, transition: 'opacity 0.15s',
-              }}>
-                {a.username}
-              </div>
-            </div>
-          ))}
+                {chip}
+              </button>
+            )
+          })}
           {canEdit && (
           <div ref={assigneeDropdownRef} style={{ position: 'relative' }}>
             <button type="button" onClick={e => { e.stopPropagation(); setShowAssigneeDropdown(v => !v) }}
@@ -204,7 +215,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
                     >
                       <div style={{
                         width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                        background: `hsl(${m.username.charCodeAt(0) * 37 % 360}, 55%, 55%)`,
+                        background: `hsl(${(m.username.codePointAt(0) ?? 0) * 37 % 360}, 55%, 55%)`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'white', textTransform: 'uppercase',
                       }}>
@@ -244,7 +255,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
             const rect = menuBtnRef.current?.getBoundingClientRect();
             return (
             <>
-              <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowMenu(false)} />
+              <div role="presentation" style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowMenu(false)} />
               <div style={{ position: 'fixed', right: rect ? window.innerWidth - rect.right : 0, top: rect ? rect.bottom + 4 : 0, zIndex: 100, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', padding: 4, minWidth: 170 }}>
                 {canEdit && <MenuItem icon={<Pencil size={13} />} label={t('packing.menuRename')} onClick={() => { setEditingName(true); setShowMenu(false) }} />}
                 <MenuItem icon={<CheckCheck size={13} />} label={t('packing.menuCheckAll')} onClick={() => { handleCheckAll(); setShowMenu(false) }} />

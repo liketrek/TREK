@@ -144,8 +144,12 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
         boxShadow: '0 8px 40px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.06)',
         overflow: 'hidden', maxHeight: collapsed ? 'none' : '60vh', display: 'flex', flexDirection: 'column',
       }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: collapsed ? '12px 16px 12px 20px' : '18px 16px 14px 20px', borderBottom: collapsed ? 'none' : '1px solid var(--border-faint)', cursor: 'pointer' }}
+        {/* Header. Clicking the bar collapses the panel, but that is a mouse
+            shortcut for the chevron button below, a real button with a title that
+            does the same thing. So the bar declares itself presentational instead
+            of becoming a second, unlabelled tab stop wrapped around the rename
+            input and the two icon buttons. */}
+        <div role="presentation" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: collapsed ? '12px 16px 12px 20px' : '18px 16px 14px 20px', borderBottom: collapsed ? 'none' : '1px solid var(--border-faint)', cursor: 'pointer' }}
           onClick={() => toggleCollapse()}>
           <div className="bg-surface-secondary" style={{ width: collapsed ? 36 : 44, height: collapsed ? 36 : 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s ease' }}>
             <Calendar size={collapsed ? 16 : 20} className="text-content" />
@@ -200,7 +204,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
         <div style={{ overflowY: 'auto', padding: '14px 20px 18px', display: collapsed ? 'none' : 'block' }}>
 
           {/* ── Weather ── */}
-          {day.date && lat && lng && (
+          {!!(day.date && lat && lng) && (
             loading ? (
               <div style={{ textAlign: 'center', padding: 16, color: 'var(--text-faint)', fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>
                 <div style={{ width: 18, height: 18, border: '2px solid var(--border-primary)', borderTopColor: 'var(--text-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 6px' }} />
@@ -285,7 +289,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
             if (dayReservations.length === 0) return null
             return (
               <div style={{ marginBottom: 0 }}>
-                {day.date && lat && lng && <div style={{ height: 1, background: 'var(--border-faint)', margin: '12px 0' }} />}
+                {!!(day.date && lat && lng) && <div style={{ height: 1, background: 'var(--border-faint)', margin: '12px 0' }} />}
                 <div className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{t('day.reservations')}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {dayReservations.map(r => {
@@ -400,7 +404,7 @@ function AccommodationList({ dayAccommodations, day, reservations, canEditDays, 
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px' }}>
                         <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           {acc.place_image ? (
-                            <img src={acc.place_image} style={{ width: '100%', height: '100%', borderRadius: 10, objectFit: 'cover' }} />
+                            <img src={acc.place_image} alt="" style={{ width: '100%', height: '100%', borderRadius: 10, objectFit: 'cover' }} />
                           ) : (
                             <Hotel size={16} style={{ color: 'var(--text-muted)' }} />
                           )}
@@ -454,12 +458,17 @@ function AccommodationList({ dayAccommodations, day, reservations, canEditDays, 
                             <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{linked.title}</div>
                             <div style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', display: 'flex', gap: 6, marginTop: 1 }}>
                               <span>{confirmed ? t('reservations.confirmed') : t('reservations.pending')}</span>
-                              {linked.confirmation_number && <span
+                              {/* Reveal toggle for a blurred code: a real button, so it can
+                                  be reached by keyboard. With blurring off there is nothing
+                                  to toggle, and it stays out of the tab order. */}
+                              {linked.confirmation_number && <button
+                                type="button"
+                                disabled={!blurCodes}
                                 onMouseEnter={e => { if (blurCodes) e.currentTarget.style.filter = 'none' }}
                                 onMouseLeave={e => { if (blurCodes) e.currentTarget.style.filter = 'blur(4px)' }}
                                 onClick={e => { if (blurCodes) { const el = e.currentTarget; el.style.filter = el.style.filter === 'none' ? 'blur(4px)' : 'none' } }}
-                                style={{ filter: blurCodes ? 'blur(4px)' : 'none', transition: 'filter 0.2s', cursor: blurCodes ? 'pointer' : 'default' }}
-                              >#{linked.confirmation_number}</span>}
+                                style={{ filter: blurCodes ? 'blur(4px)' : 'none', transition: 'filter 0.2s', cursor: blurCodes ? 'pointer' : 'default', background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit' }}
+                              >#{linked.confirmation_number}</button>}
                             </div>
                           </div>
                         </div>
@@ -535,9 +544,12 @@ function HotelPickerModal({ showHotelPicker, setShowHotelPicker, font, t, hotelD
     <>
             {/* Hotel Picker Popup — portal to body to escape transform stacking context */}
             {showHotelPicker && createPortal(
-              <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+              // Click screen and the card that stops the click from reaching it:
+              // neither is a control, and the popup has its own X and Cancel
+              // buttons, so both stay presentational.
+              <div role="presentation" style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
                 onClick={() => setShowHotelPicker(false)}>
-                <div onClick={e => e.stopPropagation()} style={{
+                <div role="presentation" onClick={e => e.stopPropagation()} style={{
                   width: '100%', maxWidth: 900, borderRadius: 16, overflow: 'hidden',
                   background: 'var(--bg-card)', boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
                   ...font,
@@ -655,7 +667,7 @@ function HotelPickerModal({ showHotelPicker, setShowHotelPicker, font, t, hotelD
                       >
                         <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           {p.image_url ? (
-                            <img src={p.image_url} style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }} />
+                            <img src={p.image_url} alt="" style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }} />
                           ) : (
                             <MapPin size={13} style={{ color: 'var(--text-faint)' }} />
                           )}

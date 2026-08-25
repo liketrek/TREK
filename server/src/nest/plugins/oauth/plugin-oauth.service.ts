@@ -32,7 +32,7 @@ const STATE_TTL_MS = 10 * 60 * 1000; // an authorize round-trip must finish with
 const REFRESH_SKEW_S = 60; // refresh a token expiring within a minute
 
 function b64url(buf: Buffer): string {
-  return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return buf.toString('base64url');
 }
 
 /** Cheap fast-fail for an obviously-internal token endpoint. This is a pre-check, not the

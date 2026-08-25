@@ -116,7 +116,11 @@ function parseSidebar(md: string): WikiNavSection[] {
   const sections: WikiNavSection[] = [];
   let current: WikiNavSection | null = null;
   for (const raw of md.split('\n')) {
-    const heading = raw.match(/^#{1,4}\s+(.+?)\s*$/);
+    // The title, trimmed: a run that starts and ends on a non-space, or a single
+    // character (a heading whose body is only spaces still opens a section, the way
+    // `(.+?)\s*$` did). Spelled out so no two quantifiers compete for the same
+    // spaces — that pairing backtracks quadratically on a long ragged line.
+    const heading = raw.match(/^#{1,4}\s+(\S.*\S|.)\s*$/);
     if (heading) {
       current = { title: heading[1].replace(/[*_`]/g, '').trim(), pages: [] };
       sections.push(current);
@@ -151,7 +155,9 @@ function processMarkdown(md: string): string {
     const hash = anchor ? `#${anchor.trim()}` : '';
     return `[${title.trim()}](/help/${slug}${hash})`;
   });
-  out = out.replace(/!\[([^\]]*)\]\(([^)\s]+)([^)]*)\)/g, (m, alt: string, url: string) => {
+  // The optional title after the URL (`![a](u "t")`) has to start on whitespace,
+  // so it cannot compete with the URL group for the same characters.
+  out = out.replace(/!\[([^\]]*)\]\(([^)\s]+)(\s[^)]*)?\)/g, (m, alt: string, url: string) => {
     if (/^https?:\/\//i.test(url) || url.startsWith('/api/help/asset/')) return m;
     const clean = url.replace(/^\.?\//, '').replace(/^wiki\//, '');
     return `![${alt}](/api/help/asset/${clean})`;
@@ -196,8 +202,9 @@ function outsideCode(md: string, fn: (segment: string) => string): string {
 }
 
 function extractTitle(md: string, fallback: string): string {
-  const h1 = md.match(/^#\s+(.+?)\s*$/m);
-  return h1 ? h1[1].replace(/[*_`]/g, '').trim() : fallback.replace(/-/g, ' ');
+  // Same shape as the sidebar heading above — see the note there.
+  const h1 = md.match(/^#\s+(\S.*\S|.)\s*$/m);
+  return h1 ? h1[1].replace(/[*_`]/g, '').trim() : fallback.replaceAll('-', ' ');
 }
 
 export interface WikiPage {

@@ -144,6 +144,7 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
       className={embedded
         ? 'w-full h-full min-h-0 flex flex-col overflow-hidden'
         : 'fixed inset-0 z-[9999] flex items-end md:items-center justify-center md:p-5 overscroll-none bg-[rgba(9,9,11,0.75)]'}
+      role="presentation"
       onClick={embedded ? undefined : onClose}
       onTouchMove={e => { if (!embedded && e.target === e.currentTarget) e.preventDefault() }}
     >
@@ -152,6 +153,7 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
           ? 'bg-white dark:bg-zinc-900 w-full h-full flex flex-col overflow-hidden'
           : 'bg-white dark:bg-zinc-900 rounded-t-2xl md:rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[720px] md:max-w-[960px] w-full max-h-[calc(100dvh-var(--bottom-nav-h)-20px)] md:max-h-[85vh] flex flex-col overflow-hidden'}
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        role="presentation"
         onClick={e => e.stopPropagation()}
       >
 
@@ -274,7 +276,7 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
             </button>
             {addToOpen && (
               <>
-                <div className="fixed inset-0 z-[9]" onClick={() => setAddToOpen(false)} />
+                <div className="fixed inset-0 z-[9]" role="presentation" onClick={() => setAddToOpen(false)} />
                 <div className="absolute left-12 top-full mt-1 z-10 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-lg py-1.5 min-w-[200px] max-h-[240px] overflow-y-auto">
                   <button type="button"
                     onClick={() => { setTargetEntryId(null); setAddToOpen(false) }}
@@ -365,10 +367,14 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
                       const isSelected = selected.has(asset.id)
                       const alreadyAdded = existingAssetIds.has(asset.id)
                       return (
-                        <div
+                        <button
+                          type="button"
                           key={asset.id}
+                          disabled={alreadyAdded}
+                          aria-pressed={isSelected}
+                          aria-label={asset.city || group.label}
                           onClick={() => !alreadyAdded && toggleAsset(asset.id)}
-                          className={`relative aspect-square rounded-lg overflow-hidden ${
+                          className={`relative block w-full aspect-square rounded-lg overflow-hidden ${
                             alreadyAdded
                               ? 'opacity-40 cursor-not-allowed'
                               : isSelected
@@ -402,7 +408,7 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
                               <p className="text-[8px] text-white truncate">{asset.city}</p>
                             </div>
                           )}
-                        </div>
+                        </button>
                       )
                     })}
                   </div>

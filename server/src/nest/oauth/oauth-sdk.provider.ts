@@ -121,8 +121,10 @@ export class TrekOAuthProvider implements OAuthServerProvider {
 
     // Redirects browser to the SPA consent page with OAuth params forwarded.
     async authorize(client: OAuthClientInformationFull, params: AuthorizationParams, res: Response): Promise<void> {
-        const mcpResource = `${getMcpSafeUrl().replace(/\/+$/, '')}/mcp`;
-        const resource = params.resource ? params.resource.href.replace(/\/+$/, '') : mcpResource;
+        // The lookbehind matches only the first slash of the trailing run. Without it the
+        // engine retries from every slash, which is quadratic on a slash-heavy value.
+        const mcpResource = `${getMcpSafeUrl().replace(/(?<!\/)\/+$/, '')}/mcp`;
+        const resource = params.resource ? params.resource.href.replace(/(?<!\/)\/+$/, '') : mcpResource;
 
         if (resource !== mcpResource) {
             const url = new URL(params.redirectUri);
@@ -143,7 +145,7 @@ export class TrekOAuthProvider implements OAuthServerProvider {
         if (params.state) qs.set('state', params.state);
         if (params.resource) qs.set('resource', params.resource.href);
 
-        const base = getMcpSafeUrl().replace(/\/+$/, '');
+        const base = getMcpSafeUrl().replace(/(?<!\/)\/+$/, '');
         res.redirect(302, `${base}/oauth/consent?${qs.toString()}`);
     }
 
@@ -169,7 +171,7 @@ export class TrekOAuthProvider implements OAuthServerProvider {
         if (redirectUri && pending.redirectUri !== redirectUri)
             throw new Error('Authorization grant is invalid.');
 
-        const resourceStr = resource ? resource.href.replace(/\/+$/, '') : null;
+        const resourceStr = resource ? resource.href.replace(/(?<!\/)\/+$/, '') : null;
         if (pending.resource && resourceStr && pending.resource !== resourceStr)
             throw new Error('Authorization grant is invalid.');
 

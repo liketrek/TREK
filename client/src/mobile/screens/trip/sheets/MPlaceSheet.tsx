@@ -513,8 +513,14 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
             {/* ── Files ── */}
             <div className={`mt-3 rounded-[13px] px-3 py-[9px] ${INNER_CLS}`}>
               <div
+                // Stays a div: the row carries the upload button, which may not
+                // nest inside another button.
+                role="button"
+                tabIndex={0}
+                aria-expanded={filesExpanded}
                 className="flex items-center gap-2"
                 onClick={() => { if (placeFiles.length > 0) setFilesExpanded(v => !v) }}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (placeFiles.length > 0) setFilesExpanded(v => !v) } }}
               >
                 <Paperclip size={14} strokeWidth={2} className="flex-none text-m-muted" />
                 <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold">

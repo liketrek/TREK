@@ -1291,7 +1291,7 @@ describe('PlaceInspector', () => {
 
   it('FE-PLANNER-INSPECTOR-093: participant chips and the add menu reset their hover styling', () => {
     render(<PlaceInspector {...defaultProps} {...participantProps([{ user_id: 1 }, { user_id: 2 }])} />);
-    const chip = screen.getByText('ada').closest('div') as HTMLElement;
+    const chip = screen.getByText('ada').closest('button') as HTMLElement;
     fireEvent.mouseEnter(chip);
     expect(chip.className).toContain('text-[#ef4444]');
     fireEvent.mouseLeave(chip);

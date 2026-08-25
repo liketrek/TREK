@@ -161,6 +161,10 @@ export default function VacayMonthCard({
             <div
               key={di}
               title={publicHoliday ? (publicHoliday.label ? `${publicHoliday.label}: ${publicHoliday.localName}` : publicHoliday.localName) : undefined}
+              // Stays a div: the cell is a grid item that stacks the segment,
+              // ring and marker overlays on top of itself.
+              role="button"
+              tabIndex={0}
               className="relative flex items-center justify-center transition-colors"
               style={{
                 height: 28,
@@ -170,6 +174,7 @@ export default function VacayMonthCard({
                 cursor: isBlocked ? 'default' : 'pointer',
               }}
               onClick={() => onCellClick(dateStr)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCellClick(dateStr) } }}
               onMouseEnter={e => {
                 if (!isBlocked && plain) e.currentTarget.style.background = 'var(--vg-surf2)'
                 if (hasEntries || sharedColors.length > 0 || schoolHolidayMarkers.length > 0) onCellHover?.(dateStr, e.currentTarget)

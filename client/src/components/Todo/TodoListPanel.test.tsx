@@ -132,24 +132,20 @@ describe('TodoListPanel', () => {
     const user = userEvent.setup();
     let putCalled = false;
     server.use(
-      http.put('/api/trips/1/todo/:id/toggle', () => {
+      http.put('/api/trips/1/todo/:id', () => {
         putCalled = true;
         return HttpResponse.json({ success: true });
       })
     );
     const items = [buildTodoItem({ id: 5, name: 'Toggle Me', checked: 0 })];
     render(<TodoListPanel tripId={1} items={items} />);
-    // Click the checkbox button (Square icon)
-    const checkboxes = screen.getAllByRole('button');
-    // Find the checkbox button near the item
-    const checkboxBtn = checkboxes.find(btn => {
-      const parent = btn.closest('[style*="cursor: pointer"]');
-      return parent && parent.textContent?.includes('Toggle Me');
-    });
-    if (checkboxBtn) {
-      await user.click(checkboxBtn);
-      await waitFor(() => expect(putCalled).toBe(true));
-    }
+    // The checkbox is the row's own <button>; the row around it is a button role.
+    const row = screen.getByText('Toggle Me').closest('[role="button"]') as HTMLElement;
+    const checkboxBtn = row.querySelector('button') as HTMLElement;
+
+    await user.click(checkboxBtn);
+
+    await waitFor(() => expect(putCalled).toBe(true));
   });
 
   it('FE-COMP-TODO-013: clicking a task row opens its detail pane', async () => {
@@ -180,7 +176,7 @@ describe('TodoListPanel', () => {
     expect(screen.getByText('JobTask')).toBeInTheDocument();
     expect(screen.getByText('HomeTask')).toBeInTheDocument();
     // Category buttons exist in sidebar (by accessible name or text)
-    const catBtn = screen.getByRole('button', { name: /JobCat/ });
+    const catBtn = sidebarButton(/JobCat/);
     expect(catBtn).toBeInTheDocument();
     // Clicking the category button should work without throwing
     await user.click(catBtn);
@@ -467,9 +463,19 @@ function pickOption(label: string | RegExp) {
  * The sidebar filters are an inline component, so every re-render (the members
  * fetch resolving, for one) swaps the button element. userEvent's async steps can
  * land on the detached node — fireEvent stays atomic.
+ *
+ * A task row is a button too (it is what selects the task), and its name is built
+ * from everything it shows, category chip included. So the sidebar entry is picked
+ * by being an actual <button>.
  */
+function sidebarButton(name: RegExp | string): HTMLElement {
+  const [button] = screen.getAllByRole('button', { name }).filter(el => el.tagName === 'BUTTON');
+  expect(button).toBeDefined();
+  return button;
+}
+
 function clickFilter(name: RegExp | string) {
-  fireEvent.click(screen.getByRole('button', { name }));
+  fireEvent.click(sidebarButton(name));
 }
 
 describe('TodoListPanel — sidebar', () => {

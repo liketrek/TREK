@@ -352,6 +352,7 @@ export function StudioElementsPanel({ page, t }: { page: BookPageSetup; t: (k: s
             <div className="st-grid-grid">
               {GRIDS.map(grid => (
                 <button
+                  type="button"
                   key={grid.id}
                   className="st-grid-btn"
                   onClick={() => {

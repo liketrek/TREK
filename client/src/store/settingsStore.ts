@@ -76,7 +76,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   isLoaded: false,
 
   loadSettings: async () => {
-    if (_loadInFlight) return _loadInFlight
+    if (_loadInFlight !== null) return _loadInFlight
     _loadInFlight = (async () => {
       try {
         const data = await settingsApi.get()

@@ -181,6 +181,7 @@ export default function MSheet({
     // backdrop-blur (the "liquid glass" frost). The sheet still slides via m-sheet-in.
     <div
       className={`m-root fixed inset-0 z-[60] ${dimTransparent ? 'bg-transparent' : `bg-[color:var(--m-dim)] ${open ? 'm-fade-in' : 'm-fade-out'}`}`}
+      role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}

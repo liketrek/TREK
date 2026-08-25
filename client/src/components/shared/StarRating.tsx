@@ -119,7 +119,7 @@ export default function PlaceRating({ ratings, ratingAvg, onRate, size = 16, com
               fontSize: 'calc(8px * var(--fs-scale-caption, 1))', fontWeight: 700,
               marginLeft: i ? -5 : 0, border: '1.5px solid var(--bg-elevated, #fff)',
             }}>
-              {r.avatar ? <img src={avatarSrc(r.avatar)!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : r.username?.[0]?.toUpperCase()}
+              {r.avatar ? <img src={avatarSrc(r.avatar)!} alt={r.username || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : r.username?.[0]?.toUpperCase()}
             </span>
           ))}
         </span>

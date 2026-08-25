@@ -496,8 +496,9 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
             <p className="text-xs text-slate-400 mt-1">{t('admin.oidcIssuerHint')}</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Discovery URL <span className="text-slate-400 font-normal">(optional)</span></label>
+            <label htmlFor="oidc-discovery-url" className="block text-sm font-medium text-slate-700 mb-1.5">Discovery URL <span className="text-slate-400 font-normal">(optional)</span></label>
             <input
+              id="oidc-discovery-url"
               type="url"
               value={oidcConfig.discovery_url}
               onChange={e => setOidcConfig(c => ({ ...c, discovery_url: e.target.value }))}
@@ -507,8 +508,9 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
             <p className="text-xs text-slate-400 mt-1">Override the auto-constructed discovery URL. Required for providers like Authentik where the endpoint is not at <code className="bg-slate-100 px-1 rounded">{'<issuer>/.well-known/openid-configuration'}</code>.</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Client ID</label>
+            <label htmlFor="oidc-client-id" className="block text-sm font-medium text-slate-700 mb-1.5">Client ID</label>
             <input
+              id="oidc-client-id"
               type="text"
               value={oidcConfig.client_id}
               onChange={e => setOidcConfig(c => ({ ...c, client_id: e.target.value }))}
@@ -516,8 +518,9 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Client Secret</label>
+            <label htmlFor="oidc-client-secret" className="block text-sm font-medium text-slate-700 mb-1.5">Client Secret</label>
             <input
+              id="oidc-client-secret"
               type="password"
               value={oidcConfig.client_secret}
               onChange={e => setOidcConfig(c => ({ ...c, client_secret: e.target.value }))}

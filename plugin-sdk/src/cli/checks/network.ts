@@ -57,7 +57,9 @@ function targetVersions(c: CheckContext): RegistryEntryVersion[] {
   return c.allVersions ? vs : vs.slice(0, 1);
 }
 
-async function fetchText(url: string, headers: Record<string, string> = { 'User-Agent': 'trek-plugin-preflight' }): Promise<string | null> {
+const PLAIN_HEADERS: Record<string, string> = { 'User-Agent': 'trek-plugin-preflight' };
+
+async function fetchText(url: string, headers: Record<string, string> = PLAIN_HEADERS): Promise<string | null> {
   try {
     const r = await fetch(url, { headers });
     return r.ok ? await r.text() : null;

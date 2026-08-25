@@ -198,7 +198,7 @@ export class NotificationsController {
   /** parseInt + the legacy "Invalid id" 400 guard, shared by the /:id handlers. */
   private parseId(idParam: string): number {
     const id = Number.parseInt(idParam);
-    if (isNaN(id)) {
+    if (Number.isNaN(id)) {
       throw new HttpException({ error: 'Invalid id' }, 400);
     }
     return id;

@@ -22,6 +22,16 @@ function setup(props: Partial<Parameters<typeof BudgetMemberChips>[0]> = {}) {
   return { onSetMembers, onTogglePaid, ...utils }
 }
 
+/**
+ * The member picker trigger. A chip that can be clicked is a real button too,
+ * so it is the icon that tells the trigger apart from the chips before it.
+ */
+function picker(): HTMLElement {
+  const trigger = screen.getAllByRole('button').find(b => b.querySelector('.lucide-pencil, .lucide-users'))
+  if (!trigger) throw new Error('no picker trigger rendered')
+  return trigger
+}
+
 describe('ChipWithTooltip', () => {
   it('FE-W4BMC-001: falls back to the uppercased initial', () => {
     const { container } = render(<ChipWithTooltip label="ada" avatarUrl={null} />)
@@ -76,7 +86,7 @@ describe('BudgetMemberChips', () => {
 
     expect(screen.getByText('A')).toBeInTheDocument()
     expect(screen.getByText('B')).toBeInTheDocument()
-    expect(screen.getByRole('button')).toBeInTheDocument()
+    expect(picker()).toBeInTheDocument()
   })
 
   it('FE-W4BMC-007: uses the people icon while nobody is assigned and the pencil afterwards', () => {
@@ -114,9 +124,9 @@ describe('BudgetMemberChips', () => {
 
   it('FE-W4BMC-011: the picker lists every trip member and marks the assigned ones', () => {
     setup()
-    fireEvent.click(screen.getByRole('button'))
+    fireEvent.click(picker())
 
-    const rows = screen.getAllByRole('button').slice(1)
+    const rows = screen.getAllByRole('button').slice(2)
     expect(rows).toHaveLength(2)
     expect(rows[0]).toHaveTextContent('ada')
     expect(rows[0].querySelector('.lucide-check')).not.toBeNull()
@@ -127,52 +137,52 @@ describe('BudgetMemberChips', () => {
 
   it('FE-W4BMC-012: picking an unassigned member adds them', () => {
     const { onSetMembers } = setup()
-    fireEvent.click(screen.getByRole('button'))
+    fireEvent.click(picker())
 
-    fireEvent.click(screen.getAllByRole('button')[2])
+    fireEvent.click(screen.getAllByRole('button')[3])
 
     expect(onSetMembers).toHaveBeenCalledWith([1, 2])
   })
 
   it('FE-W4BMC-013: picking an assigned member removes them', () => {
     const { onSetMembers } = setup()
-    fireEvent.click(screen.getByRole('button'))
+    fireEvent.click(picker())
 
-    fireEvent.click(screen.getAllByRole('button')[1])
+    fireEvent.click(screen.getAllByRole('button')[2])
 
     expect(onSetMembers).toHaveBeenCalledWith([])
   })
 
   it('FE-W4BMC-014: a mousedown outside closes the picker, inside keeps it', () => {
     setup()
-    const trigger = screen.getByRole('button')
+    const trigger = picker()
     fireEvent.click(trigger)
 
-    fireEvent.mouseDown(screen.getAllByRole('button')[1])
-    expect(screen.getAllByRole('button')).toHaveLength(3)
+    fireEvent.mouseDown(screen.getAllByRole('button')[2])
+    expect(screen.getAllByRole('button')).toHaveLength(4)
 
     fireEvent.mouseDown(trigger)
-    expect(screen.getAllByRole('button')).toHaveLength(3)
+    expect(screen.getAllByRole('button')).toHaveLength(4)
 
     fireEvent.mouseDown(document.body)
-    expect(screen.getAllByRole('button')).toHaveLength(1)
+    expect(screen.getAllByRole('button')).toHaveLength(2)
   })
 
   it('FE-W4BMC-015: the trigger toggles the picker closed again', () => {
     setup()
-    const trigger = screen.getByRole('button')
+    const trigger = picker()
 
     fireEvent.click(trigger)
-    expect(screen.getAllByRole('button')).toHaveLength(3)
+    expect(screen.getAllByRole('button')).toHaveLength(4)
 
     fireEvent.click(trigger)
-    expect(screen.getAllByRole('button')).toHaveLength(1)
+    expect(screen.getAllByRole('button')).toHaveLength(2)
   })
 
   it('FE-W4BMC-016: the non-compact variant renders larger chips', () => {
     setup({ compact: false })
 
     expect(screen.getByText('A')).toHaveStyle({ width: '30px' })
-    expect((screen.getByRole('button') as HTMLElement).style.width).toBe('28px')
+    expect(picker().style.width).toBe('28px')
   })
 })

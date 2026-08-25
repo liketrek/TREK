@@ -838,7 +838,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
               onValueChange={v => handleChange('lat', v)}
               onPaste={e => {
                 const text = e.clipboardData.getData('text').trim()
-                const match = text.match(/^(-?\d+\.?\d*)\s*[,;\s]\s*(-?\d+\.?\d*)$/)
+                const match = text.match(/^(-?\d+(?:\.\d*)?)(?:\s*[,;]\s*|\s+)(-?\d+(?:\.\d*)?)$/)
                 if (match) {
                   e.preventDefault()
                   handleChange('lat', match[1])
@@ -913,7 +913,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             context (itinerary edit, or a single-assignment pool edit). Hidden when
             creating, and for unassigned / multi-day pool edits where a single time
             is ambiguous and wouldn't persist. */}
-        {place && assignmentId && (
+        {!!(place && assignmentId) && (
           <TimeSection
             form={form}
             handleChange={handleChange}

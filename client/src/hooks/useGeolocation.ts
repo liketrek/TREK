@@ -56,8 +56,10 @@ export class GeoOnceError extends Error {
 // Unlike the watch below, a cached fix up to a minute old is fine here —
 // the user is standing where they're journaling — so maximumAge is
 // generous to make the button feel instant when the OS already has a fix.
+const ONCE_OPTIONS: PositionOptions = { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+
 export function getCurrentPositionOnce(
-  options: PositionOptions = { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 },
+  options: PositionOptions = ONCE_OPTIONS,
 ): Promise<GeoPosition> {
   return new Promise((resolve, reject) => {
     if (!('geolocation' in navigator)) {

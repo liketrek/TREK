@@ -59,7 +59,9 @@ export class WebauthnConfigService {
     const explicitRpId = (readEnv().webauthn.rpId || this.setting('webauthn_rp_id'))?.trim() || null;
     const explicitOrigins = (readEnv().webauthn.origins || this.setting('webauthn_origins') || '')
       .split(',')
-      .map((o) => o.trim().replace(/\/+$/, ''))
+      // The lookbehind matches only the first slash of the trailing run. Without it the
+      // engine retries from every slash, which is quadratic on a slash-heavy value.
+      .map((o) => o.trim().replace(/(?<!\/)\/+$/, ''))
       .filter(Boolean);
 
     const appUrl = getAppUrl();
@@ -77,7 +79,7 @@ export class WebauthnConfigService {
     //    silently union dev localhost origins into a production allow-list.
     let origins = explicitOrigins;
     if (origins.length === 0) {
-      if (appHost) origins = [appUrl.replace(/\/+$/, '')];
+      if (appHost) origins = [appUrl.replace(/(?<!\/)\/+$/, '')];
       if (rpID === 'localhost') {
         // Dev: the browser origin is the Vite dev server (:5173), not the API port.
         origins = Array.from(new Set([...origins, 'http://localhost:5173', 'http://localhost:3001']));

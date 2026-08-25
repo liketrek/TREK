@@ -136,9 +136,10 @@ export default function MBottomNav() {
     <>
       {moreOpen && (
         // Invisible scrim (the popover sits on the UI without dimming it).
-        <div className="fixed inset-0 z-[60]" onClick={() => setMoreOpen(false)}>
+        <div className="fixed inset-0 z-[60]" role="presentation" onClick={() => setMoreOpen(false)}>
           <div
             className="absolute left-4 right-4 flex flex-col gap-2 rounded-[26px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[10px] shadow-[0_-8px_40px_-14px_rgba(0,0,0,.45)] backdrop-blur-[30px] backdrop-saturate-[1.8] bottom-[calc(env(safe-area-inset-bottom,0px)+86px)]"
+            role="presentation"
             onClick={e => e.stopPropagation()}
           >
             {moreItems.map(({ to, label, icon: Icon }) => (

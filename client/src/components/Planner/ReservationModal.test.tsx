@@ -677,7 +677,8 @@ describe('ReservationModal', () => {
 
     // Click the X to unlink
     const fileRow = screen.getByText('receipt.pdf').closest('div')!;
-    const unlinkBtn = fileRow.querySelector('button[type="button"]')!;
+    // Two buttons per row: [0] opens the file, [1] is the unlink X.
+    const unlinkBtn = fileRow.querySelectorAll('button[type="button"]')[1];
     await userEvent.click(unlinkBtn);
 
     // File removed from attached list and "Link existing file" button reappears
@@ -1317,7 +1318,7 @@ describe('ReservationModal', () => {
 
     render(<ReservationModal {...defaultProps} reservation={res} files={[attached]} />);
     const row = screen.getByText('voucher.pdf').closest('div') as HTMLElement;
-    await userEvent.click(within(row).getByRole('button'));
+    await userEvent.click(within(row).getAllByRole('button')[1]);
 
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to update', 'error', undefined));
     delete window.__addToast;
@@ -1404,14 +1405,14 @@ describe('ReservationModal', () => {
     });
   });
 
-  it('FE-PLANNER-RESMODAL-086: the open-file link on an attached file does not throw', async () => {
+  it('FE-PLANNER-RESMODAL-086: the open-file button on an attached file does not throw', async () => {
     const res = buildReservation({ id: 16, type: 'other', title: 'Trip' });
     const attached = buildTripFile({ id: 80, original_name: 'ticket.pdf' });
     (attached as unknown as { reservation_id: number }).reservation_id = 16;
 
     render(<ReservationModal {...defaultProps} reservation={res} files={[attached]} />);
     const row = screen.getByText('ticket.pdf').closest('div') as HTMLElement;
-    await userEvent.click(within(row).getByRole('link'));
+    await userEvent.click(within(row).getAllByRole('button')[0]);
     // The download is best-effort; the row must survive a failed fetch.
     expect(screen.getByText('ticket.pdf')).toBeInTheDocument();
   });

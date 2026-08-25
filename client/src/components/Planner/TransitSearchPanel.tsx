@@ -539,9 +539,9 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
               )}
             </div>
             <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 9, padding: 3, width: isMobile ? '100%' : undefined }}>
-              <button onClick={() => setPref('best')} style={{ ...segBtn(pref === 'best'), flex: isMobile ? 1 : undefined }}>{t('transit.pref.best')}</button>
-              <button onClick={() => setPref('transfers')} style={{ ...segBtn(pref === 'transfers'), flex: isMobile ? 1 : undefined }}>{t('transit.pref.transfers')}</button>
-              <button onClick={() => setPref('walking')} style={{ ...segBtn(pref === 'walking'), flex: isMobile ? 1 : undefined }}>{t('transit.pref.walking')}</button>
+              <button type="button" onClick={() => setPref('best')} style={{ ...segBtn(pref === 'best'), flex: isMobile ? 1 : undefined }}>{t('transit.pref.best')}</button>
+              <button type="button" onClick={() => setPref('transfers')} style={{ ...segBtn(pref === 'transfers'), flex: isMobile ? 1 : undefined }}>{t('transit.pref.transfers')}</button>
+              <button type="button" onClick={() => setPref('walking')} style={{ ...segBtn(pref === 'walking'), flex: isMobile ? 1 : undefined }}>{t('transit.pref.walking')}</button>
             </div>
           </div>
 

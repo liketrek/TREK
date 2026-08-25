@@ -45,7 +45,10 @@ export default function VideoPlayer({
         ...style,
       }}
     >
-      <video ref={videoRef} src={src} poster={poster} playsInline controls preload="metadata" />
+      <video ref={videoRef} src={src} poster={poster} playsInline controls preload="metadata">
+        {/* Gallery uploads carry no caption file; the empty track keeps the element valid. */}
+        <track kind="captions" />
+      </video>
     </div>
   )
 }

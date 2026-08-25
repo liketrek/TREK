@@ -430,7 +430,7 @@ export async function getWeather(
 
   const inFlightKey = `${ck}:${lang}`;
   const existing = inFlight.get(inFlightKey);
-  if (existing) return existing;
+  if (existing !== undefined) return existing;
   const promise = _getWeatherImpl(lat, lng, date, lang, time);
   inFlight.set(inFlightKey, promise);
   try { return await promise; } finally { inFlight.delete(inFlightKey); }
@@ -601,7 +601,7 @@ export async function getDetailedWeather(
 
   const inFlightKey = `${ck}:${lang}`;
   const existing = inFlight.get(inFlightKey);
-  if (existing) return existing;
+  if (existing !== undefined) return existing;
   const promise = _getDetailedWeatherImpl(lat, lng, date, lang);
   inFlight.set(inFlightKey, promise);
   try { return await promise; } finally { inFlight.delete(inFlightKey); }

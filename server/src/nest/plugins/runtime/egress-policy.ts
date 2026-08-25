@@ -69,7 +69,10 @@ function embeddedTransitionIpv4(g: number[]): string | null {
 
 /** Expand an IPv6 literal into its 8 numeric hextets, or null if not a valid IPv6. */
 function expandV6(ip: string): number[] | null {
-  let h = ip.toLowerCase().replace(/%.*$/, '');
+  // Cut the zone id off (`fe80::1%eth0`): indexOf rather than a `%.*$` regex, whose
+  // greedy tail rescans the whole string once per `%` on a host that never matches.
+  const zone = ip.indexOf('%');
+  let h = (zone === -1 ? ip : ip.slice(0, zone)).toLowerCase();
   if (!h.includes(':')) return null;
   const dotted = h.match(/^(.*:)(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
   if (dotted) {
@@ -82,7 +85,7 @@ function expandV6(ip: string): number[] | null {
   const head = halves[0] ? halves[0].split(':') : [];
   const tail = halves.length === 2 && halves[1] ? halves[1].split(':') : [];
   const groups =
-    halves.length === 2 ? [...head, ...Array(8 - head.length - tail.length).fill('0'), ...tail] : head;
+    halves.length === 2 ? [...head, ...new Array(8 - head.length - tail.length).fill('0'), ...tail] : head;
   if (groups.length !== 8) return null;
   const nums = groups.map((x) => (x === '' ? Number.NaN : Number.parseInt(x, 16)));
   return nums.some((n) => !Number.isInteger(n) || n < 0 || n > 0xffff) ? null : nums;

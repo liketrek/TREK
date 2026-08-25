@@ -77,9 +77,9 @@ export default function ScopeGroupPicker({ selected, onChange }: Props): React.R
                         )}
                         className="mt-0.5 rounded flex-shrink-0"
                       />
-                      <div>
-                        <p className="text-xs font-medium text-content">{label}</p>
-                        <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{description}</p>
+                      <div className="text-xs font-medium text-content">
+                        {label}
+                        <p className="text-xs font-normal" style={{ color: 'var(--text-tertiary)' }}>{description}</p>
                       </div>
                     </label>
                   ))}

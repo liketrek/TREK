@@ -172,7 +172,7 @@ export function collectFacts(details: Record<string, unknown> | null): PlaceFact
 
   const cuisine = typeof details.cuisine === 'string' ? details.cuisine : null;
   // OSM writes several cuisines semicolon-separated and underscored.
-  if (cuisine) push('cuisine', cuisine.split(';').map((c) => c.replace(/_/g, ' ').trim()).filter(Boolean).join(', '));
+  if (cuisine) push('cuisine', cuisine.split(';').map((c) => c.replaceAll('_', ' ').trim()).filter(Boolean).join(', '));
 
   // `menu_url` is a community-editable OSM tag that becomes an href on the
   // client, so it goes through the same allow-list as a place's website —

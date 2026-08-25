@@ -328,8 +328,10 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
               <div className="mt-2 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 bg-zinc-50 dark:bg-zinc-800/50">
                 <div className="grid grid-cols-5 sm:grid-cols-6 gap-1.5 max-h-[160px] overflow-y-auto">
                   {availableGalleryPhotos.map(gp => (
-                    <div
+                    <button
+                      type="button"
                       key={gp.id}
+                      aria-label={t('journey.editor.fromGallery')}
                       onClick={async () => {
                         if (entry.id > 0) {
                           try {
@@ -341,11 +343,11 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
                           setPhotos(prev => [...prev, gp])
                         }
                       }}
-                      className="relative w-full rounded-xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-zinc-900 dark:hover:ring-white hover:ring-offset-1 dark:hover:ring-offset-zinc-900 transition-all"
+                      className="relative block w-full rounded-xl overflow-hidden border-0 p-0 bg-transparent cursor-pointer hover:ring-2 hover:ring-zinc-900 dark:hover:ring-white hover:ring-offset-1 dark:hover:ring-offset-zinc-900 transition-all"
                       style={{ paddingTop: '100%' }}
                     >
                       <img src={photoUrl(gp)} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { const img = e.currentTarget; const orig = photoUrl(gp, 'original'); if (!img.src.includes('/original')) img.src = orig }} />
-                    </div>
+                    </button>
                   ))}
                   {availableGalleryPhotos.length === 0 && (
                     <div className="col-span-full text-center py-3 text-[11px] text-zinc-400">{t('journey.editor.allPhotosAdded')}</div>
@@ -658,7 +660,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
               </div>
               {showLocationResults && locationResults.length > 0 && (
                 <>
-                  <div className="fixed inset-0 z-[99]" onClick={() => setShowLocationResults(false)} />
+                  <div role="presentation" className="fixed inset-0 z-[99]" onClick={() => setShowLocationResults(false)} />
                   <div className="absolute left-0 right-0 top-full mt-1 z-[100] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-lg overflow-hidden max-h-[240px] overflow-y-auto">
                     {locationResults.map((r, i) => (
                       <button type="button"

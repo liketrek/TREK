@@ -66,18 +66,24 @@ interface StatBoxProps {
 
 /** Small stat box (check-in / times / code): value 700 tabular over a faint Geist label. */
 export function StatBox({ value, label, blurred = false, onClick }: StatBoxProps) {
-  return (
-    <div
-      onClick={onClick}
-      className="min-w-0 flex-1 rounded-[10px] bg-[color:var(--m-ic)] px-[9px] py-[7px] text-center"
-    >
+  const box = 'min-w-0 flex-1 rounded-[10px] bg-[color:var(--m-ic)] px-[9px] py-[7px] text-center'
+  const inner = (
+    <>
       <div
         className={`truncate text-[0.8125rem] font-bold tabular-nums leading-tight ${blurred ? 'blur-[4px] select-none' : ''}`}
       >
         {value}
       </div>
       <div className="truncate font-geist text-[0.5625rem] text-m-faint">{label}</div>
-    </div>
+    </>
+  )
+  // A tappable stat is a real button — value and label give it its name. Without
+  // a handler it stays a plain box rather than an empty stop in the tab order.
+  if (!onClick) return <div className={box}>{inner}</div>
+  return (
+    <button type="button" onClick={onClick} className={`${box} block border-0`}>
+      {inner}
+    </button>
   )
 }
 

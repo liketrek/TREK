@@ -85,7 +85,7 @@ function escHtml(str) {
 // escHtml alone cannot stop a cover_image from closing the url() and appending its own
 // declaration. Percent-encoding is transparent to the fetch.
 function cssUrl(url) {
-  return String(url).replace(/["'()\\\s]/g, c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
+  return String(url).replace(/["'()\\\s]/g, c => '%' + c.codePointAt(0).toString(16).padStart(2, '0'))
 }
 
 function absUrl(url) {

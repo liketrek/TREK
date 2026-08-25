@@ -30,7 +30,8 @@ export function Swatches({ value, onPick }: { value: string; onPick: (c: string)
       ))}
       {/* Anything at all, for a book that has to match a cover or a brand. */}
       <label className="st-swatch st-swatch-custom">
-        <input type="color" value={value} onChange={e => onPick(e.target.value)} />
+        {/* Named by the colour it holds, the way the preset swatches above are. */}
+        <input type="color" aria-label={value} value={value} onChange={e => onPick(e.target.value)} />
       </label>
     </div>
   )

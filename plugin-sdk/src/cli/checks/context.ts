@@ -30,7 +30,7 @@ export function loadContext(
     try {
       // Tolerate a UTF-8 BOM. Windows editors add one, and a bare JSON.parse then fails with a
       // cryptic "Unexpected token" pointing at an invisible character. Same rule as readJsonFile.
-      const text = manifestRaw.charCodeAt(0) === 0xfeff ? manifestRaw.slice(1) : manifestRaw;
+      const text = manifestRaw.codePointAt(0) === 0xfeff ? manifestRaw.slice(1) : manifestRaw;
       const parsed: unknown = JSON.parse(text);
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
         manifestError = 'trek-plugin.json is not a JSON object';
@@ -56,10 +56,10 @@ export function loadContext(
 
 /** Convenience for tests and for callers that already hold the strings. */
 export function makeContext(over: Partial<CheckContext> & { dir?: string }): CheckContext {
-  const files = new Set<string>();
   return {
     dir: over.dir ?? '/plugin',
-    exists: (rel: string) => files.has(rel),
+    // Nothing is on disk here unless the caller passes its own `exists`.
+    exists: () => false,
     ...over,
   };
 }

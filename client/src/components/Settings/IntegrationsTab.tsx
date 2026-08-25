@@ -416,6 +416,7 @@ function IntegrationsMcpSection(props: any) {
                               ))}
                               {client.allowed_scopes.length > 5 && (
                                 <button
+                                  type="button"
                                   onClick={() => setOauthScopesExpanded(prev => ({ ...prev, [client.id]: !prev[client.id] }))}
                                   className="px-1.5 py-0.5 rounded text-xs transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 border border-edge"
                                   style={{ color: 'var(--text-tertiary)' }}>
@@ -549,7 +550,7 @@ function McpTokenModals(props: any) {
     <>
       {/* Create MCP Token modal */}
       {mcpModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
+        <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
           onClick={e => { if (e.target === e.currentTarget && !mcpCreatedToken) setMcpModalOpen(false) }}>
           <div className="rounded-xl shadow-xl w-full max-w-md p-6 space-y-4 bg-surface-card">
             {!mcpCreatedToken ? (
@@ -605,7 +606,7 @@ function McpTokenModals(props: any) {
 
       {/* Delete MCP Token confirm */}
       {mcpDeleteId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
+        <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
           onClick={e => { if (e.target === e.currentTarget) setMcpDeleteId(null) }}>
           <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4 bg-surface-card">
             <h3 className="text-base font-semibold text-content">{t('settings.mcp.deleteTokenTitle')}</h3>
@@ -636,7 +637,7 @@ function OAuthClientModals(props: any) {
     <>
       {/* Create OAuth Client modal */}
       {oauthCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
+        <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
           onClick={e => { if (e.target === e.currentTarget && !oauthCreatedClient) setOauthCreateOpen(false) }}>
           <div className="rounded-xl shadow-xl w-full max-w-lg p-6 space-y-4 overflow-y-auto max-h-[90vh] bg-surface-card">
             {!oauthCreatedClient ? (
@@ -670,12 +671,12 @@ function OAuthClientModals(props: any) {
                     autoFocus />
                 </div>
 
-                <label className="flex items-start gap-2.5 cursor-pointer">
-                  <input type="checkbox" checked={oauthIsMachine} onChange={e => setOauthIsMachine(e.target.checked)}
+                <label htmlFor="oauth-machine-client" className="flex items-start gap-2.5 cursor-pointer">
+                  <input id="oauth-machine-client" type="checkbox" checked={oauthIsMachine} onChange={e => setOauthIsMachine(e.target.checked)}
                     className="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-                  <div>
-                    <span className="text-sm font-medium text-content-secondary">{t('settings.oauth.modal.machineClient')}</span>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{t('settings.oauth.modal.machineClientHint')}</p>
+                  <div className="text-sm font-medium text-content-secondary">
+                    {t('settings.oauth.modal.machineClient')}
+                    <p className="text-xs mt-0.5 font-normal" style={{ color: 'var(--text-tertiary)' }}>{t('settings.oauth.modal.machineClientHint')}</p>
                   </div>
                 </label>
 
@@ -763,7 +764,7 @@ function OAuthClientModals(props: any) {
 
       {/* Delete OAuth Client confirm */}
       {oauthDeleteId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
+        <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
           onClick={e => { if (e.target === e.currentTarget) setOauthDeleteId(null) }}>
           <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4 bg-surface-card">
             <h3 className="text-base font-semibold text-content">{t('settings.oauth.deleteClient')}</h3>
@@ -784,7 +785,7 @@ function OAuthClientModals(props: any) {
 
       {/* Rotate OAuth Client Secret confirm */}
       {oauthRotateId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
+        <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
           onClick={e => { if (e.target === e.currentTarget) setOauthRotateId(null) }}>
           <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4 bg-surface-card">
             <h3 className="text-base font-semibold text-content">{t('settings.oauth.rotateSecret')}</h3>
@@ -836,7 +837,7 @@ function OAuthClientModals(props: any) {
 
       {/* Revoke OAuth Session confirm */}
       {oauthRevokeId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
+        <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
           onClick={e => { if (e.target === e.currentTarget) setOauthRevokeId(null) }}>
           <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4 bg-surface-card">
             <h3 className="text-base font-semibold text-content">{t('settings.oauth.revokeSession')}</h3>

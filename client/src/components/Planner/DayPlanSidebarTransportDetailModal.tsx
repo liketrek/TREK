@@ -30,8 +30,14 @@ export function DayPlanSidebarTransportDetailModal({
       position: 'fixed', inset: 0, zIndex: 1000,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       backdropFilter: 'blur(3px)',
-    }} onClick={() => setTransportDetail(null)}>
-      <div className="bg-surface-card" style={{
+    }}
+      role="button" tabIndex={0} aria-label={t('common.cancel')}
+      onClick={() => setTransportDetail(null)}
+      onKeyDown={e => {
+        if (e.target !== e.currentTarget) return
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setTransportDetail(null) }
+      }}>
+      <div className="bg-surface-card" role="presentation" style={{
         width: 380, maxHeight: '80vh', overflowY: 'auto',
         borderRadius: 16,
         boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
@@ -109,21 +115,29 @@ export function DayPlanSidebarTransportDetailModal({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   {detailFields.map((f, i) => {
                     const shouldBlur = f.sensitive && useSettingsStore.getState().settings.blur_booking_codes
+                    const valueStyle = {
+                      fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500, wordBreak: 'break-word',
+                      filter: shouldBlur ? 'blur(5px)' : 'none', transition: 'filter 0.2s',
+                      cursor: shouldBlur ? 'pointer' : 'default',
+                      userSelect: shouldBlur ? 'none' : 'auto',
+                    } as const
                     return (
                       <div key={i} className="bg-surface-tertiary" style={{ padding: '8px 10px', borderRadius: 8 }}>
                         <div className="text-content-faint" style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 3 }}>{f.label}</div>
-                        <div
-                          onMouseEnter={e => { if (shouldBlur) e.currentTarget.style.filter = 'none' }}
-                          onMouseLeave={e => { if (shouldBlur) e.currentTarget.style.filter = 'blur(5px)' }}
-                          onClick={e => { if (shouldBlur) { const el = e.currentTarget; el.style.filter = el.style.filter === 'none' ? 'blur(5px)' : 'none' } }}
-                          className="text-content"
-                          style={{
-                            fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500, wordBreak: 'break-word',
-                            filter: shouldBlur ? 'blur(5px)' : 'none', transition: 'filter 0.2s',
-                            cursor: shouldBlur ? 'pointer' : 'default',
-                            userSelect: shouldBlur ? 'none' : 'auto',
-                          }}
-                        >{f.value}</div>
+                        {/* A hidden booking code is a reveal toggle, so it has to be a real
+                            button; a plain value stays inert text and out of the tab order. */}
+                        {shouldBlur ? (
+                          <button
+                            type="button"
+                            onMouseEnter={e => { e.currentTarget.style.filter = 'none' }}
+                            onMouseLeave={e => { e.currentTarget.style.filter = 'blur(5px)' }}
+                            onClick={e => { const el = e.currentTarget; el.style.filter = el.style.filter === 'none' ? 'blur(5px)' : 'none' }}
+                            className="text-content"
+                            style={{ ...valueStyle, display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: 0, fontFamily: 'inherit' }}
+                          >{f.value}</button>
+                        ) : (
+                          <div className="text-content" style={valueStyle}>{f.value}</div>
+                        )}
                       </div>
                     )
                   })}
@@ -215,12 +229,13 @@ export function DayPlanSidebarTransportDetailModal({
                     <div className="text-content-faint" style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 6 }}>{t('files.title')}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       {resFiles.map(f => (
-                        <div key={f.id}
+                        <button key={f.id}
+                          type="button"
                           onClick={() => { setTransportDetail(null); onNavigateToFiles?.() }}
                           className="bg-surface-tertiary"
                           style={{
                             display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
-                            borderRadius: 8, cursor: 'pointer',
+                            borderRadius: 8, cursor: 'pointer', border: 'none', textAlign: 'left', fontFamily: 'inherit',
                             transition: 'background 0.1s',
                           }}
                           onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
@@ -231,7 +246,7 @@ export function DayPlanSidebarTransportDetailModal({
                             {f.original_name}
                           </span>
                           <ExternalLink size={11} className="text-content-faint" style={{ flexShrink: 0 }} />
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>

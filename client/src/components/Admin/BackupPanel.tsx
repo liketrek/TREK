@@ -318,9 +318,9 @@ export default function BackupPanel() {
         <div className="flex flex-col gap-5">
           {/* Enable toggle */}
           <label className="flex items-center justify-between gap-4 cursor-pointer">
-            <div className="min-w-0">
-              <span className="text-sm font-medium text-gray-900">{t('backup.auto.enable')}</span>
-              <p className="text-xs text-gray-500 mt-0.5">{t('backup.auto.enableHint')}</p>
+            <div className="min-w-0 text-sm font-medium text-gray-900">
+              {t('backup.auto.enable')}
+              <p className="text-xs font-normal text-gray-500 mt-0.5">{t('backup.auto.enableHint')}</p>
             </div>
             <button type="button"
               onClick={() => handleAutoSettingsChange('enabled', !autoSettings.enabled)}
@@ -458,11 +458,15 @@ export default function BackupPanel() {
       {/* Restore Warning Modal */}
       {restoreConfirm && (
         <div
+          // Dismiss-on-backdrop is a mouse shortcut for the Cancel button below;
+          // the backdrop itself carries no semantics of its own.
+          role="presentation"
           className="bg-[rgba(0,0,0,0.5)]"
           style={{ position: 'fixed', inset: 0, zIndex: 9999, backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
           onClick={() => setRestoreConfirm(null)}
         >
           <div
+            role="presentation"
             onClick={e => e.stopPropagation()}
             style={{ width: '100%', maxWidth: 440, borderRadius: 16, overflow: 'hidden' }}
             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"

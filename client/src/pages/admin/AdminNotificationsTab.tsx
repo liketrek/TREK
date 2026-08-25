@@ -101,7 +101,7 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
               <span className="text-xs font-medium text-slate-500">Skip TLS certificate check</span>
               <p className="text-[10px] text-slate-400 mt-0.5">Enable for self-signed certificates on local mail servers</p>
             </div>
-            <button onClick={() => {
+            <button type="button" onClick={() => {
               const newVal = smtpValues.smtp_skip_tls_verify === 'true' ? 'false' : 'true'
               setSmtpValues(prev => ({ ...prev, smtp_skip_tls_verify: newVal }))
             }}
@@ -193,7 +193,7 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
             <h2 className="font-semibold text-slate-900">{t('admin.notifications.tripReminders.title')}</h2>
             <p className="text-xs text-slate-400 mt-1">{t('admin.notifications.tripReminders.hint')}</p>
           </div>
-          <button
+          <button type="button"
             onClick={async () => {
               const next = !tripRemindersActive
               setSmtpValues(prev => ({ ...prev, notify_trip_reminder: next ? 'true' : 'false' }))
@@ -312,7 +312,7 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
                     className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
                   />
                   {smtpValues.admin_ntfy_token === '••••••••' && (
-                    <button
+                    <button type="button"
                       onClick={async () => {
                         try {
                           await authApi.updateAppSettings({ admin_ntfy_token: '' })

@@ -102,7 +102,7 @@ export default function MSettingsMap() {
         route_geometry: null,
         place_time: null,
         end_time: null,
-        created_at: Date(),
+        created_at: String(new Date()),
       },
     ],
     [],

@@ -76,7 +76,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
 
     const signature = `${userId}|${req.method}|${req.path}|${key}`;
     const pending = inFlight.get(signature);
-    if (pending) {
+    if (pending !== undefined) {
       return from(pending).pipe(
         switchMap(() => {
           const stored = this.lookup(key, userId, req);

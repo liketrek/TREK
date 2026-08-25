@@ -15,7 +15,7 @@ export default function RingAvatar({ userId, username, avatarUrl, size = 34, inn
         overflow: 'hidden',
         fontSize: size < 28 ? 10 : 12, fontWeight: 600, color: textColor,
       }}>
-        {avatarUrl ? <img src={avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : username?.[0]?.toUpperCase()}
+        {avatarUrl ? <img src={avatarUrl} alt={username || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : username?.[0]?.toUpperCase()}
       </div>
     </div>
   )

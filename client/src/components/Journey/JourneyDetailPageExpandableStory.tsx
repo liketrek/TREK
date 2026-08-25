@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, type HTMLAttributes } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import JournalBody from './JournalBody'
@@ -23,11 +23,24 @@ export function ExpandableStory({ story }: { story: string }) {
     }
   })
 
+  // The text block toggles the same clamp as the Show more / Show less buttons
+  // below it. It only takes focus while there is something to toggle, so a
+  // short story stays plain text instead of an empty stop in the tab order.
+  const toggle: HTMLAttributes<HTMLDivElement> = clamped || expanded
+    ? {
+        role: 'button',
+        tabIndex: 0,
+        'aria-expanded': expanded,
+        onClick: () => setExpanded(e => !e),
+        onKeyDown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(v => !v) } },
+      }
+    : {}
+
   return (
     <div>
       <div
         ref={ref}
-        onClick={() => { if (clamped || expanded) setExpanded(e => !e) }}
+        {...toggle}
         className={`text-[13px] text-zinc-700 dark:text-zinc-300 leading-relaxed ${
           expanded ? '' : 'line-clamp-3 md:line-clamp-[9]'
         } ${clamped || expanded ? 'cursor-pointer' : ''}`}

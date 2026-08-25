@@ -23,7 +23,7 @@ function Avatar({ username, avatarUrl, size = 32 }: AvatarProps) {
   }
   const letter = (username || '?')[0].toUpperCase()
   const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444', '#06b6d4']
-  const color = colors[letter.charCodeAt(0) % colors.length]
+  const color = colors[(letter.codePointAt(0) ?? 0) % colors.length]
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%', background: color,

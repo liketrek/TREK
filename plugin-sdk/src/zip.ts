@@ -58,7 +58,7 @@ export function makeZip(files: ZipInput[]): Buffer {
   let offset = 0;
 
   for (const f of files) {
-    const nameBuf = Buffer.from(f.name.replace(/\\/g, '/'), 'utf8');
+    const nameBuf = Buffer.from(f.name.replaceAll(/\\/g, '/'), 'utf8');
     const crc = crc32(f.data);
     // Deflate; fall back to stored if that somehow grows the data.
     const deflated = zlib.deflateRawSync(f.data, { level: 9 });

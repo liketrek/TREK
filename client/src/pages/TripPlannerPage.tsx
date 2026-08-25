@@ -502,6 +502,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 />
                 {!leftCollapsed && (
                   <div
+                    role="presentation"
                     onMouseDown={startResizeLeft}
                     style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 4, cursor: 'col-resize', background: 'transparent' }}
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.08)'}
@@ -539,6 +540,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
               }}>
                 {!rightCollapsed && (
                   <div
+                    role="presentation"
                     onMouseDown={startResizeRight}
                     style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, cursor: 'col-resize', background: 'transparent' }}
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.08)'}
@@ -653,8 +655,8 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
             )}
 
             {selectedPlace && isMobile && createPortal(
-              <div className="bg-[rgba(0,0,0,0.3)]" style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 'var(--bottom-nav-h)' }} onClick={() => setSelectedPlaceId(null)}>
-                <div style={{ width: '100%', maxHeight: '85vh' }} onClick={e => e.stopPropagation()}>
+              <div className="bg-[rgba(0,0,0,0.3)]" style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 'var(--bottom-nav-h)' }} role="presentation" onClick={() => setSelectedPlaceId(null)}>
+                <div style={{ width: '100%', maxHeight: '85vh' }} role="presentation" onClick={e => e.stopPropagation()}>
                   <PlaceInspector
                     onEditTransport={openLinkedTransport}
                     onEditReservation={openLinkedReservation}
@@ -698,8 +700,8 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
             )}
 
             {mobileSidebarOpen && createPortal(
-              <div className="bg-[rgba(0,0,0,0.3)]" style={{ position: 'fixed', inset: 0, zIndex: 9999 }} onClick={() => setMobileSidebarOpen(null)}>
-                <div className="bg-surface-card" style={{ position: 'absolute', top: 'var(--nav-h)', left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+              <div className="bg-[rgba(0,0,0,0.3)]" style={{ position: 'fixed', inset: 0, zIndex: 9999 }} role="presentation" onClick={() => setMobileSidebarOpen(null)}>
+                <div className="bg-surface-card" style={{ position: 'absolute', top: 'var(--nav-h)', left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }} role="presentation" onClick={e => e.stopPropagation()}>
                   <div className="border-b border-edge-secondary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px' }}>
                     <span className="text-content" style={{ fontWeight: 600, fontSize: 'calc(14px * var(--fs-scale-body, 1))' }}>{mobileSidebarOpen === 'left' ? t('trip.mobilePlan') : t('trip.mobilePlaces')}</span>
                     <button type="button" onClick={() => setMobileSidebarOpen(null)} className="bg-surface-tertiary text-content" style={{ border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

@@ -99,6 +99,6 @@ async function readCapped(resp: Response, maxBytes: number): Promise<Buffer> {
 export function sha256Matches(actual: string, expected: string): boolean {
   if (actual.length !== expected.length) return false;
   let diff = 0;
-  for (let i = 0; i < actual.length; i++) diff |= actual.charCodeAt(i) ^ expected.charCodeAt(i);
+  for (let i = 0; i < actual.length; i++) diff |= (actual.codePointAt(i) ?? 0) ^ (expected.codePointAt(i) ?? 0);
   return diff === 0;
 }

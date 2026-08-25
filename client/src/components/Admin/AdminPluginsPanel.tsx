@@ -799,7 +799,7 @@ export default function AdminPluginsPanel() {
         </div>
       )}
       {/* Click-away layer for any open dropdown (filters or a row's ⋯ menu). */}
-      {menu && <div className="fixed inset-0 z-20" onClick={() => setMenu(null)} />}
+      {menu && <div role="presentation" className="fixed inset-0 z-20" onClick={() => setMenu(null)} />}
       {/* Header */}
       <div className="px-4 sm:px-6 pt-5">
         <div className="flex items-start justify-between gap-4">
@@ -972,8 +972,8 @@ export default function AdminPluginsPanel() {
 
       {/* Error-log modal */}
       {errorsFor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setErrorsFor(null)}>
-          <div className="bg-surface-card border border-edge rounded-2xl w-full max-w-2xl max-h-[70vh] flex flex-col shadow-modal" onClick={e => e.stopPropagation()}>
+        <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setErrorsFor(null)}>
+          <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-2xl max-h-[70vh] flex flex-col shadow-modal" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-3.5 border-b border-edge-secondary flex items-center justify-between">
               <span className="text-sm font-semibold text-content flex items-center gap-2"><Bug size={15} /> {errorsFor.id} — {t('admin.plugins.errorLog')}</span>
               <button type="button" onClick={() => setErrorsFor(null)} className="text-content-faint hover:text-content"><X size={16} /></button>
@@ -994,8 +994,8 @@ export default function AdminPluginsPanel() {
 
       {/* Operator-supplied egress hosts */}
       {egressFor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setEgressFor(null)}>
-          <div className="bg-surface-card border border-edge rounded-2xl w-full max-w-lg shadow-modal" onClick={e => e.stopPropagation()}>
+        <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setEgressFor(null)}>
+          <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-lg shadow-modal" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-3.5 border-b border-edge-secondary flex items-center justify-between">
               <span className="text-sm font-semibold text-content flex items-center gap-2"><Globe size={15} /> {egressFor.id} — {t('admin.plugins.allowedHosts')}</span>
               <button type="button" onClick={() => setEgressFor(null)} className="text-content-faint hover:text-content"><X size={16} /></button>
@@ -1508,8 +1508,8 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
   const offer = installOffer(detail ?? item, t)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="bg-surface-card border border-edge rounded-2xl w-full max-w-xl max-h-[88vh] overflow-auto shadow-modal" onClick={e => e.stopPropagation()}>
+    <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-xl max-h-[88vh] overflow-auto shadow-modal" onClick={e => e.stopPropagation()}>
         <div className="relative">
           <Screenshot url={item.screenshotUrl} className="w-full aspect-[16/9]" iconSize={36} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
@@ -1610,7 +1610,7 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
             <h4 className="text-[11px] font-semibold uppercase tracking-wider text-content-muted">{t('admin.plugins.detailsTitle')}</h4>
             <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-2.5">
               {item.latest && <Meta k={t('admin.plugins.metaVersion')} v={`v${item.latest}`} />}
-              {sizeKb && <Meta k={t('admin.plugins.metaSize')} v={`${sizeKb} KB`} />}
+              {sizeKb !== null && <Meta k={t('admin.plugins.metaSize')} v={`${sizeKb} KB`} />}
               {/* The range, not just its lower bound: "TREK 3.2.0+" reads as "and anything
                   newer", which is exactly the claim a `<4.0.0` upper bound denies. */}
               {(item.trek || item.minTrekVersion) && (
@@ -1760,8 +1760,8 @@ function SignatureBlockDialog({ data, entry, busy, t, onRetrust, onClose }: {
     : 'admin.plugins.sig.invalidBody'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="bg-surface-card border border-edge rounded-2xl w-full max-w-md shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
+    <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-md shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="px-5 py-4 border-b border-edge-secondary flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-warning-soft grid place-items-center shrink-0"><ShieldAlert size={18} className="text-warning" /></div>
           <div>
@@ -1824,8 +1824,8 @@ function UpdateConsentDialog({ data, unsigned, t, onApprove, onLater }: {
   t: T; onApprove: () => void; onLater: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onLater}>
-      <div className="bg-surface-card border border-edge rounded-2xl w-full max-w-md shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
+    <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onLater}>
+      <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-md shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="px-5 py-4 border-b border-edge-secondary flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-warning-soft grid place-items-center shrink-0"><ShieldCheck size={18} className="text-warning" /></div>
           <div>
@@ -1884,8 +1884,8 @@ function DependencyResolveDialog({ data, t, busy, installedIds, onDownload, onCl
     ...data.versionMismatch.map(d => ({ id: d.id, constraint: d.wanted, installed: d.installed })),
   ]
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="bg-surface-card border border-edge rounded-2xl w-full max-w-md shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
+    <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-md shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="px-5 py-4 border-b border-edge-secondary flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-warning-soft grid place-items-center shrink-0"><Puzzle size={18} className="text-warning" /></div>
           <div>

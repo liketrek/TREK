@@ -100,12 +100,12 @@ export class TripsMcp {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (start_date) {
       const d = new Date(start_date + 'T00:00:00Z');
-      if (isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== start_date)
+      if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== start_date)
         return { content: [{ type: 'text' as const, text: 'start_date is not a valid calendar date.' }], isError: true };
     }
     if (end_date) {
       const d = new Date(end_date + 'T00:00:00Z');
-      if (isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== end_date)
+      if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== end_date)
         return { content: [{ type: 'text' as const, text: 'end_date is not a valid calendar date.' }], isError: true };
     }
     if (start_date && end_date && new Date(end_date) < new Date(start_date)) {
@@ -145,12 +145,12 @@ export class TripsMcp {
     if (!this.guards.hasTripPermission('trip_edit', tripId, ctx.userId)) return permissionDenied();
     if (start_date) {
       const d = new Date(start_date + 'T00:00:00Z');
-      if (isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== start_date)
+      if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== start_date)
         return { content: [{ type: 'text' as const, text: 'start_date is not a valid calendar date.' }], isError: true };
     }
     if (end_date) {
       const d = new Date(end_date + 'T00:00:00Z');
-      if (isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== end_date)
+      if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== end_date)
         return { content: [{ type: 'text' as const, text: 'end_date is not a valid calendar date.' }], isError: true };
     }
     // update() re-anchors the budget before the trip row moves off the old

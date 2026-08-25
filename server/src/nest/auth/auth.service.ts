@@ -855,8 +855,10 @@ export class AuthService {
   requestPasswordReset(rawEmail: string, createdIp: string | null): PasswordResetRequestOutcome {
     const email = String(rawEmail || '').trim().toLowerCase();
     // Basic shape check — a fully empty / malformed email is treated like
-    // "no user" so we still spend the same time internally.
-    const looksLikeEmail = email.length > 0 && /.+@.+\..+/.test(email);
+    // "no user" so we still spend the same time internally. Same "x@y.z somewhere
+    // on one line" test as the old /.+@.+\..+/, but anchored per line and pinned to
+    // the first usable '@' and '.', so a body full of '@' can no longer stall it.
+    const looksLikeEmail = email.length > 0 && /^.[^@\r\n\u2028\u2029]*@.[^.\r\n\u2028\u2029]*\../m.test(email);
 
     // Global policy check: password login disabled → no reset possible.
     const toggles = this.resolveAuthToggles();

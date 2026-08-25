@@ -183,7 +183,7 @@ export function formatTime(timeStr: string | null | undefined, locale: string, t
     const parts = (parseMeridiemTime(timeStr) ?? timeStr).split(':')
     const h = Number(parts[0]) || 0
     const m = Number(parts[1]) || 0
-    if (isNaN(h)) return timeStr
+    if (Number.isNaN(h)) return timeStr
     if (timeFormat === '12h') return to12h(h, m)
     const str = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
     return locale?.startsWith('de') ? `${str} Uhr` : str
@@ -200,7 +200,7 @@ export function formatClockTime(value: string | null | undefined, is12h: boolean
   if (!value) return ''
   const norm = parseMeridiemTime(value) ?? value
   const [h, m] = norm.split(':').map(Number)
-  if (isNaN(h) || isNaN(m)) return value
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return value
   return is12h ? to12h(h, m) : norm
 }
 

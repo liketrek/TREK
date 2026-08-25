@@ -41,7 +41,7 @@ export function ReleaseNoticeModal({ notice, visible, onDismiss, onCTA, onSecond
       className="rn-overlay"
       role="presentation"
       style={{ opacity: visible ? 1 : 0, transition: 'opacity 260ms ease' }}
-      onClick={notice.dismissible ? onDismiss : undefined}
+      onClick={notice.dismissible ? e => { if (e.target === e.currentTarget) onDismiss() } : undefined}
     >
       <div
         role="dialog"
@@ -49,7 +49,6 @@ export function ReleaseNoticeModal({ notice, visible, onDismiss, onCTA, onSecond
         aria-labelledby={titleId}
         aria-describedby={bodyId}
         className="rn-panel"
-        onClick={e => e.stopPropagation()}
       >
         {/* ── Left: the release ─────────────────────────────────────────── */}
         <div className="rn-release">

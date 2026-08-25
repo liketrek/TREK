@@ -9,10 +9,12 @@ export function MobileDayPickerSheet(S: SidebarState) {
   } = S
   return createPortal(
     <div
+      role="presentation"
       onClick={() => { setDayPickerPlace(null); setMobileShowDays(false) }}
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
     >
       <div
+        role="presentation"
         onClick={e => e.stopPropagation()}
         className="bg-surface-card"
         style={{ borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 500, maxHeight: '70vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingBottom: 'var(--bottom-nav-h)' }}

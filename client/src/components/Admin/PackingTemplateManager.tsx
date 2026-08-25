@@ -197,7 +197,7 @@ export default function PackingTemplateManager() {
                     onKeyDown={e => { if (e.key === 'Enter') handleRenameTemplate(tmpl.id); if (e.key === 'Escape') setEditingTemplate(null) }}
                     className="flex-1 px-2 py-0.5 border border-slate-300 rounded text-sm" />
                 ) : (
-                  <span onClick={() => toggleExpand(tmpl.id)} className="flex-1 text-sm font-medium text-slate-700 cursor-pointer">{tmpl.name}</span>
+                  <button type="button" onClick={() => toggleExpand(tmpl.id)} className="flex-1 text-left bg-transparent border-0 p-0 text-sm font-medium text-slate-700 cursor-pointer">{tmpl.name}</button>
                 )}
                 <span className="text-xs text-slate-400 px-2 py-0.5 bg-slate-100 rounded-full">
                   {tmpl.category_count} {t('admin.packingTemplates.categories')} · {tmpl.item_count} {t('admin.packingTemplates.items')}

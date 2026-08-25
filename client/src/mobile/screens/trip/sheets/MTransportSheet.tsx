@@ -218,12 +218,13 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
             {confirmed ? t('reservations.confirmed') : t('reservations.pending')}
           </span>
           {res.confirmation_number && (
-            <span
+            <button
+              type="button"
               onClick={() => { if (blurCodes) setCodeRevealed(v => !v) }}
               className={`flex-none font-geist text-[0.71875rem] tabular-nums text-m-muted ${codeBlurred ? 'blur-[4px] select-none' : ''}`}
             >
               #{res.confirmation_number}
-            </span>
+            </button>
           )}
         </div>
 
@@ -235,12 +236,13 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
                 <span className="min-w-0 flex-1 truncate text-[0.71875rem] font-medium">
                   {[leg.from, leg.to].filter(Boolean).join(' → ') || t('reservations.confirmationCode')}
                 </span>
-                <span
+                <button
+                  type="button"
                   onClick={() => { if (blurCodes) setCodeRevealed(v => !v) }}
                   className={`flex-none font-geist text-[0.71875rem] tabular-nums text-m-muted ${codeBlurred ? 'blur-[4px] select-none' : ''}`}
                 >
                   #{leg.confirmation_number}
-                </span>
+                </button>
               </div>
             ))}
           </div>

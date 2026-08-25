@@ -20,7 +20,7 @@ export function PackingViewTabs(S: PackingState) {
   const viewPill = (id: 'common' | 'personal', icon: React.ReactNode, label: string, count: number) => {
     const active = view === id
     return (
-      <button onClick={() => setView(id)} style={{
+      <button type="button" onClick={() => setView(id)} style={{
         ...pillBase,
         background: active ? 'var(--text-primary)' : 'transparent',
         borderColor: active ? 'var(--text-primary)' : 'var(--border-primary)',
@@ -39,7 +39,7 @@ export function PackingViewTabs(S: PackingState) {
   const filterPill = (id: string, label: string) => {
     const active = filter === id
     return (
-      <button key={id} onClick={() => setFilter(id)} style={{
+      <button type="button" key={id} onClick={() => setFilter(id)} style={{
         ...pillBase, gap: 0, border: '1px solid transparent', fontWeight: active ? 600 : 400,
         background: active ? 'var(--text-primary)' : 'transparent',
         color: active ? 'var(--bg-primary)' : 'var(--text-muted)',

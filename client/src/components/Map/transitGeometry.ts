@@ -27,7 +27,7 @@ export function decodePolyline(encoded: string, precision = 6): [number, number]
       let byte = 0x20
       while (byte >= 0x20) {
         if (index >= encoded.length) return coords
-        byte = encoded.charCodeAt(index++) - 63
+        byte = encoded.codePointAt(index++) - 63
         result |= (byte & 0x1f) << shift
         shift += 5
       }

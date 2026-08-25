@@ -32,7 +32,7 @@ import type { MobileDashToken } from '@trek/shared'
 function fullDate(dateStr: string | null | undefined, locale: string): string | null {
   if (!dateStr) return null
   const date = new Date(dateStr + 'T00:00:00Z')
-  if (isNaN(date.getTime())) return null
+  if (Number.isNaN(date.getTime())) return null
   const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', timeZone: 'UTC' }
   if (date.getUTCFullYear() !== new Date().getUTCFullYear()) opts.year = 'numeric'
   return date.toLocaleDateString(locale, opts)

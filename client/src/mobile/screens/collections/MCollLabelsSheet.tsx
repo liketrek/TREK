@@ -152,7 +152,14 @@ export default function MCollLabelsSheet({
                   className={`mb-1 flex items-center gap-[10px] rounded-[13px] px-3 py-[10px] ${editingId === label.id || on ? 'bg-[color:var(--m-ic)]' : ''}`}
                   style={on ? { boxShadow: `inset 0 0 0 1.5px ${col}` } : undefined}
                   onClick={mode === 'assign' ? () => toggleChecked(label.id) : undefined}
+                  onKeyDown={mode === 'assign'
+                    ? (e) => {
+                      if (e.target !== e.currentTarget) return
+                      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleChecked(label.id) }
+                    }
+                    : undefined}
                   role={mode === 'assign' ? 'checkbox' : undefined}
+                  tabIndex={mode === 'assign' ? 0 : undefined}
                   aria-checked={mode === 'assign' ? on : undefined}
                 >
                   <span className="h-[9px] w-[9px] flex-none rounded-full" style={{ background: col }} />

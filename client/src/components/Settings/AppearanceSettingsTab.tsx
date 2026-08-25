@@ -139,7 +139,7 @@ export default function AppearanceSettingsTab(): React.ReactElement {
 
   const accentLight = cfg.accent?.light ?? '#4f46e5'
   const accentDark = cfg.accent?.dark ?? '#6366f1'
-  const customRatio = contrastRatio(isDark ? accentDark : accentLight, isDark ? '#ffffff' : '#ffffff')
+  const customRatio = contrastRatio(isDark ? accentDark : accentLight, '#ffffff')
 
   return (
     <>

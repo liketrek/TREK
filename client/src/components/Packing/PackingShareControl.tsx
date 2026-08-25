@@ -80,7 +80,7 @@ export default function PackingShareControl({ item, tripMembers, currentUserId, 
       </button>
       {open && pos && createPortal(
         <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1099 }} onClick={() => setOpen(false)} />
+          <div role="presentation" style={{ position: 'fixed', inset: 0, zIndex: 1099 }} onClick={() => setOpen(false)} />
           <div style={{
             position: 'fixed', top: pos.top, right: pos.right, zIndex: 1100,
             background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,
@@ -101,7 +101,7 @@ export default function PackingShareControl({ item, tripMembers, currentUserId, 
                   style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', background: 'none', fontFamily: 'inherit', fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-primary)' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                  <span style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, background: `hsl(${m.username.charCodeAt(0) * 37 % 360}, 55%, 55%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'white', textTransform: 'uppercase' }}>{m.username[0]}</span>
+                  <span style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, background: `hsl(${(m.username.codePointAt(0) ?? 0) * 37 % 360}, 55%, 55%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'white', textTransform: 'uppercase' }}>{m.username[0]}</span>
                   <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.username}</span>
                   {on && <Check size={13} className="text-content-muted" />}
                 </button>

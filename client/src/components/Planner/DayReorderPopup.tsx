@@ -123,6 +123,7 @@ export function DayReorderPopup({ isOpen, days, t, locale, onReorder, onAddDay, 
               {label(day, index)}
             </span>
             <button
+              type="button"
               onClick={() => move(index, index - 1)}
               disabled={index === 0}
               aria-label={t('dayplan.moveUp')}
@@ -131,6 +132,7 @@ export function DayReorderPopup({ isOpen, days, t, locale, onReorder, onAddDay, 
               <ArrowUp size={14} strokeWidth={2} />
             </button>
             <button
+              type="button"
               onClick={() => move(index, index + 1)}
               disabled={index === ordered.length - 1}
               aria-label={t('dayplan.moveDown')}

@@ -99,10 +99,11 @@ export default function HelpPage() {
 
       {/* Mobile sidebar drawer */}
       {navOpen && (
-        <div className="lg:hidden fixed inset-0 z-[120]" onClick={() => setNavOpen(false)}>
+        <div className="lg:hidden fixed inset-0 z-[120]" role="presentation" onClick={() => setNavOpen(false)}>
           <div className="absolute inset-0 bg-black/40" />
           <div
             className="absolute left-0 top-0 bottom-0 w-[280px] bg-surface-card p-5 overflow-y-auto shadow-xl"
+            role="presentation"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">

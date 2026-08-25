@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useTripStore } from '../../store/tripStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
@@ -94,6 +94,17 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
   const canDrag = canEdit && !isPlaceholder && !!drag
   const selectedBag = bags.find(b => b.id === item.bag_id)
 
+  // Shared by both shells of the name: a renameable name is a real button so
+  // the rename can be reached with the keyboard, everything else is plain text.
+  const nameStyle: CSSProperties = {
+    flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+    fontSize: 'calc(13.5px * var(--fs-scale-body, 1))',
+    cursor: !canEdit || item.checked ? 'default' : 'text',
+    color: isPlaceholder ? 'var(--text-faint)' : (item.checked ? 'var(--text-faint)' : 'var(--text-primary)'),
+    transition: 'color 200ms cubic-bezier(0.23,1,0.32,1)',
+    textDecoration: item.checked ? 'line-through' : 'none',
+  }
+
   return (
     <div
       className="group packing-item-row"
@@ -151,18 +162,16 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
           onKeyDown={e => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') { setEditing(false); setEditName(isPlaceholder ? '' : item.name) } }}
           style={{ flex: 1, minWidth: 0, fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', padding: '2px 8px', borderRadius: 6, border: '1px solid var(--border-primary)', outline: 'none', fontFamily: 'inherit' }}
         />
-      ) : (
-        <span
-          onClick={() => canEdit && !item.checked && setEditing(true)}
-          style={{
-            flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            fontSize: 'calc(13.5px * var(--fs-scale-body, 1))',
-            cursor: !canEdit || item.checked ? 'default' : 'text',
-            color: isPlaceholder ? 'var(--text-faint)' : (item.checked ? 'var(--text-faint)' : 'var(--text-primary)'),
-            transition: 'color 200ms cubic-bezier(0.23,1,0.32,1)',
-            textDecoration: item.checked ? 'line-through' : 'none',
-          }}
+      ) : canEdit && !item.checked ? (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          style={{ ...nameStyle, border: 'none', background: 'none', padding: 0, textAlign: 'left', fontFamily: 'inherit' }}
         >
+          {item.name}
+        </button>
+      ) : (
+        <span style={nameStyle}>
           {item.name}
         </span>
       )}
@@ -356,7 +365,7 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
             const rect = itemMenuBtnRef.current?.getBoundingClientRect()
             return (
               <>
-                <div style={{ position: 'fixed', inset: 0, zIndex: 1098 }} onClick={() => { setShowItemMenu(false); setShowMenuCategories(false) }} />
+                <div role="presentation" style={{ position: 'fixed', inset: 0, zIndex: 1098 }} onClick={() => { setShowItemMenu(false); setShowMenuCategories(false) }} />
                 <div className="trek-menu-enter" style={{
                   position: 'fixed',
                   right: rect ? Math.max(8, window.innerWidth - rect.right) : 8,

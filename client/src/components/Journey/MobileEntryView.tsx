@@ -91,12 +91,18 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
         {/* Hero photo(s) */}
         {photos.length > 0 && (
           <div className="relative">
-            <img
-              src={photoUrl(photos[0], 'original', publicPhotoUrl)}
-              alt=""
-              className="w-full max-h-[50vh] object-cover cursor-pointer"
+            <button
+              type="button"
+              aria-label={photos[0].caption || t('journey.photos')}
+              className="block w-full bg-transparent border-0 p-0 cursor-pointer"
               onClick={() => onPhotoClick(photos, 0)}
-            />
+            >
+              <img
+                src={photoUrl(photos[0], 'original', publicPhotoUrl)}
+                alt=""
+                className="w-full max-h-[50vh] object-cover"
+              />
+            </button>
             {photos.length > 1 && (
               <div className="absolute bottom-3 right-3 flex items-center gap-1 bg-black/60 backdrop-blur-sm text-white rounded-full px-2.5 py-1 text-[11px] font-medium">
                 <Camera size={12} />
@@ -107,13 +113,19 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
             {photos.length > 1 && (
               <div className="flex gap-1 px-4 py-2 overflow-x-auto bg-zinc-50 dark:bg-zinc-900">
                 {photos.map((p, i) => (
-                  <img
+                  <button
                     key={p.id || i}
-                    src={photoUrl(p, 'thumbnail', publicPhotoUrl)}
-                    alt=""
-                    className="w-16 h-16 rounded-lg object-cover flex-shrink-0 cursor-pointer hover:ring-2 ring-zinc-900/30 dark:ring-white/30 transition-all"
+                    type="button"
+                    aria-label={p.caption || t('journey.photos')}
+                    className="flex-shrink-0 bg-transparent border-0 p-0 cursor-pointer"
                     onClick={() => onPhotoClick(photos, i)}
-                  />
+                  >
+                    <img
+                      src={photoUrl(p, 'thumbnail', publicPhotoUrl)}
+                      alt=""
+                      className="w-16 h-16 rounded-lg object-cover hover:ring-2 ring-zinc-900/30 dark:ring-white/30 transition-all"
+                    />
+                  </button>
                 ))}
               </div>
             )}

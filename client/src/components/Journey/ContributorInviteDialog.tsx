@@ -72,10 +72,10 @@ export default function ContributorInviteDialog({ journeyId, existingUserIds, on
               <p className="text-[12px] text-zinc-400 text-center py-4">{t('journey.contributors.noUsers')}</p>
             )}
             {filtered.map(u => (
-              <div
+              <button type="button"
                 key={u.id}
                 onClick={() => setSelectedUserId(u.id)}
-                className={`flex items-center gap-2.5 p-2.5 rounded-lg cursor-pointer transition-all ${
+                className={`w-full text-left flex items-center gap-2.5 p-2.5 rounded-lg cursor-pointer transition-all ${
                   selectedUserId === u.id
                     ? 'bg-zinc-100 dark:bg-zinc-800 border border-zinc-900 dark:border-white'
                     : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-transparent'
@@ -93,7 +93,7 @@ export default function ContributorInviteDialog({ journeyId, existingUserIds, on
                     <Check size={12} />
                   </div>
                 )}
-              </div>
+              </button>
             ))}
           </div>
 

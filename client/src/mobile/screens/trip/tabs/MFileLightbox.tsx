@@ -69,6 +69,10 @@ export default function MFileLightbox({ files, index, onIndexChange, onClose, t 
 
   return createPortal(
     <div
+      // Backdrop, header bar and media pane are plain boxes: they only route the
+      // tap-to-dismiss. Escape / arrow keys and the header buttons are the
+      // keyboard equivalents, wired up in the effect above.
+      role="presentation"
       className="m-root fixed inset-0 z-[65] flex flex-col bg-black/[.92]"
       onClick={onClose}
       onTouchStart={e => { touchStartRef.current = e.touches[0].clientX }}
@@ -82,7 +86,7 @@ export default function MFileLightbox({ files, index, onIndexChange, onClose, t 
       }}
     >
       {/* Header */}
-      <div className="flex flex-none items-center justify-between px-4 py-[10px]" onClick={e => e.stopPropagation()}>
+      <div role="presentation" className="flex flex-none items-center justify-between px-4 py-[10px]" onClick={e => e.stopPropagation()}>
         <span className="min-w-0 flex-1 truncate font-geist text-[0.75rem] text-white/70">
           {file.original_name}
           <span className="ml-2 text-white/40">{index + 1} / {files.length}</span>
@@ -112,6 +116,7 @@ export default function MFileLightbox({ files, index, onIndexChange, onClose, t 
 
       {/* Media + nav */}
       <div
+        role="presentation"
         className="relative flex min-h-0 flex-1 items-center justify-center"
         onClick={e => {
           if (e.target !== e.currentTarget) return
@@ -131,17 +136,20 @@ export default function MFileLightbox({ files, index, onIndexChange, onClose, t 
           </button>
         )}
         {fileIsVideo ? (
-          <div onClick={e => e.stopPropagation()}>
+          <div role="presentation" onClick={e => e.stopPropagation()}>
             <VideoPlayer src={file.url} style={{ maxWidth: '92vw', maxHeight: '78vh', borderRadius: 8 }} />
           </div>
         ) : (
           imgSrc && (
-            <img
-              src={imgSrc}
-              alt={file.original_name}
-              onClick={e => e.stopPropagation()}
-              className="block max-h-[78vh] max-w-[92vw] rounded-lg object-contain"
-            />
+            // The stop sits on a wrapper rather than on the <img>: a picture is
+            // not something you activate, and this keeps its alt text intact.
+            <div role="presentation" onClick={e => e.stopPropagation()}>
+              <img
+                src={imgSrc}
+                alt={file.original_name}
+                className="block max-h-[78vh] max-w-[92vw] rounded-lg object-contain"
+              />
+            </div>
           )
         )}
         {hasNext && (

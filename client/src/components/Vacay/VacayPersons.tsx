@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type HTMLAttributes } from 'react'
 import { UserPlus, Check, Loader2, Clock, X } from 'lucide-react'
 import { useVacayStore } from '../../store/vacayStore'
 import { useAuthStore } from '../../store/authStore'
@@ -77,9 +77,20 @@ export default function VacayPersons() {
       <div className="flex flex-col gap-1">
         {users.map(u => {
           const isSelected = selectedUserId === u.id
+          // Only a fused plan lets you pick whose leave you are looking at, so the
+          // row takes focus and keys only then — it stays a div because the colour
+          // dot inside it is a button of its own.
+          const select: HTMLAttributes<HTMLDivElement> = isFused
+            ? {
+                role: 'button',
+                tabIndex: 0,
+                onClick: () => setSelectedUserId(u.id),
+                onKeyDown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedUserId(u.id) } },
+              }
+            : {}
           return (
             <div key={u.id}
-              onClick={() => { if (isFused) setSelectedUserId(u.id) }}
+              {...select}
               className="flex items-center gap-2.5 group transition-colors"
               style={{
                 padding: '7px 10px',
@@ -126,9 +137,9 @@ export default function VacayPersons() {
       {/* Invite Modal — Portal to body to avoid z-index issues */}
       {showInvite && createPortal(
         <div className="fixed inset-0 flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]" style={{ zIndex: 99990, paddingTop: 70 }}
-          onClick={() => setShowInvite(false)}>
-          <div className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-sm bg-surface-card"
-            onClick={e => e.stopPropagation()}>
+          role="presentation"
+          onClick={e => { if (e.target === e.currentTarget) setShowInvite(false) }}>
+          <div className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-sm bg-surface-card">
             <div className="flex items-center justify-between p-5 border-b border-edge-secondary">
               <h2 className="text-base font-semibold text-content">{t('vacay.inviteUser')}</h2>
               <button type="button" onClick={() => setShowInvite(false)} className="p-1.5 rounded-lg transition-colors text-content-faint">
@@ -167,9 +178,9 @@ export default function VacayPersons() {
       {/* Color Picker Modal — Portal to body */}
       {showColorPicker && createPortal(
         <div className="fixed inset-0 flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]" style={{ zIndex: 99990, paddingTop: 70 }}
-          onClick={() => { setShowColorPicker(false); setColorEditUserId(null) }}>
-          <div className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-xs bg-surface-card"
-            onClick={e => e.stopPropagation()}>
+          role="presentation"
+          onClick={e => { if (e.target !== e.currentTarget) return; setShowColorPicker(false); setColorEditUserId(null) }}>
+          <div className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-xs bg-surface-card">
             <div className="flex items-center justify-between p-5 border-b border-edge-secondary">
               <h2 className="text-base font-semibold text-content">{t('vacay.changeColor')}</h2>
               <button type="button" onClick={() => { setShowColorPicker(false); setColorEditUserId(null) }} className="p-1.5 rounded-lg transition-colors text-content-faint">

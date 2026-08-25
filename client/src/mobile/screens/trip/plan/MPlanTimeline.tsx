@@ -250,9 +250,10 @@ function UpNextCard({ tl, t, onOpen }: {
   const sub = place?.address || place?.description || ''
 
   return (
-    <div
+    <button
+      type="button"
       onClick={() => onOpen(upNext.assignment)}
-      className="absolute left-4 right-4 cursor-pointer rounded-[22px] border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-4 py-3.5 shadow-[0_18px_44px_-18px_rgba(0,0,0,.3)] backdrop-blur-[28px] backdrop-saturate-[1.8] top-[calc(var(--m-safe-top,12px)+102px)]"
+      className="absolute left-4 right-4 cursor-pointer rounded-[22px] border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-4 py-3.5 text-left shadow-[0_18px_44px_-18px_rgba(0,0,0,.3)] backdrop-blur-[28px] backdrop-saturate-[1.8] top-[calc(var(--m-safe-top,12px)+102px)]"
     >
       <div className="flex items-center justify-between">
         <span className="whitespace-nowrap font-geist text-[0.65625rem] font-bold uppercase tracking-[.08em] text-m-muted">
@@ -280,7 +281,7 @@ function UpNextCard({ tl, t, onOpen }: {
           <ChevronRight size={16} strokeWidth={2.4} />
         </span>
       </div>
-    </div>
+    </button>
   )
 }
 

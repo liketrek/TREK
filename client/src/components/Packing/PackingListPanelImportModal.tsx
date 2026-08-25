@@ -9,12 +9,12 @@ export function BulkImportModal(S: PackingState) {
       position: 'fixed', inset: 0, zIndex: 1000,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(3px)',
-    }} onClick={() => setShowImportModal(false)}>
+    }} role="presentation" onClick={e => { if (e.target === e.currentTarget) setShowImportModal(false) }}>
       <div style={{
         width: 420, maxHeight: '80vh', background: 'var(--bg-card)', borderRadius: 16,
         boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
         display: 'flex', flexDirection: 'column', gap: 14,
-      }} onClick={e => e.stopPropagation()}>
+      }}>
         <div style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, color: 'var(--text-primary)' }}>{t('packing.importTitle')}</div>
         <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', lineHeight: 1.5 }}>{t('packing.importHint')}</div>
         <div style={{ display: 'flex', border: '1px solid var(--border-primary)', borderRadius: 10, overflow: 'hidden', background: 'var(--bg-input)' }}>

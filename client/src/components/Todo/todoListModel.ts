@@ -15,7 +15,7 @@ export function katColor(kat: string, allCategories: string[]) {
   const idx = allCategories.indexOf(kat)
   if (idx >= 0) return KAT_COLORS[idx % KAT_COLORS.length]
   let h = 0
-  for (let i = 0; i < kat.length; i++) h = ((h << 5) - h + kat.charCodeAt(i)) | 0
+  for (let i = 0; i < kat.length; i++) h = ((h << 5) - h + kat.codePointAt(i)) | 0
   return KAT_COLORS[Math.abs(h) % KAT_COLORS.length]
 }
 

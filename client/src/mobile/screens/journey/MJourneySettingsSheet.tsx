@@ -140,7 +140,8 @@ export default function MJourneySettingsSheet({
 
   const toggleSharePerm = async (key: 'share_timeline' | 'share_gallery' | 'share_map') => {
     if (!shareLink) return
-    const updated = { ...shareLink, [key]: !shareLink[key] }
+    const previous = shareLink
+    const updated = { ...previous, [key]: !previous[key] }
     setShareLink(updated)
     try {
       await journeyApi.createShareLink(journey.id, {
@@ -149,7 +150,7 @@ export default function MJourneySettingsSheet({
         share_map: updated.share_map,
       })
     } catch {
-      setShareLink(shareLink)
+      setShareLink(previous)
       toast.error(t('journey.share.updateFailed'))
     }
   }

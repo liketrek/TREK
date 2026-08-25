@@ -57,7 +57,7 @@ const HTML_ENTITIES = new Map<string, string>([
   ['larr', '←'],
   ['rarr', '→'],
   ['harr', '↔'],
-  ...LATIN1_ENTITIES.map((name, i): [string, string] => [name, String.fromCharCode(0xa0 + i)]),
+  ...LATIN1_ENTITIES.map((name, i): [string, string] => [name, String.fromCodePoint(0xa0 + i)]),
 ]);
 
 function entityCodePoint(code: number): string | null {
@@ -85,12 +85,34 @@ function decodeEntities(s: string): string {
   });
 }
 
+/**
+ * Replace every tag with a space. Hand-rolled rather than a /<[^>]+>/g replace: a
+ * match can only start at a "<", so a run of brackets with no ">" behind it — an
+ * uploaded .eml or .html is free to carry one — makes the engine rescan the tail
+ * once per bracket. Character for character the same result, including the two
+ * cases the regex leaves alone: a "<" that nothing closes, and an empty "<>",
+ * which [^>]+ cannot match.
+ */
+function stripTags(s: string): string {
+  let out = '';
+  let i = 0;
+  for (;;) {
+    const lt = s.indexOf('<', i);
+    if (lt === -1) break;
+    const gt = s.indexOf('>', lt + 1);
+    if (gt === -1) break; // nothing closes it, so the rest of the string is text
+    // An empty "<>" has nothing for [^>]+ to match, so both brackets stay literal.
+    out += s.slice(i, lt) + (gt === lt + 1 ? '<>' : ' ');
+    i = gt + 1;
+  }
+  return out + s.slice(i);
+}
+
 /** Strip HTML/XML tags, resolve entities and collapse whitespace for a cleaner LLM prompt. */
 function stripMarkup(s: string): string {
-  const withoutTags = s
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ');
+  const withoutTags = stripTags(
+    s.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' '),
+  );
   // Entities come last so that a decoded `&lt;` cannot turn into a tag the
   // stripper would then eat.
   return decodeEntities(withoutTags)
@@ -137,6 +159,115 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
   }
 }
 
+/** Exactly the code points JS `\s` matches — the class the page-marker pattern walks over. */
+const SPACE_CODES = new Set([
+  0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x20, 0xa0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005,
+  0x2006, 0x2007, 0x2008, 0x2009, 0x200a, 0x2028, 0x2029, 0x202f, 0x205f, 0x3000, 0xfeff,
+]);
+
+/** The line breaks a multiline `^` starts after and `$` ends before. */
+const LINE_END_CODES = new Set([0x0a, 0x0d, 0x2028, 0x2029]);
+
+function isSpaceAt(text: string, i: number): boolean {
+  return SPACE_CODES.has(text.charCodeAt(i));
+}
+
+function isLineEndAt(text: string, i: number): boolean {
+  return LINE_END_CODES.has(text.charCodeAt(i));
+}
+
+function isDigitAt(text: string, i: number): boolean {
+  const c = text.charCodeAt(i);
+  return c >= 0x30 && c <= 0x39;
+}
+
+function isDashAt(text: string, i: number): boolean {
+  return text.charCodeAt(i) === 0x2d;
+}
+
+function skipRun(text: string, from: number, matches: (text: string, i: number) => boolean): number {
+  let i = from;
+  while (i < text.length && matches(text, i)) i++;
+  return i;
+}
+
+/**
+ * A page marker from its first dash on: `-+\s*\d+\s+of\s+\d+\s*-+\s*$`. Returns
+ * where the match ends, or -1 when there is none. Every quantifier in there is
+ * followed by a class that excludes what it just matched, so each one can only
+ * take its whole run — giving characters back never opens a second way through,
+ * which is why one forward pass is enough.
+ */
+function markerEnd(text: string, dashStart: number): number {
+  let i = skipRun(text, skipRun(text, dashStart, isDashAt), isSpaceAt);
+  const pageNo = i;
+  i = skipRun(text, i, isDigitAt);
+  if (i === pageNo) return -1;
+  const beforeOf = i;
+  i = skipRun(text, i, isSpaceAt);
+  if (i === beforeOf) return -1;
+  const o = text.charCodeAt(i);
+  const f = text.charCodeAt(i + 1);
+  if ((o !== 0x6f && o !== 0x4f) || (f !== 0x66 && f !== 0x46)) return -1;
+  const afterOf = i + 2;
+  i = skipRun(text, afterOf, isSpaceAt);
+  if (i === afterOf) return -1;
+  const pageCount = i;
+  i = skipRun(text, i, isDigitAt);
+  if (i === pageCount) return -1;
+  const closing = skipRun(text, i, isSpaceAt);
+  i = skipRun(text, closing, isDashAt);
+  if (i === closing) return -1;
+  // `\s*$` hands the trailing run back until `$` sits on a line end; with no
+  // line end in it and text still to come, `$` never matches and neither does
+  // the marker.
+  let lastLineEnd = -1;
+  let end = i;
+  while (end < text.length && isSpaceAt(text, end)) {
+    if (isLineEndAt(text, end)) lastLineEnd = end;
+    end++;
+  }
+  return end === text.length ? end : lastLineEnd;
+}
+
+/** The first `^` in `[from, to]` — the earliest position the marker can start at. */
+function markerStart(text: string, from: number, to: number): number {
+  if (from === 0 || isLineEndAt(text, from - 1)) return from;
+  for (let i = from; i < to; i++) if (isLineEndAt(text, i)) return i + 1;
+  return -1;
+}
+
+/**
+ * Drop `-- N of M --` page markers: `/^\s*-+\s*\d+\s+of\s+\d+\s*-+\s*$/gim` as a
+ * single left-to-right pass. As a regex it is quadratic — `\s` matches line
+ * breaks, so under `m` every line start inside a whitespace run walks that same
+ * run again looking for a dash (40k of `" \n"` took ~0.6 s, and this runs first
+ * over the raw text layer of an uploaded PDF).
+ */
+function stripPageMarkers(text: string): string {
+  let kept = '';
+  let done = 0; // the pattern's lastIndex: nothing before it can match any more
+  let i = 0;
+  while (i < text.length) {
+    const dashStart = text.indexOf('-', i);
+    if (dashStart === -1) break;
+    // The leading `\s*` reaches back across the whole whitespace run, and the
+    // match then starts at the first `^` — string start or line start — in it.
+    let runStart = dashStart;
+    while (runStart > done && isSpaceAt(text, runStart - 1)) runStart--;
+    const start = markerStart(text, runStart, dashStart);
+    const end = start === -1 ? -1 : markerEnd(text, dashStart);
+    if (end === -1) {
+      i = dashStart + 1;
+      continue;
+    }
+    kept += text.slice(done, start);
+    done = end;
+    i = end;
+  }
+  return done === 0 ? text : kept + text.slice(done);
+}
+
 /**
  * Clean up pdf-parse output for the LLM:
  *  - strip `-- N of M --` page markers
@@ -145,10 +276,9 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
  *    a common PDF kerning artifact that otherwise hides booking fields
  */
 function cleanPdfText(text: string): string {
-  return text
-    .replace(/^\s*-+\s*\d+\s+of\s+\d+\s*-+\s*$/gim, '')
+  return stripPageMarkers(text)
     .replace(/[ \t]+/g, ' ')
-    .replace(/\b(?:[A-Z] ){2,}[A-Z]\b/g, m => m.replace(/ /g, ''))
+    .replace(/\b(?:[A-Z] ){2,}[A-Z]\b/g, m => m.replaceAll(' ', ''))
     .replace(/ *\n */g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();

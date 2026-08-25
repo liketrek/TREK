@@ -624,9 +624,11 @@ export class OauthService {
     // bind the token to the MCP endpoint by default — previously this
     // left `audience = null`, and the audience-bind check on MCP requests
     // then treated a null audience as "valid for any resource".
-    const mcpResource = `${getMcpSafeUrl().replace(/\/+$/, '')}/mcp`;
+    // The lookbehind matches only the first slash of the trailing run. Without it the
+    // engine retries from every slash, which is quadratic on a slash-heavy value.
+    const mcpResource = `${getMcpSafeUrl().replace(/(?<!\/)\/+$/, '')}/mcp`;
     const resource = params.resource
-      ? params.resource.replace(/\/+$/, '')
+      ? params.resource.replace(/(?<!\/)\/+$/, '')
       : mcpResource;
     if (resource !== mcpResource) {
       return { valid: false, error: 'invalid_target', error_description: 'Requested resource must be the TREK MCP endpoint' };

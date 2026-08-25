@@ -151,7 +151,9 @@ describe('MFileLightbox', () => {
     const img = await screen.findByAltText('beach.jpg')
     fireEvent.click(img)
     expect(onClose).not.toHaveBeenCalled()
-    fireEvent.click(img.parentElement as HTMLElement)
+    // The picture now sits in a wrapper that swallows the tap for it — the
+    // <img> itself carries no handler — so the empty area is one level up.
+    fireEvent.click(img.parentElement?.parentElement as HTMLElement)
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 

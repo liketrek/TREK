@@ -148,7 +148,7 @@ export class ManifestError extends Error {}
 
 /** JSON.parse that tolerates a UTF-8 BOM (0xFEFF) — manifests written on Windows often carry one. */
 export function parseJsonText(text: string): unknown {
-  return JSON.parse(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text);
+  return JSON.parse(text.codePointAt(0) === 0xfeff ? text.slice(1) : text);
 }
 
 /**

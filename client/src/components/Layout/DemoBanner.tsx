@@ -304,9 +304,20 @@ export default function DemoBanner(): React.ReactElement | null {
         overflow: 'auto',
         fontFamily: 'var(--font-system)',
       }}
+      role="button"
+      tabIndex={0}
+      aria-label={t.close}
       onClick={() => setDismissed(true)}
+      onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setDismissed(true);
+        }
+      }}
     >
       <div
+        role="presentation"
         style={{
           background: 'white',
           borderRadius: 20,

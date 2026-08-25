@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type HTMLAttributes } from 'react'
 import { useNavigate } from 'react-router'
 import { ArrowRight, Bell, Check, Trash2, X } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
@@ -45,10 +45,22 @@ export default function MNotificationRow({ notification }: MNotificationRowProps
     if (notification.navigate_target) navigate(notification.navigate_target)
   }
 
+  // Tapping an unread row marks it read; a row that is already read carries no
+  // action, so it neither takes focus nor claims a role. It stays a div because
+  // the chips and the delete button inside it are buttons of their own.
+  const markReadOnRow: HTMLAttributes<HTMLDivElement> = notification.is_read
+    ? {}
+    : {
+        role: 'button',
+        tabIndex: 0,
+        onClick: () => markRead(notification.id),
+        onKeyDown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); markRead(notification.id) } },
+      }
+
   return (
     <div
       className="flex items-start gap-[11px] border-b border-[color:var(--m-rowbr)] py-3 last:border-b-0"
-      onClick={() => { if (!notification.is_read) markRead(notification.id) }}
+      {...markReadOnRow}
     >
       {notification.sender_avatar ? (
         <img src={notification.sender_avatar} alt="" className="h-8 w-8 flex-none rounded-full object-cover" />
@@ -65,7 +77,7 @@ export default function MNotificationRow({ notification }: MNotificationRowProps
         <p className="mt-[2px] font-geist text-[0.65625rem] leading-relaxed text-m-muted">{body}</p>
 
         {notification.type === 'boolean' && notification.positive_text_key && notification.negative_text_key && (
-          <div className="mt-2 flex gap-[6px]" onClick={e => e.stopPropagation()}>
+          <div className="mt-2 flex gap-[6px]" role="presentation" onClick={e => e.stopPropagation()}>
             <MChip
               active={notification.response === 'positive'}
               onClick={() => handleRespond('positive')}
@@ -86,7 +98,7 @@ export default function MNotificationRow({ notification }: MNotificationRowProps
         )}
 
         {notification.type === 'navigate' && notification.navigate_text_key && notification.navigate_target && (
-          <div className="mt-2" onClick={e => e.stopPropagation()}>
+          <div className="mt-2" role="presentation" onClick={e => e.stopPropagation()}>
             <MChip onClick={handleNavigate}>
               <ArrowRight size={12} strokeWidth={2.2} />
               {t(notification.navigate_text_key)}

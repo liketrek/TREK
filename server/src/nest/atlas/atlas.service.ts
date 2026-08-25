@@ -376,7 +376,8 @@ export class AtlasService {
     const visited = countries.filter((c) => c.status === 'visited');
     const planned = countries.filter((c) => c.status === 'planned');
 
-    const mostVisited = visited.length > 0 ? visited.reduce((a, b) => (a.placeCount > b.placeCount ? a : b)) : null;
+    const mostVisited =
+      visited.length > 0 ? visited.reduce((a, b) => (a.placeCount > b.placeCount ? a : b), visited[0]) : null;
 
     const continents: Record<string, number> = {};
     visited.forEach((c) => {

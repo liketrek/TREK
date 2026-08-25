@@ -431,6 +431,7 @@ export function StudioCanvas({
               </button>
               <span className="st-quickbar-sep" />
               <button
+                type="button"
                 onClick={() => commit(d => ({
                   ...d,
                   spreads: d.spreads.map((sp, i) => (i !== spreadIndex ? sp : {

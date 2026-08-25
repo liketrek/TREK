@@ -152,7 +152,7 @@ export default function CollectionPlaceDetail({
   const resetForm = () => { setEditing(false); setName(place.name); setCategoryId(place.category_id ?? null); setDescription(place.description ?? ''); setLinks(place.links ?? []); setLabelIds(place.label_ids ?? []); setAddress(place.address ?? ''); setLat(place.lat != null ? String(place.lat) : ''); setLng(place.lng != null ? String(place.lng) : '') }
   const coordPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     const text = e.clipboardData.getData('text').trim()
-    const match = text.match(/^(-?\d+\.?\d*)\s*[,;\s]\s*(-?\d+\.?\d*)$/)
+    const match = text.match(/^(-?\d+(?:\.\d*)?)(?:\s*[,;]\s*|\s+)(-?\d+(?:\.\d*)?)$/)
     if (match) { e.preventDefault(); setLat(match[1]); setLng(match[2]) }
   }
   const assignedLabels = labels.filter(l => (place.label_ids ?? []).includes(l.id))
@@ -176,7 +176,7 @@ export default function CollectionPlaceDetail({
   const CatIcon = getCategoryIcon(place.category?.icon)
 
   return (
-    <div className={`col-detail${anchorRect ? ' docked' : ''}`} style={dockStyle} onClick={e => e.stopPropagation()}>
+    <div className={`col-detail${anchorRect ? ' docked' : ''}`} style={dockStyle} role="presentation" onClick={e => e.stopPropagation()}>
       <div className="col-detail-cover" style={banner ? undefined : { backgroundImage: entityGradient(place.id) }}>
         {banner && <img src={banner} alt="" />}
         <div className="col-detail-cover-scrim" />

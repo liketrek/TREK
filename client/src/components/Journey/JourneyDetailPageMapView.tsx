@@ -85,9 +85,10 @@ export function MapView({ entries, mapEntries, sortedDates, activeLocationId, fu
 
                   return (
                     <div key={e.id}>
-                      <div
+                      <button
+                        type="button"
                         onClick={() => onLocationClick(String(e.id))}
-                        className={`flex items-center gap-3 p-3 rounded-[14px] cursor-pointer transition-all ${
+                        className={`w-full text-left flex items-center gap-3 p-3 rounded-[14px] cursor-pointer transition-all ${
                           isActive
                             ? 'bg-zinc-100 dark:bg-zinc-800 border border-zinc-900 dark:border-zinc-100 translate-x-0.5'
                             : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 hover:translate-x-0.5'
@@ -114,7 +115,7 @@ export function MapView({ entries, mapEntries, sortedDates, activeLocationId, fu
 
                         {/* Chevron */}
                         <ChevronRight size={14} className={`flex-shrink-0 ${isActive ? 'text-zinc-900 dark:text-white' : 'text-zinc-300 dark:text-zinc-600'}`} />
-                      </div>
+                      </button>
 
                       {/* Connector line */}
                       {showConnector && (

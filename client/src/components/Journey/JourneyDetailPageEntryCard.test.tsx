@@ -78,7 +78,8 @@ describe('EntryCard', () => {
     const user = userEvent.setup()
     const { container, onEdit } = mountCard(buildEntry({ photos: [buildPhoto(100)] }))
 
-    await user.click(container.querySelectorAll('button')[0])
+    // The photo itself is a button now, so pick the menu trigger by its own styling.
+    await user.click(container.querySelector('button[class*="bg-black/40"]') as HTMLElement)
     await user.click(screen.getByRole('button', { name: 'Edit' }))
 
     expect(onEdit).toHaveBeenCalledTimes(1)
@@ -110,7 +111,10 @@ describe('EntryCard', () => {
   it('FE-JRN-CARD-007: hides the menu entirely in read-only mode', () => {
     const { container } = mountCard(buildEntry({ photos: [buildPhoto(100)] }), true)
 
-    expect(container.querySelectorAll('button')).toHaveLength(0)
+    // Only the photo remains clickable; the menu trigger is gone.
+    const buttons = container.querySelectorAll('button')
+    expect(buttons).toHaveLength(1)
+    expect(buttons[0].querySelector('img')).toBeInTheDocument()
   })
 
   it('FE-JRN-CARD-008: renders mood, weather and tags in the meta row', () => {

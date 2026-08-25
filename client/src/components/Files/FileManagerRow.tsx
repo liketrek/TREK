@@ -34,10 +34,13 @@ export function FileRow(p: FileManagerState & { file: TripFile; isTrash?: boolea
       className="group"
     >
       {/* Icon or thumbnail */}
-      <div
+      <button
+        type="button"
+        disabled={isTrash}
+        aria-label={file.original_name}
         onClick={() => !isTrash && openFile(file)}
         style={{
-          flexShrink: 0, width: 36, height: 36, borderRadius: 8,
+          flexShrink: 0, width: 36, height: 36, borderRadius: 8, padding: 0,
           background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: isTrash ? 'default' : 'pointer', overflow: 'hidden',
         }}
@@ -48,13 +51,13 @@ export function FileRow(p: FileManagerState & { file: TripFile; isTrash?: boolea
               const ext = (file.original_name || '').split('.').pop()?.toUpperCase() || '?'
               const isPdf = file.mime_type === 'application/pdf'
               return (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', background: isPdf ? '#ef44441a' : 'var(--bg-tertiary)' }}>
+                <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', background: isPdf ? '#ef44441a' : 'var(--bg-tertiary)' }}>
                   <span style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 700, color: isPdf ? '#ef4444' : 'var(--text-muted)', letterSpacing: 0.3 }}>{ext}</span>
-                </div>
+                </span>
               )
             })()
         }
-      </div>
+      </button>
 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -63,12 +66,14 @@ export function FileRow(p: FileManagerState & { file: TripFile; isTrash?: boolea
             <AvatarChip name={file.uploaded_by_name} avatarUrl={file.uploaded_by_avatar} size={20} />
           )}
           {!isTrash && file.starred ? <Star size={12} fill="#facc15" color="#facc15" style={{ flexShrink: 0 }} /> : null}
-          <span
+          <button
+            type="button"
+            disabled={isTrash}
             onClick={() => !isTrash && openFile(file)}
-            style={{ fontWeight: 500, fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: isTrash ? 'default' : 'pointer' }}
+            style={{ fontWeight: 500, fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: isTrash ? 'default' : 'pointer', textAlign: 'left', minWidth: 0 }}
           >
             {file.original_name}
-          </span>
+          </button>
         </div>
 
         {file.description && (
@@ -76,7 +81,7 @@ export function FileRow(p: FileManagerState & { file: TripFile; isTrash?: boolea
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-          {file.file_size && <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)' }}>{formatSize(file.file_size)}</span>}
+          {!!file.file_size && <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)' }}>{formatSize(file.file_size)}</span>}
           <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)' }}>{formatDateWithLocale(file.created_at, locale)}</span>
 
           {linkedPlaces.map(p => (
@@ -87,7 +92,7 @@ export function FileRow(p: FileManagerState & { file: TripFile; isTrash?: boolea
               ? <SourceBadge key={r.id} icon={transportIcon(r.type)} label={`${t('files.sourceTransport')} · ${r.title || t('files.sourceTransport')}`} />
               : <SourceBadge key={r.id} icon={Ticket} label={`${t('files.sourceBooking')} · ${r.title || t('files.sourceBooking')}`} />
           ))}
-          {file.note_id && (
+          {!!file.note_id && (
             <SourceBadge icon={StickyNote} label={t('files.sourceCollab') || 'Collab Notes'} />
           )}
         </div>

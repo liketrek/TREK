@@ -170,9 +170,9 @@ function AtlasPageDesktop(): React.ReactElement {
 
       {/* Country action popup */}
       {confirmAction && (
-        <div className="bg-[rgba(0,0,0,0.4)]" style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+        <div role="presentation" className="bg-[rgba(0,0,0,0.4)]" style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setConfirmAction(null)}>
-          <div className="bg-surface-card" style={{ borderRadius: 16, padding: 24, maxWidth: 340, width: '100%', boxShadow: '0 16px 48px rgba(0,0,0,0.2)', textAlign: 'center' }}
+          <div role="presentation" className="bg-surface-card" style={{ borderRadius: 16, padding: 24, maxWidth: 340, width: '100%', boxShadow: '0 16px 48px rgba(0,0,0,0.2)', textAlign: 'center' }}
             onClick={e => e.stopPropagation()}>
             {confirmAction.code.length === 2 ? (
               <img src={`https://flagcdn.com/w80/${confirmAction.code.toLowerCase()}.png`} alt={confirmAction.code} style={{ width: 48, height: 34, borderRadius: 6, objectFit: 'cover', marginBottom: 12, display: 'inline-block' }} />
@@ -202,7 +202,7 @@ function AtlasPageDesktop(): React.ReactElement {
                     <div className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 1 }}>{t('atlas.markVisitedHint')}</div>
                   </div>
                 </button>
-                <button onClick={() => setConfirmAction({ ...confirmAction, type: 'bucket' as any })}
+                <button type="button" onClick={() => setConfirmAction({ ...confirmAction, type: 'bucket' as any })}
                   className="border border-edge"
                   style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
@@ -241,7 +241,7 @@ function AtlasPageDesktop(): React.ReactElement {
                 {confirmAction.countryName && (
                   <p className="text-content-muted" style={{ margin: '-8px 0 8px', fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{confirmAction.countryName}</p>
                 )}
-                <button onClick={async () => {
+                <button type="button" onClick={async () => {
                   const { code: countryCode, name: rName, regionCode: rCode } = confirmAction
                   if (!rCode) return
                   try {
@@ -267,7 +267,7 @@ function AtlasPageDesktop(): React.ReactElement {
                     <div className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 1 }}>{t('atlas.markRegionVisitedHint')}</div>
                   </div>
                 </button>
-                <button onClick={() => setConfirmAction({ ...confirmAction, type: 'bucket' })}
+                <button type="button" onClick={() => setConfirmAction({ ...confirmAction, type: 'bucket' })}
                   className="border border-edge"
                   style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
@@ -311,7 +311,7 @@ function AtlasPageDesktop(): React.ReactElement {
                     style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('common.cancel')}
                   </button>
-                  <button onClick={async () => {
+                  <button type="button" onClick={async () => {
                     const { code: countryCode, regionCode: rCode } = confirmAction
                     if (!rCode) return
                     try {
@@ -386,7 +386,7 @@ function AtlasPageDesktop(): React.ReactElement {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-                  <button onClick={() => setConfirmAction({ ...confirmAction, type: confirmAction.regionCode ? 'choose-region' : 'choose' })}
+                  <button type="button" onClick={() => setConfirmAction({ ...confirmAction, type: confirmAction.regionCode ? 'choose-region' : 'choose' })}
                     className="border border-edge text-content-muted"
                     style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
                     {t('common.back')}
@@ -586,7 +586,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
               </button>
             )}
             {bucketForm.name && (
-              <button onClick={() => { setBucketForm({ ...bucketForm, name: '', lat: '', lng: '' }); setBucketSearch('') }}
+              <button type="button" onClick={() => { setBucketForm({ ...bucketForm, name: '', lat: '', lng: '' }); setBucketSearch('') }}
                 className="border border-edge text-content-faint"
                 style={{ padding: '6px 8px', borderRadius: 8, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                 <X size={12} />

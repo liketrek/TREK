@@ -84,7 +84,7 @@ type JwksEntry = { keys: Array<Record<string, unknown>>; fetchedAt: number };
 // ---------------------------------------------------------------------------
 
 function base64url(buf: Buffer): string {
-  return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return buf.toString('base64url');
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
@@ -120,7 +120,7 @@ interface InviteTokenRow {
 }
 
 function base64UrlDecode(input: string): Buffer {
-  const padded = input.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (input.length % 4)) % 4);
+  const padded = input.replaceAll('-', '+').replaceAll('_', '/') + '='.repeat((4 - (input.length % 4)) % 4);
   return Buffer.from(padded, 'base64');
 }
 
@@ -259,7 +259,9 @@ export class OidcService implements OnModuleDestroy {
     const discoveryUrl = oidcEnv.discoveryUrl || get('oidc_discovery_url') || null;
 
     if (!issuer || !clientId || !clientSecret) return null;
-    return { issuer: issuer.replace(/\/+$/, ''), clientId, clientSecret, displayName, discoveryUrl };
+    // The lookbehind pins the trailing-slash strip (here and below) to the start of
+    // the run — without it an issuer of nothing but slashes retries from every one.
+    return { issuer: issuer.replace(/(?<!\/)\/+$/, ''), clientId, clientSecret, displayName, discoveryUrl };
   }
 
   // -------------------------------------------------------------------------
@@ -283,7 +285,7 @@ export class OidcService implements OnModuleDestroy {
     // and we reject. When the operator explicitly overrides the discovery URL (e.g.
     // Authentik realm paths), the discovery doc's issuer is the canonical value —
     // trust it and warn rather than blocking login.
-    const docIssuer = doc.issuer?.replace(/\/+$/, '') ?? '';
+    const docIssuer = doc.issuer?.replace(/(?<!\/)\/+$/, '') ?? '';
     if (docIssuer && docIssuer !== issuer) {
       if (discoveryUrl) {
         console.warn(
@@ -480,7 +482,7 @@ export class OidcService implements OnModuleDestroy {
 
     // Normalize trailing slash before issuer comparison — some IdPs (e.g. Authentik)
     // include a trailing slash in the id_token iss claim.
-    const tokenIssuer = typeof claims['iss'] === 'string' ? claims['iss'].replace(/\/+$/, '') : '';
+    const tokenIssuer = typeof claims['iss'] === 'string' ? claims['iss'].replace(/(?<!\/)\/+$/, '') : '';
     if (tokenIssuer !== expectedIssuer) {
       return { ok: false, error: `signature_or_claim_mismatch: jwt issuer invalid. expected: ${expectedIssuer}` };
     }

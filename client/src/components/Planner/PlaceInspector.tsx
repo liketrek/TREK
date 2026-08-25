@@ -484,7 +484,7 @@ export default function PlaceInspector({
             <StatusBadge status={collectionStatus} onChange={onSetStatus} t={t} />
           )}
           {/* Trip mode — day assignment */}
-          {mode === 'trip' && selectedDayId && (
+          {mode === 'trip' && !!selectedDayId && (
             assignmentInDay ? (
               <ActionButton onClick={() => onRemoveAssignment?.(selectedDayId, assignmentInDay.id)} variant="ghost" icon={<Minus size={13} />}
                 label={<span className="hidden sm:inline">{t('inspector.removeFromDay')}</span>} />
@@ -649,7 +649,7 @@ function ParticipantsBox({ tripMembers, participantIds, allJoined, onSetParticip
           const isHovered = hoveredId === member.id
           const canRemove = activeMembers.length > 1
           return (
-            <div key={member.id}
+            <button type="button" key={member.id} disabled={!canRemove}
               onMouseEnter={() => setHoveredId(member.id)}
               onMouseLeave={() => setHoveredId(null)}
               onClick={() => { if (canRemove) handleRemove(member.id) }}
@@ -661,15 +661,15 @@ function ParticipantsBox({ tripMembers, participantIds, allJoined, onSetParticip
                 cursor: canRemove ? 'pointer' : 'default',
                 transition: 'all 0.15s',
               }}>
-              <div className="bg-surface-tertiary text-content-muted" style={{
+              <span className="bg-surface-tertiary text-content-muted" style={{
                 width: 16, height: 16, borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(7px * var(--fs-scale-caption, 1))', fontWeight: 700,
                 overflow: 'hidden', flexShrink: 0,
               }}>
-                {(member.avatar_url || member.avatar) ? <img src={member.avatar_url || avatarSrc(member.avatar)!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : member.username?.[0]?.toUpperCase()}
-              </div>
+                {(member.avatar_url || member.avatar) ? <img src={member.avatar_url || avatarSrc(member.avatar)!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : member.username?.[0]?.toUpperCase()}
+              </span>
               <span style={{ textDecoration: isHovered && canRemove ? 'line-through' : 'none' }}>{member.username}</span>
-            </div>
+            </button>
           )
         })}
 
@@ -706,7 +706,7 @@ function ParticipantsBox({ tripMembers, participantIds, allJoined, onSetParticip
                       display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(8px * var(--fs-scale-caption, 1))', fontWeight: 700,
                       overflow: 'hidden', flexShrink: 0,
                     }}>
-                      {(member.avatar_url || member.avatar) ? <img src={member.avatar_url || avatarSrc(member.avatar)!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : member.username?.[0]?.toUpperCase()}
+                      {(member.avatar_url || member.avatar) ? <img src={member.avatar_url || avatarSrc(member.avatar)!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : member.username?.[0]?.toUpperCase()}
                     </div>
                     <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{member.username}</span>
                     {member.is_guest && <GuestBadge size="xs" />}

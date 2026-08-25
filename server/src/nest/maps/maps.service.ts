@@ -58,7 +58,10 @@ const PLACES_UPSTREAM = 'https://places.googleapis.com';
 function placesEndpoint(endpoint: string): string {
   const base = readEnv().maps.placesApiBase;
   if (!base || !endpoint.startsWith(PLACES_UPSTREAM)) return endpoint;
-  return base.replace(/\/+$/, '') + endpoint.slice(PLACES_UPSTREAM.length);
+  // The character before the run is matched and written straight back. A bare
+  // /\/+$/ restarts at every slash of a base that does not end in one, reading
+  // the rest of the run again from each of them.
+  return base.replace(/([^/]|^)\/+$/, '$1') + endpoint.slice(PLACES_UPSTREAM.length);
 }
 
 /**
@@ -181,7 +184,7 @@ function wikidataImageClaims(claims: WikidataClaims, limit: number): string[] {
 
 /** `File:` prefix off, underscores and case normalised — Commons treats these as one title. */
 function normalizeFileTitle(title: string): string {
-  return title.replace(/^File:/i, '').replace(/_/g, ' ').trim().toLowerCase();
+  return title.replace(/^File:/i, '').replaceAll('_', ' ').trim().toLowerCase();
 }
 
 /**
@@ -1851,7 +1854,7 @@ export class MapsService {
 
     // Deduplicate concurrent requests for the same placeId
     const existing = this.photoCache.getInFlight(placeId);
-    if (existing) {
+    if (existing !== undefined) {
       const result = await existing;
       if (!result) return noPhoto;
       return { photoUrl: `/api/maps/place-photo/${encodeURIComponent(placeId)}/bytes`, attribution: result.attribution };
@@ -1872,7 +1875,7 @@ export class MapsService {
         // so a place added via search still gets a marker image when Google returns
         // nothing. Returns null (without marking an error) so the caller decides.
         const fetchWikimediaFallback = async (): Promise<{ attribution: string | null } | null> => {
-          if (isNaN(lat) || isNaN(lng)) return null;
+          if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
           try {
             const wiki = await this.fetchWikimediaPhoto(lat, lng, name);
             if (!wiki) return null;
@@ -2091,10 +2094,10 @@ export class MapsService {
     let placeName: string | null = null;
     const placeMatch = resolvedUrl.match(/\/place\/([^/@]+)/);
     if (placeMatch) {
-      placeName = decodeURIComponent(placeMatch[1].replace(/\+/g, ' '));
+      placeName = decodeURIComponent(placeMatch[1].replaceAll(/\+/g, ' '));
     }
 
-    if (!coords || isNaN(coords.lat) || isNaN(coords.lng)) {
+    if (!coords || Number.isNaN(coords.lat) || Number.isNaN(coords.lng)) {
       throw Object.assign(new Error('Could not extract coordinates from URL'), { status: 400 });
     }
     const { lat, lng } = coords;

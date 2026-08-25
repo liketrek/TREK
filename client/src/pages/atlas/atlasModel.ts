@@ -116,7 +116,9 @@ export function normalizeRegionName(name: string): string {
   return name
     .normalize('NFD').replace(/[̀-ͯ]/g, '') // strip combining diacritics
     .replace(/[‐-―]/g, '-') // fold hyphen/dash variants to "-"
-    .replace(/\s*-\s*/g, '-') // collapse spaced dashes ("A – B" vs "A-B")
+    // Collapse spaced dashes ("A – B" vs "A-B"). split/trim, not /\s*-\s*/g:
+    // that pattern backtracks over every space in a dash-less name (quadratic).
+    .split('-').map(part => part.trim()).join('-')
     .toLowerCase()
     .trim()
 }
@@ -180,7 +182,7 @@ export const COUNTRY_COLORS = ['#6366f1', '#ec4899', '#14b8a6', '#f97316', '#8b5
 // every other country's color each time one more was marked or added.
 export function countryColor(a3: string): string {
   let hash = 0
-  for (let i = 0; i < a3.length; i++) hash = (hash * 31 + a3.charCodeAt(i)) >>> 0
+  for (let i = 0; i < a3.length; i++) hash = (hash * 31 + a3.codePointAt(i)) >>> 0
   return COUNTRY_COLORS[hash % COUNTRY_COLORS.length]
 }
 
@@ -214,7 +216,7 @@ export function regionCacheEvictions(order: string[], keep: Set<string>, max: nu
 // Convert country code to flag emoji
 export function countryCodeToFlag(code: string): string {
   if (!code || code.length !== 2) return ''
-  return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65))
+  return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E6 + c.codePointAt(0) - 65))
 }
 
 // ISO-3166-1 alpha-2 → alpha-3 mapping. Two sources feed this table:

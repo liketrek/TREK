@@ -217,11 +217,13 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
 
   return createPortal(
     <div
+      role="presentation"
       onClick={handleClose}
       className="bg-[rgba(0,0,0,0.4)]"
       style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
     >
       <div
+        role="presentation"
         onClick={e => e.stopPropagation()}
         className="bg-surface-card"
         style={{ borderRadius: 16, width: '100%', maxWidth: 520, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)', fontFamily: "var(--font-system)" }}
@@ -242,7 +244,8 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
           onChange={handleInputChange}
         />
 
-        <div
+        <button
+          type="button"
           onClick={() => fileInputRef.current?.click()}
           onDragOver={handleDragOver}
           onDragEnter={handleDragOver}
@@ -277,7 +280,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
           ) : (
             <span style={{ color: 'var(--text-faint)', textAlign: 'center', pointerEvents: 'none' }}>{t('places.importFileDropHere')}</span>
           )}
-        </div>
+        </button>
 
         {isGpx && (
           <div style={{ marginBottom: 12 }}>
@@ -285,7 +288,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
               {t('places.gpxImportTypes')}
             </div>
             {(['waypoints', 'routes', 'tracks'] as const).map(key => (
-              <label key={key} onClick={() => setGpxOpts(prev => ({ ...prev, [key]: !prev[key] }))} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer' }}>
+              <button type="button" key={key} role="checkbox" aria-checked={gpxOpts[key]} onClick={() => setGpxOpts(prev => ({ ...prev, [key]: !prev[key] }))} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer', width: '100%', border: 'none', background: 'transparent', fontFamily: 'inherit', textAlign: 'left' }}>
                 <div className={gpxOpts[key] ? 'bg-accent' : 'bg-transparent'} style={{
                   width: 16, height: 16, borderRadius: 4, flexShrink: 0,
                   border: gpxOpts[key] ? 'none' : '1.5px solid var(--border-primary)',
@@ -296,7 +299,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
                 <span style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-primary)', userSelect: 'none' }}>
                   {t(key === 'waypoints' ? 'places.gpxImportWaypoints' : key === 'routes' ? 'places.gpxImportRoutes' : 'places.gpxImportTracks')}
                 </span>
-              </label>
+              </button>
             ))}
             {gpxNoneSelected && (
               <div className="text-[#b45309]" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 4 }}>{t('places.gpxImportNoneSelected')}</div>
@@ -310,7 +313,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
               {t('places.kmlImportTypes')}
             </div>
             {(['points', 'paths'] as const).map(key => (
-              <label key={key} onClick={() => setKmlOpts(prev => ({ ...prev, [key]: !prev[key] }))} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer' }}>
+              <button type="button" key={key} role="checkbox" aria-checked={kmlOpts[key]} onClick={() => setKmlOpts(prev => ({ ...prev, [key]: !prev[key] }))} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer', width: '100%', border: 'none', background: 'transparent', fontFamily: 'inherit', textAlign: 'left' }}>
                 <div className={kmlOpts[key] ? 'bg-accent' : 'bg-transparent'} style={{
                   width: 16, height: 16, borderRadius: 4, flexShrink: 0,
                   border: kmlOpts[key] ? 'none' : '1.5px solid var(--border-primary)',
@@ -321,7 +324,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
                 <span style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-primary)', userSelect: 'none' }}>
                   {t(key === 'points' ? 'places.kmlImportPoints' : 'places.kmlImportPaths')}
                 </span>
-              </label>
+              </button>
             ))}
             {kmlNoneSelected && (
               <div className="text-[#b45309]" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 4 }}>{t('places.kmlImportNoneSelected')}</div>

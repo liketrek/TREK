@@ -612,6 +612,7 @@ function TemplatesPanel({
               const slots = tpl.build(page)
               return (
                 <button
+                  type="button"
                   key={tpl.id}
                   className="st-thumb"
                   onClick={() => {

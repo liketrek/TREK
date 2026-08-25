@@ -153,7 +153,7 @@ export class FeedsService {
       .all(user.id, user.id, cutoff) as { id: number }[];
 
     const esc = (s: string) =>
-      s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+      s.replaceAll('\\', '\\\\').replaceAll(';', '\\;').replaceAll(',', '\\,').replace(/\r?\n/g, '\\n');
 
     const calName = `${user.username} – All Trips`;
     let header = CALENDAR_HEADER;

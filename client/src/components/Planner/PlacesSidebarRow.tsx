@@ -35,10 +35,22 @@ export const MemoPlaceRow = React.memo(function MemoPlaceRow({
   const hasGeometry = Boolean(place.route_geometry)
   // Touch is reached through a long press instead of being locked out (#1616).
   const dragDisabled = isMobile
+  // One place for what a row does, so the keyboard path below cannot drift from the click.
+  const activate = () => {
+    if (selectMode) {
+      toggleSelected(place.id)
+    } else if (isMobile) {
+      setDayPickerPlace(place)
+    } else {
+      onPlaceClick(isSelected ? null : place.id)
+    }
+  }
   return (
     <div
       key={place.id}
       ref={element => registerPlaceRow(place.id, element)}
+      role="option"
+      tabIndex={0}
       aria-selected={isSelected}
       data-place-id={place.id}
       draggable={!selectMode && !dragDisabled}
@@ -48,14 +60,11 @@ export const MemoPlaceRow = React.memo(function MemoPlaceRow({
         e.dataTransfer.effectAllowed = 'copy'
         window.__dragData = { placeId: String(place.id) }
       }}
-      onClick={() => {
-        if (selectMode) {
-          toggleSelected(place.id)
-        } else if (isMobile) {
-          setDayPickerPlace(place)
-        } else {
-          onPlaceClick(isSelected ? null : place.id)
-        }
+      onClick={activate}
+      onKeyDown={e => {
+        // Only when the row itself has focus — the "+" button inside it keeps its own key handling.
+        if (e.target !== e.currentTarget) return
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate() }
       }}
       onContextMenu={selectMode ? undefined : e => onContextMenu(e, place)}
       style={{
@@ -120,7 +129,7 @@ export const MemoPlaceRow = React.memo(function MemoPlaceRow({
         )}
       </div>
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
-        {!selectMode && !inDay && selectedDayId && (
+        {!selectMode && !inDay && selectedDayId !== null && (
           <button type="button"
             onClick={e => { e.stopPropagation(); onAssignToDay(place.id) }}
             className="bg-surface-hover text-content-faint"

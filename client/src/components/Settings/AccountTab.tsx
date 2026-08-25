@@ -13,6 +13,14 @@ import PasskeysSection from './PasskeysSection'
 
 const MFA_BACKUP_SESSION_KEY = 'trek_mfa_backup_codes_pending'
 
+// Drops every trailing slash, like the `/\/+$/` replace it stands in for — as a scan,
+// because that pattern re-walks the slash run from each start position.
+const stripTrailingSlashes = (value: string): string => {
+  let end = value.length
+  while (end > 0 && value[end - 1] === '/') end--
+  return value.slice(0, end)
+}
+
 export default function AccountTab(): React.ReactElement {
   const { user, updateProfile, uploadAvatar, deleteAvatar, logout, loadUser, demoMode, appRequireMfa } = useAuthStore()
   const [searchParams] = useSearchParams()
@@ -463,7 +471,7 @@ export default function AccountTab(): React.ReactElement {
             </div>
             {(user as UserWithOidc)?.oidc_issuer && (
               <p className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: -2 }}>
-                {t('settings.oidcLinked')} {(user as UserWithOidc).oidc_issuer!.replace('https://', '').replace(/\/+$/, '')}
+                {t('settings.oidcLinked')} {stripTrailingSlashes((user as UserWithOidc).oidc_issuer!.replace('https://', ''))}
               </p>
             )}
           </div>
@@ -508,11 +516,11 @@ export default function AccountTab(): React.ReactElement {
           position: 'fixed', inset: 0, zIndex: 9999,
           backdropFilter: 'blur(4px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
-        }} onClick={() => setShowDeleteConfirm(false)}>
+        }} role="presentation" onClick={e => { if (e.target === e.currentTarget) setShowDeleteConfirm(false) }}>
           <div className="bg-surface-card" style={{
             borderRadius: 16, padding: '28px 24px',
             maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-          }} onClick={e => e.stopPropagation()}>
+          }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
               <div className="bg-[#fef3c7]" style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Shield size={18} className="text-[#d97706]" />
@@ -544,11 +552,11 @@ export default function AccountTab(): React.ReactElement {
           position: 'fixed', inset: 0, zIndex: 9999,
           backdropFilter: 'blur(4px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
-        }} onClick={() => setShowDeleteConfirm(false)}>
+        }} role="presentation" onClick={e => { if (e.target === e.currentTarget) setShowDeleteConfirm(false) }}>
           <div className="bg-surface-card" style={{
             borderRadius: 16, padding: '28px 24px',
             maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-          }} onClick={e => e.stopPropagation()}>
+          }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
               <div className="bg-[#fef2f2]" style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Trash2 size={18} className="text-[#ef4444]" />

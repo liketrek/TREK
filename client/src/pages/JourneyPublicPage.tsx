@@ -241,8 +241,9 @@ export default function JourneyPublicPage() {
                   >
                     {/* Photo area */}
                     {photos.length === 1 && (
-                      <div
-                        className="relative cursor-pointer"
+                      <button
+                        type="button"
+                        className="relative block w-full cursor-pointer text-left"
                         onClick={() => setLightbox({ photos: lightboxPhotos, index: 0 })}
                       >
                         <img src={photoUrl(photos[0], token!)} className="h-64 w-full object-cover" alt="" />
@@ -269,26 +270,32 @@ export default function JourneyPublicPage() {
                             </h3>
                           </div>
                         )}
-                      </div>
+                      </button>
                     )}
 
                     {photos.length === 2 && (
                       <div className="grid grid-cols-2 gap-0.5 overflow-hidden">
                         {photos.slice(0, 2).map((p, i) => (
-                          <img
+                          <button
                             key={p.id}
-                            src={photoUrl(p, token!, 'thumbnail')}
-                            alt=""
-                            className="h-52 w-full cursor-pointer object-cover"
+                            type="button"
+                            className="block h-52 w-full cursor-pointer overflow-hidden"
                             onClick={() => setLightbox({ photos: lightboxPhotos, index: i })}
-                          />
+                          >
+                            <img
+                              src={photoUrl(p, token!, 'thumbnail')}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          </button>
                         ))}
                       </div>
                     )}
 
                     {photos.length >= 3 && (
                       <div className="flex overflow-hidden" style={{ height: 280, gap: 2 }}>
-                        <div
+                        <button
+                          type="button"
                           className="min-w-0 flex-1 cursor-pointer"
                           onClick={() => setLightbox({ photos: lightboxPhotos, index: 0 })}
                         >
@@ -297,9 +304,10 @@ export default function JourneyPublicPage() {
                             alt=""
                             className="h-full w-full object-cover"
                           />
-                        </div>
+                        </button>
                         <div className="flex min-w-0 flex-1 flex-col" style={{ gap: 2 }}>
-                          <div
+                          <button
+                            type="button"
                             className="min-h-0 flex-1 cursor-pointer"
                             onClick={() => setLightbox({ photos: lightboxPhotos, index: 1 })}
                           >
@@ -308,8 +316,9 @@ export default function JourneyPublicPage() {
                               alt=""
                               className="h-full w-full object-cover"
                             />
-                          </div>
-                          <div
+                          </button>
+                          <button
+                            type="button"
                             className="relative min-h-0 flex-1 cursor-pointer"
                             onClick={() => setLightbox({ photos: lightboxPhotos, index: 2 })}
                           >
@@ -325,13 +334,27 @@ export default function JourneyPublicPage() {
                                 </span>
                               </div>
                             )}
-                          </div>
+                          </button>
                         </div>
                       </div>
                     )}
 
                     {/* Content */}
-                    <div className="cursor-pointer px-5 pb-5 pt-4" onClick={() => setViewingEntry(entry)}>
+                    {/* Stays a div: the story renders user markdown, links included,
+                        and a link may not sit inside a <button>. */}
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className="cursor-pointer px-5 pb-5 pt-4"
+                      onClick={() => setViewingEntry(entry)}
+                      onKeyDown={(e) => {
+                        if (e.target !== e.currentTarget) return;
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setViewingEntry(entry);
+                        }
+                      }}
+                    >
                       {/* Title (only when no single photo — photo has it in overlay) */}
                       {photos.length !== 1 && entry.title && (
                         <h3 className="mb-2 text-[16px] font-semibold leading-snug tracking-tight text-zinc-900 dark:text-white">
@@ -458,9 +481,10 @@ export default function JourneyPublicPage() {
   const renderGallery = () => (
     <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 md:grid-cols-4">
       {allPhotos.map((photo, idx) => (
-        <div
+        <button
           key={photo.id}
-          className="relative aspect-square cursor-pointer overflow-hidden rounded-lg"
+          type="button"
+          className="relative block aspect-square w-full cursor-pointer overflow-hidden rounded-lg"
           onClick={() =>
             setLightbox({
               photos: allPhotos.map((p) => ({
@@ -486,7 +510,7 @@ export default function JourneyPublicPage() {
               </span>
             </div>
           )}
-        </div>
+        </button>
       ))}
     </div>
   );
@@ -594,6 +618,7 @@ export default function JourneyPublicPage() {
             >
               {SUPPORTED_LANGUAGES.map((lang) => (
                 <button
+                  type="button"
                   key={lang.value}
                   onClick={() => {
                     useSettingsStore.setState((s) => ({ settings: { ...s.settings, language: lang.value } }));

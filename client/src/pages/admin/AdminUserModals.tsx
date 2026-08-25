@@ -244,9 +244,11 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
             justifyContent: 'center',
             padding: 16,
           }}
+          role="presentation"
           onClick={() => setShowUpdateModal(false)}
         >
           <div
+            role="presentation"
             onClick={(e) => e.stopPropagation()}
             style={{ width: '100%', maxWidth: 440, borderRadius: 16, overflow: 'hidden' }}
             className="border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"

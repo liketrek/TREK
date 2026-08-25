@@ -152,8 +152,11 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
           {shownPhotos.map((photo, i) => (
             <div
               key={photo.id}
+              role="button"
+              tabIndex={0}
               className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
               onClick={() => onPhotoClick(allPhotos, i)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPhotoClick(allPhotos, i) } }}
             >
               {photo.media_type === 'video' && !photo.thumbnail_path ? (
                 // Poster-less video (capture failed / unsupported codec): show a

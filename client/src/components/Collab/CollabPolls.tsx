@@ -88,8 +88,8 @@ function CreatePollModal({ onClose, onCreate, t }: CreatePollModalProps) {
   }
 
   return createPortal(
-    <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay-bg, rgba(0,0,0,0.35))', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16, fontFamily: FONT }} onClick={onClose}>
-      <form style={{ background: 'var(--bg-card)', borderRadius: 16, width: '100%', maxWidth: 400, maxHeight: '90vh', overflow: 'auto', border: '1px solid var(--border-faint)' }} onClick={e => e.stopPropagation()} onSubmit={handleSubmit}>
+    <div role="presentation" style={{ position: 'fixed', inset: 0, background: 'var(--overlay-bg, rgba(0,0,0,0.35))', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16, fontFamily: FONT }} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <form style={{ background: 'var(--bg-card)', borderRadius: 16, width: '100%', maxWidth: 400, maxHeight: '90vh', overflow: 'auto', border: '1px solid var(--border-faint)' }} onSubmit={handleSubmit}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 12px', borderBottom: '1px solid var(--border-faint)' }}>
           <h3 style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{t('collab.polls.new')}</h3>
           <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 2, display: 'flex' }}><X size={16} /></button>
@@ -122,13 +122,13 @@ function CreatePollModal({ onClose, onCreate, t }: CreatePollModalProps) {
 
           {/* Multi choice toggle */}
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <div onClick={() => setMultiChoice(!multiChoice)} style={{
-              width: 36, height: 20, borderRadius: 10, padding: 2, cursor: 'pointer',
+            <button type="button" role="switch" aria-checked={multiChoice} onClick={() => setMultiChoice(!multiChoice)} style={{
+              width: 36, height: 20, borderRadius: 10, padding: 2, cursor: 'pointer', border: 'none',
               background: multiChoice ? '#007AFF' : 'var(--border-primary)', transition: 'background 0.2s',
               display: 'flex', alignItems: 'center',
             }}>
               <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'transform 0.2s', transform: multiChoice ? 'translateX(16px)' : 'translateX(0)' }} />
-            </div>
+            </button>
             <span style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-muted)', fontFamily: FONT }}>{t('collab.polls.multiChoice')}</span>
           </label>
 
@@ -174,7 +174,7 @@ function VoterChip({ voter, offset }: VoterChipProps) {
           fontSize: 'calc(7px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--text-muted)', overflow: 'hidden',
           border: '1.5px solid var(--bg-card)', marginLeft: offset ? -5 : 0, flexShrink: 0,
         }}>
-        {voter.avatar_url ? <img src={voter.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (voter.username || '?')[0].toUpperCase()}
+        {voter.avatar_url ? <img src={voter.avatar_url} alt={voter.username || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (voter.username || '?')[0].toUpperCase()}
       </div>
       {hover && createPortal(
         <div style={{

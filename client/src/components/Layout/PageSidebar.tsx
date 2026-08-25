@@ -94,6 +94,7 @@ export default function PageSidebar({
         <>
           <div
             className="lg:hidden fixed inset-0 z-40 bg-[rgba(0,0,0,0.35)]"
+            role="presentation"
             onClick={() => setMobileOpen(false)}
           />
           <aside

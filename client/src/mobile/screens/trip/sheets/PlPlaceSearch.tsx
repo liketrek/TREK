@@ -38,7 +38,7 @@ interface PlPlaceSearchProps {
 }
 
 /** "48.8566, 2.3522" (also ; or whitespace separated) → direct coordinates. */
-const COORD_RE = /^(-?\d+\.?\d*)\s*[,;\s]\s*(-?\d+\.?\d*)$/
+const COORD_RE = /^(-?\d+(?:\.\d*)?)(?:\s*[,;]\s*|\s+)(-?\d+(?:\.\d*)?)$/
 
 function placeToPick(place: MapsPlace): PlSearchPick {
   const s = (v: unknown) => (v == null ? undefined : String(v))

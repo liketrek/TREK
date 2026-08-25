@@ -113,7 +113,7 @@ export function scaffold(name: string, type: string, targetDir: string, opts: Sc
   if (fs.existsSync(root)) throw new Error(`${root} already exists`);
   fs.mkdirSync(path.join(root, 'server'), { recursive: true });
 
-  const displayName = name.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  const displayName = name.replaceAll('-', ' ').replaceAll(/\b\w/g, (c) => c.toUpperCase());
   let perms = opts.permissions?.length ? opts.permissions : ['db:own'];
   const egress = opts.egress ?? [];
   if (isChannel) {

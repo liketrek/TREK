@@ -297,7 +297,9 @@ describe('MPlaceSheet', () => {
     const planner = makePlanner({ files: [] })
     renderSheet(planner)
     expect(screen.getByText('Files')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /Upload/ }))
+    // The files row itself is a button now (it expands the list), so match the
+    // upload control by its exact name rather than a substring.
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }))
 
     const input = document.querySelector('input[type="file"][multiple]') as HTMLInputElement
     selectFiles(input, [new File(['a'], 'a.pdf'), new File(['b'], 'b.pdf')])

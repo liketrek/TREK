@@ -384,7 +384,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
               <button type="button" onClick={() => setPendingDateShift(null)} disabled={isLoading} className={ghostBtnCls}>
                 {t('common.back')}
               </button>
-              <button onClick={() => performSave({ ...pendingDateShift, date_shift_mode: dateShiftMode })} disabled={isLoading}
+              <button type="button" onClick={() => performSave({ ...pendingDateShift, date_shift_mode: dateShiftMode })} disabled={isLoading}
                 className={primaryBtnCls}>
                 {isLoading
                   ? <><div className="w-4 h-4 border-2 border-accent-text/30 border-t-accent-text rounded-full animate-spin" />{t('common.saving')}</>
@@ -420,9 +420,9 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
               className={`flex items-start gap-3 p-3 border rounded-xl cursor-pointer transition-colors ${dateShiftMode === mode ? 'border-accent bg-surface-selected' : 'border-edge hover:bg-surface-hover'}`}>
               <input type="radio" name="date_shift_mode" value={mode} checked={dateShiftMode === mode}
                 onChange={() => setDateShiftMode(mode)} className="mt-1 accent-[var(--accent)]" />
-              <span>
-                <span className="block text-body font-medium text-content">{label}</span>
-                <span className="block text-body text-content-muted mt-0.5">{desc}</span>
+              <span className="block text-body font-medium text-content">
+                {label}
+                <span className="block text-body font-normal text-content-muted mt-0.5">{desc}</span>
               </span>
             </label>
           ))}
@@ -633,13 +633,13 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         {allUsers.filter(u => u.id !== currentUser?.id).length > 0 && (
           <div>
             <label className={labelCls}>
-              <UserPlus className="w-3.5 h-3.5" />{isEditing ? t('dashboard.addMembers') : t('dashboard.addMembers')}
+              <UserPlus className="w-3.5 h-3.5" />{t('dashboard.addMembers')}
             </label>
             {/* Existing members (editing mode) */}
             {isEditing && existingMembers.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {existingMembers.map(m => (
-                  <span key={m.id}
+                  <button type="button" key={m.id} disabled={m.id === currentUser?.id}
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-body font-medium bg-surface text-content border border-edge"
                     onClick={async () => {
                       if (m.id === currentUser?.id) return
@@ -652,7 +652,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                     style={{ cursor: m.id === currentUser?.id ? 'default' : 'pointer' }}>
                     {m.username}
                     {m.id !== currentUser?.id && <X size={11} className="text-content-faint" />}
-                  </span>
+                  </button>
                 ))}
               </div>
             )}
@@ -662,11 +662,11 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                 {selectedMembers.map(uid => {
                   const user = allUsers.find(u => u.id === uid)!
                   return (
-                    <span key={uid} onClick={() => setSelectedMembers(prev => prev.filter(id => id !== uid))}
+                    <button type="button" key={uid} onClick={() => setSelectedMembers(prev => prev.filter(id => id !== uid))}
                       className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-body font-medium bg-surface text-content border border-edge cursor-pointer">
                       {user.username}
                       <X size={11} className="text-content-faint" />
-                    </span>
+                    </button>
                   )
                 })}
               </div>

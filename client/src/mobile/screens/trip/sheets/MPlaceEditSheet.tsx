@@ -187,7 +187,10 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
 
   const handleCoordPaste = (e: ClipboardEvent<HTMLInputElement>) => {
     const text = e.clipboardData.getData('text').trim()
-    const match = text.match(/^(-?\d+\.?\d*)\s*[,;\s]\s*(-?\d+\.?\d*)$/)
+    // Same grammar as before, spelled without the overlapping quantifiers pasted text
+    // could make backtrack: the separator is either a comma/semicolon with optional
+    // padding or pure whitespace, and a decimal is digits with an optional ".digits".
+    const match = text.match(/^(-?\d+(?:\.\d*)?)(?:\s*[,;]\s*|\s+)(-?\d+(?:\.\d*)?)$/)
     if (match) {
       e.preventDefault()
       setForm(prev => ({ ...prev, lat: match[1], lng: match[2] }))

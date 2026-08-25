@@ -360,6 +360,7 @@ export default function SharedTripPage() {
             >
               {SUPPORTED_LANGUAGES.map((lang) => (
                 <button
+                  type="button"
                   key={lang.value}
                   onClick={() => {
                     // Set language locally without API call (shared page has no auth)
@@ -540,14 +541,21 @@ export default function SharedTripPage() {
                     className="border border-edge-faint bg-surface-card"
                     style={{ borderRadius: 14, overflow: 'hidden' }}
                   >
-                    <div
+                    <button
+                      type="button"
                       onClick={() => setSelectedDay(selectedDay === day.id ? null : day.id)}
+                      aria-expanded={selectedDay === day.id}
                       style={{
                         padding: '12px 16px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: 10,
+                        width: '100%',
+                        background: 'none',
+                        border: 'none',
+                        textAlign: 'left',
+                        fontFamily: 'inherit',
                       }}
                     >
                       <div
@@ -632,7 +640,7 @@ export default function SharedTripPage() {
                       >
                         {dayPlaceCount} {t('shared.places')}
                       </span>
-                    </div>
+                    </button>
 
                     {selectedDay === day.id && merged.length > 0 && (
                       <div style={{ padding: '0 16px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -796,6 +804,7 @@ export default function SharedTripPage() {
                                 {place.image_url ? (
                                   <img
                                     src={place.image_url}
+                                    alt=""
                                     style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }}
                                   />
                                 ) : (
@@ -1099,7 +1108,7 @@ export default function SharedTripPage() {
                           style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}
                         >
                           {item.total_price
-                            ? `${convert(parseFloat(item.total_price) || 0, curOf(item)).toLocaleString(locale, { minimumFractionDigits: 2 })} ${base}`
+                            ? `${convert(Number.parseFloat(item.total_price) || 0, curOf(item)).toLocaleString(locale, { minimumFractionDigits: 2 })} ${base}`
                             : '—'}
                         </span>
                       </div>
@@ -1183,6 +1192,7 @@ export default function SharedTripPage() {
                         {msg.avatar ? (
                           <img
                             src={avatarSrc(msg.avatar)!}
+                            alt=""
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           />
                         ) : (

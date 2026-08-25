@@ -77,7 +77,10 @@ export default function VacaySharedCalendars() {
         <div className="flex flex-col gap-1">
           {incomingShares.map(s => (
             <div key={s.id}
+              role="button"
+              tabIndex={0}
               onClick={() => handleToggleHidden(s.id, !s.hidden)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleToggleHidden(s.id, !s.hidden) } }}
               className="flex items-center gap-2.5 group transition-colors cursor-pointer"
               style={{ padding: '7px 10px', borderRadius: 12, opacity: s.hidden ? 0.55 : 1 }}
               title={s.hidden ? t('vacay.showInCalendar') : t('vacay.hideFromCalendar')}>
@@ -128,8 +131,10 @@ export default function VacaySharedCalendars() {
       {/* Share Modal — Portal to body to avoid z-index issues */}
       {showShare && createPortal(
         <div className="fixed inset-0 flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]" style={{ zIndex: 99990, paddingTop: 70 }}
+          role="presentation"
           onClick={() => setShowShare(false)}>
           <div className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-sm bg-surface-card"
+            role="presentation"
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-edge-secondary">
               <h2 className="text-base font-semibold text-content">{t('vacay.shareCalendar')}</h2>

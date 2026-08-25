@@ -53,8 +53,18 @@ export default function MAtlasSearch({
   const scrimCls = 'm-fade-in fixed inset-0 z-[70] flex flex-col bg-[rgba(16,16,19,.28)] px-[18px] pt-[calc(var(--m-safe-top,12px)+12px)] backdrop-blur-[22px] backdrop-saturate-[1.6]' // theme-lint-disable — fixed scrim value from the design
 
   return (
-    <div className={scrimCls} onClick={onClose}>
-      <div className="flex items-center gap-[10px]" onClick={(e) => e.stopPropagation()}>
+    <div
+      className={scrimCls}
+      // presentation, not role="button": the scrim wraps the whole search
+      // overlay, so making it a button puts a full-screen tab stop around its
+      // own contents — and screen readers would read the entire panel as the
+      // button's label. Clicking it is a mouse shortcut for the Cancel control
+      // inside, which is already in the tab order. Same treatment as the other
+      // backdrops in this sweep.
+      role="presentation"
+      onClick={onClose}
+    >
+      <div className="flex items-center gap-[10px]" role="presentation" onClick={(e) => e.stopPropagation()}>
         <label className="flex min-w-0 flex-1 items-center gap-[10px] rounded-[18px] border border-[color:var(--m-gbr)] bg-[color:var(--m-sheetop)] px-4 py-[14px] shadow-[0_12px_30px_-14px_rgba(0,0,0,.4)]">
           <Search size={18} strokeWidth={2.2} className="flex-none text-m-muted" />
           <input
@@ -77,6 +87,7 @@ export default function MAtlasSearch({
       {rows.length > 0 && (
         <div
           className="m-pop-in mt-[14px] divide-y divide-[color:var(--m-rowbr)] overflow-hidden rounded-[20px] border border-[color:var(--m-gbr)] bg-[color:var(--m-sheetop)] shadow-[0_20px_44px_-18px_rgba(0,0,0,.4)]"
+          role="presentation"
           onClick={(e) => e.stopPropagation()}
         >
           {rows.map((r) => (

@@ -125,7 +125,7 @@ describe('JourneyDetailPage MapView', () => {
 
   it('FE-COMP-JMAPVIEW-005: each row is numbered by its position across the whole journey', () => {
     renderMapView()
-    const berlin = screen.getByText('Museumsinsel').closest('div[class*="cursor-pointer"]')!
+    const berlin = screen.getByText('Museumsinsel').closest('button[class*="cursor-pointer"]')!
     expect(within(berlin as HTMLElement).getByText('3')).toBeInTheDocument()
   })
 
@@ -161,9 +161,9 @@ describe('JourneyDetailPage MapView', () => {
     renderMapView({ activeLocationId: '2' })
     expect(lastMapProps.current.activeMarkerId).toBe('2')
 
-    const row = screen.getByText('Sacré-Cœur').closest('div[class*="cursor-pointer"]') as HTMLElement
+    const row = screen.getByText('Sacré-Cœur').closest('button[class*="cursor-pointer"]') as HTMLElement
     expect(row.className).toContain('border-zinc-900')
-    const inactive = screen.getByText('Louvre').closest('div[class*="cursor-pointer"]') as HTMLElement
+    const inactive = screen.getByText('Louvre').closest('button[class*="cursor-pointer"]') as HTMLElement
     expect(inactive.className).toContain('border-zinc-200')
   })
 

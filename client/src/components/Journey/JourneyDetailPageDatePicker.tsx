@@ -55,7 +55,9 @@ export function DatePicker({ value, onChange, tripDates }: {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-[10]" onClick={() => setOpen(false)} />
+          {/* Click-away catcher — no semantics of its own; the trigger button
+              above closes the popover again from the keyboard. */}
+          <div role="presentation" className="fixed inset-0 z-[10]" onClick={() => setOpen(false)} />
           <div className="absolute top-full left-0 mt-1 z-[20] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-lg p-3 w-[280px]">
             {/* Month nav */}
             <div className="flex items-center justify-between mb-2">

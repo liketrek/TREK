@@ -154,7 +154,9 @@ export interface AirtrailPassengerWrite {
 
 function apiBase(baseUrl: string): string {
   // Tolerate a pasted trailing slash or '/api' suffix so we never build '/api/api'.
-  const origin = baseUrl.trim().replace(/\/+$/, '').replace(/\/api$/i, '');
+  // The lookbehind matches only the first slash of the trailing run. Without it the
+  // engine retries from every slash, which is quadratic on a slash-heavy value.
+  const origin = baseUrl.trim().replace(/(?<!\/)\/+$/, '').replace(/\/api$/i, '');
   return origin + '/api';
 }
 

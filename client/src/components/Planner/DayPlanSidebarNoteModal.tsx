@@ -69,12 +69,12 @@ function NoteDialog({ dayId, ui, setNoteUi, noteInputRef, cancelNote, saveNote, 
       position: 'fixed', inset: 0, zIndex: 10000,
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
       backdropFilter: 'blur(3px)',
-    }} onClick={() => cancelNote(Number(dayId))}>
+    }} role="presentation" onClick={() => cancelNote(Number(dayId))}>
       <div className="bg-surface-card note-modal" style={{
         width: '100%', maxWidth: 720, maxHeight: '90vh', overflowY: 'auto', borderRadius: 16,
         boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
         display: 'flex', flexDirection: 'column', gap: 16,
-      }} onClick={e => e.stopPropagation()}>
+      }} role="presentation" onClick={e => e.stopPropagation()}>
         <div className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600 }}>
           {ui.mode === 'add' ? t('dayplan.noteAdd') : t('dayplan.noteEdit')}
         </div>

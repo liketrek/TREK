@@ -858,7 +858,7 @@ describe('CollabNotes', () => {
     await user.click(screen.getByTitle('Manage Categories'));
     await screen.findByText('Manage Categories', { selector: 'h3' });
     // Find the "Transport" category name span and click to edit
-    const categoryNameSpan = screen.getAllByText('Transport').find(el => el.tagName === 'SPAN' && el.title === 'Click to rename');
+    const categoryNameSpan = screen.getAllByText('Transport').find(el => el.tagName === 'BUTTON' && el.title === 'Click to rename');
     if (categoryNameSpan) {
       await user.click(categoryNameSpan);
       // Now an input with value "Transport" should appear
@@ -980,7 +980,7 @@ describe('CollabNotes', () => {
     await screen.findByText('Manage Categories', { selector: 'h3' });
 
     // Find and click the "OldCat" category name span to enter edit mode
-    const oldCatSpan = screen.getAllByText('OldCat').find(el => el.tagName === 'SPAN' && el.title === 'Click to rename');
+    const oldCatSpan = screen.getAllByText('OldCat').find(el => el.tagName === 'BUTTON' && el.title === 'Click to rename');
     if (oldCatSpan) {
       await user.click(oldCatSpan);
       const editInput = screen.getByDisplayValue('OldCat');
@@ -1767,10 +1767,13 @@ describe('CollabNotes details', () => {
       if (!img) throw new Error('image attachment not rendered yet');
       return img;
     });
-    fireEvent.mouseEnter(image);
-    expect(image.style.transform).toBe('scale(1.06)');
-    fireEvent.mouseLeave(image);
-    expect(image.style.transform).toBe('scale(1)');
+    // The clickable thumbnail is a real button wrapped around the image, so the
+    // hover transform lands on that button.
+    const imageTile = image.closest('button') as HTMLElement;
+    fireEvent.mouseEnter(imageTile);
+    expect(imageTile.style.transform).toBe('scale(1.06)');
+    fireEvent.mouseLeave(imageTile);
+    expect(imageTile.style.transform).toBe('scale(1)');
     fireEvent.click(image);
     await waitFor(() => expect(screen.queryByText('Download itinerary.zip')).not.toBeInTheDocument());
   });
@@ -1841,7 +1844,7 @@ describe('CollabNotes details', () => {
 
     await user.click(screen.getByTitle('Manage Categories'));
     await screen.findByText('Manage Categories', { selector: 'h3' });
-    const oldCat = screen.getAllByText('OldCat').find(el => el.tagName === 'SPAN' && el.title === 'Click to rename')!;
+    const oldCat = screen.getAllByText('OldCat').find(el => el.tagName === 'BUTTON' && el.title === 'Click to rename')!;
     await user.click(oldCat);
     const editInput = screen.getByDisplayValue('OldCat');
     await user.clear(editInput);
@@ -1894,7 +1897,7 @@ describe('CollabNotes details', () => {
     await user.click(screen.getByTitle('Manage Categories'));
     await screen.findByText('Manage Categories', { selector: 'h3' });
 
-    const oldCat = screen.getAllByText('OldCat').find(el => el.tagName === 'SPAN' && el.title === 'Click to rename')!;
+    const oldCat = screen.getAllByText('OldCat').find(el => el.tagName === 'BUTTON' && el.title === 'Click to rename')!;
     await user.click(oldCat);
     const editInput = screen.getByDisplayValue('OldCat');
     await user.clear(editInput);

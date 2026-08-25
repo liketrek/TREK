@@ -623,7 +623,7 @@ export class PlacesService {
     if (!gpx) return null;
 
     const str = (v: unknown) => (v != null ? String(v).trim() : null);
-    const num = (v: unknown) => { const n = Number.parseFloat(String(v)); return isNaN(n) ? null : n; };
+    const num = (v: unknown) => { const n = Number.parseFloat(String(v)); return Number.isNaN(n) ? null : n; };
 
     // Routes and tracks rarely carry their own <name>. Without one they all fall back to the
     // same generic label, so name-based dedup drops every import after the first. Derive a
@@ -980,7 +980,7 @@ export class PlacesService {
       const name = item?.[2];
       const note = item?.[3] || null;
 
-      if (name && typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) {
+      if (name && typeof lat === 'number' && typeof lng === 'number' && !Number.isNaN(lat) && !Number.isNaN(lng)) {
         places.push({ name, lat, lng, notes: note || null, googleFtid: googleMapsFeatureIdFromItem(item) });
       }
     }

@@ -165,12 +165,12 @@ export class CalendarService {
       .all(tripId) as any[];
 
     const esc = (s: string) => s
-      .replace(/\\/g, '\\\\')
-      .replace(/;/g, '\\;')
-      .replace(/,/g, '\\,')
+      .replaceAll(/\\/g, '\\\\')
+      .replaceAll(';', '\\;')
+      .replaceAll(',', '\\,')
       .replace(/\r?\n/g, '\\n')
-      .replace(/\r/g, '');
-    const fmtDate = (d: string) => d.replace(/-/g, '');
+      .replaceAll(/\r/g, '');
+    const fmtDate = (d: string) => d.replaceAll('-', '');
     const now = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     const uid = (id: number, type: string) => `trek-${type}-${id}@trek`;
 
@@ -189,7 +189,7 @@ export class CalendarService {
       // the TZID and leaves a floating time in the feed (#1453 again).
       if (refDate && d.match(/^\d{2}:\d{2}/)) {
         const datePart = refDate.split('T')[0];
-        const raw = `${datePart}T${d.replace(/:/g, '')}`.replace(/-/g, '');
+        const raw = `${datePart}T${d.replaceAll(':', '')}`.replaceAll('-', '');
         return raw.length === 13 ? raw + '00' : raw;
       }
       return d.replace(/[-:]/g, '');

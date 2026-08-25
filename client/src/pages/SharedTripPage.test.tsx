@@ -506,7 +506,9 @@ describe('SharedTripPage', () => {
       // the day picker above the map was added (#1962): once as a chip, once on the card.
       await waitFor(() => expect(screen.getAllByText('Tag 1')).toHaveLength(2));
       const labels = screen.getAllByText('Tag 1');
-      expect(labels.filter((el) => el.closest('button'))).toHaveLength(1);
+      // One of each: the picker chip carries aria-pressed, the day card's header aria-expanded.
+      expect(labels.filter((el) => el.closest('[aria-pressed]'))).toHaveLength(1);
+      expect(labels.filter((el) => el.closest('[aria-expanded]'))).toHaveLength(1);
     });
   });
 
@@ -709,7 +711,9 @@ describe('SharedTripPage', () => {
       // Twice since the day picker landed (#1962): the chip above the map and the card.
       const dayLabels = screen.getAllByText('Day 1');
       expect(dayLabels).toHaveLength(2);
-      expect(dayLabels.filter((el) => el.closest('button'))).toHaveLength(1);
+      // One of each: the picker chip carries aria-pressed, the day card's header aria-expanded.
+      expect(dayLabels.filter((el) => el.closest('[aria-pressed]'))).toHaveLength(1);
+      expect(dayLabels.filter((el) => el.closest('[aria-expanded]'))).toHaveLength(1);
       expect(screen.getByText('Hotel Lutetia')).toBeInTheDocument();
       expect(screen.getByText('0 places')).toBeInTheDocument();
       // No date row for an undated day.

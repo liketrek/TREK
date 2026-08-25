@@ -28,6 +28,7 @@ export function PlacesBulkCategoryModal({ count, categories, onPick, onClose }: 
   const { t } = useTranslation()
   return createPortal(
     <div
+      role="presentation"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
       style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
     >
@@ -53,7 +54,7 @@ export function PlacesBulkCategoryModal({ count, categories, onPick, onClose }: 
               </button>
             )
           })}
-          <button onClick={() => onPick(null)} className="text-content-muted bg-transparent" style={{ ...rowStyle, borderTop: categories.length > 0 ? '1px solid var(--border-faint)' : 'none', marginTop: categories.length > 0 ? 2 : 0 }} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
+          <button type="button" onClick={() => onPick(null)} className="text-content-muted bg-transparent" style={{ ...rowStyle, borderTop: categories.length > 0 ? '1px solid var(--border-faint)' : 'none', marginTop: categories.length > 0 ? 2 : 0 }} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
             <MapPin size={14} strokeWidth={2} color="var(--text-faint)" />
             <span style={{ flex: 1 }}>{t('places.noCategory')}</span>
           </button>

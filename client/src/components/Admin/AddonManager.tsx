@@ -451,6 +451,7 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
         <section className="space-y-3">
           <div className={sectionCls}>Model</div>
           <label className="block">
+            <span className="sr-only">Model</span>
             <input autoComplete="off" className={fieldCls} value={model} onChange={e => setModel(e.target.value)} placeholder={provider === 'anthropic' ? 'claude-opus-4-8' : provider === 'openai' ? 'gpt-4o' : 'select or pull below'} />
           </label>
 

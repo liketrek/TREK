@@ -77,7 +77,10 @@ export default function MToastHost() {
         return (
           <div
             key={toast.id}
+            role={toast.sticky ? 'button' : undefined}
+            tabIndex={toast.sticky ? 0 : undefined}
             onClick={toast.sticky ? () => dismissToast(toast.id) : undefined}
+            onKeyDown={toast.sticky ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dismissToast(toast.id) } } : undefined}
             className={`flex max-w-full items-center gap-2 rounded-full bg-m-act px-4 py-2 text-[0.75rem] font-semibold text-m-actfg shadow-[0_10px_30px_-8px_rgba(0,0,0,.5)] ${
               toast.sticky ? 'pointer-events-auto cursor-pointer' : ''
             } ${toast.removing ? 'm-toast-out' : 'm-toast-in'}`}

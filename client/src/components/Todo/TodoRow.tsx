@@ -33,7 +33,18 @@ export default function TodoRow({ item, members, categories, today, isSelected, 
 
   return (
     <div key={item.id}
+      // Selecting the task has no other trigger, so the row is the control. Its
+      // checkbox and its drag handle answer for themselves, hence the key handler
+      // only fires when the row itself has focus.
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(isSelected ? null : item.id)}
+      onKeyDown={e => {
+        if (e.target !== e.currentTarget) return
+        if (e.key !== 'Enter' && e.key !== ' ') return
+        e.preventDefault()
+        onSelect(isSelected ? null : item.id)
+      }}
       onDragOver={canDrag ? (e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; drag!.onOver(item.id) }) : undefined}
       onDragLeave={canDrag ? (e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) drag!.onOver(-1) }) : undefined}
       onDrop={canDrag ? (e => { e.preventDefault(); e.stopPropagation(); drag!.onDrop(item.id) }) : undefined}
@@ -50,6 +61,9 @@ export default function TodoRow({ item, members, categories, today, isSelected, 
 
       {canDrag && (
         <div
+          // Dragging is the handle's whole job; the click only keeps the row from
+          // selecting, so the handle stays presentational.
+          role="presentation"
           draggable
           onClick={e => e.stopPropagation()}
           onDragStart={e => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; drag!.onStart(item.id) }}
@@ -83,7 +97,7 @@ export default function TodoRow({ item, members, categories, today, isSelected, 
           </div>
         )}
         {/* Inline badges */}
-        {(item.priority || item.due_date || catColor || assignedUser) && (
+        {!!(item.priority || item.due_date || catColor || assignedUser) && (
         <div style={{ display: 'flex', gap: 5, marginTop: 5, flexWrap: 'wrap' }}>
           {item.priority > 0 && PRIO_CONFIG[item.priority] && (
             <span style={{

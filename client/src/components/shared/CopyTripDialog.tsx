@@ -44,9 +44,17 @@ export default function CopyTripDialog({ isOpen, tripTitle, onClose, onConfirm }
     <div
       className="fixed inset-0 z-[10000] flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]"
       style={{ paddingBottom: 'var(--bottom-nav-h)' }}
+      role="button"
+      tabIndex={0}
+      aria-label={t('common.close')}
       onClick={onClose}
+      onKeyDown={e => {
+        if (e.target !== e.currentTarget) return
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClose() }
+      }}
     >
       <div
+        role="presentation"
         className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-md p-6 bg-surface-card"
         onClick={e => e.stopPropagation()}
       >

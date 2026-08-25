@@ -9,6 +9,15 @@ import { Public } from '../auth/public.decorator';
 
 const MIN = 60_000;
 
+/** Drops every trailing slash from a resource indicator, exactly like the `/\/+$/` replace
+ *  it stands in for — as a scan, because that pattern re-walks the slash run from every
+ *  start position of a `resource` value the caller controls. */
+function stripTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 47 /* '/' */) end--;
+  return value.slice(0, end);
+}
+
 /**
  * Public OAuth 2.1 endpoints (no session) — byte-identical to the legacy
  * oauthPublicRouter (server/src/routes/oauth.ts): MCP-addon gated (404), the
@@ -57,7 +66,7 @@ export class OauthPublicController {
       if (!pending) return invalidGrant('code_invalid_or_expired', null);
       if (pending.clientId !== client_id) return invalidGrant('client_id_mismatch', pending.userId);
       if (pending.redirectUri !== redirect_uri) return invalidGrant('redirect_uri_mismatch', pending.userId);
-      if (pending.resource && resource && pending.resource !== resource.replace(/\/+$/, '')) return invalidGrant('resource_mismatch', pending.userId);
+      if (pending.resource && resource && pending.resource !== stripTrailingSlashes(resource)) return invalidGrant('resource_mismatch', pending.userId);
       if (!this.oauth.authenticateClient(client_id, client_secret)) {
         logWarn(`[OAuth] Invalid client credentials for client_id=${client_id} ip=${ip ?? '-'}`);
         this.audit.writeAudit({ userId: pending.userId, action: 'oauth.token.client_auth_failed', details: { client_id }, ip });
@@ -116,7 +125,7 @@ export class OauthPublicController {
       } else {
         grantedScopes = allowedScopes;
       }
-      const audience = resource ? resource.replace(/\/+$/, '') : `${this.oauth.mcpSafeUrl().replace(/\/+$/, '')}/mcp`;
+      const audience = resource ? stripTrailingSlashes(resource) : `${stripTrailingSlashes(this.oauth.mcpSafeUrl())}/mcp`;
       const tokens = this.oauth.issueClientCredentialsToken(client_id, client.user_id, grantedScopes, audience);
       this.audit.writeAudit({ userId: client.user_id, action: 'oauth.token.issue', details: { client_id, scopes: grantedScopes, audience, grant: 'client_credentials' }, ip });
       res.json(tokens);

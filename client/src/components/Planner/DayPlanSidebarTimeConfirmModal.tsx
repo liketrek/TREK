@@ -22,12 +22,12 @@ interface DayPlanSidebarTimeConfirmModalProps {
 export function DayPlanSidebarTimeConfirmModal({ timeConfirm, setTimeConfirm, confirmTimeRemoval, t }: DayPlanSidebarTimeConfirmModalProps) {
   if (!timeConfirm) return null
   return createPortal(
-    <div className="bg-[rgba(0,0,0,0.3)]" style={{
+    <div role="presentation" className="bg-[rgba(0,0,0,0.3)]" style={{
       position: 'fixed', inset: 0, zIndex: 1000,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       backdropFilter: 'blur(3px)',
     }} onClick={() => setTimeConfirm(null)}>
-      <div className="bg-surface-card" style={{
+      <div role="presentation" className="bg-surface-card" style={{
         width: 340, borderRadius: 16,
         boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
         display: 'flex', flexDirection: 'column', gap: 12,

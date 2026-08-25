@@ -117,7 +117,7 @@ function StatCard({ stat: s, isMe, canEdit, selectedYear, isShiftedYear, onSave,
   const handleSave = () => {
     setEditing(false)
     const days = Number.parseInt(String(localDays))
-    if (!isNaN(days) && days >= 0 && days <= 365 && days !== s.vacation_days) {
+    if (!Number.isNaN(days) && days >= 0 && days <= 365 && days !== s.vacation_days) {
       onSave(selectedYear, days, s.user_id)
     }
   }
@@ -159,6 +159,9 @@ function StatCard({ stat: s, isMe, canEdit, selectedYear, isShiftedYear, onSave,
           className="group/days"
           style={{ padding: '6px 9px', borderRadius: 10, background: 'var(--vg-surf2)', cursor: canEdit ? 'pointer' : 'default' }}
           onClick={() => { if (canEdit && !editing) setEditing(true) }}
+          role={canEdit && !editing ? 'button' : undefined}
+          tabIndex={canEdit && !editing ? 0 : undefined}
+          onKeyDown={canEdit && !editing ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditing(true) } } : undefined}
         >
           <div style={{ fontSize: 10, marginBottom: 2, color: 'var(--vg-ink3)', height: 13, lineHeight: '13px' }}>
             {t('vacay.entitlementDays')} {canEdit && !editing && <Pencil size={9} className="inline opacity-0 group-hover/days:opacity-100 transition-opacity" style={{ verticalAlign: 'middle', color: 'var(--vg-ink3)' }} />}

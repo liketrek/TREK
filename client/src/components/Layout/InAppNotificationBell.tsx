@@ -69,7 +69,8 @@ export default function InAppNotificationBell(): React.ReactElement {
 
       {open && createPortal(
         <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={() => setOpen(false)} />
+          {/* Click-away catcher only — the bell button itself closes the panel again from the keyboard. */}
+          <div role="presentation" style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={() => setOpen(false)} />
           <div
             className="rounded-xl shadow-xl border overflow-hidden bg-surface-card border-edge"
             style={{

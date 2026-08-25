@@ -68,9 +68,13 @@ export function csvListFiltered(raw: string | undefined): string[] | null {
     : null;
 }
 
-/** Strip ALL trailing slashes (`/\/+$/`) — app-url.getAppUrl / TRANSIT_API_URL variant. */
+/** Strip ALL trailing slashes (`/\/+$/`) — app-url.getAppUrl / TRANSIT_API_URL variant.
+ *  Scanned rather than replaced: `/\/+$/` re-walks the slash run from every start
+ *  position, which is quadratic on a slash-heavy value. Same result, same quirk. */
 export function stripTrailingSlashes(value: string): string {
-  return value.replace(/\/+$/, '');
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 47 /* '/' */) end--;
+  return value.slice(0, end);
 }
 
 const DURATION_UNITS_MS: Record<string, number> = {

@@ -21,9 +21,11 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
   // The spinner is short, and it has to keep up with a scrolling sheet (#1999).
   const anchored = useAnchoredPosition(ref, open, { estimatedHeight: 120, matchWidth: false })
 
-  const [h, m] = (parseMeridiemTime(value) ?? value ?? '').split(':').map(Number)
-  const hour = isNaN(h) ? null : h
-  const minute = isNaN(m) ? null : m
+  // `m` falls back to NaN because a value with no colon ('' while the field is
+  // empty) splits into a single part, and an absent minute has to read as unset.
+  const [h, m = NaN] = (parseMeridiemTime(value) ?? value ?? '').split(':').map(Number)
+  const hour = Number.isNaN(h) ? null : h
+  const minute = Number.isNaN(m) ? null : m
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {

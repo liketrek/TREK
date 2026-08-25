@@ -465,11 +465,17 @@ export class S3Driver implements StorageDriver {
 /**
  * '' stays ''; anything else becomes one or more slash-joined segments with a
  * trailing slash, or throws StorageInvalidKeyError. app-config/env.ts's
- * s3Preconditions validates the same slash-stripped shape at boot — keep the
- * two strip-regexes identical (`/^\/+|\/+$/g`).
+ * s3Preconditions validates the same slash-stripped shape at boot — keep the two
+ * strips identical: leading AND trailing slash runs removed, as `/^\/+|\/+$/g` did.
+ * Scanned rather than replaced, because that pattern re-walks the trailing run from
+ * every start position.
  */
 function normalizeKeyPrefix(raw: string): string {
-  const trimmed = raw.replace(/^\/+|\/+$/g, '');
+  let start = 0;
+  let end = raw.length;
+  while (start < end && raw.charCodeAt(start) === 47 /* '/' */) start++;
+  while (end > start && raw.charCodeAt(end - 1) === 47) end--;
+  const trimmed = raw.slice(start, end);
   if (trimmed === '') return '';
   assertValidPrefix(`${trimmed}/`);
   return `${trimmed}/`;

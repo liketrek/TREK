@@ -83,7 +83,12 @@ export default function BudgetSummary({ theme, currency, locale, grandTotal, has
                   {settlementOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
                   {t('budget.settlement')}
                   <span style={{ position: 'relative', display: 'inline-flex', marginLeft: 2 }}>
+                    {/* Decoration inside the settlement toggle: the hint hangs off
+                        hover, and the click only keeps the toggle from firing. A
+                        role of its own would give the toggle a second name and a
+                        nested control, so it declares itself presentational. */}
                     <span style={{ display: 'flex', cursor: 'help' }}
+                      role="presentation"
                       onMouseEnter={e => { const tip = e.currentTarget.nextElementSibling as HTMLElement; if (tip) tip.style.display = 'block' }}
                       onMouseLeave={e => { const tip = e.currentTarget.nextElementSibling as HTMLElement; if (tip) tip.style.display = 'none' }}
                       onClick={e => e.stopPropagation()}

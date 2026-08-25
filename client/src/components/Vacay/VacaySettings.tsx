@@ -345,7 +345,7 @@ function YearTypePicker() {
           { value: 'fiscal', label: t('vacay.yearTypeFiscal') },
           { value: 'anniversary', label: t('vacay.yearTypeAnniversary') },
         ] as const).map(({ value, label }) => (
-          <button key={value} onClick={() => save({ year_type: value })}
+          <button type="button" key={value} onClick={() => save({ year_type: value })}
             style={{
               padding: '4px 10px', borderRadius: 8, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer',
               fontFamily: 'inherit', border: '1px solid', transition: 'all 0.12s',

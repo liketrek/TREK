@@ -73,26 +73,26 @@ describe('TodoRow', () => {
   })
 
   it('FE-W4TDR-004: the checkbox toggles the task without selecting the row', () => {
-    const { onToggle, onSelect } = setup(todo())
+    const { onToggle, onSelect, container } = setup(todo())
 
-    fireEvent.click(screen.getAllByRole('button')[0])
+    fireEvent.click(container.querySelector('button')!)
 
     expect(onToggle).toHaveBeenCalledWith(10, true)
     expect(onSelect).not.toHaveBeenCalled()
   })
 
   it('FE-W4TDR-005: a done task strikes through and unchecks on click', () => {
-    const { onToggle } = setup(todo({ checked: 1 } as Partial<TodoItem>))
+    const { onToggle, container } = setup(todo({ checked: 1 } as Partial<TodoItem>))
 
     expect(screen.getByText('Book ferry')).toHaveStyle({ textDecoration: 'line-through' })
-    fireEvent.click(screen.getAllByRole('button')[0])
+    fireEvent.click(container.querySelector('button')!)
     expect(onToggle).toHaveBeenCalledWith(10, false)
   })
 
   it('FE-W4TDR-006: a read-only row swallows the toggle', () => {
-    const { onToggle } = setup(todo(), { canEdit: false })
+    const { onToggle, container } = setup(todo(), { canEdit: false })
 
-    fireEvent.click(screen.getAllByRole('button')[0])
+    fireEvent.click(container.querySelector('button')!)
 
     expect(onToggle).not.toHaveBeenCalled()
   })

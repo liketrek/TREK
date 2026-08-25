@@ -26,7 +26,9 @@ const MAX_TOKENS = 4096;
  */
 export class OpenAiCompatibleClient implements LlmExtractionClient {
   async extract(input: LlmExtractionInput): Promise<Record<string, unknown>[]> {
-    const base = (input.baseUrl ?? 'https://api.openai.com/v1').replace(/\/+$/, '');
+    // The lookbehind matches only the first slash of the trailing run. Without it the
+    // engine retries from every slash, which is quadratic on a slash-heavy value.
+    const base = (input.baseUrl ?? 'https://api.openai.com/v1').replace(/(?<!\/)\/+$/, '');
     const url = `${base}/chat/completions`;
     const nuextract = isNuExtractModel(input.model);
 

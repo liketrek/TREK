@@ -68,8 +68,12 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
 
   return (
     <div
+      // Backdrop only — Escape and the header's close button do the same job for
+      // the keyboard. Closing on the backdrop's own clicks (rather than letting
+      // every child stop the bubble) keeps the chrome free of click handlers.
+      role="presentation"
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 2000, display: 'flex', flexDirection: 'column', paddingBottom: 'var(--bottom-nav-h)' }}
-      onClick={onClose}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
       onTouchStart={e => setTouchStart(e.touches[0].clientX)}
       onTouchEnd={e => {
         if (touchStart === null) return
@@ -80,7 +84,7 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
       }}
     >
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', flexShrink: 0 }}>
         <span style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
           {file.original_name}
           <span style={{ marginLeft: 8, color: 'rgba(255,255,255,0.4)' }}>{index + 1} / {files.length}</span>
@@ -105,22 +109,22 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
       </div>
 
       {/* Main image + nav */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', minHeight: 0 }}
+      <div role="presentation" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', minHeight: 0 }}
         onClick={e => { if (e.target === e.currentTarget) onClose() }}>
         {navBtn('left', goPrev, hasPrev)}
         {fileIsVideo ? (
-          <div onClick={e => e.stopPropagation()}>
+          <div>
             <VideoPlayer src={file.url} style={{ maxWidth: '85vw', maxHeight: '80vh', borderRadius: 8 }} />
           </div>
         ) : (
-          imgSrc && <img src={imgSrc} alt={file.original_name} style={{ maxWidth: '85vw', maxHeight: '80vh', objectFit: 'contain', borderRadius: 8, display: 'block' }} onClick={e => e.stopPropagation()} />
+          imgSrc && <img src={imgSrc} alt={file.original_name} style={{ maxWidth: '85vw', maxHeight: '80vh', objectFit: 'contain', borderRadius: 8, display: 'block' }} />
         )}
         {navBtn('right', goNext, hasNext)}
       </div>
 
       {/* Thumbnail strip */}
       {files.length > 1 && (
-        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', padding: '10px 16px', flexShrink: 0, overflowX: 'auto' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', padding: '10px 16px', flexShrink: 0, overflowX: 'auto' }}>
           {files.map((f, i) => (
             <ThumbImg key={f.id} file={f} active={i === index} onClick={() => setIndex(i)} />
           ))}

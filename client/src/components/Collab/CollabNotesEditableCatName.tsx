@@ -25,10 +25,10 @@ export function EditableCatName({ name, onRename }: EditableCatNameProps) {
   }
 
   return (
-    <span onClick={() => { setValue(name); setEditing(true) }}
-      style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer', padding: '2px 0' }}
+    <button type="button" onClick={() => { setValue(name); setEditing(true) }}
+      style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer', padding: '2px 0', background: 'none', border: 'none', textAlign: 'left', fontFamily: 'inherit' }}
       title="Click to rename">
       {name}
-    </span>
+    </button>
   )
 }

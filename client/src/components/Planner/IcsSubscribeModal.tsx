@@ -63,6 +63,7 @@ export function IcsSubscribeModal({ endpoint, title, description, onClose }: Ics
 
   return createPortal(
     <div
+      role="presentation"
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
         background: 'rgba(0,0,0,0.5)',

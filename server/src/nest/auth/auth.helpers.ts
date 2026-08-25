@@ -16,8 +16,10 @@ import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 // resetPassword and the dummy-hash timing equaliser below — must stay in sync.
 export const BCRYPT_COST = 12;
 
-// Shape check for email input on register and profile update.
-export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Shape check for email input on register and profile update. The dot is pinned to
+// the first one that can split the domain, so the runs on either side of it can
+// never claim the same characters. Same strings as before, without backtracking.
+export const EMAIL_REGEX = /^[^\s@]+@[^\s@][^\s.@]*\.[^\s@]+$/;
 
 // Pre-computed bcrypt hash to equalise timing of "unknown email" and
 // "OIDC-only account" branches with the real verification path (CWE-208).

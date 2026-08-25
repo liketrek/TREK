@@ -5,7 +5,9 @@
 export function stripMarkdown(md: string): string {
   return md
     .replace(/^#{1,6}\s+/gm, '')           // headings
-    .replace(/!\[.*?\]\(.*?\)/g, '')        // images
+    // the alt text is a run that cannot contain "](", so it ends on the first one
+    // instead of being retried against every later "](". Same matches, no backtracking
+    .replace(/!\[(?:(?!\]\().)*\]\(.*?\)/g, '') // images
     .replace(/\[([^\]]*)\]\(.*?\)/g, '$1')  // links → text
     .replace(/(`{3}[\s\S]*?`{3})/g, '')     // code blocks
     .replace(/`([^`]+)`/g, '$1')            // inline code

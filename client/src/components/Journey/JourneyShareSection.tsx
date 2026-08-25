@@ -36,11 +36,12 @@ export default function JourneyShareSection({ journeyId }: { journeyId: number }
 
   const togglePerm = async (key: 'share_timeline' | 'share_gallery' | 'share_map') => {
     if (!link) return
+    const previous = link
     const updated = { ...link, [key]: !link[key] }
     setLink(updated)
     try {
       await journeyApi.createShareLink(journeyId, { share_timeline: updated.share_timeline, share_gallery: updated.share_gallery, share_map: updated.share_map })
-    } catch { setLink(link); toast.error(t('journey.share.updateFailed')) }
+    } catch { setLink(previous); toast.error(t('journey.share.updateFailed')) }
   }
 
   const deleteLink = async () => {

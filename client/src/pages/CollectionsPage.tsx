@@ -294,7 +294,7 @@ function CollectionsPageDesktop(): React.ReactElement {
         {/* Mobile rail drawer */}
         {c.mobileRailOpen && (
           <>
-            <div className="col-drawer-backdrop" onClick={() => c.setMobileRailOpen(false)} />
+            <div role="presentation" className="col-drawer-backdrop" onClick={() => c.setMobileRailOpen(false)} />
             <div className="col-drawer">
               <div className="col-drawer-head">
                 <button type="button" onClick={() => c.setMobileRailOpen(false)} aria-label={t('common.close')}><X size={18} /></button>

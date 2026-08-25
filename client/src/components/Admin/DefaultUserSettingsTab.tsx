@@ -185,7 +185,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
     transport_mode: null,
     website: null,
     phone: null,
-    created_at: Date(),
+    created_at: String(new Date()),
   }], [])
 
   if (!loaded) {

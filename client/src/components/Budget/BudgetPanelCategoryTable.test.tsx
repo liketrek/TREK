@@ -586,7 +586,10 @@ describe('BudgetCategoryTable — member chips', () => {
   it('FE-W4BCT-052: picking a member from either chip dropdown sets the item members', () => {
     const { setBudgetItemMembers, container } = withMembers()
     // The mobile stack under the name and the persons column both carry an editor.
-    const editors = container.querySelectorAll('td button')
+    // Assigned chips are buttons of their own, so the editors are the two that
+    // carry the picker icon.
+    const editors = Array.from(container.querySelectorAll('td button'))
+      .filter(b => b.querySelector('.lucide-pencil, .lucide-users'))
 
     fireEvent.click(editors[0])
     fireEvent.click(screen.getByText('bob'))

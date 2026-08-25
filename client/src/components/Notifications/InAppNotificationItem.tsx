@@ -130,9 +130,7 @@ export default function InAppNotificationItem({ notification, onClose }: Notific
                 style={{
                   background: notification.response === 'positive'
                     ? 'var(--text-primary)'
-                    : notification.response === 'negative'
-                      ? (dark ? '#27272a' : '#f1f5f9')
-                      : (dark ? '#27272a' : '#f1f5f9'),
+                    : (dark ? '#27272a' : '#f1f5f9'),
                   color: notification.response === 'positive'
                     ? '#fff'
                     : notification.response === 'negative'
@@ -152,9 +150,7 @@ export default function InAppNotificationItem({ notification, onClose }: Notific
                 style={{
                   background: notification.response === 'negative'
                     ? '#ef4444'
-                    : notification.response === 'positive'
-                      ? (dark ? '#27272a' : '#f1f5f9')
-                      : (dark ? '#27272a' : '#f1f5f9'),
+                    : (dark ? '#27272a' : '#f1f5f9'),
                   color: notification.response === 'negative'
                     ? '#fff'
                     : notification.response === 'positive'

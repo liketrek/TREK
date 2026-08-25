@@ -239,7 +239,7 @@ export async function createBackup(storage: StorageService, prefix: 'backup' | '
         let dbToArchive = dbPath;
         try {
           if (fs.existsSync(dbSnap)) fs.rmSync(dbSnap, { force: true });
-          db.exec(`VACUUM INTO '${dbSnap.replace(/'/g, "''")}'`);
+          db.exec(`VACUUM INTO '${dbSnap.replaceAll("'", "''")}'`);
           dbToArchive = dbSnap;
         } catch (e) {
           // Snapshot failed (disk/lock) — fall back to the checkpointed live file rather

@@ -10,11 +10,13 @@ export function ListImportModal(S: SidebarState) {
   } = S
   return createPortal(
     <div
+      role="presentation"
       onClick={() => { setListImportOpen(false); setListImportUrl('') }}
       className="bg-[rgba(0,0,0,0.4)]"
       style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
     >
       <div
+        role="presentation"
         onClick={e => e.stopPropagation()}
         className="bg-surface-card"
         style={{ borderRadius: 16, width: '100%', maxWidth: 440, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}

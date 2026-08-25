@@ -307,7 +307,8 @@ describe('TransportModal', () => {
     );
 
     const fileRow = screen.getByText('rental-agreement.pdf').closest('div')!;
-    const unlinkBtn = fileRow.querySelector('button[type="button"]')!;
+    // The row carries two buttons: [0] opens the file, [1] unlinks it.
+    const unlinkBtn = fileRow.querySelectorAll('button[type="button"]')[1];
     await userEvent.click(unlinkBtn);
 
     await waitFor(() => {
@@ -1080,7 +1081,7 @@ describe('TransportModal', () => {
 
     render(<TransportModal {...defaultProps} reservation={res} files={[attached]} />);
     const row = screen.getByText('boarding.pdf').closest('div') as HTMLElement;
-    await userEvent.click(within(row).getByRole('button'));
+    await userEvent.click(within(row).getAllByRole('button')[1]);
 
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to update', 'error', undefined));
     delete window.__addToast;
@@ -1186,7 +1187,7 @@ describe('TransportModal', () => {
 
     render(<TransportModal {...defaultProps} reservation={res} files={[attached]} />);
     const row = screen.getByText('boarding.pdf').closest('div') as HTMLElement;
-    await userEvent.click(within(row).getByRole('link'));
+    await userEvent.click(within(row).getByRole('button', { name: /open/i }));
     expect(screen.getByText('boarding.pdf')).toBeInTheDocument();
   });
 

@@ -13,7 +13,7 @@ export function parseTimeToMinutes(time?: string | null): number | null {
     return h * 60 + m
   }
   const parts = time.split(':').map(Number)
-  if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) return parts[0] * 60 + parts[1]
+  if (parts.length >= 2 && !Number.isNaN(parts[0]) && !Number.isNaN(parts[1])) return parts[0] * 60 + parts[1]
   return null
 }
 

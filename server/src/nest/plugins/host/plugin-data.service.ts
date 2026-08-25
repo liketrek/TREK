@@ -181,7 +181,7 @@ export class PluginDataDb {
    * FORBIDDEN guard by design. */
   snapshotInto(destPath: string): void {
     fs.rmSync(destPath, { force: true }); // VACUUM INTO fails if the target already exists
-    this.db.exec(`VACUUM INTO '${destPath.replace(/'/g, "''")}'`);
+    this.db.exec(`VACUUM INTO '${destPath.replaceAll("'", "''")}'`);
   }
 
   close(): void {

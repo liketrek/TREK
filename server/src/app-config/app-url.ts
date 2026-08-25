@@ -1,4 +1,5 @@
 import { readEnv } from './env';
+import { stripTrailingSlashes } from './parsers';
 
 /**
  * Instance base-URL resolution: APP_URL → first ALLOWED_ORIGINS entry →
@@ -12,7 +13,7 @@ export function getAppUrl(): string {
   if (appUrl) {
     try {
       const _ = new URL(appUrl);
-      return appUrl.replace(/\/+$/, '');
+      return stripTrailingSlashes(appUrl);
     } catch (_ignored) {}
   }
   const origins = readEnv().http.allowedOriginsRaw;
@@ -21,7 +22,7 @@ export function getAppUrl(): string {
     if (first) {
       try {
         const _ = new URL(first);
-        return first.replace(/\/+$/, '');
+        return stripTrailingSlashes(first);
       } catch (_ignored) {}
     }
   }

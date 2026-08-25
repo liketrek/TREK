@@ -112,6 +112,7 @@ export default function BookingImportModal({ isOpen, onClose, tripId }: BookingI
 
   return createPortal(
     <div
+      role="presentation"
       className="bg-[rgba(0,0,0,0.4)]"
       style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onMouseDown={(e) => { mouseDownTarget.current = e.target }}
@@ -121,6 +122,7 @@ export default function BookingImportModal({ isOpen, onClose, tripId }: BookingI
       }}
     >
       <div
+        role="presentation"
         onClick={(e) => e.stopPropagation()}
         className="bg-surface-card"
         style={{ borderRadius: 16, width: '100%', maxWidth: 540, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)', fontFamily: 'var(--font-system)', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
@@ -149,7 +151,8 @@ export default function BookingImportModal({ isOpen, onClose, tripId }: BookingI
             onChange={handleInputChange}
           />
 
-          <div
+          <button
+            type="button"
             onClick={() => fileInputRef.current?.click()}
             onDragOver={handleDragOver}
             onDragEnter={handleDragOver}
@@ -173,7 +176,7 @@ export default function BookingImportModal({ isOpen, onClose, tripId }: BookingI
             ) : (
               <span style={{ color: 'var(--text-faint)', textAlign: 'center', pointerEvents: 'none' }}>{t('reservations.import.dropHere')}</span>
             )}
-          </div>
+          </button>
 
           {error && (
             <div className="bg-[rgba(239,68,68,0.08)] text-[#b91c1c]" style={{ border: '1px solid rgba(239,68,68,0.35)', borderRadius: 10, padding: '8px 10px', fontSize: 'calc(12px * var(--fs-scale-body, 1))', whiteSpace: 'pre-wrap', marginTop: 8 }}>

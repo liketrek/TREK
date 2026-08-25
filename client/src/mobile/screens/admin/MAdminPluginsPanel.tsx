@@ -1653,7 +1653,7 @@ function PluginDetailSheet({ item, installed, busy, onInstall, onClose, t, local
             <h4 className={sectionH}>{t('admin.plugins.detailsTitle')}</h4>
             <div className="mt-2.5 grid grid-cols-2 gap-x-6 gap-y-3">
               {item.latest && <Meta k={t('admin.plugins.metaVersion')} v={`v${item.latest}`} />}
-              {sizeKb && <Meta k={t('admin.plugins.metaSize')} v={`${sizeKb} KB`} />}
+              {sizeKb !== null && <Meta k={t('admin.plugins.metaSize')} v={`${sizeKb} KB`} />}
               {/* The range, not just its lower bound: "TREK 3.2.0+" reads as "and anything
                   newer", which is exactly the claim a `<4.0.0` upper bound denies. */}
               {(item.trek || item.minTrekVersion) && (
