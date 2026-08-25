@@ -922,8 +922,10 @@ describe('guest identity transfers', () => {
       ).new_member_identity_check_completed_at,
     ).toBeNull();
 
-    const version = (testDb.prepare('SELECT version FROM schema_version').get() as { version: number }).version;
-    testDb.prepare('UPDATE schema_version SET version = ?').run(version - 2);
+    // Migration 178 suppresses legacy prompts, followed by the terminology rename
+    // and unrelated later migrations. Pin its predecessor instead of assuming these
+    // are forever the final two migrations in the repository.
+    testDb.prepare('UPDATE schema_version SET version = ?').run(177);
     runMigrations(testDb);
     expect(
       (

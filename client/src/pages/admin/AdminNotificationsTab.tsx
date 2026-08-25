@@ -10,7 +10,7 @@ interface AdminNotificationsTabProps {
   t: TranslationFn
 }
 
-// "Notifications" admin tab: email/webhook/ntfy channel toggles, SMTP credentials,
+// "Notifications" admin tab: email/webhook/ntfy/Web Push channel toggles, SMTP credentials,
 // trip reminders, admin webhook + ntfy targets, and the per-event preference matrix.
 // Derives channel state from smtpValues exactly as the original inline IIFE did.
 export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTabProps): React.ReactElement {
@@ -23,19 +23,20 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
   const emailActive = activeChans.includes('email')
   const webhookActive = activeChans.includes('webhook')
   const ntfyActive = activeChans.includes('ntfy')
+  const webPushActive = activeChans.includes('webpush')
   const tripRemindersActive = smtpValues.notify_trip_reminder !== 'false'
 
-  const setChannels = async (email: boolean, webhook: boolean, ntfy: boolean) => {
+  const setChannels = async (email: boolean, webhook: boolean, ntfy: boolean, webpush: boolean) => {
     // Preserve any id this toggle doesn't know about instead of rebuilding the CSV from
-    // just these three booleans — that used to silently DROP anything else stored here.
-    const others = activeChans.filter((c: string) => c !== 'email' && c !== 'webhook' && c !== 'ntfy')
-    const chans = [email && 'email', webhook && 'webhook', ntfy && 'ntfy', ...others].filter(Boolean).join(',') || 'none'
+    // just these booleans — that used to silently DROP anything else stored here.
+    const others = activeChans.filter((c: string) => c !== 'email' && c !== 'webhook' && c !== 'ntfy' && c !== 'webpush')
+    const chans = [email && 'email', webhook && 'webhook', ntfy && 'ntfy', webpush && 'webpush', ...others].filter(Boolean).join(',') || 'none'
     setSmtpValues(prev => ({ ...prev, notification_channels: chans }))
     try {
       await authApi.updateAppSettings({ notification_channels: chans })
     } catch {
       // Revert state on failure
-      const reverted = [emailActive && 'email', webhookActive && 'webhook', ntfyActive && 'ntfy', ...others].filter(Boolean).join(',') || 'none'
+      const reverted = [emailActive && 'email', webhookActive && 'webhook', ntfyActive && 'ntfy', webPushActive && 'webpush', ...others].filter(Boolean).join(',') || 'none'
       setSmtpValues(prev => ({ ...prev, notification_channels: reverted }))
       toast.error(t('common.error'))
     }
@@ -66,7 +67,7 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
             <p className="text-xs text-slate-400 mt-1">{t('admin.smtp.hint')}</p>
           </div>
           <button
-            onClick={() => setChannels(!emailActive, webhookActive, ntfyActive)}
+            onClick={() => setChannels(!emailActive, webhookActive, ntfyActive, webPushActive)}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${emailActive ? 'bg-content' : 'bg-edge'}`}
           >
             <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
@@ -140,7 +141,7 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
             <p className="text-xs text-slate-400 mt-1">{t('admin.webhook.hint')}</p>
           </div>
           <button
-            onClick={() => setChannels(emailActive, !webhookActive, ntfyActive)}
+            onClick={() => setChannels(emailActive, !webhookActive, ntfyActive, webPushActive)}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${webhookActive ? 'bg-content' : 'bg-edge'}`}
           >
             <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
@@ -157,11 +158,28 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
             <p className="text-xs text-slate-400 mt-1">{t('admin.ntfy.hint') || 'Allow users to configure their own ntfy topics for push notifications.'}</p>
           </div>
           <button
-            onClick={() => setChannels(emailActive, webhookActive, !ntfyActive)}
+            onClick={() => setChannels(emailActive, webhookActive, !ntfyActive, webPushActive)}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${ntfyActive ? 'bg-content' : 'bg-edge'}`}
           >
             <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
               style={{ transform: ntfyActive ? 'translateX(20px)' : 'translateX(0)' }} />
+          </button>
+        </div>
+      </div>
+
+      {/* Direct Web Push Panel */}
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="px-6 py-4 flex items-center justify-between">
+          <div>
+            <h2 className="font-semibold text-slate-900">{t('admin.notifications.webpush')}</h2>
+            <p className="text-xs text-slate-400 mt-1">{t('admin.webpush.hint')}</p>
+          </div>
+          <button
+            onClick={() => setChannels(emailActive, webhookActive, ntfyActive, !webPushActive)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${webPushActive ? 'bg-content' : 'bg-edge'}`}
+          >
+            <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
+              style={{ transform: webPushActive ? 'translateX(20px)' : 'translateX(0)' }} />
           </button>
         </div>
       </div>

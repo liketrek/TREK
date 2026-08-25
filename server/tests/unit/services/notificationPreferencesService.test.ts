@@ -163,6 +163,9 @@ describe('getPreferencesMatrix', () => {
     expect(implemented_combos['trip_invite']).toContain('email');
     expect(implemented_combos['trip_invite']).toContain('webhook');
     expect(implemented_combos['trip_invite']).toContain('ntfy');
+    expect(implemented_combos['trip_invite']).toContain('webpush');
+    expect(implemented_combos['version_available']).not.toContain('webpush');
+    expect(implemented_combos['synology_session_cleared']).not.toContain('webpush');
   });
 });
 

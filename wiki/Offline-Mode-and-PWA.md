@@ -18,6 +18,14 @@ TREK must be served over **HTTPS** — the install prompt does not appear on pla
 
 Once installed, TREK launches in **standalone** mode (fullscreen, no browser UI) using the TREK icon.
 
+## Web Push notifications
+
+When an administrator enables **Web Push**, each signed-in user can open **Settings → Notifications** and select **Enable push on this device**. Desktop and Android browsers may subscribe without installing TREK; iPhone and iPad require TREK to be added to the Home Screen first. Browser permission must be granted from the Enable button.
+
+Each browser installation appears in the user's device list and can be renamed, tested, or revoked. Event choices are account-wide, while delivery goes to every active device. Explicit logout revokes only the current device. Notifications are best-effort and may show localized trip details on the lock screen; tapping one opens its destination in TREK.
+
+Web Push requires a public HTTPS `APP_URL` in production. TREK generates and backs up its VAPID keys automatically; advanced deployments may supply `WEB_PUSH_VAPID_PUBLIC_KEY`, `WEB_PUSH_VAPID_PRIVATE_KEY`, and `WEB_PUSH_VAPID_SUBJECT`.
+
 ## What works offline
 
 TREK uses Workbox service-worker caching plus an IndexedDB database (Dexie) for structured trip data. The following content is available offline after the first sync:

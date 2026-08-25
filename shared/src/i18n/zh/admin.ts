@@ -544,6 +544,8 @@ const admin: TranslationStrings = {
   'admin.notifications.adminWebhookPanel.testFailed': '测试 Webhook 失败',
   'admin.notifications.adminWebhookPanel.alwaysOnHint': '配置 URL 后管理员 Webhook 自动触发',
   'admin.notifications.ntfy': 'Ntfy',
+  'admin.notifications.webpush': 'Web Push',
+  'admin.webpush.hint': '允许用户直接通过受支持的浏览器和已安装的 PWA 接收 TREK 通知。',
   'admin.ntfy.hint': '允许用户配置自己的 ntfy 主题以接收推送通知。在下方设置默认服务器以预填充用户设置。',
   'admin.notifications.testNtfy': '发送测试 Ntfy',
   'admin.notifications.testNtfySuccess': '测试 Ntfy 发送成功',

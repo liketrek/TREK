@@ -52,3 +52,69 @@ export type InAppListResult = z.infer<typeof inAppListResultSchema>;
 
 export const unreadCountResultSchema = z.object({ count: z.number() });
 export type UnreadCountResult = z.infer<typeof unreadCountResultSchema>;
+
+// ── Direct Web Push ────────────────────────────────────────────────────────
+
+const webPushKeySchema = z
+  .string()
+  .min(8)
+  .max(512)
+  .regex(/^[A-Za-z0-9_-]+$/);
+
+export const webPushSubscriptionSchema = z.object({
+  endpoint: z
+    .url()
+    .max(4096)
+    .refine((value) => value.startsWith('https://'), 'Web Push endpoints must use HTTPS'),
+  expirationTime: z.number().nonnegative().nullable().optional(),
+  keys: z.object({
+    p256dh: webPushKeySchema,
+    auth: webPushKeySchema,
+  }),
+});
+export type WebPushSubscription = z.infer<typeof webPushSubscriptionSchema>;
+
+export const webPushCurrentRequestSchema = z.object({
+  intent: z.enum(['enable', 'reconcile']),
+  installationId: z.uuid(),
+  label: z.string().trim().min(1).max(80),
+  subscription: webPushSubscriptionSchema,
+});
+export type WebPushCurrentRequest = z.infer<typeof webPushCurrentRequestSchema>;
+
+export const webPushDeviceSchema = z.object({
+  id: z.number().int().positive(),
+  installationId: z.uuid(),
+  label: z.string().min(1).max(80),
+  createdAt: z.string().datetime({ offset: true }),
+  lastSeenAt: z.string().datetime({ offset: true }),
+  lastSuccessAt: z.string().datetime({ offset: true }).nullable(),
+});
+export type WebPushDevice = z.infer<typeof webPushDeviceSchema>;
+
+export const webPushDeviceListResultSchema = z.object({
+  devices: z.array(webPushDeviceSchema),
+});
+export type WebPushDeviceListResult = z.infer<typeof webPushDeviceListResultSchema>;
+
+export const webPushRenameRequestSchema = z.object({
+  label: z.string().trim().min(1).max(80),
+});
+export type WebPushRenameRequest = z.infer<typeof webPushRenameRequestSchema>;
+
+export const webPushCurrentResultSchema = z.object({
+  state: z.enum(['active', 'revoked', 'suspended', 'unavailable']),
+  device: webPushDeviceSchema.optional(),
+  error: z.string().optional(),
+});
+export type WebPushCurrentResult = z.infer<typeof webPushCurrentResultSchema>;
+
+export const webPushConfigResultSchema = z.object({
+  enabled: z.boolean(),
+  available: z.boolean(),
+  publicKey: z.string().min(1).optional(),
+  canonicalOrigin: z.url().optional(),
+  maxDevices: z.number().int().positive(),
+  error: z.string().optional(),
+});
+export type WebPushConfigResult = z.infer<typeof webPushConfigResultSchema>;

@@ -7,6 +7,9 @@ const admin: TranslationStrings = {
   'admin.notifications.email': 'E-post (SMTP)',
   'admin.notifications.webhook': 'Webhook',
   'admin.notifications.ntfy': 'Ntfy',
+  'admin.notifications.webpush': 'Web Push',
+  'admin.webpush.hint':
+    'Allow users to receive TREK notifications directly through supported browsers and installed PWAs.',
   'admin.ntfy.hint':
     'Låt användarna ställa in sina egna ntfy-ämnen för push-meddelanden. Ange standardservern nedan för att förifyllda användarinställningarna.',
   'admin.notifications.save': 'Spara inställningarna för aviseringar',

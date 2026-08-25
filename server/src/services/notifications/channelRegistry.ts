@@ -25,6 +25,8 @@ export interface ChannelMessage {
   /** Absolute link (appUrl + navigateTarget) — what webhook/ntfy/plugin payloads carry. */
   url?: string;
   tripName?: string;
+  /** Current in-app unread count, used by channels that can badge a device. */
+  unreadCount?: number;
 }
 
 export interface ExternalChannel {
@@ -77,7 +79,8 @@ const builtins = new Map<string, ExternalChannel>();
 export function registerChannel(channel: ExternalChannel): void {
   // The `plugin:` namespace belongs to plugins; a built-in claiming it would make
   // getChannel() resolve inconsistently (it routes namespaced ids past this map).
-  if (isPluginChannelId(channel.id)) throw new Error(`built-in channel cannot claim the plugin namespace: ${channel.id}`);
+  if (isPluginChannelId(channel.id))
+    throw new Error(`built-in channel cannot claim the plugin namespace: ${channel.id}`);
   builtins.set(channel.id, channel);
 }
 

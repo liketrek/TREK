@@ -13,6 +13,7 @@ import { listChannels, type ChannelMessage, type ExternalChannel } from './notif
 import {
   resolveRecipients,
   createNotificationForRecipient,
+  getUnreadCount,
   type NotificationInput,
 } from './inAppNotifications';
 
@@ -290,9 +291,9 @@ export async function send(payload: NotificationPayload): Promise<void> {
         };
       }
 
-      promises.push(
-        Promise.resolve().then(() => createNotificationForRecipient(notifInput, recipientId, sender ?? null))
-      );
+      // Persist the in-app row before external delivery so channels such as Web
+      // Push can badge the recipient with the current unread count.
+      createNotificationForRecipient(notifInput, recipientId, sender ?? null);
     }
 
     // ── External channels (email, webhook, ntfy, plugin:*) ───────────────
@@ -310,6 +311,7 @@ export async function send(payload: NotificationPayload): Promise<void> {
         navigateTarget: navigateTarget ?? undefined,
         url: fullLink,
         tripName: params.trip,
+        unreadCount: getUnreadCount(recipientId),
       };
       for (const ch of deliverable) promises.push(ch.sendToUser(recipientId, msg));
     }

@@ -7,6 +7,9 @@ const admin: TranslationStrings = {
   'admin.notifications.email': 'メール（SMTP）',
   'admin.notifications.webhook': 'Webhook',
   'admin.notifications.ntfy': 'Ntfy',
+  'admin.notifications.webpush': 'Web Push',
+  'admin.webpush.hint':
+    'Allow users to receive TREK notifications directly through supported browsers and installed PWAs.',
   'admin.ntfy.hint': 'ユーザーが独自のntfyトピックを設定できるようにします。下で既定サーバーを設定してください。',
   'admin.notifications.save': '通知設定を保存',
   'admin.notifications.saved': '通知設定を保存しました',

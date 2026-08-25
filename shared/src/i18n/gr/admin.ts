@@ -7,6 +7,9 @@ const admin: TranslationStrings = {
   'admin.notifications.email': 'Email (SMTP)',
   'admin.notifications.webhook': 'Webhook',
   'admin.notifications.ntfy': 'Ntfy',
+  'admin.notifications.webpush': 'Web Push',
+  'admin.webpush.hint':
+    'Allow users to receive TREK notifications directly through supported browsers and installed PWAs.',
   'admin.ntfy.hint':
     'Επιτρέψτε στους χρήστες να διαμορφώνουν τα δικά τους θέματα ntfy για push ειδοποιήσεις. Ορίστε τον προεπιλεγμένο server παρακάτω για να προ-συμπληρώνει τις ρυθμίσεις χρηστών.',
   'admin.notifications.save': 'Αποθήκευση ρυθμίσεων ειδοποιήσεων',

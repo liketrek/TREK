@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
 import { NotificationsController } from '../../../src/nest/notifications/notifications.controller';
 import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import type { User } from '../../../src/types';
+import { HttpException } from '@nestjs/common';
+
+import { describe, it, expect, vi } from 'vitest';
 
 const MASKED = '••••••••';
 const user = { id: 4, role: 'user', email: 'u@example.test' } as User;
@@ -35,7 +36,9 @@ describe('NotificationsController (parity with the legacy /api/notifications rou
       const setPreferences = vi.fn();
       const getPreferences = vi.fn().mockReturnValue({ preferences: { a: { inapp: true } } });
       const body = { a: { inapp: true } };
-      expect(makeController({ setPreferences, getPreferences }).setPreferences(user, body)).toEqual({ preferences: { a: { inapp: true } } });
+      expect(makeController({ setPreferences, getPreferences }).setPreferences(user, body)).toEqual({
+        preferences: { a: { inapp: true } },
+      });
       expect(setPreferences).toHaveBeenCalledWith(4, body);
     });
   });
@@ -44,12 +47,13 @@ describe('NotificationsController (parity with the legacy /api/notifications rou
     it('403 { error: Admin only } for a non-admin (distinct from AdminGuard wording)', async () => {
       const testSmtp = vi.fn();
       expect(await thrown(() => makeController({ testSmtp }).testSmtp(user))).toEqual({
-        status: 403, body: { error: 'Admin only' },
+        status: 403,
+        body: { error: 'Admin only' },
       });
       expect(testSmtp).not.toHaveBeenCalled();
     });
 
-    it('falls back to the admin\'s own email when none given', async () => {
+    it("falls back to the admin's own email when none given", async () => {
       const testSmtp = vi.fn().mockResolvedValue({ success: true });
       await makeController({ testSmtp }).testSmtp(admin);
       expect(testSmtp).toHaveBeenCalledWith('admin@example.test');
@@ -74,13 +78,15 @@ describe('NotificationsController (parity with the legacy /api/notifications rou
     it('400 when no url is configured', async () => {
       const userWebhookUrl = vi.fn().mockReturnValue(null);
       expect(await thrown(() => makeController({ userWebhookUrl }).testWebhook(user, undefined))).toEqual({
-        status: 400, body: { error: 'No webhook URL configured' },
+        status: 400,
+        body: { error: 'No webhook URL configured' },
       });
     });
 
     it('400 on an invalid url', async () => {
       expect(await thrown(() => makeController({}).testWebhook(user, 'not a url'))).toEqual({
-        status: 400, body: { error: 'Invalid URL' },
+        status: 400,
+        body: { error: 'Invalid URL' },
       });
     });
   });
@@ -90,16 +96,73 @@ describe('NotificationsController (parity with the legacy /api/notifications rou
       const userNtfyConfig = vi.fn().mockReturnValue(null);
       const adminNtfyConfig = vi.fn().mockReturnValue({ server: null, token: null });
       expect(await thrown(() => makeController({ userNtfyConfig, adminNtfyConfig }).testNtfy(user))).toEqual({
-        status: 400, body: { error: 'No ntfy topic configured' },
+        status: 400,
+        body: { error: 'No ntfy topic configured' },
       });
     });
 
     it('resolves topic/server/token with fallbacks and reuses a saved token for the placeholder', async () => {
       const testNtfy = vi.fn().mockResolvedValue({ success: true });
-      const userNtfyConfig = vi.fn().mockReturnValue({ topic: 'saved-topic', server: 'https://ntfy.me', token: 'saved-token' });
+      const userNtfyConfig = vi
+        .fn()
+        .mockReturnValue({ topic: 'saved-topic', server: 'https://ntfy.me', token: 'saved-token' });
       const adminNtfyConfig = vi.fn().mockReturnValue({ server: null, token: null });
       await makeController({ testNtfy, userNtfyConfig, adminNtfyConfig }).testNtfy(user, undefined, undefined, MASKED);
       expect(testNtfy).toHaveBeenCalledWith({ topic: 'saved-topic', server: 'https://ntfy.me', token: 'saved-token' });
+    });
+  });
+
+  describe('direct Web Push devices', () => {
+    const currentRequest = {
+      intent: 'enable' as const,
+      installationId: '728f0f50-d4a7-4e8b-aaf1-e4774df6bdfa',
+      label: 'Safari on iPhone',
+      subscription: {
+        endpoint: 'https://push.example.test/send/abc',
+        expirationTime: null,
+        keys: { p256dh: 'BNcR5mVzY3JpcHRpb24ta2V5', auth: 'YXV0aC1zZWNyZXQ' },
+      },
+    };
+
+    it("returns only the current user's config and devices", () => {
+      const webPushConfig = vi.fn().mockReturnValue({ enabled: true, available: true, maxDevices: 10 });
+      const webPushDevices = vi.fn().mockReturnValue([{ id: 3, label: 'Phone' }]);
+      const controller = makeController({ webPushConfig, webPushDevices } as Partial<NotificationsService>);
+      expect(controller.webPushConfig(user)).toMatchObject({ enabled: true, maxDevices: 10 });
+      expect(controller.webPushDevices(user)).toEqual({ devices: [{ id: 3, label: 'Phone' }] });
+      expect(webPushDevices).toHaveBeenCalledWith(4);
+    });
+
+    it('validates and registers the current browser installation', () => {
+      const webPushCurrent = vi.fn().mockReturnValue({ state: 'active', device: { id: 9 } });
+      expect(
+        makeController({ webPushCurrent } as Partial<NotificationsService>).webPushCurrent(user, currentRequest),
+      ).toEqual({
+        state: 'active',
+        device: { id: 9 },
+      });
+      expect(webPushCurrent).toHaveBeenCalledWith(4, currentRequest);
+    });
+
+    it('rejects malformed subscription input before the service boundary', async () => {
+      const webPushCurrent = vi.fn();
+      const result = await thrown(() =>
+        makeController({ webPushCurrent } as Partial<NotificationsService>).webPushCurrent(user, {
+          ...currentRequest,
+          subscription: { ...currentRequest.subscription, endpoint: 'http://internal.example/send' },
+        }),
+      );
+      expect(result.status).toBe(400);
+      expect(webPushCurrent).not.toHaveBeenCalled();
+    });
+
+    it('does not let a user revoke a device they do not own', async () => {
+      const revokeWebPushDevice = vi.fn().mockReturnValue(false);
+      expect(
+        await thrown(() =>
+          makeController({ revokeWebPushDevice } as Partial<NotificationsService>).revokeWebPushDevice(user, '88'),
+        ),
+      ).toEqual({ status: 404, body: { error: 'Not found' } });
     });
   });
 
@@ -136,13 +199,15 @@ describe('NotificationsController (parity with the legacy /api/notifications rou
     it('400 on a non-numeric id', () => {
       const markRead = vi.fn();
       return thrown(() => makeController({ markRead }).markRead(user, 'abc')).then((r) =>
-        expect(r).toEqual({ status: 400, body: { error: 'Invalid id' } }));
+        expect(r).toEqual({ status: 400, body: { error: 'Invalid id' } }),
+      );
     });
 
     it('404 when mark-read finds nothing', async () => {
       const markRead = vi.fn().mockReturnValue(false);
       expect(await thrown(() => makeController({ markRead }).markRead(user, '9'))).toEqual({
-        status: 404, body: { error: 'Not found' },
+        status: 404,
+        body: { error: 'Not found' },
       });
     });
 
@@ -161,21 +226,24 @@ describe('NotificationsController (parity with the legacy /api/notifications rou
   describe('respond', () => {
     it('400 on an invalid response value', async () => {
       expect(await thrown(() => makeController({}).respond(user, '5', 'maybe'))).toEqual({
-        status: 400, body: { error: 'response must be "positive" or "negative"' },
+        status: 400,
+        body: { error: 'response must be "positive" or "negative"' },
       });
     });
 
     it('400 with the service error when the response fails', async () => {
       const respond = vi.fn().mockResolvedValue({ success: false, error: 'Already responded' });
       expect(await thrown(() => makeController({ respond }).respond(user, '5', 'positive'))).toEqual({
-        status: 400, body: { error: 'Already responded' },
+        status: 400,
+        body: { error: 'Already responded' },
       });
     });
 
     it('returns success + the updated notification', async () => {
       const respond = vi.fn().mockResolvedValue({ success: true, notification: { id: 5, response: 'positive' } });
       expect(await makeController({ respond }).respond(user, '5', 'positive')).toEqual({
-        success: true, notification: { id: 5, response: 'positive' },
+        success: true,
+        notification: { id: 5, response: 'positive' },
       });
       expect(respond).toHaveBeenCalledWith(5, 4, 'positive');
     });

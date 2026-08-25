@@ -6,6 +6,7 @@ import { notificationsApi, settingsApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
 import ToggleSwitch from './ToggleSwitch'
 import Section from './Section'
+import WebPushDevices from './WebPushDevices'
 
 interface ChannelDescriptor {
   id: string
@@ -218,6 +219,7 @@ export default function NotificationsTab(): React.ReactElement {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
         {saving && <p style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginBottom: 8 }}>{t('common.saving')}</p>}
+        {hasChannel('webpush') && <WebPushDevices />}
         {hasChannel('webhook') && (
           <div style={{ marginBottom: 16, padding: '12px', background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border-primary)' }}>
             <label style={{ display: 'block', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>

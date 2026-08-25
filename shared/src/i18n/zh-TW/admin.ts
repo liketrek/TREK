@@ -23,6 +23,8 @@ const admin: TranslationStrings = {
   'admin.notifications.adminWebhookPanel.testFailed': '測試 Webhook 傳送失敗',
   'admin.notifications.adminWebhookPanel.alwaysOnHint': '配置 URL 後，管理員 Webhook 始終觸發',
   'admin.notifications.ntfy': 'Ntfy',
+  'admin.notifications.webpush': 'Web Push',
+  'admin.webpush.hint': '允許使用者直接透過支援的瀏覽器與已安裝的 PWA 接收 TREK 通知。',
   'admin.ntfy.hint': '允許使用者設定自己的 ntfy 主題以接收推播通知。在下方設定預設伺服器以預先填入使用者設定。',
   'admin.notifications.testNtfy': '傳送測試 Ntfy',
   'admin.notifications.testNtfySuccess': '測試 Ntfy 傳送成功',

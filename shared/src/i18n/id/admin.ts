@@ -23,6 +23,9 @@ const admin: TranslationStrings = {
   'admin.notifications.adminWebhookPanel.testFailed': 'Test webhook gagal',
   'admin.notifications.adminWebhookPanel.alwaysOnHint': 'Admin webhook selalu berjalan jika URL dikonfigurasi',
   'admin.notifications.ntfy': 'Ntfy',
+  'admin.notifications.webpush': 'Web Push',
+  'admin.webpush.hint':
+    'Allow users to receive TREK notifications directly through supported browsers and installed PWAs.',
   'admin.ntfy.hint':
     'Memungkinkan pengguna mengonfigurasi topik ntfy mereka sendiri untuk notifikasi push. Tetapkan server default di bawah untuk mengisi setelan pengguna secara otomatis.',
   'admin.notifications.testNtfy': 'Kirim uji Ntfy',

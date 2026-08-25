@@ -7,6 +7,9 @@ const admin: TranslationStrings = {
   'admin.notifications.email': '이메일 (SMTP)',
   'admin.notifications.webhook': '웹훅',
   'admin.notifications.ntfy': 'Ntfy',
+  'admin.notifications.webpush': 'Web Push',
+  'admin.webpush.hint':
+    'Allow users to receive TREK notifications directly through supported browsers and installed PWAs.',
   'admin.ntfy.hint':
     '사용자가 자신의 ntfy 토픽을 설정하여 푸시 알림을 받을 수 있습니다. 아래에 기본 서버를 설정하면 사용자 설정에 미리 채워집니다.',
   'admin.notifications.save': '알림 설정 저장',

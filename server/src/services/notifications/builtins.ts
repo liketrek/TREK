@@ -14,6 +14,7 @@ import {
   resolveNtfyUrl,
   resolveAdminNtfyUrl,
 } from '../notifications';
+import { hasActiveWebPushSubscription, sendWebPushToUser } from '../webPushService';
 import { registerChannel, type ChannelMessage, type ExternalChannel } from './channelRegistry';
 
 // The three built-in external channels, wrapping the send functions and config
@@ -63,7 +64,13 @@ const webhookChannel: ExternalChannel = {
   async sendToUser(userId, msg) {
     const url = getUserWebhookUrl(userId);
     if (!url) return false;
-    return sendWebhook(url, { event: msg.event, title: msg.title, body: msg.body, tripName: msg.tripName, link: msg.url });
+    return sendWebhook(url, {
+      event: msg.event,
+      title: msg.title,
+      body: msg.body,
+      tripName: msg.tripName,
+      link: msg.url,
+    });
   },
   async sendGlobal(msg: ChannelMessage) {
     const url = getAdminWebhookUrl();
@@ -89,7 +96,12 @@ const ntfyChannel: ExternalChannel = {
     const adminCfg = getAdminNtfyConfig();
     const url = resolveNtfyUrl(adminCfg, userCfg);
     if (!url) return false;
-    return sendNtfy(url, userCfg?.token ?? adminCfg.token, { event: msg.event, title: msg.title, body: msg.body, link: msg.url });
+    return sendNtfy(url, userCfg?.token ?? adminCfg.token, {
+      event: msg.event,
+      title: msg.title,
+      body: msg.body,
+      link: msg.url,
+    });
   },
   async sendGlobal(msg: ChannelMessage) {
     const adminCfg = getAdminNtfyConfig();
@@ -108,7 +120,24 @@ const ntfyChannel: ExternalChannel = {
   },
 };
 
-export const BUILTIN_CHANNELS = [emailChannel, webhookChannel, ntfyChannel];
+const webPushChannel: ExternalChannel = {
+  id: 'webpush',
+  source: 'builtin',
+  labelKey: 'settings.notificationPreferences.webpush',
+  supportsEvent: (event) => event !== 'version_available' && event !== 'synology_session_cleared',
+  isConfiguredFor: hasActiveWebPushSubscription,
+  async sendToUser(userId, msg) {
+    return sendWebPushToUser(userId, {
+      event: msg.event,
+      title: msg.title,
+      body: msg.body,
+      navigateTarget: msg.navigateTarget,
+      unreadCount: msg.unreadCount,
+    });
+  },
+};
+
+export const BUILTIN_CHANNELS = [emailChannel, webhookChannel, ntfyChannel, webPushChannel];
 
 /** Idempotent — safe to call from every entry point that needs the registry populated. */
 export function registerBuiltinChannels(): void {

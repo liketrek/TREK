@@ -8,6 +8,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
+        importScripts: ['/push-sw.js'],
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2,ttf}'],
         navigateFallback: 'index.html',
@@ -96,6 +97,7 @@ export default defineConfig({
         ],
       },
       manifest: {
+        id: '/',
         name: 'TREK \u2014 Travel Planner',
         short_name: 'TREK',
         description: 'Travel Resource & Exploration Kit',

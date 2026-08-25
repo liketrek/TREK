@@ -594,6 +594,9 @@ const admin: TranslationStrings = {
   'admin.notifications.adminWebhookPanel.alwaysOnHint':
     'Admin-webhook verstuurt automatisch als er een URL is ingesteld',
   'admin.notifications.ntfy': 'Ntfy',
+  'admin.notifications.webpush': 'Web Push',
+  'admin.webpush.hint':
+    'Allow users to receive TREK notifications directly through supported browsers and installed PWAs.',
   'admin.ntfy.hint':
     'Hiermee kunnen gebruikers hun eigen ntfy-onderwerpen instellen voor pushmeldingen. Stel de standaardserver hieronder in om de gebruikersinstellingen vooraf in te vullen.',
   'admin.notifications.testNtfy': 'Test-Ntfy verzenden',

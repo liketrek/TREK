@@ -120,6 +120,7 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 - **Installable** — iOS and Android, straight from the browser, no App Store needed
 - **Offline support** — Service Worker caches tiles, API, uploads via Workbox
 - **Native feel** — fullscreen standalone, themed status bar, splash screen
+- **Direct Web Push** — optional TREK notifications on desktop, Android, and installed iOS/iPadOS PWAs
 - **Touch optimised** — mobile-specific layouts with safe-area handling
 
 </td>
@@ -472,4 +473,3 @@ for full third-party attributions.
 ## License
 
 TREK is [AGPL v3](LICENSE). Self-host freely for personal or internal company use. If you modify and offer TREK as a network service to third parties, your modifications must be open-sourced under the same licence.
-

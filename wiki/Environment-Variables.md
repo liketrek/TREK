@@ -27,7 +27,7 @@ Complete reference for all environment variables TREK reads.
 | `SESSION_DURATION_REMEMBER` | Session length used when the user **ticks "Remember me"** on login: a longer-lived JWT `exp` claim plus a **persistent** `trek_session` cookie whose `maxAge` matches, so the session survives browser restarts. Same `ms`-style format and startup-fallback behaviour as `SESSION_DURATION`.                                                                                                                                                                                                                                     | `30d`                           |
 | `ALLOWED_ORIGINS`           | Comma-separated origins for CORS and email notification links                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | same-origin                     |
 | `ALLOW_INTERNAL_NETWORK`    | Allow outbound requests to private/RFC-1918 IPs. Set `true` if Immich or other integrated services are on your local network. Loopback (`127.x`) and link-local (`169.254.x`) addresses remain blocked regardless.                                                                                                                                                                                                                                                                                                                | `false`                         |
-| `APP_URL`                   | Public base URL (e.g. `https://trek.example.com`). Required when OIDC is enabled — must match the redirect URI registered with your IdP. Also used as the base URL for email notification links and subscribable calendar feed URLs (the `webcal://`/`https://` links the Subscribe dialog hands to Google/Apple/Outlook).                                                                                                                                                                                                          | —                               |
+| `APP_URL`                   | Public base URL (e.g. `https://trek.example.com`). Required for production Web Push and when OIDC is enabled; OIDC must match the redirect URI registered with your IdP. Also used as the base URL for notification links and subscribable calendar feed URLs.                                                                                                                                                                                                          | —                               |
 | `TREK_WIKI_DIR`             | Where the in-app Help pages (`/help`) read their content from. TREK ships this wiki and serves it from disk, so the docs always match the version you are running. You should not need to set this — it is an escape hatch for unusual layouts. If the directory cannot be found, Help falls back to fetching the public GitHub wiki (which tracks the latest release and needs outbound network access).                                                                                                                            | the bundled `wiki/` directory   |
 
 ### `HOST` — Source and Proxmox installs only
@@ -161,6 +161,20 @@ over the database values.
 
 `SMTP_HOST`, `SMTP_PORT`, and `SMTP_FROM` are all required for email delivery to work. `SMTP_USER` and `SMTP_PASS` are
 optional (for unauthenticated relays).
+
+---
+
+## Direct Web Push
+
+TREK generates one durable VAPID key pair automatically, encrypts the private key in the database, and includes it in normal TREK backups. Most installations should configure only a public HTTPS `APP_URL` and enable Web Push in the Admin notification settings.
+
+| Variable | Description | Default |
+|---|---|---|
+| `WEB_PUSH_VAPID_PUBLIC_KEY` | Advanced override for the URL-safe Base64 VAPID public key. Must be supplied together with the private key. | TREK-managed |
+| `WEB_PUSH_VAPID_PRIVATE_KEY` | Advanced override for the VAPID private key. Stored encrypted when accepted. Must be supplied together with the public key. | TREK-managed |
+| `WEB_PUSH_VAPID_SUBJECT` | VAPID contact URI (`https:` or `mailto:`). | canonical `APP_URL` origin |
+
+Changing the public key requires subscribed browsers to repair their subscriptions. Supplying only one key makes Web Push unavailable rather than silently replacing the installation identity.
 
 ---
 

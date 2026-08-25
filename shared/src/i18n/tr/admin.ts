@@ -7,6 +7,9 @@ const admin: TranslationStrings = {
   'admin.notifications.email': 'E-posta (SMTP)',
   'admin.notifications.webhook': 'Web kancası',
   'admin.notifications.ntfy': 'Ntfy',
+  'admin.notifications.webpush': 'Web Push',
+  'admin.webpush.hint':
+    'Allow users to receive TREK notifications directly through supported browsers and installed PWAs.',
   'admin.ntfy.hint':
     'Kullanıcıların kendi ntfy konularını yapılandırmasına izin verin. Aşağıdaki varsayılan sunucu kullanıcı ayarlarında ön doldurma için kullanılır.',
   'admin.notifications.save': 'Bildirim ayarlarını kaydet',

@@ -79,3 +79,11 @@ _Avoid_: Guest claim, Guest merge, account upgrade
 **New-member identity check**:
 A per-trip check asking a newly joined Account member whether an existing Guest represents them.
 _Avoid_: Guest prompt, claim prompt, new joiner check
+
+**Web Push channel**:
+TREK's own route for delivering eligible notifications to authorized browser installations.
+_Avoid_: Ntfy push, native push
+
+**Device subscription**:
+An Account member's authorization for one browser installation to receive TREK Web Push notifications.
+_Avoid_: Device token, ntfy topic

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { inAppNotificationsApi } from '../api/client'
+import { updateAppBadge } from '../services/webPush'
 
 // The server contract (@trek/shared `inAppListResultSchema`) deliberately keeps
 // each notification row as an open record — the registry-derived shape varies by
@@ -194,3 +195,7 @@ export const useInAppNotificationStore = create<NotificationState>((set, get) =>
     }))
   },
 }))
+
+useInAppNotificationStore.subscribe(state => {
+  updateAppBadge(state.unreadCount).catch(() => {})
+})

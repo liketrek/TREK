@@ -10,6 +10,9 @@ import {
   settingResetResponseSchema,
   unreadCountResultSchema,
   weatherResultSchema,
+  webPushConfigResultSchema,
+  webPushCurrentResultSchema,
+  webPushDeviceListResultSchema,
   type AccommodationCreateRequest,
   type AccommodationUpdateRequest,
   type AssignmentCreateRequest,
@@ -95,6 +98,9 @@ import {
   type UpdateCategoryRequest,
   type UpdateTagRequest,
   type WeatherResult,
+  type WebPushCurrentRequest,
+  type WebPushCurrentResult,
+  type WebPushDeviceListResult,
 } from '@trek/shared';
 import axios, { AxiosInstance } from 'axios';
 import type { z } from 'zod';
@@ -1524,6 +1530,25 @@ export const notificationsApi = {
     apiClient
       .post(`/notifications/test/${encodeURIComponent(channelId)}`)
       .then((r) => checkInDev(channelTestResultSchema, r.data, 'notifications.testChannel')),
+  webPushConfig: () =>
+    apiClient
+      .get('/notifications/web-push/config')
+      .then((r) => parseInDev(webPushConfigResultSchema, r.data, 'notifications.webPushConfig')),
+  webPushDevices: (): Promise<WebPushDeviceListResult> =>
+    apiClient
+      .get('/notifications/web-push/devices')
+      .then((r) => parseInDev(webPushDeviceListResultSchema, r.data, 'notifications.webPushDevices')),
+  webPushCurrent: (payload: WebPushCurrentRequest): Promise<WebPushCurrentResult> =>
+    apiClient
+      .put('/notifications/web-push/current', payload)
+      .then((r) => parseInDev(webPushCurrentResultSchema, r.data, 'notifications.webPushCurrent')),
+  renameWebPushDevice: (id: number, label: string) =>
+    apiClient.patch(`/notifications/web-push/devices/${id}`, { label }).then((r) => r.data),
+  revokeWebPushDevice: (id: number) => apiClient.delete(`/notifications/web-push/devices/${id}`).then((r) => r.data),
+  testWebPushDevice: (id: number) =>
+    apiClient
+      .post(`/notifications/web-push/devices/${id}/test`)
+      .then((r) => parseInDev(channelTestResultSchema, r.data, 'notifications.testWebPushDevice')),
 };
 
 export const inAppNotificationsApi = {

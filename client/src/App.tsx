@@ -35,6 +35,7 @@ import { useInAppNotificationListener } from './hooks/useInAppNotificationListen
 import { registerSyncTriggers, unregisterSyncTriggers } from './sync/syncTriggers'
 import OfflineBanner from './components/Layout/OfflineBanner'
 import { SystemNoticeHost } from './components/SystemNotices/SystemNoticeHost.js'
+import WebPushInvitation from './components/Notifications/WebPushInvitation'
 // Notice action registrations (side-effect imports):
 import './pages/Trips/noticeActions.js'
 
@@ -207,6 +208,7 @@ export default function App() {
   return (
     <TranslationProvider>
       {!isAuthPage && <SystemNoticeHost />}
+      {!isAuthPage && <WebPushInvitation />}
       <ToastContainer />
       {!isAuthPage && <BackgroundTasksWidget />}
       {!isAuthPage && <SaveToCollectionModal />}

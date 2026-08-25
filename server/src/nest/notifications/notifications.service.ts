@@ -1,14 +1,3 @@
-import { Injectable } from '@nestjs/common';
-import type { ChannelTestResult } from '@trek/shared';
-import {
-  testSmtp,
-  testWebhook,
-  testNtfy,
-  getAdminWebhookUrl,
-  getUserWebhookUrl,
-  getUserNtfyConfig,
-  getAdminNtfyConfig,
-} from '../../services/notifications';
 import {
   getNotifications,
   getUnreadCount,
@@ -20,7 +9,26 @@ import {
   respondToBoolean,
 } from '../../services/inAppNotifications';
 import { getPreferencesMatrix, setPreferences } from '../../services/notificationPreferencesService';
+import {
+  testSmtp,
+  testWebhook,
+  testNtfy,
+  getAdminWebhookUrl,
+  getUserWebhookUrl,
+  getUserNtfyConfig,
+  getAdminNtfyConfig,
+} from '../../services/notifications';
 import { getChannel } from '../../services/notifications/channelRegistry';
+import {
+  getWebPushConfig,
+  listWebPushDevices,
+  registerWebPushCurrent,
+  renameWebPushDevice,
+  revokeWebPushDevice,
+  testWebPushDevice,
+} from '../../services/webPushService';
+import { Injectable } from '@nestjs/common';
+import type { ChannelTestResult, WebPushCurrentRequest } from '@trek/shared';
 
 type NtfyConfig = ReturnType<typeof getAdminNtfyConfig>;
 type RespondResult = Awaited<ReturnType<typeof respondToBoolean>>;
@@ -55,6 +63,30 @@ export class NotificationsService {
 
   setPreferences(userId: number, body: Parameters<typeof setPreferences>[1]): void {
     setPreferences(userId, body);
+  }
+
+  webPushConfig() {
+    return getWebPushConfig();
+  }
+
+  webPushDevices(userId: number) {
+    return listWebPushDevices(userId);
+  }
+
+  webPushCurrent(userId: number, body: WebPushCurrentRequest) {
+    return registerWebPushCurrent(userId, body);
+  }
+
+  renameWebPushDevice(userId: number, deviceId: number, label: string) {
+    return renameWebPushDevice(userId, deviceId, label);
+  }
+
+  revokeWebPushDevice(userId: number, deviceId: number): boolean {
+    return revokeWebPushDevice(userId, deviceId);
+  }
+
+  testWebPushDevice(userId: number, deviceId: number): Promise<ChannelTestResult> {
+    return testWebPushDevice(userId, deviceId);
   }
 
   testSmtp(to: string): Promise<ChannelTestResult> {

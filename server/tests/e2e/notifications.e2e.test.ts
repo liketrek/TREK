@@ -4,12 +4,15 @@
  * services are mocked; this focuses on auth, the inline admin gate on
  * /test-smtp, routing (the /in-app/all ordering trap) and status/body shapes.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { NotificationsModule } from '../../src/nest/notifications/notifications.module';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -23,24 +26,43 @@ const { db } = vi.hoisted(() => {
 
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
 
-const { prefs, inapp, channels } = vi.hoisted(() => ({
+const { prefs, inapp, channels, webpush } = vi.hoisted(() => ({
   prefs: { getPreferencesMatrix: vi.fn(), setPreferences: vi.fn() },
   inapp: {
-    getNotifications: vi.fn(), getUnreadCount: vi.fn(), markRead: vi.fn(), markUnread: vi.fn(),
-    markAllRead: vi.fn(), deleteNotification: vi.fn(), deleteAll: vi.fn(), respondToBoolean: vi.fn(),
+    getNotifications: vi.fn(),
+    getUnreadCount: vi.fn(),
+    markRead: vi.fn(),
+    markUnread: vi.fn(),
+    markAllRead: vi.fn(),
+    deleteNotification: vi.fn(),
+    deleteAll: vi.fn(),
+    respondToBoolean: vi.fn(),
   },
   channels: {
-    testSmtp: vi.fn(), testWebhook: vi.fn(), testNtfy: vi.fn(),
-    getUserWebhookUrl: vi.fn(), getAdminWebhookUrl: vi.fn(),
-    getUserNtfyConfig: vi.fn(), getAdminNtfyConfig: vi.fn(),
+    testSmtp: vi.fn(),
+    testWebhook: vi.fn(),
+    testNtfy: vi.fn(),
+    getUserWebhookUrl: vi.fn(),
+    getAdminWebhookUrl: vi.fn(),
+    getUserNtfyConfig: vi.fn(),
+    getAdminNtfyConfig: vi.fn(),
+  },
+  webpush: {
+    getWebPushConfig: vi.fn(),
+    listWebPushDevices: vi.fn(),
+    registerWebPushCurrent: vi.fn(),
+    renameWebPushDevice: vi.fn(),
+    revokeWebPushDevice: vi.fn(),
+    testWebPushDevice: vi.fn(),
   },
 }));
 vi.mock('../../src/services/notificationPreferencesService', () => prefs);
 vi.mock('../../src/services/inAppNotifications', () => inapp);
 vi.mock('../../src/services/notifications', () => channels);
-
-import { NotificationsModule } from '../../src/nest/notifications/notifications.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+vi.mock('../../src/services/webPushService', () => ({
+  ...webpush,
+  WebPushServiceError: class WebPushServiceError extends Error {},
+}));
 
 describe('Notifications e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
@@ -60,10 +82,24 @@ describe('Notifications e2e (real auth guard + temp SQLite)', () => {
     seedUser(db as never, { id: 2, role: 'user', email: 'user@example.test' });
     app = await build();
     server = app.getHttpServer();
-    prefs.getPreferencesMatrix.mockReturnValue({ preferences: {}, available_channels: {}, event_types: [], implemented_combos: {} });
+    prefs.getPreferencesMatrix.mockReturnValue({
+      preferences: {},
+      available_channels: {},
+      event_types: [],
+      implemented_combos: {},
+    });
     inapp.getUnreadCount.mockReturnValue(2);
     inapp.deleteAll.mockReturnValue(4);
     channels.testSmtp.mockResolvedValue({ success: true });
+    webpush.getWebPushConfig.mockReturnValue({
+      enabled: true,
+      available: true,
+      publicKey: 'BPUBLIC',
+      canonicalOrigin: 'https://trek.test',
+      maxDevices: 10,
+    });
+    webpush.listWebPushDevices.mockReturnValue([]);
+    webpush.registerWebPushCurrent.mockReturnValue({ state: 'active', device: { id: 4 } });
   });
 
   afterAll(async () => {
@@ -89,7 +125,10 @@ describe('Notifications e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('200 test-smtp for an admin (stays 200, not 201)', async () => {
-    const res = await request(server).post('/api/notifications/test-smtp').set('Cookie', sessionCookie(1)).send({ email: 'x@y.z' });
+    const res = await request(server)
+      .post('/api/notifications/test-smtp')
+      .set('Cookie', sessionCookie(1))
+      .send({ email: 'x@y.z' });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true });
   });
@@ -98,6 +137,27 @@ describe('Notifications e2e (real auth guard + temp SQLite)', () => {
     const res = await request(server).get('/api/notifications/in-app/unread-count').set('Cookie', sessionCookie(2));
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ count: 2 });
+  });
+
+  it('protects and registers the current Web Push browser installation', async () => {
+    expect((await request(server).get('/api/notifications/web-push/config')).status).toBe(401);
+    const body = {
+      intent: 'enable',
+      installationId: '728f0f50-d4a7-4e8b-aaf1-e4774df6bdfa',
+      label: 'Safari on iPhone',
+      subscription: {
+        endpoint: 'https://push.example.test/send/abc',
+        expirationTime: null,
+        keys: { p256dh: 'BNcR5mVzY3JpcHRpb24ta2V5', auth: 'YXV0aC1zZWNyZXQ' },
+      },
+    };
+    const res = await request(server)
+      .put('/api/notifications/web-push/current')
+      .set('Cookie', sessionCookie(2))
+      .send(body);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ state: 'active', device: { id: 4 } });
+    expect(webpush.registerWebPushCurrent).toHaveBeenCalledWith(2, body);
   });
 
   it('DELETE /in-app/all hits deleteAll, not deleteNotification', async () => {

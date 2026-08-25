@@ -10,6 +10,7 @@ import { setAuthed } from '../sync/authGate'
 import { unregisterSyncTriggers } from '../sync/syncTriggers'
 import { useSystemNoticeStore } from './systemNoticeStore.js'
 import { clearAppearanceSnapshot } from '../theme/applyAppearance'
+import { disableCurrentWebPush, reconcileWebPush, setActivePushUser, updateAppBadge } from '../services/webPush'
 
 interface AuthResponse {
   user: User
@@ -84,6 +85,8 @@ async function onAuthSuccess(userId: number): Promise<void> {
   } catch (err) {
     console.error('[auth] failed to open user-scoped offline DB', err)
   }
+  await setActivePushUser(userId)
+  reconcileWebPush().catch(() => {})
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -195,18 +198,23 @@ export const useAuthStore = create<AuthState>()(
     // Drop the per-device appearance snapshot so the next user on a shared
     // browser doesn't get a pre-paint flash of this user's theme.
     clearAppearanceSnapshot()
-    // 4. Tell server to clear the httpOnly cookie (best-effort).
+    // 4. Revoke only this browser's Device subscription while the session cookie
+    // is still valid, then clear the worker's active-account privacy state.
+    await disableCurrentWebPush().catch(() => {})
+    await setActivePushUser(null)
+    await updateAppBadge(0)
+    // 5. Tell server to clear the httpOnly cookie (best-effort).
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {})
-    // 5. Clear service worker caches containing sensitive data.
+    // 6. Clear service worker caches containing sensitive data.
     if ('caches' in window) {
       await Promise.all([
         caches.delete('api-data').catch(() => {}),
         caches.delete('user-uploads').catch(() => {}),
       ])
     }
-    // 6. Delete this user's scoped IndexedDB and return to the anonymous DB.
+    // 7. Delete this user's scoped IndexedDB and return to the anonymous DB.
     await deleteCurrentUserDb().catch(console.error)
-    // 7. Finish clearing auth state.
+    // 8. Finish clearing auth state.
     set({
       user: null,
       isAuthenticated: false,
@@ -243,6 +251,7 @@ export const useAuthStore = create<AuthState>()(
           isLoading: false,
           authCheckFailed: false,
         })
+        await setActivePushUser(null)
       } else if (status === undefined && typeof navigator !== 'undefined' && !navigator.onLine) {
         // Genuinely offline — keep the persisted session so the PWA serves cached
         // data without a scary error. This is the offline-first happy path.

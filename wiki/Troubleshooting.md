@@ -190,6 +190,14 @@ See [Encryption Key Rotation](Encryption-Key-Rotation) for how to retrieve or ro
 
 ---
 
+## Web Push cannot be enabled
+
+**Requirements:** a public HTTPS `APP_URL`, an administrator-enabled Web Push channel, a supported browser, and notification permission granted from TREK's Enable button. On iPhone and iPad, add TREK to the Home Screen and open that installed PWA before enabling push.
+
+If a device remains listed but no longer receives notifications, use **Settings → Notifications → Send test**. A browser push service that returns `404` or `410` is retired automatically; enable the device again to create a new subscription. Different-origin backup restores intentionally require every device to subscribe again.
+
+If `WEB_PUSH_VAPID_PUBLIC_KEY` or `WEB_PUSH_VAPID_PRIVATE_KEY` is configured, both must be present and valid. Remove both to return to TREK-managed keys; do not rotate keys casually because browsers must repair their subscriptions afterward.
+
 ## OIDC login returns "APP_URL is not configured"
 
 **Cause:** When OIDC is enabled, TREK needs to know its own public URL to build the redirect URI. It resolves this from (1) `APP_URL` env var, (2) the first entry in `ALLOWED_ORIGINS`, (3) `http://localhost:<PORT>` as a last resort. If none of these are set and the request is not coming from localhost, TREK returns a 500 error.

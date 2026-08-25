@@ -3881,6 +3881,36 @@ function runMigrations(db: Database.Database): void {
         db.exec('ALTER TABLE trip_members ADD COLUMN new_member_identity_check_completed_at DATETIME');
       }
     },
+    // Direct Web Push subscriptions. Endpoints and browser key material are kept
+    // encrypted; the endpoint hash provides a non-secret uniqueness key. Revoked
+    // rows remain as tombstones so background reconciliation cannot reactivate them.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS web_push_subscriptions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          installation_id TEXT NOT NULL,
+          endpoint_hash TEXT NOT NULL UNIQUE,
+          subscription_encrypted TEXT NOT NULL,
+          origin TEXT NOT NULL,
+          vapid_key_fingerprint TEXT NOT NULL,
+          label TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'active'
+            CHECK(status IN ('active', 'revoked', 'invalid', 'origin_mismatch')),
+          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          last_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          last_success_at DATETIME,
+          last_error_at DATETIME,
+          revoked_at DATETIME,
+          UNIQUE(user_id, installation_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_web_push_user_status
+          ON web_push_subscriptions(user_id, status, updated_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_web_push_delivery
+          ON web_push_subscriptions(user_id, status, origin, vapid_key_fingerprint);
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

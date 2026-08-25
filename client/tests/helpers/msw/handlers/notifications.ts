@@ -1,6 +1,18 @@
 import { http, HttpResponse } from 'msw';
 
 export const notificationHandlers = [
+  http.get('/api/notifications/web-push/config', () => {
+    return HttpResponse.json({ enabled: false, available: true, publicKey: 'BPUBLIC', canonicalOrigin: 'https://trek.test', maxDevices: 10 });
+  }),
+
+  http.get('/api/notifications/web-push/devices', () => {
+    return HttpResponse.json({ devices: [] });
+  }),
+
+  http.delete('/api/notifications/web-push/devices/:id', () => {
+    return HttpResponse.json({ success: true });
+  }),
+
   http.get('/api/notifications/in-app', ({ request }) => {
     const url = new URL(request.url);
     const offset = parseInt(url.searchParams.get('offset') || '0', 10);

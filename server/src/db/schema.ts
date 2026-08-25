@@ -592,6 +592,30 @@ function createTables(db: Database.Database): void {
     );
     CREATE INDEX IF NOT EXISTS idx_ncp_user ON notification_channel_preferences(user_id);
 
+    CREATE TABLE IF NOT EXISTS web_push_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      installation_id TEXT NOT NULL,
+      endpoint_hash TEXT NOT NULL UNIQUE,
+      subscription_encrypted TEXT NOT NULL,
+      origin TEXT NOT NULL,
+      vapid_key_fingerprint TEXT NOT NULL,
+      label TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active'
+        CHECK(status IN ('active', 'revoked', 'invalid', 'origin_mismatch')),
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_success_at DATETIME,
+      last_error_at DATETIME,
+      revoked_at DATETIME,
+      UNIQUE(user_id, installation_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_web_push_user_status
+      ON web_push_subscriptions(user_id, status, updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_web_push_delivery
+      ON web_push_subscriptions(user_id, status, origin, vapid_key_fingerprint);
+
     CREATE TABLE IF NOT EXISTS migrations (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, timestamp bigint NOT NULL, name varchar NOT NULL);
   `);
 }

@@ -5,6 +5,9 @@ const admin: TranslationStrings = {
   'admin.notifications.hint': 'اختر قناة إشعارات واحدة. يمكن تفعيل واحدة فقط في كل مرة.',
   'admin.notifications.none': 'معطّل',
   'admin.notifications.email': 'البريد الإلكتروني (SMTP)',
+  'admin.notifications.webpush': 'Web Push',
+  'admin.webpush.hint':
+    'Allow users to receive TREK notifications directly through supported browsers and installed PWAs.',
   'admin.ntfy.hint':
     'تسمح للمستخدمين بإعداد موضوعات ntfy الخاصة لتلقي إشعارات الدفع. قم بتعيين الخادم الافتراضي أدناه لملء إعدادات المستخدم مسبقًا.',
   'admin.notifications.save': 'حفظ إعدادات الإشعارات',

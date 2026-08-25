@@ -338,7 +338,7 @@ export function getAppConfig(authenticatedUser: { id: number } | null) {
     timezone: process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
     notification_channel: notifChannel,
     notification_channels: activeChannels,
-    available_channels: { email: hasSmtpHost, webhook: hasWebhookEnabled, inapp: true },
+    available_channels: { email: hasSmtpHost, webhook: hasWebhookEnabled, webpush: activeChannels.includes('webpush'), inapp: true },
     trip_reminders_enabled: tripRemindersEnabled,
     places_photos_enabled: placesPhotosEnabled,
     places_autocomplete_enabled: placesAutocompleteEnabled,

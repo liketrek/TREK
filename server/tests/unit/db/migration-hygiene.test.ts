@@ -95,6 +95,8 @@ const ALLOWED_DESTRUCTIVE: Record<string, string> = {
     'Make place_id nullable + ON DELETE SET NULL. Rebuild, rows copied.',
   'DROP TABLE schema_version':
     'Add surrogate id PK to schema_version. Rebuild, version row copied.',
+  'ALTER TABLE trip_members DROP COLUMN guest_claim_prompted_at':
+    'Migration 179: legacy completion timestamps are copied into new_member_identity_check_completed_at before dropping the renamed legacy column.',
 
   // ── photo/journey table rebuilds (data preserved) ────────────────────────
   'DROP TABLE trip_photos':

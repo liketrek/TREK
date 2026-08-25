@@ -1,3 +1,9 @@
+import { WebPushServiceError } from '../../services/webPushService';
+import type { User } from '../../types';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RateLimitService } from '../auth/rate-limit.service';
+import { NotificationsService } from './notifications.service';
 import {
   Body,
   Controller,
@@ -6,16 +12,18 @@ import {
   HttpCode,
   HttpException,
   Param,
+  Patch,
   Post,
   Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
-import type { ChannelTestResult, UnreadCountResult } from '@trek/shared';
-import type { User } from '../../types';
-import { NotificationsService } from './notifications.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import {
+  webPushCurrentRequestSchema,
+  webPushRenameRequestSchema,
+  type ChannelTestResult,
+  type UnreadCountResult,
+} from '@trek/shared';
 
 // The masked placeholder the client sends instead of a stored secret (8× U+2022).
 const MASKED = '••••••••';
@@ -35,7 +43,10 @@ const MASKED = '••••••••';
 @Controller('api/notifications')
 @UseGuards(JwtAuthGuard)
 export class NotificationsController {
-  constructor(private readonly notifications: NotificationsService) {}
+  constructor(
+    private readonly notifications: NotificationsService,
+    private readonly rateLimit?: RateLimitService,
+  ) {}
 
   @Get('preferences')
   getPreferences(@CurrentUser() user: User) {
@@ -46,6 +57,59 @@ export class NotificationsController {
   setPreferences(@CurrentUser() user: User, @Body() body: Record<string, Record<string, boolean>>) {
     this.notifications.setPreferences(user.id, body);
     return this.notifications.getPreferences(user.id, user.role);
+  }
+
+  @Get('web-push/config')
+  webPushConfig(@CurrentUser() _user: User) {
+    return this.notifications.webPushConfig();
+  }
+
+  @Get('web-push/devices')
+  webPushDevices(@CurrentUser() user: User) {
+    return { devices: this.notifications.webPushDevices(user.id) };
+  }
+
+  @Put('web-push/current')
+  webPushCurrent(@CurrentUser() user: User, @Body() body: unknown) {
+    this.limitWebPush('mutation', user.id, 30);
+    const parsed = webPushCurrentRequestSchema.safeParse(body);
+    if (!parsed.success) throw new HttpException({ error: 'Invalid Web Push request' }, 400);
+    try {
+      return this.notifications.webPushCurrent(user.id, parsed.data);
+    } catch (error) {
+      this.rethrowWebPush(error);
+    }
+  }
+
+  @Patch('web-push/devices/:id')
+  renameWebPushDevice(@CurrentUser() user: User, @Param('id') idParam: string, @Body() body: unknown) {
+    this.limitWebPush('mutation', user.id, 30);
+    const id = this.parseId(idParam);
+    const parsed = webPushRenameRequestSchema.safeParse(body);
+    if (!parsed.success) throw new HttpException({ error: 'Invalid device label' }, 400);
+    const device = this.notifications.renameWebPushDevice(user.id, id, parsed.data.label);
+    if (!device) throw new HttpException({ error: 'Not found' }, 404);
+    return { device };
+  }
+
+  @Delete('web-push/devices/:id')
+  revokeWebPushDevice(@CurrentUser() user: User, @Param('id') idParam: string) {
+    this.limitWebPush('mutation', user.id, 30);
+    const id = this.parseId(idParam);
+    if (!this.notifications.revokeWebPushDevice(user.id, id)) {
+      throw new HttpException({ error: 'Not found' }, 404);
+    }
+    return { success: true };
+  }
+
+  @Post('web-push/devices/:id/test')
+  @HttpCode(200)
+  async testWebPushDevice(@CurrentUser() user: User, @Param('id') idParam: string): Promise<ChannelTestResult> {
+    this.limitWebPush('test', user.id, 5);
+    const id = this.parseId(idParam);
+    const result = await this.notifications.testWebPushDevice(user.id, id);
+    if (!result.success && result.error === 'Not found') throw new HttpException({ error: 'Not found' }, 404);
+    return result;
   }
 
   @Post('test-smtp')
@@ -93,9 +157,7 @@ export class NotificationsController {
     const resolvedTopic = topic || userCfg?.topic || undefined;
     const resolvedServer = server || userCfg?.server || adminCfg.server || undefined;
     // Reuse the saved token when the request sends null, empty, or the masked placeholder.
-    const resolvedToken = (token && token !== MASKED)
-      ? token
-      : (userCfg?.token ?? adminCfg.token ?? null);
+    const resolvedToken = token && token !== MASKED ? token : (userCfg?.token ?? adminCfg.token ?? null);
 
     if (!resolvedTopic) {
       throw new HttpException({ error: 'No ntfy topic configured' }, 400);
@@ -196,5 +258,19 @@ export class NotificationsController {
       throw new HttpException({ error: 'Invalid id' }, 400);
     }
     return id;
+  }
+
+  private rethrowWebPush(error: unknown): never {
+    if (error instanceof WebPushServiceError) {
+      throw new HttpException({ error: error.message, code: error.code }, error.status);
+    }
+    throw error;
+  }
+
+  private limitWebPush(bucket: 'mutation' | 'test', userId: number, max: number): void {
+    if (!this.rateLimit) return;
+    if (!this.rateLimit.check(`web_push_${bucket}`, String(userId), max, 60_000, Date.now())) {
+      throw new HttpException({ error: 'Too many Web Push requests. Please try again later.' }, 429);
+    }
   }
 }

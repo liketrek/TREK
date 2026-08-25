@@ -9,4 +9,5 @@ export const ADMIN_CHANNEL_LABEL_KEYS: Record<string, string> = {
   email: 'settings.notificationPreferences.email',
   webhook: 'settings.notificationPreferences.webhook',
   ntfy: 'settings.notificationPreferences.ntfy',
+  webpush: 'settings.notificationPreferences.webpush',
 }
