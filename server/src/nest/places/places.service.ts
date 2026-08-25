@@ -562,7 +562,9 @@ export class PlacesService {
   // -------------------------------------------------------------------------
 
   importGpx(tripId: string, fileBuffer: Buffer, opts: GpxImportOptions = {}): GpxImportResult | null {
-    return this.colorizeImportedTracks(tripId, this.importGpxRows(tripId, fileBuffer, opts));
+    const result = this.importGpxRows(tripId, fileBuffer, opts);
+    this.colorizeImportedTracks(tripId, result);
+    return result;
   }
 
   /**
@@ -713,7 +715,9 @@ export class PlacesService {
   // -------------------------------------------------------------------------
 
   async importMapFile(tripId: string, fileBuffer: Buffer, filename: string, opts: KmlImportOptions = {}): Promise<PlaceImportResult> {
-    return this.colorizeImportedTracks(tripId, await this.importMapFileRows(tripId, fileBuffer, filename, opts));
+    const result = await this.importMapFileRows(tripId, fileBuffer, filename, opts);
+    this.colorizeImportedTracks(tripId, result);
+    return result;
   }
 
   private async importMapFileRows(tripId: string, fileBuffer: Buffer, filename: string, opts: KmlImportOptions = {}): Promise<PlaceImportResult> {
@@ -844,10 +848,14 @@ export class PlacesService {
    *
    * Only rows that carry geometry are touched, and only ones that have no
    * colour yet; plain waypoints and existing places stay untouched.
+   *
+   * Writes the colour into the rows AND onto the passed-in result, in place —
+   * it used to hand the same object back, which read like a transformation and
+   * was none.
    */
-  private colorizeImportedTracks<T extends { places: ImportedPlace[] } | null>(tripId: string, result: T): T {
+  private colorizeImportedTracks(tripId: string, result: { places: ImportedPlace[] } | null): void {
     const tracks = result?.places?.filter((p) => p.route_geometry && !p.route_color) ?? [];
-    if (tracks.length === 0) return result;
+    if (tracks.length === 0) return;
 
     // Read and write in one transaction so two concurrent imports cannot both
     // read the same set of free colours.
@@ -867,8 +875,6 @@ export class PlacesService {
         track.route_color = color;
       });
     });
-
-    return result;
   }
 
   // -------------------------------------------------------------------------

@@ -1157,11 +1157,14 @@ describe('PlacesService — automatic track colours (#776)', () => {
     expect(new Set(colors).size).toBe(colors.length);
   });
 
-  it('PLACES-SVC-005 — an import that yields nothing is passed straight through', () => {
+  it('PLACES-SVC-005 — an import that yields nothing colours nothing', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    expect((svc as any).colorizeImportedTracks(String(trip.id), null)).toBeNull();
-    expect((svc as any).colorizeImportedTracks(String(trip.id), { places: [] })).toEqual({ places: [] });
+
+    expect(() => (svc as any).colorizeImportedTracks(String(trip.id), null)).not.toThrow();
+    expect(() => (svc as any).colorizeImportedTracks(String(trip.id), { places: [] })).not.toThrow();
+
+    expect(tracksOf(trip.id)).toEqual([]);
   });
 });
 

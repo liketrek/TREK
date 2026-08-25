@@ -716,8 +716,9 @@ export class VacayService {
       return {};
     });
 
-    if (result.error) return result;
-    this.notifyPlanUsers(planId, socketId, 'vacay:accepted');
+    // Only announce a fusion that actually happened — the transaction returns the
+    // refusal for an invite that was already gone.
+    if (!result.error) this.notifyPlanUsers(planId, socketId, 'vacay:accepted');
     return result;
   }
 
