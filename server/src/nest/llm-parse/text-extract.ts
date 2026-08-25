@@ -1,6 +1,7 @@
 import { parseEmail } from './mime-email';
 import { extname } from 'node:path';
 import { PDFParse } from 'pdf-parse';
+import { stripHtmlTags } from '../common/stripHtmlTags';
 
 /** File extensions whose bytes are inherently text and can be decoded directly. */
 const TEXT_LIKE = new Set(['.txt', '.html', '.htm', '.eml']);
@@ -86,32 +87,18 @@ function decodeEntities(s: string): string {
 }
 
 /**
- * Replace every tag with a space. Hand-rolled rather than a /<[^>]+>/g replace: a
- * match can only start at a "<", so a run of brackets with no ">" behind it — an
- * uploaded .eml or .html is free to carry one — makes the engine rescan the tail
- * once per bracket. Character for character the same result, including the two
- * cases the regex leaves alone: a "<" that nothing closes, and an empty "<>",
- * which [^>]+ cannot match.
+ * Strip HTML/XML tags, resolve entities and collapse whitespace for a cleaner
+ * LLM prompt.
+ *
+ * The tag stripping is stripHtmlTags rather than a `/<[^>]+>/g` replace: a match
+ * can only start at a `<`, so a run of brackets with nothing closing them — and
+ * an uploaded .eml or .html is free to carry one — makes the engine rescan the
+ * tail once per bracket.
  */
-function stripTags(s: string): string {
-  let out = '';
-  let i = 0;
-  for (;;) {
-    const lt = s.indexOf('<', i);
-    if (lt === -1) break;
-    const gt = s.indexOf('>', lt + 1);
-    if (gt === -1) break; // nothing closes it, so the rest of the string is text
-    // An empty "<>" has nothing for [^>]+ to match, so both brackets stay literal.
-    out += s.slice(i, lt) + (gt === lt + 1 ? '<>' : ' ');
-    i = gt + 1;
-  }
-  return out + s.slice(i);
-}
-
-/** Strip HTML/XML tags, resolve entities and collapse whitespace for a cleaner LLM prompt. */
 function stripMarkup(s: string): string {
-  const withoutTags = stripTags(
+  const withoutTags = stripHtmlTags(
     s.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' '),
+    ' ',
   );
   // Entities come last so that a decoded `&lt;` cannot turn into a tag the
   // stripper would then eat.
@@ -161,8 +148,8 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
 
 /** Exactly the code points JS `\s` matches — the class the page-marker pattern walks over. */
 const SPACE_CODES = new Set([
-  0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x20, 0xa0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005,
-  0x2006, 0x2007, 0x2008, 0x2009, 0x200a, 0x2028, 0x2029, 0x202f, 0x205f, 0x3000, 0xfeff,
+  0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x20, 0xa0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006, 0x2007,
+  0x2008, 0x2009, 0x200a, 0x2028, 0x2029, 0x202f, 0x205f, 0x3000, 0xfeff,
 ]);
 
 /** The line breaks a multiline `^` starts after and `$` ends before. */

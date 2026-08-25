@@ -226,4 +226,75 @@ describe('text-extract', () => {
       expect(out).toContain('Zimmer für zwei – 120,00 €');
     });
   });
+
+  describe('pdf page markers', () => {
+    const fromPdf = async (text: string) => {
+      getText.mockResolvedValueOnce({ text });
+      return extractText(Buffer.from('%PDF-1.4'), 'a.pdf');
+    };
+
+    it('drops a marker together with the blank lines around it', async () => {
+      expect(await fromPdf('Hotel Ibis\n\n\n--- 3 of 12 ---\n\n\nCheck-in 04.08.')).toBe(
+        'Hotel Ibis\n\nCheck-in 04.08.',
+      );
+    });
+
+    it('drops a marker that opens or closes the document', async () => {
+      expect(await fromPdf('--- 1 of 2 ---\nBoarding pass')).toBe('Boarding pass');
+      expect(await fromPdf('Rechnung\n--- 4 of 4 ---')).toBe('Rechnung');
+    });
+
+    it('drops an indented marker, spaces or non-breaking ones', async () => {
+      expect(await fromPdf('Gate 12\n    --- 2 of 12 ---\nSeat 4A')).toBe('Gate 12\n\nSeat 4A');
+      expect(await fromPdf('Gate 12\n  --- 2 of 12 ---\nSeat 4A')).toBe('Gate 12\n\nSeat 4A');
+    });
+
+    it('reads the marker case-insensitively and across CRLF line ends', async () => {
+      expect(await fromPdf('Zimmer 12\r\n\r\n-- 1 OF 9 --\r\nAnreise')).toBe('Zimmer 12\r\nAnreise');
+    });
+
+    it('clears every marker of a multi-page document and still de-kerns the text', async () => {
+      const pages = 'A M S T E R D A M\n--- 1 of 3 ---\nGate  12\n-- 2 of 3 --\nSeat 4A\n--- 3 of 3 ---';
+      expect(await fromPdf(pages)).toBe('AMSTERDAM\n\nGate 12\n\nSeat 4A');
+    });
+
+    it('keeps dashed lines that only look like a marker', async () => {
+      const kept = [
+        'Total -- 3 of 4 --', // not at the start of its line
+        'Summe\n--- 3 of 4 --- netto', // something else follows on the line
+        'Summe\n--- 3of 4 ---\nX', // no gap behind the page number
+        'Summe\n--- 3 on 4 ---\nX',
+        'Summe\n--- 3 of4 ---\nX',
+        'Summe\n--- 3 of vier ---\nX',
+        'Summe\n--- 3 of 4\nX', // nothing closes it
+        'Summe\n--- keine Zahl ---\nX',
+        'Summe\n----------\nX',
+      ];
+      for (const text of kept) expect(await fromPdf(text)).toBe(text);
+    });
+
+    it('stays linear on a page that is nothing but whitespace', async () => {
+      const started = Date.now();
+      expect(await fromPdf(' \n'.repeat(50000))).toBe('');
+      // The pattern this replaced walked the whole run again from every line
+      // start and needed ~4 s for these 100k characters.
+      expect(Date.now() - started).toBeLessThan(1000);
+    });
+  });
+  describe('tag stripping keeps the old regex edge cases', () => {
+    it('leaves an empty `<>` alone, because `[^>]+` had nothing to match', async () => {
+      expect(await extractText(Buffer.from('a<>b<p>c</p>'), 'a.html')).toBe('a<>b c');
+    });
+
+    it('keeps a `<` that nothing closes at all as literal text', async () => {
+      expect(await extractText(Buffer.from('3 < 4'), 'a.html')).toBe('3 < 4');
+    });
+
+    it('treats a `<` inside a tag as content, the way the regex did', async () => {
+      // `[^>]` matches `<` too, so `< 4 and <b>` is ONE tag, not a stray `<`
+      // followed by a `<b>`. Narrowing the class would split it and leave the
+      // first `<` behind — a different sanitiser output on malformed markup.
+      expect(await extractText(Buffer.from('3 < 4 and <b>5</b>'), 'a.html')).toBe('3 5');
+    });
+  });
 });
