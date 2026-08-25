@@ -340,3 +340,26 @@
 .m-root .maplibregl-ctrl-bottom-right {
   bottom: var(--bottom-nav-h);
 }
+
+/* Text fields carry the row's background, not their own.
+ *
+ * iOS paints its own background inside a text control, and under
+ * `color-scheme: dark` that fill is darker than the card the field sits on —
+ * so every field showed as a dark rectangle inside a lighter row (#2028). The
+ * mobile fields are deliberately `bg-transparent` because the row around them
+ * supplies the surface, which is exactly why the native fill has nothing
+ * covering it here and shows through; a desktop field hides it behind its own
+ * background. Dropping the native appearance is what actually removes it.
+ *
+ * Only text entry. `file`, `color`, `range` and the date/time pickers need
+ * their native chrome to stay usable, and `select` keeps its own arrow. */
+.m-root input:not([type]),
+.m-root input[type="text"],
+.m-root input[type="password"],
+.m-root input[type="email"],
+.m-root input[type="url"],
+.m-root input[type="search"],
+.m-root textarea {
+  -webkit-appearance: none;
+  appearance: none;
+}
