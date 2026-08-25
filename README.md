@@ -241,64 +241,15 @@ Real-time sync via WebSocket (`ws`). Backend on NestJS 11. State with Zustand. A
 
 <h2 id="docker-compose-production">Docker Compose (production)</h2>
 
-<details>
-<summary>Full compose example with secure defaults</summary>
-
-```yaml
-services:
-  app:
-    image: mauriceboe/trek:latest
-    container_name: trek
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    cap_add:
-      - CHOWN
-      - SETUID
-      - SETGID
-    tmpfs:
-      - /tmp:noexec,nosuid,size=64m
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}   # generate with: openssl rand -hex 32
-      - TZ=${TZ:-UTC}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
-      - APP_URL=${APP_URL:-}                 # required for OIDC + email links
-      # - FORCE_HTTPS=true                   # behind a TLS-terminating proxy
-      # - TRUST_PROXY=1
-      # - OIDC_ISSUER=https://auth.example.com
-      # - OIDC_CLIENT_ID=trek
-      # - OIDC_CLIENT_SECRET=supersecret
-      # - OIDC_DISPLAY_NAME=SSO
-      # - OIDC_ADMIN_CLAIM=groups
-      # - OIDC_ADMIN_VALUE=app-trek-admins
-    volumes:
-      - ./data:/app/data
-      - ./uploads:/app/uploads
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
-```
-
-Then:
+The repository ships a ready-to-use [`docker-compose.yml`](docker-compose.yml)
+with secure defaults and every option documented inline. Download it, then:
 
 ```bash
 docker compose up -d
 ```
 
-**HTTPS notes:** `FORCE_HTTPS=true` is optional — it adds a 301 redirect, HSTS, CSP upgrade-insecure-requests, and forces the `secure` cookie flag. Only use it behind a TLS-terminating reverse proxy. `TRUST_PROXY=1` tells the server how many proxies sit in front so real client IPs and `X-Forwarded-Proto` work.
-
-</details>
+See [Install with Docker Compose](https://github.com/liketrek/TREK/wiki/Install-Docker-Compose)
+for the full walkthrough.
 
 <br />
 
@@ -326,36 +277,10 @@ TREK then launches fullscreen with its own icon, just like a native app.
 
 ## Updating
 
-**Docker Compose:**
+See [Updating](https://github.com/liketrek/TREK/wiki/Updating) — Docker Compose,
+Docker run, Helm, Portainer, Unraid and Proxmox, plus the encryption-key note.
 
-```bash
-docker compose pull && docker compose up -d
-```
-
-**Docker run** — reuse the original volume paths:
-
-```bash
-docker pull mauriceboe/trek
-docker rm -f trek
-docker run -d --name trek -p 3000:3000 -v ./data:/app/data -v ./uploads:/app/uploads --restart unless-stopped mauriceboe/trek
-```
-
-> Not sure which paths you used? `docker inspect trek --format '{{json .Mounts}}'` before removing the container.
-
-Your data stays in the mounted `data` and `uploads` volumes — updates never touch it.
-
-> [!IMPORTANT]
-> Mount **only** the data and uploads directories — `-v ./data:/app/data -v ./uploads:/app/uploads`. **Never mount a volume at `/app`.** Doing so hides the application code shipped in the image and the container fails to start with `Cannot find module 'tsconfig-paths/register'`. If you previously mounted `/app`, switch to the two mounts above; your data in `data/` and `uploads/` is preserved.
-
-<h3>Rotating the Encryption Key</h3>
-
-If you need to rotate `ENCRYPTION_KEY` (e.g. upgrading from a version that derived encryption from `JWT_SECRET`):
-
-```bash
-docker exec -it trek node --import tsx scripts/migrate-encryption.ts
-```
-
-The script creates a timestamped DB backup before making changes and prompts for old + new keys (input is not echoed).
+<br />
 
 <h2 id="reverse-proxy">Reverse Proxy</h2>
 
@@ -435,60 +360,15 @@ Caddy handles TLS and WebSockets automatically.
 
 ## Environment variables
 
+Every variable, its default and what it does: see
+[Environment Variables](https://github.com/liketrek/TREK/wiki/Environment-Variables).
+
 > [!NOTE]
 > Variables are validated at startup (fail-fast). An unset or blank variable
 > always falls back to its default, but a variable set to a malformed value
 > (e.g. `PORT=abc`, `SESSION_DURATION=bogus`, `DEMO_MODE=maybe`) aborts boot
 > with a report listing every offending variable. Boolean switches accept
 > `true`/`false`, `1`/`0`, `on`/`off` and `yes`/`no` (any casing).
-
-<details>
-<summary><b>Full reference</b></summary>
-
-<br />
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| **Core** | | |
-| `PORT` | Server port | `3000` |
-| `NODE_ENV` | Environment (`production` / `development`) | `production` |
-| `ENCRYPTION_KEY` | At-rest encryption key for stored secrets (API keys, MFA, SMTP, OIDC). Recommended: generate with `openssl rand -hex 32`. If unset, falls back to `data/.jwt_secret` (existing installs) or auto-generates a key (fresh installs). | Auto |
-| `TZ` | Timezone for logs, reminders and cron jobs (e.g. `Europe/Berlin`) | `UTC` |
-| `LOG_LEVEL` | `info` = concise user actions, `debug` = verbose details | `info` |
-| `TREK_WIKI_DIR` | Where the in-app Help pages (`/help`) read their content from. TREK ships its wiki and serves it from disk, so Help always matches the version you are running — you should not need to set this. Point it at your own directory to serve custom docs. If the path does not exist, Help falls back to fetching the public GitHub wiki (needs outbound network, and tracks the latest release). | bundled `wiki/` |
-| `DEFAULT_LANGUAGE` | Default language on the login page for users with no saved preference. Browser/OS language is auto-detected first; this is the fallback. Supported: `de`, `en`, `es`, `fr`, `hu`, `nl`, `br`, `cs`, `pl`, `ru`, `zh`, `zh-TW`, `it`, `ar`, `id`, `tr`, `ja`, `ko`, `uk`, `gr` | `en` |
-| `ALLOWED_ORIGINS` | Comma-separated origins for CORS and email links | same-origin |
-| `FORCE_HTTPS` | Optional. When `true`: 301-redirects HTTP to HTTPS, sends HSTS, adds CSP `upgrade-insecure-requests`, forces the session cookie `secure` flag. Useful behind a TLS-terminating reverse proxy. Requires `TRUST_PROXY`. | `false` |
-| `HSTS_INCLUDE_SUBDOMAINS` | When `true`: adds the `includeSubDomains` directive to the HSTS header, extending HTTPS enforcement to all subdomains. Only effective when HSTS is active (`FORCE_HTTPS=true` or `NODE_ENV=production`). Leave `false` if you run other services on sibling subdomains over plain HTTP. | `false` |
-| `COOKIE_SECURE` | Controls the `secure` flag on the `trek_session` cookie. Auto-derived: on when `NODE_ENV=production` or `FORCE_HTTPS=true`. Escape hatch: set `false` to allow session cookies over plain HTTP. Not recommended in production. | auto |
-| `SESSION_DURATION` | How long a login session stays valid when **"Remember me" is unchecked** (the default): sets the `trek_session` JWT `exp` and issues a browser-session cookie (cleared when the browser closes). Accepts `ms`-style strings: `1h`, `12h`, `7d`, `30d`, `90d`. Invalid values warn at startup and fall back to the default. | `24h` |
-| `SESSION_DURATION_REMEMBER` | Session length when **"Remember me" is ticked** at login: a longer-lived JWT plus a persistent `trek_session` cookie that survives browser restarts. Same format and startup-fallback behaviour as `SESSION_DURATION`. | `30d` |
-| `TRUST_PROXY` | Number of trusted reverse proxies. Tells the server to read client IP from `X-Forwarded-For` and protocol from `X-Forwarded-Proto`. Defaults to `1` in production; off in dev unless set. | `1` |
-| `ALLOW_INTERNAL_NETWORK` | Allow outbound requests to private/RFC-1918 IPs (e.g. Immich on your LAN). Loopback and link-local addresses remain blocked. | `false` |
-| `APP_URL` | Public base URL of this instance (e.g. `https://trek.example.com`). Required when OIDC is enabled; used as base for email notification links. | — |
-| **OIDC / SSO** | | |
-| `OIDC_ISSUER` | OpenID Connect provider URL | — |
-| `OIDC_CLIENT_ID` | OIDC client ID | — |
-| `OIDC_CLIENT_SECRET` | OIDC client secret | — |
-| `OIDC_DISPLAY_NAME` | Label shown on the SSO login button | `SSO` |
-| `OIDC_ONLY` | Force SSO-only mode: disables password login + registration, regardless of Admin > Settings. The first SSO login becomes admin. | `false` |
-| `OIDC_ADMIN_CLAIM` | OIDC claim used to identify admin users | — |
-| `OIDC_ADMIN_VALUE` | Value of the OIDC claim that grants admin role | — |
-| `OIDC_SCOPE` | Space-separated OIDC scopes. **Fully replaces** the default — always include `openid email profile`. | `openid email profile` |
-| `OIDC_DISCOVERY_URL` | Override the auto-constructed OIDC discovery endpoint (e.g. Authentik: `.../application/o/trek/.well-known/openid-configuration`) | — |
-| **Initial setup** | | |
-| `ADMIN_EMAIL` | Email for the first admin on initial boot. Must be set together with `ADMIN_PASSWORD`. If either is omitted a random password is printed to the server log. No effect once a user exists. | `admin@trek.local` |
-| `ADMIN_PASSWORD` | Password for the first admin on initial boot. Pairs with `ADMIN_EMAIL`. | random |
-| **Other** | | |
-| `TREK_MANAGED` | Marks the install as centrally administered: the operator owns the configuration, credentials and upgrades, so the instance admin is not offered settings the operator sets. Leave unset when you run TREK yourself. | `false` |
-| `PLACES_API_KEY` | Places credential supplied by whoever operates the install. When set, it is used for every lookup and the per-user keys in Admin > Settings are ignored. Leave unset to keep the stored keys. | — |
-| `PLACES_API_BASE` | Send the Places calls to this origin instead of `https://places.googleapis.com` (an egress proxy, a cache, a gateway holding the key). Path and query are unchanged, so it has to speak the same API. | — |
-| `DEMO_MODE` | Enable demo mode (hourly data resets) | `false` |
-| `UNSPLASH_ACCESS_KEY` | Optional Unsplash Access Key for trip-cover and place-image search. Without one, TREK uses Unsplash's unauthenticated endpoint, which some datacenter/VPS IPs are blocked from. Get a free key at [unsplash.com/developers](https://unsplash.com/developers). Overrides any per-admin key set in Admin > Settings (where it can also be configured instead). | — |
-| `MCP_RATE_LIMIT` | Max MCP API requests per user per minute | `300` |
-| `MCP_MAX_SESSION_PER_USER` | Max concurrent MCP sessions per user. At the cap, the least-recently-active session is closed to make room | `20` |
-
-</details>
 
 ### Recovery and restore
 
