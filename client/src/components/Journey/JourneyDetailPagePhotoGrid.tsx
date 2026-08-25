@@ -1,17 +1,32 @@
-import { Image } from 'lucide-react'
+import { Image, Play } from 'lucide-react'
 import type { JourneyPhoto } from '../../store/journeyStore'
 import { photoUrl } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 
 export function PhotoImg({ photo, className, style }: { photo: JourneyPhoto; className?: string; style?: React.CSSProperties }) {
   const src = photoUrl(photo, 'thumbnail')
+  const isVideo = photo.media_type === 'video'
+
   return (
-    <img
-      src={src}
-      alt={photo.caption || ''}
-      className={className}
+    <div
+      className={`relative overflow-hidden ${isVideo ? 'bg-black' : ''} ${className || ''}`}
       style={style}
-      loading="lazy"
-    />
+      onClick={onClick}
+    >
+      <img
+        src={src}
+        alt=""
+        className={`w-full h-full ${isVideo ? 'object-contain' : 'object-cover'}`}
+        loading="lazy"
+      />
+
+      {isVideo && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <span className="w-11 h-11 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white">
+            <Play size={20} className="ml-0.5" fill="currentColor" />
+          </span>
+        </div>
+      )}
+    </div>
   )
 }
 
