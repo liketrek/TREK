@@ -4,7 +4,7 @@ import {
   Blocks, AlertTriangle, PackageOpen, RefreshCw, Trash2, Download, Bug, X, ShieldCheck, UploadCloud,
   ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search, Link2, KeyRound, ShieldAlert,
   SlidersHorizontal, ArrowUpDown, CircleDot, MoreHorizontal, RotateCw, ArrowRight, Database, Users, LayoutDashboard,
-  Radio, Luggage, Globe, Image, CalendarDays, Bell, Info, History,
+  Radio, Luggage, Globe, Image, CalendarDays, Bell, Info, History, PauseCircle,
   Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag, FileText, Route, Navigation, Clock, LocateFixed, Palette,
 } from 'lucide-react'
 import PluginIcon from '../../../components/shared/PluginIcon'
@@ -65,6 +65,8 @@ interface PluginRow {
   keyFingerprint?: string | null
   /** Why an update was refused, if one was. `version` is the version that was refused. */
   updateBlock?: { code: string; detail: string | null; version: string | null } | null
+  /** A deliberate non-latest install paused updates: out of the banner/Update all until resumed. */
+  updateHold?: boolean
 }
 interface RegistryItem {
   id: string
@@ -584,7 +586,11 @@ export default function MAdminPluginsPanel() {
       .catch(() => setErrorsFor({ id, rows: [] }))
   }
 
-  const updateAvailable = (p: PluginRow) => !!(p.version && latest[p.id] && isNewer(latest[p.id], p.version))
+  // A held plugin (deliberate non-latest install) is deliberately NOT an update candidate:
+  // the admin just rolled it back, and the banner nagging them straight back would make
+  // the rollback fight the UI. The row carries its own "paused" marker + resume instead.
+  const updateAvailable = (p: PluginRow) => !!(p.version && !p.updateHold && latest[p.id] && isNewer(latest[p.id], p.version))
+  const resumeUpdates = (p: PluginRow) => act(p.id, () => adminApi.pluginResumeUpdates(p.id), t('admin.plugins.updatesResumed'))
   // A newer version exists but this TREK can't install it (and it isn't the one on offer):
   // said passively on the row, so the admin learns a TREK upgrade unlocks it instead of
   // wondering why no update shows. Null when the registry gives no range to point at.
@@ -924,6 +930,7 @@ export default function MAdminPluginsPanel() {
               blocked={blockIsCurrent(p, latest[p.id])}
               onToggle={() => toggle(p)}
               onUpdate={() => runUpdate(p)}
+              onResume={() => void resumeUpdates(p)}
               onReviewBlock={() => setSignatureBlock({
                 subject: { id: p.id, name: p.name, keyFingerprint: p.keyFingerprint ?? null },
                 code: p.updateBlock!.code, detail: p.updateBlock!.detail,
@@ -1189,10 +1196,10 @@ function PickerSheet({ open, onClose, title, options, value, onPick }: {
 
 // ── Installed row ──────────────────────────────────────────────────────────
 
-function InstalledRow({ p, t, busy, hasUpdate, latestVer, newerIncompatible, blocked, onToggle, onUpdate, onReviewBlock, onEgress, onMenu }: {
+function InstalledRow({ p, t, busy, hasUpdate, latestVer, newerIncompatible, blocked, onToggle, onUpdate, onResume, onReviewBlock, onEgress, onMenu }: {
   p: PluginRow; t: T; busy: string | null
   hasUpdate: boolean; latestVer?: string; newerIncompatible: { version: string; range: string } | null; blocked: boolean
-  onToggle: () => void; onUpdate: () => void; onReviewBlock: () => void
+  onToggle: () => void; onUpdate: () => void; onResume: () => void; onReviewBlock: () => void
   onEgress: () => void; onMenu: () => void
 }) {
   const caps = deriveCaps(parseJson<string[]>(p.permissions, []), parseJson<{ widget?: { slot?: string } }>(p.capabilities, {}), t)
@@ -1252,6 +1259,19 @@ function InstalledRow({ p, t, busy, hasUpdate, latestVer, newerIncompatible, blo
         <div className="mt-2 flex items-center gap-1.5 text-[11.5px] text-m-faint">
           <Info size={13} className="shrink-0" />
           <span className="truncate">{t('admin.plugins.newerNeedsTrek', { version: newerIncompatible.version, range: newerIncompatible.range })}</span>
+        </div>
+      )}
+
+      {/* Held: the admin deliberately installed a non-latest version, so updates are
+          paused rather than nagged — resuming is one click, right where the pause shows. */}
+      {p.updateHold && (
+        <div className="mt-2 flex items-center gap-1.5 text-[11.5px] text-m-faint">
+          <PauseCircle size={13} className="shrink-0" />
+          <span className="truncate">{t('admin.plugins.updatesHeld', { version: p.version ?? '' })}</span>
+          <button onClick={onResume} disabled={busy === p.id}
+            className="shrink-0 font-semibold underline underline-offset-2 disabled:opacity-50">
+            {t('admin.plugins.resumeUpdates')}
+          </button>
         </div>
       )}
 

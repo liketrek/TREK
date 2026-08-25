@@ -23,7 +23,7 @@ const { testDb } = vi.hoisted(() => {
     CREATE TABLE plugins (id TEXT PRIMARY KEY, name TEXT, description TEXT, type TEXT, icon TEXT, version TEXT,
       api_version INTEGER, min_trek_version TEXT, trek_range TEXT, permissions TEXT, capabilities TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', operator_egress INTEGER DEFAULT 0, granted_permissions TEXT, status TEXT, enabled INTEGER DEFAULT 0, config TEXT,
       source_repo TEXT, source_commit TEXT, sha256 TEXT, reviewed_at TEXT, author_pubkey TEXT, updated_at TEXT,
-      update_block_code TEXT, update_block_detail TEXT, update_block_version TEXT);
+      update_block_code TEXT, update_block_detail TEXT, update_block_version TEXT, update_hold INTEGER NOT NULL DEFAULT 0);
     CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, label TEXT, input_type TEXT, placeholder TEXT, hint TEXT, required INTEGER, secret INTEGER, scope TEXT, options TEXT, oauth_config TEXT, sort_order INTEGER);
     CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT);`);
   return { testDb: db };
@@ -255,6 +255,60 @@ describe('PluginRegistryService', () => {
 
   it('detail rejects an unknown plugin id', async () => {
     await expect(svc.detail('ghost')).rejects.toThrow(RegistryError);
+  });
+
+  // The per-plugin update hold: a DELIBERATE non-latest install excludes the plugin from
+  // the update banner until the admin resumes updates or lands back on the newest
+  // compatible version. Dependency resolution pins versions too, but never deliberately —
+  // the `explicit` flag is what separates the two.
+  describe('recomputeUpdateHold', () => {
+    const twoVersions = {
+      schemaVersion: 1,
+      plugins: [
+        {
+          id: 'flight-tracker', name: 'Flight', author: 'Acme', description: 'flights', repo: 'acme/trek-flight', type: 'widget',
+          versions: [
+            { version: '2.0.0', gitTag: 'v2.0.0', commitSha: 'b'.repeat(40), downloadUrl: 'https://x/2', sha256: '2'.repeat(64) },
+            { version: '1.0.0', gitTag: 'v1.0.0', commitSha: 'd'.repeat(40), downloadUrl: 'https://x/1', sha256: '0'.repeat(64) },
+          ],
+        },
+      ],
+    };
+    const seedRow = (hold = 0) =>
+      testDb.prepare("INSERT INTO plugins (id, status, enabled, update_hold) VALUES ('flight-tracker','inactive',0,?)").run(hold);
+    const holdInDb = () =>
+      (testDb.prepare("SELECT update_hold FROM plugins WHERE id='flight-tracker'").get() as { update_hold: number }).update_hold;
+
+    beforeEach(() => {
+      vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => twoVersions }) as unknown as Response));
+      __clearRegistryCacheForTests();
+    });
+
+    it('holds when the admin explicitly picked an older version', async () => {
+      seedRow();
+      await expect(svc.recomputeUpdateHold('flight-tracker', '1.0.0', true)).resolves.toBe(true);
+      expect(holdInDb()).toBe(1);
+    });
+
+    it('does not hold when the explicit pick IS the newest compatible version', async () => {
+      seedRow(1);
+      await expect(svc.recomputeUpdateHold('flight-tracker', '2.0.0', true)).resolves.toBe(false);
+      expect(holdInDb()).toBe(0);
+    });
+
+    it('a non-deliberate update clears a stale hold', async () => {
+      seedRow(1);
+      await expect(svc.recomputeUpdateHold('flight-tracker', '2.0.0', false)).resolves.toBe(false);
+      expect(holdInDb()).toBe(0);
+    });
+
+    it('an unresolvable registry never sets a hold', async () => {
+      seedRow();
+      vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
+      __clearRegistryCacheForTests();
+      await expect(svc.recomputeUpdateHold('flight-tracker', '1.0.0', true)).resolves.toBe(false);
+      expect(holdInDb()).toBe(0);
+    });
   });
 
   // The version picker's data: every published version, each with its OWN server-computed

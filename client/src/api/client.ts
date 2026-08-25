@@ -537,6 +537,8 @@ export const adminApi = {
   // resolves the newest TREK-compatible version itself.
   pluginUpdate: (id: string, version?: string) =>
     apiClient.post(`/admin/plugins/${id}/update`, version ? { version } : {}).then(r => r.data),
+  // Release a per-plugin update hold (set by a deliberate non-latest install).
+  pluginResumeUpdates: (id: string) => apiClient.post(`/admin/plugins/${id}/resume-updates`).then(r => r.data),
   // Re-trust a ROTATED author signing key and update, in ONE call. `publicKey` is the
   // full key the admin was shown (not a fingerprint): the server compares it exactly, so
   // it can refuse if the registry entry was re-keyed again since the dialog rendered.

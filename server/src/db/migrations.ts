@@ -4123,6 +4123,19 @@ function runMigrations(db: Database.Database): void {
         }
       }
     },
+
+    // A deliberate non-latest plugin install sets `update_hold`: the row leaves the
+    // update banner and "Update all" until the admin resumes updates, or until an
+    // install lands back on the newest compatible version. Only an EXPLICIT version
+    // pick ever sets it — dependency resolution pins versions too, but never
+    // deliberately. Appended LAST — the array is index-addressed against schema_version.
+    () => {
+      try {
+        db.exec('ALTER TABLE plugins ADD COLUMN update_hold INTEGER NOT NULL DEFAULT 0;');
+      } catch (err) {
+        console.warn('[migrations] Non-fatal migration step failed:', err);
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

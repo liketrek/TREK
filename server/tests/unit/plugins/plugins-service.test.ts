@@ -11,7 +11,7 @@ const { testDb } = vi.hoisted(() => {
     id TEXT PRIMARY KEY, name TEXT, description TEXT, type TEXT, icon TEXT, version TEXT,
     status TEXT, enabled INTEGER DEFAULT 0, last_error TEXT, reviewed_at TEXT, source_repo TEXT, config TEXT DEFAULT '{}', permissions TEXT DEFAULT '[]', granted_permissions TEXT DEFAULT '[]', capabilities TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', operator_egress INTEGER DEFAULT 0, updated_at TEXT,
     author_pubkey TEXT, update_block_code TEXT, update_block_detail TEXT, update_block_version TEXT,
-    trek_range TEXT, sort_order INTEGER DEFAULT 0);
+    trek_range TEXT, sort_order INTEGER DEFAULT 0, update_hold INTEGER NOT NULL DEFAULT 0);
     CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, scope TEXT, secret INTEGER);
     CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT DEFAULT '2026-01-01');`);
   return { testDb: db };
@@ -46,6 +46,30 @@ describe('PluginsService.list', () => {
     expect(out.enabled).toBe(true);
     expect(out.plugins).toHaveLength(1);
     expect(out.plugins[0]).toMatchObject({ id: 'flight', name: 'Flight', status: 'inactive' });
+  });
+
+  it('surfaces updateHold as a boolean (held plugins leave the update banner)', () => {
+    testDb
+      .prepare("INSERT INTO plugins (id, name, type, status, version, update_hold) VALUES ('held','Held','widget','inactive','1.0.0',1)")
+      .run();
+    testDb
+      .prepare("INSERT INTO plugins (id, name, type, status, version) VALUES ('free','Free','widget','inactive','1.0.0')")
+      .run();
+
+    const out = new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn))).list();
+    expect(out.plugins.find((p) => p.id === 'held')).toMatchObject({ updateHold: true });
+    expect(out.plugins.find((p) => p.id === 'free')).toMatchObject({ updateHold: false });
+  });
+
+  it('resumeUpdates clears the hold and reports whether the plugin existed', () => {
+    testDb
+      .prepare("INSERT INTO plugins (id, name, type, status, version, update_hold) VALUES ('held','Held','widget','inactive','1.0.0',1)")
+      .run();
+    const svc = new PluginsService(new DatabaseService(dbConn), new AddonsService(new DatabaseService(dbConn)));
+
+    expect(svc.resumeUpdates('held')).toBe(true);
+    expect(testDb.prepare("SELECT update_hold FROM plugins WHERE id='held'").get()).toMatchObject({ update_hold: 0 });
+    expect(svc.resumeUpdates('ghost')).toBe(false);
   });
 
   it('reports enabled by default (no kill switch set)', () => {

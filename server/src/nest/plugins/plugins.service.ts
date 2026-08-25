@@ -43,6 +43,7 @@ interface PluginRawRow {
   update_block_code: string | null;
   update_block_detail: string | null;
   update_block_version: string | null;
+  update_hold: number;
 }
 
 export interface PluginListItem {
@@ -87,6 +88,9 @@ export interface PluginListItem {
   /** Why an update was refused, if one was. `version` is the registry version that was
    * refused, so a caller can treat the block as stale once a newer one is on offer. */
   updateBlock: { code: string; detail: string | null; version: string | null } | null;
+  /** A deliberate non-latest install paused updates: excluded from the banner/Update all
+   * until the admin resumes, or an install lands back on the newest compatible version. */
+  updateHold: boolean;
 }
 
 @Injectable()
@@ -114,7 +118,7 @@ export class PluginsService {
       .prepare(
         `SELECT id, name, description, type, icon, version, status, enabled, last_error, reviewed_at, source_repo,
                 permissions, capabilities, dependencies, operator_egress, trek_range,
-                author_pubkey, update_block_code, update_block_detail, update_block_version
+                author_pubkey, update_block_code, update_block_detail, update_block_version, update_hold
          FROM plugins
          ORDER BY sort_order, name`,
       )
@@ -143,6 +147,7 @@ export class PluginsService {
         update_block_code,
         update_block_detail,
         update_block_version,
+        update_hold,
         ...rest
       } = r as PluginRawRow & { operator_egress?: number };
       return {
@@ -159,9 +164,18 @@ export class PluginsService {
         updateBlock: update_block_code
           ? { code: update_block_code, detail: update_block_detail, version: update_block_version }
           : null,
+        updateHold: update_hold === 1,
       };
     });
     return { enabled: pluginsEnabled(), devLink: devLinkEnabled(), plugins };
+  }
+
+  /**
+   * Release a per-plugin update hold (set by a deliberate non-latest install).
+   * Returns whether the plugin row existed — the controller answers 404 otherwise.
+   */
+  resumeUpdates(id: string): boolean {
+    return this.db.prepare('UPDATE plugins SET update_hold = 0 WHERE id = ?').run(id).changes > 0;
   }
 
   /**

@@ -63,8 +63,11 @@ describe('budget_items ticket_json migration', () => {
 describe('recovering what the case-insensitive match destroyed', () => {
   /**
    * A database that already ran the buggy step: migrated to the tip, then wound
-   * back one version so only the recovery step is left to run — which is exactly
-   * what an existing install does on the next boot.
+   * back to just before the recovery step so it runs again — which is exactly
+   * what an existing install does on the next boot. The wind-back target is the
+   * recovery step's ABSOLUTE version (the array is append-only and
+   * index-addressed, so it never moves); anything appended after it replays too,
+   * which every later migration must tolerate anyway.
    */
   function makeDamagedDb(): Database.Database {
     const db = new Database(':memory:');
@@ -85,8 +88,8 @@ describe('recovering what the case-insensitive match destroyed', () => {
     db.prepare('INSERT INTO budget_items (id, trip_id, name, note, ticket_json) VALUES (?, ?, ?, ?, ?)')
       .run(3, 1, 'Taxi', 'split at the hotel', '{"items":[]}');
 
-    const version = (db.prepare('SELECT version FROM schema_version LIMIT 1').get() as { version: number }).version;
-    db.prepare('UPDATE schema_version SET version = ?').run(version - 1);
+    // 196 = the version just before the recovery step (migration #197).
+    db.prepare('UPDATE schema_version SET version = ?').run(196);
     return db;
   }
 

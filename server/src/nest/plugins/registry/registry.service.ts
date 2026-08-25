@@ -520,6 +520,30 @@ export class PluginRegistryService {
   }
 
   /**
+   * Recompute the per-plugin update hold after a successful install/update.
+   *
+   * The hold exists so a DELIBERATE rollback isn't immediately nagged away by the
+   * update banner. It is set only when `explicit` (the admin picked this exact
+   * version) AND a newer TREK-compatible version exists; every other outcome writes
+   * 0, so landing back on the newest compatible version — by any path — releases a
+   * stale hold. An unresolvable registry never sets a hold: refusing to pin on
+   * missing information beats silently muting future updates.
+   */
+  async recomputeUpdateHold(id: string, installedVersion: string, explicit: boolean): Promise<boolean> {
+    let hold = false;
+    if (explicit) {
+      try {
+        const newest = await this.resolveVersion(id);
+        hold = semver.lt(installedVersion, newest.version);
+      } catch {
+        hold = false;
+      }
+    }
+    this.db.prepare('UPDATE plugins SET update_hold = ? WHERE id = ?').run(hold ? 1 : 0, id);
+    return hold;
+  }
+
+  /**
    * Sideload step 1: extract + validate an uploaded archive into a staging dir,
    * WITHOUT touching the live plugin. Returns the manifest id/version + the staged
    * path so the caller can stop a running child before the swap. Same hard guards

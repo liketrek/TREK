@@ -767,6 +767,27 @@ describe('MAdminPluginsPanel — updates and consent', () => {
     expect(await screen.findByText('v2.0.0 available — needs TREK >=4.0.0')).toBeInTheDocument();
   });
 
+  it('FE-MOB-PLUGP-046f: a held plugin leaves the banner and offers Resume updates instead', async () => {
+    let resumed = false;
+    mockPanel(
+      [plugin({ source_repo: 'acme/gotify', version: '1.0.0', updateHold: true })],
+      [registryEntry({ latest: '2.0.0' })],
+    );
+    server.use(http.post('*/api/admin/plugins/trek-gotify/resume-updates', () => {
+      resumed = true;
+      return HttpResponse.json({ updateHold: false });
+    }));
+    render(<MAdminPluginsPanel />);
+    await screen.findByText('Gotify');
+
+    expect(screen.queryByText(/updates available for your plugins/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /update → v2\.0\.0/i })).not.toBeInTheDocument();
+    expect(screen.getByText('Updates paused at v1.0.0')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /resume updates/i }));
+    await waitFor(() => expect(resumed).toBe(true));
+  });
+
   it('FE-MOB-PLUGP-046d: the detail sheet lists every version and installs the picked one', async () => {
     const bodies: unknown[] = [];
     mockPanel([], [registryEntry({ latest: '3.0.0', latestCompatible: '2.0.0', trek: '>=4.0.0', hostVersion: '3.3.0', compatible: false })]);

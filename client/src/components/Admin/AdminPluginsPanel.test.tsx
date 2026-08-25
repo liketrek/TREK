@@ -1148,6 +1148,58 @@ describe('AdminPluginsPanel — compatible updates only', () => {
 })
 
 /**
+ * The update hold (#plugins): a deliberate non-latest install sets updateHold on the row,
+ * which takes it out of the banner count and "Update all" — a rollback the admin just
+ * made must not be nagged straight back. The row says so and offers to resume.
+ */
+describe('AdminPluginsPanel — update hold', () => {
+  const held = plugin({ source_repo: 'acme/gotify', version: '1.0.0', operatorEgress: false, updateHold: true })
+
+  it('FE-COMP-PLUGINS-HOLD-001: a held plugin leaves the banner and loses its update button', async () => {
+    panelWith([held], { registry: [registryEntry({ latest: '2.0.0' })] })
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Gotify')
+
+    expect(screen.queryByText(/updates available for your plugins/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /update → v2\.0\.0/i })).not.toBeInTheDocument()
+    expect(screen.getByText('Updates paused at v1.0.0')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-HOLD-002: Resume updates releases the hold on the server', async () => {
+    let resumed = false
+    panelWith([held], { registry: [registryEntry({ latest: '2.0.0' })] })
+    server.use(http.post('*/api/admin/plugins/trek-gotify/resume-updates', () => {
+      resumed = true
+      return HttpResponse.json({ updateHold: false })
+    }))
+    withToast()
+
+    fireEvent.click(await screen.findByRole('button', { name: /resume updates/i }))
+
+    await waitFor(() => expect(resumed).toBe(true))
+    expect(await screen.findByText('Updates resumed')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-HOLD-003: Update all skips held plugins', async () => {
+    const updated: string[] = []
+    panelWith(
+      [held, plugin({ id: 'trek-ntfy', name: 'Ntfy', source_repo: 'acme/ntfy', version: '1.0.0', operatorEgress: false })],
+      { registry: [registryEntry({ latest: '2.0.0' }), registryEntry({ id: 'trek-ntfy', latest: '3.0.0' })] },
+    )
+    server.use(http.post('*/api/admin/plugins/:id/update', ({ params }) => {
+      updated.push(String(params.id))
+      return HttpResponse.json({ version: '3.0.0', activated: true, newPermissions: [], newEgress: [] })
+    }))
+    withToast()
+
+    expect(await screen.findByText('1 updates available for your plugins.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /update all/i }))
+
+    await waitFor(() => expect(updated).toEqual(['trek-ntfy']))
+  })
+})
+
+/**
  * The version picker (#plugins): install any published version from the Discover detail
  * modal, and roll an installed plugin back through the update pipeline (which owns the
  * stop-child + re-consent machinery). Compat verdicts are SERVER-computed per version —

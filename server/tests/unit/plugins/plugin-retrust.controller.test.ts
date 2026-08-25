@@ -49,11 +49,14 @@ let runtime: PluginRuntimeService;
 let registry: PluginRegistryService;
 let controller: PluginsController;
 
+let plugins: PluginsService;
+
 beforeEach(() => {
   process.env.TREK_PLUGINS_ENABLED = 'true';
   runtime = { update: vi.fn(), retrust: vi.fn() } as unknown as PluginRuntimeService;
-  registry = { install: vi.fn() } as unknown as PluginRegistryService;
-  controller = new PluginsController({} as PluginsService, runtime, registry, { isManaged: () => false } as unknown as RuntimeEnvService);
+  registry = { install: vi.fn(), installWithDependencies: vi.fn(), recomputeUpdateHold: vi.fn() } as unknown as PluginRegistryService;
+  plugins = { resumeUpdates: vi.fn(() => true) } as unknown as PluginsService;
+  controller = new PluginsController(plugins, runtime, registry, { isManaged: () => false } as unknown as RuntimeEnvService);
 });
 
 describe('signature refusal codes survive to the client', () => {
@@ -116,6 +119,66 @@ describe('POST :id/update — explicit version', () => {
     await controller.update('flight-tracker');
 
     expect(vi.mocked(runtime.update).mock.calls[0]).toEqual(['flight-tracker', { version: undefined }]);
+  });
+});
+
+// The update hold: only a DELIBERATE version pick may set it, every successful
+// install/update recomputes it (so landing back on the newest clears a stale one),
+// and dependency resolution — which pins versions too, but never deliberately —
+// must not touch it.
+describe('update hold wiring', () => {
+  it('an explicit-version update recomputes the hold as deliberate', async () => {
+    vi.mocked(runtime.update).mockResolvedValue({ version: '1.2.0', activated: true, newPermissions: [], newEgress: [] });
+
+    await controller.update('flight-tracker', { version: '1.2.0' });
+
+    expect(registry.recomputeUpdateHold).toHaveBeenCalledWith('flight-tracker', '1.2.0', true);
+  });
+
+  it('a default update recomputes as non-deliberate (clears a stale hold)', async () => {
+    vi.mocked(runtime.update).mockResolvedValue({ version: '2.0.0', activated: true, newPermissions: [], newEgress: [] });
+
+    await controller.update('flight-tracker');
+
+    expect(registry.recomputeUpdateHold).toHaveBeenCalledWith('flight-tracker', '2.0.0', false);
+  });
+
+  it('an explicit-version install recomputes the hold as deliberate', async () => {
+    vi.mocked(registry.install).mockResolvedValue({ id: 'flight-tracker', version: '1.2.0' });
+
+    await controller.install({ id: 'flight-tracker', version: '1.2.0' });
+
+    expect(registry.recomputeUpdateHold).toHaveBeenCalledWith('flight-tracker', '1.2.0', true);
+  });
+
+  it('a dependency-resolution install does NOT touch the hold', async () => {
+    vi.mocked(registry.installWithDependencies).mockResolvedValue({ installed: ['flight-tracker'], requiredAddons: [] });
+
+    await controller.install({ id: 'flight-tracker', withDependencies: true });
+
+    expect(registry.recomputeUpdateHold).not.toHaveBeenCalled();
+  });
+
+  it('a failed update leaves the hold untouched', async () => {
+    vi.mocked(runtime.update).mockRejectedValue(new Error('network unreachable'));
+
+    await expect(controller.update('flight-tracker', { version: '1.2.0' })).rejects.toThrow(HttpException);
+
+    expect(registry.recomputeUpdateHold).not.toHaveBeenCalled();
+  });
+
+  it('POST :id/resume-updates clears the hold', async () => {
+    const res = await controller.resumeUpdates('flight-tracker');
+
+    expect(plugins.resumeUpdates).toHaveBeenCalledWith('flight-tracker');
+    expect(res).toEqual({ updateHold: false });
+  });
+
+  it('POST :id/resume-updates is a 404 for an unknown plugin', async () => {
+    vi.mocked(plugins.resumeUpdates).mockReturnValue(false);
+
+    const { status } = await wireFailure(async () => controller.resumeUpdates('ghost'));
+    expect(status).toBe(404);
   });
 });
 
