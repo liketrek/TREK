@@ -474,7 +474,7 @@ export class PluginSupervisor {
     sup.child = child;
     sup.lastBeat = Date.now();
 
-    child.on('message', (raw: unknown) => this.onMessage(sup, raw as Envelope));
+    child.on('message', (raw: unknown) => this.handleChildMessage(sup, raw));
     child.on('exit', (code, signal) => this.onExit(sup, code, signal));
     child.on('error', (e) => this.hooks.onLog?.(sup.id, 'error', `child error: ${e.message}`));
     child.stdout?.on('data', (b) => this.recordLog(sup, 'info', String(b).trimEnd()));
@@ -500,6 +500,19 @@ export class PluginSupervisor {
       this.hooks.onLog?.(sup.id, 'warn', `[trek] ${dropped} log line(s) dropped (plugin log rate limit exceeded)`);
     }
     this.hooks.onLog?.(sup.id, level, msg, meta);
+  }
+
+  /**
+   * An EventEmitter listener throws away what its callback returns, and onMessage is
+   * async — so a rejection in there surfaces as an unhandledRejection, which Node 22
+   * turns into process exit. The host installs no net for it (the plugin child does,
+   * for itself), so one malformed envelope would take down the very supervisor whose
+   * job is to contain a misbehaving plugin. Log it against the plugin and carry on.
+   */
+  private handleChildMessage(sup: Supervised, raw: unknown): void {
+    this.onMessage(sup, raw as Envelope).catch((e: unknown) => {
+      this.hooks.onLog?.(sup.id, 'error', `message handling failed: ${e instanceof Error ? e.message : String(e)}`);
+    });
   }
 
   private async onMessage(sup: Supervised, msg: Envelope): Promise<void> {

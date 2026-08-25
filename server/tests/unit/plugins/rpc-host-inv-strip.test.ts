@@ -110,4 +110,29 @@ describe('dispatch strips the supervisor _inv marker', () => {
     await host.dispatch(req('packing.setBagMembers', { tripId: 1, bagId: 80, userIds: [3], _inv: 'req-7' }), 42);
     expect(setBagMembers).toHaveBeenCalledWith('1', '80', [3]);
   });
+
+  /**
+   * The `_inv` check runs before handle()'s try/catch, so a params value that is not
+   * an object used to throw a TypeError out of dispatch instead of coming back as an
+   * error envelope. The supervisor discards the promise dispatch lives on, which made
+   * that an unhandledRejection — process exit, from one malformed envelope.
+   */
+  it('RPCINV-007 params that are not an object come back as an envelope, not a rejection', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:own']), makeDeps(), dbRegistry());
+
+    for (const params of [5, 'text', true] as unknown as Record<string, unknown>[]) {
+      const res = await host.dispatch({ k: 'req', id: 'x', method: 'db.query', params });
+      expect(res).toMatchObject({ k: 'res', id: 'x', ok: false });
+    }
+  });
+
+  it('RPCINV-008 null and undefined params still behave as an empty object', async () => {
+    const host = new PluginRpcHost('p', new Set(['db:own']), makeDeps(), dbRegistry());
+
+    const nulled = await host.dispatch({ k: 'req', id: 'x', method: 'db.query', params: null as unknown as Record<string, unknown> });
+    // The type says params is required; the IPC channel does not, so a child can
+    // leave it off entirely.
+    const missing = await host.dispatch({ k: 'req', id: 'x', method: 'db.query', params: undefined as unknown as Record<string, unknown> });
+    expect(nulled).toEqual(missing);
+  });
 });
