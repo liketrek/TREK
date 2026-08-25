@@ -233,6 +233,12 @@ export function deriveIntegrations(raw: RawEnv) {
     overpassUrl: raw.OVERPASS_URL,
     overpassTimeoutMs: positiveNumberOr(raw.OVERPASS_TIMEOUT_MS, 12000),
     kitineraryExtractorPath: raw.KITINERARY_EXTRACTOR_PATH,
+    // Windows spells it Path; every other platform PATH. Split here so callers
+    // get a list and never re-implement the delimiter.
+    searchPath: (raw.PATH || raw.Path || '')
+      .split(process.platform === 'win32' ? ';' : ':')
+      .map(p => p.trim())
+      .filter(Boolean),
   };
 }
 

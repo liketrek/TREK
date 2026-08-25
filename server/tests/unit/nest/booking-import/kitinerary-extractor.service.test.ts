@@ -8,11 +8,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  * at all, and every branch that resolves it is a filesystem lookup that behaves
  * differently on the three platforms TREK ships to.
  */
-const { existsSync, readdirSync, readEnv, execSync, execFile } = vi.hoisted(() => ({
+const { existsSync, readdirSync, readEnv, execFileSync, execFile } = vi.hoisted(() => ({
   existsSync: vi.fn(),
   readdirSync: vi.fn(),
   readEnv: vi.fn(),
-  execSync: vi.fn(),
+  execFileSync: vi.fn(),
   // A plain function, because the service promisifies it at module load.
   execFile: vi.fn(),
 }));
@@ -23,16 +23,23 @@ vi.mock('node:fs', () => ({
   writeFileSync: vi.fn(),
   unlinkSync: vi.fn(),
 }));
-// The last branch of the probe shells out. Unmocked, the suite spawns a real
-// process on every machine and comes back green-or-red depending on whether the
-// developer happens to have KItinerary installed.
-vi.mock('node:child_process', () => ({ execSync, execFile }));
+// The last branch of the probe runs the candidate to see whether it works.
+// Unmocked, the suite spawns a real process on every machine and comes back
+// green-or-red depending on whether the developer happens to have KItinerary
+// installed.
+vi.mock('node:child_process', () => ({ execFileSync, execFile }));
 vi.mock('../../../../src/app-config', () => ({ readEnv }));
 
+import { join } from 'node:path';
 import { KitineraryExtractorService } from '../../../../src/nest/booking-import/kitinerary-extractor.service';
 
-function boot(env: { kitineraryExtractorPath?: string } = {}) {
-  readEnv.mockReturnValue({ integrations: env });
+// The probe builds candidates with path.join, so the expectations have to as
+// well — on Windows the separator is a backslash and a hardcoded '/usr/...'
+// string would never match.
+const onPath = (dir: string) => join(dir, 'kitinerary-extractor');
+
+function boot(env: { kitineraryExtractorPath?: string; searchPath?: string[] } = {}) {
+  readEnv.mockReturnValue({ integrations: { searchPath: [], ...env } });
   const svc = new KitineraryExtractorService();
   svc.onModuleInit();
   return svc;
@@ -42,7 +49,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   existsSync.mockReturnValue(false);
   readdirSync.mockReturnValue([]);
-  execSync.mockImplementation(() => { throw new Error('command not found'); });
+  execFileSync.mockImplementation(() => { throw new Error('command not found'); });
 });
 
 describe('KitineraryExtractorService binary probe', () => {
@@ -79,9 +86,41 @@ describe('KitineraryExtractorService binary probe', () => {
     await expect(boot().extract(Buffer.from(''), 'x.pdf')).rejects.toThrow('not available');
   });
 
-  it('KIT-EXT-007: falls back to the binary on PATH when nothing is on disk', () => {
-    execSync.mockReturnValue(Buffer.from(''));
-    expect(boot().isAvailable()).toBe(true);
-    expect(execSync).toHaveBeenCalledWith('kitinerary-extractor --version', expect.objectContaining({ timeout: 3000 }));
+  it('KIT-EXT-007: falls back to a binary on the search path when nothing is on disk', () => {
+    existsSync.mockImplementation((p: string) => p === onPath('/usr/local/bin'));
+    execFileSync.mockReturnValue(Buffer.from(''));
+
+    expect(boot({ searchPath: ['/usr/local/bin'] }).isAvailable()).toBe(true);
+    expect(execFileSync).toHaveBeenCalledWith(
+      onPath('/usr/local/bin'), ['--version'], expect.objectContaining({ timeout: 3000 }),
+    );
+  });
+
+  it('KIT-EXT-008: stores the absolute path, never the bare name', async () => {
+    existsSync.mockImplementation((p: string) => p === onPath('/opt/tools'));
+    execFileSync.mockReturnValue(Buffer.from(''));
+    execFile.mockImplementation((_b: string, _a: string[], _o: unknown, cb: (e: null, r: unknown) => void) =>
+      cb(null, { stdout: '[]', stderr: '' }));
+
+    // An unqualified name would be re-resolved through PATH on every extraction,
+    // so what the probe stores has to be the concrete file it verified.
+    await boot({ searchPath: ['/opt/tools'] }).extract(Buffer.from(''), 'x.pdf');
+
+    expect(execFile).toHaveBeenCalledWith(
+      onPath('/opt/tools'), [expect.any(String)], expect.anything(), expect.anything(),
+    );
+  });
+
+  it('KIT-EXT-009: a search-path entry that exists but will not run is skipped', () => {
+    existsSync.mockReturnValue(true);
+    execFileSync.mockImplementation((bin: string) => {
+      if (bin === onPath('/broken')) throw new Error('not executable');
+      return Buffer.from('');
+    });
+
+    expect(boot({ searchPath: ['/broken', '/good'] }).isAvailable()).toBe(true);
+    expect(execFileSync).toHaveBeenLastCalledWith(
+      onPath('/good'), ['--version'], expect.anything(),
+    );
   });
 });

@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios'
 import type { z } from 'zod'
 import type { Place } from '../types'
+import { randomId } from '../utils/randomId'
 import {
   weatherResultSchema, type WeatherResult,
   inAppListResultSchema, type InAppListResult,
@@ -151,10 +152,7 @@ apiClient.interceptors.request.use(
       // The mutation queue sets its own pre-generated key; skip if already set.
       const method = (config.method ?? '').toLowerCase()
       if (MUTATING_METHODS.has(method) && !config.headers['X-Idempotency-Key']) {
-        const key = typeof crypto !== 'undefined' && crypto.randomUUID
-            ? crypto.randomUUID()
-            : Math.random().toString(36).slice(2)
-        config.headers['X-Idempotency-Key'] = key
+        config.headers['X-Idempotency-Key'] = randomId()
       }
       return config
     },

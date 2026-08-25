@@ -10,6 +10,7 @@ import { apiClient } from '../api/client'
 import { isAuthed } from './authGate'
 import { isEffectivelyOffline } from './networkMode'
 import { getOfflinePrefs } from './offlinePrefs'
+import { randomId } from '../utils/randomId'
 import type { QueuedMutation } from '../db/offlineDb'
 import type { Table } from 'dexie'
 
@@ -26,16 +27,15 @@ function getTable(resource: string): Table | undefined {
   return map[resource]
 }
 
-/** Generate a v4-style UUID using the platform crypto API. */
+/**
+ * Generate a v4-style UUID using the platform crypto API.
+ *
+ * The implementation moved to utils/randomId so the axios interceptor, which
+ * mints the same header for online writes, cannot drift away from it — this
+ * value becomes the X-Idempotency-Key and a duplicate silently drops a write.
+ */
 export function generateUUID(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID()
-  }
-  // Fallback for environments without crypto.randomUUID (e.g. old Node)
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0
-    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
-  })
+  return randomId()
 }
 
 let _flushing = false

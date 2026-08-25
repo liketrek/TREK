@@ -5,11 +5,14 @@ import { tmpdir } from 'node:os';
 import { join, extname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { readEnv } from '../../app-config';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
 import type { KiReservation } from './kitinerary.types';
 
 const execFileAsync = promisify(execFile);
+
+/** Also the leaf name looked for on each PATH entry. */
+const BINARY_NAME = 'kitinerary-extractor';
 const TIMEOUT_MS = 30_000;
 const MAX_BUFFER = 5 * 1024 * 1024;
 
@@ -89,16 +92,26 @@ export class KitineraryExtractorService implements OnModuleInit {
     // Debian/Ubuntu: /usr/lib/<triplet>/libexec/kf6/kitinerary-extractor
     try {
       for (const dir of readdirSync('/usr/lib')) {
-        const candidate = join('/usr/lib', dir, 'libexec', 'kf6', 'kitinerary-extractor');
+        const candidate = join('/usr/lib', dir, 'libexec', 'kf6', BINARY_NAME);
         if (existsSync(candidate)) return candidate;
       }
     } catch { /* not a Debian system */ }
 
-    // Fallback: binary in PATH
-    try {
-      execSync('kitinerary-extractor --version', { stdio: 'pipe', timeout: 3000 });
-      return 'kitinerary-extractor';
-    } catch { /* not in PATH */ }
+    // Fallback: binary on the search path — resolved to an absolute path here,
+    // not left as a bare name. Storing 'kitinerary-extractor' meant every later
+    // extraction re-resolved it through whatever PATH held at that moment, so on
+    // a bare-metal install (the official image sets KITINERARY_EXTRACTOR_PATH, so
+    // this branch is dead there) anyone who could write to a PATH directory could
+    // have their binary run as the TREK user. Probing the concrete file with
+    // execFileSync also drops the /bin/sh hop the old execSync string needed.
+    for (const dir of readEnv().integrations.searchPath) {
+      const candidate = join(dir, BINARY_NAME);
+      if (!existsSync(candidate)) continue;
+      try {
+        execFileSync(candidate, ['--version'], { stdio: 'pipe', timeout: 3000 });
+        return candidate;
+      } catch { /* present but not runnable — keep looking */ }
+    }
 
     return null;
   }
