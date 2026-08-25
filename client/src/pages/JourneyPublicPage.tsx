@@ -940,7 +940,9 @@ export default function JourneyPublicPage() {
         <MobileEntryView
           entry={viewingEntry as any}
           readOnly
-          publicPhotoUrl={(photoId) => `/api/public/journey/${token}/photos/${photoId}/original`}
+          publicPhotoUrl={(photoId, size = 'original') =>
+            `/api/public/journey/${token}/photos/${photoId}/${size}`
+          }
           onClose={() => setViewingEntry(null)}
           onEdit={() => { }}
           onDelete={() => { }}

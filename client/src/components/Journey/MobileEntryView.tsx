@@ -29,15 +29,22 @@ const WEATHER_CONFIG: Record<string, { icon: typeof Sun; label: string }> = {
   cold: { icon: Snowflake, label: 'journey.weather.cold' },
 }
 
-function photoUrl(p: JourneyPhoto, size: 'thumbnail' | 'original' = 'original', builder?: (id: number) => string): string {
-  if (builder) return builder(p.photo_id)
+function photoUrl(
+  p: JourneyPhoto,
+  size: 'thumbnail' | 'original' = 'original',
+  builder?: (id: number, size?: 'thumbnail' | 'original') => string
+): string {
+  if (builder) return builder(p.photo_id, size)
   return `/api/photos/${p.photo_id}/${size}`
 }
 
 interface Props {
   entry: JourneyEntry
   readOnly?: boolean
-  publicPhotoUrl?: (photoId: number) => string
+  publicPhotoUrl?: (
+    photoId: number,
+    size?: 'thumbnail' | 'original'
+  ) => string
   onClose: () => void
   onEdit: () => void
   onDelete: () => void

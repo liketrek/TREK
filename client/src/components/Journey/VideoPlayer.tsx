@@ -25,27 +25,64 @@ export default function VideoPlayer({
   useEffect(() => {
     const el = videoRef.current
     if (!el) return
+
     const player = new Plyr(el, {
-      controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'],
+      controls: [
+        'play-large',
+        'play',
+        'progress',
+        'current-time',
+        'duration',
+        'mute',
+        'volume',
+        'fullscreen',
+      ],
       autoplay: autoPlay,
-      // Keep playback inline so the lightbox stays in control on mobile.
       clickToPlay: true,
+      hideControls: false,
     })
-    return () => { try { player.destroy() } catch { /* already torn down */ } }
+
+    return () => {
+      try {
+        player.destroy()
+      } catch {
+        /* already torn down */
+      }
+    }
   }, [src, autoPlay])
 
   return (
     <div
+      className="trek-video-player"
       style={{
         width: 'min(92vw, 1100px)',
-        maxHeight: '92vh',
+        height: 'min(88vh, 900px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#000',
         borderRadius: 4,
         overflow: 'hidden',
         animation: 'fadeIn 0.15s ease',
         ...style,
       }}
     >
-      <video ref={videoRef} src={src} poster={poster} playsInline controls preload="metadata">
+      <video
+        ref={videoRef}
+        src={src}
+        poster={poster}
+        playsInline
+        controls
+        preload="metadata"
+        style={{
+          width: '100%',
+          height: '100%',
+          maxWidth: '100%',
+          maxHeight: '100%',
+          objectFit: 'contain',
+          background: '#000',
+        }}
+      >
         {/* Gallery uploads carry no caption file; the empty track keeps the element valid. */}
         <track kind="captions" />
       </video>

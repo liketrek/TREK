@@ -44,10 +44,10 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
           try {
             const status = await memoriesApi.status(p.id)
             if (status.connected) connected.push({ id: p.id, name: p.name })
-          } catch {}
+          } catch { }
         }
         setAvailableProviders(connected)
-      } catch {}
+      } catch { }
     })()
   }, [])
 
@@ -158,9 +158,10 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
               onClick={() => onPhotoClick(allPhotos, i)}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPhotoClick(allPhotos, i) } }}
             >
-              {photo.media_type === 'video' && !photo.thumbnail_path ? (
-                // Poster-less video (capture failed / unsupported codec): show a
-                // neutral tile rather than a broken 404 thumbnail (#823).
+              {photo.media_type === 'video' &&
+                photo.provider === 'local' &&
+                !photo.thumbnail_path ? (
+                // Poster-less local video: show a neutral tile.
                 <div className="w-full h-full bg-zinc-200 dark:bg-zinc-800" />
               ) : (
                 <img
