@@ -263,6 +263,8 @@ helm install trek trek/trek
 
 See [`charts/README.md`](https://github.com/liketrek/TREK/blob/main/charts/README.md) for values.
 
+<br />
+
 <h2 id="install-as-app-pwa">Install as App (PWA)</h2>
 
 TREK works as a Progressive Web App — no App Store needed.
@@ -382,6 +384,8 @@ only backup sits on S3 and the credentials for it sit inside that backup:
 start a fresh instance, enter the S3 credentials in **Admin → Storage** (or
 mount a seed file), then restore the backup from the Backup panel.
 
+<br />
+
 ## Data & Backups
 
 - **Database** — SQLite, stored in `./data/travel.db`
@@ -398,6 +402,8 @@ The Atlas map's country and sub-national (province/county) boundaries come from
 [**geoBoundaries**](https://www.geoboundaries.org/) (Runfola et al., 2020), licensed
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). See [NOTICE.md](NOTICE.md)
 for full third-party attributions.
+
+<br />
 
 ## License
 
