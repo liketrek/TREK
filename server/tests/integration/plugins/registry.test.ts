@@ -257,6 +257,39 @@ describe('PluginRegistryService', () => {
     await expect(svc.detail('ghost')).rejects.toThrow(RegistryError);
   });
 
+  // The version picker's data: every published version, each with its OWN server-computed
+  // compat verdict — the client has no semver and must never re-derive range logic.
+  it('detail lists every published version with its own compat verdict', async () => {
+    process.env.APP_VERSION = '3.3.0';
+    const multi = {
+      schemaVersion: 1,
+      plugins: [
+        {
+          id: 'flight-tracker', name: 'Flight', author: 'Acme', description: 'flights', repo: 'acme/trek-flight',
+          type: 'widget', authorPublicKey: 'K'.repeat(44),
+          versions: [
+            { version: '2.0.0', gitTag: 'v2.0.0', commitSha: 'b'.repeat(40), downloadUrl: 'https://x/2', sha256: '2'.repeat(64), trek: '>=4.0.0', publishedAt: '2026-08-01', size: 2048, signature: 'sig2' },
+            { version: '1.5.0', gitTag: 'v1.5.0', commitSha: 'c'.repeat(40), downloadUrl: 'https://x/15', sha256: '1'.repeat(64), trek: '>=3.0.0 <4.0.0', publishedAt: '2026-07-01', size: 1024 },
+            { version: '1.0.0', gitTag: 'v1.0.0', commitSha: 'd'.repeat(40), downloadUrl: 'https://x/1', sha256: '0'.repeat(64), minTrekVersion: '3.0.0' },
+          ],
+        },
+      ],
+    };
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => multi }) as unknown as Response));
+    __clearRegistryCacheForTests();
+    try {
+      const d = (await svc.detail('flight-tracker')) as { versions: unknown };
+      expect(d.versions).toEqual([
+        { version: '2.0.0', publishedAt: '2026-08-01', size: 2048, signed: true, trek: '>=4.0.0', compatible: false },
+        { version: '1.5.0', publishedAt: '2026-07-01', size: 1024, signed: false, trek: '>=3.0.0 <4.0.0', compatible: true },
+        // A legacy entry composes its requirement from the min/max bounds it has.
+        { version: '1.0.0', publishedAt: null, size: null, signed: false, trek: '>=3.0.0', compatible: true },
+      ]);
+    } finally {
+      delete process.env.APP_VERSION;
+    }
+  });
+
   it('fetchRegistry soft-fails to an empty registry on a cold cache', async () => {
     __clearRegistryCacheForTests();
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));

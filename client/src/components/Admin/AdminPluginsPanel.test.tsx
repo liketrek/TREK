@@ -201,6 +201,9 @@ function registryEntry(over: Record<string, unknown> = {}) {
     id: 'trek-gotify', name: 'Gotify', author: 'Acme', description: 'Push', repo: 'acme/gotify',
     type: 'integration', latest: '2.0.0', minTrekVersion: null, reviewedAt: null,
     screenshotUrl: null, signed: true, authorPublicKey: 'NEWKEYbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+    // The real browse response always carries latestCompatible (server-side hostCompat);
+    // mirror `latest` by default, exactly like a fully-compatible entry.
+    latestCompatible: (over.latest as string | undefined) ?? '2.0.0',
     ...over,
   }
 }
@@ -1087,6 +1090,183 @@ describe('AdminPluginsPanel — updates', () => {
   })
 })
 
+/**
+ * Update availability must follow what this TREK can actually INSTALL (latestCompatible,
+ * computed server-side), never the absolute newest published version — a banner counting
+ * versions the update endpoint would refuse nags the admin toward a guaranteed 400.
+ */
+describe('AdminPluginsPanel — compatible updates only', () => {
+  const outdated = plugin({ source_repo: 'acme/gotify', version: '1.0.0', operatorEgress: false })
+
+  it('FE-COMP-PLUGINS-UPD-001: an update this TREK cannot install is neither offered nor counted', async () => {
+    panelWith([outdated], {
+      registry: [registryEntry({ latest: '2.0.0', latestCompatible: null, trek: '>=4.0.0', hostVersion: '3.3.0' })],
+    })
+    render(<AdminPluginsPanel />)
+    await screen.findByText('Gotify')
+
+    expect(screen.queryByRole('button', { name: /update → v2\.0\.0/i })).not.toBeInTheDocument()
+    expect(screen.queryByText(/updates available for your plugins/i)).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-UPD-002: the update offer is the newest compatible version, not the absolute latest', async () => {
+    panelWith([outdated], {
+      registry: [registryEntry({ latest: '3.0.0', latestCompatible: '2.0.0', trek: '>=4.0.0', hostVersion: '3.3.0' })],
+    })
+    render(<AdminPluginsPanel />)
+
+    expect(await screen.findByRole('button', { name: /update → v2\.0\.0/i })).toBeInTheDocument()
+    expect(screen.getByText('1 updates available for your plugins.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /update → v3\.0\.0/i })).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-UPD-003: a newer version needing a newer TREK leaves a passive hint on the row', async () => {
+    panelWith([outdated], {
+      registry: [registryEntry({ latest: '2.0.0', latestCompatible: null, trek: '>=4.0.0', hostVersion: '3.3.0' })],
+    })
+    render(<AdminPluginsPanel />)
+
+    expect(await screen.findByText('v2.0.0 available — needs TREK >=4.0.0')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-UPD-004: a legacy entry with only minTrekVersion still gets a hint range', async () => {
+    panelWith([outdated], {
+      registry: [registryEntry({ latest: '2.0.0', latestCompatible: null, trek: null, minTrekVersion: '4.0.0', hostVersion: '3.3.0' })],
+    })
+    render(<AdminPluginsPanel />)
+
+    expect(await screen.findByText('v2.0.0 available — needs TREK >=4.0.0')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-UPD-005: no hint when the latest version is the one on offer', async () => {
+    panelWith([outdated], { registry: [registryEntry({ latest: '2.0.0' })] })
+    render(<AdminPluginsPanel />)
+
+    expect(await screen.findByRole('button', { name: /update → v2\.0\.0/i })).toBeInTheDocument()
+    expect(screen.queryByText(/needs TREK/i)).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * The version picker (#plugins): install any published version from the Discover detail
+ * modal, and roll an installed plugin back through the update pipeline (which owns the
+ * stop-child + re-consent machinery). Compat verdicts are SERVER-computed per version —
+ * the picker only renders them, it never re-derives range logic.
+ */
+describe('AdminPluginsPanel — version picker', () => {
+  const VERSIONS = [
+    { version: '3.0.0', publishedAt: '2026-08-01', size: 2048, signed: true, trek: '>=4.0.0', compatible: false },
+    { version: '2.0.0', publishedAt: '2026-07-01', size: 1024, signed: true, trek: '>=3.0.0 <4.0.0', compatible: true },
+    { version: '1.5.0', publishedAt: '2026-06-01', size: 1000, signed: true, trek: '>=3.0.0 <4.0.0', compatible: true },
+  ]
+  const detailWithVersions = () => ({
+    ...registryEntry({ latest: '3.0.0', latestCompatible: '2.0.0', trek: '>=4.0.0', hostVersion: '3.3.0', compatible: false }),
+    size: 1024, publishedAt: null, manifest: null, versions: VERSIONS,
+  })
+
+  function mockDiscoverDetail() {
+    server.use(
+      http.get('*/api/admin/plugins', () => HttpResponse.json({ enabled: true, devLink: false, plugins: [] })),
+      http.get('*/api/admin/plugins/registry', () =>
+        HttpResponse.json([registryEntry({ latest: '3.0.0', latestCompatible: '2.0.0', trek: '>=4.0.0', hostVersion: '3.3.0', compatible: false })])),
+      http.get('*/api/admin/plugins/registry/trek-gotify', () => HttpResponse.json(detailWithVersions())),
+    )
+  }
+
+  it('FE-COMP-PLUGINS-VPICK-001: the detail modal lists every version and installs the picked one', async () => {
+    let body: unknown = null
+    mockDiscoverDetail()
+    server.use(http.post('*/api/admin/plugins/install', async ({ request }) => {
+      body = await request.json()
+      return HttpResponse.json({ id: 'trek-gotify', version: '1.5.0' })
+    }))
+    withToast()
+    const tabs = await screen.findAllByRole('tab', { name: /^discover/i })
+    fireEvent.click(tabs[0])
+    fireEvent.click(await screen.findByText('Gotify'))
+
+    fireEvent.click(await screen.findByRole('button', { name: /^install 1\.5\.0$/i }))
+
+    await waitFor(() => expect(body).toEqual({ id: 'trek-gotify', version: '1.5.0' }))
+  })
+
+  it('FE-COMP-PLUGINS-VPICK-002: an incompatible version is greyed with its TREK requirement, not installable', async () => {
+    mockDiscoverDetail()
+    render(<AdminPluginsPanel />)
+    const tabs = await screen.findAllByRole('tab', { name: /^discover/i })
+    fireEvent.click(tabs[0])
+    fireEvent.click(await screen.findByText('Gotify'))
+
+    expect(await screen.findByText(/^needs TREK >=4\.0\.0$/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^install 3\.0\.0$/i })).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-VPICK-003: Change version rolls back through update, after an explicit data warning', async () => {
+    let body: unknown = null
+    panelWith([plugin({ source_repo: 'acme/gotify', version: '2.0.0', operatorEgress: false })], {
+      registry: [registryEntry({ latest: '2.0.0' })],
+    })
+    server.use(
+      http.get('*/api/admin/plugins/registry/trek-gotify', () => HttpResponse.json(detailWithVersions())),
+      http.post('*/api/admin/plugins/trek-gotify/update', async ({ request }) => {
+        body = await request.json()
+        return HttpResponse.json({ version: '1.5.0', activated: true, newPermissions: [], newEgress: [] })
+      }),
+    )
+    withToast()
+    fireEvent.click(await screen.findByTestId('plugin-row-menu-btn-trek-gotify'))
+    fireEvent.click(await screen.findByRole('button', { name: /change version/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /^switch to 1\.5\.0$/i }))
+
+    // The rollback keeps the plugin's data — the older code may not read it. Informed consent, no snapshot.
+    expect(await screen.findByText(/data written by the newer version stays in place/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /roll back/i }))
+
+    await waitFor(() => expect(body).toEqual({ version: '1.5.0' }))
+  })
+
+  it('FE-COMP-PLUGINS-VPICK-004: picking a NEWER version in the picker updates without the downgrade warning', async () => {
+    let body: unknown = null
+    panelWith([plugin({ source_repo: 'acme/gotify', version: '1.5.0', operatorEgress: false })], {
+      registry: [registryEntry({ latest: '2.0.0' })],
+    })
+    server.use(
+      http.get('*/api/admin/plugins/registry/trek-gotify', () => HttpResponse.json(detailWithVersions())),
+      http.post('*/api/admin/plugins/trek-gotify/update', async ({ request }) => {
+        body = await request.json()
+        return HttpResponse.json({ version: '2.0.0', activated: true, newPermissions: [], newEgress: [] })
+      }),
+    )
+    withToast()
+    fireEvent.click(await screen.findByTestId('plugin-row-menu-btn-trek-gotify'))
+    fireEvent.click(await screen.findByRole('button', { name: /change version/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /^switch to 2\.0\.0$/i }))
+
+    await waitFor(() => expect(body).toEqual({ version: '2.0.0' }))
+    expect(screen.queryByText(/data written by the newer version stays in place/i)).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-VPICK-005: the installed version is marked and not switchable; sideloads get no picker', async () => {
+    panelWith([
+      plugin({ source_repo: 'acme/gotify', version: '2.0.0', operatorEgress: false }),
+      plugin({ id: 'side-load', name: 'Sideload', source_repo: 'local:upload', version: '1.0.0', operatorEgress: false }),
+    ], { registry: [registryEntry({ latest: '2.0.0' })] })
+    server.use(http.get('*/api/admin/plugins/registry/trek-gotify', () => HttpResponse.json(detailWithVersions())))
+    withToast()
+
+    fireEvent.click(await screen.findByTestId('plugin-row-menu-btn-side-load'))
+    expect(screen.queryByRole('button', { name: /change version/i })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('plugin-row-menu-btn-side-load')) // close
+
+    fireEvent.click(await screen.findByTestId('plugin-row-menu-btn-trek-gotify'))
+    fireEvent.click(await screen.findByRole('button', { name: /change version/i }))
+
+    const current = await screen.findByTestId('version-row-2.0.0')
+    expect(within(current).getByText('Installed')).toBeInTheDocument()
+    expect(within(current).queryByRole('button', { name: /switch/i })).not.toBeInTheDocument()
+  })
+})
+
 describe('AdminPluginsPanel — capability and dependency chips', () => {
   it('FE-COMP-PLUGINS-PANEL-035: a permission-rich plugin renders one chip per capability', async () => {
     panelWith([plugin({
@@ -1405,7 +1585,7 @@ describe('AdminPluginsPanel toolbar and dialogs', () => {
 
   it('FE-W5PLG-005: the update filter and the updates-first sort both use the registry version', async () => {
     const user = userEvent.setup()
-    mockPanel(three(), [{ id: 'c-page', name: 'Gamma Page', latest: '9.9.9' }])
+    mockPanel(three(), [{ id: 'c-page', name: 'Gamma Page', latest: '9.9.9', latestCompatible: '9.9.9' }])
     render(<AdminPluginsPanel />)
     await screen.findByText('Alpha Widget')
     await waitFor(() => expect(screen.getByText(/updates? available/i)).toBeInTheDocument())
@@ -1423,7 +1603,7 @@ describe('AdminPluginsPanel toolbar and dialogs', () => {
 
   it('FE-W5PLG-006: switching tabs snaps a tab-only sort key back to name', async () => {
     const user = userEvent.setup()
-    mockPanel(three(), [{ id: 'c-page', name: 'Gamma Page', latest: '9.9.9' }])
+    mockPanel(three(), [{ id: 'c-page', name: 'Gamma Page', latest: '9.9.9', latestCompatible: '9.9.9' }])
     render(<AdminPluginsPanel />)
     await screen.findByText('Alpha Widget')
 
@@ -1880,8 +2060,8 @@ describe('AdminPluginsPanel — update all', () => {
         plugins: [updatableRow(), updatableRow({ id: 'b-widget', name: 'Beta Widget' })],
       })),
       http.get('*/api/admin/plugins/registry', () => HttpResponse.json([
-        { id: 'a-widget', name: 'Alpha Widget', author: 'acme', description: 'd', type: 'widget', latest: '2.0.0' },
-        { id: 'b-widget', name: 'Beta Widget', author: 'acme', description: 'd', type: 'widget', latest: '2.0.0' },
+        { id: 'a-widget', name: 'Alpha Widget', author: 'acme', description: 'd', type: 'widget', latest: '2.0.0', latestCompatible: '2.0.0' },
+        { id: 'b-widget', name: 'Beta Widget', author: 'acme', description: 'd', type: 'widget', latest: '2.0.0', latestCompatible: '2.0.0' },
       ])),
       http.post('*/api/admin/plugins/:id/update', async ({ params }) => {
         started.push(String(params.id))

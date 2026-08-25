@@ -11,7 +11,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { getClientIp } from '../audit/client-ip';
 import { pluginsEnabled } from './kill-switch';
 import { devLinkEnabled } from './dev-link';
-import { PluginActivateDto, PluginConfigDto, PluginEgressHostsDto, PluginInstallDto, PluginLinkDto, PluginRetrustDto, PluginUninstallDto } from './plugins.dto';
+import { PluginActivateDto, PluginConfigDto, PluginEgressHostsDto, PluginInstallDto, PluginLinkDto, PluginRetrustDto, PluginUninstallDto, PluginUpdateDto } from './plugins.dto';
 import { ManagedForbidden, isManagedBlocked, MANAGED_FORBIDDEN_ERROR } from '../common/managed';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 
@@ -221,10 +221,13 @@ export class PluginsController {
 
   @Post(':id/update')
   @HttpCode(200)
-  async update(@Param('id') id: string) {
+  async update(@Param('id') id: string, @Body() body?: PluginUpdateDto) {
     if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
     try {
-      return await this.runtime.update(id);
+      // An explicit version is the rollback path: install exactly what the admin picked
+      // (the TREK-compat gate still refuses in selectVersion). Absent, the runtime
+      // resolves the newest compatible version itself.
+      return await this.runtime.update(id, { version: body?.version });
     } catch (e) {
       throw registryFailure(e, 'update failed');
     }

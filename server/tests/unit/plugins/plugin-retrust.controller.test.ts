@@ -98,6 +98,27 @@ describe('signature refusal codes survive to the client', () => {
   });
 });
 
+// The rollback path: an admin picks a specific (possibly older) version, and the runtime
+// must install exactly that one — the compat gate stays server-side in selectVersion.
+describe('POST :id/update — explicit version', () => {
+  it('forwards the requested version to the runtime', async () => {
+    vi.mocked(runtime.update).mockResolvedValue({ version: '1.2.0', activated: true, newPermissions: [], newEgress: [] });
+
+    const res = await controller.update('flight-tracker', { version: '1.2.0' });
+
+    expect(vi.mocked(runtime.update).mock.calls[0]).toEqual(['flight-tracker', { version: '1.2.0' }]);
+    expect(res).toEqual({ version: '1.2.0', activated: true, newPermissions: [], newEgress: [] });
+  });
+
+  it('an omitted body keeps the default newest-compatible resolution', async () => {
+    vi.mocked(runtime.update).mockResolvedValue({ version: '2.0.0', activated: true, newPermissions: [], newEgress: [] });
+
+    await controller.update('flight-tracker');
+
+    expect(vi.mocked(runtime.update).mock.calls[0]).toEqual(['flight-tracker', { version: undefined }]);
+  });
+});
+
 describe('POST :id/retrust', () => {
   it('re-pins AND installs in one call, returning the update result', async () => {
     vi.mocked(runtime.retrust).mockResolvedValue({ version: '2.0.0', activated: true, newPermissions: [], newEgress: [] });

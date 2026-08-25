@@ -5,7 +5,7 @@ import {
   Blocks, AlertTriangle, PackageOpen, RefreshCw, Trash2, Download, Bug, X, ShieldCheck, UploadCloud,
   ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search, Link2, KeyRound, ShieldAlert,
   SlidersHorizontal, ArrowUpDown, CircleDot, MoreHorizontal, RotateCw, ArrowRight, Database, Users, LayoutDashboard,
-  Radio, Luggage, Globe, Image, CalendarDays, Bell,
+  Radio, Luggage, Globe, Image, CalendarDays, Bell, Info, History,
   Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag, FileText, Route, Navigation, Clock, LocateFixed, Palette,
 } from 'lucide-react'
 import PluginIcon from '../shared/PluginIcon'
@@ -93,9 +93,21 @@ interface RegistryItem {
   /** The full key — public, and carried in full because re-trust compares it exactly. */
   authorPublicKey?: string | null
 }
+/** One published version, with its SERVER-computed compat verdict (the client has no semver). */
+interface VersionInfo {
+  version: string
+  publishedAt: string | null
+  size: number | null
+  signed: boolean
+  /** The declared TREK requirement, or null when the entry carries no bounds at all. */
+  trek: string | null
+  compatible: boolean
+}
 interface RegistryDetail extends RegistryItem {
   size: number | null
   publishedAt: string | null
+  /** Every published version, newest first — the version picker's data. */
+  versions?: VersionInfo[]
   manifest: {
     // Optional because a registry may omit an empty list — the detail view has to
     // degrade rather than throw halfway through its render.
@@ -392,6 +404,12 @@ export default function AdminPluginsPanel() {
   const [egressSaving, setEgressSaving] = useState(false)
   const [egressError, setEgressError] = useState('')
   const [confirmUninstall, setConfirmUninstall] = useState<PluginRow | null>(null)
+  // The version picker for an INSTALLED plugin ("Change version…"); versions land async
+  // from the registry detail endpoint, which computes each version's compat verdict.
+  const [versionPicker, setVersionPicker] = useState<{ plugin: PluginRow; versions: VersionInfo[] | null; failed: boolean } | null>(null)
+  // A picked version OLDER than the installed one — held here until the admin consents
+  // to the data risk (the plugin's data dir stays; older code may not understand it).
+  const [confirmDowngrade, setConfirmDowngrade] = useState<{ plugin: PluginRow; version: string } | null>(null)
   // A QUEUE, not one slot: "Update All" can produce several re-consent prompts —
   // each must be shown, not silently overwritten by the last one.
   const [consentQueue, setConsentQueue] = useState<Array<{ plugin: PluginRow; version: string; newPermissions: string[]; newEgress: string[] }>>([])
@@ -420,10 +438,13 @@ export default function AdminPluginsPanel() {
 
   // Index the registry once per fetch: the version map the update badges read, plus the
   // whole entry (author key + signed flag) the trust badges and re-trust dialog need.
+  // The map holds latestCompatible — the newest version THIS TREK can install (computed
+  // server-side) — not the absolute latest, so the banner never counts an update the
+  // update endpoint would refuse.
   const indexRegistry = (items: RegistryItem[]) => {
     const vers: Record<string, string> = {}
     const byId: Record<string, RegistryItem> = {}
-    items.forEach((i) => { byId[i.id] = i; if (i.latest) vers[i.id] = i.latest })
+    items.forEach((i) => { byId[i.id] = i; if (i.latestCompatible) vers[i.id] = i.latestCompatible })
     setLatest(vers)
     setRegById(byId)
   }
@@ -552,6 +573,16 @@ export default function AdminPluginsPanel() {
   }
 
   const updateAvailable = (p: PluginRow) => !!(p.version && latest[p.id] && isNewer(latest[p.id], p.version))
+  // A newer version exists but this TREK can't install it (and it isn't the one on offer):
+  // said passively on the row, so the admin learns a TREK upgrade unlocks it instead of
+  // wondering why no update shows. Null when the registry gives no range to point at.
+  const newerIncompatible = (p: PluginRow): { version: string; range: string } | null => {
+    const reg = regById[p.id]
+    if (!reg?.latest || !p.version || !isNewer(reg.latest, p.version)) return null
+    if (latest[p.id] === reg.latest) return null
+    const range = reg.trek ?? (reg.minTrekVersion ? `>=${reg.minTrekVersion}` : null)
+    return range ? { version: reg.latest, range } : null
+  }
   const install = (id: string, version?: string) => act(id, () => adminApi.pluginInstall(id, version ? { version } : undefined), t('admin.plugins.installed'))
   const restart = (id: string) => act(id, async () => { await adminApi.pluginDeactivate(id); await adminApi.pluginActivate(id) }, t('admin.plugins.restarted'))
   // Dev-link: register a plugin from a local built directory (dev only). Reuses the
@@ -639,9 +670,11 @@ export default function AdminPluginsPanel() {
       .finally(() => { setBusy(null); refresh() })
   }
 
-  const runUpdate = (p: PluginRow) => {
+  // `version` pins the exact version to install (rollback / explicit switch); omitted,
+  // the server resolves the newest TREK-compatible version itself.
+  const runUpdate = (p: PluginRow, version?: string) => {
     setBusy(p.id); setMenu(null)
-    return adminApi.pluginUpdate(p.id)
+    return adminApi.pluginUpdate(p.id, version)
       .then((r: { version: string; activated: boolean; newPermissions: string[]; newEgress: string[] }) => {
         if (r.activated || (r.newPermissions.length === 0 && r.newEgress.length === 0)) toast.success(t('admin.plugins.updated'))
         else setConsentQueue(qq => [...qq, { plugin: p, version: r.version, newPermissions: r.newPermissions, newEgress: r.newEgress }])
@@ -671,6 +704,27 @@ export default function AdminPluginsPanel() {
       })
       .catch(e => toast.error(errBody(e).error || t('admin.plugins.actionError')))
       .finally(() => { setRetrusting(false); refresh() })
+  }
+
+  // "Change version…" on an installed row: fetch the per-version list (with the server's
+  // compat verdicts) and open the picker. The fetch is keyed to the plugin so a stale
+  // response can't populate a picker that was reopened for another row.
+  const openVersionPicker = (p: PluginRow) => {
+    setMenu(null)
+    setVersionPicker({ plugin: p, versions: null, failed: false })
+    adminApi.pluginDetail(p.id)
+      .then((d: RegistryDetail) => setVersionPicker(cur => (cur && cur.plugin.id === p.id ? { ...cur, versions: d.versions ?? [] } : cur)))
+      .catch(() => setVersionPicker(cur => (cur && cur.plugin.id === p.id ? { ...cur, failed: true } : cur)))
+  }
+
+  // Switching DOWN keeps the plugin's data dir, which the older code may not understand —
+  // that asks for explicit consent first. Any other switch is the ordinary update path.
+  const pickVersion = (version: string) => {
+    if (!versionPicker) return
+    const p = versionPicker.plugin
+    setVersionPicker(null)
+    if (p.version && isNewer(p.version, version)) setConfirmDowngrade({ plugin: p, version })
+    else void runUpdate(p, version)
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -885,9 +939,11 @@ export default function AdminPluginsPanel() {
             ) : shownInstalled.map(p => (
               <InstalledRow key={p.id} p={p} t={t} busy={busy} menu={menu} setMenu={setMenu}
                 hasUpdate={updateAvailable(p)} latestVer={latest[p.id]}
+                newerIncompatible={newerIncompatible(p)}
                 blocked={blockIsCurrent(p, latest[p.id])}
                 onToggle={() => toggle(p)}
                 onUpdate={() => runUpdate(p)} onRestart={() => restart(p.id)}
+                onChangeVersion={() => openVersionPicker(p)}
                 onReviewBlock={() => setSignatureBlock({
                   subject: { id: p.id, name: p.name, keyFingerprint: p.keyFingerprint ?? null },
                   code: p.updateBlock!.code, detail: p.updateBlock!.detail,
@@ -988,6 +1044,20 @@ export default function AdminPluginsPanel() {
         }}
         title={t('admin.plugins.uninstallTitle')}
         message={t('admin.plugins.uninstallBody')}
+      />
+
+      {versionPicker && (
+        <VersionPickerDialog plugin={versionPicker.plugin} versions={versionPicker.versions} failed={versionPicker.failed}
+          busy={busy} t={t} locale={locale} onPick={pickVersion} onClose={() => setVersionPicker(null)} />
+      )}
+
+      <ConfirmDialog
+        isOpen={!!confirmDowngrade}
+        onClose={() => setConfirmDowngrade(null)}
+        onConfirm={() => { const d = confirmDowngrade!; setConfirmDowngrade(null); void runUpdate(d.plugin, d.version) }}
+        title={t('admin.plugins.downgradeTitle')}
+        message={t('admin.plugins.downgradeBody', { from: confirmDowngrade?.plugin.version ?? '', to: confirmDowngrade?.version ?? '' })}
+        confirmLabel={t('admin.plugins.downgradeConfirm')}
       />
 
       {signatureBlock && (
@@ -1102,10 +1172,10 @@ function EmptyState({ t, onDiscover }: { t: T; onDiscover: () => void }) {
   )
 }
 
-function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, blocked, onToggle, onUpdate, onRestart, onReviewBlock, onErrors, onEgress, onUninstall }: {
+function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, newerIncompatible, blocked, onToggle, onUpdate, onRestart, onChangeVersion, onReviewBlock, onErrors, onEgress, onUninstall }: {
   p: PluginRow; t: T; busy: string | null; menu: string | null; setMenu: (v: string | null) => void
-  hasUpdate: boolean; latestVer?: string; blocked: boolean
-  onToggle: () => void; onUpdate: () => void; onRestart: () => void; onReviewBlock: () => void
+  hasUpdate: boolean; latestVer?: string; newerIncompatible: { version: string; range: string } | null; blocked: boolean
+  onToggle: () => void; onUpdate: () => void; onRestart: () => void; onChangeVersion: () => void; onReviewBlock: () => void
   onErrors: () => void; onEgress: () => void; onUninstall: () => void
 }) {
   const caps = deriveCaps(parseJson<string[]>(p.permissions, []), parseJson<{ widget?: { slot?: string } }>(p.capabilities, {}), t)
@@ -1162,6 +1232,14 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, blocked
               className="shrink-0 font-semibold underline underline-offset-2 hover:opacity-80 transition-opacity">
               {t('admin.plugins.reviewBlock')}
             </button>
+          </div>
+        )}
+        {/* A newer version this TREK can't run — informational, never a button: the fix
+            is a TREK upgrade, so the row must not nag or offer a doomed install. */}
+        {newerIncompatible && (
+          <div className="flex items-center gap-1.5 mt-1.5 text-[11.5px] text-content-faint">
+            <Info size={13} className="shrink-0" />
+            <span className="truncate">{t('admin.plugins.newerNeedsTrek', { version: newerIncompatible.version, range: newerIncompatible.range })}</span>
           </div>
         )}
         {p.status === 'error' && p.last_error ? (
@@ -1233,6 +1311,10 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, blocked
               )}
               <MenuItem icon={<Bug size={14} />} label={t('admin.plugins.viewErrors')} onClick={onErrors} />
               <MenuItem icon={<Globe size={14} />} label={t('admin.plugins.allowedHosts')} onClick={onEgress} />
+              {/* Registry plugins only — a sideload/dev-link has no registry versions to pick from. */}
+              {isRegistrySourced(p.source_repo) && (
+                <MenuItem icon={<History size={14} />} label={t('admin.plugins.changeVersion')} onClick={onChangeVersion} />
+              )}
               {p.source_repo && p.source_repo !== 'local:upload' && p.source_repo !== 'local:link' && (
                 <>
                   <a href={`https://github.com/${p.source_repo}`} target="_blank" rel="noreferrer" onClick={() => setMenu(null)}
@@ -1521,6 +1603,34 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
               )}
             </div>
           </div>
+
+          {/* Every published version, installable individually. The compat verdict per
+              version is SERVER-computed — an incompatible one is explained, never offered. */}
+          {(detail?.versions?.length ?? 0) > 1 && (
+            <div className="mt-5">
+              <h4 className="text-[11px] font-semibold uppercase tracking-wider text-content-muted">{t('admin.plugins.versionsTitle')}</h4>
+              <div className="mt-2 space-y-0.5">
+                {detail!.versions!.map(v => (
+                  <div key={v.version} className="flex items-center gap-2.5 py-1">
+                    <span className={`text-[12.5px] font-medium tabular-nums ${v.compatible ? 'text-content' : 'text-content-faint'}`}>v{v.version}</span>
+                    {v.publishedAt && <span className="text-[11.5px] text-content-faint">{new Date(v.publishedAt).toLocaleDateString(locale)}</span>}
+                    {v.signed && <ShieldCheck size={13} className="text-success shrink-0" />}
+                    <span className="ml-auto" />
+                    {v.compatible ? (
+                      !installed && (
+                        <button onClick={() => onInstall(item.id, v.version)} disabled={busy === item.id}
+                          className="text-[11.5px] font-semibold px-2.5 py-1 rounded-full border border-edge bg-surface-card text-content-secondary hover:text-content hover:border-content-faint transition-colors disabled:opacity-50">
+                          {t('admin.plugins.installCompatible', { version: v.version })}
+                        </button>
+                      )
+                    ) : (
+                      <span className="text-[11.5px] text-content-faint">{t('admin.plugins.versionNeedsTrek', { range: v.trek ?? '' })}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 px-4 sm:px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary">
@@ -1546,6 +1656,55 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
 
 function Meta({ k, v }: { k: string; v: string }) {
   return <div><div className="text-[12px] text-content-faint">{k}</div><div className="text-[12.5px] font-medium text-content mt-0.5">{v}</div></div>
+}
+
+/**
+ * "Change version…" for an INSTALLED plugin. Rows render the server's per-version compat
+ * verdict: the installed version is marked, a compatible one gets a Switch action (the
+ * caller routes a DOWNGRADE through the data-risk confirm), an incompatible one is
+ * explained and never offered.
+ */
+function VersionPickerDialog({ plugin, versions, failed, busy, t, locale, onPick, onClose }: {
+  plugin: PluginRow; versions: VersionInfo[] | null; failed: boolean; busy: string | null
+  t: T; locale: string; onPick: (version: string) => void; onClose: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div className="bg-surface-card border border-edge rounded-2xl w-full max-w-md max-h-[80vh] overflow-auto shadow-modal" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-edge-secondary">
+          <h3 className="text-[15px] font-semibold text-content truncate">{t('admin.plugins.versionPickerTitle', { name: plugin.name })}</h3>
+          <button onClick={onClose} className="w-8 h-8 grid place-items-center rounded-lg text-content-faint hover:text-content hover:bg-surface-tertiary transition-colors shrink-0"><X size={16} /></button>
+        </div>
+        <div className="p-2">
+          {failed && <p className="text-xs text-danger px-2.5 py-2">{t('admin.plugins.detailError')}</p>}
+          {!failed && !versions && <p className="text-xs text-content-faint px-2.5 py-2">{t('common.loading')}</p>}
+          {versions?.length === 0 && <p className="text-xs text-content-faint px-2.5 py-2">{t('admin.plugins.noVersions')}</p>}
+          {versions?.map(v => {
+            const current = v.version === plugin.version
+            return (
+              <div key={v.version} data-testid={`version-row-${v.version}`}
+                className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-surface-secondary transition-colors">
+                <span className={`text-[13px] font-medium tabular-nums ${v.compatible ? 'text-content' : 'text-content-faint'}`}>v{v.version}</span>
+                {v.publishedAt && <span className="text-[11.5px] text-content-faint">{new Date(v.publishedAt).toLocaleDateString(locale)}</span>}
+                {v.signed && <ShieldCheck size={13} className="text-success shrink-0" />}
+                <span className="ml-auto" />
+                {current ? (
+                  <span className="text-[11.5px] font-medium text-content-faint">{t('admin.plugins.installed')}</span>
+                ) : v.compatible ? (
+                  <button onClick={() => onPick(v.version)} disabled={busy === plugin.id}
+                    className="text-[11.5px] font-semibold px-2.5 py-1 rounded-full border border-edge bg-surface-card text-content-secondary hover:text-content hover:border-content-faint transition-colors disabled:opacity-50">
+                    {t('admin.plugins.versionSwitch', { version: v.version })}
+                  </button>
+                ) : (
+                  <span className="text-[11.5px] text-content-faint">{t('admin.plugins.versionNeedsTrek', { range: v.trek ?? '' })}</span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 /**

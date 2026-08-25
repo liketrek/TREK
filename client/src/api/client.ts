@@ -533,7 +533,10 @@ export const adminApi = {
     apiClient.post('/admin/plugins/install', { id, ...opts }).then(r => r.data),
   pluginActivate: (id: string, consent?: boolean) => apiClient.post(`/admin/plugins/${id}/activate`, consent ? { consent: true } : {}).then(r => r.data),
   pluginDeactivate: (id: string) => apiClient.post(`/admin/plugins/${id}/deactivate`).then(r => r.data),
-  pluginUpdate: (id: string) => apiClient.post(`/admin/plugins/${id}/update`).then(r => r.data),
+  // `version` pins the exact version to install (the rollback path); omitted, the server
+  // resolves the newest TREK-compatible version itself.
+  pluginUpdate: (id: string, version?: string) =>
+    apiClient.post(`/admin/plugins/${id}/update`, version ? { version } : {}).then(r => r.data),
   // Re-trust a ROTATED author signing key and update, in ONE call. `publicKey` is the
   // full key the admin was shown (not a fingerprint): the server compares it exactly, so
   // it can refuse if the registry entry was re-keyed again since the dialog rendered.

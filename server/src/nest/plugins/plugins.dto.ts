@@ -42,6 +42,14 @@ export class PluginRetrustDto extends createZodDto(
 ) {}
 
 /**
+ * `version` pins the exact version to install — the rollback path. Omitted, the
+ * runtime resolves the newest TREK-compatible version itself (the classic update).
+ */
+export class PluginUpdateDto extends createZodDto(
+  z.looseObject({ version: z.string().optional() }),
+) {}
+
+/**
  * `hosts` is deliberately unknown, not `string[]`.
  *
  * The handler reads `Array.isArray(body.hosts) ? body.hosts.map(String) : []`,
