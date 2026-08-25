@@ -145,19 +145,19 @@ export default function JourneyPublicPage() {
     perms.share_timeline && { id: 'timeline' as const, icon: List, label: t('journey.share.timeline') },
     perms.share_gallery && { id: 'gallery' as const, icon: Grid, label: t('journey.share.gallery') },
     !desktopTwoColumn &&
-      !isMobile &&
-      perms.share_map && { id: 'map' as const, icon: MapPin, label: t('journey.share.map') },
+    !isMobile &&
+    perms.share_map && { id: 'map' as const, icon: MapPin, label: t('journey.share.map') },
   ].filter(Boolean) as { id: 'timeline' | 'gallery' | 'map'; icon: any; label: string }[];
 
   // The hook cannot build these: the thumbnail URL needs the share token, which is
   // the credential for the byte proxy.
   const photoLayer = token
     ? mapPhotos.map((p: { id: string; lat: number; lng: number; photoId: number }) => ({
-        id: p.id,
-        lat: p.lat,
-        lng: p.lng,
-        thumbUrl: photoUrl({ photo_id: p.photoId }, token, 'thumbnail'),
-      }))
+      id: p.id,
+      lat: p.lat,
+      lng: p.lng,
+      thumbUrl: photoUrl({ photo_id: p.photoId }, token, 'thumbnail'),
+    }))
     : [];
 
   // Shared timeline renderer used in both layout modes
@@ -246,7 +246,22 @@ export default function JourneyPublicPage() {
                         className="relative block w-full cursor-pointer text-left"
                         onClick={() => setLightbox({ photos: lightboxPhotos, index: 0 })}
                       >
-                        <img src={photoUrl(photos[0], token!)} className="h-64 w-full object-cover" alt="" />
+                        <div className={`relative h-64 w-full ${photos[0].media_type === 'video' ? 'bg-black' : ''}`}>
+                          <img
+                            src={photoUrl(photos[0], token!, 'thumbnail')}
+                            className={`h-full w-full ${photos[0].media_type === 'video' ? 'object-contain' : 'object-cover'
+                              }`}
+                            alt=""
+                          />
+
+                          {photos[0].media_type === 'video' && (
+                            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur">
+                                <Play size={20} className="ml-0.5" fill="currentColor" />
+                              </span>
+                            </div>
+                          )}
+                        </div>
                         <div
                           className="pointer-events-none absolute inset-x-0 bottom-0"
                           style={{
@@ -272,21 +287,30 @@ export default function JourneyPublicPage() {
                         )}
                       </button>
                     )}
-
                     {photos.length === 2 && (
                       <div className="grid grid-cols-2 gap-0.5 overflow-hidden">
                         {photos.slice(0, 2).map((p, i) => (
                           <button
                             key={p.id}
                             type="button"
-                            className="block h-52 w-full cursor-pointer overflow-hidden"
+                            className={`relative block h-52 w-full cursor-pointer overflow-hidden ${p.media_type === 'video' ? 'bg-black' : ''
+                              }`}
                             onClick={() => setLightbox({ photos: lightboxPhotos, index: i })}
                           >
                             <img
                               src={photoUrl(p, token!, 'thumbnail')}
                               alt=""
-                              className="h-full w-full object-cover"
+                              className={`h-full w-full ${p.media_type === 'video' ? 'object-contain' : 'object-cover'
+                                }`}
                             />
+
+                            {p.media_type === 'video' && (
+                              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur">
+                                  <Play size={17} className="ml-0.5" fill="currentColor" />
+                                </span>
+                              </div>
+                            )}
                           </button>
                         ))}
                       </div>
@@ -302,7 +326,8 @@ export default function JourneyPublicPage() {
                           <img
                             src={photoUrl(photos[0], token!, 'thumbnail')}
                             alt=""
-                            className="h-full w-full object-cover"
+                            className={`h-full w-full ${photos[0].media_type === 'video' ? 'object-contain bg-black' : 'object-cover'
+                              }`}
                           />
                         </button>
                         <div className="flex min-w-0 flex-1 flex-col" style={{ gap: 2 }}>
@@ -314,7 +339,8 @@ export default function JourneyPublicPage() {
                             <img
                               src={photoUrl(photos[1], token!, 'thumbnail')}
                               alt=""
-                              className="h-full w-full object-cover"
+                              className={`h-full w-full ${photos[1].media_type === 'video' ? 'object-contain bg-black' : 'object-cover'
+                                }`}
                             />
                           </button>
                           <button
@@ -325,7 +351,8 @@ export default function JourneyPublicPage() {
                             <img
                               src={photoUrl(photos[2], token!, 'thumbnail')}
                               alt=""
-                              className="h-full w-full object-cover"
+                              className={`h-full w-full ${photos[2].media_type === 'video' ? 'object-contain bg-black' : 'object-cover'
+                                }`}
                             />
                             {photos.length > 3 && (
                               <div className="absolute inset-0 flex items-center justify-center bg-black/40">
@@ -337,7 +364,8 @@ export default function JourneyPublicPage() {
                           </button>
                         </div>
                       </div>
-                    )}
+                    )
+                    }
 
                     {/* Content */}
                     {/* Stays a div: the story renders user markdown, links included,
@@ -471,10 +499,10 @@ export default function JourneyPublicPage() {
                 );
               })}
             </div>
-          </div>
+          </div >
         );
       })}
-    </div>
+    </div >
   );
 
   // Shared gallery renderer
@@ -499,7 +527,10 @@ export default function JourneyPublicPage() {
         >
           <img
             src={photoUrl(photo, token!, 'thumbnail')}
-            className="h-full w-full object-cover transition-transform hover:scale-105"
+            className={`h-full w-full transition-transform hover:scale-105 ${(photo as any).media_type === 'video'
+              ? 'object-contain bg-black'
+              : 'object-cover'
+              }`}
             alt=""
             loading="lazy"
           />
@@ -523,11 +554,10 @@ export default function JourneyPublicPage() {
           <button type="button"
             key={v.id}
             onClick={() => setView(v.id)}
-            className={`flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-medium ${
-              view === v.id
-                ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
-                : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-medium ${view === v.id
+              ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+              : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+              }`}
           >
             <v.icon size={13} />
             {v.label}
@@ -830,11 +860,10 @@ export default function JourneyPublicPage() {
                   <button type="button"
                     key={v.id}
                     onClick={() => setView(v.id)}
-                    className={`flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-medium ${
-                      view === v.id
-                        ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
-                        : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-                    }`}
+                    className={`flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-medium ${view === v.id
+                      ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+                      : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+                      }`}
                   >
                     <v.icon size={13} />
                     {v.label}
@@ -913,8 +942,8 @@ export default function JourneyPublicPage() {
           readOnly
           publicPhotoUrl={(photoId) => `/api/public/journey/${token}/photos/${photoId}/original`}
           onClose={() => setViewingEntry(null)}
-          onEdit={() => {}}
-          onDelete={() => {}}
+          onEdit={() => { }}
+          onDelete={() => { }}
           onPhotoClick={(photos, idx) =>
             setLightbox({
               photos: photos.map((p) => ({
