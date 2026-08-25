@@ -12,6 +12,7 @@ import type mapboxgl from 'mapbox-gl'
 import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route, TramFront } from 'lucide-react'
 import { getTransitMapSegments } from './transitGeometry'
 import { geodesicArcs } from './flightGeodesy'
+import { cleanEndpointName } from './reservationName'
 import { escapeHtml } from '@trek/shared'
 import type { Reservation, ReservationEndpoint } from '../../types'
 
@@ -92,27 +93,6 @@ function computeDuration(from: ReservationEndpoint, to: ReservationEndpoint, fal
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
   return h > 0 ? `${h}h ${m}m` : `${m}m`
-}
-
-// "Wien Hbf (Vienna)" → "Wien Hbf". Done as a scan, not /\s*\([^)]*\)/g: the leading
-// \s* overlaps the engine's own restart-at-every-position scan, so a name that is a
-// long run of spaces with no "(" after it backtracks quadratically (1.2s at 40k).
-// Same matches: the whitespace directly before a "(" that has a ")" after it goes
-// too, and an unclosed "(" is left alone.
-const cleanName = (name: string) => {
-  let out = ''
-  let cursor = 0
-  for (;;) {
-    const open = name.indexOf('(', cursor)
-    if (open === -1) break
-    const close = name.indexOf(')', open + 1)
-    if (close === -1) break
-    let start = open
-    while (start > cursor && /\s/.test(name[start - 1])) start--
-    out += name.slice(cursor, start)
-    cursor = close + 1
-  }
-  return (out + name.slice(cursor)).trim()
 }
 
 // ── item building ─────────────────────────────────────────────────────────
@@ -368,7 +348,7 @@ export class ReservationMapboxOverlay {
       for (const item of visibleItems) {
         const showLabel = this.opts.showEndpointLabels && labelVisibleIds.has(item.res.id)
         for (const ep of item.waypoints) {
-          const label = showLabel ? (ep.code || cleanName(ep.name)) : null
+          const label = showLabel ? (ep.code || cleanEndpointName(ep.name)) : null
           const el = document.createElement('div')
           el.innerHTML = endpointMarkerHtml(item.type, label)
           const inner = el.firstElementChild as HTMLElement | null

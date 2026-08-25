@@ -6,6 +6,7 @@ import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route, Tram
 import { escapeHtml } from '@trek/shared'
 import { getTransitMapSegments, type TransitMapSegment } from './transitGeometry'
 import { geodesicArcs } from './flightGeodesy'
+import { cleanEndpointName } from './reservationName'
 import { useSettingsStore } from '../../store/settingsStore'
 import type { Reservation, ReservationEndpoint } from '../../types'
 
@@ -63,27 +64,6 @@ function endpointIcon(type: TransportType, label: string | null): L.DivIcon {
 }
 
 function toRad(d: number) { return d * Math.PI / 180 }
-
-// "Wien Hbf (Vienna)" → "Wien Hbf". Done as a scan, not /\s*\([^)]*\)/g: the leading
-// \s* overlaps the engine's own restart-at-every-position scan, so a name that is a
-// long run of spaces with no "(" after it backtracks quadratically (1.0s at 32k), and
-// so does a run of "(" with no ")". Same matches: the whitespace directly before a "("
-// that has a ")" after it goes too, and an unclosed "(" is left alone.
-function cleanName(name: string): string {
-  let out = ''
-  let cursor = 0
-  for (;;) {
-    const open = name.indexOf('(', cursor)
-    if (open === -1) break
-    const close = name.indexOf(')', open + 1)
-    if (close === -1) break
-    let start = open
-    while (start > cursor && /\s/.test(name[start - 1])) start--
-    out += name.slice(cursor, start)
-    cursor = close + 1
-  }
-  return (out + name.slice(cursor)).trim()
-}
 
 function haversineKm(a: [number, number], b: [number, number]): number {
   const R = 6371
@@ -288,7 +268,7 @@ export default function ReservationOverlay({ reservations, showConnections, onEn
         <Marker
           key={`wp-${item.res.id}-${wi}`}
           position={[wp.lat, wp.lng]}
-          icon={endpointIcon(item.type, showEndpointLabels && labelVisibleIds.has(item.res.id) ? (wp.code || cleanName(wp.name)) : null)}
+          icon={endpointIcon(item.type, showEndpointLabels && labelVisibleIds.has(item.res.id) ? (wp.code || cleanEndpointName(wp.name)) : null)}
           pane={ENDPOINT_PANE}
           zIndexOffset={1000}
           eventHandlers={{ click: () => onEndpointClick?.(item.res.id) }}
