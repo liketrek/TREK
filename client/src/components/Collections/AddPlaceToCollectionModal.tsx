@@ -97,8 +97,8 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
     const cleanName = name.trim()
     if (!cleanName) return
     const cleanLinks = links.map(l => ({ label: l.label?.trim() || undefined, url: normalizeLinkUrl(l.url) })).filter(l => l.url)
-    const latNum = lat.trim() ? Number(lat) : NaN
-    const lngNum = lng.trim() ? Number(lng) : NaN
+    const latNum = lat.trim() ? Number(lat) : Number.NaN
+    const lngNum = lng.trim() ? Number(lng) : Number.NaN
     setSaving(true)
     try {
       const res = await collectionsApi.savePlace({

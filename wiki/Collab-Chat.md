@@ -14,7 +14,7 @@ The Collab addon must be enabled by an admin and the Chat sub-feature must be tu
 
 Type in the input field at the bottom and press **Enter** (or click the send button) to post. Hold **Shift + Enter** to insert a line break without sending.
 
-Messages load in pages of 100. A **Load more** button appears at the top of the chat when older messages are available.
+Messages load in pages of 100. A **Load older messages** button appears at the top of the chat when older messages are available.
 
 ## Emoji
 

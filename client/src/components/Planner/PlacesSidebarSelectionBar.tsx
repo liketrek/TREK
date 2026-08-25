@@ -14,7 +14,7 @@ export function PlacesSelectionBar(S: SidebarState) {
         {t('places.selectionCount', { count: selectedIds.size })}
       </span>
       <Tooltip label={selectedIds.size === filtered.length && filtered.length > 0 ? t('common.deselectAll') : t('common.selectAll')} placement="bottom">
-      <button
+      <button type="button"
         onClick={() => {
           if (selectedIds.size === filtered.length) setSelectedIds(new Set())
           else setSelectedIds(new Set(filtered.map(p => p.id)))
@@ -33,7 +33,7 @@ export function PlacesSelectionBar(S: SidebarState) {
       </button>
       </Tooltip>
       <Tooltip label={t('places.changeCategory')} placement="bottom">
-      <button
+      <button type="button"
         onClick={() => { if (selectedIds.size === 0) return; setCategoryPickerOpen(true) }}
         disabled={selectedIds.size === 0}
         aria-label={t('places.changeCategory')}
@@ -51,7 +51,7 @@ export function PlacesSelectionBar(S: SidebarState) {
       </Tooltip>
       {collectionsEnabled && (
         <Tooltip label={t('inspector.saveToCollection')} placement="bottom">
-        <button
+        <button type="button"
           onClick={() => { if (selectedIds.size === 0) return; setSaveToListOpen(true) }}
           disabled={selectedIds.size === 0}
           aria-label={t('inspector.saveToCollection')}
@@ -70,7 +70,7 @@ export function PlacesSelectionBar(S: SidebarState) {
       )}
       {collectionsEnabled && (
         <Tooltip label={t('collections.markVisitedSelection')} placement="bottom">
-        <button
+        <button type="button"
           onClick={() => { if (selectedIds.size === 0) return; void markSelectionVisited() }}
           disabled={selectedIds.size === 0 || markVisitedBusy}
           aria-label={t('collections.markVisitedSelection')}
@@ -88,7 +88,7 @@ export function PlacesSelectionBar(S: SidebarState) {
         </Tooltip>
       )}
       <Tooltip label={t('places.deleteSelected')} placement="bottom">
-      <button
+      <button type="button"
         onClick={() => {
           if (selectedIds.size === 0) return
           if (isMobile) setPendingDeleteIds(Array.from(selectedIds))

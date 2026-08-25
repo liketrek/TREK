@@ -38,15 +38,19 @@ The admin account is unaffected and retains full access.
 TREK schedules an automatic hourly reset of the demo database. At each reset:
 
 1. The current `travel.db` is replaced with the saved baseline (`travel-baseline.db`).
-2. The admin account's credentials (`password_hash`, API keys, avatar) are re-applied on top of the restored baseline, so admin API keys and password changes survive the reset.
+2. The admin account's credentials (`password_hash`, API keys, avatar) are re-applied on top of the restored baseline, so admin API keys and password changes survive the reset — but only when `DEMO_ADMIN_EMAIL` is set explicitly.
 
 If no baseline has been saved yet, the reset is skipped and a message is logged.
+
+The seeder defaults the admin address to `admin@trek.app` while the reset defaults it to `admin@nomad.app`, a legacy quirk that is pinned deliberately. With `DEMO_ADMIN_EMAIL` unset the reset looks up an address that does not exist, finds no admin row, and skips the carry-over entirely — a password change, API key or avatar set after the baseline was saved is lost on every hourly reset. Set `DEMO_ADMIN_EMAIL` (to `admin@trek.app`, for instance) if you want them to survive. Unlike the seed-time variables above, the reset reads it on every run, so setting it on an already-seeded instance and restarting is enough.
+
+The instance-wide Maps and Unsplash keys stored in `app_settings` are carried across either way, so map and photo search keep working after a reset.
 
 ## Saving a baseline
 
 The baseline is the snapshot the hourly reset restores to. The admin can update it at any time:
 
-**Endpoint:** `POST /admin/save-demo-baseline`
+**Endpoint:** `POST /api/admin/save-demo-baseline`
 
 This is available in the admin panel. The baseline captures the current state of the database — including trip data, settings, and encrypted API keys — so demo features (maps, photos, weather) continue to work after each reset.
 

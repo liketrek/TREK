@@ -639,8 +639,8 @@ export class MapsService {
     return data.map((item) => {
       // Number.isFinite, not `|| null`: a place on the equator or prime
       // meridian has a legitimate 0 coordinate.
-      const lat = parseFloat(item.lat);
-      const lng = parseFloat(item.lon);
+      const lat = Number.parseFloat(item.lat);
+      const lng = Number.parseFloat(item.lon);
       return {
         google_place_id: null,
         google_ftid: null,
@@ -714,8 +714,8 @@ export class MapsService {
       const best = data
         .map((item) => ({
           item,
-          lat: parseFloat(item.lat),
-          lng: parseFloat(item.lon),
+          lat: Number.parseFloat(item.lat),
+          lng: Number.parseFloat(item.lon),
         }))
         .filter(({ item, lat: hitLat, lng: hitLng }) => {
           if (!Number.isFinite(hitLat) || !Number.isFinite(hitLng)) return false;
@@ -773,8 +773,8 @@ export class MapsService {
       const data = (await res.json()) as NominatimResult[];
       const item = data[0];
       if (!item) return null;
-      const lat = parseFloat(item.lat);
-      const lng = parseFloat(item.lon);
+      const lat = Number.parseFloat(item.lat);
+      const lng = Number.parseFloat(item.lon);
       return {
         name: item.name || item.display_name?.split(',')[0] || '',
         address: item.display_name || '',
@@ -2023,11 +2023,11 @@ export class MapsService {
     // them several ways: /@lat,lng,zoom · !3dlat!4dlng (map data param) · ?q=/?ll=.
     const extractCoords = (s: string): { lat: number; lng: number } | null => {
       const at = s.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-      if (at) return { lat: parseFloat(at[1]), lng: parseFloat(at[2]) };
+      if (at) return { lat: Number.parseFloat(at[1]), lng: Number.parseFloat(at[2]) };
       const data = s.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
-      if (data) return { lat: parseFloat(data[1]), lng: parseFloat(data[2]) };
+      if (data) return { lat: Number.parseFloat(data[1]), lng: Number.parseFloat(data[2]) };
       const q = s.match(/[?&](?:q|ll)=(-?\d+\.\d+),(-?\d+\.\d+)/);
-      if (q) return { lat: parseFloat(q[1]), lng: parseFloat(q[2]) };
+      if (q) return { lat: Number.parseFloat(q[1]), lng: Number.parseFloat(q[2]) };
       return null;
     };
 

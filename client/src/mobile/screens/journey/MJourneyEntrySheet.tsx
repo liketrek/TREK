@@ -139,7 +139,7 @@ export default function MJourneyEntrySheet({
       if (group.provider === activeProvider) group.assetIds.forEach(assetId => providerExistingAssetIds.add(assetId))
     })
   }
-  const contextLocation = isValidGeoPoint({ lat: locationLat ?? NaN, lng: locationLng ?? NaN })
+  const contextLocation = isValidGeoPoint({ lat: locationLat ?? Number.NaN, lng: locationLng ?? Number.NaN })
     ? { lat: locationLat!, lng: locationLng!, name: locationName || undefined }
     : null
 

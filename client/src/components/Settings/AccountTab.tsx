@@ -198,7 +198,7 @@ export default function AccountTab(): React.ReactElement {
                 placeholder={t('settings.confirmPassword')}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
               />
-              <button
+              <button type="button"
                 onClick={async () => {
                   if (!currentPassword) return toast.error(t('settings.currentPasswordRequired'))
                   if (!newPassword) return toast.error(t('settings.passwordRequired'))
@@ -415,7 +415,7 @@ export default function AccountTab(): React.ReactElement {
               </div>
             )}
             <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} style={{ display: 'none' }} />
-            <button
+            <button type="button"
               onClick={() => avatarInputRef.current?.click()}
               style={{
                 position: 'absolute', bottom: -3, right: -3,
@@ -431,7 +431,7 @@ export default function AccountTab(): React.ReactElement {
               <Camera size={14} />
             </button>
             {user?.avatar_url && (
-              <button
+              <button type="button"
                 onClick={handleAvatarRemove}
                 className="bg-[#ef4444] text-white"
                 style={{
@@ -470,7 +470,7 @@ export default function AccountTab(): React.ReactElement {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
-          <button
+          <button type="button"
             onClick={saveProfile}
             disabled={saving}
             className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm hover:bg-slate-700 disabled:bg-slate-400"
@@ -479,7 +479,7 @@ export default function AccountTab(): React.ReactElement {
             <span className="hidden sm:inline">{t('settings.saveProfile')}</span>
             <span className="sm:hidden">{t('common.save')}</span>
           </button>
-          <button
+          <button type="button"
             onClick={async () => {
               if (user?.role === 'admin') {
                 try {
@@ -523,7 +523,7 @@ export default function AccountTab(): React.ReactElement {
               {t('settings.deleteBlockedMessage')}
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button
+              <button type="button"
                 onClick={() => setShowDeleteConfirm(false)}
                 className="border border-edge bg-surface-card text-content-secondary"
                 style={{
@@ -559,7 +559,7 @@ export default function AccountTab(): React.ReactElement {
               {t('settings.deleteAccountWarning')}
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button
+              <button type="button"
                 onClick={() => setShowDeleteConfirm(false)}
                 className="border border-edge bg-surface-card text-content-secondary"
                 style={{
@@ -569,7 +569,7 @@ export default function AccountTab(): React.ReactElement {
               >
                 {t('common.cancel')}
               </button>
-              <button
+              <button type="button"
                 onClick={async () => {
                   try {
                     await authApi.deleteOwnAccount()

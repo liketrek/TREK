@@ -46,11 +46,11 @@ export class MailerService {
     if (!host || !port || !from) return null;
     return {
       host,
-      port: parseInt(port, 10),
+      port: Number.parseInt(port, 10),
       user: user || '',
       pass: pass || '',
       from,
-      secure: parseInt(port, 10) === 465,
+      secure: Number.parseInt(port, 10) === 465,
     };
   }
 

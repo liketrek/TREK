@@ -92,7 +92,7 @@ export default function InAppNotificationItem({ notification, onClose }: Notific
                 {relativeTime(notification.created_at, locale)}
               </span>
               {!notification.is_read && (
-                <button
+                <button type="button"
                   onClick={() => markRead(notification.id)}
                   title={t('notifications.markRead')}
                   className="p-1 rounded transition-colors"
@@ -103,7 +103,7 @@ export default function InAppNotificationItem({ notification, onClose }: Notific
                   <CheckCheck className="w-3.5 h-3.5" />
                 </button>
               )}
-              <button
+              <button type="button"
                 onClick={() => deleteNotification(notification.id)}
                 title={t('notifications.delete')}
                 className="p-1 rounded transition-colors"
@@ -123,7 +123,7 @@ export default function InAppNotificationItem({ notification, onClose }: Notific
           {/* Boolean actions */}
           {notification.type === 'boolean' && notification.positive_text_key && notification.negative_text_key && (
             <div className="flex gap-2 mt-2">
-              <button
+              <button type="button"
                 onClick={() => handleRespond('positive')}
                 disabled={responding || notification.response !== null}
                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
@@ -145,7 +145,7 @@ export default function InAppNotificationItem({ notification, onClose }: Notific
                 <Check className="w-3 h-3" />
                 {t(notification.positive_text_key)}
               </button>
-              <button
+              <button type="button"
                 onClick={() => handleRespond('negative')}
                 disabled={responding || notification.response !== null}
                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
@@ -172,7 +172,7 @@ export default function InAppNotificationItem({ notification, onClose }: Notific
 
           {/* Navigate action */}
           {notification.type === 'navigate' && notification.navigate_text_key && notification.navigate_target && (
-            <button
+            <button type="button"
               onClick={handleNavigate}
               className="flex items-center gap-1 mt-2 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
               style={{ background: dark ? '#27272a' : '#f1f5f9', color: 'var(--text-secondary)' }}

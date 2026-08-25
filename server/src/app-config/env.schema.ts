@@ -113,6 +113,12 @@ export const envSchema = z.object({
   OVERPASS_URL: anyString,
   OVERPASS_TIMEOUT_MS: positiveNumber,
   KITINERARY_EXTRACTOR_PATH: anyString,
+  // The OS search path. Not configuration anybody sets for TREK — it is here so
+  // the kitinerary probe can resolve its binary to an absolute path itself
+  // instead of handing an unqualified name to exec, which would re-resolve
+  // through whatever PATH held at that moment.
+  PATH: anyString,
+  Path: anyString,
 
   // Data / paths
   TREK_DB_FILE: anyString,

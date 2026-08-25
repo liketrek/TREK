@@ -46,7 +46,7 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
               onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
               placeholder={t('budget.emptyPlaceholder')}
               style={{ flex: 1, padding: '9px 14px', borderRadius: 10, border: '1px solid var(--border-primary)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'inherit', outline: 'none', background: 'var(--bg-input)', color: 'var(--text-primary)', minWidth: 0 }} />
-            <button onClick={handleAddCategory} disabled={!newCategoryName.trim()}
+            <button type="button" onClick={handleAddCategory} disabled={!newCategoryName.trim()}
               style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: 10, padding: '0 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', opacity: newCategoryName.trim() ? 1 : 0.5, flexShrink: 0 }}>
               <Plus size={16} />
             </button>
@@ -87,7 +87,7 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                   placeholder={t('budget.categoryName')}
                   style={{ flex: 1, minWidth: 0, border: '1px solid var(--border-primary)', borderRadius: 10, padding: '9px 14px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', outline: 'none', fontFamily: 'inherit', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
                 />
-                <button onClick={handleAddCategory} disabled={!newCategoryName.trim()}
+                <button type="button" onClick={handleAddCategory} disabled={!newCategoryName.trim()}
                   title={t('budget.addCategory')}
                   style={{
                     appearance: 'none', border: 'none', cursor: newCategoryName.trim() ? 'pointer' : 'default', fontFamily: 'inherit',
@@ -101,7 +101,7 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                 </button>
               </div>
             )}
-            <button onClick={handleExportCsv} title={t('budget.exportCsv')}
+            <button type="button" onClick={handleExportCsv} title={t('budget.exportCsv')}
               style={{
                 appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                 display: 'inline-flex', alignItems: 'center', gap: 6,

@@ -133,7 +133,7 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
         </span>
         <div className="flex items-center gap-2">
           {availableProviders.map(p => (
-            <button
+            <button type="button"
               key={p.id}
               onClick={() => browseProvider(p.id)}
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
@@ -176,7 +176,7 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
                 </div>
               )}
               {/* Delete button */}
-              <button
+              <button type="button"
                 onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id) }}
                 className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 backdrop-blur text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
               >

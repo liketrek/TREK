@@ -17,7 +17,7 @@ Type in the search box at the top of the form. After 2 or more characters, with 
 
 ### With a Google Maps API key
 
-> **Admin:** A Google Maps API key is configured in [User-Settings](User-Settings).
+> **Admin:** The Google Maps API key is instance-wide, set in **Admin → Settings → API Keys**. It is stored encrypted at rest and used for every member of the instance; on managed instances the operator supplies it and the panel is hidden.
 
 When a key is present, the autocomplete uses the Google Places API, which can return ratings, opening hours, photos, and phone numbers from Google's database.
 
@@ -25,7 +25,7 @@ When a key is present, the autocomplete uses the Google Places API, which can re
 
 ### Without a Google Maps API key
 
-TREK falls back to OpenStreetMap (Nominatim) automatically — no API key needed. A notice appears above the search box explaining that OpenStreetMap is in use and that photos, ratings, and opening hours are unavailable. Results include name, address, and coordinates.
+TREK falls back to OpenStreetMap (Nominatim) automatically — no API key needed. A notice appears above the search box — *Using OpenStreetMap. A Google API key adds ratings and opening hours.* Results include name, address, and coordinates.
 
 ## Place details while searching
 
@@ -36,13 +36,13 @@ The column shows:
 - **Pictures** near or of the place. Click one to make it that place's thumbnail; click it again to clear the choice. The picture then appears everywhere the place does — list, map marker, itinerary, PDF export and shared trips — exactly like a [custom place image](#custom-place-image).
 - **A description**, when one is available. It is *not* written into the place automatically. Use **Use this text** to copy it into the description field; the button is disabled while you already have a description of your own, so nothing you wrote gets overwritten.
 
-Every picture is credited under its thumbnail with its author, its licence and a link to the source page. Most Wikimedia Commons pictures are CC BY or CC BY-SA, which means the credit has to travel with the picture — so once you pick one, the credit stays visible under the thumbnail in the place's detail panel too.
+One credit line sits under the picture grid, and it belongs to the picture in play: the tile you are hovering, or failing that the one you picked, or the first picture before you have done either. It names the author, links that name to the source page, and adds the licence with a link to its terms. The other tiles carry author and licence as a tooltip only, without the links. Google's pictures get an author line and nothing else, because Google grants no reusable licence for them. Most Wikimedia Commons pictures are CC BY or CC BY-SA, which means the credit has to travel with the picture, so once you pick one, the credit stays visible under the thumbnail in the place's detail panel too.
 
 ### Where the information comes from
 
 Wikipedia and OpenStreetMap are always used and need no configuration:
 
-- Pictures from **Wikimedia Commons**, found by coordinate.
+- Pictures from **Wikimedia Commons**, resolved from the place's own tags first — the Wikidata image, the lead image of its Wikipedia article, its Commons category — and falling back to a search by coordinate only when those turn up too few.
 - Descriptions from the OpenStreetMap `description` tag, or from the Wikipedia article the place is tagged with. TREK resolves the article from that tag rather than guessing it from the name, so an ambiguous name never pulls in the wrong article. A place with no such tag simply gets no description.
 
 With a Google Maps API key, and only if the matching admin switches are on, up to three **Google Places** photos and Google's editorial summary are added on top.
@@ -59,7 +59,7 @@ Paste a `maps.app.goo.gl/…`, `goo.gl/maps/…`, or `maps.google.*/…` URL dir
 
 ## Entering coordinates manually
 
-Type or paste a `lat, lng` pair (e.g. `48.8566, 2.3522`) into the **Latitude** field. TREK detects the comma-separated pair and fills both coordinate fields at once.
+**Paste** a `lat, lng` pair (e.g. `48.8566, 2.3522`) into the **Latitude** field — comma, semicolon or space separated. TREK detects the pair and fills both coordinate fields at once. This works on paste only: the coordinate fields accept digits, a decimal point and a leading minus, so typing a pair by hand drops the separator and leaves a single invalid number (`48.85662.3522`) behind. Type the two values into their own fields instead.
 
 ## Place fields
 
@@ -75,7 +75,7 @@ Type or paste a `lat, lng` pair (e.g. `48.8566, 2.3522`) into the **Latitude** f
 | Category | Pick an existing category or type a new name to create one inline (default color `#6366f1`, icon `MapPin`) |
 | Start time / End time | Shown only when editing an existing place |
 | Website | URL |
-| File attachments | Images or PDFs — click the Paperclip icon or paste from the clipboard |
+| File attachments | Click the Paperclip icon to attach a file, or paste an image or PDF from the clipboard. The Paperclip takes anything on the instance's **Allowed File Types** list — by default jpg, jpeg, png, gif, webp, heic, pdf, doc, docx, xls, xlsx, txt, csv, pkpass, pkpasses, md and markdown — plus video, which is exempt from that list. See [Documents-and-Files](Documents-and-Files) |
 
 Two inline warnings are shown when editing times: one if the end time is set to a value before or equal to the start time, and one if the times overlap with another place already assigned to the same day.
 
@@ -101,6 +101,6 @@ Imported tracks each get their own line colour so multiple routes stay apart on 
 
 Importing the same list again does not duplicate what is already in the trip. A place is recognised by the provider id it was imported with (Google place id, Google feature id, or OSM id) before its name or its coordinates are considered, so renaming a place in TREK — or moving its pin — does not make it come back as a second copy on the next import.
 
-> **Admin:** Google Maps API key is set in [User-Settings](User-Settings). Without it, OSM search is used automatically.
+> **Admin:** The Google Maps API key is set instance-wide in **Admin → Settings → API Keys**. Without it, OSM search is used automatically.
 
 **See also:** [Day-Plans-and-Notes](Day-Plans-and-Notes) · [Map-Features](Map-Features) · [Tags-and-Categories](Tags-and-Categories)

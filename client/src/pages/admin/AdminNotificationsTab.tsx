@@ -69,7 +69,7 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
             <h2 className="font-semibold text-slate-900">{t('admin.notifications.emailPanel.title')}</h2>
             <p className="text-xs text-slate-400 mt-1">{t('admin.smtp.hint')}</p>
           </div>
-          <button
+          <button type="button"
             onClick={() => setChannels(!emailActive, webhookActive, ntfyActive)}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${emailActive ? 'bg-content' : 'bg-edge'}`}
           >
@@ -112,11 +112,11 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
           </div>
         </div>
         <div className="px-6 pb-4 flex items-center gap-2 border-t border-slate-100 pt-4">
-          <button onClick={saveNotifications}
+          <button type="button" onClick={saveNotifications}
             className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors">
             <Save className="w-4 h-4" />{t('common.save')}
           </button>
-          <button
+          <button type="button"
             onClick={async () => {
               const smtpKeys = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_skip_tls_verify']
               const payload: Record<string, string> = {}
@@ -144,7 +144,7 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
             <h2 className="font-semibold text-slate-900">{t('admin.notifications.webhookPanel.title')}</h2>
             <p className="text-xs text-slate-400 mt-1">{t('admin.webhook.hint')}</p>
           </div>
-          <button
+          <button type="button"
             onClick={() => setChannels(emailActive, !webhookActive, ntfyActive)}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${webhookActive ? 'bg-content' : 'bg-edge'}`}
           >
@@ -161,7 +161,7 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
             <h2 className="font-semibold text-slate-900">{t('admin.notifications.ntfy')}</h2>
             <p className="text-xs text-slate-400 mt-1">{t('admin.ntfy.hint') || 'Allow users to configure their own ntfy topics for push notifications.'}</p>
           </div>
-          <button
+          <button type="button"
             onClick={() => setChannels(emailActive, webhookActive, !ntfyActive)}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${ntfyActive ? 'bg-content' : 'bg-edge'}`}
           >
@@ -240,7 +240,7 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
           )}
         </div>
         <div className="px-6 pb-4 flex items-center gap-2 border-t border-slate-100 pt-4">
-          <button
+          <button type="button"
             onClick={async () => {
               try {
                 await authApi.updateAppSettings({ admin_webhook_url: smtpValues.admin_webhook_url || '' })
@@ -250,7 +250,7 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
             className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors">
             <Save className="w-4 h-4" />{t('common.save')}
           </button>
-          <button
+          <button type="button"
             onClick={async () => {
               // A masked value means the URL only lives on the server — send no url and let
               // the server test the stored one instead of pre-saving the mask.
@@ -331,7 +331,7 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
           )}
         </div>
         <div className="px-6 pb-4 flex items-center gap-2 border-t border-slate-100 pt-4">
-          <button
+          <button type="button"
             onClick={async () => {
               try {
                 await authApi.updateAppSettings({
@@ -347,7 +347,7 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
             className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors">
             <Save className="w-4 h-4" />{t('common.save')}
           </button>
-          <button
+          <button type="button"
             onClick={async () => {
               const topic = smtpValues.admin_ntfy_topic?.trim()
               if (!topic) return

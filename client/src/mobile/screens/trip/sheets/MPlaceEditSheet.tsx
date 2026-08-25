@@ -33,8 +33,8 @@ function findDuplicateName(
 ): string | null {
   const name = form.name.trim().toLowerCase()
   const gid = (form.google_place_id || '').trim()
-  const lat = form.lat ? parseFloat(form.lat) : null
-  const lng = form.lng ? parseFloat(form.lng) : null
+  const lat = form.lat ? Number.parseFloat(form.lat) : null
+  const lng = form.lng ? Number.parseFloat(form.lng) : null
   for (const p of places || []) {
     if (gid && p.google_place_id && p.google_place_id === gid) return p.name || form.name
     if (name && p.name && p.name.trim().toLowerCase() === name) return p.name
@@ -236,8 +236,8 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
     try {
       const saved = await handleSavePlace({
         ...form,
-        lat: form.lat ? parseFloat(form.lat) : null,
-        lng: form.lng ? parseFloat(form.lng) : null,
+        lat: form.lat ? Number.parseFloat(form.lat) : null,
+        lng: form.lng ? Number.parseFloat(form.lng) : null,
         category_id: form.category_id || null,
         _pendingFiles: pendingFiles.length > 0 ? pendingFiles : undefined,
       })

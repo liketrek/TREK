@@ -4,7 +4,7 @@
 
 ## Opening the Dialog
 
-Click the **New Trip** button in the dashboard toolbar (or the **Create First Trip** button on the empty state) to open the Create Trip dialog.
+On desktop, click the floating **New Trip** button in the bottom-right corner of the dashboard, or the dashed **New Trip** tile at the end of the trip grid, to open the Create New Trip dialog. On mobile the floating button is replaced by the **+** in the centre of the bottom tab bar, and an empty dashboard also offers a **Create First Trip** button.
 
 You can also open it directly via a deep link: navigate to `/dashboard?create=1`. This is the URL used by system notices that prompt you to create a trip.
 
@@ -16,27 +16,27 @@ The trip name. Cannot be empty — saving is blocked until a title is entered.
 
 ### Description (optional)
 
-A short free-text description shown on the trip card.
+A short free-text description. It is not shown on the trip card or on the Spotlight card. It appears on a [public share page](Public-Share-Links), on the cover of a [PDF export](PDF-Export), and as the notes of the trip's all-day event in [calendar feeds and .ics exports](Calendar-Feeds).
 
 ### Dates
 
 Set a **Start date** and **End date** using the date picker. The day count is calculated automatically when both are set.
 
-If you leave **both** dates empty, a separate **Day count** field appears. Enter a number between **1 and 365** to create a date-less itinerary with a fixed number of days.
+On desktop, if you leave **both** dates empty, a separate **Day count** field appears. Enter a number between **1 and 365** to create a date-less itinerary with a fixed number of days. The mobile sheet has no such field: a date-less trip created there always starts with 7 days.
 
-You cannot set only one date and leave the other blank via normal interaction — setting a start date auto-fills or adjusts the end date to preserve the previous duration.
+Only the **start** date is linked to the other one. Picking a start date fills the end date to match it, and moving the start date of an already-dated trip shifts the end date so the previous duration is kept. Nothing links them the other way round: you can pick an end date on its own, and the picker's **✕** button clears either field afterwards. A trip can therefore be saved with both dates, with only a start date, with only an end date, or with neither. A trip left with exactly one date gets an undated day grid (7 days by default), just like a date-less one.
 
 ### Currency
 
-The trip's currency — its **accounting base**. Every expense in the Costs tab is converted into it, and every balance and settle-up suggestion is calculated in it. Defaults to **EUR**; 165 currencies are available.
+The trip's currency — its **accounting base**. Every expense in the Costs tab is converted into it, and every balance and settle-up suggestion is calculated in it. The dialog pre-fills your own display currency (Settings → General → *Display currency*); if you left that on **Trip currency**, it falls back to **EUR**. An administrator can preset the instance-wide value under Admin → **User Defaults**, which new users inherit until they pick their own. 165 currencies are available.
 
 Pick the currency you will actually settle up in. It is not a cosmetic label, but it is not a one-way door either: you can change it later from the same dialog (with the `trip_edit` permission), and TREK re-bases the existing expenses so no money moves — see [Currencies → Changing the trip currency](Currencies#changing-the-trip-currency).
 
-> This is **not** the same as the display currency in Settings → General, which only changes what *you* read. See [Currencies](Currencies).
+> This is **not** the same as the display currency in Settings → General, which changes what *you* read on trips that already exist. See [Currencies](Currencies).
 
 ### Cover Image
 
-The cover image is displayed on the trip card and as the background of the Spotlight card. You can add one in three ways:
+The cover image is displayed on the trip card and as the background of the Spotlight card. You can add one in four ways:
 
 - **Drag and drop** an image file onto the dashed upload area.
 - **Paste from clipboard** — if you have an image in your clipboard, paste it anywhere in the dialog.
@@ -69,7 +69,7 @@ Add initial trip members from the members selector. On a **new** trip, selected 
 
 ## Saving
 
-Click **Create Trip**. The trip is saved and you are taken to the [Trip-Planner-Overview](Trip-Planner-Overview) for the new trip.
+Click **Create New Trip**. The trip is saved, the dialog closes and a *"Trip created successfully!"* toast confirms it — you stay on the dashboard. The new trip is sorted into the trip list by its dates; click its card (or the Spotlight card, if it is the trip that earns that spot) to open the [Trip-Planner-Overview](Trip-Planner-Overview).
 
 ## Related Pages
 

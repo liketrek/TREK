@@ -386,7 +386,7 @@ export default function MAdminBackupPanel() {
                 >
                   <select
                     value={String(autoSettings.hour)}
-                    onChange={e => handleAutoSettingsChange('hour', parseInt(e.target.value, 10))}
+                    onChange={e => handleAutoSettingsChange('hour', Number.parseInt(e.target.value, 10))}
                     className={SELECT_CLASS}
                   >
                     {HOURS.map(h => {
@@ -426,7 +426,7 @@ export default function MAdminBackupPanel() {
                 <MAdminField label={t('backup.auto.dayOfMonth')} hint={t('backup.auto.dayOfMonthHint')}>
                   <select
                     value={String(autoSettings.day_of_month)}
-                    onChange={e => handleAutoSettingsChange('day_of_month', parseInt(e.target.value, 10))}
+                    onChange={e => handleAutoSettingsChange('day_of_month', Number.parseInt(e.target.value, 10))}
                     className={SELECT_CLASS}
                   >
                     {DAYS_OF_MONTH.map(d => (

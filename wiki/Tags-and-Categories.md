@@ -3,7 +3,7 @@
 TREK has two independent labelling systems for places:
 
 - **Global Place Categories** — admin-managed, shared across every user on the instance (e.g. `Restaurant`, `Museum`).
-- **Personal Tags** — user-scoped, private labels (e.g. `hidden gem`, `kid-friendly`).
+- **Personal Tags** — user-scoped labels (e.g. `hidden gem`, `kid-friendly`).
 
 <!-- TODO: screenshot: tag list on place detail -->
 
@@ -28,18 +28,24 @@ Categories appear in:
 
 ## Personal Tags
 
-Tags are private labels owned by each user. They attach to individual places via a many-to-many relationship (`place_tags` table), so the same tag can be applied to as many places as you like, and a single place can carry multiple tags.
+Tags are personal labels owned by each user. They attach to individual places via a many-to-many relationship (`place_tags` table), so the same tag can be applied to as many places as you like, and a single place can carry multiple tags.
 
 **Fields per tag:**
 
 - **Name** — free-form text.
 - **Color** — hex value displayed alongside the tag name. Default: `#10b981` (emerald).
 
-Tags are scoped to their creator — other trip members do not see your tags, and different users can create tags with identical names without conflict. Deleting a tag automatically removes it from every place it was attached to.
+Tags are owned by their creator, but only the *list* is private. `GET /api/tags` and the `list_tags` MCP tool return only your own tags, and tag names carry no uniqueness constraint, so different users — or even the same user — can create tags with identical names without conflict.
+
+A tag you attach to a place is **not** private. It becomes part of that place: the place read-back joins `place_tags` → `tags` with no owner filter, so every trip member gets it from `GET /api/trips/:id/places`, the day and assignment endpoints, and the MCP `list_places` tool and `trek://trips/{tripId}/places` resource — gated by trip access alone. The `?tag=` filter on the places list is likewise not user-scoped, so a member can filter by a co-traveller's tag ID. This is deliberate: a tag is kept as long as its owner is on the trip roster, so a co-traveller's tag is not silently stripped when another member re-saves the place. A tag owned by someone outside the trip is dropped instead.
+
+If a trip has a public share link with the map/itinerary section enabled, the tags of places **scheduled on a day** also reach anonymous viewers — trimmed to the tag's ID, name and color, so the owner's user ID never leaves the server. Unscheduled places in the shared place pool carry no tags.
+
+In practice these tags surface through the API and MCP rather than in the app — no view renders a place's tags yet. Deleting a tag automatically removes it from every place it was attached to.
 
 ### Where to manage them
 
-At the moment tags are exposed primarily through the MCP API — AI assistants connected to your instance can list, create, update, and delete tags (`list_tags`, `create_tag`, `update_tag`, `delete_tag`) and attach them to places through the place endpoints. A dedicated web UI for tag management is not yet available; the filter `tag` parameter on the places API / MCP resource does support filtering places by a tag ID once one exists.
+At the moment tags are exposed primarily through the MCP API — AI assistants connected to your instance can list, create, update, and delete tags (`list_tags`, `create_tag`, `update_tag`, `delete_tag`) and attach them to places through the place endpoints. A dedicated web UI for tag management is not yet available; the filter `tag` parameter on the places API and on the MCP `list_places` tool does support filtering places by a tag ID once one exists (the `trek://trips/{tripId}/places` MCP resource only filters by `assignment`).
 
 > **AI / MCP:** See [MCP-Tools-and-Resources](MCP-Tools-and-Resources) for the full tag tool list.
 

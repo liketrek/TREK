@@ -250,14 +250,14 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
         {canEdit && (
           <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
             {!isClosed && (
-              <button onClick={() => onClose(poll.id)} title={t('collab.polls.close')}
+              <button type="button" onClick={() => onClose(poll.id)} title={t('collab.polls.close')}
                 style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', borderRadius: 6 }}
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
                 onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
                 <Lock size={12} />
               </button>
             )}
-            <button onClick={() => onDelete(poll.id)} title={t('collab.polls.delete')}
+            <button type="button" onClick={() => onDelete(poll.id)} title={t('collab.polls.delete')}
               style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', borderRadius: 6 }}
               onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
               onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
@@ -278,7 +278,7 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
           return (
             // React dispatches no mouse events on a disabled control, so the
             // handlers below need no isClosed guard of their own.
-            <button key={idx} onClick={() => onVote(poll.id, idx)}
+            <button type="button" key={idx} onClick={() => onVote(poll.id, idx)}
               disabled={isClosed}
               style={{
                 position: 'relative', display: 'flex', alignItems: 'center', gap: 8,
@@ -465,7 +465,7 @@ export default function CollabPolls({ tripId, currentUser }: CollabPollsProps) {
           {t('collab.polls.title')}
         </h3>
         {canEdit && (
-          <button onClick={() => setShowForm(true)} style={{
+          <button type="button" onClick={() => setShowForm(true)} style={{
             display: 'inline-flex', alignItems: 'center', gap: 4, borderRadius: 99, padding: '6px 12px',
             background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600,
             fontFamily: FONT, border: 'none', cursor: 'pointer',

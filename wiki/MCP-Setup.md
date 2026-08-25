@@ -4,7 +4,7 @@ This page explains how to connect an AI assistant to your TREK instance. TREK su
 
 ![MCP Setup](assets/MCPConfig.png)
 
-> **Cloudflare users:** If your TREK instance is proxied through Cloudflare, Bot Fight Mode and Super Bot Fight Mode will block MCP requests from ChatGPT. Claude.ai is not affected. See [Troubleshooting → MCP requests blocked by Cloudflare WAF](#mcp-requests-blocked-by-cloudflare-waf-bot-fight-mode) for the fix.
+> **Cloudflare users:** If your TREK instance is proxied through Cloudflare, Bot Fight Mode and Super Bot Fight Mode will block MCP requests from ChatGPT. Claude.ai is not affected. See [Troubleshooting → MCP requests blocked by Cloudflare WAF](Troubleshooting#mcp-requests-blocked-by-cloudflare-waf-bot-fight-mode) for the fix.
 
 ## Option A: OAuth 2.1 (recommended)
 
@@ -14,7 +14,7 @@ OAuth 2.1 is the preferred connection method. You grant specific scopes during t
 
 Claude.ai (web) supports native MCP connections — no JSON config file required:
 
-1. In TREK, go to **Settings → Integrations → MCP → OAuth Clients** and click **Create**.
+1. In TREK, go to **Settings → Integrations → MCP → OAuth 2.1 Clients** and click **New Client**.
 2. Select the **Claude.ai** preset. This fills in the redirect URI (`https://claude.ai/api/mcp/auth_callback`) and a default scope set.
 3. Give the client a name, adjust scopes if needed, and save. Copy the client ID and client secret (`trekcs_` prefix) — the secret is shown only once.
 4. In Claude.ai, open the MCP settings and add a new server using your TREK URL (`https://<your-trek-instance>/mcp`). Claude.ai will open your browser to complete the OAuth consent flow.
@@ -23,7 +23,7 @@ Claude.ai (web) supports native MCP connections — no JSON config file required
 
 Claude Desktop supports native MCP connections — no JSON config file required:
 
-1. In TREK, go to **Settings → Integrations → MCP → OAuth Clients** and click **Create**.
+1. In TREK, go to **Settings → Integrations → MCP → OAuth 2.1 Clients** and click **New Client**.
 2. Select the **Claude Desktop** preset. This fills in the redirect URI and a default scope set.
 3. Give the client a name, adjust scopes if needed, and save. Copy the client ID and client secret — the secret is shown only once.
 4. In Claude Desktop, open Settings → MCP and add a new server using your TREK URL (`https://<your-trek-instance>/mcp`). Claude Desktop will open your browser to complete the OAuth consent flow.
@@ -76,7 +76,7 @@ Create a client in TREK using the appropriate preset (Cursor, VS Code, Windsurf,
 
 ### Pre-created OAuth clients
 
-**Settings → Integrations → MCP → OAuth Clients** lets you create named OAuth clients before connecting. This gives you:
+**Settings → Integrations → MCP → OAuth 2.1 Clients** lets you create named OAuth clients before connecting. This gives you:
 
 - A fixed, named scope list defined up front
 - A client secret (`trekcs_` prefix, shown once) for confidential client mode
@@ -94,7 +94,7 @@ Use this when your AI agent or automation script needs to authenticate silently 
 
 ### Create a machine client
 
-1. Go to **Settings → Integrations → MCP → OAuth Clients** and click **New Client**.
+1. Go to **Settings → Integrations → MCP → OAuth 2.1 Clients** and click **New Client**.
 2. Tick **Machine client (no browser login)**. The redirect URI field disappears — machine clients don't need one.
 3. Give it a name, select scopes, and click **Register Client**.
 4. Copy the `client_id` and `client_secret` shown — the secret is displayed only once.
@@ -113,7 +113,7 @@ Machine clients are designed for **AI agent frameworks and custom MCP client imp
 
 > **Deprecated:** Static tokens will stop working in a future version of TREK. Migrate to OAuth 2.1 or machine clients.
 
-Static tokens grant full access to all tools and resources with no scope restrictions. Sessions using a static token will receive deprecation warnings in the AI client on every tool call.
+Static tokens grant full access to all tools and resources with no scope restrictions. A static-token session is warned about the deprecation once, not on every call: the notice rides along with the result of the first `list_trips` or `get_trip_summary` in that session — the trip-discovery tools an AI client normally reaches for first — for the client to surface to you. The tool's own payload still comes with it, and every later call in that session returns a plain result. The notice is also part of the session instructions the server sends when the connection initializes.
 
 1. Go to **Settings → Integrations → MCP**, open the **API Tokens** sub-tab, and click **Create New Token**.
 2. Give the token a name and copy it immediately — it is shown only once. The token starts with `trek_`.

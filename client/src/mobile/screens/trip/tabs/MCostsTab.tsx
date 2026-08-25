@@ -685,7 +685,7 @@ function AddPaymentSheet({ open, onClose, tripId, base, people, me, toast, t, on
     setSaving(false)
   }, [open, me, people])
 
-  const amt = parseFloat(amount.replace(',', '.')) || 0
+  const amt = Number.parseFloat(amount.replace(',', '.')) || 0
   const valid = amt > 0 && fromId !== toId
 
   const save = async () => {

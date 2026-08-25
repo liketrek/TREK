@@ -54,7 +54,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
               <p className="text-sm font-medium text-slate-700">{t('admin.passwordLogin')}</p>
               <p className="text-xs text-slate-400 mt-0.5">{t('admin.passwordLoginHint')}</p>
             </div>
-            <button
+            <button type="button"
               disabled={envOverrideOidcOnly || (!passwordLogin && !oidcLogin)}
               onClick={() => handleToggleAuthSetting('password_login', !passwordLogin, setPasswordLogin)}
               title={!passwordLogin && !oidcLogin ? t('admin.lockoutWarning') : undefined}
@@ -72,7 +72,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
               <p className="text-sm font-medium text-slate-700">{t('admin.passwordRegistration')}</p>
               <p className="text-xs text-slate-400 mt-0.5">{t('admin.passwordRegistrationHint')}</p>
             </div>
-            <button
+            <button type="button"
               disabled={envOverrideOidcOnly}
               onClick={() => handleToggleAuthSetting('password_registration', !passwordRegistration, setPasswordRegistration)}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${passwordRegistration ? 'bg-content' : 'bg-edge'}`}
@@ -90,7 +90,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
                 <p className="text-sm font-medium text-slate-700">{t('admin.oidcLogin')}</p>
                 <p className="text-xs text-slate-400 mt-0.5">{t('admin.oidcLoginHint')}</p>
               </div>
-              <button
+              <button type="button"
                 disabled={!passwordLogin && oidcLogin}
                 onClick={() => handleToggleAuthSetting('oidc_login', !oidcLogin, setOidcLogin)}
                 title={!passwordLogin && oidcLogin ? t('admin.lockoutWarning') : undefined}
@@ -110,7 +110,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
                 <p className="text-sm font-medium text-slate-700">{t('admin.oidcRegistration')}</p>
                 <p className="text-xs text-slate-400 mt-0.5">{t('admin.oidcRegistrationHint')}</p>
               </div>
-              <button
+              <button type="button"
                 onClick={() => handleToggleAuthSetting('oidc_registration', !oidcRegistration, setOidcRegistration)}
                 className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${oidcRegistration ? 'bg-content' : 'bg-edge'}`}
               >
@@ -237,7 +237,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
           />
           <p className="text-xs text-slate-400 mt-2">{t('admin.fileTypesFormat')}</p>
-          <button
+          <button type="button"
             onClick={async () => {
               setSavingFileTypes(true)
               try {
@@ -293,7 +293,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
                   {showKeys.maps ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              <button
+              <button type="button"
                 onClick={() => handleValidateKey('maps')}
                 disabled={!mapsKey || validating.maps}
                 className="px-3 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
@@ -451,7 +451,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
             </div>
           </div>
 
-          <button
+          <button type="button"
             onClick={handleSaveApiKeys}
             disabled={savingKeys}
             className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm hover:bg-slate-700 disabled:bg-slate-400"
@@ -525,7 +525,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
             />
           </div>
-          <button
+          <button type="button"
             onClick={async () => {
               setSavingOidc(true)
               try {
@@ -565,7 +565,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
               <p className="text-sm font-medium text-slate-700">Rotate JWT Secret</p>
               <p className="text-xs text-slate-400 mt-0.5">Generate a new JWT signing secret. All active sessions will be invalidated immediately.</p>
             </div>
-            <button
+            <button type="button"
               onClick={() => setShowRotateJwtModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
             >

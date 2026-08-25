@@ -18,7 +18,7 @@ export function PlacesList(S: SidebarState) {
           <span className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>
             {filter === 'unplanned' ? t('places.allPlanned') : t('places.noneFound')}
           </span>
-          {canEditPlaces && <button onClick={onAddPlace} className="text-content" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>
+          {canEditPlaces && <button type="button" onClick={onAddPlace} className="text-content" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>
             {t('places.addPlace')}
           </button>}
         </div>

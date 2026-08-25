@@ -243,14 +243,14 @@ export default function NotificationsTab(): React.ReactElement {
                 placeholder={webhookIsSet ? '••••••••' : t('settings.webhookUrl.placeholder')}
                 style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-body, 1))', padding: '6px 10px', border: '1px solid var(--border-primary)', borderRadius: 6, background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
               />
-              <button
+              <button type="button"
                 onClick={saveWebhookUrl}
                 disabled={webhookSaving}
                 style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', padding: '6px 12px', background: 'var(--text-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: 6, cursor: webhookSaving ? 'not-allowed' : 'pointer', opacity: webhookSaving ? 0.6 : 1 }}
               >
                 {t('common.save')}
               </button>
-              <button
+              <button type="button"
                 onClick={testWebhookUrl}
                 disabled={(!webhookUrl && !webhookIsSet) || webhookTesting}
                 style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', padding: '6px 12px', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)', borderRadius: 6, cursor: ((!webhookUrl && !webhookIsSet) || webhookTesting) ? 'not-allowed' : 'pointer', opacity: ((!webhookUrl && !webhookIsSet) || webhookTesting) ? 0.5 : 1 }}
@@ -296,21 +296,21 @@ export default function NotificationsTab(): React.ReactElement {
                 style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-body, 1))', padding: '6px 10px', border: '1px solid var(--border-primary)', borderRadius: 6, background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
               />
               {ntfyTokenIsSet && (
-                <button
+                <button type="button"
                   onClick={clearNtfyToken}
                   style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', padding: '6px 12px', background: 'transparent', color: 'var(--color-danger, #e53e3e)', border: '1px solid var(--color-danger, #e53e3e)', borderRadius: 6, cursor: 'pointer' }}
                 >
                   {t('common.clear')}
                 </button>
               )}
-              <button
+              <button type="button"
                 onClick={saveNtfySettings}
                 disabled={ntfySaving}
                 style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', padding: '6px 12px', background: 'var(--text-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: 6, cursor: ntfySaving ? 'not-allowed' : 'pointer', opacity: ntfySaving ? 0.6 : 1 }}
               >
                 {t('common.save')}
               </button>
-              <button
+              <button type="button"
                 onClick={testNtfySettings}
                 disabled={!ntfyTopic || ntfyTesting}
                 style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', padding: '6px 12px', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)', borderRadius: 6, cursor: (!ntfyTopic || ntfyTesting) ? 'not-allowed' : 'pointer', opacity: (!ntfyTopic || ntfyTesting) ? 0.5 : 1 }}
@@ -341,7 +341,7 @@ export default function NotificationsTab(): React.ReactElement {
                   {t('settings.notificationPreferences.configure')}
                 </Link>
               )}
-              <button
+              <button type="button"
                 onClick={() => testChannel(ch)}
                 disabled={!ch.configured || channelTesting === ch.id}
                 style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', padding: '6px 12px', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)', borderRadius: 6, cursor: (!ch.configured || channelTesting === ch.id) ? 'not-allowed' : 'pointer', opacity: (!ch.configured || channelTesting === ch.id) ? 0.5 : 1 }}

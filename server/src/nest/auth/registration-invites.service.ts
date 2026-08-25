@@ -40,18 +40,18 @@ export class RegistrationInvitesService {
     createdBy: number,
     data: { max_uses?: string | number; expires_in_days?: string | number; trip_id?: string | number | null },
   ) {
-    const rawUses = parseInt(String(data.max_uses));
+    const rawUses = Number.parseInt(String(data.max_uses));
     const uses = rawUses === 0 ? 0 : Math.min(Math.max(rawUses || 1, 1), 5);
     const token = crypto.randomBytes(16).toString('hex');
     const expiresAt = data.expires_in_days
-      ? new Date(Date.now() + parseInt(String(data.expires_in_days)) * 86400000).toISOString()
+      ? new Date(Date.now() + Number.parseInt(String(data.expires_in_days)) * 86400000).toISOString()
       : null;
 
     // Optional trip binding: only persist a trip that actually exists, so a stale
     // or forged id can never bind (and never auto-adds anyone on registration).
     let tripId: number | null = null;
     if (data.trip_id != null && String(data.trip_id).trim() !== '') {
-      const parsed = parseInt(String(data.trip_id));
+      const parsed = Number.parseInt(String(data.trip_id));
       if (!Number.isInteger(parsed) || !this.db.get('SELECT id FROM trips WHERE id = ?', parsed)) {
         // Used to bind null silently, handing back a plain registration invite
         // the admin never asked for.

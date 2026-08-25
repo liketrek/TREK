@@ -131,7 +131,7 @@ export default function BudgetMemberChips({ members = [], tripMembers = [], onSe
         />
       ))}
       {!readOnly && (
-        <button ref={btnRef} onClick={openDropdown}
+        <button type="button" ref={btnRef} onClick={openDropdown}
           style={{
             width: btnSize, height: btnSize, borderRadius: '50%', border: '1.5px dashed var(--border-primary)',
             background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -149,7 +149,7 @@ export default function BudgetMemberChips({ members = [], tripMembers = [], onSe
           {tripMembers.map(tm => {
             const isActive = memberIds.includes(tm.id)
             return (
-              <button key={tm.id} onClick={() => toggleMember(tm.id)} style={{
+              <button type="button" key={tm.id} onClick={() => toggleMember(tm.id)} style={{
                 display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '5px 8px',
                 borderRadius: 6, border: 'none', background: isActive ? 'var(--bg-hover)' : 'none', cursor: 'pointer',
                 fontFamily: 'inherit', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-primary)', textAlign: 'left',

@@ -38,7 +38,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100
 
 /** #rrggbb plus an alpha, for the fades a cover panel needs. */
 function hexToRgba(hex: string, alpha: number): string {
-  const n = parseInt(hex.slice(1), 16)
+  const n = Number.parseInt(hex.slice(1), 16)
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
 }
 

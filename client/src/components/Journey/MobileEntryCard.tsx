@@ -72,7 +72,7 @@ export default function MobileEntryCard({ entry, dayLabel, dayColor, isActive, o
   const storyPreview = entry.story ? stripMarkdown(entry.story) : ''
 
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       className={`flex-shrink-0 rounded-xl overflow-hidden text-left transition-all duration-100 ${
         isActive

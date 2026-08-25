@@ -154,7 +154,9 @@ export function sortTodoRows(items: TodoItem[], sortByPriority: boolean, today: 
 export function todoCategories(items: TodoItem[]): string[] {
   const cats = new Set<string>()
   items.forEach(i => { if (i.category) cats.add(i.category) })
-  return Array.from(cats).sort()
+  // Same locale collation as the desktop hook (useTodoList) — a bare .sort() is
+  // byte order and files every accented name behind the whole ASCII range.
+  return Array.from(cats).sort((a, b) => a.localeCompare(b))
 }
 
 /** Open (non-done) item count for a given category — matches the desktop sidebar badge. */

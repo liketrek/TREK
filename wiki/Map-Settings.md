@@ -51,7 +51,7 @@ Required scopes are:
 - DATASETS:READ
 - VISION:READ
 
-If Mapbox GL is selected but no token is saved, the map area shows an empty state with a prompt to configure the token under Settings → Map → Mapbox GL.
+If Mapbox GL is selected but no token is saved, TREK falls back to the Leaflet renderer, so the Trip Planner and Journey maps keep working. Only the preview on this settings page stays blank, with the note *Enter a Mapbox access token to preview*.
 
 **Built-in style presets:**
 
@@ -72,7 +72,7 @@ You can also enter a custom `mapbox://styles/USER/ID` URL directly.
 
 ### 3D Buildings & Terrain
 
-Enables pitch and building extrusions on all styles. Terrain elevation (DEM-based height) is additionally applied on satellite styles (`Satellite` and `Satellite Streets`). On non-satellite styles only building extrusions are added; terrain is intentionally omitted on those styles because the elevation data would cause route lines to visually drift away from the HTML place markers.
+Enables pitch and 3D buildings on all styles. `Mapbox Standard` and `Standard Satellite` ship their own building volumes, so TREK adds no extrusion layer there; every other style gets one injected. Terrain elevation (DEM-based height) is additionally applied on `Satellite`, `Satellite Streets` and `Outdoors`; `Standard Satellite` brings its own terrain from Mapbox and is left alone. The remaining styles get buildings but no terrain — including plain `Mapbox Standard`, whose built-in terrain TREK switches off — because the elevation data would cause route lines to visually drift away from the HTML place markers.
 
 ### High Quality Mode *(Experimental)*
 
@@ -98,7 +98,7 @@ The **3D Buildings & Terrain** and **High Quality Mode** toggles are Mapbox-only
 
 There is **no** default map center or zoom setting — it was removed in v3.4.0. Instead, every map works out its own opening camera from the places it is about to draw, so a trip in Japan opens on Japan instead of starting on the world view and then flying across the planet.
 
-For each map, TREK takes the coordinates it is given and computes the center and zoom that frame them all:
+For each trip map — Trip Planner, Collections and shared-trip links — TREK takes the coordinates it is given and computes the center and zoom that frame them all (the Journey maps frame themselves with the renderer's own `fitBounds`, capped at zoom 16 on both engines):
 
 - **Several places** — the camera fits their bounding box. The zoom is capped (16 on Leaflet, 15 on the GL renderers) so a tight cluster does not open absurdly far in, and the center is taken in projected (Mercator) space rather than as an average of the latitudes, so the northernmost place does not fall out of frame.
 - **A single place** (or several stacked on the same spot) — there is no extent to fit, so it opens at city level: zoom 12 on Leaflet, 11 on the GL renderers.
@@ -106,7 +106,7 @@ For each map, TREK takes the coordinates it is given and computes the center and
 - **Side panels** — chrome overlaying the map shifts the center, so the places stay inside the part of the map you can actually see.
 - **No usable coordinates** — a brand-new trip with nothing placed yet has nothing to frame, so the map falls back to a world view (center `0, 0` at zoom 2).
 
-The small map preview on this settings page is the one exception: it stays on a fixed city (Paris, zoom 16) so you can judge label density, 3D buildings and satellite texture. It is not a setting and no real map opens there.
+The small map preview on this settings page is the exception: it stays on a fixed city (Paris) — zoom 16 on the two GL previews, city-level zoom 12 under Leaflet — so you can judge label density, 3D buildings and satellite texture. It is not a setting and no real map opens there.
 
 ## See also
 

@@ -83,7 +83,7 @@ export class VacayController {
     @Body() body: VacayUpdateHolidayCalendarDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const id = parseInt(idParam);
+    const id = Number.parseInt(idParam);
     const planId = this.vacay.getActivePlanId(user.id);
     const calendar = this.vacay.updateHolidayCalendar(id, planId, body, socketId);
     if (!calendar) {
@@ -94,7 +94,7 @@ export class VacayController {
 
   @Delete('plan/holiday-calendars/:id')
   deleteHolidayCalendar(@CurrentUser() user: User, @Param('id') idParam: string, @Headers('x-socket-id') socketId?: string) {
-    const id = parseInt(idParam);
+    const id = Number.parseInt(idParam);
     const planId = this.vacay.getActivePlanId(user.id);
     if (!this.vacay.deleteHolidayCalendar(id, planId, socketId)) {
       throw new HttpException({ error: 'Calendar not found' }, 404);
@@ -109,7 +109,7 @@ export class VacayController {
     @Headers('x-socket-id') socketId?: string,
   ) {
     const planId = this.vacay.getActivePlanId(user.id);
-    const userId = body.target_user_id ? parseInt(String(body.target_user_id)) : user.id;
+    const userId = body.target_user_id ? Number.parseInt(String(body.target_user_id)) : user.id;
     if (!this.vacay.getPlanUsers(planId).find((u) => u.id === userId)) {
       throw new HttpException({ error: 'User not in plan' }, 403);
     }
@@ -187,7 +187,7 @@ export class VacayController {
 
   @Delete('years/:year')
   deleteYear(@CurrentUser() user: User, @Param('year') yearParam: string, @Headers('x-socket-id') socketId?: string) {
-    const year = parseInt(yearParam);
+    const year = Number.parseInt(yearParam);
     const planId = this.vacay.getActivePlanId(user.id);
     return { years: this.vacay.deleteYear(planId, year, socketId) };
   }
@@ -222,8 +222,8 @@ export class VacayController {
   ) {
     const planId = this.vacay.getActivePlanId(user.id);
     let userId = user.id;
-    if (body.target_user_id && parseInt(String(body.target_user_id)) !== user.id) {
-      const tid = parseInt(String(body.target_user_id));
+    if (body.target_user_id && Number.parseInt(String(body.target_user_id)) !== user.id) {
+      const tid = Number.parseInt(String(body.target_user_id));
       if (!this.vacay.getPlanUsers(planId).find((u) => u.id === tid)) {
         throw new HttpException({ error: 'User not in plan' }, 403);
       }
@@ -249,7 +249,7 @@ export class VacayController {
 
   @Get('stats/:year')
   stats(@CurrentUser() user: User, @Param('year') yearParam: string) {
-    const year = parseInt(yearParam);
+    const year = Number.parseInt(yearParam);
     const planId = this.vacay.getActivePlanId(user.id);
     return { stats: this.vacay.getStats(planId, year) };
   }
@@ -261,9 +261,9 @@ export class VacayController {
     @Body() body: VacayUpdateStatsDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const year = parseInt(yearParam);
+    const year = Number.parseInt(yearParam);
     const planId = this.vacay.getActivePlanId(user.id);
-    const userId = body.target_user_id ? parseInt(String(body.target_user_id)) : user.id;
+    const userId = body.target_user_id ? Number.parseInt(String(body.target_user_id)) : user.id;
     if (!this.vacay.getPlanUsers(planId).find((u) => u.id === userId)) {
       throw new HttpException({ error: 'User not in plan' }, 403);
     }
@@ -286,7 +286,7 @@ export class VacayController {
     if (!body.user_id) {
       throw new HttpException({ error: 'user_id required' }, 400);
     }
-    const result = this.vacay.shareCalendar(user.id, user.email, parseInt(String(body.user_id)), socketId);
+    const result = this.vacay.shareCalendar(user.id, user.email, Number.parseInt(String(body.user_id)), socketId);
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status!);
     }
@@ -310,7 +310,7 @@ export class VacayController {
     @Body() body: VacayShareUpdateDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    if (!this.vacay.setShareHidden(parseInt(idParam), user.id, body.hidden, socketId)) {
+    if (!this.vacay.setShareHidden(Number.parseInt(idParam), user.id, body.hidden, socketId)) {
       throw new HttpException({ error: 'Share not found' }, 404);
     }
     return { success: true };
@@ -318,7 +318,7 @@ export class VacayController {
 
   @Delete('shares/:id')
   deleteShare(@CurrentUser() user: User, @Param('id') idParam: string, @Headers('x-socket-id') socketId?: string) {
-    if (!this.vacay.removeShare(parseInt(idParam), user.id, socketId)) {
+    if (!this.vacay.removeShare(Number.parseInt(idParam), user.id, socketId)) {
       throw new HttpException({ error: 'Share not found' }, 404);
     }
     return { success: true };

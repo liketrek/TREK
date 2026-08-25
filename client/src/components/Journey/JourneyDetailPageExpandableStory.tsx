@@ -35,7 +35,7 @@ export function ExpandableStory({ story }: { story: string }) {
         <JournalBody text={story} />
       </div>
       {clamped && !expanded && (
-        <button
+        <button type="button"
           onClick={() => setExpanded(true)}
           className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-[10px] font-medium text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 active:scale-95 transition-all"
         >
@@ -43,7 +43,7 @@ export function ExpandableStory({ story }: { story: string }) {
         </button>
       )}
       {expanded && (
-        <button
+        <button type="button"
           onClick={() => setExpanded(false)}
           className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-[10px] font-medium text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 active:scale-95 transition-all"
         >

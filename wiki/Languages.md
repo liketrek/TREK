@@ -1,6 +1,6 @@
 # Languages
 
-TREK ships with translations for 20 languages. You can change your language at any time without logging out.
+TREK ships with translations for 23 languages. You can change your language at any time without logging out.
 
 ## Supported languages
 
@@ -26,6 +26,9 @@ TREK ships with translations for 20 languages. You can change your language at a
 | `ko` | 한국어 |
 | `uk` | Українська |
 | `gr` | Ελληνικά |
+| `sv` | Svenska |
+| `vi` | Tiếng Việt |
+| `ca` | Català |
 
 ## RTL support
 

@@ -2,13 +2,13 @@
 
 Subscribe your calendar app to a TREK trip so it stays in sync automatically, instead of importing a snapshot once.
 
-> **Not the same as the ICS export.** The **Download ICS** action described in [Day-Plans-and-Notes](Day-Plans-and-Notes) writes a one-off `.ics` file that never changes after you import it. A calendar *feed* is a live URL your calendar re-fetches on its own. Use the export for a frozen copy, a feed for something that keeps up with your edits.
+> **Not the same as the ICS export.** The **Download .ics** action described in [Day-Plans-and-Notes](Day-Plans-and-Notes) writes a one-off `.ics` file that never changes after you import it. A calendar *feed* is a live URL your calendar re-fetches on its own. Use the export for a frozen copy, a feed for something that keeps up with your edits.
 
 ## Where to find it
 
 There are two feeds, reached from two places:
 
-- **Per-trip feed** — in the trip planner, hover the **ICS** button in the Day Plan sidebar toolbar and choose **Subscribe to calendar**. (The other entry in that menu, **Download ICS**, is the one-off export.)
+- **Per-trip feed** — in the trip planner, click the **Export** button in the Day Plan sidebar toolbar and pick **Subscribe to calendar** under **Calendar**. (The entry above it, **Download .ics**, is the one-off export.) The subscribe entry only shows up if you may manage the trip's share links — see *Permissions* below.
 - **All-trips feed** — on the **My Trips** dashboard, click the calendar-plus button in the toolbar (**Subscribe to all trips**).
 
 Both open the same dialog.
@@ -61,12 +61,13 @@ The feed carries the same events as the ICS export:
 - **Reservations** — hotels, restaurants, and transport. Flights and other transport take their start and end from the departure and arrival endpoints, each in its own time zone. Reservations with no placeable date are skipped.
 - **Accommodations** — an all-day event covering every night of the stay, from the arrival day to the departure day, so a hotel sits above those days rather than appearing once on the day you check in. The dates come from the trip days the stay is attached to, so reordering days moves the event with them.
 - **Check-in and check-out** — separate timed events on the arrival and departure days whenever the stay records those times. If you entered a check-in window, its end becomes the event's end time.
+- **Car pickup and drop-off** — a reservation of type *Car* also gets two standalone timed events, *Pickup: {title}* and *Drop-off: {title}*, on top of the rental's own booking block, both carrying the reservation's location. Each side prefers its own endpoint — the pickup endpoint for the pickup, the return endpoint for the drop-off — and takes that endpoint's local time and time zone. Otherwise it falls back to the booking's own times (an end value stored as a bare clock is paired with the booking's start date) and to the time zone of the linked place. A side with no usable date and time from either source is skipped, so a rental imported with only one geocoded endpoint can end up with just one marker.
 
 Feeds are served with cache headers that tell clients not to cache, plus an hourly refresh hint (`REFRESH-INTERVAL` / `X-PUBLISHED-TTL` of one hour). Most calendar apps treat that as a suggestion — Google in particular refreshes on its own schedule, often much slower — so an edit may take a while to show up.
 
 ## Permissions
 
-No dedicated permission gates feeds. You can manage a per-trip token if you own the trip or are a member of it; anyone else gets a *Trip not found*. The all-trips feed is always scoped to your own account.
+Managing a per-trip token requires the **`share_manage`** permission — the same right that governs invite and share links. By default it sits with the trip owner; an instance can lower it to trip members in [Admin-Permissions](Admin-Permissions). A member without it never sees **Subscribe to calendar** in the export dialog and gets a *No permission* from the token endpoint, while anyone with no access to the trip at all still gets a *Trip not found*. The all-trips feed needs no permission — it is always scoped to your own account.
 
 Because the token grants unauthenticated read access, enabling a feed effectively shares that trip's contents with whoever holds the link, regardless of trip roles — see [Public-Share-Links](Public-Share-Links) for the equivalent trade-off on the sharing side.
 

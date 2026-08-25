@@ -11,7 +11,7 @@ A category is a label consisting of a name, a color, and an icon. Users assign c
 - In the place form's category selector
 - As colored chips on place cards
 - In the places filter panel
-- In the map legend
+- As the color of a place's map marker, and in the marker's hover popup
 
 ## Creating a category
 

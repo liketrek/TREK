@@ -14,7 +14,7 @@ Open the **Lists** tab inside the trip planner and select **Todo**. The Todo fea
 
 The panel is divided into two columns by default:
 
-- **Left sidebar** — category navigation, smart filters, sort toggle, and a completion progress card.
+- **Left sidebar** — list navigation, smart filters, sort toggle, and a completion progress card.
 - **Task list** — the tasks that match the active filter.
 
 When you click a task, a **detail pane** opens as a third column on the right side of the task list (on desktop) or slides up as a bottom sheet (on mobile). The new-task form also opens as a modal overlay.
@@ -29,7 +29,7 @@ Each task has the following fields:
 |---|---|
 | Name | Required. |
 | Checked | Boolean — marks the task done. |
-| Category | Optional grouping label. |
+| List | Optional grouping label. The sidebar heading is **Lists**, the button reads **Add list**, and a task without one shows **No list**. |
 | Due date | Optional date. |
 | Description | Optional free-text body. |
 | Assignee | Optional trip member. |
@@ -55,7 +55,7 @@ Tasks with no priority set show no badge.
 | **My tasks** | Unchecked tasks assigned to you. |
 | **Overdue** | Unchecked tasks with a past due date. |
 | **Done** | Checked tasks. |
-| Per-category rows | All tasks in that specific category (checked and unchecked). |
+| Per-list rows | All tasks in that specific list (checked and unchecked). |
 
 ## Sort by priority
 
@@ -63,7 +63,7 @@ Toggle the **Priority** button in the sidebar to sort the current task list from
 
 ## Adding tasks
 
-Click the **+ Add task** button in the top-right corner of the Lists panel header (visible when the **Todo** sub-tab is active). A new-task form opens as a modal where you can set all fields before saving. On mobile it slides up from the bottom of the screen.
+Click the **+ Add new task** button in the top-right corner of the Lists panel header (visible when the **To-Do** sub-tab is active). A new-task form opens as a modal where you can set all fields before saving. On mobile it slides up from the bottom of the screen.
 
 ## Permissions
 

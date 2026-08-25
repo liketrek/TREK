@@ -106,11 +106,13 @@ Between them they now catch, **offline**, nearly everything the registry rejects
   63-entry list the host enforces, so a typo'd permission fails here instead of at
   install on every instance
 
-Only **four** gates genuinely need the network, and they all need the release to exist:
-that the tag resolves to the commit the entry pins, that the released artifact downloads
-and hashes to the pinned sha256 (and verifies against your key), that your plugin id
-isn't bound to another GitHub owner, and that an update doesn't drop or rotate a signing
-key you already published under. Those run in `preflight` — step 4 of `publish`.
+Only **six** gates genuinely need the network, because none of them can be answered from
+your working tree: that the tag resolves to the commit the entry pins, that the manifest at
+that commit matches the entry, that the README at that commit still passes the quality gate,
+that the released artifact downloads and hashes to the pinned sha256 (and verifies against
+your key), that your plugin id isn't bound to another GitHub owner, and that an update
+doesn't drop or rotate a signing key you already published under. Those run in `preflight`
+— step 4 of `publish`.
 
 ### Capture the screenshot
 
@@ -211,9 +213,9 @@ release, so you catch what CI would reject without a review round-trip:
 npx trek-plugin-sdk preflight --repo you/trek-plugin-flight-tracker --tag v1.0.0
 ```
 
-`preflight` runs everything `validate` runs, plus the four gates that genuinely need
-the network: the tag resolves to the pinned `commitSha`; the manifest **and the
-README** at that commit match the entry and pass the quality gate; the released
+`preflight` runs everything `validate` runs, plus the six gates that genuinely need
+the network: the tag resolves to the pinned `commitSha`; the **manifest** at that commit
+matches the entry; the **README** at that commit passes the quality gate; the released
 artifact downloads, hashes to the pinned **sha256**, carries **no native binaries** and
 verifies against your key; your plugin id is not bound to a different GitHub owner; and
 an update does not drop or rotate a signing key you already published under.

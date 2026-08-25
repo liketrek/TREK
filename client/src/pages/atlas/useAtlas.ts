@@ -14,9 +14,9 @@ const PLANNED_KEY = 'trek_atlas_show_planned'
 
 function hexToRgba(hex: string, alpha: number): string {
   const clean = hex.replace('#', '')
-  const r = parseInt(clean.substring(0, 2), 16)
-  const g = parseInt(clean.substring(2, 4), 16)
-  const b = parseInt(clean.substring(4, 6), 16)
+  const r = Number.parseInt(clean.substring(0, 2), 16)
+  const g = Number.parseInt(clean.substring(2, 4), 16)
+  const b = Number.parseInt(clean.substring(4, 6), 16)
   return `rgba(${r},${g},${b},${alpha})`
 }
 
@@ -988,8 +988,8 @@ export function useAtlas() {
   const handleAddBucketItem = async (): Promise<void> => {
     if (!bucketForm.name.trim()) return
     const hasCoords = !!(bucketForm.lat && bucketForm.lng)
-    const lat = hasCoords ? parseFloat(bucketForm.lat) : null
-    const lng = hasCoords ? parseFloat(bucketForm.lng) : null
+    const lat = hasCoords ? Number.parseFloat(bucketForm.lat) : null
+    const lng = hasCoords ? Number.parseFloat(bucketForm.lng) : null
     const targetDate = bucketForm.target_date || (bucketPoiMonth > 0 && bucketPoiYear > 0 ? `${bucketPoiYear}-${String(bucketPoiMonth).padStart(2, '0')}` : null)
     // #1898: this form never sends a country code, so the entry it would create
     // is identified by name, date and coordinates alone. Keep the form filled so

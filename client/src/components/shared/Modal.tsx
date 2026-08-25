@@ -81,7 +81,7 @@ export default function Modal({
         <div className="flex items-center justify-between p-6 flex-shrink-0 border-b border-edge-secondary">
           <h2 className="text-lg font-semibold text-content">{title}</h2>
           {!hideCloseButton && (
-            <button
+            <button type="button"
               onClick={onClose}
               className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
             >

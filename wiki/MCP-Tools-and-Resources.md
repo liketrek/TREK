@@ -2,7 +2,7 @@
 
 TREK exposes **tools** (read and write actions) and **resources** (read-only `trek://` URIs). Tools are registered per-session based on OAuth scopes and enabled addons.
 
-For addon-gated tools (Packing, To-Dos, Atlas, Collab, Vacay, Journey) and their resources, see [MCP-Addon-Tools](MCP-Addon-Tools).
+For addon-gated tools (Packing, To-Dos, Atlas, Collab, Collections, Vacay, Journey) and their resources, see [MCP-Addon-Tools](MCP-Addon-Tools).
 
 ## Tools
 
@@ -52,6 +52,7 @@ Requires `places:read` or `places:write` scope.
 | `list_places` | List places in a trip, optionally filtered by assignment status, category, tag, or search query. |
 | `create_place` | Add a place with name, coordinates, address, category, notes, website, phone, and optional `google_place_id` / `osm_id`. |
 | `update_place` | Update any field of an existing place including transport mode, timing, and price. |
+| `rate_place` | Set or clear your own 1–5 star rating on a place. Every trip member rates independently and the place shows the average. Pass `null` to clear the vote. |
 | `bulk_update_places` | Update many places at once, applying the same field values (e.g. category, price, transport mode) to every listed place in a single call. |
 | `delete_place` | Remove a place from a trip. Also removes all day assignments. |
 | `bulk_delete_places` | Delete multiple places by ID. Removes all day assignments. Cannot be undone. |
@@ -75,8 +76,8 @@ Requires `trips:read` or `trips:write` scope.
 | `update_assignment_time` | Set start/end times for a place assignment (e.g. `"09:00"` – `"11:30"`). Pass `null` to clear. Requires `places:write`. |
 | `move_assignment` | Move a place assignment to a different day. Requires `places:write`. |
 | `set_leg_transport_mode` | Set the travel mode of a route leg for a place assignment. `direction` `"outgoing"` (default) targets the leg leaving the stop, `"incoming"` the arriving one. Pass `null` to inherit the day default. Requires `places:write`. |
-| `get_assignment_participants` | Get users participating in a specific place assignment. |
-| `set_assignment_participants` | Set participants for a place assignment (replaces current list). |
+| `get_assignment_participants` | Get users participating in a specific place assignment. Requires `places:read` or `places:write`. |
+| `set_assignment_participants` | Set participants for a place assignment (replaces current list). Requires `places:write`. |
 
 ### Day Notes
 
@@ -141,6 +142,11 @@ Requires `budget:read` or `budget:write` scope. Budget addon must be enabled.
 | `delete_budget_item` | Remove a budget item. |
 | `set_budget_item_members` | Set which members are splitting a budget item (replaces current list). |
 | `toggle_budget_member_paid` | Mark or unmark a member as having paid their share. |
+| `get_settlement_summary` | Each member's net balance and the suggested payments to settle shared expenses, in the trip's base currency. Call this before recording a settlement. |
+| `list_settlements` | List the recorded settle-up payments for a trip — who paid whom, how much, and when. |
+| `create_settlement` | Record a settle-up payment: one member paid another the given amount in the trip's base currency. |
+| `update_settlement` | Update a recorded settle-up payment (payer, recipient, and amount). |
+| `delete_settlement` | Delete a recorded settle-up payment. This is the undo for `create_settlement` and restores the affected balances. |
 
 ### Tags
 
@@ -189,14 +195,14 @@ Resources provide read-only access via `trek://` URIs. Read them to understand c
 |---|---|---|
 | `trek://trips` | `trips:*` | All trips you own or are a member of |
 | `trek://trips/{tripId}` | `trips:*` | Single trip with metadata and member count |
-| `trek://trips/{tripId}/days` | `trips:*` | Days of a trip with their assigned places |
+| `trek://trips/{tripId}/days` | `trips:read` | Days of a trip with their assigned places |
 | `trek://trips/{tripId}/places` | `places:read` | All places in a trip. Supports `?assignment=all\|unassigned\|assigned` |
 | `trek://trips/{tripId}/reservations` | `reservations:read` | Flights, hotels, restaurants, and other reservations |
-| `trek://trips/{tripId}/days/{dayId}/notes` | `trips:*` | Notes for a specific day |
-| `trek://trips/{tripId}/accommodations` | `trips:*` | Hotels and rentals with check-in/out details |
+| `trek://trips/{tripId}/days/{dayId}/notes` | `trips:read` | Notes for a specific day |
+| `trek://trips/{tripId}/accommodations` | `trips:read` | Hotels and rentals with check-in/out details |
 | `trek://trips/{tripId}/members` | `trips:*` | Owner and collaborators |
 | `trek://categories` | (any) | Available place categories (id, name, icon, color) |
-| `trek://notifications/in-app` | `notifications:read` | Your in-app notifications (most recent 50, unread first) |
+| `trek://notifications/in-app` | `notifications:read` | Your in-app notifications (most recent 50, newest first) |
 
 For addon-gated resources (Budget, Packing, To-Dos, Collab, Atlas, Vacay, Journey), see [MCP-Addon-Tools](MCP-Addon-Tools).
 

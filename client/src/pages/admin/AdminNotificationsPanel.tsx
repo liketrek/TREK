@@ -93,7 +93,7 @@ export default function AdminNotificationsPanel({ t, toast }: { t: (k: string) =
                   const isOn = matrix.preferences[eventType]?.[ch] ?? true
                   return (
                     <div key={ch} style={{ display: 'flex', justifyContent: 'center' }}>
-                      <button
+                      <button type="button"
                         onClick={() => toggle(eventType, ch)}
                         className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${isOn ? 'bg-content' : 'bg-edge'}`}
                       >

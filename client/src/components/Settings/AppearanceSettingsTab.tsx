@@ -22,9 +22,9 @@ function channelLum(v: number): number {
 function relLuminance(hex: string): number {
   const c = hex.replace('#', '')
   const full = c.length === 3 ? c.split('').map((x) => x + x).join('') : c
-  const r = channelLum(parseInt(full.slice(0, 2), 16) / 255)
-  const g = channelLum(parseInt(full.slice(2, 4), 16) / 255)
-  const b = channelLum(parseInt(full.slice(4, 6), 16) / 255)
+  const r = channelLum(Number.parseInt(full.slice(0, 2), 16) / 255)
+  const g = channelLum(Number.parseInt(full.slice(2, 4), 16) / 255)
+  const b = channelLum(Number.parseInt(full.slice(4, 6), 16) / 255)
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 function contrastRatio(a: string, b: string): number {
@@ -162,7 +162,7 @@ export default function AppearanceSettingsTab(): React.ReactElement {
                 (opt.value === 'light' && cur === false) ||
                 (opt.value === 'dark' && cur === true)
               return (
-                <button key={opt.value} onClick={() => setMode(opt.value)} style={segStyle(active)}>
+                <button type="button" key={opt.value} onClick={() => setMode(opt.value)} style={segStyle(active)}>
                   <span className="hidden sm:inline-flex"><opt.icon size={16} /></span>
                   {opt.value === 'auto' ? (
                     <>
@@ -186,7 +186,7 @@ export default function AppearanceSettingsTab(): React.ReactElement {
               const active = cfg.schemeId === s.id
               const dot = isDark ? s.swatch.dark : s.swatch.light
               return (
-                <button
+                <button type="button"
                   key={s.id}
                   onClick={() => update({ schemeId: s.id })}
                   style={{
@@ -205,7 +205,7 @@ export default function AppearanceSettingsTab(): React.ReactElement {
               )
             })}
             {/* Custom */}
-            <button
+            <button type="button"
               onClick={() => update({ schemeId: 'custom', accent: cfg.accent ?? { light: accentLight, dark: accentDark } })}
               style={{
                 display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10,
@@ -229,7 +229,7 @@ export default function AppearanceSettingsTab(): React.ReactElement {
             </label>
             <div className="flex flex-wrap gap-2 mb-3">
               {CUSTOM_ACCENT_PRESETS.map((c) => (
-                <button
+                <button type="button"
                   key={c}
                   aria-label={c}
                   onClick={() => update({ accent: { light: c, dark: c } })}
@@ -296,7 +296,7 @@ export default function AppearanceSettingsTab(): React.ReactElement {
               { value: 'comfortable', label: tr('settings.appearance.comfortable', 'Comfortable') },
               { value: 'compact', label: tr('settings.appearance.compact', 'Compact') },
             ].map((opt) => (
-              <button key={opt.value} onClick={() => update({ density: opt.value as AppearanceConfig['density'] })} style={segStyle(cfg.density === opt.value)}>
+              <button type="button" key={opt.value} onClick={() => update({ density: opt.value as AppearanceConfig['density'] })} style={segStyle(cfg.density === opt.value)}>
                 {opt.label}
               </button>
             ))}
@@ -413,7 +413,7 @@ export default function AppearanceSettingsTab(): React.ReactElement {
       </Section>
 
       <div className="flex justify-end mb-6">
-        <button
+        <button type="button"
           onClick={resetAll}
           className="flex items-center gap-2 text-sm font-medium text-content-muted hover:text-content"
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px 4px' }}

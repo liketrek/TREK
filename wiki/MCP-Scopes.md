@@ -6,16 +6,18 @@ OAuth scopes control exactly which data your AI client can read or write in TREK
 
 ## All scopes
 
-TREK defines 27 scopes across 13 groups.
+TREK defines 29 scopes across 14 groups.
 
 | Group | Scope | Permission |
 |---|---|---|
 | **Trips** | `trips:read` | View trips, days, day notes, and members |
-| | `trips:write` | Create, update, and delete trips, days, day notes, and accommodations; manage members; duplicate trips |
+| | `trips:write` | Create and update trips; create, update, and delete days, day notes, and accommodations; manage members; duplicate trips |
 | | `trips:delete` | Permanently delete entire trips (irreversible) |
 | | `trips:share` | Create, update, and revoke public share links for trips |
 | **Places** | `places:read` | Read places, day assignments, tags, and categories |
 | | `places:write` | Create, update, and delete places, assignments, and tags |
+| **Collections** | `collections:read` | Read saved-place collections, their places, ratings, labels, and members |
+| | `collections:write` | Create and edit collections, save, rate, label and copy places, and share lists |
 | **Atlas** | `atlas:read` | Read visited countries, regions, and bucket list |
 | | `atlas:write` | Mark countries and regions visited, manage bucket list |
 | **Packing** | `packing:read` | Read packing items, bags, and category assignees |
@@ -45,7 +47,7 @@ TREK defines 27 scopes across 13 groups.
 - `journey:read` or `journey:write` grants journey read access. `journey:share` alone does **not** grant read access — it only enables managing public share links.
 - `list_trips` and `get_trip_summary` are always available regardless of scope — they are navigation tools.
 - Static tokens and web session JWTs have full access equivalent to all scopes.
-- Addon-gated tools (Atlas, Collab, Vacay, Journey) require both the relevant scope **and** the corresponding addon to be enabled by an admin.
+- Addon-gated tools (Packing, To-dos, Budget, Collections, Atlas, Collab, Vacay, Journey) require both the relevant scope **and** the corresponding addon to be enabled by an admin. The to-do tools ride the **Packing** addon, not an addon of their own.
 
 ## Choosing the right scopes
 

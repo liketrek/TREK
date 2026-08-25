@@ -111,7 +111,7 @@ describe('client > request interceptor', () => {
     expect(sink[0].headers['X-Idempotency-Key']).toBe('queued-key')
   })
 
-  it('FE-APIWIRE-004: falls back to a random token when crypto.randomUUID is missing', async () => {
+  it('FE-APIWIRE-004: falls back to getRandomValues when crypto.randomUUID is missing', async () => {
     const realCrypto = globalThis.crypto
     vi.stubGlobal('crypto', {
       getRandomValues: realCrypto.getRandomValues.bind(realCrypto),
@@ -120,9 +120,30 @@ describe('client > request interceptor', () => {
     const sink: InternalAxiosRequestConfig[] = []
     await apiClient.post('/probe', {}, { adapter: okAdapter(sink) })
 
-    const key = String(sink[0].headers['X-Idempotency-Key'])
-    expect(key).toMatch(/^[a-z0-9]+$/)
-    expect(key).not.toMatch(/-/)
+    // randomUUID needs a secure context, so on the plain-http installs the
+    // README documents this branch is what actually runs. getRandomValues has no
+    // such requirement, so the fallback is still a full v4 UUID.
+    expect(String(sink[0].headers['X-Idempotency-Key'])).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    )
+  })
+
+  it('FE-APIWIRE-004b: the last-resort key is never degenerate, even with no Web Crypto at all', async () => {
+    vi.stubGlobal('crypto', undefined)
+
+    const keys = new Set<string>()
+    for (let i = 0; i < 50; i++) {
+      const sink: InternalAxiosRequestConfig[] = []
+      await apiClient.post('/probe', {}, { adapter: okAdapter(sink) })
+      keys.add(String(sink[0].headers['X-Idempotency-Key']))
+    }
+
+    // The old fallback was Math.random().toString(36).slice(2), which is not
+    // length-stable: 0.5 yields a single character and 0 yields the empty string.
+    // An empty key makes the server skip deduplication entirely, so a retried
+    // write applies twice.
+    for (const k of keys) expect(k.length).toBeGreaterThan(16)
+    expect(keys.size).toBe(50)
   })
 
   it('FE-APIWIRE-005: the socket id header is omitted while no socket is connected', async () => {

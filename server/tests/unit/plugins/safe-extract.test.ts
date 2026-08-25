@@ -11,13 +11,15 @@ import zlib from 'node:zlib';
 import { safeJoin, extractArchive, ExtractError } from '../../../src/nest/plugins/install/safe-extract';
 
 // ── tiny archive builders ────────────────────────────────────────────────────
-function tarHeader(name: string, size: number, typeflag = '0', linkname = ''): Buffer {
+function tarHeader(name: string, size: number, typeflag = '0', linkname = '', rawSize?: string): Buffer {
   const h = Buffer.alloc(512, 0);
   h.write(name, 0);
   h.write('0000644', 100);
   h.write('0000000', 108);
   h.write('0000000', 116);
-  h.write(size.toString(8).padStart(11, '0'), 124);
+  // rawSize writes the 12-byte field verbatim, for headers a real tar would never
+  // produce (negative, non-octal) — the reader has to survive those too.
+  h.write(rawSize !== undefined ? rawSize.padEnd(11, ' ') : size.toString(8).padStart(11, '0'), 124);
   h.write('00000000000', 136);
   h.write('        ', 148); // checksum placeholder = spaces
   h.write(typeflag, 156);
@@ -29,12 +31,12 @@ function tarHeader(name: string, size: number, typeflag = '0', linkname = ''): B
   h.write(sum.toString(8).padStart(6, '0') + '\0 ', 148);
   return h;
 }
-function makeTarGz(entries: Array<{ name: string; data?: string; type?: string; link?: string }>): Buffer {
+function makeTarGz(entries: Array<{ name: string; data?: string; type?: string; link?: string; rawSize?: string }>): Buffer {
   const parts: Buffer[] = [];
   for (const e of entries) {
     const body = Buffer.from(e.data ?? '');
-    parts.push(tarHeader(e.name, e.type === '5' || e.type === '2' ? 0 : body.length, e.type ?? '0', e.link ?? ''));
-    if (e.type !== '5' && e.type !== '2') {
+    parts.push(tarHeader(e.name, e.type === '5' || e.type === '2' ? 0 : body.length, e.type ?? '0', e.link ?? '', e.rawSize));
+    if (e.rawSize === undefined && e.type !== '5' && e.type !== '2') {
       parts.push(body);
       const pad = (512 - (body.length % 512)) % 512;
       if (pad) parts.push(Buffer.alloc(pad, 0));
@@ -129,5 +131,21 @@ describe('extractArchive', () => {
 
   it('rejects an unsupported format', () => {
     expect(() => extractArchive(Buffer.from('not an archive'), dest)).toThrow(/unsupported/);
+  });
+
+  // A size field is 12 ASCII bytes of octal, and parseInt honours a leading minus.
+  // The reader advanced by `512 + Math.ceil(size / 512) * 512`, which is zero at
+  // -512 and negative below it: the cursor never leaves the first header, and every
+  // pass appends another member until the heap is gone. Synchronous, on the main
+  // thread, from a 70-byte upload.
+  it('refuses a negative entry size instead of looping on it', () => {
+    const gz = makeTarGz([{ name: 'evil.txt', rawSize: '-1000' }]);
+    expect(() => extractArchive(gz, dest)).toThrow(ExtractError);
+    expect(() => extractArchive(gz, dest)).toThrow(/invalid entry size/);
+  });
+
+  it('refuses a size field that is not a number at all', () => {
+    const gz = makeTarGz([{ name: 'evil.txt', rawSize: 'not-octal' }]);
+    expect(() => extractArchive(gz, dest)).toThrow(/invalid entry size/);
   });
 });

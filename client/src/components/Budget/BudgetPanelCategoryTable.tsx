@@ -111,7 +111,7 @@ export default function BudgetCategoryTable({ cat, grouped, categoryColor, canEd
                       <>
                         <span style={{ fontWeight: 600, fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{cat}</span>
                         {canEdit && (
-                          <button onClick={() => setEditingCat({ name: cat, value: cat })}
+                          <button type="button" onClick={() => setEditingCat({ name: cat, value: cat })}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', display: 'flex', padding: 1 }}
                             onMouseEnter={e => e.currentTarget.style.color = '#fff'} onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}>
                             <Pencil size={10} />
@@ -123,7 +123,7 @@ export default function BudgetCategoryTable({ cat, grouped, categoryColor, canEd
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, opacity: 0.9 }}>{fmt(subtotal, currency)}</span>
                     {canEdit && (
-                      <button onClick={() => handleDeleteCategory(cat)} title={t('budget.deleteCategory')}
+                      <button type="button" onClick={() => handleDeleteCategory(cat)} title={t('budget.deleteCategory')}
                         style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer', padding: '3px 6px', display: 'flex', alignItems: 'center', opacity: 0.6 }}
                         onMouseEnter={e => e.currentTarget.style.opacity = '1'} onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}>
                         <Trash2 size={13} />
@@ -225,11 +225,11 @@ export default function BudgetCategoryTable({ cat, grouped, categoryColor, canEd
                                   readOnly={!canEdit}
                                 />
                               ) : (
-                                <InlineEditCell value={item.persons} type="number" decimals={0} onSave={v => handleUpdateField(item.id, 'persons', v != null ? parseInt(v as string) || null : null)} style={{ textAlign: 'center' }} placeholder="-" locale={locale} editTooltip={t('budget.editTooltip')} readOnly={!canEdit} />
+                                <InlineEditCell value={item.persons} type="number" decimals={0} onSave={v => handleUpdateField(item.id, 'persons', v != null ? Number.parseInt(v as string) || null : null)} style={{ textAlign: 'center' }} placeholder="-" locale={locale} editTooltip={t('budget.editTooltip')} readOnly={!canEdit} />
                               )}
                             </td>
                             <td className="hidden sm:table-cell" style={{ ...td, textAlign: 'center' }}>
-                              <InlineEditCell value={item.days} type="number" decimals={0} onSave={v => handleUpdateField(item.id, 'days', v != null ? parseInt(v as string) || null : null)} style={{ textAlign: 'center' }} placeholder="-" locale={locale} editTooltip={t('budget.editTooltip')} readOnly={!canEdit} />
+                              <InlineEditCell value={item.days} type="number" decimals={0} onSave={v => handleUpdateField(item.id, 'days', v != null ? Number.parseInt(v as string) || null : null)} style={{ textAlign: 'center' }} placeholder="-" locale={locale} editTooltip={t('budget.editTooltip')} readOnly={!canEdit} />
                             </td>
                             <td className="hidden md:table-cell" style={{ ...td, textAlign: 'center', color: pp != null ? 'var(--text-secondary)' : 'var(--text-faint)' }}>{pp != null ? fmt(pp, currency) : '-'}</td>
                             <td className="hidden md:table-cell" style={{ ...td, textAlign: 'center', color: pd != null ? 'var(--text-secondary)' : 'var(--text-faint)' }}>{pd != null ? fmt(pd, currency) : '-'}</td>
@@ -246,7 +246,7 @@ export default function BudgetCategoryTable({ cat, grouped, categoryColor, canEd
                             <td className="hidden sm:table-cell" style={td}><InlineEditCell value={item.note} onSave={v => handleUpdateField(item.id, 'note', v)} placeholder={t('budget.table.note')} locale={locale} editTooltip={t('budget.editTooltip')} readOnly={!canEdit} /></td>
                             <td style={{ ...td, textAlign: 'center' }}>
                               {canEdit && (
-                              <button onClick={() => handleDeleteItem(item.id)} title={t('common.delete')}
+                              <button type="button" onClick={() => handleDeleteItem(item.id)} title={t('common.delete')}
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-faint)', borderRadius: 4, display: 'inline-flex', transition: 'color 0.15s' }}
                                 onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = '#d1d5db'}>
                                 <Trash2 size={14} />

@@ -77,7 +77,7 @@ function decodeEntities(s: string): string {
   return s.replace(/&(#\d{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z][A-Za-z0-9]{1,30});/g, (whole, ref: string) => {
     if (ref[0] === '#') {
       const hex = ref[1] === 'x' || ref[1] === 'X';
-      return entityCodePoint(parseInt(hex ? ref.slice(2) : ref.slice(1), hex ? 16 : 10)) ?? whole;
+      return entityCodePoint(Number.parseInt(hex ? ref.slice(2) : ref.slice(1), hex ? 16 : 10)) ?? whole;
     }
     // Case matters (&Uuml; vs &uuml;); only fall back to lower case for names
     // that are shouted in old templates.

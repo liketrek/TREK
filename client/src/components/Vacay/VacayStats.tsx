@@ -49,7 +49,7 @@ export default function VacayStats() {
     <div className="vg-card rounded-[22px]" style={{ padding: '14px 18px' }}>
       {/* The whole header is the fold handle — the sidebar gets long once several
           people are fused in, and this card is the one you stop needing. */}
-      <button
+      <button type="button"
         onClick={toggleCollapsed}
         aria-expanded={!collapsed}
         className={`w-full flex items-start gap-2 text-left ${collapsed ? '' : 'mb-2.5'}`}
@@ -116,7 +116,7 @@ function StatCard({ stat: s, isMe, canEdit, selectedYear, isShiftedYear, onSave,
 
   const handleSave = () => {
     setEditing(false)
-    const days = parseInt(String(localDays))
+    const days = Number.parseInt(String(localDays))
     if (!isNaN(days) && days >= 0 && days <= 365 && days !== s.vacation_days) {
       onSave(selectedYear, days, s.user_id)
     }

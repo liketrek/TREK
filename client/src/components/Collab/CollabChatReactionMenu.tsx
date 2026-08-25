@@ -31,7 +31,7 @@ export function ReactionMenu({ x, y, onReact, onClose }: ReactionMenuProps) {
       display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2, width: menuWidth,
     }}>
       {QUICK_REACTIONS.map(emoji => (
-        <button key={emoji} onClick={() => onReact(emoji)} style={{
+        <button type="button" key={emoji} onClick={() => onReact(emoji)} style={{
           width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: 'none', border: 'none', cursor: 'pointer', borderRadius: '50%',
           padding: 3, transition: 'transform 0.1s, background 0.1s',

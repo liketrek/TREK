@@ -4,8 +4,8 @@ const MIN_SIDEBAR = 200
 const MAX_SIDEBAR = 520
 
 export function useResizablePanels() {
-  const [leftWidth, setLeftWidth] = useState<number>(() => parseInt(localStorage.getItem('sidebarLeftWidth') || '') || 340)
-  const [rightWidth, setRightWidth] = useState<number>(() => parseInt(localStorage.getItem('sidebarRightWidth') || '') || 300)
+  const [leftWidth, setLeftWidth] = useState<number>(() => Number.parseInt(localStorage.getItem('sidebarLeftWidth') || '') || 340)
+  const [rightWidth, setRightWidth] = useState<number>(() => Number.parseInt(localStorage.getItem('sidebarRightWidth') || '') || 300)
   const [leftCollapsed, setLeftCollapsed] = useState(false)
   const [rightCollapsed, setRightCollapsed] = useState(false)
   const isResizingLeft = useRef(false)

@@ -170,7 +170,7 @@ export default function CollabPanel({ tripId, tripMembers = [], collabFeatures }
         {tabs.map(tab => {
           const active = mobileTab === tab.id
           return (
-            <button key={tab.id} onClick={() => setMobileTab(tab.id)} style={{
+            <button type="button" key={tab.id} onClick={() => setMobileTab(tab.id)} style={{
               flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               padding: '8px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
               background: active ? 'var(--accent)' : 'transparent',

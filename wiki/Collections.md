@@ -1,6 +1,6 @@
 # Collections
 
-Collections is a personal, server-wide library of saved places that lives outside of any single trip. Keep multiple named lists of places you have discovered — a "Norway road trip" wishlist, "Best coffee in Lisbon", "Someday" — each with a want-to-go / visited status, and share a list with other users.
+Collections is a personal, server-wide library of saved places that lives outside of any single trip. Keep multiple named lists of places you have discovered — a "Norway road trip" wishlist, "Best coffee in Lisbon", "Someday" — each place carrying an idea / want-to-go / visited status, and share a list with other users.
 
 > **Admin:** enable Collections in [Admin-Addons](Admin-Addons).
 
@@ -14,7 +14,7 @@ A place you save to a trip only exists inside that trip. Collections is the oppo
 
 When the admin has enabled the addon, a **Collections** entry appears in the main navigation (and a bottom-tab on mobile). Opening it shows your lists on the left, the active list's places in the middle, and a map on the right.
 
-The dashboard also gains a **Collections widget** that surfaces your lists as compact badges. Each user can hide that widget from their own dashboard under [Display Settings](Display-Settings) without affecting anyone else.
+The dashboard also gains a **Collections widget** that surfaces your lists as compact badges. Each user can hide that widget from their own dashboard under **Dashboard widgets** on the Appearance tab (see [Appearance-Settings](Appearance-Settings)) without affecting anyone else.
 
 ## Lists
 
@@ -90,7 +90,7 @@ When sharing, the owner assigns each member a permission role, and can change it
 
 | Role | Can do |
 |---|---|
-| **Viewer** | View the list and copy its places into their own trips, and filter by label — no changes to the list. |
+| **Viewer** | View the list, cast their own star rating on its places, copy its places into their own trips, and filter by label — no other changes to the list. |
 | **Editor** *(default)* | Add new places and edit existing ones, and manage + assign the list's labels. |
 | **Admin** | Everything an editor can, plus delete places. |
 

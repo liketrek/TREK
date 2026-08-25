@@ -79,13 +79,13 @@ export function BagCard({ bag, bagItems, totalWeight, pct, tripId, tripMembers, 
               / {(bag.weight_limit_grams / 1000).toFixed(1)} kg
             </span>
           ) : canEdit ? (
-            <button onClick={() => setEditingLimit(true)} title={t('packing.bagLimit')}
+            <button type="button" onClick={() => setEditingLimit(true)} title={t('packing.bagLimit')}
               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-faint)', fontSize: sz.count, fontFamily: 'inherit', textDecoration: 'underline dotted' }}>
               {t('packing.setBagLimit')}
             </button>
           ) : null}
         </span>
-        {canEdit && <button onClick={onDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-faint)', display: 'flex' }}><X size={sz.icon} /></button>}
+        {canEdit && <button type="button" onClick={onDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-faint)', display: 'flex' }}><X size={sz.icon} /></button>}
       </div>
       {/* Members */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4, flexWrap: 'wrap', position: 'relative' }}>
@@ -101,7 +101,7 @@ export function BagCard({ bag, bagItems, totalWeight, pct, tripId, tripMembers, 
           </span>
         ))}
         {canEdit && (
-          <button onClick={() => setShowUserPicker(v => !v)} style={{ width: sz.avatar, height: sz.avatar, borderRadius: '50%', border: '1.5px dashed var(--border-primary)', background: 'none', color: 'var(--text-faint)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, boxSizing: 'border-box' }}>
+          <button type="button" onClick={() => setShowUserPicker(v => !v)} style={{ width: sz.avatar, height: sz.avatar, borderRadius: '50%', border: '1.5px dashed var(--border-primary)', background: 'none', color: 'var(--text-faint)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, boxSizing: 'border-box' }}>
             <Plus size={sz.avatar * 0.5} />
           </button>
         )}
@@ -110,7 +110,7 @@ export function BagCard({ bag, bagItems, totalWeight, pct, tripId, tripMembers, 
             {tripMembers.map(m => {
               const isSelected = memberIds.includes(m.id)
               return (
-                <button key={m.id} onClick={() => { toggleMember(m.id); }}
+                <button type="button" key={m.id} onClick={() => { toggleMember(m.id); }}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', background: isSelected ? 'var(--bg-tertiary)' : 'transparent', cursor: 'pointer', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-primary)', fontFamily: 'inherit' }}
                   onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-secondary)' }}
                   onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent' }}>
@@ -128,7 +128,7 @@ export function BagCard({ bag, bagItems, totalWeight, pct, tripId, tripMembers, 
             })}
             {tripMembers.length === 0 && <div style={{ padding: '8px 10px', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)' }}>{t('packing.noMembers')}</div>}
             <div style={{ borderTop: '1px solid var(--border-secondary)', marginTop: 4, paddingTop: 4 }}>
-              <button onClick={() => setShowUserPicker(false)} style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontFamily: 'inherit', textAlign: 'center' }}>
+              <button type="button" onClick={() => setShowUserPicker(false)} style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontFamily: 'inherit', textAlign: 'center' }}>
                 {t('common.close')}
               </button>
             </div>

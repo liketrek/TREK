@@ -121,7 +121,7 @@ export const MemoPlaceRow = React.memo(function MemoPlaceRow({
       </div>
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
         {!selectMode && !inDay && selectedDayId && (
-          <button
+          <button type="button"
             onClick={e => { e.stopPropagation(); onAssignToDay(place.id) }}
             className="bg-surface-hover text-content-faint"
             style={{

@@ -94,7 +94,7 @@ export function DayPlanSidebarToolbar({
           const label = allExpanded ? t('dayplan.collapseAll') : t('dayplan.expandAll')
           return (
             <Tooltip label={label} placement="bottom">
-              <button
+              <button type="button"
                 onClick={() => {
                   const next = allExpanded ? new Set<number>() : new Set(days.map(d => d.id))
                   setExpandedDays(next)
@@ -138,7 +138,7 @@ export function DayPlanSidebarToolbar({
         })()}
         {onUndo && (
           <div style={{ position: 'relative', flexShrink: 0 }}>
-            <button
+            <button type="button"
               onClick={onUndo}
               disabled={!canUndo}
               aria-label={t('undo.button')}
@@ -172,7 +172,7 @@ export function DayPlanSidebarToolbar({
         {canEditDays && onReorderDays && onAddDay && days.length > 0 && (
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <Tooltip label={t('dayplan.reorderDays')} placement="bottom">
-              <button
+              <button type="button"
                 onClick={() => setReorderOpen(v => !v)}
                 aria-label={t('dayplan.reorderDays')}
                 aria-pressed={reorderOpen}

@@ -1,0 +1,158 @@
+name: SonarQube
+
+permissions:
+  contents: read
+
+# Push to dev only, deliberately.
+#
+# The SonarQube instance is Community Edition, which has no branch or
+# pull-request analysis: the project holds exactly one view. Analysing a feature
+# branch would overwrite that view with the branch's numbers until somebody
+# scanned dev again, so the one branch that may publish is the one everybody
+# reads. workflow_dispatch stays available for a manual re-run.
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+jobs:
+  # The four suites mirror the jobs in test.yml — same setup, same
+  # `test:coverage` scripts — because Sonar needs the lcov each package emits.
+  # Without them every line reports as uncovered and the dashboard shows a
+  # collapse that did not happen. They run in parallel and hand their reports to
+  # the scan job as artifacts.
+  shared-coverage:
+    name: Coverage (shared)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci --workspace shared
+      - run: cd shared && npm run test:coverage
+      - uses: actions/upload-artifact@v6
+        with:
+          name: sonar-shared-coverage
+          path: shared/coverage/
+          retention-days: 1
+
+  plugin-sdk-coverage:
+    name: Coverage (plugin-sdk)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugin-sdk
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: plugin-sdk/package-lock.json
+      - run: npm ci
+      - run: npm run test:coverage
+      - uses: actions/upload-artifact@v6
+        with:
+          name: sonar-plugin-sdk-coverage
+          path: plugin-sdk/coverage/
+          retention-days: 1
+
+  server-coverage:
+    name: Coverage (server)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+
+      - name: Ensure @swc/core's Linux binary for unplugin-swc
+        # Same reason as test.yml: the lockfile was generated on Windows and
+        # omits the Linux optional native binary, so the server's SWC transform
+        # cannot load without this.
+        run: |
+          SWC_VERSION=$(node -p "require('@swc/core/package.json').version")
+          npm install --no-save --legacy-peer-deps "@swc/core-linux-x64-gnu@$SWC_VERSION"
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+      - run: cd server && npm run test:coverage
+      - uses: actions/upload-artifact@v6
+        with:
+          name: sonar-server-coverage
+          path: server/coverage/
+          retention-days: 1
+
+  client-coverage:
+    name: Coverage (client)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci --workspace shared && npm ci --workspace client
+      - name: Build shared
+        run: npm run build --workspace=shared
+      - run: cd client && npm run test:coverage
+      - uses: actions/upload-artifact@v6
+        with:
+          name: sonar-client-coverage
+          path: client/coverage/
+          retention-days: 1
+
+  scan:
+    name: SonarQube Scan
+    runs-on: ubuntu-latest
+    needs: [shared-coverage, plugin-sdk-coverage, server-coverage, client-coverage]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Sonar reads git blame to date each issue and to decide what counts as
+          # new code. A shallow clone leaves it blind to both.
+          fetch-depth: 0
+
+      # Restored to the exact paths sonar-project.properties names in
+      # sonar.javascript.lcov.reportPaths.
+      - uses: actions/download-artifact@v6
+        with:
+          name: sonar-shared-coverage
+          path: shared/coverage/
+      - uses: actions/download-artifact@v6
+        with:
+          name: sonar-plugin-sdk-coverage
+          path: plugin-sdk/coverage/
+      - uses: actions/download-artifact@v6
+        with:
+          name: sonar-server-coverage
+          path: server/coverage/
+      - uses: actions/download-artifact@v6
+        with:
+          name: sonar-client-coverage
+          path: client/coverage/
+
+      - name: Scan
+        uses: SonarSource/sonarqube-scan-action@v8
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          # New Code is configured as "previous version", so this string is what
+          # draws that line — changing it re-bases every "new code" metric.
+          # Pinned rather than read from package.json on purpose: package.json is
+          # still on 3.4.1 while the project has been analysed as 4.0.0 all along,
+          # and taking the lower number would silently move the baseline. Bump it
+          # here as part of the release, together with the version bump.
+          #
+          # Everything else — sources, tests, exclusions, the documented
+          # false-positive list — lives in sonar-project.properties so it stays
+          # reviewable in a PR rather than buried in workflow YAML.
+          args: -Dsonar.projectVersion=4.0.0

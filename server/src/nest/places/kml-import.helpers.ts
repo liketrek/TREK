@@ -109,7 +109,7 @@ export function parseKmlLineStringCoordinates(value: unknown): Array<{ lat: numb
       const parts = coord.split(',');
       const lng = Number.parseFloat(parts[0] ?? '');
       const lat = Number.parseFloat(parts[1] ?? '');
-      const eleRaw = parts[2] != null ? Number.parseFloat(parts[2]) : NaN;
+      const eleRaw = parts[2] != null ? Number.parseFloat(parts[2]) : Number.NaN;
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
       return { lat, lng, ele: Number.isFinite(eleRaw) ? eleRaw : null };
     })

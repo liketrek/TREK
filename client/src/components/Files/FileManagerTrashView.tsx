@@ -8,7 +8,7 @@ export function TrashView(S: FileManagerState) {
     <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 16px' }}>
       {trashFiles.length > 0 && can('file_delete', trip) && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-          <button onClick={handleEmptyTrash} style={{
+          <button type="button" onClick={handleEmptyTrash} style={{
             padding: '5px 12px', borderRadius: 8, border: '1px solid #fecaca',
             background: '#fef2f2', color: '#dc2626', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500,
             cursor: 'pointer', fontFamily: 'inherit',

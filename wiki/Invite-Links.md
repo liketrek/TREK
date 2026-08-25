@@ -20,7 +20,7 @@ When creating an invite link you set two parameters:
 
 **Expiry** — how long until the link stops working. Choose from preset buttons: **1d, 3d, 7d, 14d**, or **∞** (no expiry).
 
-**Add to trip (optional)** — bind the invite to one of your trips. When someone registers through the link, they are automatically added to that trip as a member. Leave it on **No trip** for a plain registration invite. The selector only appears when at least one trip exists.
+**Add to trip (optional)** — bind the invite to any trip on the instance, not just your own. When someone registers through the link, they are automatically added to that trip as a member. Leave it on **No trip** for a plain registration invite. The selector only appears when at least one trip exists.
 
 Once created, a 32-character hexadecimal token is generated and the URL is automatically copied to your clipboard.
 

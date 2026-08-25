@@ -394,15 +394,15 @@ export function StudioCanvas({
               style={{ left: (x0 + x1) / 2, top: Math.max(6, y0 - 12) }}
               onPointerDown={e => e.stopPropagation()}
             >
-              <button onClick={() => duplicate(spreadIndex, selection)} title={t('journey.studio.duplicate')}>
+              <button type="button" onClick={() => duplicate(spreadIndex, selection)} title={t('journey.studio.duplicate')}>
                 <Copy size={14} />
               </button>
               {sel.length === 1 && (
                 <>
-                  <button onClick={() => raise(spreadIndex, sel[0].id, 'front')} title={t('journey.studio.toFront')}>
+                  <button type="button" onClick={() => raise(spreadIndex, sel[0].id, 'front')} title={t('journey.studio.toFront')}>
                     <ChevronsUp size={14} />
                   </button>
-                  <button onClick={() => raise(spreadIndex, sel[0].id, 'back')} title={t('journey.studio.toBack')}>
+                  <button type="button" onClick={() => raise(spreadIndex, sel[0].id, 'back')} title={t('journey.studio.toBack')}>
                     <ChevronsDown size={14} />
                   </button>
                 </>
@@ -417,13 +417,13 @@ export function StudioCanvas({
                 a rotation past the angle you wanted and back is a worse way to
                 arrive at either.
               */}
-              <button
+              <button type="button"
                 onClick={e => rotateBy(e.shiftKey ? -1 : -15)}
                 title={t('journey.studio.rotateLeft')}
               >
                 <RotateCcw size={14} />
               </button>
-              <button
+              <button type="button"
                 onClick={e => rotateBy(e.shiftKey ? 1 : 15)}
                 title={t('journey.studio.rotateRight')}
               >
@@ -443,7 +443,7 @@ export function StudioCanvas({
                 {locked ? <Unlock size={14} /> : <Lock size={14} />}
               </button>
               <span className="st-quickbar-sep" />
-              <button
+              <button type="button"
                 className="is-danger"
                 onClick={() => { const ids = deletable(spread, selection); if (ids.length) removeElements(spreadIndex, ids) }}
                 title={t('journey.studio.delete')}

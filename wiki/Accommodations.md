@@ -6,7 +6,7 @@ Link an accommodation to specific check-in and check-out days so it appears for 
 
 There are two ways to create an accommodation:
 
-**From the Reservations panel:** Click **Add** and select **Hotel** as the booking type. When the type is set to Hotel, the date/time and location fields are replaced by accommodation-specific inputs (see below). Saving the form creates both the hotel reservation and the underlying accommodation record at the same time.
+**From the Reservations panel:** Click **Manual Booking** and select **Hotel** as the booking type. When the type is set to Hotel, the date/time and location fields are replaced by accommodation-specific inputs (see below). Saving the form creates both the hotel reservation and the underlying accommodation record at the same time.
 
 **From the Day Detail panel:** Click the hotel icon or the **Add accommodation** button in the Day Detail overlay. A picker appears that lets you select a place from the trip, choose the day range, and optionally fill in check-in/check-out times and a confirmation code. This creates the accommodation record and its linked Hotel reservation together.
 

@@ -47,7 +47,13 @@ Click the pin icon on a note card to pin it. Pinned notes sort to the top of the
 
 You can attach images, PDFs, and other files to a note (requires the `file_upload` permission). Maximum file size is **50 MB** per file.
 
-The following file types are blocked: `.svg`, `.html`, `.htm`, `.xml`, `.xhtml`, `.js`, `.jsx`, `.ts`, `.exe`, `.bat`, `.sh`, `.cmd`, `.msi`, `.dll`, `.com`, `.vbs`, `.ps1`, `.php`.
+The following file types are blocked:
+
+- Markup a browser would render: `.svg`, `.svgz`, `.html`, `.htm`, `.shtml`, `.shtm`, `.xml`, `.xhtml`, `.xht`
+- Scripts: `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.php`, `.py`, `.rb`, `.pl`
+- Executables: `.exe`, `.bat`, `.sh`, `.cmd`, `.msi`, `.dll`, `.com`, `.vbs`, `.ps1`, `.app`
+
+An attachment is also rejected when its MIME type contains `svg`, `html`, or `javascript`, whatever its extension says. The same blocklist guards the trip file manager (see [Documents-and-Files](Documents-and-Files)), where uploads must additionally match the admin's **Allowed File Types** setting (video files are exempt from that list) — note attachments are not subject to it at all.
 
 Image thumbnails are shown on the note card. Click a thumbnail to open a lightbox. PDFs open in a document viewer overlay.
 

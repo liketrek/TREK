@@ -227,7 +227,7 @@ export function CustomDatePicker({
     if (nums.length !== 3) return;
 
     // nachher:
-    const get = (field: 'day' | 'month' | 'year') => parseInt(nums[order.indexOf(field)]);
+    const get = (field: 'day' | 'month' | 'year') => Number.parseInt(nums[order.indexOf(field)]);
     let d = get('day'),
       m = get('month');
     const y = get('year');

@@ -143,7 +143,7 @@ export default function LlmConnectionSection(): React.ReactElement {
           <p className="mt-1 text-xs text-content-faint">{t('settings.aiParsing.multimodalHint')}</p>
         </div>
 
-        <button
+        <button type="button"
           onClick={handleSave}
           disabled={saving || !isLoaded}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-slate-900 hover:bg-slate-700 disabled:opacity-50"

@@ -66,7 +66,7 @@ export default function DevNotificationsPanel(): React.ReactElement {
   }: {
     id: string; label: string; sub: string; icon: React.ElementType; color: string; onClick: () => void
   }) => (
-    <button
+    <button type="button"
       onClick={onClick}
       disabled={sending !== null}
       className="flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors text-left w-full border-edge bg-surface-card"

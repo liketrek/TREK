@@ -12,7 +12,7 @@ The short version: **the trip currency is the accounting base, the expense curre
 
 ## Trip currency
 
-Every trip has exactly one currency. It is set when you create the trip and can be changed later in the trip edit dialog (requires the `trip_edit` permission). It defaults to **EUR**.
+Every trip has exactly one currency. It is set when you create the trip and can be changed later in the trip edit dialog (requires the `trip_edit` permission). The new-trip dialog pre-fills it with **your display currency**, falling back to **EUR** when you have left that on *Trip currency*. This is the one moment the display currency touches stored data: it seeds the field, and from then on the trip's currency is its own.
 
 This is the trip's **accounting base**. It is not a cosmetic label:
 
@@ -59,7 +59,9 @@ It has two modes:
 | **Trip currency** (the default) | Each trip is shown in **its own** currency. A Tokyo trip reads in yen, a Moscow trip in roubles. |
 | A specific currency (e.g. `USD`) | **Every** trip is converted into that currency for you, whatever its own currency is. |
 
-Leave it on **Trip currency** unless you specifically want everything in your home currency regardless of where you are going. An administrator can set an instance-wide default for new users (Admin → Default User Settings); choosing **Trip currency** yourself overrides it, because it is a deliberate choice rather than an absence of one.
+Leave it on **Trip currency** unless you specifically want everything in your home currency regardless of where you are going.
+
+An administrator can set an instance-wide default (Admin → User Defaults), and it interacts with **Trip currency**: picking **Trip currency** stores an *empty* value, and an empty value on a defaultable setting counts as "not set", so the admin's currency is applied again (#1634). While an instance-wide default currency is configured, there is no way back to per-trip currencies from the Settings page — the admin has to clear it.
 
 > Display conversion uses **live** rates, not the frozen ones — it is a view, and a view should reflect today. This is why a converted total can shift slightly day to day while the underlying balances stay rock steady.
 

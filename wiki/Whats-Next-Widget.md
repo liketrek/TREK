@@ -6,7 +6,7 @@ The What's Next widget shows the upcoming assigned places across all days of you
 
 ## Where to find it
 
-Open the trip planner → **Collab** tab. On **desktop** the widget appears as a panel (alongside Chat, Notes, and Polls). On **mobile** it appears as a tab labeled "What's Next" with a sparkle icon in the Collab tab bar. The Collab addon must be enabled and the What's Next sub-feature must be turned on. See [Real-Time-Collaboration](Real-Time-Collaboration).
+Open the trip planner → **Collab** tab. On **desktop** (window 1024px and wider) the widget appears as a panel alongside Chat, Notes, and Polls. In a narrower window the four panels collapse into a tab bar and it becomes a tab labeled "What's Next". On a **phone** (under 768px) the mobile trip planner takes over, and its Collab tab only offers Chat, Notes and Polls — the widget is not available there. The Collab addon must be enabled and the What's Next sub-feature must be turned on. See [Real-Time-Collaboration](Real-Time-Collaboration).
 
 ## What it shows
 

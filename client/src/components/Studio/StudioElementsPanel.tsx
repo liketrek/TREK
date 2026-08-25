@@ -81,7 +81,7 @@ function FrameStyleGlyph({ style }: { style: FrameStyle }) {
 function IconCell({ name, onPick }: { name: string; onPick: (name: string) => void }) {
   const Icon = iconComponent(name)
   return (
-    <button
+    <button type="button"
       className="st-shape-btn is-glyph"
       onClick={() => onPick(name)}
       aria-label={name}
@@ -216,16 +216,16 @@ export function StudioElementsPanel({ page, t }: { page: BookPageSetup; t: (k: s
       <PanelHead label={t('journey.studio.elements')} />
 
       <div className="st-tabs">
-        <button className={tab === 'shapes' ? 'is-on' : ''} onClick={() => setTab('shapes')}>
+        <button type="button" className={tab === 'shapes' ? 'is-on' : ''} onClick={() => setTab('shapes')}>
           {t('journey.studio.shapes')}
         </button>
-        <button className={tab === 'frames' ? 'is-on' : ''} onClick={() => setTab('frames')}>
+        <button type="button" className={tab === 'frames' ? 'is-on' : ''} onClick={() => setTab('frames')}>
           {t('journey.studio.frames')}
         </button>
-        <button className={tab === 'grids' ? 'is-on' : ''} onClick={() => setTab('grids')}>
+        <button type="button" className={tab === 'grids' ? 'is-on' : ''} onClick={() => setTab('grids')}>
           {t('journey.studio.grids')}
         </button>
-        <button className={tab === 'icons' ? 'is-on' : ''} onClick={() => setTab('icons')}>
+        <button type="button" className={tab === 'icons' ? 'is-on' : ''} onClick={() => setTab('icons')}>
           {t('journey.studio.icons')}
         </button>
       </div>
@@ -236,18 +236,18 @@ export function StudioElementsPanel({ page, t }: { page: BookPageSetup; t: (k: s
             <div className="st-section">
               <div className="st-section-label">{t('journey.studio.text')}</div>
               <div className="st-stack">
-                <button className="st-tile" onClick={() => addText(30, 700, t('journey.studio.sampleHeading'))}>
+                <button type="button" className="st-tile" onClick={() => addText(30, 700, t('journey.studio.sampleHeading'))}>
                   <span style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em' }}>
                     {t('journey.studio.styleTitle')}
                   </span>
                 </button>
-                <button className="st-tile" onClick={() => addText(16, 600, t('journey.studio.sampleSubheading'))}>
+                <button type="button" className="st-tile" onClick={() => addText(16, 600, t('journey.studio.sampleSubheading'))}>
                   <span style={{ fontSize: 14, fontWeight: 600 }}>{t('journey.studio.styleSubtitle')}</span>
                 </button>
-                <button className="st-tile" onClick={() => addText(10, 400, t('journey.studio.sampleBody'))}>
+                <button type="button" className="st-tile" onClick={() => addText(10, 400, t('journey.studio.sampleBody'))}>
                   <span style={{ fontSize: 12.5 }}>{t('journey.studio.styleBody')}</span>
                 </button>
-                <button
+                <button type="button"
                   className="st-tile"
                   onClick={() => addText(7.5, 600, t('journey.studio.sampleCaption'), { tracking: 0.14, color: '#8a8578' })}
                 >
@@ -261,17 +261,17 @@ export function StudioElementsPanel({ page, t }: { page: BookPageSetup; t: (k: s
             <div className="st-section">
               <div className="st-section-label">{t('journey.studio.lines')}</div>
               <div className="st-shape-grid">
-                <button className="st-shape-btn" onClick={() => addShape('line')} title={t('journey.studio.shapeKind.line')}>
+                <button type="button" className="st-shape-btn" onClick={() => addShape('line')} title={t('journey.studio.shapeKind.line')}>
                   <Minus size={20} strokeWidth={2} />
                 </button>
-                <button
+                <button type="button"
                   className="st-shape-btn"
                   onClick={() => addShape('rect', { outline: true })}
                   title={t('journey.studio.shapeKind.outline')}
                 >
                   <Square size={20} strokeWidth={1.1} style={{ opacity: .5 }} />
                 </button>
-                <button
+                <button type="button"
                   className="st-shape-btn"
                   onClick={() => addText(46, 700, '“', { color: '#c9c2b4', leading: 0.9 })}
                   title={t('journey.studio.quoteMark')}
@@ -286,7 +286,7 @@ export function StudioElementsPanel({ page, t }: { page: BookPageSetup; t: (k: s
                 <div className="st-section-label">{t(`journey.studio.shapeGroup.${group.id}`)}</div>
                 <div className="st-shape-grid">
                   {group.shapes.map(shape => (
-                    <button
+                    <button type="button"
                       key={shape}
                       className="st-shape-btn is-glyph"
                       onClick={() => addShape(shape)}
@@ -314,7 +314,7 @@ export function StudioElementsPanel({ page, t }: { page: BookPageSetup; t: (k: s
                   ['film', 'filmFrame'],
                   ['tape', 'tapeFrame'],
                 ] as [FrameStyle, string][]).map(([style, key]) => (
-                  <button
+                  <button type="button"
                     key={style}
                     className="st-shape-btn is-frame"
                     onClick={() => addFrame(null, style)}
@@ -331,7 +331,7 @@ export function StudioElementsPanel({ page, t }: { page: BookPageSetup; t: (k: s
               <div className="st-section-label">{t('journey.studio.frameShapes')}</div>
               <div className="st-shape-grid">
                 {FRAME_SHAPES.map(shape => (
-                  <button
+                  <button type="button"
                     key={shape}
                     className="st-shape-btn is-glyph"
                     onClick={() => addFrame(shape === 'rect' ? null : shape)}
@@ -408,7 +408,7 @@ export function StudioElementsPanel({ page, t }: { page: BookPageSetup; t: (k: s
                 spellCheck={false}
               />
               {iconQuery && (
-                <button onClick={() => { setIconQuery(''); setIconLimit(ICON_PAGE) }} aria-label={t('common.clear')}>
+                <button type="button" onClick={() => { setIconQuery(''); setIconLimit(ICON_PAGE) }} aria-label={t('common.clear')}>
                   <X size={13} />
                 </button>
               )}

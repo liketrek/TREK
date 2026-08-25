@@ -8,7 +8,7 @@ The General tab (Settings → General) controls your locale preferences and a fe
 
 Open the user menu in the top navigation bar, select **Settings**, and stay on the **General** tab — it is the tab the page opens on.
 
-The tab is split into three sections: **Startup** (where opening TREK lands), **Language & region** (currency, language, temperature, distance, time format) and **Travel & map** (booking route labels, POI pills, blur booking codes).
+The tab is split into three sections: **Startup** (where opening TREK lands), **Language & region** (currency, language, temperature, distance, time format) and **Travel & map** (booking route labels, always show booking routes, explore places on the map, blur booking codes, optimize route from accommodation).
 
 > Color mode (Light / Dark / Auto) is **not** here — it lives on the **Appearance** tab. See [Appearance-Settings](Appearance-Settings).
 
@@ -44,7 +44,7 @@ The parameter takes the planner's internal tab ids, which are historic German na
 | Tab | Id |
 |-----|-----|
 | Plan | `plan` |
-| Transport | `transports` |
+| Transports | `transports` |
 | Bookings | `buchungen` |
 | Lists | `listen` |
 | Costs | `finanzplan` |
@@ -67,7 +67,7 @@ Your **display currency** — the currency you want to *read* amounts in on the 
 
 > This is **not** the trip's currency, which is set on the trip itself and is the base its balances are calculated in. The distinction matters — see [Currencies](Currencies).
 
-An administrator can set the instance-wide default for new users in Admin → Default User Settings. Choosing **Trip currency** yourself overrides it.
+An administrator can set an instance-wide default in Admin → Default User Settings. It is not only a starting value for new accounts: it is merged in every time your settings are loaded, so it applies to anyone whose own display currency is empty. Picking a specific currency of your own overrides it. **Trip currency** does not, because it stores an empty value that counts as "not set", so the admin default takes effect again on your next reload.
 
 ## Language
 
@@ -115,6 +115,12 @@ This only sets the *default* for a trip you haven't touched before. If you've al
 ## Blur booking codes
 
 When enabled, confirmation codes and reference numbers are blurred until you hover or tap. Set to **On** or **Off**.
+
+## Optimize route from accommodation
+
+When **On** (the default), the **Optimize** button in the day's route tools anchors the route on that day's accommodation instead of only reordering the places among themselves: an ordinary day becomes a loop out from the hotel and back to it, a transfer day a run from the hotel you check out of to the one you check into that evening. Set to **On** or **Off**.
+
+A day without an accommodation, or one whose hotel has no coordinates, is optimized from its first place as before. Locked and timed places keep their slots either way. See [Route-Optimization](Route-Optimization).
 
 ## See also
 

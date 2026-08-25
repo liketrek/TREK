@@ -90,7 +90,7 @@ const DURATION_UNITS_MS: Record<string, number> = {
 export function parseDurationMs(value: string): number | null {
   const m = /^(\d+(?:\.\d+)?)\s*(ms|s|m|h|d|w|y)?$/i.exec(value.trim());
   if (!m) return null;
-  const n = parseFloat(m[1]);
+  const n = Number.parseFloat(m[1]);
   if (!Number.isFinite(n) || n <= 0) return null;
   return n * DURATION_UNITS_MS[(m[2] || 'ms').toLowerCase()];
 }

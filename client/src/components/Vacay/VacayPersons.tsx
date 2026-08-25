@@ -67,7 +67,7 @@ export default function VacayPersons() {
     <div className="vg-card rounded-[22px]" style={{ padding: '14px 18px' }}>
       <div className="flex items-center justify-between mb-2">
         <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--vg-ink3)' }}>{t('vacay.persons')}</span>
-        <button onClick={() => { setShowInvite(true); loadAvailable() }}
+        <button type="button" onClick={() => { setShowInvite(true); loadAvailable() }}
           className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
           style={{ color: 'var(--vg-ink3)' }}>
           <UserPlus size={15} />
@@ -88,7 +88,7 @@ export default function VacayPersons() {
                 background: isSelected ? 'var(--vg-surf2)' : 'transparent',
                 border: `1px solid ${isSelected ? 'var(--vg-line)' : 'transparent'}`,
               }}>
-              <button
+              <button type="button"
                 onClick={(e) => { e.stopPropagation(); setColorEditUserId(u.id); setShowColorPicker(true) }}
                 className="w-3 h-3 rounded-full shrink-0 transition-transform hover:scale-125"
                 style={{ backgroundColor: u.color, cursor: 'pointer' }}
@@ -114,7 +114,7 @@ export default function VacayPersons() {
               {inv.username}
             </span>
             <VacayBadge label={t('vacay.pending')} tone="amber" />
-            <button onClick={() => cancelInvite(inv.user_id)}
+            <button type="button" onClick={() => cancelInvite(inv.user_id)}
               className="ml-auto opacity-0 group-hover:opacity-100 text-[10px] px-1.5 py-0.5 rounded transition-all"
               style={{ color: 'var(--vg-ink3)' }}>
               {t('common.cancel')}
@@ -131,7 +131,7 @@ export default function VacayPersons() {
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-edge-secondary">
               <h2 className="text-base font-semibold text-content">{t('vacay.inviteUser')}</h2>
-              <button onClick={() => setShowInvite(false)} className="p-1.5 rounded-lg transition-colors text-content-faint">
+              <button type="button" onClick={() => setShowInvite(false)} className="p-1.5 rounded-lg transition-colors text-content-faint">
                 <X size={16} />
               </button>
             </div>
@@ -149,10 +149,10 @@ export default function VacayPersons() {
                 />
               )}
               <div className="flex gap-3 justify-end pt-2">
-                <button onClick={() => setShowInvite(false)} className="px-4 py-2 text-sm rounded-lg text-content-muted border border-edge">
+                <button type="button" onClick={() => setShowInvite(false)} className="px-4 py-2 text-sm rounded-lg text-content-muted border border-edge">
                   {t('common.cancel')}
                 </button>
-                <button onClick={handleInvite} disabled={!selectedInviteUser || inviting}
+                <button type="button" onClick={handleInvite} disabled={!selectedInviteUser || inviting}
                   className="px-4 py-2 text-sm rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-40 bg-content text-surface-card">
                   {inviting && <Loader2 size={13} className="animate-spin" />}
                   {t('vacay.sendInvite')}
@@ -172,14 +172,14 @@ export default function VacayPersons() {
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-edge-secondary">
               <h2 className="text-base font-semibold text-content">{t('vacay.changeColor')}</h2>
-              <button onClick={() => { setShowColorPicker(false); setColorEditUserId(null) }} className="p-1.5 rounded-lg transition-colors text-content-faint">
+              <button type="button" onClick={() => { setShowColorPicker(false); setColorEditUserId(null) }} className="p-1.5 rounded-lg transition-colors text-content-faint">
                 <X size={16} />
               </button>
             </div>
             <div className="p-5">
               <div className="flex flex-wrap gap-2 justify-center">
                 {PRESET_COLORS.map(c => (
-                  <button key={c} onClick={() => handleColorChange(c)}
+                  <button type="button" key={c} onClick={() => handleColorChange(c)}
                     className={`w-8 h-8 rounded-full transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] ${editingUserColor === c ? 'ring-2 ring-offset-2 scale-110' : 'hover:scale-110'}`}
                     style={{ backgroundColor: c }} />
                 ))}

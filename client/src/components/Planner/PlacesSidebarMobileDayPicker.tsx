@@ -23,7 +23,7 @@ export function MobileDayPickerSheet(S: SidebarState) {
         </div>
         <div style={{ overflowY: 'auto', padding: '8px 12px' }}>
           {/* View details */}
-          <button
+          <button type="button"
             onClick={() => { onPlaceClick(dayPickerPlace.id); setDayPickerPlace(null); setMobileShowDays(false) }}
             className="bg-transparent text-content"
             style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', fontSize: 'calc(14px * var(--fs-scale-body, 1))' }}
@@ -32,7 +32,7 @@ export function MobileDayPickerSheet(S: SidebarState) {
           </button>
           {/* Edit */}
           {canEditPlaces && (
-            <button
+            <button type="button"
               onClick={() => { onEditPlace(dayPickerPlace); setDayPickerPlace(null); setMobileShowDays(false) }}
               className="bg-transparent text-content"
               style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', fontSize: 'calc(14px * var(--fs-scale-body, 1))' }}
@@ -43,7 +43,7 @@ export function MobileDayPickerSheet(S: SidebarState) {
           {/* Assign to day */}
           {days?.length > 0 && (
             <>
-              <button
+              <button type="button"
                 onClick={() => setMobileShowDays(v => !v)}
                 className="bg-transparent text-content"
               style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', fontSize: 'calc(14px * var(--fs-scale-body, 1))' }}
@@ -54,7 +54,7 @@ export function MobileDayPickerSheet(S: SidebarState) {
               {mobileShowDays && (
                 <div style={{ paddingLeft: 20 }}>
                   {days.map((day, i) => (
-                    <button
+                    <button type="button"
                       key={day.id}
                       onClick={() => { onAssignToDay(dayPickerPlace.id, day.id); setDayPickerPlace(null); setMobileShowDays(false) }}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left' }}
@@ -73,7 +73,7 @@ export function MobileDayPickerSheet(S: SidebarState) {
           )}
           {/* Delete */}
           {canEditPlaces && (
-            <button
+            <button type="button"
               onClick={() => { onDeletePlace(dayPickerPlace.id); setDayPickerPlace(null); setMobileShowDays(false) }}
               style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left', fontSize: 'calc(14px * var(--fs-scale-body, 1))', color: '#ef4444' }}
             >

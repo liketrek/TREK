@@ -12,19 +12,20 @@ A production TREK deployment checklist. All items reference actual TREK configur
 
 - [ ] Run TREK behind a TLS-terminating reverse proxy (nginx, Caddy, Traefik). See [Reverse-Proxy](Reverse-Proxy).
 - [ ] Set `TRUST_PROXY=1` so client IPs are captured correctly in the audit log. In `NODE_ENV=production` this defaults to `1` automatically, but set it explicitly if you use a non-standard proxy hop count.
-- [ ] Set `FORCE_HTTPS=true` to enable HSTS (`max-age=31536000`), redirect HTTP to HTTPS, and add `upgrade-insecure-requests` to the CSP. Requires `TRUST_PROXY` — omitting it causes a redirect loop.
-- [ ] Keep `ALLOW_INTERNAL_NETWORK=false` unless Immich or Synology is on your LAN. See [Internal-Network-Access](Internal-Network-Access). Note: loopback (`127.x`, `::1`) and link-local (`169.254.x`) addresses are always blocked regardless of this setting.
+- [ ] Set `FORCE_HTTPS=true` to 301-redirect HTTP to HTTPS and add `upgrade-insecure-requests` to the CSP. Your proxy must send `X-Forwarded-Proto: https` (or terminate TLS on the same connection), otherwise the redirect fires on every request and loops.
+- [ ] Know that HSTS (`max-age=31536000`) does not depend on `FORCE_HTTPS`: it is sent whenever `FORCE_HTTPS=true` **or** `NODE_ENV=production`, which the Docker image sets by default — so an instance behind Traefik, Caddy or a Cloudflare Tunnel advertises HSTS without setting `FORCE_HTTPS` at all. Set `HSTS_INCLUDE_SUBDOMAINS=true` to add `includeSubDomains`; it is off by default so an install on an apex domain does not force HTTPS onto sibling subdomains you may still serve over plain HTTP.
+- [ ] Keep `ALLOW_INTERNAL_NETWORK=false` unless a strict-guard integration — Immich, Synology Photos, AirTrail, a notification webhook or ntfy — is on your LAN. See [Internal-Network-Access](Internal-Network-Access). Note: loopback (`127.x`, `::1`) and link-local (`169.254.x`) addresses are always blocked regardless of this setting.
 
 ## Authentication
 
 - [ ] Enable two-factor authentication for your admin account. See [Two-Factor-Authentication](Two-Factor-Authentication).
-- [ ] Require MFA for all users via [Admin-Permissions](Admin-Permissions) if your use case demands it. Note: you must have MFA enabled on your own admin account before you can enforce it globally.
+- [ ] Require MFA for all users if your use case demands it: Admin Panel → Settings → **Require two-factor authentication (2FA)**. Note: you must secure your own admin account first, with either TOTP or a registered passkey — the server refuses the toggle otherwise. A passkey satisfies the policy for everyone else too, so nobody is forced onto TOTP specifically.
 - [ ] Disable open registration if you control who can access the instance. See [Admin-Users-and-Invites](Admin-Users-and-Invites).
-- [ ] Rotate the JWT signing secret if a session may have been leaked: Admin Panel → Admin → Rotate JWT Secret (`POST /api/admin/rotate-jwt-secret`). This invalidates all active sessions immediately.
+- [ ] Rotate the JWT signing secret if a session may have been leaked: Admin Panel → Settings → Danger Zone → **Rotate** (`POST /api/admin/rotate-jwt-secret`). This invalidates all active sessions immediately, including your own.
 
 ## Session Security
 
-TREK stores sessions as JWTs in an httpOnly `trek_session` cookie (SameSite=Lax, 24-hour expiry). The `secure` flag is set automatically when `NODE_ENV=production` or `FORCE_HTTPS=true`. Tokens are also accepted via `Authorization: Bearer` header for MCP and API clients.
+TREK stores sessions as JWTs in an httpOnly `trek_session` cookie (SameSite=Lax). A normal login expires after `SESSION_DURATION` (default 24 hours) and rides in a browser-session cookie that the browser drops when it closes; ticking **Remember me** issues a persistent cookie whose lifetime and JWT expiry are `SESSION_DURATION_REMEMBER` (default 30 days) — shorten it if a 30-day window is too wide for your threat model. The `secure` flag is set automatically when `NODE_ENV=production`, when `FORCE_HTTPS=true`, or when Express sees that the request arrived over TLS (`X-Forwarded-Proto: https`) — the last of those needs `trust proxy` active, which is automatic in production and otherwise means setting `TRUST_PROXY` yourself. Tokens are also accepted via `Authorization: Bearer` header for MCP and API clients.
 
 - [ ] Ensure `FORCE_HTTPS=true` (or `NODE_ENV=production`) so the `trek_session` cookie carries the `secure` flag and is never sent over plain HTTP.
 - [ ] Set `COOKIE_SECURE=false` only as a temporary escape hatch for LAN testing without TLS — do not use in production.
@@ -58,9 +59,9 @@ These limits are per source IP. If TREK is behind a reverse proxy, set `TRUST_PR
 Helmet applies a strict CSP on all responses. Key directives:
 
 - `default-src 'self'`
-- `script-src 'self' 'wasm-unsafe-eval'` (no `unsafe-inline`)
-- `object-src 'none'`
-- `frame-src 'none'`
+- `script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval'` (no `unsafe-inline`; `'unsafe-eval'` is required by the in-browser HEIC converter, which initialises through `new Function()`)
+- `object-src 'self'` (so same-origin file previews can embed PDFs via `<object>`/`<embed>`)
+- `frame-src 'self'` (for the sandboxed plugin frames at `/plugin-frame/*`, which run at an opaque origin under their own CSP)
 - `frameAncestors 'self'` (prevents clickjacking from external frames)
 - `upgrade-insecure-requests` (added automatically when `FORCE_HTTPS=true`)
 
@@ -70,7 +71,7 @@ Installed plugins run **untrusted third-party code**. TREK contains a plugin in 
 
 - [ ] Leave the plugin system's defaults in place. It is **on by default** but installed plugins still have to be **activated one by one**, so no third-party code runs until an admin turns a specific plugin on. Set `TREK_PLUGINS_ENABLED=false` (accepts `false`/`0`/`off`/`no`) to switch the whole system off — installed plugins stay on disk, deactivated, and the runtime is idle.
 - [ ] Keep the **OS permission jail** enabled (the default). In production each plugin runs in an isolated child process launched with Node's `--permission` model: filesystem **writes**, `child_process`, worker threads and native addons are denied outright, and reads are scoped to just the plugin's own code — so a plugin cannot read `trek.db` or the secret files, or shell out. The child's environment is scrubbed (no `JWT_SECRET`, no DB credentials). Setting `TREK_PLUGIN_PERMISSIONS=off` disables this jail (isolation then falls back to crash-only) and logs a loud warning — only ever do this on a machine you fully trust.
-- [ ] Rely on the **private-egress block** (SSRF backstop). Even a plugin that declared an outbound host cannot reach a destination that resolves to a loopback, private, link-local, ULA, carrier-grade-NAT, cloud-metadata (`169.254.169.254`), multicast or reserved address — the guard re-checks the resolved IP, so a plugin can't pivot to internal services or DNS-rebind to them. This is independent of `ALLOW_INTERNAL_NETWORK` (which only governs core Immich/Synology features).
+- [ ] Rely on the **private-egress block** (SSRF backstop). Even a plugin that declared an outbound host cannot reach a destination that resolves to a loopback, private, link-local, ULA, carrier-grade-NAT, cloud-metadata (`169.254.169.254`), multicast or reserved address — the guard re-checks the resolved IP, so a plugin can't pivot to internal services or DNS-rebind to them. This is independent of `ALLOW_INTERNAL_NETWORK` (which governs the core integrations reached through the strict guard — Immich, Synology Photos, AirTrail, notification webhooks and ntfy — not plugin egress). The one escape hatch is `TREK_PLUGIN_ALLOW_PRIVATE_EGRESS=on`, for a plugin that has to reach a service on your LAN (a Gotify, an ntfy, an Ollama). It is instance-wide rather than per plugin, and it lifts the block entirely rather than narrowing it: a declared host may then resolve to any address, the `169.254.169.254` metadata IP included, and unix-socket or named-pipe connects (`docker.sock`, a local database socket) are permitted without even being declared, since the OS jail does not gate socket connects. Leave it unset unless a specific plugin genuinely needs a LAN target.
 - [ ] The supervisor caps each plugin's **resident memory** (default 300 MB, `TREK_PLUGIN_MAX_RSS_MB`) — measured host-side from the OS, never the plugin's self-report — and kills a plugin that blows the ceiling or stops sending heartbeats; repeat offenders auto-disable. Every `ctx.*` capability call is also **rate-limited** at the dispatch boundary (a token bucket: ~60-call burst, 20 calls/sec sustained, 16 concurrent; `TREK_PLUGIN_RPC_BURST` / `TREK_PLUGIN_RPC_PER_SEC` / `TREK_PLUGIN_RPC_INFLIGHT`), so one plugin in a tight loop gets throttled instead of freezing the instance.
 - [ ] Review the **capability audit** if you grant plugins broad data access. Every host-mediated core-data read and broadcast a plugin makes is recorded at the RPC boundary against the real acting user (not a value the plugin supplies) in a per-plugin, hash-chained, tamper-evident log. Admins see it per plugin; each user can see "what have plugins done in my name?". Retention is capped per plugin (default 20 000 rows, `TREK_PLUGIN_AUDIT_MAX_ROWS`).
 

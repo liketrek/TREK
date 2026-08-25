@@ -62,8 +62,10 @@ Each toggle's icon in the toolbar is the marker it places, so you can see what a
 - **Block weekends** — prevents logging on weekend days. You choose which days count as the weekend.
 - **Week start** — Monday or Sunday.
 - **Carry-over** — toggle as described above.
+- **Vacation year** — Calendar, Fiscal or Hire date, as described under Leave year above. Unlike the rest of this panel it is personal to you rather than to the plan.
 - **Company holidays** — enable a shared company holiday layer that any fused user can edit.
 - **Public holidays** — add one or more country/region holiday calendars so that public holidays appear on the grid. Holiday data is fetched from the nager.at public holiday API. Each calendar has a label, a colour, and a country or region selector (sub-national regions such as German states or Swiss cantons are supported).
+- **School holidays** — a second holiday layer with its own toggle, independent of the public one and purely visual. Each calendar has an optional label, a colour and a country; where the source splits a country up you also pick a region (a German state, a Swiss canton, a French académie) or a school holiday group (Belgium, the Netherlands), and the calendar cannot be added until you have. A few countries publish a single national calendar (Estonia, Ireland, Serbia) and need nothing beyond the country. School holiday data comes from the OpenHolidays API rather than nager.at and covers fewer countries, so only the supported ones appear in the picker. On the grid a school holiday day gets a coloured band along the bottom of the cell, split into up to three segments when several calendars cover the same day, and a day inside a break that carries nothing else (no logged entry, no company holiday, no public holiday) is washed in the calendar colour. School holidays never deduct from anyone's allowance.
 
 ## Inviting collaborators
 

@@ -82,7 +82,7 @@ function CTALink({
   }
 
   return (
-    <button
+    <button type="button"
       onClick={handleClick}
       className="underline hover:no-underline font-medium ml-3 shrink-0"
     >
@@ -122,7 +122,7 @@ function BannerItem({ notice, onDismiss }: BannerItemProps) {
         )}
       </div>
       {notice.dismissible && (
-        <button
+        <button type="button"
           onClick={onDismiss}
           className="shrink-0 p-2 -mr-2 rounded hover:bg-black/5 dark:hover:bg-white/10 transition"
           aria-label={`Dismiss: ${title}`}

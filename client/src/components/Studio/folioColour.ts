@@ -49,7 +49,7 @@ export interface FolioInk {
 export function brightness(hex: string): number {
   const clean = hex.replace('#', '')
   const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean
-  const n = parseInt(full.slice(0, 6), 16)
+  const n = Number.parseInt(full.slice(0, 6), 16)
   if (!Number.isFinite(n)) return 1
   const r = (n >> 16) & 255
   const g = (n >> 8) & 255

@@ -9,7 +9,7 @@ export function VerdictSection({ pros, cons }: { pros: string[]; cons: string[] 
   return (
     <div className="mt-5">
       {/* Header — clickable on mobile */}
-      <button
+      <button type="button"
         onClick={() => setOpen(o => !o)}
         className="md:pointer-events-none w-full flex items-center gap-2.5 mb-3.5 group"
       >

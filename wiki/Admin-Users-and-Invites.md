@@ -12,7 +12,7 @@ The user table shows every registered account with the following columns:
 |--------|-------------|
 | **User** | Avatar, username, and an always-visible presence dot (green = online, grey = offline) |
 | **Email** | Account email address |
-| **Role** | Badge showing `admin` or `user` |
+| **Role** | Badge showing **Administrator** or **User** |
 | **Created** | Account creation date |
 | **Last Login** | Date and time of most recent login |
 | **Actions** | Edit and delete buttons |
@@ -27,10 +27,12 @@ Click the pencil icon on any row to open the edit form. You can change:
 
 - **Username**
 - **Email address**
-- **Role** — toggle between `user` and `admin`
-- **Password** — set a new password; must be at least 8 characters
+- **Role** — a dropdown with **User** and **Administrator**
+- **Password** — set a new password. It must be at least 8 characters and contain an uppercase letter, a lowercase letter, a number and a special character; commonly used passwords and strings made of a single repeated character are rejected. The same rules apply to the password you set under [Creating a user directly](#creating-a-user-directly). See [Login and Registration](Login-and-Registration#password-requirements).
 
 Click **Save** to apply changes.
+
+Below the fields sits **Reset passkeys**, which removes every passkey that user has registered — the recovery path when someone loses their authenticator. It asks for confirmation, reports how many passkeys it removed, and takes effect immediately rather than on **Save**. The user can still sign in with their password. See [Passkeys](Passkeys).
 
 ### Delete a user
 
@@ -50,7 +52,7 @@ Invite links let a specific number of people register themselves. This is useful
 
 ### Creating an invite
 
-Click **Create Invite** (invite links section, below the user table). Configure:
+Click **Create Link** (invite links section, below the user table). Configure:
 
 - **Max uses** — how many times the link can be used before it expires: `1×`, `2×`, `3×`, `4×`, `5×`, or `∞` (unlimited). Defaults to `1×`.
 - **Expiry** — how long the link remains valid: `1d`, `3d`, `7d`, `14d`, or `∞` (no expiry). Defaults to `7d`.
@@ -87,4 +89,5 @@ The **Users** tab also hosts the Permissions panel at the bottom, which controls
 - [Invite-Links](Invite-Links)
 - [Admin-Permissions](Admin-Permissions)
 - [Two-Factor-Authentication](Two-Factor-Authentication)
+- [Passkeys](Passkeys)
 - [Admin-Panel-Overview](Admin-Panel-Overview)

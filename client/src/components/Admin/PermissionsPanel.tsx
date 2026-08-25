@@ -104,7 +104,7 @@ export default function PermissionsPanel(): React.ReactElement {
             <p className="text-xs text-slate-400 mt-0.5">{t('perm.subtitle')}</p>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <button type="button"
               onClick={handleReset}
               disabled={saving}
               title={t('perm.resetDefaults')}
@@ -114,7 +114,7 @@ export default function PermissionsPanel(): React.ReactElement {
               <RotateCcw className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{t('perm.resetDefaults')}</span>
             </button>
-            <button
+            <button type="button"
               onClick={handleSave}
               disabled={saving || !dirty}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-slate-900 text-white rounded-lg hover:bg-slate-700 disabled:bg-slate-400 transition-colors"

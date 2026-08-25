@@ -14,10 +14,10 @@ Get TREK running in under five minutes with a single Docker command.
 Generate an encryption key and start the container in one step:
 
 ```bash
-ENCRYPTION_KEY=$(openssl rand -hex 32) docker run -d \
+docker run -d \
   --name trek \
   -p 3000:3000 \
-  -e ENCRYPTION_KEY=$ENCRYPTION_KEY \
+  -e ENCRYPTION_KEY="$(openssl rand -hex 32)" \
   -v ./data:/app/data \
   -v ./uploads:/app/uploads \
   --restart unless-stopped \
@@ -35,7 +35,7 @@ ENCRYPTION_KEY=$(openssl rand -hex 32) docker run -d \
 | `-v ./uploads:/app/uploads` | Persist uploaded files |
 | `--restart unless-stopped` | Auto-restart on reboot |
 
-**Why the encryption key?** TREK encrypts stored secrets (API keys, MFA seeds, OIDC credentials) using this key. If you skip it, TREK auto-generates one and saves it to `./data/.encryption_key`. Setting it explicitly means you control the key and can back it up separately.
+**Why the encryption key?** TREK encrypts stored secrets (API keys, MFA seeds, OIDC credentials) using this key. If you skip it, TREK auto-generates one and saves it to `./data/.encryption_key`. Setting it explicitly means you control the key and can back it up separately. The key generated inline above never gets printed, but TREK writes it to `./data/.encryption_key` on first start, so `cat ./data/.encryption_key` gets it back when you want a copy elsewhere.
 
 Generate a standalone key at any time:
 

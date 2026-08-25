@@ -9,14 +9,17 @@ TREK encrypts sensitive settings at rest using AES-256-GCM. The following values
 - Mapbox access token (per user)
 - OpenWeather API key (per user)
 - Immich API key (per user)
+- AirTrail API key (per user)
 - Synology Photos password, session ID, and device ID (per user)
-- Per-user webhook URL and ntfy notification token (in `settings` table)
+- Per-user webhook URL, ntfy notification token, and LLM provider API key (in `settings` table)
 - OIDC client secret (global, in `app_settings`)
 - SMTP password (global, in `app_settings`)
 - Admin webhook URL and admin ntfy token (global, in `app_settings`)
 - MFA (TOTP) secrets for all users
 - Photo passphrases for Synology shared-link photos (in `trek_photos`)
+- Passphrases for shared trip album links (in `trip_album_links`)
 - S3 storage backend secret access keys (in `app_settings['storage.backends']`; see [Admin-Storage](Admin-Storage))
+- Plugin OAuth access and refresh tokens, plus every plugin settings field the plugin's manifest marks `secret` (instance scope in `plugins.config`, user scope in `plugin_user_config.config`)
 
 The encryption derives a key from `ENCRYPTION_KEY` using SHA-256 (with a domain suffix per secret type), so the raw `ENCRYPTION_KEY` value is never stored in the database.
 
@@ -35,7 +38,9 @@ All encrypted settings (API keys, SMTP password, OIDC secret, MFA secrets, notif
 
 ## Backing up the key
 
-Your backup ZIP does **not** include the encryption key. Store the key separately from your backups — for example, in a password manager or a secrets manager. See [Backups](Backups).
+Unless you set `ENCRYPTION_KEY` in the environment, your backup ZIP **does** include the encryption key: `./data/.encryption_key` is bundled into every archive, manual and automatic, as a root-level `.encryption_key` entry, so a restore onto a different install can still decrypt the stored secrets. That makes the ZIP exactly as sensitive as the key itself — store and transfer it accordingly.
+
+On installs that supply the key through the environment the file is not the source of truth, so no backup carries it. Keep it somewhere separate — for example, in a password manager or a secrets manager. See [Backups](Backups).
 
 To find your current key: check the `ENCRYPTION_KEY` environment variable or read `./data/.encryption_key`.
 
@@ -46,7 +51,7 @@ Use `scripts/migrate-encryption.ts` to re-encrypt all stored secrets without dow
 **Docker:**
 
 ```bash
-docker exec -it trek node --import tsx scripts/migrate-encryption.ts
+docker exec -it -w /app/server trek node --import tsx scripts/migrate-encryption.ts
 ```
 
 **Host (run from the `server/` directory):**
@@ -63,8 +68,10 @@ The script:
 4. Re-encrypts all stored secrets across all tables:
    - `app_settings`: `oidc_client_secret`, `smtp_pass`, `admin_webhook_url`, `admin_ntfy_token`, `maps_api_key`, `unsplash_api_key`
    - `app_settings['storage.backends']`: the `secretAccessKey` of every S3 storage backend
-   - `users` (per user): `maps_api_key`, `unsplash_api_key`, `openweather_api_key`, `immich_api_key`, `synology_password`, `synology_sid`, `synology_did`, `mfa_secret`
-   - `settings` (per user): `webhook_url`, `ntfy_token`, `mapbox_access_token`
+   - `users` (per user): `maps_api_key`, `unsplash_api_key`, `openweather_api_key`, `immich_api_key`, `synology_password`, `synology_sid`, `synology_did`, `airtrail_api_key`, `mfa_secret`
+   - `settings` (per user): `webhook_url`, `ntfy_token`, `mapbox_access_token`, `llm_api_key`
+   - `plugin_oauth_tokens`: `access_token`, `refresh_token` (per plugin and user)
+   - `plugins.config` and `plugin_user_config.config`: every settings field a plugin's manifest marks `secret`, resolved per plugin and scope from `plugin_settings_fields`
    - `trip_album_links`: `passphrase`
    - `trek_photos`: `passphrase`
 5. Reports counts of migrated, already-migrated, skipped (empty), and errored values.

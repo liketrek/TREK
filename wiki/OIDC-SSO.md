@@ -15,13 +15,23 @@ OpenID Connect (OIDC) lets users log in with an existing identity provider — G
 5. The server issues a short-lived one-time code and redirects your browser to `/login?oidc_code=<code>`. The frontend immediately exchanges that code at `GET /api/auth/oidc/exchange?code=<code>` to obtain the session.
 6. Your `trek_session` cookie is set and you land on the dashboard.
 
+**Remember me.** The Remember-me switch on the login page is carried into SSO as a query flag on the login URL: `GET /api/auth/oidc/login?remember=1` (or `remember=0`), appended with `&` when an invite token is already present. Only `0` and `1` are accepted; any other value — and starting SSO from the register tab, where the switch is not shown — is treated as if the parameter were absent. The choice is held in the server-side login state, survives the provider round-trip and the one-time-code exchange, and decides both the session lifetime and the cookie lifetime:
+
+| `remember` | Session lifetime | `trek_session` cookie |
+|---|---|---|
+| `1` | `SESSION_DURATION_REMEMBER` (default `30d`) | persistent, `maxAge` matches |
+| `0` | `SESSION_DURATION` (default `24h`) | browser-session cookie, cleared when the browser closes |
+| omitted | `SESSION_DURATION` (default `24h`) | persistent, `maxAge` matches |
+
+If SSO sessions are dying at browser close, the login link is sending `remember=0`.
+
 ## Prerequisites
 
 Set the following environment variables before starting the server:
 
 | Variable | Required | Description |
 |---|---|---|
-| `APP_URL` | Yes | Base URL of your TREK instance (e.g. `https://trek.example.com`). Used to build the redirect URI. Can also be set via Admin → Settings. |
+| `APP_URL` | Yes | Base URL of your TREK instance (e.g. `https://trek.example.com`). Used to build the redirect URI. **Env var only — not configurable via the admin panel.** If it is unset (or not a parseable URL, in which case it is ignored), TREK falls back to the first `ALLOWED_ORIGINS` entry, and only if that one is missing or unparseable to `http://localhost:{PORT}` — which produces a redirect URI your IdP will reject. A scheme-less `ALLOWED_ORIGINS=trek.example.com` does not parse, so it ends up on localhost too. |
 | `OIDC_ISSUER` | Yes | Issuer URL of your identity provider. Must use HTTPS in production. |
 | `OIDC_CLIENT_ID` | Yes | OAuth 2.0 client ID registered with your IdP. |
 | `OIDC_CLIENT_SECRET` | Yes | OAuth 2.0 client secret. |
@@ -47,7 +57,7 @@ For example: `https://trek.example.com/api/auth/oidc/callback`
 
 ## New-user registration via SSO
 
-When an SSO login matches an existing TREK account by email or OIDC subject (`sub`), that account is used and the OIDC identity is linked automatically. If no matching account exists, TREK attempts to create one. The outcome depends on the following:
+When an SSO login matches an existing TREK account by OIDC subject (`sub`), that account is used directly. When it matches only by **email**, the OIDC identity is linked to that account only if the provider asserts `email_verified` for it; if the claim is missing or false the login is rejected with an `email_not_verified` error, so an unverified address can never take over a local account. Make sure your IdP includes `email_verified` in the userinfo response — it is part of the `email` scope. If no matching account exists, TREK attempts to create one. The outcome depends on the following:
 
 - **First user ever**: always created as admin, no invite required.
 - **Open SSO registration enabled** (admin panel toggle `oidc_registration`): account is created as a regular user.
@@ -56,7 +66,7 @@ When an SSO login matches an existing TREK account by email or OIDC subject (`su
 
 ## Admin panel (runtime configuration)
 
-OIDC can also be configured without environment variables via **Admin → SSO**. The following fields are settable at runtime:
+OIDC can also be configured without environment variables via **Admin → Settings**, in the **Single Sign-On (OIDC)** card. The following fields are settable at runtime:
 
 | Field | Env var equivalent |
 |---|---|

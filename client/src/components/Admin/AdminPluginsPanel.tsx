@@ -201,7 +201,7 @@ const PERM_KEYS = PLUGIN_PERMISSIONS
 const KNOWN_TYPES = ['widget', 'page', 'integration', 'trip-page']
 
 function isNewer(a: string, b: string): boolean {
-  const nums = (v: string) => v.split('-')[0].split('.').map(n => parseInt(n, 10) || 0)
+  const nums = (v: string) => v.split('-')[0].split('.').map(n => Number.parseInt(n, 10) || 0)
   const pa = nums(a), pb = nums(b)
   for (let i = 0; i < 3; i++) {
     const x = pa[i] || 0, y = pb[i] || 0
@@ -855,11 +855,11 @@ export default function AdminPluginsPanel() {
               <SegBtn active={view === 'discover'} onClick={openDiscover} label={t('admin.plugins.tabDiscover')} count={registry?.length} />
             </div>
             <div className="sm:hidden flex items-center gap-2 shrink-0">
-              <button onClick={pickUpload} title={t('admin.plugins.upload')}
+              <button type="button" onClick={pickUpload} title={t('admin.plugins.upload')}
                 className="h-[38px] w-[38px] grid place-items-center rounded-xl border border-edge bg-surface-card text-content-muted hover:text-content hover:border-content-faint transition-colors">
                 <UploadCloud size={15} />
               </button>
-              <button onClick={rescan} title={t('admin.plugins.rescan')}
+              <button type="button" onClick={rescan} title={t('admin.plugins.rescan')}
                 className="h-[38px] w-[38px] grid place-items-center rounded-xl border border-edge bg-surface-card text-content-muted hover:text-content hover:border-content-faint transition-colors">
                 <RefreshCw size={15} />
               </button>
@@ -902,11 +902,11 @@ export default function AdminPluginsPanel() {
               valueLabel={sortLabel(sort, t)}
               onPick={v => setSort(v as SortKey)} />
 
-            <button onClick={pickUpload} title={t('admin.plugins.upload')}
+            <button type="button" onClick={pickUpload} title={t('admin.plugins.upload')}
               className="hidden sm:grid h-[38px] w-[38px] place-items-center rounded-xl border border-edge bg-surface-card text-content-muted hover:text-content hover:border-content-faint transition-colors">
               <UploadCloud size={15} />
             </button>
-            <button onClick={rescan} title={t('admin.plugins.rescan')}
+            <button type="button" onClick={rescan} title={t('admin.plugins.rescan')}
               className="hidden sm:grid h-[38px] w-[38px] place-items-center rounded-xl border border-edge bg-surface-card text-content-muted hover:text-content hover:border-content-faint transition-colors">
               <RefreshCw size={15} />
             </button>
@@ -931,7 +931,7 @@ export default function AdminPluginsPanel() {
               <div className="mx-1.5 sm:mx-3 mb-2 mt-1 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-warning-soft border border-warning/30">
                 <ArrowUpCircle size={16} className="text-warning shrink-0" />
                 <span className="text-xs text-content-secondary">{t('admin.plugins.updatesAvailable', { count: updatable.length })}</span>
-                <button onClick={() => void updateAll()}
+                <button type="button" onClick={() => void updateAll()}
                   className="ml-auto text-xs font-semibold px-3 py-1.5 rounded-lg bg-warning text-white hover:opacity-90 transition-opacity">
                   {t('admin.plugins.updateAll')}
                 </button>
@@ -976,7 +976,7 @@ export default function AdminPluginsPanel() {
           <div className="bg-surface-card border border-edge rounded-2xl w-full max-w-2xl max-h-[70vh] flex flex-col shadow-modal" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-3.5 border-b border-edge-secondary flex items-center justify-between">
               <span className="text-sm font-semibold text-content flex items-center gap-2"><Bug size={15} /> {errorsFor.id} — {t('admin.plugins.errorLog')}</span>
-              <button onClick={() => setErrorsFor(null)} className="text-content-faint hover:text-content"><X size={16} /></button>
+              <button type="button" onClick={() => setErrorsFor(null)} className="text-content-faint hover:text-content"><X size={16} /></button>
             </div>
             <div className="p-4 overflow-y-auto text-xs font-mono">
               {errorsFor.rows.length === 0 ? <p className="text-content-faint py-4 text-center">{t('admin.plugins.noErrors')}</p> :
@@ -998,7 +998,7 @@ export default function AdminPluginsPanel() {
           <div className="bg-surface-card border border-edge rounded-2xl w-full max-w-lg shadow-modal" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-3.5 border-b border-edge-secondary flex items-center justify-between">
               <span className="text-sm font-semibold text-content flex items-center gap-2"><Globe size={15} /> {egressFor.id} — {t('admin.plugins.allowedHosts')}</span>
-              <button onClick={() => setEgressFor(null)} className="text-content-faint hover:text-content"><X size={16} /></button>
+              <button type="button" onClick={() => setEgressFor(null)} className="text-content-faint hover:text-content"><X size={16} /></button>
             </div>
             <div className="p-5 space-y-3">
               {!egressFor.supported ? (
@@ -1012,7 +1012,7 @@ export default function AdminPluginsPanel() {
                   {egressFor.hosts.map(h => (
                     <div key={h} className="flex items-center justify-between gap-2 rounded-lg border border-edge-secondary px-3 py-2">
                       <span className="text-sm font-mono text-content break-all">{h}</span>
-                      <button
+                      <button type="button"
                         disabled={egressSaving}
                         onClick={() => saveEgress(egressFor.hosts.filter(x => x !== h))}
                         className="text-content-faint hover:text-danger disabled:opacity-50"
@@ -1027,7 +1027,7 @@ export default function AdminPluginsPanel() {
                       placeholder="gotify.example.com"
                       className="flex-1 rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-content"
                     />
-                    <button
+                    <button type="button"
                       disabled={egressSaving || !egressDraft.trim()}
                       onClick={() => saveEgress([...egressFor.hosts, egressDraft.trim()])}
                       className="rounded-lg bg-content px-3 py-2 text-sm text-surface disabled:opacity-50"
@@ -1120,7 +1120,7 @@ function sortLabel(s: SortKey, t: T): string {
 
 function SegBtn({ active, onClick, label, count }: { active: boolean; onClick: () => void; label: string; count?: number }) {
   return (
-    <button onClick={onClick} role="tab" aria-selected={active}
+    <button type="button" onClick={onClick} role="tab" aria-selected={active}
       className={`inline-flex items-center gap-2 text-[13px] font-medium px-3.5 py-1.5 rounded-lg transition-colors ${
         active ? 'bg-surface-card text-content shadow-card' : 'text-content-muted hover:text-content'}`}>
       {label}
@@ -1141,7 +1141,7 @@ function FilterMenu({ id, label, valueLabel, options, onPick, value, menu, setMe
   const active = value !== options[0]?.[0]
   return (
     <div className="relative">
-      <button onClick={() => setMenu(open ? null : id)} title={`${label}: ${valueLabel}`}
+      <button type="button" onClick={() => setMenu(open ? null : id)} title={`${label}: ${valueLabel}`}
         className={`relative h-[38px] w-[38px] sm:w-auto px-0 sm:px-3 inline-flex items-center justify-center sm:justify-start gap-1.5 rounded-xl border bg-surface-card text-[13px] text-content-secondary transition-colors whitespace-nowrap hover:border-content-faint ${
           active ? 'border-content-faint' : 'border-edge'}`}>
         {icon}
@@ -1153,7 +1153,7 @@ function FilterMenu({ id, label, valueLabel, options, onPick, value, menu, setMe
       {open && (
         <div className="absolute top-11 right-0 z-30 min-w-[180px] max-w-[calc(100vw-2rem)] p-1.5 rounded-xl border border-edge bg-surface-card shadow-elevated">
           {options.map(([v, lbl]) => (
-            <button key={v} onClick={() => { onPick(v); setMenu(null) }}
+            <button type="button" key={v} onClick={() => { onPick(v); setMenu(null) }}
               className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] transition-colors hover:bg-surface-tertiary ${
                 value === v ? 'text-content font-semibold' : 'text-content-secondary'}`}>
               {lbl}<Check size={15} className={`ml-auto text-accent ${value === v ? 'opacity-100' : 'opacity-0'}`} />
@@ -1172,7 +1172,7 @@ function EmptyState({ t, onDiscover }: { t: T; onDiscover: () => void }) {
         <PackageOpen size={26} className="text-content-faint" />
       </div>
       <p className="text-sm font-medium text-content-muted">{t('admin.plugins.empty')}</p>
-      <button onClick={onDiscover} className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg bg-accent text-accent-text">
+      <button type="button" onClick={onDiscover} className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg bg-accent text-accent-text">
         <Download size={14} /> {t('admin.plugins.tabDiscover')}
       </button>
     </div>
@@ -1235,7 +1235,7 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, newerIn
           <div className="flex items-center gap-1.5 mt-1.5 text-[11.5px] text-warning">
             <ShieldAlert size={13} className="shrink-0" />
             <span className="truncate">{t('admin.plugins.updateBlocked', { reason: p.updateBlock.detail ?? p.updateBlock.code })}</span>
-            <button onClick={onReviewBlock}
+            <button type="button" onClick={onReviewBlock}
               className="shrink-0 font-semibold underline underline-offset-2 hover:opacity-80 transition-opacity">
               {t('admin.plugins.reviewBlock')}
             </button>
@@ -1255,7 +1255,7 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, newerIn
           <div className="flex items-center gap-1.5 mt-1.5 text-[11.5px] text-content-faint">
             <PauseCircle size={13} className="shrink-0" />
             <span className="truncate">{t('admin.plugins.updatesHeld', { version: p.version ?? '' })}</span>
-            <button onClick={onResume} disabled={busy === p.id}
+            <button type="button" onClick={onResume} disabled={busy === p.id}
               className="shrink-0 font-semibold underline underline-offset-2 hover:opacity-80 transition-opacity disabled:opacity-50">
               {t('admin.plugins.resumeUpdates')}
             </button>
@@ -1278,7 +1278,7 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, newerIn
                 Actionable, and warning-toned until at least one host exists, because
                 until then the plugin cannot reach anything and looks silently broken. */}
             {p.operatorEgress && (
-              <button
+              <button type="button"
                 onClick={onEgress}
                 title={t('admin.plugins.allowedHosts.hint')}
                 className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-[3px] rounded-md border transition-colors ${
@@ -1308,7 +1308,7 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, newerIn
 
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         {hasUpdate && (
-          <button onClick={onUpdate} disabled={busy === p.id} title={t('admin.plugins.updateTo', { version: latestVer })}
+          <button type="button" onClick={onUpdate} disabled={busy === p.id} title={t('admin.plugins.updateTo', { version: latestVer })}
             className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-2 sm:px-2.5 py-1.5 rounded-full text-warning bg-warning-soft border border-warning/30 hover:opacity-90 transition-opacity disabled:opacity-50">
             <ArrowUpCircle size={13} /> <span className="hidden sm:inline">{t('admin.plugins.updateTo', { version: latestVer })}</span>
           </button>
@@ -1318,7 +1318,7 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, newerIn
         </span>
         <ToggleSwitch on={p.enabled === 1} label={t('admin.plugins.enabledToggle')} onToggle={onToggle} />
         <div className="relative">
-          <button ref={menuBtnRef} data-testid={`plugin-row-menu-btn-${p.id}`} onClick={() => setMenu(menuOpen ? null : `row:${p.id}`)}
+          <button type="button" ref={menuBtnRef} data-testid={`plugin-row-menu-btn-${p.id}`} onClick={() => setMenu(menuOpen ? null : `row:${p.id}`)}
             className="w-[34px] h-[34px] grid place-items-center rounded-lg text-content-faint hover:text-content hover:bg-surface-tertiary transition-colors">
             <MoreHorizontal size={17} />
           </button>
@@ -1376,7 +1376,7 @@ function anchorMenu(trigger: HTMLElement | null): CSSProperties {
 
 function MenuItem({ icon, label, onClick, danger }: { icon: React.ReactNode; label: string; onClick: () => void; danger?: boolean }) {
   return (
-    <button onClick={onClick}
+    <button type="button" onClick={onClick}
       className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] transition-colors ${
         danger ? 'text-danger hover:bg-danger-soft' : 'text-content-secondary hover:bg-surface-tertiary'}`}>
       {icon} {label}
@@ -1450,7 +1450,7 @@ function RegistryGrid({ items, onInstall, onOpenDetail, busy, t, installedIds, f
                     <Download size={11} /> {formatCompactCount(item.downloadCount)}
                   </span>
                 )}
-                <button onClick={e => { e.stopPropagation(); onInstall(item.id, offer.version) }}
+                <button type="button" onClick={e => { e.stopPropagation(); onInstall(item.id, offer.version) }}
                   disabled={busy === item.id || installed || offer.blocked}
                   title={installed ? undefined : offer.title}
                   className="ml-auto text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-accent text-accent-text hover:bg-accent-hover disabled:opacity-50 disabled:bg-surface-tertiary disabled:text-content-faint transition-colors">
@@ -1513,7 +1513,7 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
         <div className="relative">
           <Screenshot url={item.screenshotUrl} className="w-full aspect-[16/9]" iconSize={36} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-          <button onClick={onClose} className="absolute top-3 right-3 w-8 h-8 grid place-items-center rounded-lg bg-black/40 text-white hover:bg-black/60 transition-colors"><X size={16} /></button>
+          <button type="button" onClick={onClose} className="absolute top-3 right-3 w-8 h-8 grid place-items-center rounded-lg bg-black/40 text-white hover:bg-black/60 transition-colors"><X size={16} /></button>
         </div>
 
         <div className="flex items-start gap-3 sm:gap-3.5 px-4 sm:px-5 -mt-7 relative z-[1]">
@@ -1527,7 +1527,7 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
             </div>
             <p className="text-[12.5px] text-content-faint mt-0.5">{item.author}{item.latest ? ` · v${item.latest}` : ''}</p>
           </div>
-          <button onClick={() => onInstall(item.id, offer.version)}
+          <button type="button" onClick={() => onInstall(item.id, offer.version)}
             disabled={busy === item.id || installed || offer.blocked}
             title={installed ? undefined : offer.title}
             className="self-end text-[13px] font-semibold px-3 sm:px-4 py-2 rounded-lg bg-accent text-accent-text hover:bg-accent-hover disabled:opacity-50 disabled:bg-surface-tertiary disabled:text-content-faint transition-colors shrink-0">
@@ -1637,7 +1637,7 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
                     <span className="ml-auto" />
                     {v.compatible ? (
                       !installed && (
-                        <button onClick={() => onInstall(item.id, v.version)} disabled={busy === item.id}
+                        <button type="button" onClick={() => onInstall(item.id, v.version)} disabled={busy === item.id}
                           className="text-[11.5px] font-semibold px-2.5 py-1 rounded-full border border-edge bg-surface-card text-content-secondary hover:text-content hover:border-content-faint transition-colors disabled:opacity-50">
                           {t('admin.plugins.installCompatible', { version: v.version })}
                         </button>
@@ -1692,7 +1692,7 @@ function VersionPickerDialog({ plugin, versions, failed, busy, t, locale, onPick
       <div className="bg-surface-card border border-edge rounded-2xl w-full max-w-md max-h-[80vh] overflow-auto shadow-modal" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-edge-secondary">
           <h3 className="text-[15px] font-semibold text-content truncate">{t('admin.plugins.versionPickerTitle', { name: plugin.name })}</h3>
-          <button onClick={onClose} className="w-8 h-8 grid place-items-center rounded-lg text-content-faint hover:text-content hover:bg-surface-tertiary transition-colors shrink-0"><X size={16} /></button>
+          <button type="button" onClick={onClose} className="w-8 h-8 grid place-items-center rounded-lg text-content-faint hover:text-content hover:bg-surface-tertiary transition-colors shrink-0"><X size={16} /></button>
         </div>
         <div className="p-2">
           {failed && <p className="text-xs text-danger px-2.5 py-2">{t('admin.plugins.detailError')}</p>}
@@ -1710,7 +1710,7 @@ function VersionPickerDialog({ plugin, versions, failed, busy, t, locale, onPick
                 {current ? (
                   <span className="text-[11.5px] font-medium text-content-faint">{t('admin.plugins.installed')}</span>
                 ) : v.compatible ? (
-                  <button onClick={() => onPick(v.version)} disabled={busy === plugin.id}
+                  <button type="button" onClick={() => onPick(v.version)} disabled={busy === plugin.id}
                     className="text-[11.5px] font-semibold px-2.5 py-1 rounded-full border border-edge bg-surface-card text-content-secondary hover:text-content hover:border-content-faint transition-colors disabled:opacity-50">
                     {t('admin.plugins.versionSwitch', { version: v.version })}
                   </button>
@@ -1784,12 +1784,12 @@ function SignatureBlockDialog({ data, entry, busy, t, onRetrust, onClose }: {
           )}
         </div>
         <div className="px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary flex items-center justify-end gap-2">
-          <button onClick={onClose}
+          <button type="button" onClick={onClose}
             className="text-xs font-medium px-3.5 py-2 rounded-lg border border-edge text-content-muted hover:text-content hover:bg-surface-tertiary transition-colors">
             {offerRetrust ? t('admin.plugins.sig.cancel') : t('common.close')}
           </button>
           {offerRetrust && (
-            <button onClick={() => onRetrust(version, newKey)} disabled={busy}
+            <button type="button" onClick={() => onRetrust(version, newKey)} disabled={busy}
               className="text-xs font-semibold px-4 py-2 rounded-lg bg-warning text-white hover:opacity-90 transition-opacity disabled:opacity-50">
               {t('admin.plugins.sig.retrustConfirm')}
             </button>
@@ -1863,8 +1863,8 @@ function UpdateConsentDialog({ data, unsigned, t, onApprove, onLater }: {
           )}
         </div>
         <div className="px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary flex items-center justify-end gap-2">
-          <button onClick={onLater} className="text-xs font-medium px-3.5 py-2 rounded-lg border border-edge text-content-muted hover:text-content hover:bg-surface-tertiary transition-colors">{t('admin.plugins.updateLater')}</button>
-          <button onClick={onApprove} className="text-xs font-semibold px-4 py-2 rounded-lg bg-accent text-accent-text hover:bg-accent-hover transition-colors">{t('admin.plugins.updateApprove')}</button>
+          <button type="button" onClick={onLater} className="text-xs font-medium px-3.5 py-2 rounded-lg border border-edge text-content-muted hover:text-content hover:bg-surface-tertiary transition-colors">{t('admin.plugins.updateLater')}</button>
+          <button type="button" onClick={onApprove} className="text-xs font-semibold px-4 py-2 rounded-lg bg-accent text-accent-text hover:bg-accent-hover transition-colors">{t('admin.plugins.updateApprove')}</button>
         </div>
       </div>
     </div>
@@ -1904,7 +1904,7 @@ function DependencyResolveDialog({ data, t, busy, installedIds, onDownload, onCl
                     : t('admin.plugins.dep.requires', { version: r.constraint })}
                 </div>
               </div>
-              <button onClick={() => onDownload(r.id, r.constraint)} disabled={busy}
+              <button type="button" onClick={() => onDownload(r.id, r.constraint)} disabled={busy}
                 className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-3 py-1.5 rounded-full bg-accent text-accent-text hover:bg-accent-hover transition-colors disabled:opacity-50 shrink-0">
                 <Download size={13} /> {r.installed ? t('admin.plugins.dep.update') : t('admin.plugins.dep.download')}
               </button>
@@ -1915,7 +1915,7 @@ function DependencyResolveDialog({ data, t, busy, installedIds, onDownload, onCl
           )}
         </div>
         <div className="px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary flex items-center justify-end">
-          <button onClick={onClose} className="text-xs font-medium px-3.5 py-2 rounded-lg border border-edge text-content-muted hover:text-content hover:bg-surface-tertiary transition-colors">{t('common.cancel')}</button>
+          <button type="button" onClick={onClose} className="text-xs font-medium px-3.5 py-2 rounded-lg border border-edge text-content-muted hover:text-content hover:bg-surface-tertiary transition-colors">{t('common.cancel')}</button>
         </div>
       </div>
     </div>
@@ -1941,7 +1941,7 @@ function SecurityInfo({ t }: { t: T }) {
         <ShieldCheck size={14} className="text-content-faint shrink-0 mt-0.5" />
         <p className="text-xs text-content-muted">{t('admin.plugins.reviewedMeaning')}</p>
       </div>
-      <button onClick={() => setOpen(o => !o)}
+      <button type="button" onClick={() => setOpen(o => !o)}
         className="w-full px-4 sm:px-6 py-2.5 border-t border-edge-secondary flex items-center justify-between gap-2 text-xs font-medium text-content-secondary hover:text-content hover:bg-surface-tertiary transition-colors">
         <span className="flex items-center gap-2"><Lock size={13} className="shrink-0" /> <span className="text-left">{t('admin.plugins.security.title')}</span></span>
         <ChevronDown size={15} className={`shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />

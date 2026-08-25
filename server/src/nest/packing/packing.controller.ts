@@ -228,7 +228,7 @@ export class PackingController {
     @Headers('x-socket-id') socketId?: string,
   ) {
     // You can drop your own pledge; the owner can remove anyone's.
-    const target = parseInt(userId);
+    const target = Number.parseInt(userId);
     const item = this.packing.removeContributor(tripId, id, target);
     if (!item) {
       throw new HttpException({ error: 'Item not found' }, 404);

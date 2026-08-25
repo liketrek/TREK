@@ -39,7 +39,7 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
               <strong>{replyTo.username}</strong>: {(replyTo.text || '').slice(0, 60)}
             </span>
-            <button onClick={() => setReplyTo(null)} style={{
+            <button type="button" onClick={() => setReplyTo(null)} style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-faint)',
               display: 'flex', flexShrink: 0,
             }}>
@@ -51,7 +51,7 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
           {/* Emoji button */}
           {canEdit && (
-            <button ref={emojiBtnRef} onClick={() => setShowEmoji(!showEmoji)} style={{
+            <button type="button" ref={emojiBtnRef} onClick={() => setShowEmoji(!showEmoji)} style={{
               width: 34, height: 34, borderRadius: '50%', border: 'none',
               background: showEmoji ? 'var(--bg-hover)' : 'transparent',
               color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -80,7 +80,7 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
 
           {/* Send */}
           {canEdit && (
-            <button onClick={handleSend} disabled={!text.trim() || sending} style={{
+            <button type="button" onClick={handleSend} disabled={!text.trim() || sending} style={{
               width: 34, height: 34, borderRadius: '50%', border: 'none',
               background: text.trim() ? '#007AFF' : 'var(--border-primary)',
               color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',

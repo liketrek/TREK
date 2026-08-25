@@ -338,7 +338,7 @@ export default function AdminStoragePanel(): React.ReactElement {
             ? t('storage.usage.computed', { age: relativeTime(state.usage.computedAt, locale) })
             : t('storage.usage.never')}
           {' '}
-          <button className="text-xs underline text-content-secondary" style={LINK_BUTTON_STYLE} onClick={handleRefreshStats}>
+          <button type="button" className="text-xs underline text-content-secondary" style={LINK_BUTTON_STYLE} onClick={handleRefreshStats}>
             {state.usage ? t('storage.usage.refresh') : t('storage.usage.compute')}
           </button>
         </p>
@@ -364,7 +364,7 @@ export default function AdminStoragePanel(): React.ReactElement {
                     {t(`storage.source.${row.source}`)}
                   </span>
                   <span className="flex-1" />
-                  <button
+                  <button type="button"
                     className="text-xs underline text-content-secondary"
                     style={LINK_BUTTON_STYLE}
                     onClick={() =>
@@ -376,12 +376,12 @@ export default function AdminStoragePanel(): React.ReactElement {
                     {t('storage.actions.test')}
                   </button>
                   {row.source !== 'env' && (
-                    <button className="text-xs underline text-content-secondary" style={LINK_BUTTON_STYLE} onClick={() => startEdit(row)}>
+                    <button type="button" className="text-xs underline text-content-secondary" style={LINK_BUTTON_STYLE} onClick={() => startEdit(row)}>
                       {t('storage.actions.edit')}
                     </button>
                   )}
                   {row.source === 'settings' && (
-                    <button className="text-xs underline text-content-secondary" style={LINK_BUTTON_STYLE} onClick={() => setConfirmRemove({ name: row.name, degenerate: false })}>
+                    <button type="button" className="text-xs underline text-content-secondary" style={LINK_BUTTON_STYLE} onClick={() => setConfirmRemove({ name: row.name, degenerate: false })}>
                       {t('storage.actions.remove')}
                     </button>
                   )}
@@ -433,7 +433,7 @@ export default function AdminStoragePanel(): React.ReactElement {
                             failed: String(backfill.failed),
                           })}
                         </p>
-                        <button
+                        <button type="button"
                           className="text-xs underline text-content-secondary mt-1"
                           style={LINK_BUTTON_STYLE}
                           onClick={() => handleCancelBackfill(row)}
@@ -464,7 +464,7 @@ export default function AdminStoragePanel(): React.ReactElement {
                           </p>
                         )}
                         {syncPrompt !== row.name && (
-                          <button
+                          <button type="button"
                             className="text-xs underline text-content-secondary"
                             style={LINK_BUTTON_STYLE}
                             onClick={() => handleStartBackfill(row)}
@@ -480,14 +480,14 @@ export default function AdminStoragePanel(): React.ReactElement {
                   <div className="mt-2 rounded-lg border p-2 border-edge-secondary">
                     <p className="text-xs text-content">{t('storage.sync.prompt')}</p>
                     <div className="flex items-center gap-3 mt-1">
-                      <button
+                      <button type="button"
                         className="text-xs underline text-content-secondary"
                         style={LINK_BUTTON_STYLE}
                         onClick={() => handleStartBackfill(row)}
                       >
                         {t('storage.sync.now')}
                       </button>
-                      <button
+                      <button type="button"
                         className="text-xs underline text-content-secondary"
                         style={LINK_BUTTON_STYLE}
                         onClick={() => setSyncPrompt(null)}
@@ -512,10 +512,10 @@ export default function AdminStoragePanel(): React.ReactElement {
                     {t('storage.type.mirror')}
                   </span>
                   <span className="flex-1" />
-                  <button className="text-xs underline text-content-secondary" style={LINK_BUTTON_STYLE} onClick={() => admin.test(backend)}>
+                  <button type="button" className="text-xs underline text-content-secondary" style={LINK_BUTTON_STYLE} onClick={() => admin.test(backend)}>
                     {t('storage.actions.test')}
                   </button>
-                  <button className="text-xs underline text-content-secondary" style={LINK_BUTTON_STYLE} onClick={() => setConfirmRemove({ name: backend.name, degenerate: true })}>
+                  <button type="button" className="text-xs underline text-content-secondary" style={LINK_BUTTON_STYLE} onClick={() => setConfirmRemove({ name: backend.name, degenerate: true })}>
                     {t('storage.actions.remove')}
                   </button>
                 </div>
@@ -552,7 +552,7 @@ export default function AdminStoragePanel(): React.ReactElement {
                         total: String(m.total),
                       })}
                     </p>
-                    <button
+                    <button type="button"
                       className="text-xs underline text-content-secondary mt-1"
                       style={LINK_BUTTON_STYLE}
                       onClick={() => void handleCancelMigration(m)}
@@ -601,7 +601,7 @@ export default function AdminStoragePanel(): React.ReactElement {
             onCancel={() => setEditing(null)}
           />
         ) : (
-          <button
+          <button type="button"
             onClick={() =>
               setEditing({
                 initial: null,
@@ -675,7 +675,7 @@ export default function AdminStoragePanel(): React.ReactElement {
       </Section>
 
       <div className="flex items-center gap-3">
-        <button
+        <button type="button"
           onClick={save}
           disabled={!admin.dirty || admin.saving}
           style={{
@@ -715,21 +715,21 @@ export default function AdminStoragePanel(): React.ReactElement {
             </p>
           ))}
           <div className="flex items-center gap-3 mt-2">
-            <button
+            <button type="button"
               className="text-xs underline text-content-secondary"
               style={LINK_BUTTON_STYLE}
               onClick={() => void moveAndSave()}
             >
               {t('storage.migrate.move')}
             </button>
-            <button
+            <button type="button"
               className="text-xs underline text-content-secondary"
               style={LINK_BUTTON_STYLE}
               onClick={() => void routeOnlySave()}
             >
               {t('storage.migrate.routeOnly')}
             </button>
-            <button
+            <button type="button"
               className="text-xs underline text-content-secondary"
               style={LINK_BUTTON_STYLE}
               onClick={() => setMigratePromptOpen(false)}
@@ -746,7 +746,7 @@ export default function AdminStoragePanel(): React.ReactElement {
               past; "save again" can never clear it, so the banner offers the
               one action that can — see useStorageAdmin.discardDraft. */}
           {admin.saveConflict && (
-            <button
+            <button type="button"
               className="text-xs underline text-content-secondary mt-1"
               style={LINK_BUTTON_STYLE}
               onClick={() => void admin.discardDraft()}

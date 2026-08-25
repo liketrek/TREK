@@ -241,7 +241,7 @@ export function DayPlanSidebarTransportDetailModal({
               {/* Aktionen */}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                 {onEdit && (
-                  <button onClick={() => onEdit(res)} className="bg-surface-tertiary text-content" style={{
+                  <button type="button" onClick={() => onEdit(res)} className="bg-surface-tertiary text-content" style={{
                     fontSize: 'calc(12px * var(--fs-scale-body, 1))',
                     border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
                     display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -249,7 +249,7 @@ export function DayPlanSidebarTransportDetailModal({
                     <Pencil size={12} /> {t('common.edit')}
                   </button>
                 )}
-                <button onClick={() => setTransportDetail(null)} className="bg-accent text-accent-text" style={{
+                <button type="button" onClick={() => setTransportDetail(null)} className="bg-accent text-accent-text" style={{
                   fontSize: 'calc(12px * var(--fs-scale-body, 1))',
                   border: 'none', borderRadius: 8, padding: '6px 16px', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
                 }}>

@@ -163,8 +163,8 @@ export function formatDate(dateStr: string | null | undefined, locale: string, t
 export function parseMeridiemTime(value: string | null | undefined): string | null {
   const match = (value || '').trim().match(/^(\d{1,2}):?(\d{2})?\s*(am|pm)$/i)
   if (!match) return null
-  let h = parseInt(match[1])
-  const m = match[2] ? parseInt(match[2]) : 0
+  let h = Number.parseInt(match[1])
+  const m = match[2] ? Number.parseInt(match[2]) : 0
   const isPm = match[3].toLowerCase() === 'pm'
   if (h === 12) h = isPm ? 12 : 0
   else if (isPm) h += 12
@@ -300,7 +300,7 @@ export function dayTotalCost(
 ): string | null {
   const da = assignments[String(dayId)] || []
   const entries = da.map(a => ({
-    amount: parseFloat(String(a.place?.price ?? '')) || 0,
+    amount: Number.parseFloat(String(a.place?.price ?? '')) || 0,
     currency: a.place?.currency || tripCurrency,
   }))
   return formatMoneySum(entries, base, locale, rates, { decimals: 0 })

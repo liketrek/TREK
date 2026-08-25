@@ -8,7 +8,7 @@ Tune how TREK looks — colour mode, accent scheme, readability, and which dashb
 
 Open **Settings** and select the **Appearance** tab.
 
-Changes preview instantly and are saved to your account a moment later, so they follow you to every browser you sign in with. A **Reset to defaults** button at the bottom of the tab restores everything on this page in one click.
+Changes preview instantly and are saved to your account a moment later, so they follow you to every browser you sign in with. A **Reset to defaults** button at the bottom of the tab restores the colour scheme, the readability settings, the dashboard widgets and the mobile layout in one click. Your **Color mode** (Light / Dark / Auto) is a separate setting and is left as it is.
 
 > These are personal settings — no permission and no admin toggle gate them.
 
@@ -76,6 +76,15 @@ Each of the four rows renders a live sample in that tier ("Large heading", "Medi
 - **Bottom of page** — **Currency**, **Collections**, **Timezones**, **Upcoming reservations**.
 
 Hiding a widget here only affects your own dashboard. Widgets that depend on an addon (for example **Collections**) also need that addon enabled by an admin — see [Dashboard-Widgets](Dashboard-Widgets) and [Admin-Addons](Admin-Addons).
+
+## On a phone
+
+Opened on a phone, the Appearance screen carries an extra **Mobile** card that the desktop tab does not have:
+
+- **Bottom navbar** — which items sit in the bottom bar, in which order, and which are demoted under **More**. **Dashboard** is pinned first and cannot be moved; two more items fit next to it, and a counter above the list shows how full the bar is. Leaving both lists untouched keeps TREK's automatic split.
+- **Dashboard order** — reorder how the trip list and the inline widgets stack on the phone dashboard. The featured trip always stays on top. A block whose widget is switched off under **Dashboard widgets** keeps its place in the list and is marked **Hidden**.
+
+Both are stored on your account alongside the rest of the appearance settings, and both are cleared by **Reset to defaults**.
 
 ## Permissions
 

@@ -52,12 +52,14 @@ See the [[Development Environment|Development-environment]] page for the full se
 
 ## Tech Stack
 
-| Layer | Technology                                                                      |
-|---|---------------------------------------------------------------------------------|
-| Frontend | React 18, TypeScript, Zustand, Leaflet, Tailwind CSS, Vite                      |
-| Backend | Express, TypeScript, better-sqlite3                                             |
-| Real-time | WebSocket (ws)                                                                  |
-| Database | SQLite with WAL mode                                                            |
-| Auth | JWT (HS256), bcrypt, TOTP MFA, OIDC                                             |
-| Maps | Leaflet + react-leaflet, OSRM, Nominatim, CartoDB tiles                         |
-| i18n | 15 languages (EN, DE, ES, FR, NL, IT, PT-BR, CS, PL, HU, RU, ZH, ZH-TW, AR, ID) |
+| Layer | Technology                                                                                |
+|---|-------------------------------------------------------------------------------------------|
+| Frontend | React 19, TypeScript, Zustand 5, Leaflet, Tailwind CSS 3.4, Vite 8 (Rolldown)             |
+| Backend | NestJS 11 (Express 4 adapter), TypeScript, better-sqlite3, Zod (@trek/shared)             |
+| Real-time | WebSocket (ws)                                                                            |
+| Database | SQLite with WAL mode                                                                      |
+| Auth | JWT (HS256), bcrypt, TOTP MFA, OIDC                                                       |
+| Maps | Leaflet + react-leaflet (default, CartoDB tiles), MapLibre GL, Mapbox GL, OSRM, Nominatim |
+| i18n | 23 languages, EN canonical (locale directories live in shared/src/i18n/)                  |
+
+Every translation key must exist in all 23 locales — the `i18n Key Parity` CI job fails on drift, so run `npm run i18n:parity:strict --workspace=shared` before pushing. Two directory names differ from the language they hold: Brazilian Portuguese is `br`, Greek is `gr`.

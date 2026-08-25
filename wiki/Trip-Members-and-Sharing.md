@@ -4,8 +4,8 @@
 
 ## Opening the Members Panel
 
-- From the **dashboard**: click the share/members icon on a trip card.
 - From the **trip planner**: click the Share button in the top navigation bar.
+- On **mobile**: open the trip, then **More** → **Share Trip**.
 
 When you have the `share_manage` permission the modal opens to a two-column layout on wider screens (members on the left, share link on the right). Without that permission only the members column is shown. On narrow screens the columns always stack.
 
@@ -15,7 +15,7 @@ The left column lists everyone who has access to the trip.
 
 - The **trip owner** is marked with a crown badge.
 - Your own entry is labeled **(you)**.
-- Each non-owner member shows a remove button.
+- A remove button appears on your own row, and on every non-owner row if you have the `member_manage` permission.
 
 ### Inviting Members
 
@@ -28,6 +28,12 @@ Click the remove icon next to any member's name. A confirmation prompt appears b
 If you click the remove icon next to **your own** name, the action is labeled **Leave trip** and uses a "log out" icon. Leaving reloads the page and returns you to the dashboard.
 
 The trip owner cannot be removed through this panel.
+
+### Transferring Ownership
+
+Only the current owner sees a crown button next to each non-owner member. Click it and confirm the prompt — that member becomes the trip owner, you drop to a regular member, and the page reloads so the new permissions take effect everywhere.
+
+Guests are never listed among the members, and the server refuses to hand ownership to one.
 
 ## Guest Members
 
@@ -43,7 +49,7 @@ Only the **trip owner** can manage guests (this is stricter than inviting member
 
 Other members see the Guests section too (when guests exist) but cannot add, rename or remove them.
 
-> If two guests share a name, TREK keeps them distinct internally (the second "Anna" becomes "Anna 2"), so assignments never get confused.
+> Two guests may share the same name — TREK stores the name you type as-is and keeps the two apart by their internal id, so assignments never get confused. A guest name may be at most 50 characters.
 
 ### What a guest can be assigned to
 
@@ -87,7 +93,7 @@ Viewers do not need to log in. The link can be shared with anyone.
 
 ### Creating a Link
 
-Click **Create share link**. A URL is generated and shown with a copy button.
+Click **Create link** in the **Public Link** section. A URL is generated and shown with a copy button.
 
 ### Permission Toggles
 
@@ -95,17 +101,17 @@ Before or after creating the link, you can control what the link exposes. Toggle
 
 | Toggle | Default | What it shows |
 |---|---|---|
-| **Map** | Always on | Trip map with place markers — cannot be disabled |
+| **Map & Plan** | Always on | Trip map, the day plan (days, activities, day notes) and the place list — cannot be disabled |
 | **Bookings** | On | Reservations and accommodations |
 | **Packing** | Off | Packing list |
-| **Budget** | Off | Budget tab |
-| **Collab** | Off | Read-only view of notes, chat, and polls |
+| **Costs** | Off | Costs tab |
+| **Chat** | Off | Read-only view of the trip chat (collab notes and polls are never shared) |
 
 Changes to toggles take effect immediately for an existing link.
 
 ### Deleting a Link
 
-Click **Delete link** (red button below the URL) to revoke access. The token is invalidated and existing viewers are redirected.
+Click **Delete link** (red button below the URL) to revoke access. The token is invalidated; anyone who opens the old URL now sees *Link expired or invalid*.
 
 ## Trip Invite Link
 
@@ -118,7 +124,7 @@ Below the public share link, users with the `share_manage` permission can also c
 Unlike the read-only share link, this one is **not anonymous**:
 
 - Whoever opens it must have a TREK account and be **signed in**. If they are not, they are sent to the login page and returned to the invite afterwards — there is **no registration** from this link.
-- Anyone who opens it while signed in is added to the trip as a **member** (the same access a manually-added member gets). The owner and existing members are simply taken straight to the trip.
+- Opening it while signed in shows a confirmation card naming the trip. Clicking **Join trip** adds you as a **member** (the same access a manually-added member gets) and opens the trip. The owner and existing members see the same card and are simply taken to the trip when they accept.
 - To invite people who do **not** yet have an account, use an admin invite link with an optional trip binding instead — see [Invite-Links](Invite-Links).
 
 ### Creating and revoking

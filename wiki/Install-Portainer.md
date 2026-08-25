@@ -28,7 +28,11 @@ Portainer must be installed and connected to your Docker environment. Use **Stac
 
 See https://github.com/liketrek/TREK/blob/main/docker-compose.yml
 
-Set at minimum `ENCRYPTION_KEY`, `TZ`, and `APP_URL` in the **Environment variables** section of the stack editor. Generate an encryption key with:
+Set at minimum `ENCRYPTION_KEY`, `TZ`, and `ALLOWED_ORIGINS` in the **Environment variables** section of the stack editor. Portainer's stack variables are only substituted into `${...}` placeholders in the compose file, they are not injected into the container, and the shipped compose file interpolates exactly four: `ENCRYPTION_KEY`, `TZ`, `LOG_LEVEL`, and `ALLOWED_ORIGINS`.
+
+Every other variable ships commented out, so setting it here does nothing. To use one — `APP_URL`, for example, which OIDC needs and which email notification links are built from — uncomment its line in the **Web editor** and put the value there directly, or change it to `- APP_URL=${APP_URL:-}` so the stack variable is picked up.
+
+Generate an encryption key with:
 
 ```bash
 openssl rand -hex 32
@@ -41,10 +45,10 @@ Three tag strategies are available:
 | Tag | Example | Behavior |
 |---|---|---|
 | `latest` | `mauriceboe/trek:latest` | Always the newest release across all major versions |
-| Major version | `mauriceboe/trek:3` | Latest release pinned to that major version |
-| Full version | `mauriceboe/trek:3.4.0` | Exact release; never changes |
+| Major version | `mauriceboe/trek:4` | Latest release pinned to that major version |
+| Full version | `mauriceboe/trek:4.0.0` | Exact release; never changes |
 
-Use `latest` or a major-version tag (e.g. `3`) if you want automatic updates on redeploy. Use a full version tag (e.g. `3.4.0`) if you want explicit control over which release runs.
+Use `latest` or a major-version tag (e.g. `4`) if you want automatic updates on redeploy. Use a full version tag (e.g. `4.0.0`) if you want explicit control over which release runs.
 
 ## Updating
 
@@ -54,13 +58,13 @@ How you update depends on the tag you chose:
 
 ![Re-pull image and redeploy switch ticked, with arrows pointing to the switch and the Update button](assets/portainer-force-pull.png)
 
-**Pinned full-version tag** — Edit the stack, change the tag in the `image:` line (e.g. `3.4.0` → `3.4.1`), then click **Update the stack**. No need to toggle the re-pull switch — a tag change forces a fresh pull.
+**Pinned full-version tag** — Edit the stack, change the tag in the `image:` line (e.g. `4.0.0` → `4.0.1`), then click **Update the stack**. No need to toggle the re-pull switch — a tag change forces a fresh pull.
 
 ![Edit stack page with an arrow pointing to the image tag in the compose editor](assets/portainer-update-version.png)
 
 ![Edit stack page with an arrow pointing to the Update the stack button](assets/portainer-update-stack.png)
 
-> Back up your data before any update. Go to **Admin Panel → Backups** or copy your `./data` and `./uploads` directories. See [Backups](Backups).
+> Back up your data before any update. Go to **Admin Panel → Backup** or copy your `./data` and `./uploads` directories. See [Backups](Backups).
 
 ## Volumes
 

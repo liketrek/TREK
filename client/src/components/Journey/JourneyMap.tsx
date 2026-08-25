@@ -410,7 +410,7 @@ function JourneyMap(
         style={{ width: '100%', height: '100%' }}
       />
       <div style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 400, display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <button
+        <button type="button"
           onClick={zoomIn}
           style={{
             width: 32, height: 32, borderRadius: 8,
@@ -422,7 +422,7 @@ function JourneyMap(
             cursor: 'pointer', fontSize: 'calc(16px * var(--fs-scale-subtitle, 1))', fontWeight: 700, lineHeight: 1,
           }}
         >+</button>
-        <button
+        <button type="button"
           onClick={zoomOut}
           style={{
             width: 32, height: 32, borderRadius: 8,

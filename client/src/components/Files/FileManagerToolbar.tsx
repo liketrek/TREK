@@ -36,7 +36,7 @@ export function FileManagerToolbar(S: FileManagerState) {
                   : tab.id === 'collab' ? files.filter(f => f.note_id).length
                   : 0
                 return (
-                  <button key={tab.id} onClick={() => setFilterType(tab.id)}
+                  <button type="button" key={tab.id} onClick={() => setFilterType(tab.id)}
                     style={{
                       appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                       display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -63,7 +63,7 @@ export function FileManagerToolbar(S: FileManagerState) {
           </>
         )}
 
-        <button onClick={toggleTrash} style={{
+        <button type="button" onClick={toggleTrash} style={{
           appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
           display: 'inline-flex', alignItems: 'center', gap: 6,
           padding: '9px 14px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,

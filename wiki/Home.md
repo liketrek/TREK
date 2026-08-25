@@ -24,29 +24,39 @@ TREK is a self-hosted, real-time collaborative travel planner licensed under AGP
 ### Collaboration
 - **Real-Time Sync** — WebSocket-based live sync; changes appear instantly for all connected users
 - **Multi-User** — invite members with role-based access
-- **Invite Links** — one-time registration links with configurable max uses and expiry
+- **Invite Links** — registration links with configurable max uses (1–5 or unlimited) and expiry
 - **OIDC SSO** — sign in with Google, Apple, Authentik, Keycloak, or any OIDC provider
 - **Two-Factor Authentication** — TOTP-based 2FA with QR code setup
+- **Passkeys** _(admin-enabled)_ — passwordless WebAuthn sign-in with Touch ID, Windows Hello, Android screen lock, or a hardware key; owning one also satisfies the require-2FA policy (see [Passkeys](Passkeys))
 - **Public Share Links** — share a read-only view of any trip
 
 ### Addons _(admin-toggleable)_
 - **Lists** — packing lists and to-dos with templates, member assignments, optional bag tracking
-- **Budget Planner** — expense tracker with category breakdown, splits, multi-currency
+- **Costs** — expense tracker with category breakdown, splits, multi-currency
 - **Documents** — file manager for trips, places, and reservations
 - **Collab** — group chat, shared notes, polls, day-by-day attendance
 - **Vacay** — personal vacation day planner with calendar view, public holidays, and carry-over tracking
 - **Atlas** — interactive world map, bucket list, travel stats, continent breakdown
+- **Collections** — personal place library: save places across trips into named lists, copy them into any trip, share with per-member roles (see [Collections](Collections))
 - **Journey** — magazine-style travel journal with entries, photos (via Immich/Synology Photos), maps, and moods
 - **Naver List Import** — import places from shared Naver Maps lists
 - **MCP** — expose TREK to AI assistants via the Model Context Protocol (OAuth 2.1)
+- **AirTrail** — sync flights from your self-hosted AirTrail instance into trips
+- **AI Parsing** — LLM fallback that extracts bookings from confirmation files KDE Itinerary cannot read (see [AI-Booking-Import](AI-Booking-Import))
 
 > Dashboard widgets (currency converter and timezone clock) are per-user preferences, not an admin-toggleable addon — see [Dashboard-Widgets](Dashboard-Widgets).
+>
+> The full addon table, with type and per-addon notes, lives in [Addons-Overview](Addons-Overview).
+
+### Plugins
+- **Sandboxed Plugin Runtime** — third-party plugins run in a forked child process with permission-gated RPC, install-time manifest and signature checks, and an egress allowlist (see [Plugins](Plugins))
+- **Plugin SDK** — build and publish plugins with the `trek-plugin-sdk` npm package: dev server, preflight, signing, submit (see [Plugin-Development](Plugin-Development))
 
 ### AI / MCP Integration
 - **MCP Server** — built-in Model Context Protocol server with OAuth 2.1 authentication
 - **150+ Tools** — create trips, plan itineraries, manage budgets, send messages, and more
 - **30 Resources** — read-only `trek://` URIs for trips, days, places, budget, packing, journeys, and more
-- **27 OAuth Scopes** — granular permissions across 13 permission groups
+- **29 OAuth Scopes** — granular permissions across 14 permission groups
 - **Pre-built Prompts** — `trip-summary`, `packing-list`, and `budget-overview` context loaders
 
 ### Admin

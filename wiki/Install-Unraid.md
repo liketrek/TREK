@@ -40,12 +40,12 @@ The Unraid template exposes the following fields in the container UI:
 | `TZ` | `UTC` | Timezone for logs, reminders, and scheduled tasks (e.g. `Europe/Berlin`) |
 | `ALLOWED_ORIGINS` | *(empty)* | Comma-separated origins for CORS and email notification links, e.g. `https://trek.example.com` |
 | `APP_URL` | *(empty)* | Public base URL; required when OIDC is enabled (must match the redirect URI registered with your IdP) |
-| `ADMIN_EMAIL` | *(empty)* | Email for the first admin account (first-boot only; no effect once any user exists). Must be set together with `ADMIN_PASSWORD`. |
+| `ADMIN_EMAIL` | `admin@trek.local` | Email for the first admin account (first-boot only; no effect once any user exists). Pre-filled by the template — must be set together with `ADMIN_PASSWORD`, otherwise both are ignored. |
 | `ADMIN_PASSWORD` | *(empty)* | Password for the first admin account (first-boot only). Must be set together with `ADMIN_EMAIL`. If either is omitted, TREK creates the account with email `admin@trek.local` and a random password printed to the container log. |
 
 ### Advanced Variables
 
-Additional variables (`PORT`, `NODE_ENV`, `LOG_LEVEL`, `TREK_WIKI_DIR`, `DEFAULT_LANGUAGE`, `FORCE_HTTPS`, `TRUST_PROXY`, `COOKIE_SECURE`, `ALLOW_INTERNAL_NETWORK`, `SESSION_DURATION`, `SESSION_DURATION_REMEMBER`, all OIDC variables, `MCP_RATE_LIMIT`, `MCP_MAX_SESSION_PER_USER`, `DEMO_MODE`) are available under **Advanced View** in the template editor.
+Additional variables (`PORT`, `NODE_ENV`, `LOG_LEVEL`, `TREK_WIKI_DIR`, `DEFAULT_LANGUAGE`, `FORCE_HTTPS`, `HSTS_INCLUDE_SUBDOMAINS`, `TRUST_PROXY`, `COOKIE_SECURE`, `ALLOW_INTERNAL_NETWORK`, `SESSION_DURATION`, `SESSION_DURATION_REMEMBER`, all OIDC variables, `MCP_RATE_LIMIT`, `MCP_MAX_SESSION_PER_USER`, `DEMO_MODE`, `UNSPLASH_ACCESS_KEY`) are available under **Advanced View** in the template editor.
 
 ## Setting the Encryption Key
 

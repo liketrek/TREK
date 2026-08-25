@@ -223,7 +223,7 @@ export default function LoginPage(): React.ReactElement {
     <div style={{ minHeight: '100vh', display: 'flex', fontFamily: 'var(--font-system)', position: 'relative' }}>
       {/* Language dropdown */}
       <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}>
-        <button
+        <button type="button"
           onClick={(e) => {
             e.stopPropagation();
             setLangDropdownOpen((o) => !o);
@@ -281,7 +281,7 @@ export default function LoginPage(): React.ReactElement {
             }}
           >
             {SUPPORTED_LANGUAGES.map(({ value, label }) => (
-              <button
+              <button type="button"
                 key={value}
                 role="option"
                 aria-selected={value === language}
@@ -1049,7 +1049,7 @@ export default function LoginPage(): React.ReactElement {
                     }}
                   >
                     {mode === 'login' ? t('login.noAccount') + ' ' : t('login.hasAccount') + ' '}
-                    <button
+                    <button type="button"
                       onClick={() => {
                         setMode((m) => (m === 'login' ? 'register' : 'login'));
                         setError('');
@@ -1185,7 +1185,7 @@ export default function LoginPage(): React.ReactElement {
 
           {/* Demo login button */}
           {appConfig?.demo_mode && (
-            <button
+            <button type="button"
               onClick={handleDemoLogin}
               disabled={isLoading}
               style={{

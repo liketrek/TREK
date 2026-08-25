@@ -59,7 +59,7 @@ export default function ApplyTemplateButton({ tripId, visibility, style, classNa
 
   return (
     <div ref={dropRef} style={{ position: 'relative' }}>
-      <button
+      <button type="button"
         onClick={() => setOpen(v => !v)}
         disabled={applying}
         className={className ?? 'hover:opacity-[0.88]'}
@@ -79,7 +79,7 @@ export default function ApplyTemplateButton({ tripId, visibility, style, classNa
           }}
         >
           {templates.map(tmpl => (
-            <button key={tmpl.id} onClick={() => handleApply(tmpl.id)}
+            <button type="button" key={tmpl.id} onClick={() => handleApply(tmpl.id)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                 padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',

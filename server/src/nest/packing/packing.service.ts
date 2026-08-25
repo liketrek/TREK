@@ -434,7 +434,7 @@ export class PackingService {
       for (const item of items) {
         if (!item.name?.trim()) continue;
         const checked = item.checked ? 1 : 0;
-        const weight = item.weight_grams ? parseInt(String(item.weight_grams)) || null : null;
+        const weight = item.weight_grams ? Number.parseInt(String(item.weight_grams)) || null : null;
 
         // Resolve bag by name if provided
         let bagId = null;

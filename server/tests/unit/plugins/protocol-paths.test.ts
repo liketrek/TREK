@@ -5,7 +5,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { isKnownPermission, METHOD_PERMISSION, KNOWN_METHODS, HOOK_PERMISSION } from '../../../src/nest/plugins/protocol/envelope';
 import path from 'node:path';
-import { pluginsCodeRoot, pluginsDataRoot, pluginCodeDir, pluginDbFile, resolveChildEntry, serverCodeRoot, pluginPermissionArgs, pluginRealCodeDir, ensurePluginModuleType } from '../../../src/nest/plugins/paths';
+import { pluginsCodeRoot, pluginsDataRoot, pluginCodeDir, pluginDataDir, pluginDbFile, resolveChildEntry, serverCodeRoot, pluginPermissionArgs, pluginRealCodeDir, ensurePluginModuleType } from '../../../src/nest/plugins/paths';
 
 afterEach(() => {
   delete process.env.TREK_PLUGINS_DIR;
@@ -98,6 +98,47 @@ describe('paths', () => {
       expect(JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'))).toEqual({ type: 'module' });
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+/**
+ * The id these helpers get comes off a route parameter — POST
+ * /api/admin/plugins/:id/uninstall walks it into pluginCodeDir and hands the result
+ * to a recursive remove. Express decodes %2F only AFTER routing, so a traversal
+ * still matches the route and arrives here decoded.
+ */
+describe('plugin id containment', () => {
+  const traversals = [
+    '../../uploads',
+    '../..',
+    '..',
+    '.',
+    'a/b',
+    'a\b',
+    'C:\Windows',
+    '.hidden',
+    '',
+  ];
+
+  it('refuses any id that could point outside its parent', () => {
+    for (const id of traversals) {
+      expect(() => pluginCodeDir(id), id).toThrow(/invalid plugin id/);
+      expect(() => pluginDataDir(id), id).toThrow(/invalid plugin id/);
+    }
+  });
+
+  it('still accepts the ids plugins actually use', () => {
+    for (const id of ['x', 'a1', '001', 'flight-tracker', 'Bad-Id', 'trip.todos', 'koffi_and_friends']) {
+      expect(path.basename(pluginCodeDir(id))).toBe(id);
+      expect(path.basename(pluginDataDir(id))).toBe(id);
+    }
+  });
+
+  it('keeps every accepted id inside the plugin roots', () => {
+    for (const id of ['x', 'flight-tracker', 'a.b', 'a-b_c']) {
+      expect(pluginCodeDir(id).startsWith(pluginsCodeRoot() + path.sep)).toBe(true);
+      expect(pluginDataDir(id).startsWith(pluginsDataRoot() + path.sep)).toBe(true);
     }
   });
 });

@@ -163,7 +163,7 @@ export default function BackgroundTasksWidget() {
                 <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 1 }}>{t('reservations.import.parsing')}</div>
               ) : task.items.length > 0 ? (
                 <div>
-                  <button
+                  <button type="button"
                     onClick={() => review(task)}
                     className="bg-accent text-accent-text"
                     style={{ marginTop: 4, border: 'none', borderRadius: 8, padding: '4px 12px', fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
@@ -192,7 +192,7 @@ export default function BackgroundTasksWidget() {
                     )}
                   </div>
                   {aiParsing && task.mode !== 'force-ai' && task.sourceFiles && task.sourceFiles.length > 0 && (
-                    <button
+                    <button type="button"
                       onClick={() => retryWithAi(task)}
                       disabled={retrying === task.id}
                       className="bg-surface-tertiary text-content"
@@ -211,7 +211,7 @@ export default function BackgroundTasksWidget() {
           </div>
 
           {task.status !== 'running' && (
-            <button
+            <button type="button"
               onClick={() => dismiss(task.id)}
               className="bg-transparent text-content-faint"
               style={{ flexShrink: 0, border: 'none', cursor: 'pointer', padding: 2, borderRadius: 6, display: 'flex', alignItems: 'center' }}

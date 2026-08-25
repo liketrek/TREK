@@ -98,7 +98,7 @@ export function StudioSidebar({
     <>
       <nav className="st-rail" aria-label={t('journey.studio.sections')}>
         {SECTIONS.map(sec => (
-          <button
+          <button type="button"
             key={sec.id}
             className={`st-rail-btn ${section === sec.id ? 'is-on' : ''}`}
             onClick={() => setSection(sec.id)}
@@ -157,7 +157,7 @@ function PagesPanel({
             const editable = canEditSpread(i)
             return (
               <div className="st-thumb-row" key={sp.id}>
-                <button
+                <button type="button"
                   className={`st-thumb ${i === active ? 'is-active' : ''}`}
                   onClick={() => setActive(i)}
                 >
@@ -190,7 +190,7 @@ function PagesPanel({
                 */}
                 {editable && (
                   <div className="st-thumb-actions">
-                    <button
+                    <button type="button"
                       onClick={() => moveSpread(i, -1)}
                       disabled={!canEditSpread(i - 1)}
                       title={t('journey.studio.movePageUp')}
@@ -198,7 +198,7 @@ function PagesPanel({
                     >
                       <ChevronUp size={13} />
                     </button>
-                    <button
+                    <button type="button"
                       onClick={() => moveSpread(i, 1)}
                       disabled={!canEditSpread(i + 1)}
                       title={t('journey.studio.movePageDown')}
@@ -206,14 +206,14 @@ function PagesPanel({
                     >
                       <ChevronDown size={13} />
                     </button>
-                    <button
+                    <button type="button"
                       onClick={() => duplicateSpread(i)}
                       title={t('journey.studio.duplicatePage')}
                       aria-label={t('journey.studio.duplicatePage')}
                     >
                       <Copy size={12} />
                     </button>
-                    <button
+                    <button type="button"
                       className="is-danger"
                       onClick={() => removeSpread(i)}
                       title={t('journey.studio.deletePage')}
@@ -227,7 +227,7 @@ function PagesPanel({
                 {/* Insert between two spreads, where the new one will go — a
                     single "add" at the end cannot express "another page here". */}
                 {editable && (
-                  <button
+                  <button type="button"
                     className="st-thumb-insert"
                     onClick={() => addSpread(i)}
                     title={t('journey.studio.addPageAfter')}
@@ -247,11 +247,11 @@ function PagesPanel({
           not a setting buried in a menu, it is the other half of "add".
         */}
         <div className="st-add-row">
-          <button className="st-add-page" onClick={() => addSpread(lastInner)}>
+          <button type="button" className="st-add-page" onClick={() => addSpread(lastInner)}>
             <Plus size={14} />
             {t('journey.studio.addPage')}
           </button>
-          <button
+          <button type="button"
             className="st-add-page is-import"
             onClick={() => fileInput.current?.click()}
             title={t('journey.studio.importSpreadHint')}
@@ -429,17 +429,17 @@ function ContentPanel({
           spellCheck={false}
         />
         {query && (
-          <button onClick={() => setQuery('')} aria-label={t('common.clear')}>
+          <button type="button" onClick={() => setQuery('')} aria-label={t('common.clear')}>
             <X size={13} />
           </button>
         )}
       </div>
 
       <div className="st-tabs">
-        <button className={tab === 'photos' ? 'is-on' : ''} onClick={() => setTab('photos')}>
+        <button type="button" className={tab === 'photos' ? 'is-on' : ''} onClick={() => setTab('photos')}>
           {t('journey.studio.photos')} <em>{photos.length}</em>
         </button>
-        <button className={tab === 'text' ? 'is-on' : ''} onClick={() => setTab('text')}>
+        <button type="button" className={tab === 'text' ? 'is-on' : ''} onClick={() => setTab('text')}>
           {t('journey.studio.entries')} <em>{entries.length}</em>
         </button>
       </div>
@@ -448,7 +448,7 @@ function ContentPanel({
         {tab === 'photos' ? (
           <div className="st-photo-grid">
             {photos.map(p => (
-              <button
+              <button type="button"
                 key={p.photoId}
                 className="st-photo-cell"
                 onClick={() => dropPhoto(p.photoId)}
@@ -488,17 +488,17 @@ function ContentPanel({
                 )}
                 <div className="st-row" style={{ marginTop: 7 }}>
                   {e.title && (
-                    <button className="st-chip" onClick={() => dropText(e.title!, 22, 700, e.id, 'entry.title')}>
+                    <button type="button" className="st-chip" onClick={() => dropText(e.title!, 22, 700, e.id, 'entry.title')}>
                       {t('journey.studio.addTitle')}
                     </button>
                   )}
                   {e.story && (
-                    <button className="st-chip" onClick={() => dropText(e.story!, 10, 400, e.id, 'entry.story')}>
+                    <button type="button" className="st-chip" onClick={() => dropText(e.story!, 10, 400, e.id, 'entry.story')}>
                       {t('journey.studio.addStory')}
                     </button>
                   )}
                   {e.location && (
-                    <button className="st-chip" onClick={() => dropText(e.location!, 8, 700, e.id, 'entry.location')}>
+                    <button type="button" className="st-chip" onClick={() => dropText(e.location!, 8, 700, e.id, 'entry.location')}>
                       {t('journey.studio.addPlace')}
                     </button>
                   )}
@@ -508,7 +508,7 @@ function ContentPanel({
                     mark placed here and one the auto layout placed read alike.
                   */}
                   {e.date && (
-                    <button
+                    <button type="button"
                       className="st-chip"
                       onClick={() => dropText(
                         formatBookDate(e.date!, locale), 8, 700, e.id, 'entry.date',
@@ -519,7 +519,7 @@ function ContentPanel({
                     </button>
                   )}
                   {e.lat != null && e.lng != null && (
-                    <button
+                    <button type="button"
                       className="st-chip"
                       onClick={() => dropText(
                         formatBookCoords(e.lat!, e.lng!, 'dms'), 8, 700, e.id, 'entry.location',
@@ -535,7 +535,7 @@ function ContentPanel({
                     what you are about to place; "Weather" does not.
                   */}
                   {e.mood && MOOD_CONFIG[e.mood] && (
-                    <button
+                    <button type="button"
                       className="st-chip"
                       onClick={() => dropMark('mood', e.mood!, t(MOOD_CONFIG[e.mood!].label))}
                     >
@@ -543,7 +543,7 @@ function ContentPanel({
                     </button>
                   )}
                   {e.weather && WEATHER_CONFIG[e.weather] && (
-                    <button
+                    <button type="button"
                       className="st-chip"
                       onClick={() => dropMark('weather', e.weather!, t(WEATHER_CONFIG[e.weather!].label))}
                     >
@@ -551,7 +551,7 @@ function ContentPanel({
                     </button>
                   )}
                   {(e.pros.length > 0 || e.cons.length > 0) && (
-                    <button className="st-chip" onClick={() => dropProsCons(e.pros, e.cons)}>
+                    <button type="button" className="st-chip" onClick={() => dropProsCons(e.pros, e.cons)}>
                       {t('journey.studio.addProsCons')}
                       <em>{e.pros.length + e.cons.length}</em>
                     </button>

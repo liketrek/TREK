@@ -126,7 +126,7 @@ function JourneyDetailPageDesktop() {
           className="fixed left-0 right-0 z-30 flex items-start justify-between gap-2 px-4"
           style={{ top: 'calc(var(--nav-h, 56px) + 12px)' }}
         >
-          <button
+          <button type="button"
             onClick={() => navigate('/journey')}
             aria-label={t('journey.detail.backToJourney')}
             className={barButton}
@@ -136,7 +136,7 @@ function JourneyDetailPageDesktop() {
 
           <div className="flex-1 min-w-0 flex justify-center">
             <div className="flex bg-surface-elevated backdrop-blur-lg border border-edge rounded-lg overflow-hidden shadow-lg">
-              <button
+              <button type="button"
                 onClick={() => setView('timeline')}
                 className={`flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-medium ${
                   view === 'timeline'
@@ -147,7 +147,7 @@ function JourneyDetailPageDesktop() {
                 <MapPin size={13} />
                 {t('journey.detail.journeyTab') || 'Journey'}
               </button>
-              <button
+              <button type="button"
                 onClick={() => setView('gallery')}
                 className={`flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-medium ${
                   view === 'gallery'
@@ -162,7 +162,7 @@ function JourneyDetailPageDesktop() {
           </div>
 
           <div className="flex items-center gap-1.5">
-            <button
+            <button type="button"
               onClick={openStudio}
               onMouseEnter={prefetchStudio}
               aria-label={t('journey.studio.openAria')}
@@ -170,7 +170,7 @@ function JourneyDetailPageDesktop() {
             >
               <BookOpen size={16} />
             </button>
-            <button
+            <button type="button"
               onClick={toggleSkeletons}
               aria-label={skeletonLabel}
               className={`${barButton} ${hideSkeletons ? 'bg-surface-selected' : ''}`}
@@ -178,7 +178,7 @@ function JourneyDetailPageDesktop() {
               {hideSkeletons ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
             {canEditJourney && (
-              <button
+              <button type="button"
                 onClick={() => setShowSettings(true)}
                 aria-label={t('journey.settings.title')}
                 className={barButton}
@@ -230,7 +230,7 @@ function JourneyDetailPageDesktop() {
 
                 <div className="relative z-[3] flex items-center justify-between mb-5">
                   <div className="flex items-center gap-2">
-                    <button
+                    <button type="button"
                       onClick={() => navigate('/journey')}
                       aria-label={t('journey.detail.backToJourney')}
                       className="w-[34px] h-[34px] rounded-full bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"
@@ -252,7 +252,7 @@ function JourneyDetailPageDesktop() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <button
+                    <button type="button"
                       onClick={openStudio}
                       onMouseEnter={prefetchStudio}
                       className="inline-flex h-[34px] items-center gap-1.5 px-3.5 rounded-full bg-white/15 backdrop-blur border border-white/15 text-[12px] font-semibold hover:bg-white/25"
@@ -261,7 +261,7 @@ function JourneyDetailPageDesktop() {
                       {t('journey.studio.open')}
                     </button>
                     <div className="relative group">
-                      <button
+                      <button type="button"
                         onClick={toggleSkeletons}
                         aria-label={skeletonLabel}
                         className={`w-[34px] h-[34px] rounded-full backdrop-blur flex items-center justify-center ${hideSkeletons ? 'bg-white/30' : 'bg-white/15 hover:bg-white/25'}`}
@@ -273,7 +273,7 @@ function JourneyDetailPageDesktop() {
                       </span>
                     </div>
                     {canEditJourney && (
-                      <button onClick={() => setShowSettings(true)} aria-label={t('journey.settings.title')} className="w-[34px] h-[34px] rounded-full bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"><MoreHorizontal size={14} /></button>
+                      <button type="button" onClick={() => setShowSettings(true)} aria-label={t('journey.settings.title')} className="w-[34px] h-[34px] rounded-full bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"><MoreHorizontal size={14} /></button>
                     )}
                   </div>
                 </div>
@@ -320,7 +320,7 @@ function JourneyDetailPageDesktop() {
                         { id: 'gallery' as const, icon: Grid, label: t('journey.share.gallery') },
                       ]
                   ).map(v => (
-                    <button
+                    <button type="button"
                       key={v.id}
                       onClick={() => setView(v.id)}
                       className="flex items-center gap-1.5 px-3.5 py-[6px] text-[12px] font-semibold rounded-full transition-colors"
@@ -334,7 +334,7 @@ function JourneyDetailPageDesktop() {
                   ))}
                 </div>
                 {canEditEntries && view === 'timeline' && (
-                  <button
+                  <button type="button"
                     onClick={() => {
                       setEditingEntry(createDraftJourneyEntry(current.id))
                     }}
@@ -346,7 +346,7 @@ function JourneyDetailPageDesktop() {
                   </button>
                 )}
                 {canEditEntries && view === 'gallery' && (
-                  <button
+                  <button type="button"
                     onClick={() => galleryUploadRef.current?.()}
                     className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-transform hover:-translate-y-0.5"
                     style={{ background: 'var(--vg-ink)', color: 'var(--vg-bg)' }}
@@ -472,7 +472,7 @@ function JourneyDetailPageDesktop() {
                 <div className="sticky bottom-0 z-20 h-0 pointer-events-none">
                   <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5 pointer-events-auto">
                     {!feedEdge.atTop && (
-                      <button
+                      <button type="button"
                         onClick={() => scrollFeedTo('top')}
                         aria-label={t('journey.detail.jumpToTop')}
                         title={t('journey.detail.jumpToTop')}
@@ -483,7 +483,7 @@ function JourneyDetailPageDesktop() {
                       </button>
                     )}
                     {!feedEdge.atBottom && (
-                      <button
+                      <button type="button"
                         onClick={() => scrollFeedTo('bottom')}
                         aria-label={t('journey.detail.jumpToLast')}
                         title={t('journey.detail.jumpToLast')}

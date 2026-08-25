@@ -1,6 +1,6 @@
 # MCP Addon Tools and Resources
 
-This page covers MCP tools and resources that require specific addons to be enabled on your TREK instance. For core tools (trips, places, day planning, accommodations, transport, reservations, budget, tags, maps, and notifications) see [MCP-Tools-and-Resources](MCP-Tools-and-Resources).
+This page covers MCP tools and resources that require specific addons to be enabled on your TREK instance. For the rest of the surface (trips, places, day planning, accommodations, transport, reservations, tags, maps, and notifications — plus the Budget tools, which need the Budget addon but are documented there) see [MCP-Tools-and-Resources](MCP-Tools-and-Resources).
 
 ---
 
@@ -18,8 +18,10 @@ Requires `packing:read` or `packing:write` scope.
 | `delete_packing_item` | Remove a packing item. |
 | `reorder_packing_items` | Set the display order of packing items within a trip. |
 | `bulk_import_packing` | Import multiple packing items at once from a list (with optional quantity). |
+| `list_packing_templates` | List the reusable packing templates (id, name, item count) so one can be applied. |
 | `apply_packing_template` | Apply a saved packing template to a trip. |
-| `save_packing_template` | Save the current packing list as a reusable template. |
+| `save_packing_template` | Save the current packing list as a reusable template. Templates are global, so this is admin only — a non-admin gets `Admin access required`. |
+| `delete_packing_template` | Delete a reusable packing template. Global too, so admin only. |
 | `list_packing_bags` | List all packing bags for a trip. |
 | `create_packing_bag` | Create a new packing bag (e.g. "Carry-on", "Checked bag"). |
 | `update_packing_bag` | Rename or recolor a packing bag. |
@@ -64,6 +66,14 @@ Requires `atlas:read` or `atlas:write` scope.
 
 Requires `collab:read` or `collab:write` scope.
 
+The addon alone is not enough. Collab has four sub-features an admin switches on and off independently in Admin → Addons — Notes, Polls, Chat and What's Next, all on by default — and three of them gate MCP entries. A tool or resource is only registered when its own sub-feature is enabled on top of the addon, so switching one off makes its entries vanish from the tool list rather than return an error. What's Next has no MCP tools or resources of its own, so toggling it changes nothing here.
+
+| Sub-feature | Tools it gates | Resource it gates |
+|---|---|---|
+| Notes | `create_collab_note`, `update_collab_note`, `delete_collab_note` | `trek://trips/{tripId}/collab-notes` |
+| Polls | `list_collab_polls`, `create_collab_poll`, `vote_collab_poll`, `close_collab_poll`, `delete_collab_poll` | `trek://trips/{tripId}/collab/polls` |
+| Chat | `list_collab_messages`, `send_collab_message`, `delete_collab_message`, `react_collab_message` | `trek://trips/{tripId}/collab/messages` |
+
 | Tool | Description |
 |---|---|
 | `create_collab_note` | Create a shared note visible to all trip members. Supports title, content, category, and color. |
@@ -78,6 +88,38 @@ Requires `collab:read` or `collab:write` scope.
 | `send_collab_message` | Send a chat message to a trip's collab channel, with optional reply threading. |
 | `delete_collab_message` | Delete a chat message (own messages only). |
 | `react_collab_message` | Toggle a reaction emoji on a chat message. |
+
+### Collections _(Collections addon required)_
+
+Requires `collections:read` or `collections:write` scope.
+
+| Tool | Description |
+|---|---|
+| `list_collections` | List the saved-place collections the user owns or has accepted a share for, plus any pending incoming invites. |
+| `get_collection` | Get one collection with its members, labels, and all saved places, including the average rating and each member's vote. |
+| `available_collection_users` | List users who can still be invited to a collection (excludes current members and guests). |
+| `create_collection` | Create a new saved-place collection owned by the user. |
+| `update_collection` | Update a collection's name, description, colour, icon, cover, links, or sort order. Owner/admin only. |
+| `delete_collection` | Permanently delete a collection and all its saved places. Owner only, and it cannot be undone. |
+| `reorder_collections` | Reorder the user's collections — pass every collection id in the desired order. |
+| `save_place_to_collection` | Save a place into a collection from a raw payload. Returns a duplicate marker instead of saving when a similar place already exists, unless `force` is true. |
+| `save_trip_places_to_collection` | Copy one or more existing trip places into a collection. Duplicates are skipped unless `force` is true. |
+| `update_collection_place` | Update a saved place's name, address, coordinates, description, notes, status, category, links, tags, labels, image, or move it to another collection. |
+| `set_collection_place_status` | Set a saved place's status: `idea`, `want`, or `visited`. |
+| `rate_collection_place` | Set or clear the current user's 1-5 star rating on a saved place. Every member rates independently; pass `null` to remove the vote. |
+| `delete_collection_place` | Remove a saved place from its collection. Requires delete permission on the list. |
+| `copy_collection_places_to_trip` | Copy one or more saved places into a trip, ratings included. Requires edit access to the target trip. |
+| `create_collection_label` | Create a custom per-collection label (name plus optional hex colour) for grouping and filtering places. |
+| `update_collection_label` | Rename or recolour a collection label, or change its sort order. |
+| `delete_collection_label` | Delete a collection label; its assignments on places are cleared. |
+| `assign_collection_labels` | Add labels across a set of saved places, or take them away with `remove=true`. |
+| `invite_to_collection` | Invite a user to collaborate on a collection as `viewer`, `editor`, or `admin` (default `editor`). Owner only. |
+| `set_collection_member_role` | Change an accepted member's role. Owner only. |
+| `remove_collection_member` | Remove an accepted member from a shared collection. Owner only. |
+| `cancel_collection_invite` | Cancel a pending invite you sent for a collection. Owner only. |
+| `accept_collection_invite` | Accept a pending invite to join a shared collection. |
+| `decline_collection_invite` | Decline a pending invite to a shared collection. |
+| `leave_collection` | Leave a shared collection you are a member of. The owner cannot leave — delete the list instead. |
 
 ### Vacay _(Vacay addon required)_
 

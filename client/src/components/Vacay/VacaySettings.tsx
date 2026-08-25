@@ -76,7 +76,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
               const current: number[] = plan.weekend_days ? String(plan.weekend_days).split(',').map(Number) : [0, 6]
               const active = current.includes(day)
               return (
-                <button key={day} onClick={() => {
+                <button type="button" key={day} onClick={() => {
                   const next = active ? current.filter(d => d !== day) : [...current, day]
                   updatePlan({ weekend_days: next.join(',') })
                 }}
@@ -111,7 +111,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
           ].map(({ value, label }) => {
             const active = (plan.week_start ?? 1) === value
             return (
-              <button key={value} onClick={() => updatePlan({ week_start: value })}
+              <button type="button" key={value} onClick={() => updatePlan({ week_start: value })}
                 style={{
                   padding: '4px 10px', borderRadius: 8, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer',
                   fontFamily: 'inherit', border: '1px solid', transition: 'all 0.12s',
@@ -194,7 +194,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
                 onCancel={() => setShowAddForm(false)}
               />
             ) : (
-              <button
+              <button type="button"
                 onClick={() => setShowAddForm(true)}
                 className="w-full flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 rounded-xl border border-dashed transition-colors"
                 style={{ borderColor: 'var(--vg-line2)', background: 'var(--vg-surf)', color: 'var(--vg-ink2)' }}
@@ -242,7 +242,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
                 onCancel={() => setShowAddSchoolForm(false)}
               />
             ) : (
-              <button
+              <button type="button"
                 onClick={() => setShowAddSchoolForm(true)}
                 className="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-md transition-colors text-content-muted bg-surface-secondary"
               >
@@ -278,7 +278,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
               ))}
             </div>
             <div className="px-4 py-3 border-t border-t-[rgba(239,68,68,0.1)]">
-              <button
+              <button type="button"
                 onClick={async () => {
                   await dissolve()
                   toast.success(t('vacay.dissolved'))
@@ -363,7 +363,7 @@ function YearTypePicker() {
           <div className="flex-1 min-w-0">
             <CustomSelect
               value={String(yearSettings.year_start_month)}
-              onChange={v => save({ year_start_month: parseInt(String(v), 10) })}
+              onChange={v => save({ year_start_month: Number.parseInt(String(v), 10) })}
               options={monthNames.map((label, i) => ({ value: String(i + 1), label }))}
               placeholder={t('vacay.yearStartMonth')}
             />
@@ -371,7 +371,7 @@ function YearTypePicker() {
           <div className="w-[92px] shrink-0">
             <CustomSelect
               value={String(yearSettings.year_start_day)}
-              onChange={v => save({ year_start_day: parseInt(String(v), 10) })}
+              onChange={v => save({ year_start_day: Number.parseInt(String(v), 10) })}
               options={Array.from({ length: maxDay }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }))}
               placeholder={t('vacay.yearStartDay')}
             />
@@ -425,7 +425,7 @@ function SettingToggle({ icon: Icon, label, hint, value, onChange }: SettingTogg
           <p className="text-[11px] text-content-faint">{hint}</p>
         </div>
       </div>
-      <button onClick={onChange}
+      <button type="button" onClick={onChange}
         className={`relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors ${value ? 'bg-content' : 'bg-edge'}`}>
         <span className="absolute left-1 h-4 w-4 rounded-full transition-transform duration-200 bg-surface-card"
           style={{ transform: value ? 'translateX(20px)' : 'translateX(0)' }} />
@@ -485,7 +485,7 @@ function CalendarRow({ cal, countries, calendarType, onUpdate, onDelete }: {
   return (
     <div className="flex gap-3 items-start p-3 rounded-xl" style={{ background: 'var(--vg-surf)', border: '1px solid var(--vg-line)' }}>
       <div style={{ position: 'relative', flexShrink: 0 }}>
-        <button
+        <button type="button"
           onClick={() => setShowColorPicker(!showColorPicker)}
           style={{ width: 28, height: 28, borderRadius: 8, background: localColor, border: '2px solid var(--border-primary)', cursor: 'pointer' }}
           title={t('vacay.calendarColor')}
@@ -493,7 +493,7 @@ function CalendarRow({ cal, countries, calendarType, onUpdate, onDelete }: {
         {showColorPicker && (
           <div style={{ position: 'absolute', top: 34, left: 0, zIndex: 50, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12, padding: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, width: 120 }}>
             {PRESET_COLORS.map(c => (
-              <button key={c} onClick={() => { setLocalColor(c); setShowColorPicker(false); if (c !== cal.color) onUpdate({ color: c }) }}
+              <button type="button" key={c} onClick={() => { setLocalColor(c); setShowColorPicker(false); if (c !== cal.color) onUpdate({ color: c }) }}
                 style={{ width: 24, height: 24, borderRadius: 6, background: c, border: localColor === c ? '2px solid var(--text-primary)' : '2px solid transparent', cursor: 'pointer' }} />
             ))}
           </div>
@@ -526,7 +526,7 @@ function CalendarRow({ cal, countries, calendarType, onUpdate, onDelete }: {
           />
         )}
       </div>
-      <button
+      <button type="button"
         onClick={onDelete}
         className="shrink-0 p-1.5 rounded-md transition-colors text-content-faint"
         onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.1)' }}
@@ -568,7 +568,7 @@ function AddCalendarForm({ countries, calendarType, onAdd, onCancel, defaultColo
   return (
     <div className="flex gap-3 items-start p-3 rounded-xl border border-dashed" style={{ borderColor: 'var(--vg-line2)', background: 'var(--vg-surf)' }}>
       <div style={{ position: 'relative', flexShrink: 0 }}>
-        <button
+        <button type="button"
           onClick={() => setShowColorPicker(!showColorPicker)}
           style={{ width: 28, height: 28, borderRadius: 8, background: color, border: '2px solid var(--border-primary)', cursor: 'pointer' }}
           title={t('vacay.calendarColor')}
@@ -576,7 +576,7 @@ function AddCalendarForm({ countries, calendarType, onAdd, onCancel, defaultColo
         {showColorPicker && (
           <div style={{ position: 'absolute', top: 34, left: 0, zIndex: 50, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12, padding: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, width: 120 }}>
             {PRESET_COLORS.map(c => (
-              <button key={c} onClick={() => { setColor(c); setShowColorPicker(false) }}
+              <button type="button" key={c} onClick={() => { setColor(c); setShowColorPicker(false) }}
                 style={{ width: 24, height: 24, borderRadius: 6, background: c, border: color === c ? '2px solid var(--text-primary)' : '2px solid transparent', cursor: 'pointer' }} />
             ))}
           </div>
@@ -607,7 +607,7 @@ function AddCalendarForm({ countries, calendarType, onAdd, onCancel, defaultColo
           />
         )}
         <div className="flex gap-1.5 pt-0.5">
-          <button
+          <button type="button"
             disabled={!canAdd}
             aria-busy={loadingRegions}
             onClick={() => onAdd({ region: region || selectedCountry, color, label: label.trim() || null })}
@@ -616,7 +616,7 @@ function AddCalendarForm({ countries, calendarType, onAdd, onCancel, defaultColo
             {loadingRegions && <Loader2 size={12} className="animate-spin" />}
             {t('vacay.add')}
           </button>
-          <button
+          <button type="button"
             onClick={onCancel}
             className="text-xs px-2 py-1.5 rounded-md transition-colors bg-surface-secondary text-content-muted"
           >

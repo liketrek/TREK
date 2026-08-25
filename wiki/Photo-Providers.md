@@ -2,7 +2,7 @@
 
 TREK can browse your personal photo library on Immich or Synology Photos and attach selected photos to trips. TREK never copies the original files — it stores only a reference (provider name + asset ID) and proxies all image streams through its own server, so your provider credentials are never sent to the browser.
 
-> **Admin:** Enable at least one photo provider (Immich or Synology Photos) in **Admin → Addons** — photo provider toggles appear as sub-items under the **Journey** addon. Once a provider is on, a Photo Providers section appears in each user's **Settings → Integrations**. If your provider runs on a local or private network, the server must be configured to allow internal network access. See [Admin-Addons](Admin-Addons) and [Internal-Network-Access](Internal-Network-Access).
+> **Admin:** Enable at least one photo provider (Immich or Synology Photos) in **Admin → Addons** — photo provider toggles appear as sub-items under the **Journey** addon. Once a provider is on, its settings card appears in each user's **Settings → Integrations**. If your provider runs on a local or private network, the server must be configured to allow internal network access. See [Admin-Addons](Admin-Addons) and [Internal-Network-Access](Internal-Network-Access).
 
 ---
 
@@ -19,7 +19,7 @@ Both providers can be active at the same time.
 
 ## Configuring a provider
 
-Go to **Settings → Integrations → Photo Providers**. Each enabled provider shows its own settings section.
+Go to **Settings → Integrations**. Each enabled provider gets its own settings card there, titled with the provider's name — **Immich** and/or **Synology Photos**.
 
 <!-- TODO: screenshot: Photo Providers section in Settings > Integrations -->
 
@@ -56,8 +56,8 @@ TREK never modifies or deletes anything in Immich, so no `update`, `delete`, or 
 | Server URL | Yes | Full URL including the Photos app path, e.g. `https://your-nas:5001/photo` |
 | Username | Yes | Synology account username |
 | Password | Yes | Stored encrypted; leave blank to keep the existing password |
-| OTP code | No | One-time password for 2FA; only needed on first connection or when re-authenticating |
-| Skip SSL verification | No | Checkbox; disable TLS certificate validation for self-signed certificates |
+| MFA code (if enabled) | No | One-time password for 2FA; only needed on first connection or when re-authenticating |
+| Skip SSL certificate verification | No | Checkbox; disable TLS certificate validation for self-signed certificates |
 
 #### Required DSM account permissions
 

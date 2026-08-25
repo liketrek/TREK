@@ -153,7 +153,7 @@ function MCurrencyWidget(): React.ReactElement {
 
   const currencies = rates ? Object.keys(rates).sort() : [...CURRENCIES]
   const rate = rates?.[to] ?? null
-  const converted = rate != null ? (parseFloat(amount.replace(',', '.')) || 0) * rate : null
+  const converted = rate != null ? (Number.parseFloat(amount.replace(',', '.')) || 0) * rate : null
   const swap = () => { setFrom(to); setTo(from) }
 
   return (

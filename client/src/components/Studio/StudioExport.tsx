@@ -81,7 +81,7 @@ export function StudioExport({
       <div className="st-ex-card">
         <div className="st-ex-head">
           <span>{t('journey.studio.export')}</span>
-          <button className="st-ex-x" onClick={onClose} aria-label={t('common.close')}>
+          <button type="button" className="st-ex-x" onClick={onClose} aria-label={t('common.close')}>
             <X size={15} />
           </button>
         </div>
@@ -109,7 +109,7 @@ export function StudioExport({
 
           <div className="st-ex-field">
             <span className="st-ex-label">{t('journey.studio.exportFinishing')}</span>
-            <button
+            <button type="button"
               className={`st-ex-opt ${marks ? 'is-on' : ''}`}
               onClick={() => setMarks(!marks)}
               aria-pressed={marks}
@@ -134,8 +134,8 @@ export function StudioExport({
         </div>
 
         <div className="st-ex-foot">
-          <button className="st-ex-btn" onClick={onClose}>{t('common.cancel')}</button>
-          <button className="st-ex-btn is-primary" onClick={() => setBuilding(true)} disabled={building}>
+          <button type="button" className="st-ex-btn" onClick={onClose}>{t('common.cancel')}</button>
+          <button type="button" className="st-ex-btn is-primary" onClick={() => setBuilding(true)} disabled={building}>
             <Printer size={14} />
             <span>{t('journey.studio.exportOpen')}</span>
           </button>
@@ -176,7 +176,7 @@ function Choice<T extends string>({
     <div className="st-ex-field">
       <span className="st-ex-label">{label}</span>
       {options.map(opt => (
-        <button
+        <button type="button"
           key={opt.id}
           className={`st-ex-opt ${value === opt.id ? 'is-on' : ''}`}
           onClick={() => onPick(opt.id)}

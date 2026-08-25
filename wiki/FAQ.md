@@ -2,13 +2,13 @@
 
 ## Do I need a Google Maps API key?
 
-No. When no Google Maps key is configured, TREK automatically falls back to OpenStreetMap (Nominatim) for place search — no API key or account required. If you want richer place data (photos, ratings, opening hours), an admin can optionally add a Google Maps key in [User Settings](User-Settings).
+No. When no Google Maps key is configured, TREK automatically falls back to OpenStreetMap (Nominatim) for place search — no API key or account required. If you want richer place data (photos, ratings, opening hours), an admin can optionally add a Google Maps key in **Admin Panel → Settings** — see [Admin Panel Overview](Admin-Panel-Overview). A key saved there applies instance-wide to every member; there is no per-user field for it in the UI.
 
 ## Can I use TREK offline?
 
-Yes. TREK is a Progressive Web App. After your first visit, the service worker (powered by Workbox) caches map tiles (Carto and OpenStreetMap), non-sensitive API responses, uploaded covers and avatars, and all static assets. Subsequent visits work without a network connection for already-cached content. See [Offline Mode and PWA](Offline-Mode-and-PWA) for installation instructions.
+Yes. TREK is a Progressive Web App. After your first visit, the service worker (powered by Workbox) caches map tiles (Carto, OpenStreetMap, Mapbox GL and OpenFreeMap), uploaded covers and avatars, and every page of the app. Subsequent visits work without a network connection for already-cached content. Trip data does not come from that cache: it is stored per user in IndexedDB and read back through TREK's own offline layer, with writes queued and replayed once you reconnect. See [Offline Mode and PWA](Offline-Mode-and-PWA) for installation instructions.
 
-> **Note:** Auth, admin, backup, and settings endpoints are intentionally excluded from the offline cache.
+> **Note:** API responses are **never** stored in the service-worker cache. Workbox keys its entries by URL and cannot vary them on the session cookie, so caching them would mean one account's data could be served to the next on a shared device.
 
 ## How many MCP tokens can I create?
 

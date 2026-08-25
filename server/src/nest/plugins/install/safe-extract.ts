@@ -82,7 +82,16 @@ function readTarGz(buf: Buffer, lim: Required<ExtractLimits>): Member[] {
     let name = block.subarray(0, 100).toString('utf8').replace(/\0.*$/, '');
     const prefix = block.subarray(345, 500).toString('utf8').replace(/\0.*$/, '');
     if (prefix) name = `${prefix}/${name}`;
-    const size = parseInt(block.subarray(124, 136).toString('utf8').replace(/\0.*$/, '').trim() || '0', 8);
+    const size = Number.parseInt(block.subarray(124, 136).toString('utf8').replace(/\0.*$/, '').trim() || '0', 8);
+    // A negative size walks the cursor backwards: `off += 512` and then
+    // `off += Math.ceil(size / 512) * 512` cancel out at -512 and go negative
+    // below it, so the same header is read forever while every pass appends a
+    // member — a 70-byte archive is enough to hold the main thread and exhaust
+    // memory. The entry budgets in extractArchive never get a say; they run on
+    // the list this function has to finish building first.
+    if (!Number.isSafeInteger(size) || size < 0) {
+      throw new ExtractError(`invalid entry size in tar header: ${block.subarray(124, 136).toString('utf8').replace(/\0.*$/, '').trim()}`);
+    }
     const typeflag = String.fromCharCode(block[156]);
     off += 512;
     const data = tar.subarray(off, off + size);

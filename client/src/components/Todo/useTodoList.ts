@@ -63,7 +63,10 @@ export function useTodoList(tripId: number, items: TodoItem[], addItemSignal: nu
   const categories = useMemo(() => {
     const cats = new Set<string>()
     items.forEach(i => { if (i.category) cats.add(i.category) })
-    return Array.from(cats).sort()
+    // Category names are free text the user types, and TREK ships 23 locales — a
+    // bare .sort() is byte order, which files every accented name behind the whole
+    // ASCII range ("Übernachtung" after "Zelt").
+    return Array.from(cats).sort((a, b) => a.localeCompare(b))
   }, [items])
 
   // due_date is a bare calendar date, so "today" has to be the user's calendar

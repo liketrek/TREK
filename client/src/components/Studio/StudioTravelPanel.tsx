@@ -68,7 +68,7 @@ function Card({ label, onClick, children, recommended = false, title }: {
   children: React.ReactNode
 }) {
   return (
-    <button
+    <button type="button"
       className={`st-travel-card ${recommended ? 'is-recommended' : ''}`}
       onClick={onClick}
       title={title ? `${label} — ${title}` : label}

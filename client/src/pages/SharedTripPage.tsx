@@ -327,7 +327,7 @@ export default function SharedTripPage() {
 
         {/* Language picker - top right */}
         <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
-          <button
+          <button type="button"
             onClick={() => setShowLangPicker((v) => !v)}
             className="bg-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.7)]"
             style={{
@@ -400,7 +400,7 @@ export default function SharedTripPage() {
             ...(permissions?.share_budget ? [{ id: 'budget', label: t('shared.tabBudget'), Icon: Wallet }] : []),
             ...(permissions?.share_collab ? [{ id: 'collab', label: t('shared.tabChat'), Icon: MessageCircle }] : []),
           ].map((tab) => (
-            <button
+            <button type="button"
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={activeTab === tab.id ? 'bg-[#111827] text-white' : 'bg-surface-card text-[#6b7280]'}
@@ -1022,7 +1022,7 @@ export default function SharedTripPage() {
               return g;
             }, {});
             const sumIn = (items: any[]) =>
-              items.reduce((s: number, i: any) => s + convert(parseFloat(i.total_price) || 0, curOf(i)), 0);
+              items.reduce((s: number, i: any) => s + convert(Number.parseFloat(i.total_price) || 0, curOf(i)), 0);
             const total = sumIn(budget || []);
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

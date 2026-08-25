@@ -42,7 +42,7 @@ export default function InAppNotificationBell(): React.ReactElement {
 
   return (
     <div className="relative flex-shrink-0">
-      <button
+      <button type="button"
         onClick={handleOpen}
         title={t('notifications.title')}
         className="relative p-2 rounded-lg transition-colors text-content-muted"
@@ -98,7 +98,7 @@ export default function InAppNotificationBell(): React.ReactElement {
               </span>
               <div className="flex items-center gap-1">
                 {unreadCount > 0 && (
-                  <button
+                  <button type="button"
                     onClick={markAllRead}
                     title={t('notifications.markAllRead')}
                     className="p-1.5 rounded-lg transition-colors text-content-muted"
@@ -109,7 +109,7 @@ export default function InAppNotificationBell(): React.ReactElement {
                   </button>
                 )}
                 {notifications.length > 0 && (
-                  <button
+                  <button type="button"
                     onClick={deleteAll}
                     title={t('notifications.deleteAll')}
                     className="p-1.5 rounded-lg transition-colors text-content-muted"
@@ -142,7 +142,7 @@ export default function InAppNotificationBell(): React.ReactElement {
             </div>
 
             {/* Footer */}
-            <button
+            <button type="button"
               onClick={handleShowAll}
               className="w-full py-2.5 text-xs font-medium transition-colors flex-shrink-0 border-t border-edge-secondary text-content"
               style={{

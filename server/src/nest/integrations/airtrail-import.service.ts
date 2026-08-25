@@ -62,7 +62,7 @@ function flightSignature(flight: AirtrailFlightRaw): string | null {
 function orderConnectionChain(group: AirtrailFlightRaw[]): AirtrailFlightRaw[] | null {
   if (group.length < 2) return null;
   const norm = group.map(raw => ({ raw, n: normalizeFlight(raw) }));
-  const depMs = (n: (typeof norm)[number]['n']): number => (n.departure ? Date.parse(n.departure) : NaN);
+  const depMs = (n: (typeof norm)[number]['n']): number => (n.departure ? Date.parse(n.departure) : Number.NaN);
   if (norm.some(x => Number.isNaN(depMs(x.n)))) return null;
   norm.sort((a, b) => depMs(a.n) - depMs(b.n));
   const origin = norm[0].n.fromCode;
@@ -71,7 +71,7 @@ function orderConnectionChain(group: AirtrailFlightRaw[]): AirtrailFlightRaw[] |
     const next = norm[i].n;
     if (!prev.toCode || !next.fromCode || prev.toCode.toUpperCase() !== next.fromCode.toUpperCase()) return null;
     if (origin && next.toCode && next.toCode.toUpperCase() === origin.toUpperCase()) return null;
-    const arrMs = prev.arrival ? Date.parse(prev.arrival) : NaN;
+    const arrMs = prev.arrival ? Date.parse(prev.arrival) : Number.NaN;
     if (Number.isNaN(arrMs)) return null;
     const gap = depMs(next) - arrMs;
     if (gap < 0 || gap > 24 * 3600 * 1000) return null;

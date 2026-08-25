@@ -23,9 +23,31 @@ export function pluginsDataRoot(): string {
   return readEnv().plugins.dataDir || path.join(DATA_ROOT, 'plugins-data');
 }
 
+/**
+ * Plugin ids reach these helpers straight from a route parameter — `POST
+ * /api/admin/plugins/:id/uninstall` hands its id to pluginCodeDir, and what comes
+ * back goes to a recursive remove. Express decodes `%2F` AFTER routing, so
+ * `..%2F..%2Fuploads` still matches the route and arrives here as
+ * `../../uploads`; a plain path.join then points outside the plugin tree.
+ *
+ * Deliberately narrower than the manifest's ID_RE, which demands 3–40 lowercase
+ * characters and is the right rule at install time. This one only has to keep an
+ * id from leaving its parent, so it stays permissive about length and case and
+ * refuses exactly what steers a path: separators, a leading dot, and the
+ * drive/stream colon.
+ */
+const SAFE_PLUGIN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+function safePluginId(id: string): string {
+  if (typeof id !== 'string' || id.length > 64 || !SAFE_PLUGIN_ID.test(id)) {
+    throw new Error(`invalid plugin id: ${JSON.stringify(id)}`);
+  }
+  return id;
+}
+
 /** A plugin's installed code directory (contains trek-plugin.json + server/index.js). */
 export function pluginCodeDir(id: string): string {
-  return path.join(pluginsCodeRoot(), id);
+  return path.join(pluginsCodeRoot(), safePluginId(id));
 }
 
 /**
@@ -60,7 +82,7 @@ export function ensurePluginModuleType(codeDir: string): void {
 
 /** A plugin's writable data directory (its own sqlite file + any blobs). */
 export function pluginDataDir(id: string): string {
-  return path.join(pluginsDataRoot(), id);
+  return path.join(pluginsDataRoot(), safePluginId(id));
 }
 
 /** The plugin's own sqlite file — opened by the HOST, reached by the plugin only via RPC. */

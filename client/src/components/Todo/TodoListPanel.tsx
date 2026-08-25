@@ -36,7 +36,7 @@ function SidebarItem({ id, icon: Icon, label, count, color, active, compact, onS
   onSelect: (id: string) => void
 }) {
   return (
-    <button onClick={() => onSelect(id)}
+    <button type="button" onClick={() => onSelect(id)}
       title={compact ? label : undefined}
       style={{
         display: 'flex', alignItems: 'center', justifyContent: compact ? 'center' : 'flex-start',
@@ -162,7 +162,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
         {!isMobile && <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '16px 12px 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           {t('todo.sidebar.sortBy')}
         </div>}
-        <button onClick={() => setSortByPrio(v => !v)}
+        <button type="button" onClick={() => setSortByPrio(v => !v)}
           title={isMobile ? t('todo.priority') : undefined}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start',
@@ -194,10 +194,10 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
                 onKeyDown={e => { if (e.key === 'Enter') addCategory(); if (e.key === 'Escape') { setAddingCategory(false); setNewCategoryName('') } }}
                 placeholder={t('todo.newCategory')}
                 style={{ flex: 1, fontSize: 'calc(12px * var(--fs-scale-body, 1))', padding: '4px 6px', border: '1px solid var(--border-primary)', borderRadius: 5, background: 'var(--bg-hover)', color: 'var(--text-primary)', fontFamily: 'inherit', minWidth: 0 }} />
-              <button onClick={addCategory} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#22c55e', padding: 2 }}><Check size={13} /></button>
+              <button type="button" onClick={addCategory} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#22c55e', padding: 2 }}><Check size={13} /></button>
             </div>
           ) : (
-            <button onClick={() => setAddingCategory(true)}
+            <button type="button" onClick={() => setAddingCategory(true)}
               title={isMobile ? t('todo.addCategory') : undefined}
               style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start', gap: isMobile ? 0 : 6, padding: isMobile ? '8px 0' : '7px 12px', fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', width: '100%', textAlign: 'left' }}>
               <Plus size={isMobile ? 18 : 13} /> {!isMobile && t('todo.addCategory')}
@@ -391,7 +391,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px 12px', borderBottom: '1px solid var(--border-faint)' }}>
         <span style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)' }}>{t('todo.detail.title')}</span>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 4 }}>
+        <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 4 }}>
           <X size={16} />
         </button>
       </div>
@@ -421,7 +421,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
               const cfg = PRIO_CONFIG[p]
               const isActive = priority === p
               return (
-                <button key={p} onClick={() => canEdit && setPriority(p)}
+                <button type="button" key={p} onClick={() => canEdit && setPriority(p)}
                   style={{
                     flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: canEdit ? 'pointer' : 'default',
                     fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
@@ -527,7 +527,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
       {/* Footer actions */}
       {canEdit && (
         <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-faint)', display: 'flex', gap: 8 }}>
-          <button onClick={handleDelete}
+          <button type="button" onClick={handleDelete}
             style={{
               flex: 1, padding: '9px 16px', borderRadius: 8, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
               border: '1px solid var(--border-primary)', background: 'transparent', color: 'var(--text-secondary)',
@@ -536,7 +536,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
             <Trash2 size={13} />
             {t('todo.detail.delete')}
           </button>
-          <button onClick={save} disabled={!hasChanges || saving}
+          <button type="button" onClick={save} disabled={!hasChanges || saving}
             style={{
               flex: 1, padding: '9px 16px', borderRadius: 8, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: hasChanges ? 'pointer' : 'default', fontFamily: 'inherit',
               border: 'none', background: hasChanges ? 'var(--text-primary)' : 'var(--border-faint)',
@@ -594,7 +594,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px 12px', borderBottom: '1px solid var(--border-faint)' }}>
         <span style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)' }}>{t('todo.newItem')}</span>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 4 }}>
+        <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 4 }}>
           <X size={16} />
         </button>
       </div>
@@ -668,7 +668,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
               const cfg = PRIO_CONFIG[p]
               const isActive = priority === p
               return (
-                <button key={p} onClick={() => setPriority(p)}
+                <button type="button" key={p} onClick={() => setPriority(p)}
                   style={{
                     flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: 'pointer',
                     fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
@@ -714,7 +714,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
       </div>
 
       <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-faint)' }}>
-        <button onClick={create} disabled={!name.trim() || saving}
+        <button type="button" onClick={create} disabled={!name.trim() || saving}
           style={{
             width: '100%', padding: '9px 16px', borderRadius: 8, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: name.trim() ? 'pointer' : 'default', fontFamily: 'inherit',
             border: 'none', background: name.trim() ? 'var(--text-primary)' : 'var(--border-faint)',

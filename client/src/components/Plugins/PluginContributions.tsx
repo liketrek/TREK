@@ -98,7 +98,7 @@ export function PluginActions({ items, tripId, className }: { items: ViewContrib
   return (
     <>
       {actions.map((a) => (
-        <button
+        <button type="button"
           key={a.pluginId + a.id}
           onClick={(e) => run(a, e)}
           title={a.label}
@@ -112,7 +112,7 @@ export function PluginActions({ items, tripId, className }: { items: ViewContrib
           <div className="bg-surface-card rounded-xl shadow-xl w-full max-w-lg h-[70vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-edge shrink-0">
               <span className="text-sm font-medium text-content truncate">{frame.label}</span>
-              <button onClick={() => setFrame(null)} className="text-content-muted hover:text-content"><X size={16} /></button>
+              <button type="button" onClick={() => setFrame(null)} className="text-content-muted hover:text-content"><X size={16} /></button>
             </div>
             <div className="flex-1 min-h-0">
               <PluginFrame pluginId={frame.pluginId} tripId={tripId != null ? String(tripId) : null} title={frame.label} fill surface="action-frame" />

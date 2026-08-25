@@ -496,7 +496,7 @@ export default function JourneyPublicPage() {
     views.length > 1 && (
       <div className="mb-6 flex w-fit overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
         {views.map((v) => (
-          <button
+          <button type="button"
             key={v.id}
             onClick={() => setView(v.id)}
             className={`flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-medium ${
@@ -560,7 +560,7 @@ export default function JourneyPublicPage() {
 
         {/* Language picker */}
         <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
-          <button
+          <button type="button"
             onClick={() => setShowLangPicker((v) => !v)}
             style={{
               padding: '5px 12px',
@@ -802,7 +802,7 @@ export default function JourneyPublicPage() {
             >
               <div className="flex overflow-hidden rounded-lg border border-zinc-200 bg-white/90 shadow-lg backdrop-blur-lg dark:border-zinc-700 dark:bg-zinc-800/90">
                 {availableViews.map((v) => (
-                  <button
+                  <button type="button"
                     key={v.id}
                     onClick={() => setView(v.id)}
                     className={`flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-medium ${

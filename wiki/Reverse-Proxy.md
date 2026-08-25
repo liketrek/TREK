@@ -14,7 +14,7 @@ Putting TREK behind a TLS-terminating reverse proxy is strongly recommended for 
 Whatever proxy you use, it must satisfy three constraints:
 
 1. **WebSocket upgrades on `/ws`** — TREK uses WebSockets for real-time sync. Set `proxy_read_timeout 86400` (Nginx) or rely on Caddy's automatic upgrade handling.
-2. **Body size ≥ 500 MB** — backup restore ZIPs can include the full uploads directory. Set `client_max_body_size 500m` (Nginx) or `request_body_max_size 500mb` (Caddy) if you restore large backups.
+2. **Body size ≥ 500 MB** — backup restore ZIPs can include the full uploads directory. Set `client_max_body_size 500m` (Nginx); Caddy imposes no request-body limit of its own, so it already passes them — just keep any `request_body { max_size … }` block you have at `500mb` or more.
 3. **Pass the `Mcp-Session-Id` header through on `/mcp`** — if you use MCP. See below.
 
 ## Nginx
@@ -43,8 +43,11 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 86400;
-        # File uploads are capped at 50 MB; backup restore ZIPs can include the full
-        # uploads directory and may exceed that — raise this value if restores fail.
+        # Documents are capped at 50 MB and photos/covers at 20 MB, but video
+        # uploads go up to 500 MB — both journey gallery clips and videos in a
+        # trip's file manager. Backup restore ZIPs can include the full uploads
+        # directory and may exceed even that (see BACKUP_UPLOAD_LIMIT_MB, default
+        # 500) — raise this value if uploads or restores fail.
         client_max_body_size 500m;
     }
 
@@ -75,11 +78,13 @@ trek.yourdomain.com {
 }
 ```
 
-For large backup restores, add:
+Caddy applies no request-body limit by default, so large backup restores already pass through the config above. Only add `request_body` if you want to cap uploads deliberately — and then keep the cap at 500 MB or more. It is a block, not a one-line directive:
 
 ```
 trek.yourdomain.com {
-    request_body max_size 500mb
+    request_body {
+        max_size 500mb
+    }
     reverse_proxy localhost:3000
 }
 ```
@@ -124,14 +129,17 @@ TREK sends an SSE keep-alive comment every 25 seconds (`MCP_SSE_KEEPALIVE`) prec
 
 ## HTTPS Environment Variables
 
-Four variables control how TREK behaves behind a proxy. They work as a group:
+Five variables control how TREK behaves behind a proxy. They work as a group:
 
 | Variable | Purpose | Default |
 |---|---|---|
 | `FORCE_HTTPS` | When `true`: 301-redirects HTTP→HTTPS (except `/api/health`), sends HSTS (`max-age=31536000`), adds CSP `upgrade-insecure-requests`, forces cookie `secure` flag | `false` |
+| `HSTS_INCLUDE_SUBDOMAINS` | When `true`: adds the `includeSubDomains` directive to the HSTS header, extending HTTPS enforcement to all subdomains. Only effective while HSTS is active. Leave `false` if you run other services on sibling subdomains over plain HTTP. | `false` |
 | `TRUST_PROXY` | Number of trusted proxy hops. Lets Express read the real client IP from `X-Forwarded-For`. Automatically set to `1` in production even if not explicitly configured. | `1` (production), off (development) |
-| `COOKIE_SECURE` | Controls the `secure` flag on `trek_session`. Auto-derived as `true` when `NODE_ENV=production` or `FORCE_HTTPS=true`. Set to `false` explicitly to allow cookies over plain HTTP (e.g. LAN testing without TLS). | auto |
+| `COOKIE_SECURE` | Controls the `secure` flag on `trek_session`. Auto-derived as `true` when `NODE_ENV=production`, when `FORCE_HTTPS=true`, or when the request itself arrived over TLS — Express sets `req.secure` once your proxy sends `X-Forwarded-Proto: https` and `TRUST_PROXY` is configured. Set to `false` explicitly to allow cookies over plain HTTP (e.g. LAN testing without TLS). | auto |
 | `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins (e.g. `https://trek.example.com`). In production without this set, all cross-origin requests are blocked. In development without this set, all origins are allowed. | blocked in prod, open in dev |
+
+> **Note on HSTS:** The `max-age=31536000` header goes out whenever `FORCE_HTTPS=true` **or** `NODE_ENV=production`, and `NODE_ENV=production` is the default in the Docker image, the compose file and the Helm chart — so a standard install sends HSTS even with `FORCE_HTTPS` unset. Browsers ignore the header on a plain-HTTP response, so an instance you only ever reach over HTTP is unaffected. Once a browser has seen it over HTTPS, though, it refuses plain HTTP to that hostname for a year, so don't plan on falling back to `http://` for a hostname you have already served over HTTPS.
 
 > **Note on `FORCE_HTTPS` and proxy headers:** The HTTPS redirect reads `X-Forwarded-Proto` directly from the incoming headers — it does not depend on Express's `trust proxy` setting. If you set `FORCE_HTTPS=true` and your reverse proxy correctly sends `X-Forwarded-Proto: https`, the redirect will work regardless of `TRUST_PROXY`. However, you still need `TRUST_PROXY` set so Express resolves the correct client IP from `X-Forwarded-For`.
 

@@ -21,7 +21,7 @@ export const createDayNotesSlice = (set: SetState, get: GetState): DayNotesSlice
     try {
       await daysApi.update(tripId, dayId, { notes })
       set(state => ({
-        days: state.days.map(d => d.id === parseInt(String(dayId)) ? { ...d, notes } : d)
+        days: state.days.map(d => d.id === Number.parseInt(String(dayId)) ? { ...d, notes } : d)
       }))
     } catch (err: unknown) {
       throw new Error(getApiErrorMessage(err, 'Error updating notes'))
@@ -32,7 +32,7 @@ export const createDayNotesSlice = (set: SetState, get: GetState): DayNotesSlice
     try {
       await daysApi.update(tripId, dayId, { title })
       set(state => ({
-        days: state.days.map(d => d.id === parseInt(String(dayId)) ? { ...d, title } : d)
+        days: state.days.map(d => d.id === Number.parseInt(String(dayId)) ? { ...d, title } : d)
       }))
     } catch (err: unknown) {
       throw new Error(getApiErrorMessage(err, 'Error updating day name'))

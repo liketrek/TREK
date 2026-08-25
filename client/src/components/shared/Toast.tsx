@@ -129,7 +129,7 @@ export function ToastContainer() {
             }}>
               {toast.message}
             </span>
-            <button
+            <button type="button"
               onClick={() => removeToast(toast.id)}
               className="nomad-toast-close"
               style={{

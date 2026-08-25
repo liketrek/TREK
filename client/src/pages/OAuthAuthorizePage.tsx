@@ -50,7 +50,7 @@ export default function OAuthAuthorizePage(): React.ReactElement {
                 {t('oauth.authorize.loginDescription', { client: validation?.client?.name || clientId })}
               </p>
             </div>
-            <button
+            <button type="button"
                 onClick={handleLoginRedirect}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white"
                 style={{ background: 'var(--accent-primary, #4f46e5)' }}>
@@ -88,7 +88,7 @@ export default function OAuthAuthorizePage(): React.ReactElement {
               <p className="text-xs mb-3" style={{ color: 'var(--text-tertiary)' }}>
                 {t('oauth.authorize.trustNote')}
               </p>
-              <button
+              <button type="button"
                   onClick={() => submitConsent(true)}
                   disabled={submitting || (validation?.scopeSelectable === true && selectedScopes.length === 0)}
                   className="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-white disabled:opacity-60 transition-opacity"
@@ -106,7 +106,7 @@ export default function OAuthAuthorizePage(): React.ReactElement {
                             )
                             : t('oauth.authorize.approveAccess')}
               </button>
-              <button
+              <button type="button"
                   onClick={() => submitConsent(false)}
                   disabled={submitting}
                   className="w-full px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60"

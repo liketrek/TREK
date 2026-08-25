@@ -1,6 +1,6 @@
 # PDF Export
 
-TREK can generate two kinds of PDFs from your trip data: a structured **Trip Plan PDF** and a photo-book-style **Journey Book PDF**. Both render as HTML in a sandboxed iframe and open the browser's native print/save dialog — no server-side processing is involved.
+TREK generates a structured **Trip Plan PDF** from your trip data. It renders as HTML in a sandboxed iframe and opens the browser's native print/save dialog — no server-side processing is involved. Journey entries no longer go through a fixed PDF template: they are laid out in **TREK Studio** and printed through the same browser mechanism (see below).
 
 ![PDF Export](assets/PDFTrip.png)
 
@@ -10,22 +10,24 @@ TREK can generate two kinds of PDFs from your trip data: a structured **Trip Pla
 
 ### How to generate
 
-Open the Day Plan sidebar in the trip planner. Click the **PDF** button in the toolbar at the top of the sidebar. A preview modal opens immediately; click **Save as PDF** to open your browser's print dialog and save the file.
+Open the Day Plan sidebar in the trip planner and click the **Export** button in the toolbar at the top of the sidebar. The Export dialog opens with three groups — **Document**, **Calendar**, and **Maps & GPS**. Pick the PDF row under **Document**: a preview modal opens, and **Save as PDF** hands the document to your browser's print dialog.
 
 ### Cover page
 
-- Blurred cover image as background (if the trip has one), with the same image in a circular badge
+- Faded cover image as background (if the trip has one), with the same image in a circular badge
 - Trip title and description
 - Date range (first day to last day)
 - Stat tiles:
   - **Days** — total number of days in the trip
   - **Places** — total places in your trip's place list
   - **Planned** — number of unique places assigned to at least one day
-  - **Estimated cost** — sum of all assigned place prices, shown in the trip's currency (hidden if zero)
+  - **Cost** — sum of all assigned place prices, shown in the trip's currency (hidden if zero). Mixed currencies are converted at current rates and prefixed with "≈"; when a rate is missing, the tile shows a per-currency breakdown instead
 
 ### Per-day pages
 
-Each day starts on a new page with a dark header bar showing the day number, day title, date, and the day's estimated cost.
+Each day starts on a new page (unless you turn off **Page break per day**) with a dark header bar showing the day number, day title, date, and the day's estimated cost.
+
+The **Page break per day** toggle sits in the preview modal's header, next to Save as PDF. It is on by default; turn it off and the days flow into each other instead, which is worth doing on a trip of short days that would otherwise print one sheet per handful of lines. The choice is remembered in that browser for the next export.
 
 Below the header:
 
@@ -51,47 +53,19 @@ Installed plugins can append their own sections to the Trip Plan PDF via the `pd
 
 ---
 
-## Journey Book PDF
+## Journey photo books
 
-### How to generate
+The Travel Journal has no fixed-template PDF export any more. Open a Journey entry and click **Studio** in the journal header (the book icon in the top bar on phones) to open **TREK Studio**, the photo-book designer.
 
-Open a Journey entry in the Travel Journal. Click the **download icon** button in the journal's header area. A preview modal opens; click **Save as PDF** to print.
+Studio lays the journey out as editable spreads instead of a fixed page template: five page presets (210 mm and 300 mm square, A4 landscape, A4 portrait, A5 landscape) or a custom size between 60 and 500 mm, and seven bundled font families.
 
-![Journey Book PDF Preview](assets/PDFJourney.png)
-
-### Format
-
-A4 landscape (`@page { size: A4 landscape; margin: 0 }`). Font: Inter, loaded from Google Fonts.
-
-### Cover page
-
-- Hero image (journey cover image, or the first entry photo if none is set)
-- Journey title and optional subtitle
-- Stat tiles: Days, Entries, Photos
-
-### Entry pages
-
-One page per journal entry, in chronological order. The first entry of each date carries a day header (day number and full date) above the content.
-
-Photo layout adapts to the number of photos on the entry:
-
-| Photos | Layout |
-|--------|--------|
-| 1 | Single image, full width |
-| 2 | Two images side by side |
-| 3 or more | Large hero image on the left, two stacked images on the right |
-
-Below the photos: entry time and location, entry title, journal text (rendered from Markdown), and pros/cons verdict cards if present.
-
-### Closing page
-
-A dark "The End" card.
+Printing works the same way as the Trip Plan PDF — the sheets are written into a sandboxed `srcdoc` iframe and handed to the browser's print dialog, so nothing is rendered on the server. A browser writes no TrimBox or BleedBox, so the sheets can carry crop marks for a print shop instead. **Single pages** or **Spreads**, and crop marks on or off, are chosen in Studio's export panel.
 
 ---
 
 ## How rendering works
 
-Both PDFs use the same mechanism: the HTML document is written into a sandboxed `<iframe>` via `srcdoc`, and `iframe.contentWindow.print()` opens the browser's print dialog. There is no server-side PDF generation. The file is saved through the browser's built-in "Save as PDF" print destination.
+The Trip Plan PDF and Studio's print view use the same mechanism: the HTML document is written into a sandboxed `<iframe>` via `srcdoc`, and `iframe.contentWindow.print()` opens the browser's print dialog. There is no server-side PDF generation. The file is saved through the browser's built-in "Save as PDF" print destination.
 
 ---
 

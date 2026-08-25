@@ -126,13 +126,13 @@ export default function AdminMcpTokensPanel() {
                           </span>
                         ))}
                         {!expanded && hidden > 0 && (
-                          <button onClick={() => toggleScopes(session.id)}
+                          <button type="button" onClick={() => toggleScopes(session.id)}
                             className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium transition-colors hover:opacity-80 bg-surface-secondary text-content-secondary border border-edge">
                             +{hidden} more
                           </button>
                         )}
                         {expanded && hidden > 0 && (
-                          <button onClick={() => toggleScopes(session.id)}
+                          <button type="button" onClick={() => toggleScopes(session.id)}
                             className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium transition-colors hover:opacity-80 bg-surface-secondary text-content-secondary border border-edge">
                             show less
                           </button>
@@ -146,7 +146,7 @@ export default function AdminMcpTokensPanel() {
                     <span className="text-xs whitespace-nowrap text-right pt-0.5" style={{ color: 'var(--text-tertiary)' }}>
                       {new Date(session.created_at).toLocaleDateString(locale)}
                     </span>
-                    <button onClick={() => setRevokeConfirmId(session.id)}
+                    <button type="button" onClick={() => setRevokeConfirmId(session.id)}
                       className="p-1.5 rounded-lg transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
                       style={{ color: 'var(--text-tertiary)' }} title={t('common.delete')}>
                       <Trash2 className="w-4 h-4" />
@@ -199,7 +199,7 @@ export default function AdminMcpTokensPanel() {
                   <span className="text-xs whitespace-nowrap text-right" style={{ color: 'var(--text-tertiary)' }}>
                     {token.last_used_at ? new Date(token.last_used_at).toLocaleDateString(locale) : t('admin.mcpTokens.never')}
                   </span>
-                  <button onClick={() => setDeleteConfirmId(token.id)}
+                  <button type="button" onClick={() => setDeleteConfirmId(token.id)}
                     className="p-1.5 rounded-lg transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
                     style={{ color: 'var(--text-tertiary)' }} title={t('common.delete')}>
                     <Trash2 className="w-4 h-4" />
@@ -219,11 +219,11 @@ export default function AdminMcpTokensPanel() {
             <h3 className="text-base font-semibold text-content">{t('admin.oauthSessions.revokeTitle')}</h3>
             <p className="text-sm text-content-secondary">{t('admin.oauthSessions.revokeMessage')}</p>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setRevokeConfirmId(null)}
+              <button type="button" onClick={() => setRevokeConfirmId(null)}
                 className="px-4 py-2 rounded-lg text-sm border border-edge text-content-secondary">
                 {t('common.cancel')}
               </button>
-              <button onClick={() => handleRevoke(revokeConfirmId)}
+              <button type="button" onClick={() => handleRevoke(revokeConfirmId)}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700">
                 {t('common.delete')}
               </button>
@@ -240,11 +240,11 @@ export default function AdminMcpTokensPanel() {
             <h3 className="text-base font-semibold text-content">{t('admin.mcpTokens.deleteTitle')}</h3>
             <p className="text-sm text-content-secondary">{t('admin.mcpTokens.deleteMessage')}</p>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setDeleteConfirmId(null)}
+              <button type="button" onClick={() => setDeleteConfirmId(null)}
                 className="px-4 py-2 rounded-lg text-sm border border-edge text-content-secondary">
                 {t('common.cancel')}
               </button>
-              <button onClick={() => handleDelete(deleteConfirmId)}
+              <button type="button" onClick={() => handleDelete(deleteConfirmId)}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700">
                 {t('common.delete')}
               </button>

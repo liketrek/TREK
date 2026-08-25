@@ -31,7 +31,7 @@ See [MCP-Setup](MCP-Setup) for step-by-step instructions for each method.
 ## Requirements
 
 - **MCP addon enabled** — an administrator must enable the MCP addon (`mcp`) from the Admin Panel before the `/mcp` endpoint becomes available and the MCP section appears in user settings.
-- **`APP_URL` set** — the `APP_URL` environment variable must be configured to your TREK instance's public URL so that OAuth discovery works correctly. Without it, clients that use OAuth 2.1 cannot complete authentication.
+- **`APP_URL` set** — set the `APP_URL` environment variable to your TREK instance's public URL so OAuth discovery advertises the right issuer and endpoints. If it is unset or not a valid URL, TREK falls back to the first entry of `ALLOWED_ORIGINS`, and then to `http://localhost:{PORT}`. Only an `https://` origin or `localhost` / `127.0.0.1` is accepted as the issuer — anything else is replaced by `http://localhost:{PORT}`, which remote OAuth clients cannot reach.
 
 ## Rate limits and session limits
 

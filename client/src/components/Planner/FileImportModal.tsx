@@ -360,7 +360,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
         )}
 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button
+          <button type="button"
             onClick={handleClose}
             style={{
               padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)',
@@ -370,7 +370,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
           >
             {t('common.cancel')}
           </button>
-          <button
+          <button type="button"
             onClick={handleImport}
             disabled={!canImport}
             className={canImport ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-faint'}

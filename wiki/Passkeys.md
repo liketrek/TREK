@@ -59,7 +59,7 @@ Passkeys are bound to a domain (the *Relying Party ID*). If no usable domain res
 
 Both values can be pinned with environment variables, which take priority over the Admin panel fields:
 
-- `WEBAUTHN_RP_ID` — the registrable domain, e.g. `trek.example.com`. Bare IP addresses are rejected.
+- `WEBAUTHN_RP_ID` — the registrable domain, e.g. `trek.example.com`. A pinned value is used verbatim, so it has to be a real domain: browsers refuse a bare IP address as a Relying Party ID. TREK checks for one only on the RP ID it derives from `APP_URL` — an IP host there resolves to nothing and the feature reports itself as not configured.
 - `WEBAUTHN_ORIGINS` — comma-separated allowed origins, e.g. `https://trek.example.com`.
 
 See [Environment-Variables](Environment-Variables) for the full description of both.

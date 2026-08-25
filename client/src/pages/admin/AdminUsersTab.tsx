@@ -32,7 +32,7 @@ export default function AdminUsersTab({ admin, t, locale }: AdminUsersTabProps):
             <h2 className="font-semibold text-slate-900">{t('admin.tabs.users')}</h2>
             <p className="text-xs text-slate-400 mt-1">{users.length} {t('admin.stats.users')}</p>
           </div>
-          <button
+          <button type="button"
             onClick={() => setShowCreateUser(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-slate-900 text-white rounded-lg hover:bg-slate-700 transition-colors"
           >
@@ -100,14 +100,14 @@ export default function AdminUsersTab({ admin, t, locale }: AdminUsersTabProps):
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-2 justify-end">
-                        <button
+                        <button type="button"
                           onClick={() => handleEditUser(u)}
                           className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
                           title={t('admin.editUser')}
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button
+                        <button type="button"
                           onClick={() => handleDeleteUser(u)}
                           disabled={u.id === currentUser?.id}
                           className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
@@ -132,7 +132,7 @@ export default function AdminUsersTab({ admin, t, locale }: AdminUsersTabProps):
             <h2 className="font-semibold text-slate-900">{t('admin.invite.title')}</h2>
             <p className="text-xs text-slate-400 mt-1">{t('admin.invite.subtitle')}</p>
           </div>
-          <button
+          <button type="button"
             onClick={() => setShowCreateInvite(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-slate-900 text-white rounded-lg hover:bg-slate-700 transition-colors"
           >
@@ -169,12 +169,12 @@ export default function AdminUsersTab({ admin, t, locale }: AdminUsersTabProps):
                     </div>
                   </div>
                   {isActive && (
-                    <button onClick={() => copyInviteLink(inv.token)} title={t('admin.invite.copyLink')}
+                    <button type="button" onClick={() => copyInviteLink(inv.token)} title={t('admin.invite.copyLink')}
                       className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors">
                       <Copy className="w-3.5 h-3.5" />
                     </button>
                   )}
-                  <button onClick={() => handleDeleteInvite(inv.id)} title={t('common.delete')}
+                  <button type="button" onClick={() => handleDeleteInvite(inv.id)} title={t('common.delete')}
                     className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -239,8 +239,8 @@ export default function AdminUsersTab({ admin, t, locale }: AdminUsersTabProps):
             </div>
           )}
           <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-            <button onClick={() => setShowCreateInvite(false)} className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700">{t('common.cancel')}</button>
-            <button onClick={handleCreateInvite} className="px-4 py-2 text-sm bg-slate-900 text-white rounded-lg hover:bg-slate-700">{t('admin.invite.createAndCopy')}</button>
+            <button type="button" onClick={() => setShowCreateInvite(false)} className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700">{t('common.cancel')}</button>
+            <button type="button" onClick={handleCreateInvite} className="px-4 py-2 text-sm bg-slate-900 text-white rounded-lg hover:bg-slate-700">{t('admin.invite.createAndCopy')}</button>
           </div>
         </div>
       </Modal>

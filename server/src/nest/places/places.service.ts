@@ -623,7 +623,7 @@ export class PlacesService {
     if (!gpx) return null;
 
     const str = (v: unknown) => (v != null ? String(v).trim() : null);
-    const num = (v: unknown) => { const n = parseFloat(String(v)); return isNaN(n) ? null : n; };
+    const num = (v: unknown) => { const n = Number.parseFloat(String(v)); return isNaN(n) ? null : n; };
 
     // Routes and tracks rarely carry their own <name>. Without one they all fall back to the
     // same generic label, so name-based dedup drops every import after the first. Derive a

@@ -50,7 +50,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
             { value: 'dashboard', label: t('settings.startPageDashboard') },
             { value: 'active_trip', label: t('settings.startPageActiveTrip') },
           ] as const).map(opt => (
-            <button
+            <button type="button"
               key={opt.value}
               onClick={async () => {
                 try { await updateSetting('start_page', opt.value) }
@@ -117,7 +117,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
         {/* Desktop: Button grid */}
         <div className="hidden sm:flex flex-wrap gap-3">
           {SUPPORTED_LANGUAGES.map(opt => (
-            <button
+            <button type="button"
               key={opt.value}
               onClick={async () => {
                 try { await updateSetting('language', opt.value) }
@@ -201,7 +201,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
             { value: 'celsius', label: '°C Celsius' },
             { value: 'fahrenheit', label: '°F Fahrenheit' },
           ].map(opt => (
-            <button
+            <button type="button"
               key={opt.value}
               onClick={async () => {
                 setTempUnit(opt.value)
@@ -232,7 +232,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
             { value: 'metric', label: 'km Metric' },
             { value: 'imperial', label: 'mi Imperial' },
           ] as const).map(opt => (
-            <button
+            <button type="button"
               key={opt.value}
               onClick={async () => {
                 setDistanceUnit(opt.value)
@@ -263,7 +263,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
             { value: '24h', short: '24h', example: '14:30' },
             { value: '12h', short: '12h', example: '2:30 PM' },
           ].map(opt => (
-            <button
+            <button type="button"
               key={opt.value}
               onClick={async () => {
                 try { await updateSetting('time_format', opt.value) }
@@ -296,7 +296,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
             { value: true, label: t('settings.on') || 'On' },
             { value: false, label: t('settings.off') || 'Off' },
           ].map(opt => (
-            <button
+            <button type="button"
               key={String(opt.value)}
               onClick={async () => {
                 try { await updateSetting('map_booking_labels', opt.value) }
@@ -327,7 +327,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
             { value: true, label: t('settings.on') || 'On' },
             { value: false, label: t('settings.off') || 'Off' },
           ].map(opt => (
-            <button
+            <button type="button"
               key={String(opt.value)}
               onClick={async () => {
                 try { await updateSetting('map_always_show_routes', opt.value) }
@@ -358,7 +358,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
             { value: true, label: t('settings.on') || 'On' },
             { value: false, label: t('settings.off') || 'Off' },
           ].map(opt => (
-            <button
+            <button type="button"
               key={String(opt.value)}
               onClick={async () => {
                 try { await updateSetting('map_poi_pill_enabled', opt.value) }
@@ -389,7 +389,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
             { value: true, label: t('settings.on') || 'On' },
             { value: false, label: t('settings.off') || 'Off' },
           ].map(opt => (
-            <button
+            <button type="button"
               key={String(opt.value)}
               onClick={async () => {
                 try { await updateSetting('blur_booking_codes', opt.value) }
@@ -419,7 +419,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
             { value: true, label: t('settings.on') || 'On' },
             { value: false, label: t('settings.off') || 'Off' },
           ].map(opt => (
-            <button
+            <button type="button"
               key={String(opt.value)}
               onClick={async () => {
                 try { await updateSetting('optimize_from_accommodation', opt.value) }

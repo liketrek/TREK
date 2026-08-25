@@ -80,26 +80,26 @@ export function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdi
             display: 'flex', gap: 2,
           }}>
             {note.content && (
-              <button onClick={() => onView?.(note)} title={t('collab.notes.expand') || 'Expand'}
+              <button type="button" onClick={() => onView?.(note)} title={t('collab.notes.expand') || 'Expand'}
                 style={{ padding: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
                 onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
                 <Maximize2 size={10} />
               </button>
             )}
-            {canEdit && <button onClick={handleTogglePin} title={note.pinned ? t('collab.notes.unpin') : t('collab.notes.pin')}
+            {canEdit && <button type="button" onClick={handleTogglePin} title={note.pinned ? t('collab.notes.unpin') : t('collab.notes.pin')}
               style={{ padding: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}
               onMouseEnter={e => e.currentTarget.style.color = color}
               onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
               {note.pinned ? <PinOff size={10} /> : <Pin size={10} />}
             </button>}
-            {canEdit && <button onClick={() => onEdit?.(note)} title={t('collab.notes.edit')}
+            {canEdit && <button type="button" onClick={() => onEdit?.(note)} title={t('collab.notes.edit')}
               style={{ padding: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
               onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
               <Pencil size={10} />
             </button>}
-            {canEdit && <button onClick={handleDelete} title={t('collab.notes.delete')}
+            {canEdit && <button type="button" onClick={handleDelete} title={t('collab.notes.delete')}
               style={{ padding: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}
               onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
               onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>

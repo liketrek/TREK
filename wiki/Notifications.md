@@ -19,7 +19,7 @@ TREK ships four delivery channels, and a plugin can add more. Which channels app
 
 A plugin can register an **additional channel** — Gotify, Pushover, Telegram, anything that
 takes a message — by implementing the `notificationChannel` hook. See
-[Plugin-Development](Plugin-Development.md#notification-channels).
+[Plugin-Development](Plugin-Development#notification-channels).
 
 Once the admin installs the plugin and switches its channel on, it appears as a new column in
 the preferences matrix beside Email and In-App, and behaves like any other channel: each user
@@ -43,8 +43,10 @@ The following events are configurable in user settings:
 | `trip_invite` | Someone invited you to a trip |
 | `booking_change` | A booking was added, updated, or removed in a trip you're part of |
 | `trip_reminder` | Reminder before a trip starts |
+| `todo_due` | A to-do assigned to you, or in a trip you're part of, is due soon |
 | `vacay_invite` | You were invited to fuse vacation plans |
 | `vacay_share` | Someone shared their vacation calendar with you (view only) |
+| `collection_invite` | Someone invited you to share a collection |
 | `photos_shared` | Photos were shared with a trip |
 | `collab_message` | A new message in a collaborative trip |
 | `packing_tagged` | You were assigned to a packing category in a trip |
@@ -59,10 +61,11 @@ The following events are shown in the admin panel (Admin → Notifications) and 
 | Event | Description | Channels |
 |-------|-------------|---------|
 | `version_available` | A new TREK version is available | in-app, email, webhook, ntfy |
+| `replica_failure` | A write to a storage replica failed (repeats within the hour are suppressed and counted) | in-app, email, webhook, ntfy |
 
-### System-only events
+### In-app-only events
 
-The following events are fired automatically and are not exposed as toggles in any settings panel:
+The following event is fired automatically and can only be delivered in-app — it appears in the preferences matrix with an In-app toggle and a dash in every other column:
 
 | Event | Description | Channels |
 |-------|-------------|---------|

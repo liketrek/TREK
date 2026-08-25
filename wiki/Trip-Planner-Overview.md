@@ -1,6 +1,6 @@
 # Trip Planner Overview
 
-The trip planner is the main workspace for building your itinerary. It opens automatically after you create a trip, or any time you click a trip card on the dashboard.
+The trip planner is the main workspace for building your itinerary. You open it by clicking a trip card on the dashboard.
 
 ![Trip Planner](assets/TripPlannerWithPlane.png)
 
@@ -25,7 +25,7 @@ Each sidebar has a drag handle on its inner edge for resizing.
 
 ![Planner in its three-pane layout: the day plan sidebar with days, places, notes and flight entries on the left, the map in the centre, and the places sidebar with search and category filter on the right](assets/TripPlanner.png)
 
-A **Day Detail overlay** slides in over the center pane when you open a specific day, showing weather, the day's notes, reservation summaries, and the accommodation block. It can be minimized without closing it.
+A **Day Detail panel** floats over the map area when you open a specific day, showing the weather forecast, that day's reservations, and the accommodation block. It can be collapsed to a slim header bar without closing it.
 
 ## Tabs
 
@@ -35,7 +35,7 @@ The tab bar sits directly below the main navigation bar.
 |---|---|
 | **Plan** | The three-pane map view described above. Always visible. |
 | **Transports** | Flights, trains, cars, cruises, and buses. |
-| **Reservations** | Hotels, restaurants, events, tours, and other bookings. |
+| **Bookings** | Hotels, restaurants, events, tours, and other bookings. |
 | **Lists** | Packing list and to-do list. |
 | **Costs** | Expense tracking, splitting, and settlement. |
 | **Files** | Document manager for receipts, tickets, and other files. |
@@ -47,16 +47,11 @@ The active tab is saved in `sessionStorage` per trip, so switching between trips
 
 ## Mobile Layout
 
-On screens narrower than 768 px, the two sidebars are not shown side-by-side. Instead, two floating buttons appear over the map:
-
-- **Plan** — opens the Day Plan Sidebar as a full-screen overlay.
-- **Places** — opens the Places Sidebar as a full-screen overlay.
-
-Tap outside the overlay or use the close button to return to the map.
+On screens narrower than 768 px, TREK does not squeeze the three-pane layout — it opens a dedicated mobile trip screen instead: a day-chip rail under the top bar, a switch between the day plan and a full-screen map, and a bottom dock for the other tabs. Tablets and desktops (768 px and up) get the three-pane layout described above.
 
 ## Undo
 
-The planner tracks your recent actions — adding places, assigning them to days, reordering, and removing assignments — in a short undo ring. The **Undo** button appears in the Day Plan Sidebar toolbar (at the top of the sidebar) whenever an undoable action is available. It shows the name of the last action as a tooltip on hover and reverses it when clicked.
+The planner tracks your recent actions — adding places, assigning them to days, reordering, and removing assignments — in a short undo ring. The **Undo** button sits in the Day Plan Sidebar toolbar (at the top of the sidebar); it is greyed out until an undoable action is available. It shows the name of the last action as a tooltip on hover and reverses it when clicked.
 
 ## Splash Screen
 

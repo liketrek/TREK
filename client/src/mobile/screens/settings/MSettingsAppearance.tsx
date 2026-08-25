@@ -24,9 +24,9 @@ function channelLum(v: number): number {
 function relLuminance(hex: string): number {
   const c = hex.replace('#', '')
   const full = c.length === 3 ? c.split('').map((x) => x + x).join('') : c
-  const r = channelLum(parseInt(full.slice(0, 2), 16) / 255)
-  const g = channelLum(parseInt(full.slice(2, 4), 16) / 255)
-  const b = channelLum(parseInt(full.slice(4, 6), 16) / 255)
+  const r = channelLum(Number.parseInt(full.slice(0, 2), 16) / 255)
+  const g = channelLum(Number.parseInt(full.slice(2, 4), 16) / 255)
+  const b = channelLum(Number.parseInt(full.slice(4, 6), 16) / 255)
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 function contrastRatio(a: string, b: string): number {

@@ -106,7 +106,7 @@ export function NavigationMenu({ targets, anchor, onClose, title }: NavigationMe
         </div>
       )}
       {targets.map(target => (
-        <button
+        <button type="button"
           key={target.id}
           role="menuitem"
           onClick={() => { openNavigationTarget(target); onClose() }}

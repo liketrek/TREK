@@ -31,10 +31,11 @@ Each sub-toggle can be disabled independently while the parent addon remains ena
 
 ### Global addons
 
-Global addons add features that are not tied to a single trip. The default global addons are **Vacay**, **Atlas**, and **Journey**.
+Global addons add features that are not tied to a single trip. The default global addons are **Vacay**, **Atlas**, **Collections**, and **Journey**.
 
 - **Vacay** — personal vacation day planner with calendar view. Enabled by default.
 - **Atlas** — world map of visited countries with travel stats. Enabled by default.
+- **Collections** — personal place library: save places across trips into named lists, copy them into any trip, and share them. **Disabled by default.** See [Collections](Collections).
 - **Journey** — trip tracking and travel journal (check-ins, photos, daily stories). **Disabled by default.**
 
 **Sub-items on global addons:**
@@ -43,9 +44,11 @@ Global addons add features that are not tied to a single trip. The default globa
 
 ### Integration addons
 
-Integration addons connect TREK to external services. Enabling an integration addon typically requires additional configuration (API keys, URLs) in the **Settings** tab.
+Integration addons connect TREK to external services. Most of them need additional configuration (API keys, URLs) once enabled, but not in the admin **Settings** tab — each one has its own place.
 
 - The **MCP** addon requires `APP_URL` to be set in your environment. When enabled, the **MCP Access** tab appears in the Admin Panel. **Disabled by default.** See [MCP-Overview](MCP-Overview) for full details.
+- The **AirTrail** addon syncs flights from a self-hosted AirTrail instance. **Disabled by default.** The toggle here is the instance-wide switch only; each user connects their own instance (URL + API key) in **Settings → Integrations**.
+- The **AI Parsing** addon is the LLM fallback for booking imports KItinerary cannot read. **Disabled by default.** When enabled, its provider, base URL, API key, and model fields appear inline underneath the addon row. Filling them in sets the instance-wide config for all users; leaving them blank lets each user configure their own provider in **Settings → Integrations**. See [AI-Booking-Import](AI-Booking-Import).
 
 ## Enabling or disabling an addon
 

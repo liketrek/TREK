@@ -46,7 +46,7 @@ export function Section({ label, children, defaultOpen = true, hint }: {
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div className={`st-section is-fold ${open ? '' : 'is-folded'}`}>
-      <button className="st-section-head" onClick={() => setOpen(!open)} aria-expanded={open}>
+      <button type="button" className="st-section-head" onClick={() => setOpen(!open)} aria-expanded={open}>
         <span className="st-section-label">{label}</span>
         <ChevronDown size={13} className="st-section-caret" />
       </button>
@@ -85,7 +85,7 @@ export function Choice<T extends string | number>({ value, options, onPick, aria
   return (
     <div className="st-row" role="radiogroup" aria-label={ariaLabel}>
       {options.map(o => (
-        <button
+        <button type="button"
           key={String(o.value)}
           role="radio"
           aria-checked={o.value === value}
@@ -118,7 +118,7 @@ export function Picks<T extends string>({ value, options, onToggle }: {
       {options.map(o => {
         const on = value.includes(o.value)
         return (
-          <button
+          <button type="button"
             key={o.value}
             role="checkbox"
             aria-checked={on}

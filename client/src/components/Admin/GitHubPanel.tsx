@@ -461,7 +461,7 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
                         {/* Expandable body */}
                         {release.body && (
                           <div className="mt-2">
-                            <button
+                            <button type="button"
                               onClick={() => toggleExpand(release.id)}
                               className="flex items-center gap-1 text-[11px] font-medium text-content-muted transition-colors"
                             >
@@ -484,7 +484,7 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
             {/* Load more */}
             {hasMore && (
               <div className="pt-2 text-center">
-                <button
+                <button type="button"
                   onClick={handleLoadMore}
                   disabled={loadingMore}
                   className="inline-flex items-center gap-2 rounded-lg bg-surface-secondary px-4 py-2 text-xs font-medium text-content-muted transition-colors"

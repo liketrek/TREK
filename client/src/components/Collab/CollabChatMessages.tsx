@@ -24,7 +24,7 @@ export function ChatMessages(props: any) {
         }}>
           {hasMore && (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0 10px' }}>
-              <button onClick={handleLoadMore} disabled={loadingMore} style={{
+              <button type="button" onClick={handleLoadMore} disabled={loadingMore} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600,
                 color: 'var(--text-muted)', background: 'var(--bg-secondary)', border: '1px solid var(--border-faint)',
                 borderRadius: 99, padding: '5px 14px', cursor: 'pointer', fontFamily: 'inherit',
@@ -181,7 +181,7 @@ export function ChatMessages(props: any) {
                         transition: 'opacity .1s',
                         ...(own ? { left: -6 } : { right: -6 }),
                       }}>
-                        <button onClick={() => setReplyTo(msg)} title={t('collab.chat.reply')} style={{
+                        <button type="button" onClick={() => setReplyTo(msg)} title={t('collab.chat.reply')} style={{
                           width: 24, height: 24, borderRadius: '50%', border: 'none',
                           background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                           cursor: 'pointer', color: 'var(--accent-text)', padding: 0,
@@ -193,7 +193,7 @@ export function ChatMessages(props: any) {
                           <Reply size={11} />
                         </button>
                         {own && canEdit && (
-                          <button onClick={() => handleDelete(msg.id)} title={t('common.delete')} style={{
+                          <button type="button" onClick={() => handleDelete(msg.id)} title={t('common.delete')} style={{
                             width: 24, height: 24, borderRadius: '50%', border: 'none',
                             background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                             cursor: 'pointer', color: 'var(--accent-text)', padding: 0,

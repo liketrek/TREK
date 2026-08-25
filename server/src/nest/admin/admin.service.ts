@@ -249,7 +249,7 @@ export class AdminService {
   }
 
   deleteUser(id: string, currentUserId: number) {
-    if (parseInt(id) === currentUserId) {
+    if (Number.parseInt(id) === currentUserId) {
       return { error: 'Cannot delete own account', status: 400 };
     }
 
@@ -328,8 +328,8 @@ export class AdminService {
   // ── Audit Log ──────────────────────────────────────────────────────────────
 
   getAuditLog(query: { limit?: string; offset?: string }) {
-    const limitRaw = parseInt(String(query.limit || '100'), 10);
-    const offsetRaw = parseInt(String(query.offset || '0'), 10);
+    const limitRaw = Number.parseInt(String(query.limit || '100'), 10);
+    const offsetRaw = Number.parseInt(String(query.offset || '0'), 10);
     const limit = Math.min(Math.max(Number.isFinite(limitRaw) ? limitRaw : 100, 1), 500);
     const offset = Math.max(Number.isFinite(offsetRaw) ? offsetRaw : 0, 0);
 

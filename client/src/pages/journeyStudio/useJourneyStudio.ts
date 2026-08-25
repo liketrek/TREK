@@ -295,11 +295,11 @@ export function useJourneyStudio() {
      */
     const points = stats?.points ?? []
     const dayCount = stats?.days ?? null
-    const first = stats?.start ? Date.parse(`${stats.start}T00:00:00`) : NaN
+    const first = stats?.start ? Date.parse(`${stats.start}T00:00:00`) : Number.NaN
     const placed = withPhotos.map(entry => {
       const point = points.find(p => p.date && entry.date && p.date === entry.date)
         ?? points.find(p => p.label && entry.location && p.label === entry.location)
-      const at = entry.date ? Date.parse(`${entry.date}T00:00:00`) : NaN
+      const at = entry.date ? Date.parse(`${entry.date}T00:00:00`) : Number.NaN
       const dayNumber = Number.isFinite(at) && Number.isFinite(first)
         ? Math.floor((at - first) / 86_400_000) + 1
         : null

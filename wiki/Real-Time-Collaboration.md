@@ -14,14 +14,17 @@ All changes to a trip — places, day plans, reservations, budget entries, and p
 |-----------|-------|
 | Path | `/ws` |
 | Scope | One room per trip |
-| Rate limit | 30 messages per 10-second window |
+| Rate limit | 30 messages per 10-second window, plus a looser ceiling of 200 frames per 10 seconds that every frame counts against before it is parsed. Live cursor frames (`book:cursor`) are exempt from the tighter limit, not from the looser one |
 | Max payload | 64 KB per message |
 | Heartbeat | Ping every 30 seconds; sockets that miss a pong are terminated |
+| Origin check | Only enforced when `ALLOWED_ORIGINS` is set: an upgrade whose `Origin` header is not an exact match for a list entry is refused with HTTP **403** during the handshake. An upgrade that sends no `Origin` header at all is always admitted |
 
 **Authentication** uses a short-lived ephemeral token passed as a query parameter on connect. If authentication fails, the server closes the connection with one of these codes:
 
 - **4001** — missing, invalid, or expired token; user not found
 - **4403** — site-wide MFA is required but the account does not have MFA enabled
+
+An origin rejection happens before the socket exists, so it produces no close code at all — the browser just reports a failed connection. And because clients that send no `Origin` header are exempt, curl and other CLI clients keep connecting while every browser fails, which makes it look like a client bug. If real-time sync stops working behind a reverse proxy, check that `ALLOWED_ORIGINS` lists the exact scheme, host, and port the browser uses: the comparison is a plain string match, so `https://trek.example.com` matches neither `http://trek.example.com` nor `https://trek.example.com:443`. See [Environment-Variables](Environment-Variables) and [Reverse-Proxy](Reverse-Proxy).
 
 ## The Collab addon
 

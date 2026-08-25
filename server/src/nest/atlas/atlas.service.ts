@@ -429,7 +429,7 @@ export class AtlasService {
       nextTrip.daysUntil = Math.max(0, diff);
     }
 
-    const tripYears = new Set(trips.filter((t) => t.start_date).map((t) => parseInt(t.start_date!.split('-')[0])));
+    const tripYears = new Set(trips.filter((t) => t.start_date).map((t) => Number.parseInt(t.start_date!.split('-')[0])));
     let streak = 0;
     const currentYear = new Date().getFullYear();
     for (let y = currentYear; y >= 2000; y--) {

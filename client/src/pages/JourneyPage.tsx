@@ -48,7 +48,7 @@ function JourneyPageDesktop() {
           {/* Header — mobile */}
           <div className="md:hidden px-5 pt-5 pb-4 flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <button
+              <button type="button"
                 onClick={() => {
                   if (searchOpen) {
                     setSearchOpen(false)
@@ -62,7 +62,7 @@ function JourneyPageDesktop() {
               >
                 {searchOpen ? <X size={15} /> : <Search size={15} />}
               </button>
-              <button
+              <button type="button"
                 onClick={() => openCreateModal()}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[14px] font-semibold active:scale-[0.98] transition-transform"
               >
@@ -102,13 +102,13 @@ function JourneyPageDesktop() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
+                    <button type="button"
                       onClick={() => setDismissedSuggestions(prev => new Set([...prev, activeSuggestion.id]))}
                       className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-[12px] font-medium text-white hover:bg-white/20"
                     >
                       {t('journey.frontpage.dismiss')}
                     </button>
-                    <button
+                    <button type="button"
                       onClick={() => openCreateModal(activeSuggestion.id)}
                       className="px-3 py-1.5 rounded-lg !bg-white !text-zinc-900 text-[12px] font-medium hover:!bg-zinc-100"
                     >
@@ -221,7 +221,7 @@ function JourneyPageDesktop() {
                 ))}
 
                 {/* Create card */}
-                <button
+                <button type="button"
                   onClick={() => openCreateModal()}
                   className="group min-h-[200px] rounded-[24px] flex flex-col items-center justify-center gap-3 transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] cursor-pointer hover:-translate-y-1"
                   style={{ border: '1.5px dashed var(--vg-line2)', background: 'var(--vg-surf2)' }}
@@ -335,13 +335,13 @@ function JourneyPageDesktop() {
                 {selectedTripIds.size > 0 && <> · <strong className="text-zinc-900 dark:text-white">{totalPlaces}</strong> <span className="hidden md:inline">{t('journey.frontpage.placesImported')}</span><span className="md:hidden">{t('journey.frontpage.places')}</span></>}
               </div>
               <div className="flex items-center gap-2">
-                <button
+                <button type="button"
                   onClick={() => setShowCreate(false)}
                   className="px-3.5 py-2 rounded-lg border border-zinc-200 dark:border-zinc-600 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700"
                 >
                   {t('common.cancel')}
                 </button>
-                <button
+                <button type="button"
                   onClick={handleCreate}
                   disabled={!newTitle.trim()}
                   className="px-3.5 py-2 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[13px] font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed"

@@ -18,7 +18,7 @@ export interface AssignmentsSlice {
 export const createAssignmentsSlice = (set: SetState, get: GetState): AssignmentsSlice => ({
   assignPlaceToDay: async (tripId, dayId, placeId, position) => {
     const state = get()
-    const place = state.places.find(p => p.id === parseInt(String(placeId)))
+    const place = state.places.find(p => p.id === Number.parseInt(String(placeId)))
     if (!place) return
 
     const tempId = Date.now() * -1
@@ -26,7 +26,7 @@ export const createAssignmentsSlice = (set: SetState, get: GetState): Assignment
     const insertIdx = position != null ? position : current.length
     const tempAssignment: Assignment = {
       id: tempId,
-      day_id: parseInt(String(dayId)),
+      day_id: Number.parseInt(String(dayId)),
       place_id: place.id,
       order_index: insertIdx,
       notes: null,
@@ -141,7 +141,7 @@ export const createAssignmentsSlice = (set: SetState, get: GetState): Assignment
     const insertAt = toOrderIndex !== null ? toOrderIndex : toItems.length
 
     const newToItems = [...toItems]
-    newToItems.splice(insertAt, 0, { ...assignment, day_id: parseInt(String(toDayId)) })
+    newToItems.splice(insertAt, 0, { ...assignment, day_id: Number.parseInt(String(toDayId)) })
     newToItems.forEach((a, i) => { a.order_index = i })
 
     set(s => ({

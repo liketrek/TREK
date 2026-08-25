@@ -14,7 +14,7 @@ TREK supports email-based self-service password reset. On the login page, click 
 2. Enter your email address and submit.
 3. Open the reset link from your email (or console) — valid for **60 minutes**.
 4. Enter a new password. If your account has **MFA enabled**, you must also supply a valid TOTP code or backup code before the reset completes.
-5. After a successful reset you are redirected to login. **All existing sessions are invalidated** — every device is signed out immediately.
+5. After a successful reset the page shows a **Password updated** confirmation ("You can now sign in with your new password.") with a **Sign In** button back to the login page — there is no automatic redirect. **All existing sessions are invalidated** — every device is signed out immediately.
 
 ### Security properties
 
@@ -35,21 +35,23 @@ The email delivery uses the same SMTP settings as other notification emails. See
 
 ### OIDC accounts
 
-Accounts that signed up via SSO and have no local password set cannot use the forgot-password flow — there is no local password to reset. The forgot-password page still shows the generic confirmation to avoid revealing whether the email is OIDC-only. Continue using [OIDC-SSO](OIDC-SSO) to sign in.
+Any account linked to an identity provider cannot use the forgot-password flow — one created by SSO, but equally a local account that was auto-linked to the IdP on its first SSO login. The forgot-password page still shows the generic confirmation to avoid revealing whether the email is SSO-linked. Continue using [OIDC-SSO](OIDC-SSO) to sign in; a local password can still be set by an admin, or by you from **Settings → Account** if you know your current one.
 
 ### Password login disabled
 
-If the admin has globally disabled password login, the forgot-password endpoint returns an error and the flow is unavailable.
+If the admin has globally disabled password login, no reset link is ever issued. For enumeration safety the endpoint still answers with the same generic confirmation, so the page looks exactly as it always does — the email (or the console line) simply never arrives. The refusal is recorded in the audit log as `user.password_reset_request` with `reason: password_login_disabled`.
 
 ## Admin-initiated reset
 
-An admin can set a new password for any user directly from the admin panel (**Admin → Users**). The admin enters a new password for the account, which is saved immediately — no email is required. The admin can also enable the **"Force password change on next login"** flag so the user is prompted to choose their own password the next time they sign in.
+An admin can set a new password for any user directly from the admin panel (**Admin → Users**, edit the user). Leaving the **New Password** field empty keeps the current password; entering one saves it immediately — no email is required. Setting a password this way also bumps the account's `password_version`, which signs the user out of every live session; separately, it deletes all of their MCP tokens and revokes their OAuth tokens.
+
+There is no **"Force password change on next login"** option in the Admin Panel. That prompt is raised only for the admin account TREK seeds on first boot and for accounts restored with the `reset-admin.js` recovery script (see [Troubleshooting](Troubleshooting)). An admin-set password neither raises the flag nor clears it, so a user who already carries it is still asked to choose their own password at the next sign-in.
 
 See [Admin-Users-and-Invites](Admin-Users-and-Invites) for step-by-step instructions.
 
 ## Password requirements
 
-When choosing a new password (whether via the reset flow, the forced-change prompt, or the normal **Settings → Security** page) the password must:
+When choosing a new password (whether via the reset flow, the forced-change prompt, or the **Change Password** form in **Settings → Account**) the password must:
 
 - Be at least **8 characters** long
 - Contain at least one **uppercase letter**
