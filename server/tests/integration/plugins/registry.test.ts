@@ -296,6 +296,36 @@ describe('PluginRegistryService', () => {
       expect(holdInDb()).toBe(0);
     });
 
+    // The comparison is against the newest version THIS TREK can run, not the newest
+    // published one. Both fixtures above leave `trek` unset, so every version is
+    // compatible and the two readings agree; only a version this host must skip tells
+    // them apart. Getting it wrong stamps a hold on an admin who picked the best
+    // available version, and the row silently leaves the banner and "Update all".
+    it('does not hold when a newer version exists but this TREK cannot run it', async () => {
+      const withIncompatibleNewest = {
+        schemaVersion: 1,
+        plugins: [
+          {
+            ...twoVersions.plugins[0],
+            versions: [
+              { version: '3.0.0', gitTag: 'v3.0.0', commitSha: 'c'.repeat(40), downloadUrl: 'https://x/3', sha256: '3'.repeat(64), trek: '>=4.0.0' },
+              ...twoVersions.plugins[0].versions,
+            ],
+          },
+        ],
+      };
+      process.env.APP_VERSION = '3.3.0';
+      vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => withIncompatibleNewest }) as unknown as Response));
+      __clearRegistryCacheForTests();
+      try {
+        seedRow(1);
+        await expect(svc.recomputeUpdateHold('flight-tracker', '2.0.0', true)).resolves.toBe(false);
+        expect(holdInDb()).toBe(0);
+      } finally {
+        delete process.env.APP_VERSION;
+      }
+    });
+
     it('a non-deliberate update clears a stale hold', async () => {
       seedRow(1);
       await expect(svc.recomputeUpdateHold('flight-tracker', '2.0.0', false)).resolves.toBe(false);
