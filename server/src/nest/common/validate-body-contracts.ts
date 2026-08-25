@@ -5,6 +5,7 @@ import { RouteParamtypes } from '@nestjs/common/enums/route-paramtypes.enum';
 import { ModulesContainer } from '@nestjs/core';
 import { isZodDto } from 'nestjs-zod/dto';
 import { BODY_CONTRACT_ALLOW_LIST } from './body-contract-allow-list';
+import { byCodeUnit } from './compare';
 
 const MUTATION_METHODS = new Set<RequestMethod>([
   RequestMethod.POST,
@@ -86,14 +87,14 @@ export function validateBodyContracts(
     problems.push(
       `${violations.length} mutation handler(s) read @Body() without a createZodDto class ` +
         `(add a <domain>.dto.ts wrapper over the @trek/shared schema — do NOT extend the allow-list): ` +
-        violations.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).join(', '),
+        violations.sort(byCodeUnit).join(', '),
     );
   }
   if (stale.length) {
     problems.push(
       `stale body-contract allow-list entr${stale.length === 1 ? 'y' : 'ies'} ` +
         `(route removed or now validated — delete from body-contract-allow-list.ts): ` +
-        stale.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).join(', '),
+        stale.sort(byCodeUnit).join(', '),
     );
   }
   if (problems.length) {

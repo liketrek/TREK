@@ -1,5 +1,6 @@
 import { SetMetadata } from '@nestjs/common';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { byCodeUnit } from './compare';
 
 /** Metadata key `@ManagedForbidden()` writes. */
 export const MANAGED_FORBIDDEN = 'trek:managed-forbidden';
@@ -166,5 +167,5 @@ export function splitManagedKeys<T extends Record<string, unknown>>(
     if (LOCKED.has(key)) blocked.push(key);
     else (allowed as Record<string, unknown>)[key] = value;
   }
-  return { allowed, blocked: blocked.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)) };
+  return { allowed, blocked: blocked.sort(byCodeUnit) };
 }
