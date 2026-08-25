@@ -1,46 +1,84 @@
-name: Tests
+name: Tests & SonarQube
 
 permissions:
   contents: read
 
+# The repo's test/quality CI and SonarQube Cloud analysis in one workflow, so
+# each test suite runs once per event instead of once for the old test.yml and
+# once more for Sonar's coverage. Pushes to dev and main produce branch
+# analysis; pull requests get PR analysis with decoration on the PR itself
+# (the scanner picks the context up from the Actions environment).
+#
+# Job layout — three tiers:
+#   - Preflight: plugin-facts, i18n-parity and the quality jobs
+#     (server-quality, client-quality, plugin-sdk-quality) hold the cheap
+#     generated-code/typecheck/lint/smoke gates. Every test job `needs:` all
+#     of them, so a gate failure stops the run before the expensive coverage
+#     fan-out spends ~15 runner-minutes on a result the gates already sank.
+#   - Tests: the *-coverage jobs run the suites and upload lcov; s3-contract
+#     runs the MinIO contract suite. Coverage jobs run tests only — with the
+#     gates cleared in preflight, they can only fail because tests failed.
+#   - Scan `needs:` exactly the four coverage jobs. A coverage job failing
+#     must stop the scan — a missing lcov file would make every line of that
+#     package report as uncovered, and the dashboard would show a collapse
+#     that did not happen. (The preflight gates stop it transitively.)
+#   - Fork PRs don't receive secrets, so the two jobs that need them skip
+#     themselves: s3-contract (MINIO_LICENSE_KEY) and scan (SONAR_TOKEN).
+#     Everything else runs on fork PRs so outside contributors still get the
+#     full test signal.
+#
+# Automatic Analysis must stay disabled on sonarcloud.io — it is mutually
+# exclusive with CI-based analysis, and it cannot import the lcov coverage
+# this workflow produces.
 on:
+  push:
+    branches: [main, dev]
   pull_request:
     branches: [main, dev]
+    # A PR that touches none of these can't change the tests or the analysis,
+    # so don't spend the coverage fan-out on it. Pushes stay unfiltered so the
+    # branch view is always refreshed from the merge result.
     paths:
       - 'server/**'
       - 'client/**'
       - 'shared/**'
       - 'plugin-sdk/**'
-      # npm workspaces hoist every dependency into the single root lockfile, so
-      # a dependency bump touches none of the four directories above — and a
-      # native binding like better-sqlite3 is exactly what needs the suite.
+      # npm workspaces hoist every dependency into the single root lockfile,
+      # so a dependency bump touches none of the four directories above — and
+      # a native binding like better-sqlite3 is exactly what needs the suite.
       - 'package.json'
       - 'package-lock.json'
       - 'Dockerfile'
       - 'docker-compose.yml'
-      - '.github/workflows/test.yml'
+      - 'sonar-project.properties'
+      - '.github/workflows/sonarqube.yml'
+  workflow_dispatch:
 
 jobs:
   plugin-facts:
     name: Plugin Permission Facts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
+          # 22 matches the TREK server runtime (same choice as the plugin-sdk
+          # jobs and publish-plugin-sdk.yml).
           node-version: 22
           cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci --workspace server
 
       # The plugin permission facts live once, in
-      # server/src/nest/plugins/protocol/envelope.ts. Every other copy - the SDK's
-      # generated/host-facts.ts and shared's plugin-permissions.ts - is generated from it
-      # and checked in, because publish-plugin-sdk builds from a standalone checkout with
-      # no server present. This fails the PR if a copy drifts, if a new permission has no
-      # admin.plugins.perm.* translation, or if the CLI has no hint for it.
+      # server/src/nest/plugins/protocol/envelope.ts. Every other copy — the
+      # SDK's generated/host-facts.ts and shared's plugin-permissions.ts — is
+      # generated from it and checked in, because publish-plugin-sdk builds
+      # from a standalone checkout with no server present. This fails the run
+      # if a copy drifts, if a new permission has no admin.plugins.perm.*
+      # translation, or if the CLI has no hint for it.
       - name: Check the generated plugin facts are in sync
         run: cd server && npm run check:plugin-facts
 
@@ -58,75 +96,9 @@ jobs:
       - name: Check i18n key parity
         run: node shared/scripts/i18n-parity.mjs --strict
 
-  shared-contracts:
-    name: Shared Contracts (Zod)
+  server-quality:
+    name: Server Types & Lint
     runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci --workspace shared
-
-      - name: Typecheck
-        run: cd shared && npm run typecheck
-
-      - name: Run tests
-        run: cd shared && npm run test:coverage
-
-      - name: Upload coverage
-        if: success()
-        uses: actions/upload-artifact@v6
-        with:
-          name: shared-coverage
-          path: shared/coverage/
-          retention-days: 7
-
-  plugin-sdk-tests:
-    name: Plugin SDK Tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: plugin-sdk
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          # 22 matches the TREK server runtime and has node:sqlite, which the
-          # dev-server tests exercise (same choice as publish-plugin-sdk.yml).
-          node-version: 22
-
-      # plugin-sdk is standalone (own lockfile, not a root workspace), so it
-      # installs from its own directory.
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Run tests
-        run: npm run test:coverage
-
-      - name: Upload coverage
-        if: success()
-        uses: actions/upload-artifact@v6
-        with:
-          name: plugin-sdk-coverage
-          path: plugin-sdk/coverage/
-          retention-days: 7
-
-  server-tests:
-    name: Server Tests
-    runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v6
 
@@ -138,18 +110,15 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Ensure @swc/core's Linux binary for unplugin-swc
-        # The lockfile was generated on Windows and omits @swc/core's Linux
-        # optional native binary, so npm ci/install skips it on the runner.
-        # Install the matching version explicitly so the server's SWC transform
-        # (server/vitest.config.ts) can load.
-        run: |
-          SWC_VERSION=$(node -p "require('@swc/core/package.json').version")
-          npm install --no-save --legacy-peer-deps "@swc/core-linux-x64-gnu@$SWC_VERSION"
 
       - name: Build shared
         run: npm run build --workspace=shared
+
+      - name: Typecheck shared
+        # Rides along here rather than in shared-coverage: this job already
+        # pays the root install and shared build, and a coverage job may only
+        # fail because tests failed (it gates the scan).
+        run: cd shared && npm run typecheck
 
       - name: Build server (tsc -> dist)
         run: cd server && npm run build
@@ -166,30 +135,73 @@ jobs:
       - name: Typecheck tests
         # tests/ is outside the build tsconfig, so a service that grows a
         # constructor parameter does not break its hand-wired call sites at
-        # compile time: the argument arrives as undefined and throws at runtime,
-        # if anything reads it at all. This is the step that catches it.
+        # compile time: the argument arrives as undefined and throws at
+        # runtime, if anything reads it at all. This is the step that
+        # catches it.
         run: cd server && npm run typecheck:tests
 
       - name: Lint
         run: cd server && npm run lint:check
 
-      - name: Run tests
-        run: cd server && npm run test:coverage
+  client-quality:
+    name: Client Types & Lint
+    runs-on: ubuntu-latest
 
-      - name: Upload coverage
-        if: success()
-        uses: actions/upload-artifact@v6
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
         with:
-          name: backend-coverage
-          path: server/coverage/
-          retention-days: 7
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --workspace shared && npm ci --workspace client
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Typecheck
+        run: cd client && npm run typecheck
+
+      - name: Lint
+        run: cd client && npm run lint:check
+
+      - name: Page pattern check
+        run: cd client && npm run lint:pages
+
+  plugin-sdk-quality:
+    name: Plugin SDK Types
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugin-sdk
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      # plugin-sdk is standalone (own lockfile, not a root workspace), so it
+      # installs from its own directory.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
 
   s3-contract:
     name: S3 Driver Contract (MinIO)
     runs-on: ubuntu-latest
-    # Fork PRs don't get repo secrets, so MINIO_LICENSE_KEY would be empty
-    # and the AIStor container would fail to boot.
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    needs: [plugin-facts, i18n-parity, server-quality, client-quality, plugin-sdk-quality]
+    # Fork PRs don't get repo secrets, so MINIO_LICENSE_KEY would be empty and
+    # the AIStor container would fail to boot. Pushes and manual dispatches do
+    # have secrets, so only fork PRs are filtered out. (The implicit success()
+    # on this expression also keeps the job skipped when a preflight fails.)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
       - uses: actions/checkout@v6
@@ -253,14 +265,10 @@ jobs:
           TREK_TEST_S3_SECRET_ACCESS_KEY: trekci-secret
         run: cd server && npx vitest run tests/unit/nest/storage/s3.driver.contract.test.ts
 
-  client-quality:
-    # Split out of client-tests: the suite takes ~11 minutes, and having the
-    # gates in front of it meant a single lint finding threw away the whole test
-    # signal for that run. Both jobs pay the install/build, which is cheap next
-    # to running the two in series.
-    name: Client Types & Lint
+  server-coverage:
+    name: Server Coverage
     runs-on: ubuntu-latest
-
+    needs: [plugin-facts, i18n-parity, server-quality, client-quality, plugin-sdk-quality]
     steps:
       - uses: actions/checkout@v6
 
@@ -271,24 +279,34 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci --workspace shared && npm ci --workspace client
+        run: npm ci
+
+      - name: Ensure @swc/core's Linux binary for unplugin-swc
+        # The lockfile was generated on Windows and omits @swc/core's Linux
+        # optional native binary, so npm ci/install skips it on the runner.
+        # Install the matching version explicitly so the server's SWC transform
+        # (server/vitest.config.ts) can load.
+        run: |
+          SWC_VERSION=$(node -p "require('@swc/core/package.json').version")
+          npm install --no-save --legacy-peer-deps "@swc/core-linux-x64-gnu@$SWC_VERSION"
 
       - name: Build shared
         run: npm run build --workspace=shared
 
-      - name: Typecheck
-        run: cd client && npm run typecheck
+      - name: Run tests with coverage
+        run: cd server && npm run test:coverage
 
-      - name: Lint
-        run: cd client && npm run lint:check
+      - name: Upload coverage
+        uses: actions/upload-artifact@v6
+        with:
+          name: sonar-server-coverage
+          path: server/coverage/
+          retention-days: 1
 
-      - name: Page pattern check
-        run: cd client && npm run lint:pages
-
-  client-tests:
-    name: Client Tests
+  client-coverage:
+    name: Client Coverage
     runs-on: ubuntu-latest
-
+    needs: [plugin-facts, i18n-parity, server-quality, client-quality, plugin-sdk-quality]
     steps:
       - uses: actions/checkout@v6
 
@@ -298,19 +316,142 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      # Only the shared and client workspaces — a full root npm ci is not
+      # needed, and the scoped install keeps @testing-library/dom (a peer of
+      # @testing-library/react) in the tree without the re-resolution dance
+      # the folded coverage job used to need.
       - name: Install dependencies
         run: npm ci --workspace shared && npm ci --workspace client
 
       - name: Build shared
         run: npm run build --workspace=shared
 
-      - name: Run tests
+      - name: Run tests with coverage
         run: cd client && npm run test:coverage
 
       - name: Upload coverage
-        if: success()
         uses: actions/upload-artifact@v6
         with:
-          name: frontend-coverage
+          name: sonar-client-coverage
           path: client/coverage/
-          retention-days: 7
+          retention-days: 1
+
+  shared-coverage:
+    name: Shared Coverage
+    runs-on: ubuntu-latest
+    needs: [plugin-facts, i18n-parity, server-quality, client-quality, plugin-sdk-quality]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --workspace shared
+
+      - name: Run tests with coverage
+        run: cd shared && npm run test:coverage
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v6
+        with:
+          name: sonar-shared-coverage
+          path: shared/coverage/
+          retention-days: 1
+
+  plugin-sdk-coverage:
+    name: Plugin SDK Coverage
+    runs-on: ubuntu-latest
+    needs: [plugin-facts, i18n-parity, server-quality, client-quality, plugin-sdk-quality]
+    defaults:
+      run:
+        working-directory: plugin-sdk
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          # 22 matches the TREK server runtime and has node:sqlite, which the
+          # dev-server tests exercise (same choice as publish-plugin-sdk.yml).
+          node-version: 22
+
+      # plugin-sdk is standalone (own lockfile, not a root workspace), so it
+      # installs from its own directory.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v6
+        with:
+          name: sonar-plugin-sdk-coverage
+          path: plugin-sdk/coverage/
+          retention-days: 1
+
+  scan:
+    name: Scan
+    runs-on: ubuntu-latest
+    # Fork PRs don't receive SONAR_TOKEN — skip the scan rather than fail it.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    # Coverage jobs failing must stop the scan: a missing lcov file would make
+    # every line of that package report as uncovered, and the dashboard would
+    # show a collapse that did not happen. The preflight gates already stop it
+    # transitively through these four, so they aren't repeated here.
+    needs: [server-coverage, client-coverage, shared-coverage, plugin-sdk-coverage]
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Sonar reads git blame to date each issue and to decide what counts
+          # as new code. A shallow clone leaves it blind to both.
+          fetch-depth: 0
+
+      - name: Download server coverage
+        uses: actions/download-artifact@v6
+        with:
+          name: sonar-server-coverage
+          path: server/coverage/
+
+      - name: Download client coverage
+        uses: actions/download-artifact@v6
+        with:
+          name: sonar-client-coverage
+          path: client/coverage/
+
+      - name: Download shared coverage
+        uses: actions/download-artifact@v6
+        with:
+          name: sonar-shared-coverage
+          path: shared/coverage/
+
+      - name: Download plugin-sdk coverage
+        uses: actions/download-artifact@v6
+        with:
+          name: sonar-plugin-sdk-coverage
+          path: plugin-sdk/coverage/
+
+      - name: Scan
+        uses: SonarSource/sonarqube-scan-action@v8
+        env:
+          # SonarQube Cloud is the scan action's default host, so no
+          # SONAR_HOST_URL — the token is a sonarcloud.io token for the
+          # liketrek org.
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          # New Code is configured as "previous version", so this string is what
+          # draws that line — changing it re-bases every "new code" metric.
+          # Pinned rather than read from package.json on purpose: package.json is
+          # still on 3.4.1 while the project has been analysed as 4.0.0 all along,
+          # and taking the lower number would silently move the baseline. Bump it
+          # here as part of the release, together with the version bump.
+          #
+          # Everything else — sources, tests, exclusions, the documented
+          # false-positive list — lives in sonar-project.properties so it stays
+          # reviewable in a PR rather than buried in workflow YAML.
+          args: -Dsonar.projectVersion=4.0.0

@@ -21,6 +21,8 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 &nbsp;
 <a href="https://hub.docker.com/r/mauriceboe/trek"><img alt="Docker" src="https://img.shields.io/badge/Docker-ready-2496ED?style=for-the-badge" /></a>
 &nbsp;
+<a href="https://sonarcloud.io/project/overview?id=liketrek_TREK"><img alt="Sonar Quality Gate" src="https://img.shields.io/sonar/quality_gate/liketrek_TREK?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge" /></a>
+&nbsp;
 <a href="https://discord.gg/NhZBDSd4qW"><img alt="Discord" src="https://img.shields.io/badge/Discord-join-5865F2?style=for-the-badge" /></a>
 &nbsp;
 <a href="https://kanban.pakulat.org/shared/I4wxF6inOOMB0C6hH6kQm3efyNxFjwyI"><img alt="Roadmap" src="https://img.shields.io/badge/Roadmap-view-0EA5E9?style=for-the-badge" /></a>
@@ -33,7 +35,6 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 <a href="https://github.com/liketrek/TREK/releases"><img alt="Latest Release" src="https://img.shields.io/github/v/release/liketrek/trek?include_prereleases&style=flat-square&color=6B7280" /></a>
 <a href="https://hub.docker.com/r/mauriceboe/trek"><img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/mauriceboe/trek?style=flat-square&color=6B7280" /></a>
 <a href="https://github.com/liketrek/TREK"><img alt="Stars" src="https://img.shields.io/github/stars/liketrek/trek?style=flat-square&color=6B7280" /></a>
-
 </div>
 
 ---

@@ -22,7 +22,11 @@ export default defineConfig({
       reporter: ['lcov', 'text'],
       reportsDirectory: './coverage',
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/main.tsx', 'src/vite-env.d.ts'],
+      // All .d.ts, not just vite-env: declaration files carry no executable
+      // code, and their lcov entries can't resolve on the Sonar side (its
+      // **/*.d.ts exclusion removes them from analysis), which surfaced as
+      // "Could not resolve 2 file paths" warnings in every scan.
+      exclude: ['src/main.tsx', 'src/**/*.d.ts'],
       // Without these the Client Tests job produced a report, uploaded it and
       // passed no matter what the number was — which is how coverage drifted
       // down to ~48% unnoticed. 85 across the board is the floor we do not want
