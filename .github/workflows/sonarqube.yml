@@ -45,9 +45,28 @@ jobs:
         # Same reason as test.yml: the lockfile was generated on Windows and omits
         # @swc/core's Linux optional native binary, so npm ci skips it on the
         # runner and the server's SWC transform cannot load.
+        #
+        # @testing-library/dom rides along, and has to. This install re-resolves
+        # the tree, and --legacy-peer-deps means npm does not put peer
+        # dependencies back — @testing-library/dom is a peer of
+        # @testing-library/react and not a direct dependency of the client, so it
+        # was silently dropped and all 616 client test files died on
+        # "Cannot find module". In test.yml this step lives in the server job,
+        # which never runs client tests, so the collision only appears once the
+        # jobs are folded into one. The version is read from the peer range rather
+        # than pinned here, so a bump to @testing-library/react carries over.
         run: |
           SWC_VERSION=$(node -p "require('@swc/core/package.json').version")
-          npm install --no-save --legacy-peer-deps "@swc/core-linux-x64-gnu@$SWC_VERSION"
+          DOM_RANGE=$(node -p "require('@testing-library/react/package.json').peerDependencies['@testing-library/dom']")
+          npm install --no-save --legacy-peer-deps \
+            "@swc/core-linux-x64-gnu@$SWC_VERSION" \
+            "@testing-library/dom@$DOM_RANGE"
+
+      - name: Verify the test toolchain survived that install
+        # Cheap tripwire: if a future dependency bump loses another peer the same
+        # way, this fails here with the name of the module instead of 600
+        # identical test failures twenty minutes later.
+        run: node -e "require.resolve('@testing-library/dom'); require.resolve('@swc/core')"
 
       - name: Build shared
         # Only shared, not the root `build`. server and client run their suites

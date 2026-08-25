@@ -329,8 +329,16 @@ describe('MAdminStoragePanel', () => {
     server.use(
       http.put('/api/admin/storage', () => HttpResponse.json(savedState)),
       http.post('/api/admin/storage/migrations', async ({ request }) => {
-        postCount += 1;
+        // Parse BEFORE counting, so postCount and migrationPosts move together.
+        // With the increment first, the await left a window where postCount was
+        // already 1 while migrationPosts was still empty — and the GET handler
+        // below reports `migrations: []` for an empty migrationPosts, i.e. "no
+        // migration running". A poll landing in that window told the queue it was
+        // free to dequeue the second candidate, and the `waitFor(postCount === 1)`
+        // further down could resolve inside it too. Rare locally, reliable under
+        // CI load, where the microtask gap is wider than the 50ms test poll.
         const body = (await request.json()) as { category: StorageCategory; to: string };
+        postCount += 1;
         migrationPosts.push(body);
         // Pins the single-flight fix: the second POST must never arrive
         // before the first migration is server-confirmed terminal — a
