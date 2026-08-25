@@ -285,7 +285,7 @@ export function formatMoneySum(
   // Breakdown: base first, then the rest in stable code order.
   const parts = [
     ...(groups.has(baseCur) ? [baseCur] : []),
-    ...foreign.sort(),
+    ...foreign.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
   ]
   return parts.map(cur => formatMoney(groups.get(cur)!, cur, locale, opts)).join(' + ')
 }

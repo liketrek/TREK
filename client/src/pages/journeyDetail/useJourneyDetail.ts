@@ -300,7 +300,7 @@ export function useJourneyDetail() {
       (current?.entries || [])
         .filter(e => e.title !== 'Gallery' && e.title !== '[Trip Photos]')
         .map(e => e.entry_date)
-        .sort()
+        .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
     )]
     const sorted = [...mapEntries].sort((a, b) => a.entry_date.localeCompare(b.entry_date))
     const dayCounters = new Map<string, number>()

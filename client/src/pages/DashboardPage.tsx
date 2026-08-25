@@ -633,7 +633,7 @@ function CurrencyTool(): React.ReactElement {
     }).catch(() => { /* keep localStorage; retry on next load */ })
   }, [isLoaded, updateSetting])
 
-  const currencies = rates ? Object.keys(rates).sort() : CURRENCIES
+  const currencies = rates ? Object.keys(rates).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)) : CURRENCIES
   const ccyOptions = currencies.map(c => ({ value: c, label: c }))
   const rate = rates?.[to] ?? null
   const converted = rate != null ? (Number.parseFloat(amount.replace(',', '.')) || 0) * rate : null

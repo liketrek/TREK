@@ -63,7 +63,7 @@ function JourneyDetailPageDesktop() {
 
   const timelineEntries = current.entries.filter(e => (!hideSkeletons || e.type !== 'skeleton'))
   const dayGroups = groupByDate(timelineEntries)
-  const sortedDates = [...dayGroups.keys()].sort()
+  const sortedDates = [...dayGroups.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
 
   const tripDateMin = current.trips.length
     ? current.trips.reduce((min: string, t: any) => t.start_date && (!min || t.start_date < min) ? t.start_date : min, '')

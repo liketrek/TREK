@@ -82,10 +82,10 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
     set(state => ({
       budgetItems: state.budgetItems.map(item =>
         item.id === itemId
-          // The server persists `paid` as 0/1; the optimistic update stores the
-          // boolean toggle value (truthy-compatible) — narrow it to the member's
-          // numeric type without changing the stored runtime value.
-          ? { ...item, members: (item.members || []).map(m => m.user_id === userId ? { ...m, paid: paid as unknown as number } : m) }
+          // The server persists `paid` as 0/1 and broadcasts the same 0/1 over
+          // WebSocket, so the optimistic write normalises the boolean toggle to
+          // that numeric contract instead of parking a boolean under a cast.
+          ? { ...item, members: (item.members || []).map(m => m.user_id === userId ? { ...m, paid: paid ? 1 : 0 } : m) }
           : item
       )
     }));

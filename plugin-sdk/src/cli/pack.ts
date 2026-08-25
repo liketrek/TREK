@@ -100,6 +100,6 @@ export function packPluginDir(dir: string, outPath: string): PackResult {
     artifact: outAbs,
     sha256: createHash('sha256').update(buf).digest('hex'),
     size: buf.length,
-    files: filtered.map((f) => f.name).sort(),
+    files: filtered.map((f) => f.name).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
   };
 }

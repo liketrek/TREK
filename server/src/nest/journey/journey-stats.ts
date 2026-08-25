@@ -179,10 +179,10 @@ export interface StatsInput {
  */
 export function computeJourneyStats(input: StatsInput): JourneyStats {
   const points = thinRoute(input.points);
-  const dated = points.map(p => isoDay(p.date)).filter((d): d is string => !!d).sort();
+  const dated = points.map(p => isoDay(p.date)).filter((d): d is string => !!d).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 
-  const tripStarts = input.tripDates.map(t => isoDay(t.start)).filter((d): d is string => !!d).sort();
-  const tripEnds = input.tripDates.map(t => isoDay(t.end)).filter((d): d is string => !!d).sort();
+  const tripStarts = input.tripDates.map(t => isoDay(t.start)).filter((d): d is string => !!d).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const tripEnds = input.tripDates.map(t => isoDay(t.end)).filter((d): d is string => !!d).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 
   const start = dated[0] ?? tripStarts[0] ?? null;
   const end = dated[dated.length - 1] ?? tripEnds[tripEnds.length - 1] ?? null;

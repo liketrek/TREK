@@ -118,7 +118,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
   // constrain to trip days via their day dropdowns. Falls back to no limit when
   // the trip has no dated days.
   const tripDateRange = useMemo(() => {
-    const dates = (days || []).map(d => d.date).filter((d): d is string => !!d).sort()
+    const dates = (days || []).map(d => d.date).filter((d): d is string => !!d).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
     return { min: dates[0], max: dates[dates.length - 1] }
   }, [days])
 

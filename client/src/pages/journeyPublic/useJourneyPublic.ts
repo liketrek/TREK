@@ -55,7 +55,7 @@ export function useJourneyPublic() {
   const groupedEntries = useMemo(() => groupByDate(timelineEntries), [timelineEntries])
   // Chronological throughout: this is what the day colours and the stop numbers are
   // derived from, so flipping the reading order must not renumber the trip.
-  const sortedDates = useMemo(() => [...groupedEntries.keys()].sort(), [groupedEntries])
+  const sortedDates = useMemo(() => [...groupedEntries.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)), [groupedEntries])
   const mapEntries = useMemo(
     () => timelineEntries.filter(e => e.location_lat && e.location_lng),
     [timelineEntries],

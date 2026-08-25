@@ -649,7 +649,7 @@ export function useAtlas() {
     // layer meant a continent's worth of admin-1 polygons stayed in the DOM, and every
     // newly loaded country tore the whole thing down and built it again (#1950).
     const bounds = viewportBounds()
-    const inViewCodes = Object.keys(regionGeoCache.current).filter(code => countryInView(code, bounds)).sort()
+    const inViewCodes = Object.keys(regionGeoCache.current).filter(code => countryInView(code, bounds)).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
     const sig = inViewCodes.join('|')
     if (!force && sig === renderedRegionSigRef.current) return
 

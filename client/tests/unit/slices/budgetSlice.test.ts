@@ -170,7 +170,7 @@ describe('budgetSlice', () => {
 
       const updatedItem = useTripStore.getState().budgetItems.find(i => i.id === 10);
       const updatedMember = updatedItem?.members.find(m => m.user_id === 5);
-      expect(updatedMember?.paid).toBe(true);
+      expect(updatedMember?.paid).toBe(1);
     });
   });
 });

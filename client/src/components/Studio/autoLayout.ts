@@ -1450,7 +1450,7 @@ function backSpread(input: AutoInput): BookSpread {
   const dates = input.entries
     .map(e => e.date)
     .filter((d): d is string => !!d)
-    .sort()
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
   const span = dates.length
     ? [formatBookDate(dates[0], input.locale), formatBookDate(dates[dates.length - 1], input.locale)].filter(Boolean).join(' — ')
     : ''

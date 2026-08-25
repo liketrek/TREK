@@ -398,7 +398,7 @@ export class DaysService {
 
     const oldDateById = new Map(rows.map(r => [r.id, r.date]));
     // Dates stay pinned to slots: position i keeps the i-th date (ascending).
-    const sortedDates = rows.map(r => r.date).filter((d): d is string => !!d).sort();
+    const sortedDates = rows.map(r => r.date).filter((d): d is string => !!d).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
     const isDated = sortedDates.length > 0;
 
     const setDayNumber = this.db.prepare('UPDATE days SET day_number = ? WHERE id = ?');
@@ -452,7 +452,7 @@ export class DaysService {
     }
 
     // Dated trip: rebuild N+1 contiguous dates from the earliest date.
-    const start = datedRows.map(r => r.date).sort()[0];
+    const start = datedRows.map(r => r.date).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))[0];
     const dates = Array.from({ length: n + 1 }, (_, i) => addDays(start, i));
     const oldDateById = new Map(rows.map(r => [r.id, r.date]));
     const setDayNumberAndDate = this.db.prepare('UPDATE days SET day_number = ?, date = ? WHERE id = ?');

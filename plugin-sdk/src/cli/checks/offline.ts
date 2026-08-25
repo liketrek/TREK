@@ -530,12 +530,12 @@ const releaseEntryParity: OfflineCheck = {
       problems.push(`• manifest operatorEgress ${m.operatorEgress === true} != entry ${v.operatorEgress === true}`);
     }
 
-    const normAddons = (a: unknown) => [...arr(a)].sort();
+    const normAddons = (a: unknown) => [...arr(a)].sort((x, y) => (x < y ? -1 : x > y ? 1 : 0));
     if (JSON.stringify(normAddons(m.requiredAddons)) !== JSON.stringify(normAddons(v.requiredAddons))) {
       problems.push(`• manifest requiredAddons [${normAddons(m.requiredAddons)}] != entry [${normAddons(v.requiredAddons)}]`);
     }
     const normDeps = (d: unknown) =>
-      (Array.isArray(d) ? d.map((x) => `${(x as { id?: string })?.id}@${(x as { version?: string })?.version}`).sort() : []);
+      (Array.isArray(d) ? d.map((x) => `${(x as { id?: string })?.id}@${(x as { version?: string })?.version}`).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)) : []);
     if (JSON.stringify(normDeps(m.pluginDependencies)) !== JSON.stringify(normDeps(v.pluginDependencies))) {
       problems.push(`• manifest pluginDependencies [${normDeps(m.pluginDependencies)}] != entry [${normDeps(v.pluginDependencies)}]`);
     }

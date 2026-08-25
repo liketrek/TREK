@@ -20,7 +20,7 @@ export const createDaysSlice = (set: SetState, get: GetState): DaysSlice => ({
   reorderDays: async (tripId, orderedIds) => {
     const prevDays = get().days
     const byId = new Map(prevDays.map(d => [d.id, d]))
-    const sortedDates = prevDays.map(d => d.date).filter((d): d is string => !!d).sort()
+    const sortedDates = prevDays.map(d => d.date).filter((d): d is string => !!d).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
     const optimistic = orderedIds
       .map((id, i) => {
         const d = byId.get(id)

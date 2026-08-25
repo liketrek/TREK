@@ -144,7 +144,7 @@ describe('budgetSlice', () => {
     );
     await useTripStore.getState().toggleBudgetMemberPaid(1, 8, 3, true);
     const stored = useTripStore.getState().budgetItems.find(i => i.id === 8);
-    expect(stored?.members?.[0]?.paid).toBe(true);
+    expect(stored?.members?.[0]?.paid).toBe(1);
   });
 
   it('FE-STORE-BUDGET-010: reorderBudgetItems reorders optimistically and reloads on error', async () => {

@@ -196,7 +196,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
 
   // Restrict non-hotel booking dates to the trip's span (#1662); hotels already
   // constrain to trip days via their day dropdowns.
-  const tripDates = days.map(d => d.date).filter((d): d is string => !!d).sort()
+  const tripDates = days.map(d => d.date).filter((d): d is string => !!d).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
   const tripMinDate = tripDates[0]
   const tripMaxDate = tripDates[tripDates.length - 1]
 

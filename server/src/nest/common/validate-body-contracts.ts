@@ -86,14 +86,14 @@ export function validateBodyContracts(
     problems.push(
       `${violations.length} mutation handler(s) read @Body() without a createZodDto class ` +
         `(add a <domain>.dto.ts wrapper over the @trek/shared schema — do NOT extend the allow-list): ` +
-        violations.sort().join(', '),
+        violations.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).join(', '),
     );
   }
   if (stale.length) {
     problems.push(
       `stale body-contract allow-list entr${stale.length === 1 ? 'y' : 'ies'} ` +
         `(route removed or now validated — delete from body-contract-allow-list.ts): ` +
-        stale.sort().join(', '),
+        stale.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).join(', '),
     );
   }
   if (problems.length) {

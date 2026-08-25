@@ -46,7 +46,7 @@ export default function MobileMapTimeline({
   const [activeIndex, setActiveIndex] = useState(0)
 
   const entryDayMeta = useMemo(() => {
-    const uniqueDates = [...new Set(entries.map((e: any) => e.entry_date).sort())]
+    const uniqueDates = [...new Set(entries.map((e: any) => e.entry_date).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)))]
     const counters = new Map<string, number>()
     return entries.map((e: any) => {
       const dayIdx = uniqueDates.indexOf(e.entry_date)

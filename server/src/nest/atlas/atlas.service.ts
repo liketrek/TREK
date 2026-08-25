@@ -254,7 +254,7 @@ export class AtlasService {
       const dates = countryTrips
         .map((t) => t.start_date)
         .filter(Boolean)
-        .sort();
+        .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
       return {
         code: c.code,
         placeCount: c.places.length,

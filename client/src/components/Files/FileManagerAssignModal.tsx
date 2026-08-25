@@ -123,13 +123,13 @@ export function AssignModal(S: FileManagerState) {
                         ) : null
                       })()}
                     </div>
-                    {dayPlaces.map(placeBtn)}
+                    {dayPlaces.map((p, i) => placeBtn(p, i))}
                   </div>
                 ))}
                 {unassigned.length > 0 && (
                   <div>
                     {dayGroups.length > 0 && <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-muted)', padding: '8px 10px 2px' }}>{t('files.unassigned')}</div>}
-                    {unassigned.map(placeBtn)}
+                    {unassigned.map((p, i) => placeBtn(p, i))}
                   </div>
                 )}
               </div>

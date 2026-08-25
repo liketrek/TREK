@@ -166,5 +166,5 @@ export function splitManagedKeys<T extends Record<string, unknown>>(
     if (LOCKED.has(key)) blocked.push(key);
     else (allowed as Record<string, unknown>)[key] = value;
   }
-  return { allowed, blocked: blocked.sort() };
+  return { allowed, blocked: blocked.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)) };
 }

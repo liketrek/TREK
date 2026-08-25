@@ -249,7 +249,7 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
         const eps = (r.endpoints || []).map(e => `${e.role}@${e.lat ?? ''},${e.lng ?? ''}`).join(';')
         return `${r.id}:${r.day_id ?? ''}:${r.end_day_id ?? ''}:${r.reservation_time ?? ''}:${pos ?? ''}:${eps}`
       })
-      .sort()
+      .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
       .join('|')
   }, [reservationsForSignature, selectedDayId])
 

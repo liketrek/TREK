@@ -23,7 +23,7 @@ export function MapView({ entries, mapEntries, sortedDates, activeLocationId, fu
     if (!byDate.has(d)) byDate.set(d, [])
     byDate.get(d)!.push({ entry: e, globalIdx: i })
   })
-  const dates = [...byDate.keys()].sort()
+  const dates = [...byDate.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
 
   const mapItems = useMemo(() => mapEntries.map(e => ({
     id: String(e.id),

@@ -82,8 +82,8 @@ export function jsonRpcError(message: string, code = -32000): object {
 export function sameScopes(a: string[] | null, b: string[] | null): boolean {
   if (a === null || b === null) return a === b;
   if (a.length !== b.length) return false;
-  const left = [...a].sort();
-  const right = [...b].sort();
+  const left = [...a].sort((x, y) => (x < y ? -1 : x > y ? 1 : 0));
+  const right = [...b].sort((x, y) => (x < y ? -1 : x > y ? 1 : 0));
   return left.every((scope, i) => scope === right[i]);
 }
 
