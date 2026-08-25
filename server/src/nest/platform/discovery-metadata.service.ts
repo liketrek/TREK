@@ -22,7 +22,7 @@ export class DiscoveryMetadataService {
 
   getOAuthMetadata(): OAuthMetadata {
     if (this.oauthMetadata) return this.oauthMetadata;
-    const base = getMcpSafeUrl().replace(/\/+$/, '');
+    const base = getMcpSafeUrl().replace(/(?<!\/)\/+$/, '');
     this.oauthMetadata = {
       issuer:                                base,
       authorization_endpoint:                `${base}/oauth/authorize`,

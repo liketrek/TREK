@@ -1688,8 +1688,8 @@ function VersionPickerDialog({ plugin, versions, failed, busy, t, locale, onPick
   t: T; locale: string; onPick: (version: string) => void; onClose: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="bg-surface-card border border-edge rounded-2xl w-full max-w-md max-h-[80vh] overflow-auto shadow-modal" onClick={e => e.stopPropagation()}>
+    <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-md max-h-[80vh] overflow-auto shadow-modal" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-edge-secondary">
           <h3 className="text-[15px] font-semibold text-content truncate">{t('admin.plugins.versionPickerTitle', { name: plugin.name })}</h3>
           <button type="button" onClick={onClose} className="w-8 h-8 grid place-items-center rounded-lg text-content-faint hover:text-content hover:bg-surface-tertiary transition-colors shrink-0"><X size={16} /></button>

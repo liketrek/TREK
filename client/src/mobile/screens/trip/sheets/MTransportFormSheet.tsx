@@ -54,9 +54,16 @@ function endpointFromAirport(a: Airport, role: 'from' | 'to' | 'stop', sequence:
 function endpointFromLocation(l: LocationPoint, role: 'from' | 'to' | 'stop', sequence: number, date: string | null, time: string | null): Omit<ReservationEndpoint, 'id' | 'reservation_id'> {
   return { role, sequence, name: l.name, code: null, lat: l.lat, lng: l.lng, timezone: null, local_date: date, local_time: time }
 }
+// "Paris Charles de Gaulle (CDG)" → "Paris Charles de Gaulle", the same trim-plus-
+// anchored-test the desktop TransportModal uses instead of /\s*\([A-Z]{3}\)\s*$/,
+// because that leading \s* backtracks over every space in a long name.
+function stripAirportCode(name: string): string {
+  const trimmed = name.trimEnd()
+  return /\([A-Z]{3}\)$/.test(trimmed) ? trimmed.slice(0, -5).trimEnd() : name
+}
 function airportFromEndpoint(e: ReservationEndpoint | undefined): Airport | null {
   if (!e || !e.code) return null
-  return { iata: e.code, icao: null, name: e.name, city: e.name.replace(/\s*\([A-Z]{3}\)\s*$/, ''), country: '', lat: e.lat, lng: e.lng, tz: e.timezone || '' }
+  return { iata: e.code, icao: null, name: e.name, city: stripAirportCode(e.name), country: '', lat: e.lat, lng: e.lng, tz: e.timezone || '' }
 }
 function locationFromEndpoint(e: ReservationEndpoint | undefined): LocationPoint | null {
   if (!e) return null

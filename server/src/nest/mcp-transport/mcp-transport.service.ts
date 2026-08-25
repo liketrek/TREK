@@ -87,8 +87,19 @@ export function sameScopes(a: string[] | null, b: string[] | null): boolean {
   return left.every((scope, i) => scope === right[i]);
 }
 
+/**
+ * Drop the trailing slashes of a base URL, as a scan rather than /\/+$/: that pattern
+ * is unanchored at the front, so the engine restarts it at every slash of a run and
+ * rescans to the end each time (quadratic — 25s on 200k). Same string either way.
+ */
+function trimTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === '/') end--;
+  return value.slice(0, end);
+}
+
 export function setAuthChallenge(res: Response, error = 'invalid_token'): void {
-  const base = (getMcpSafeUrl() || '').replace(/\/+$/, '');
+  const base = trimTrailingSlashes(getMcpSafeUrl() || '');
   // RFC 9728 §5: resource with path component /mcp → PRM URL must include the path
   res.set('WWW-Authenticate',
       `Bearer realm="TREK MCP", resource_metadata="${base}/.well-known/oauth-protected-resource/mcp", error="${error}"`);
@@ -129,7 +140,7 @@ export class McpTransportService {
       if (!result) return null;
       // RFC 8707: audience must always match this resource endpoint.
       // Pre-audit tokens with audience=null are revoked by the SEC-H6 migration.
-      const expected = `${(getMcpSafeUrl() || '').replace(/\/+$/, '')}/mcp`;
+      const expected = `${trimTrailingSlashes(getMcpSafeUrl() || '')}/mcp`;
       if (result.audience !== expected) return null;
       return { user: result.user, scopes: result.scopes, clientId: result.clientId, isStaticToken: false };
     }

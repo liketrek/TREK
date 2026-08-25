@@ -101,8 +101,8 @@ describe('DevNotificationsPanel', () => {
     render(<><ToastContainer /><DevNotificationsPanel /></>);
     await screen.findByText('Type Testing');
 
-    // Fire the click but do not await — handler never resolves so sending stays true
-    void user.click(screen.getByText('Simple → Me').closest('button')!);
+    // The request handler never resolves, so sending stays true after the click settles
+    await user.click(screen.getByText('Simple → Me').closest('button')!);
 
     await waitFor(() => {
       const buttons = screen.getAllByRole('button');

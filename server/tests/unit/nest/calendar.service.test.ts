@@ -1138,7 +1138,7 @@ describe('foldICS', () => {
 
     const folded = foldICS(line);
 
-    expect(folded).not.toContain('�');
+    expect(folded).not.toContain('\uFFFD');
     expect(unfold(folded)).toBe(line);
     for (const part of folded.split('\r\n')) expect(octets(part)).toBeLessThanOrEqual(75);
   });
@@ -1150,7 +1150,7 @@ describe('foldICS', () => {
 
     const folded = foldICS(line);
 
-    expect(folded).not.toContain('�');
+    expect(folded).not.toContain('\uFFFD');
     expect(unfold(folded)).toBe(line);
     for (const part of folded.split('\r\n')) expect(octets(part)).toBeLessThanOrEqual(75);
   });

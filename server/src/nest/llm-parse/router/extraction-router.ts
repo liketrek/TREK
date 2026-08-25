@@ -83,8 +83,12 @@ export function extractBookingRef(text: string): string | undefined {
   // exactly that (the run's first digit is only ever preceded by letters), and the
   // separator says "spaces, then optionally a colon and more spaces" — both spellings
   // avoid quantifiers that overlap and make document text backtrack.
+  // "Confirmation" carries its own spacing INSIDE the optional suffix: spelled
+  // `Confirmation\s*(?:number|code)?`, a dropped suffix left that \s* sitting directly
+  // against the separator's \s*, and two adjacent runs can split a stretch of spaces
+  // in n ways — quadratic on "Confirmation" followed by a long indent.
   const m = text.match(
-    /(?:PNR|Buchungs(?:code|nummer|referenz)|Booking\s*(?:reference|code|number)|Confirmation\s*(?:number|code)?|Reservierungsnummer|Reservation\s*(?:No\.?|Number|Nr\.?)|Best(?:ä|ae)tigungs[-\s]?(?:nummer|code)|(?:Expedia[-\s]*)?Reiseplan|Reference)\s*(?::\s*)?((?=[A-Z]*\d)[A-Z0-9]{5,})/i,
+    /(?:PNR|Buchungs(?:code|nummer|referenz)|Booking\s*(?:reference|code|number)|Confirmation(?:\s*(?:number|code))?|Reservierungsnummer|Reservation\s*(?:No\.?|Number|Nr\.?)|Best(?:ä|ae)tigungs[-\s]?(?:nummer|code)|(?:Expedia[-\s]*)?Reiseplan|Reference)\s*(?::\s*)?((?=[A-Z]*\d)[A-Z0-9]{5,})/i,
   );
   return m?.[1];
 }
@@ -103,15 +107,23 @@ export function normCurrency(token: string): string | undefined {
 export function extractTotalPrice(text: string): { price: string; currency?: string } | null {
   const strip = (s: string) => s.replace(/[€$£¥\s]/g, '');
   // A labeled total: "Gesamtpreis: 1.234,56 €", "Total Amount 99 USD", "Bezahlter Betrag 651,86 €".
+  // The symbol keeps the space that trails IT inside its own optional group: spelled
+  // `[€$£¥]?\s*`, a missing symbol left that \s* directly against the separator's \s*,
+  // and two adjacent runs split a stretch of spaces in n ways — quadratic on a label
+  // followed by a long indent and no amount.
   const labeled = text.match(
-    /(?:Gesamtpreis|Gesamtbetrag|Gesamtsumme|Total(?:\s*(?:price|amount))?|Amount|Summe|Betrag)\s*(?::\s*)?([€$£¥]?\s*\d[\d.,]*)\s*(EUR|USD|GBP|CHF|JPY|€|\$|£|¥)?/i,
+    /(?:Gesamtpreis|Gesamtbetrag|Gesamtsumme|Total(?:\s*(?:price|amount))?|Amount|Summe|Betrag)\s*(?::\s*)?((?:[€$£¥]\s*)?\d[\d.,]*)\s*(EUR|USD|GBP|CHF|JPY|€|\$|£|¥)?/i,
   );
   if (labeled) return { price: strip(labeled[1]), currency: normCurrency(labeled[2] ?? labeled[1]) };
   // Fallback: a standalone amount carrying a currency symbol on its own line (e.g. a voucher's
   // "¥9,400") — the price sits far from any label the pattern above can anchor to. The
   // indent is horizontal whitespace only: under /m the anchor already sits at every line
   // start, so a \s* run that could also eat the newlines just re-scans the document.
-  const symbol = text.match(/^[^\S\r\n]*([€$£¥]\s?\d[\d.,]*)\b/m);
+  // U+2028/U+2029 are line terminators too — /m starts a line after each one — so they
+  // have to leave the class for the same reason \r\n do. `[^\S\r\n]` still contained
+  // them (they are \s), which made a run of them both a line start and indent the class
+  // could eat: 16k of U+2028 took 348ms, and the run grows quadratically.
+  const symbol = text.match(/^[^\S\r\n\u2028\u2029]*([€$£¥]\s?\d[\d.,]*)\b/m);
   if (symbol) return { price: strip(symbol[1]), currency: normCurrency(symbol[1]) };
   return null;
 }

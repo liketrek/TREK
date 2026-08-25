@@ -841,7 +841,7 @@ describe('JourneyDetailPage', () => {
     });
   });
 
-  // ── Helper: open entry editor ────────────────────────��─────────────────
+  // ── Helper: open entry editor ───────────────────────────────────────────
   async function openEntryEditor(user: ReturnType<typeof userEvent.setup>) {
     // The + button is inside the view controls row, after the tab group
     // Structure: div.justify-between > [div(tabs), button(+)]

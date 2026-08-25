@@ -265,7 +265,9 @@ function stripPageMarkers(text: string): string {
 function cleanPdfText(text: string): string {
   return stripPageMarkers(text)
     .replace(/[ \t]+/g, ' ')
-    .replace(/\b(?:[A-Z] ){2,}[A-Z]\b/g, m => m.replaceAll(' ', ''))
+    // Same run of three-or-more spaced capitals, written so the repeated group no
+    // longer overlaps the [A-Z] behind it and has to hand characters back to it.
+    .replace(/\b[A-Z](?: [A-Z]){2,}\b/g, m => m.replaceAll(' ', ''))
     .replace(/ *\n */g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();

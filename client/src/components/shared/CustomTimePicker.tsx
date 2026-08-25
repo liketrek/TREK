@@ -23,7 +23,7 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
 
   // `m` falls back to NaN because a value with no colon ('' while the field is
   // empty) splits into a single part, and an absent minute has to read as unset.
-  const [h, m = NaN] = (parseMeridiemTime(value) ?? value ?? '').split(':').map(Number)
+  const [h, m = Number.NaN] = (parseMeridiemTime(value) ?? value ?? '').split(':').map(Number)
   const hour = Number.isNaN(h) ? null : h
   const minute = Number.isNaN(m) ? null : m
 

@@ -315,7 +315,12 @@ export default function MJourneyEntrySheet({
   }
 
   const addTag = () => {
-    const value = tagInput.trim().replace(/,+$/, '')
+    // Trailing commas dropped by a scan, not /,+$/: an unanchored ,+ before $ has to
+    // retry from every comma in the run, so a pasted string of them freezes the tab.
+    const trimmed = tagInput.trim()
+    let end = trimmed.length
+    while (end > 0 && trimmed[end - 1] === ',') end--
+    const value = trimmed.slice(0, end)
     if (!value) return
     if (!tags.includes(value)) setTags(prev => [...prev, value])
     setTagInput('')

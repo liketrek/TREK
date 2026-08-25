@@ -52,7 +52,9 @@ export class OidcController {
         res.status(500).json({ error: 'APP_URL is not configured. OIDC cannot be used.' });
         return;
       }
-      const redirectUri = `${appUrl.replace(/\/+$/, '')}/api/auth/oidc/callback`;
+      // `(?<!\/)` as in oidc.service.ts: it pins the run to its own start so a trailing
+      // run that does not end the string is not rescanned from every slash in it.
+      const redirectUri = `${appUrl.replace(/(?<!\/)\/+$/, '')}/api/auth/oidc/callback`;
       // Lenient parse: a malformed query must never 400 a login redirect, so
       // unknown values simply fall back to the raw invite + default duration.
       const query = oidcLoginQuerySchema.safeParse(req.query);
@@ -130,7 +132,9 @@ export class OidcController {
         tokenData.id_token,
         doc,
         config.clientId,
-        (doc.issuer ?? '').replace(/\/+$/, '') || config.issuer,
+        // Same trim as oidc.service.ts, and the same reason for the lookbehind — this one
+        // runs over an issuer read out of a fetched discovery document.
+        (doc.issuer ?? '').replace(/(?<!\/)\/+$/, '') || config.issuer,
       );
       if (idVerify.ok !== true) {
         const reason = 'error' in idVerify ? idVerify.error : 'unknown';

@@ -64,8 +64,25 @@ function endpointIcon(type: TransportType, label: string | null): L.DivIcon {
 
 function toRad(d: number) { return d * Math.PI / 180 }
 
+// "Wien Hbf (Vienna)" → "Wien Hbf". Done as a scan, not /\s*\([^)]*\)/g: the leading
+// \s* overlaps the engine's own restart-at-every-position scan, so a name that is a
+// long run of spaces with no "(" after it backtracks quadratically (1.0s at 32k), and
+// so does a run of "(" with no ")". Same matches: the whitespace directly before a "("
+// that has a ")" after it goes too, and an unclosed "(" is left alone.
 function cleanName(name: string): string {
-  return name.replace(/\s*\([^)]*\)/g, '').trim()
+  let out = ''
+  let cursor = 0
+  for (;;) {
+    const open = name.indexOf('(', cursor)
+    if (open === -1) break
+    const close = name.indexOf(')', open + 1)
+    if (close === -1) break
+    let start = open
+    while (start > cursor && /\s/.test(name[start - 1])) start--
+    out += name.slice(cursor, start)
+    cursor = close + 1
+  }
+  return (out + name.slice(cursor)).trim()
 }
 
 function haversineKm(a: [number, number], b: [number, number]): number {

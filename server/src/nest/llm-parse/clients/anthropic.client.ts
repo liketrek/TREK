@@ -16,7 +16,11 @@ const TOOL_NAME = 'emit_reservations';
  */
 export class AnthropicClient implements LlmExtractionClient {
   async extract(input: LlmExtractionInput): Promise<Record<string, unknown>[]> {
-    const base = (input.baseUrl ?? 'https://api.anthropic.com').replace(/\/+$/, '');
+    // The lookbehind pins the run to its own start. Without it `\/+$` restarts at every
+    // slash of a trailing run that turns out not to end the string, rescanning to the
+    // end each time; the assertion only rules out start positions the leftmost match
+    // could never have used, so the trimmed result is unchanged.
+    const base = (input.baseUrl ?? 'https://api.anthropic.com').replace(/(?<!\/)\/+$/, '');
     const url = `${base}/v1/messages`;
 
     const content: unknown[] = [];

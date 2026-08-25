@@ -32,7 +32,12 @@ export interface EnforcedExtractInput {
 
 /** Resolve the native API base from a config base URL that may end in `/v1`. */
 export function toNativeBase(baseUrl: string): string {
-  return baseUrl.replace(/\/+$/, '').replace(/\/v1$/, '');
+  // Trailing slashes come off as a scan, not /\/+$/: that pattern is unanchored at the
+  // front, so the engine restarts it at every slash of a run and rescans to the end each
+  // time (quadratic — 25s on 200k). Same result: the maximal trailing run goes.
+  let end = baseUrl.length;
+  while (end > 0 && baseUrl[end - 1] === '/') end--;
+  return baseUrl.slice(0, end).replace(/\/v1$/, '');
 }
 
 /**

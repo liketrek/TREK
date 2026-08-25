@@ -119,14 +119,47 @@ export default function MAdminGitHubPanel({ isPrerelease = false }: { isPrerelea
     }
 
     const escapeHtml = (str: string) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    // `[label](url)` → anchor, exactly as /\[([^\]]+)\]\(([^)]+)\)/g did. Written as a
+    // scan because that pattern backtracks from both ends: `[^\]]` matches `[` and
+    // `[^)]` matches `(`, so a run of either made the engine retry the whole match from
+    // every one of them, reading to the end each time. Release bodies come off the
+    // GitHub API. Both parts are one-or-more, so `[](url)` and `[label]()` stay plain
+    // text; the label ends at the first `]`, the url at the first `)`.
+    const linkify = (text: string) => {
+      let out = ''
+      let cursor = 0
+      let search = 0
+      for (;;) {
+        const open = text.indexOf('[', search)
+        if (open === -1) break
+        const close = text.indexOf(']', open + 1)
+        if (close === -1) break // no `]` left: no later `[` can match either
+        // Every `[` up to `close` shares that first `]`, so they fail together.
+        if (close === open + 1 || text[close + 1] !== '(') {
+          search = close + 1
+          continue
+        }
+        const end = text.indexOf(')', close + 2)
+        if (end === -1) break // no `)` left: no later `(` can close either
+        if (end === close + 2) {
+          search = close + 1
+          continue
+        }
+        const label = text.slice(open + 1, close)
+        const url = text.slice(close + 2, end)
+        const safeUrl = url.startsWith('http://') || url.startsWith('https://') ? url : '#'
+        out += `${text.slice(cursor, open)}<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--m-st-info);text-decoration:underline">${label}</a>`
+        cursor = end + 1
+        search = end + 1
+      }
+      return out + text.slice(cursor)
+    }
     const inlineFormat = (text: string) => {
-      return escapeHtml(text)
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/`(.+?)`/g, '<code style="font-size:11px;padding:1px 4px;border-radius:4px;background:var(--m-ic)">$1</code>')
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, url) => {
-          const safeUrl = url.startsWith('http://') || url.startsWith('https://') ? url : '#'
-          return `<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--m-st-info);text-decoration:underline">${label}</a>`
-        })
+      return linkify(
+        escapeHtml(text)
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/`(.+?)`/g, '<code style="font-size:11px;padding:1px 4px;border-radius:4px;background:var(--m-ic)">$1</code>')
+      )
     }
 
     for (const line of lines) {
