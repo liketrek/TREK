@@ -1,5 +1,5 @@
 import {
-  X, Pencil, Trash2, MapPin, Clock, Camera,
+  X, Pencil, Trash2, MapPin, Clock, Camera, Play,
   Laugh, Smile, Meh, Frown,
   Sun, CloudSun, Cloud, CloudRain, CloudLightning, Snowflake,
   ThumbsUp, ThumbsDown,
@@ -14,19 +14,19 @@ import type { JourneyEntry, JourneyPhoto } from '../../store/journeyStore'
 // local because the desktop variant carries raw hex values and no dark-mode
 // classes, so the two cannot share one table without changing how this looks.
 const MOOD_CONFIG: Record<string, { icon: typeof Smile; label: string; bg: string; text: string }> = {
-  amazing: { icon: Laugh,  label: 'journey.mood.amazing', bg: 'bg-pink-50 dark:bg-pink-900/20',    text: 'text-pink-600 dark:text-pink-400' },
-  good:    { icon: Smile,  label: 'journey.mood.good',    bg: 'bg-amber-50 dark:bg-amber-900/20',   text: 'text-amber-600 dark:text-amber-400' },
-  neutral: { icon: Meh,    label: 'journey.mood.neutral', bg: 'bg-zinc-100 dark:bg-zinc-800',        text: 'text-zinc-500 dark:text-zinc-400' },
-  rough:   { icon: Frown,  label: 'journey.mood.rough',   bg: 'bg-violet-50 dark:bg-violet-900/20',  text: 'text-violet-600 dark:text-violet-400' },
+  amazing: { icon: Laugh, label: 'journey.mood.amazing', bg: 'bg-pink-50 dark:bg-pink-900/20', text: 'text-pink-600 dark:text-pink-400' },
+  good: { icon: Smile, label: 'journey.mood.good', bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-600 dark:text-amber-400' },
+  neutral: { icon: Meh, label: 'journey.mood.neutral', bg: 'bg-zinc-100 dark:bg-zinc-800', text: 'text-zinc-500 dark:text-zinc-400' },
+  rough: { icon: Frown, label: 'journey.mood.rough', bg: 'bg-violet-50 dark:bg-violet-900/20', text: 'text-violet-600 dark:text-violet-400' },
 }
 
 const WEATHER_CONFIG: Record<string, { icon: typeof Sun; label: string }> = {
-  sunny:  { icon: Sun,            label: 'journey.weather.sunny' },
-  partly: { icon: CloudSun,      label: 'journey.weather.partly' },
-  cloudy: { icon: Cloud,          label: 'journey.weather.cloudy' },
-  rainy:  { icon: CloudRain,     label: 'journey.weather.rainy' },
+  sunny: { icon: Sun, label: 'journey.weather.sunny' },
+  partly: { icon: CloudSun, label: 'journey.weather.partly' },
+  cloudy: { icon: Cloud, label: 'journey.weather.cloudy' },
+  rainy: { icon: CloudRain, label: 'journey.weather.rainy' },
   stormy: { icon: CloudLightning, label: 'journey.weather.stormy' },
-  cold:   { icon: Snowflake,     label: 'journey.weather.cold' },
+  cold: { icon: Snowflake, label: 'journey.weather.cold' },
 }
 
 function photoUrl(p: JourneyPhoto, size: 'thumbnail' | 'original' = 'original', builder?: (id: number) => string): string {
@@ -94,21 +94,33 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
             <button
               type="button"
               aria-label={photos[0].caption || t('journey.photos')}
-              className="block w-full bg-transparent border-0 p-0 cursor-pointer"
+              className={`relative block w-full max-h-[50vh] cursor-pointer border-0 p-0 ${photos[0].media_type === 'video' ? 'bg-black' : 'bg-transparent'
+                }`}
               onClick={() => onPhotoClick(photos, 0)}
             >
               <img
                 src={photoUrl(photos[0], 'original', publicPhotoUrl)}
                 alt=""
-                className="w-full max-h-[50vh] object-cover"
+                className={`w-full max-h-[50vh] ${photos[0].media_type === 'video' ? 'object-contain' : 'object-cover'
+                  }`}
               />
+
+              {photos[0].media_type === 'video' && (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur">
+                    <Play size={20} className="ml-0.5" fill="currentColor" />
+                  </span>
+                </div>
+              )}
             </button>
+
             {photos.length > 1 && (
               <div className="absolute bottom-3 right-3 flex items-center gap-1 bg-black/60 backdrop-blur-sm text-white rounded-full px-2.5 py-1 text-[11px] font-medium">
                 <Camera size={12} />
                 {t('mobileJourney.photosCount', { count: photos.length })}
               </div>
             )}
+
             {/* Photo strip for multiple photos */}
             {photos.length > 1 && (
               <div className="flex gap-1 px-4 py-2 overflow-x-auto bg-zinc-50 dark:bg-zinc-900">
@@ -117,21 +129,32 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
                     key={p.id || i}
                     type="button"
                     aria-label={p.caption || t('journey.photos')}
-                    className="flex-shrink-0 bg-transparent border-0 p-0 cursor-pointer"
+                    className={`relative h-16 w-16 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg border-0 p-0 hover:ring-2 ring-zinc-900/30 dark:ring-white/30 transition-all ${p.media_type === 'video' ? 'bg-black' : 'bg-transparent'
+                      }`}
                     onClick={() => onPhotoClick(photos, i)}
                   >
                     <img
                       src={photoUrl(p, 'thumbnail', publicPhotoUrl)}
                       alt=""
-                      className="w-16 h-16 rounded-lg object-cover hover:ring-2 ring-zinc-900/30 dark:ring-white/30 transition-all"
+                      className={`h-full w-full ${p.media_type === 'video' ? 'object-contain' : 'object-cover'
+                        }`}
                     />
+
+                    {p.media_type === 'video' && (
+                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                        <Play
+                          size={16}
+                          className="text-white drop-shadow"
+                          fill="currentColor"
+                        />
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
             )}
           </div>
         )}
-
         {/* Content */}
         <div className="px-5 py-5 pb-32">
 
@@ -236,6 +259,6 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
           )}
         </div>
       </div>
-    </div>
+    </div >
   )
 }
