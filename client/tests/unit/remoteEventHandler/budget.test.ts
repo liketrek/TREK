@@ -80,12 +80,15 @@ describe('remoteEventHandler > budget', () => {
       type: 'budget:member-paid-updated',
       itemId: 1,
       userId: 5,
-      paid: true,
+      // 1, not true: both emitters send `paid: body.paid ? 1 : 0`, and the handler
+      // stores the value verbatim. Asserting on `true` tested a payload the server
+      // never sends — the seeded value on the line below is a number for the same reason.
+      paid: 1,
     });
     const { budgetItems } = useTripStore.getState();
     const item = budgetItems.find(i => i.id === 1);
     const m = item?.members?.find(m => m.user_id === 5);
-    expect(m?.paid).toBe(true);
+    expect(m?.paid).toBe(1);
     // Other item members unchanged (member2 keeps its seeded paid value)
     const item2 = budgetItems.find(i => i.id === 2);
     expect(item2?.members?.[0].paid).toBe(1);
