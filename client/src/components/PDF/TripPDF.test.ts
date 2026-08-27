@@ -578,6 +578,73 @@ describe('downloadTripPDF remaining branches', () => {
 
   const srcdoc = () => getIframe()!.srcdoc
 
+  // #2066 — the document is assembled outside React, so it read no setting at all
+  // and printed the stored column. Four surfaces carried a clock; all four were 24h
+  // whatever the reader had chosen.
+  describe('time format (#2066)', () => {
+    // The place chip reads the assignment's embedded place, not the places array,
+    // so both have to carry the clock under test.
+    const at = (placeTime: string, over: Record<string, unknown> = {}) => {
+      const place = { ...placeWithDetails, place_time: placeTime }
+      return {
+        ...richArgs,
+        places: [place],
+        assignments: { '10': [{ ...assignmentForDay, place }] },
+        reservations: [{
+          id: 700, title: 'Ferry', type: 'ferry', day_id: 10,
+          reservation_time: '2025-06-01T09:05', reservation_end_time: '2025-06-01T16:45',
+        }],
+        ...over,
+      }
+    }
+
+    it('FE-W5PDF-031: a 12h reader gets meridiem clocks on places and transports', async () => {
+      await downloadTripPDF(at('14:30', { timeFormat: '12h' }) as never)
+      const html = srcdoc()
+
+      expect(html).toContain('2:30 PM')
+      expect(html).toContain('9:05 AM')
+      expect(html).toContain('4:45 PM')
+      expect(html).not.toContain('14:30')
+      expect(html).not.toContain('16:45')
+    })
+
+    it('FE-W5PDF-032: a 24h reader gets the same times without a meridiem', async () => {
+      await downloadTripPDF(at('14:30', { timeFormat: '24h' }) as never)
+      const html = srcdoc()
+
+      expect(html).toContain('14:30')
+      expect(html).toContain('09:05')
+      expect(html).toContain('16:45')
+      expect(html).not.toContain('2:30 PM')
+    })
+
+    // check_in / check_out come off the accommodation row and were the one pair
+    // that printed the raw column in BOTH directions.
+    it('FE-W5PDF-033: accommodation check-in and check-out follow the setting too', async () => {
+      server.use(http.get('/api/trips/:id/accommodations', () => HttpResponse.json({
+        accommodations: [{
+          id: 1, place_id: 1, place_name: 'Hotel Roma', place_address: 'Via Roma 1',
+          start_day_id: 10, end_day_id: 10, check_in: '15:00', check_out: '11:00', notes: null,
+        }],
+      })))
+
+      await downloadTripPDF(at('14:30', { timeFormat: '12h' }) as never)
+
+      expect(srcdoc()).toContain('3:00 PM')
+    })
+
+    // A clock stored with a meridiem — the booking importer and a 12h user typing
+    // into the place form both produce one — must not print as 3 AM for a 24h reader.
+    it('FE-W5PDF-034: a stored meridiem is converted, not printed raw', async () => {
+      await downloadTripPDF(at('3:00 PM', { timeFormat: '24h' }) as never)
+
+      const html = srcdoc()
+      expect(html).toContain('15:00')
+      expect(html).not.toContain('3:00 PM')
+    })
+  })
+
   it('FE-W5PDF-001: a multi-day cruise is labelled start / ongoing / end with the right times', async () => {
     await downloadTripPDF(spanArgs([{
       id: 500, title: 'Nordic Cruise', type: 'cruise', day_id: 10, end_day_id: 12,

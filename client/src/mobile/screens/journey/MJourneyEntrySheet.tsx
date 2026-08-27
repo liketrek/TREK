@@ -5,6 +5,7 @@ import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import { useTranslation } from '../../../i18n'
 import { useToast } from '../../../components/shared/Toast'
+import CustomTimePicker from '../../../components/shared/CustomTimePicker'
 import { journeyApi, mapsApi, weatherApi } from '../../../api/client'
 import { getApiErrorMessage } from '../../../types'
 import { normalizeImageFiles } from '../../../utils/convertHeic'
@@ -728,15 +729,10 @@ export default function MJourneyEntrySheet({
           </div>
           <div className="min-w-0 flex-1">
             <div className={`${eyebrow} mb-[5px]`}>{t('mobileJourney.time')}</div>
-            <div className={`${fieldShell} overflow-hidden`}>
-              <input
-                type="time"
-                value={entryTime}
-                disabled={readOnly}
-                onChange={e => setEntryTime(e.target.value)}
-                className="block min-w-0 w-full box-border border-0 bg-transparent px-3 py-[10px] text-center text-[0.78125rem] font-semibold text-m-ink outline-none [font-variant-numeric:tabular-nums]"
-              />
-            </div>
+            {/* A native <input type="time"> paints 12h or 24h from the browser
+                locale, whatever the user picked in settings (#2067). The picker
+                brings its own shell, so fieldShell goes with the input. */}
+            <CustomTimePicker value={entryTime} onChange={setEntryTime} disabled={readOnly} />
           </div>
         </div>
 

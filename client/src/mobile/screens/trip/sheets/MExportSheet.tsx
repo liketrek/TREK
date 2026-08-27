@@ -3,6 +3,7 @@ import { CalendarPlus, ChevronRight, FileDown, Share2 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import { IcsSubscribeModal } from '../../../../components/Planner/IcsSubscribeModal'
 import { useTripStore } from '../../../../store/tripStore'
+import { useSettingsStore } from '../../../../store/settingsStore'
 import { useTranslation } from '../../../../i18n'
 import { INNER_CLS, TileHeader } from './MTripSheetUi'
 import type { MTripSheetsProps } from '../MTripShell'
@@ -16,6 +17,8 @@ import type { LucideIcon } from 'lucide-react'
  */
 export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
   const { t, locale } = useTranslation()
+  // The PDF is built outside React, so it cannot read this itself (#2066).
+  const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
   const open = shell.sheet?.id === 'export'
   const dayNotes = useTripStore(s => s.dayNotes)
   const [subscribeOpen, setSubscribeOpen] = useState(false)
@@ -46,6 +49,7 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
         reservations: planner.reservations,
         t,
         locale,
+        timeFormat,
       })
     } catch (e) {
       planner.toast.error(`${t('dayplan.pdfError')}: ${e instanceof Error ? e.message : String(e)}`)

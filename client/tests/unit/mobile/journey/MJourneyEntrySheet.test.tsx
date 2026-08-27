@@ -285,7 +285,9 @@ function mountSheet(sheetEntry: JourneyEntry, opts: MountOptions = {}) {
 
 const multiFileInput = () => document.querySelector('input[type="file"][multiple]') as HTMLInputElement;
 const dateField = () => document.querySelector('input[type="date"]') as HTMLInputElement;
-const timeField = () => document.querySelector('input[type="time"]') as HTMLInputElement;
+// The time field is CustomTimePicker's text input, not a native time input — a
+// native one paints 12h/24h from the browser locale and ignored the setting (#2067).
+const timeField = () => document.querySelector('input[placeholder="00:00"], input[placeholder="2:30 PM"]') as HTMLInputElement;
 const jpeg = (name = 'a.jpg') => new File(['x'], name, { type: 'image/jpeg' });
 
 const originalCreateObjectURL = URL.createObjectURL;

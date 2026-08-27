@@ -1059,6 +1059,139 @@ describe('car rentals', () => {
     // No 17-character value anywhere: that is what silently drops the zone.
     expect(ics).not.toMatch(/DTSTART[^\r\n]*\d{8}T\d{8}/);
   });
+
+  // ── Window bookings: two hand-overs, not one block (#2068) ─────────────────
+
+  it('CAL-045: multi-day parking becomes a drop-off and a pick-up instead of one block', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const parking = createReservation(testDb, trip.id, { title: 'Airport P4', type: 'parking' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2026-07-01T06:30', '2026-07-10T22:15', parking.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    // The two hand-overs, an hour each. Parking is dropped off first.
+    expect(ics).toContain('SUMMARY:Drop-off: Airport P4');
+    expect(ics).toContain('DTSTART:20260701T063000');
+    expect(ics).toContain('DTEND:20260701T073000');
+    expect(ics).toContain('SUMMARY:Pickup: Airport P4');
+    expect(ics).toContain('DTSTART:20260710T221500');
+    expect(ics).toContain('DTEND:20260710T231500');
+    // And the block across the ten days in between is gone.
+    expect(ics).not.toContain('SUMMARY:Airport P4\r\n');
+    expect(ics).not.toContain('DTEND:20260710T221500');
+  });
+
+  it('CAL-046: a same-day parking is one sitting and keeps its single event', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const parking = createReservation(testDb, trip.id, { title: 'Garage', type: 'parking' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2026-07-01T08:00', '2026-07-01T18:30', parking.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Garage\r\n');
+    expect(ics).toContain('DTSTART:20260701T080000');
+    expect(ics).toContain('DTEND:20260701T183000');
+    expect(ics).not.toContain('Drop-off: Garage');
+    expect(ics).not.toContain('Pickup: Garage');
+  });
+
+  it('CAL-047: a rental typed with days but no clock finally reaches the feed', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const first = createDay(testDb, trip.id, { date: '2026-07-03' });
+    const last = createDay(testDb, trip.id, { date: '2026-07-08' });
+    const rental = createReservation(testDb, trip.id, { title: 'Sixt', type: 'car' });
+    // The planner writes reservation_time = NULL when the optional time pickers
+    // are left blank, which is what made this booking invisible.
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL, day_id=?, end_day_id=? WHERE id=?')
+      .run(first.id, last.id, rental.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Pickup: Sixt');
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260703');
+    expect(ics).toContain('SUMMARY:Drop-off: Sixt');
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260708');
+  });
+
+  it('CAL-048: a split rental keeps its zones and everything the block used to say', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const rental = createReservation(testDb, trip.id, { title: 'Hertz', type: 'car' });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL, confirmation_number=?, location=? WHERE id=?')
+      .run('HZ-4471', 'Hertz Downtown', rental.id);
+    insertEndpoint(rental.id, 'from', 0, 'Paris Office', 48.8566, 2.3522, 'Europe/Paris', '09:00', '2026-07-07');
+    insertEndpoint(rental.id, 'to', 1, 'Berlin Office', 52.5, 13.4, 'Europe/Berlin', '10:30', '2026-07-14');
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260707T090000');
+    expect(ics).toContain('DTEND;TZID=Europe/Paris:20260707T100000');
+    expect(ics).toContain('DTSTART;TZID=Europe/Berlin:20260714T103000');
+    expect(ics).toContain('DTEND;TZID=Europe/Berlin:20260714T113000');
+    // Dropping the block must not drop what it said: both hand-overs carry it.
+    // Long lines are folded at 75 octets, so unfold before reading them.
+    const unfolded = ics.replaceAll('\r\n ', '');
+    const descriptions = unfolded.split('\r\n').filter(l => l.startsWith('DESCRIPTION:Type: car'));
+    expect(descriptions).toHaveLength(2);
+    expect(descriptions[0]).toContain('Confirmation: HZ-4471');
+    expect(descriptions[0]).toContain('Route: Paris Office → Berlin Office');
+  });
+
+  // #1453 — the block is the only carrier of the return time when just one side
+  // was geocoded, so a one-sided rental must keep it.
+  it('CAL-049: a one-sided rental keeps its block rather than losing the return', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const place = createPlace(testDb, trip.id, { name: 'Rental Desk', lat: 48.8566, lng: 2.3522 });
+    const rental = createReservation(testDb, trip.id, { title: 'Avis', type: 'car' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=?, place_id=? WHERE id=?')
+      .run('2026-07-02T10:00', '2026-07-09T10:00', place.id, rental.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    // Both sides resolve off reservation_time/-_end_time, so this one does split,
+    // and the return keeps the pickup's zone instead of floating.
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260702T100000');
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260709T100000');
+    expect(ics).not.toMatch(/DTSTART:20260709T100000/);
+  });
+
+  it('CAL-050: a rental with only a pickup endpoint is left exactly as it was', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const rental = createReservation(testDb, trip.id, { title: 'Solo', type: 'car' });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(rental.id);
+    insertEndpoint(rental.id, 'from', 0, 'Paris Office', 48.8566, 2.3522, 'Europe/Paris', '09:00', '2026-07-07');
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Solo\r\n');
+    expect(ics).toContain('SUMMARY:Pickup: Solo');
+    expect(ics).not.toContain('Drop-off');
+  });
+
+  it('CAL-051: any transport pinned to days without a clock reaches the feed too', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const first = createDay(testDb, trip.id, { date: '2026-07-03' });
+    const last = createDay(testDb, trip.id, { date: '2026-07-04' });
+    const bus = createReservation(testDb, trip.id, { title: 'Night Bus', type: 'bus' });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL, day_id=?, end_day_id=? WHERE id=?')
+      .run(first.id, last.id, bus.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    // Not a window booking, so it stays one block — it just exists now.
+    expect(ics).toContain('SUMMARY:Night Bus');
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260703');
+    expect(ics).toContain('DTEND;VALUE=DATE:20260705');
+    expect(ics).not.toContain('Pickup: Night Bus');
+  });
 });
 
 describe('folded quirk branches', () => {

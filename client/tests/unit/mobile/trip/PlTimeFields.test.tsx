@@ -3,8 +3,11 @@ import PlTimeFields from '../../../../src/mobile/screens/trip/sheets/PlTimeField
 import type { Assignment } from '../../../../src/types'
 import { buildPlanner } from '../../../helpers/mobileTrip'
 import { fireEvent, render, screen } from '../../../helpers/render'
+import { seedStore } from '../../../helpers/store'
+import { buildSettings } from '../../../helpers/factories'
+import { useSettingsStore } from '../../../../src/store/settingsStore'
 
-// FE-MOB-PLTIME-001 to FE-MOB-PLTIME-012
+// FE-MOB-PLTIME-001 to FE-MOB-PLTIME-013
 
 const planner = buildPlanner()
 
@@ -47,7 +50,12 @@ function setup({
       hasTimeError={hasTimeError}
     />,
   )
-  const inputs = Array.from(view.container.querySelectorAll('input[type="time"]')) as HTMLInputElement[]
+  // Both fields are CustomTimePicker text inputs now, so they answer to its
+  // 24h placeholder rather than to a native time input (#2067).
+  // Both fields are CustomTimePicker text inputs now, and they are the only text
+  // inputs this component renders — the placeholder itself changes with the
+  // user's format, so it cannot be the hook (#2067).
+  const inputs = Array.from(view.container.querySelectorAll('input[type="text"]')) as HTMLInputElement[]
   return { ...view, onChange, start: inputs[0], end: inputs[1] }
 }
 
@@ -70,6 +78,25 @@ describe('PlTimeFields', () => {
     const { end, onChange } = setup()
     fireEvent.change(end, { target: { value: '12:45' } })
     expect(onChange).toHaveBeenCalledWith('end_time', '12:45')
+  })
+
+  // #2067 — the desktop twin (PlaceFormModal) has used CustomTimePicker for ages;
+  // the phone kept a native time input, so the same form obeyed the setting on one
+  // shell and ignored it on the other.
+  // The normalisation back to 24h on blur belongs to CustomTimePicker and is
+  // covered by its own suite; what this file owns is that the phone shows the
+  // user's format at all, which the native input it replaced never did.
+  it('FE-MOB-PLTIME-013: a 12h user sees meridiem clocks, a 24h user does not', () => {
+    seedStore(useSettingsStore, { settings: buildSettings({ time_format: '12h' }) })
+    const twelve = setup()
+    expect(twelve.start).toHaveValue('10:00 AM')
+    expect(twelve.end).toHaveValue('11:00 AM')
+    twelve.unmount()
+
+    seedStore(useSettingsStore, { settings: buildSettings({ time_format: '24h' }) })
+    const twentyFour = setup()
+    expect(twentyFour.start).toHaveValue('10:00')
+    expect(twentyFour.end).toHaveValue('11:00')
   })
 
   it('FE-MOB-PLTIME-004: shows the end-before-start warning only when the sheet flags it', () => {

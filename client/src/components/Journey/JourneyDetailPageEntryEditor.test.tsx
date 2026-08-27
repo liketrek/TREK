@@ -5,6 +5,9 @@ import { http, HttpResponse, delay } from 'msw'
 import { localIsoDate } from '../../utils/localDate'
 import userEvent from '@testing-library/user-event'
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render'
+import { seedStore } from '../../../tests/helpers/store'
+import { buildSettings } from '../../../tests/helpers/factories'
+import { useSettingsStore } from '../../store/settingsStore'
 import { server } from '../../../tests/helpers/msw/server'
 import type { GalleryPhoto, JourneyEntry, JourneyPhoto, JourneyTrip } from '../../store/journeyStore'
 import type { ResilientResult, UploadProgress } from '../../utils/uploadQueue'
@@ -92,6 +95,9 @@ const originalCreateObjectURL = URL.createObjectURL
 
 beforeEach(() => {
   toastSpy.mockClear()
+  // The time field reads time_format, so pin it: without this the cases that
+  // assert a 24h string depend on whichever test ran before them (#2067).
+  seedStore(useSettingsStore, { settings: buildSettings({ time_format: '24h' }) })
   window.__addToast = toastSpy
   Object.defineProperty(URL, 'createObjectURL', {
     configurable: true, writable: true, value: vi.fn(() => 'blob:preview'),
@@ -865,15 +871,48 @@ describe('EntryEditor', () => {
     const user = userEvent.setup()
     const { onSave } = mountEditor(buildEntry({ id: 10, title: 'Old', entry_time: '14:30:00' }))
 
-    // The column carries HH:MM:SS; a time input only accepts HH:MM.
+    // The column carries HH:MM:SS; the picker is seeded from a HH:MM slice.
     const timeInput = screen.getByDisplayValue('14:30')
-    expect(timeInput).toHaveAttribute('type', 'time')
 
     fireEvent.change(timeInput, { target: { value: '09:05' } })
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(onSave).toHaveBeenCalled())
     expect(onSave.mock.calls[0][0]).toEqual(expect.objectContaining({ entry_time: '09:05' }))
+  })
+
+  // #2067 — the field used to be a native <input type="time">, which paints 12h or
+  // 24h from the browser locale and cannot be told otherwise. These pin that the
+  // user's setting decides what is shown, and that storage stays 24h either way.
+  it('FE-JRN-EDITOR-048: a 24h user sees a 24h clock with no meridiem', () => {
+    seedStore(useSettingsStore, { settings: buildSettings({ time_format: '24h' }) })
+    const { container } = mountEditor(buildEntry({ id: 10, title: 'Old', entry_time: '14:30:00' }))
+
+    expect(screen.getByDisplayValue('14:30')).toBeInTheDocument()
+    expect(container.textContent).not.toMatch(/\bPM\b/)
+  })
+
+  it('FE-JRN-EDITOR-049: a 12h user sees the same stored time as a meridiem clock', () => {
+    seedStore(useSettingsStore, { settings: buildSettings({ time_format: '12h' }) })
+    mountEditor(buildEntry({ id: 10, title: 'Old', entry_time: '14:30:00' }))
+
+    expect(screen.getByDisplayValue('2:30 PM')).toBeInTheDocument()
+    expect(screen.queryByDisplayValue('14:30')).not.toBeInTheDocument()
+  })
+
+  it('FE-JRN-EDITOR-050: a meridiem typed by a 12h user is still stored as 24h', async () => {
+    const user = userEvent.setup()
+    seedStore(useSettingsStore, { settings: buildSettings({ time_format: '12h' }) })
+    const { onSave } = mountEditor(buildEntry({ id: 10, title: 'Old', entry_time: '14:30:00' }))
+
+    const field = screen.getByDisplayValue('2:30 PM')
+    fireEvent.focus(field)
+    fireEvent.change(field, { target: { value: '5:30 pm' } })
+    fireEvent.blur(field)
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled())
+    expect(onSave.mock.calls[0][0]).toEqual(expect.objectContaining({ entry_time: '17:30' }))
   })
 
   it('FE-JRN-EDITOR-042: clearing the time sends null rather than an empty string', async () => {

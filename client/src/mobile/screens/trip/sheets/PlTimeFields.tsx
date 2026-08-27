@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { AlertTriangle } from 'lucide-react'
-import { Eyebrow, FIELD_CLS } from './PlSheetChrome'
+import { Eyebrow } from './PlSheetChrome'
+import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
 import type { Assignment } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
 
@@ -15,8 +16,6 @@ interface PlTimeFieldsProps {
   /** End ≤ start — computed by the sheet so it can also disable Save. */
   hasTimeError: boolean
 }
-
-const TIME_CLS = `${FIELD_CLS} font-semibold [font-variant-numeric:tabular-nums]`
 
 const WARNING_CLS =
   'mt-2 flex items-start gap-[6px] rounded-[10px] bg-[rgba(232,161,58,.14)] px-[10px] py-[7px] font-geist text-[0.6875rem] leading-[1.4] text-[color:var(--m-st-pending)]'
@@ -54,21 +53,11 @@ export default function PlTimeFields({
       <div className="flex gap-2">
         <div className="min-w-0 flex-1">
           <Eyebrow className="mb-[5px] uppercase">{t('places.startTime')}</Eyebrow>
-          <input
-            type="time"
-            value={startTime}
-            onChange={e => onChange('place_time', e.target.value)}
-            className={TIME_CLS}
-          />
+          <CustomTimePicker value={startTime} onChange={v => onChange('place_time', v)} />
         </div>
         <div className="min-w-0 flex-1">
           <Eyebrow className="mb-[5px] uppercase">{t('places.endTime')}</Eyebrow>
-          <input
-            type="time"
-            value={endTime}
-            onChange={e => onChange('end_time', e.target.value)}
-            className={TIME_CLS}
-          />
+          <CustomTimePicker value={endTime} onChange={v => onChange('end_time', v)} />
         </div>
       </div>
       {hasTimeError && (

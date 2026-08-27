@@ -13,6 +13,7 @@ import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDe
 import { photoUrl, isValidGeoPoint, geoOnceErrorKey } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 import MarkdownToolbar from './MarkdownToolbar'
 import { DatePicker } from './JourneyDetailPageDatePicker'
+import CustomTimePicker from '../shared/CustomTimePicker'
 import { ProviderPicker, type ProviderPhotoGroup } from './JourneyDetailPageProviderPicker'
 
 type PendingProviderGroup = ProviderPhotoGroup & { provider: string }
@@ -601,19 +602,20 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
             {/* Time sat in state and went to the server, it just had no input here — so a
                 draft's auto-stamped clock time showed up in the timeline, the map, the PDF
                 and the public share, and the desktop had no way to correct it (#1614). */}
-            <div className="grid grid-cols-[1fr_104px] gap-2">
+            {/* 136px, not 104: the custom picker adds a clock button and, in 12h,
+                shows "2:30 PM" where the native input showed a fixed-width HH:MM. */}
+            <div className="grid grid-cols-[1fr_136px] gap-2">
               <div>
                 <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.editor.date')}</label>
                 <DatePicker value={entryDate} onChange={setEntryDate} tripDates={tripDates} />
               </div>
               <div>
                 <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('mobileJourney.time')}</label>
-                <input
-                  type="time"
-                  value={entryTime}
-                  onChange={e => setEntryTime(e.target.value)}
-                  className="w-full h-[42px] px-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-transparent text-[13px] text-zinc-900 dark:text-white outline-none focus:border-zinc-400 dark:focus:border-zinc-500 [font-variant-numeric:tabular-nums]"
-                />
+                {/* A native <input type="time"> paints 12h or 24h from the browser
+                    locale, and no attribute overrides it — so it ignored the user's
+                    setting outright (#2067). The rest of TREK has used this picker
+                    for exactly that reason; the journey editor was never migrated. */}
+                <CustomTimePicker value={entryTime} onChange={setEntryTime} />
               </div>
             </div>
             <div className="relative">

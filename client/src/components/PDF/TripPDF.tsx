@@ -8,7 +8,8 @@ import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
 import { hidesOnMiddleDay, getTransportForDay, getMergedItems, getSpanPhase, getDisplayTimeForDay } from '../../utils/dayMerge'
 import { safeHexColor } from '../../utils/safeColor'
 import { renderIconMarkup } from '../../utils/iconMarkup'
-import { formatMoney, formatMoneySum, splitReservationDateTime, type MoneyEntry } from '../../utils/formatters'
+import { formatMoney, formatMoneySum, formatClockTime, splitReservationDateTime, type MoneyEntry } from '../../utils/formatters'
+import { useSettingsStore } from '../../store/settingsStore'
 import { fetchExchangeRates } from '../../hooks/useExchangeRates'
 import { getFlightLegs, getTrainLegs } from '../../utils/flightLegs'
 
@@ -178,14 +179,24 @@ interface downloadTripPDFProps {
   reservations?: any[]
   t: (key: string, params?: Record<string, string | number>) => string
   locale: string
+  /**
+   * '12h' | '24h'. The document is a plain HTML string assembled outside React,
+   * so the setting cannot be read with a hook in here — it comes over the same
+   * way `locale` does (#2066).
+   */
+  timeFormat?: string
 }
 
 // `assignments` is normalised here once — every read below (and fetchPlacePhotos)
 // relies on it being an object.
-export async function downloadTripPDF({ trip, days, places, assignments = {}, categories, dayNotes, reservations = [], t: _t, locale: _locale }: downloadTripPDFProps) {
+export async function downloadTripPDF({ trip, days, places, assignments = {}, categories, dayNotes, reservations = [], t: _t, locale: _locale, timeFormat: _timeFormat }: downloadTripPDFProps) {
   const breaksPerDay = pageBreakPerDay()
   const loc = _locale || undefined
   const tr = _t || (k => k)
+  // The store read is the fallback, not the source: a caller that forgets the
+  // prop still prints the reader's own format instead of silently reverting.
+  const is12h = (_timeFormat || useSettingsStore.getState().settings.time_format || '24h') === '12h'
+  const fmtTime = (v?: string | null) => formatClockTime(v, is12h)
   const sorted = [...(days || [])].sort((a, b) => a.day_number - b.day_number)
   const range = longDateRange(sorted, loc)
   const coverImg = safeImg(trip?.cover_image)
@@ -358,8 +369,8 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
             // span the arrival belongs to the arrival day, which already shows
             // it as its own time, and repeating it here would put tomorrow's
             // clock next to today's departure.
-            const startTime = splitReservationDateTime(displayTime).time ?? ''
-            const endTime = phase === 'single' ? (splitReservationDateTime(r.reservation_end_time).time ?? '') : ''
+            const startTime = fmtTime(splitReservationDateTime(displayTime).time)
+            const endTime = phase === 'single' ? fmtTime(splitReservationDateTime(r.reservation_end_time).time) : ''
             const time = [startTime, endTime].filter(Boolean).join(' – ')
             const titleHtml = `${spanLabel ? escHtml(spanLabel) + ': ' : ''}${escHtml(r.title)}`
             return `
@@ -412,7 +423,7 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
                </div>`
 
           const chips = [
-            place.place_time ? `<span class="chip">${svgClock}${escHtml(place.place_time)}</span>` : '',
+            place.place_time ? `<span class="chip">${svgClock}${escHtml(fmtTime(place.place_time))}</span>` : '',
             place.price && Number.parseFloat(place.price) > 0 ? `<span class="chip chip-green">${svgMoney}${formatMoney(Number(place.price), place.currency || trip.currency, loc)}</span>` : '',
           ].filter(Boolean).join('')
 
@@ -452,8 +463,8 @@ export async function downloadTripPDF({ trip, days, places, assignments = {}, ca
       const actionIcon = isCheckIn ? accommodationIconSvg('checkin')
         : isCheckOut ? accommodationIconSvg('checkout')
         : accommodationIconSvg('accommodation')
-      const timeStr = isCheckIn ? (item.check_in || '')
-        : isCheckOut ? (item.check_out || '')
+      const timeStr = isCheckIn ? fmtTime(item.check_in)
+        : isCheckOut ? fmtTime(item.check_out)
         : ''
 
       return `
