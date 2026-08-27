@@ -38,6 +38,8 @@ Hover a message to reveal the action buttons. Click **Reply** to quote that mess
 
 When a message contains a URL, TREK automatically fetches an Open Graph preview (title, description, and thumbnail image) and displays it below the message text. Only the first URL in a message generates a preview.
 
+The fetch runs on the server, so it is kept on a short leash: only trip members can request one, the target must be a public HTTP(S) address (addresses on your own network are refused), a preview is remembered for ten minutes, and a member can trigger sixty new fetches a minute. A preview that is refused or runs past the budget is simply not shown — the message itself is unaffected.
+
 ## Message styling
 
 Your own messages appear **right-aligned** with a blue bubble. Other members' messages appear **left-aligned** with a gray bubble. The username is shown above the first message in a group of consecutive messages from the same person; the avatar is shown beside the **last** message in that group. Timestamps appear below the last message in each group.

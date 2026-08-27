@@ -299,6 +299,13 @@ export class CollabController {
   }
 
   // ── Link preview ──────────────────────────────────────────────────────────
+  // Deliberately no @RequirePermission: this is a read path. The client asks for
+  // a preview while *rendering* a message or a note (CollabChatMessages,
+  // CollabNotesCard), never while composing one, so it belongs with the GET
+  // siblings above — requiring 'collab_edit' would strip every preview from a
+  // trip whose owner has narrowed that right, for people who may still read the
+  // chat. What keeps the fetcher from being a free outbound proxy is the budget
+  // inside the service, not a write permission.
   @UseGuards(TripAccessGuard)
   @Get('link-preview')
   async linkPreview(@CurrentUser() user: User, @Param('tripId') tripId: string, @Query('url') url?: string) {
@@ -308,10 +315,12 @@ export class CollabController {
       throw new HttpException({ error: 'URL is required' }, 400);
     }
     try {
-      const preview = await this.collab.linkPreview(url);
-      const asRecord = preview as { error?: string };
-      if (asRecord.error) {
-        throw new HttpException({ error: asRecord.error }, 400);
+      const preview = await this.collab.linkPreview(url, user.id);
+      if (preview.rateLimited) {
+        throw new HttpException({ error: 'Too many requests' }, 429);
+      }
+      if (preview.error) {
+        throw new HttpException({ error: preview.error }, 400);
       }
       return preview;
     } catch (err) {

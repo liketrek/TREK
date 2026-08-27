@@ -179,6 +179,76 @@ describe('checkSsrf', () => {
     });
   });
 
+  // SEC-013 — the unspecified address and IPv4-mapped spellings
+  describe('unspecified address and IPv4-mapped spellings (always blocked)', () => {
+    // Connecting to the unspecified address lands on loopback, so `::` reaches a
+    // local service without ever naming one. It has several spellings and none of
+    // them start with '0.', which is all the IPv4 check ever looked for.
+    it.each([
+      ['bare', '::'],
+      ['single zero', '::0'],
+      ['fully written out', '0:0:0:0:0:0:0:0'],
+      ['zero-padded', '0000:0000:0000:0000:0000:0000:0000:0000'],
+    ])('SEC-013: blocks the unspecified address, %s (%s)', async (_label, ip) => {
+      mockIp(ip);
+      const result = await checkSsrf('http://attacker.example', true);
+      expect(result.allowed).toBe(false);
+    });
+
+    // An IPv4-mapped address is the IPv4 it carries. Matching '::ffff:127.' and
+    // '::ffff:169.254.' as text missed both the hex spelling of those same
+    // addresses and every other blocked range.
+    it.each([
+      ['mapped loopback, dotted', '::ffff:127.0.0.1'],
+      ['mapped loopback, hex', '::ffff:7f00:1'],
+      ['mapped metadata, dotted', '::ffff:169.254.169.254'],
+      ['mapped metadata, hex', '::ffff:a9fe:a9fe'],
+      ['mapped unspecified', '::ffff:0:0'],
+      ['mapped 0.0.0.0, dotted', '::ffff:0.0.0.0'],
+    ])('SEC-013: blocks %s (%s)', async (_label, ip) => {
+      mockIp(ip);
+      const result = await checkSsrf('http://attacker.example', true);
+      expect(result.allowed).toBe(false);
+    });
+
+    it.each([
+      ['mapped RFC-1918, hex', '::ffff:c0a8:1'],
+      ['mapped CGNAT', '::ffff:100.64.0.1'],
+    ])('SEC-013: treats %s (%s) as private', async (_label, ip) => {
+      mockIp(ip);
+      const result = await checkSsrf('http://attacker.example');
+      expect(result.allowed).toBe(false);
+      expect(result.isPrivate).toBe(true);
+    });
+
+    it('SEC-013: still allows a mapped public address', async () => {
+      mockIp('::ffff:8.8.8.8');
+      const result = await checkSsrf('http://cdn.example');
+      expect(result.allowed).toBe(true);
+      expect(result.isPrivate).toBe(false);
+    });
+  });
+
+  // SEC-014 — fe80::/10 is ten bits, not the four characters 'fe80'
+  describe('the whole IPv6 link-local range', () => {
+    it.each([['fe80::1'], ['fe90::1'], ['fea0::1'], ['febf::1']])(
+      'SEC-014: blocks %s',
+      async (ip) => {
+        mockIp(ip);
+        const result = await checkSsrf('http://attacker.example', true);
+        expect(result.allowed).toBe(false);
+      },
+    );
+
+    // The bounds, so widening fe80: to the full /10 cannot creep further: fe7f
+    // sits just below the range and fec0 just above it, and neither is link-local.
+    it.each([['fe7f::1'], ['fec0::1']])('SEC-014: %s is outside fe80::/10', async (ip) => {
+      mockIp(ip);
+      const result = await checkSsrf('http://cdn.example', true);
+      expect(result.allowed).toBe(true);
+    });
+  });
+
   describe('internal hostname suffixes', () => {
     it('blocks .local domains', async () => {
       const result = await checkSsrf('http://myserver.local');

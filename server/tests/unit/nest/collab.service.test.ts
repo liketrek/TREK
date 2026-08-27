@@ -68,9 +68,14 @@ import { CollabService } from '../../../src/nest/collab/collab.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { notificationsStub } from '../../helpers/notifications';
 import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 
 const collabFx = makeStorageFixture('files/');
-const svc = new CollabService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), notificationsStub(), collabFx.storage);
+const rateLimit = new RateLimitService();
+const svc = new CollabService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), notificationsStub(), collabFx.storage, rateLimit);
+
+/** A CollabService with its own preview cache and budget, for the tests that fill either. */
+const freshSvc = () => new CollabService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new RealtimeService(), notificationsStub(), collabFx.storage, new RateLimitService());
 
 beforeAll(() => {
   createTables(testDb);
@@ -488,6 +493,169 @@ describe('linkPreview', () => {
   });
 });
 
+// ── linkPreview hardening ───────────────────────────────────────────────
+
+describe('linkPreview hardening', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  /** A fetch stub that records what it was called with. */
+  const stubFetch = (response: Record<string, unknown>) => {
+    const fetchMock = vi.fn().mockResolvedValue({ headers: { get: () => null }, ...response });
+    vi.stubGlobal('fetch', fetchMock);
+    return fetchMock;
+  };
+
+  it('COLLAB-SVC-039: asks the SSRF guard to refuse internal targets even where the instance allows them', async () => {
+    stubFetch({ ok: true, text: async () => '<html/>' });
+    await freshSvc().linkPreview('https://example.com/guard-args');
+    // The second argument is what keeps ALLOW_INTERNAL_NETWORK from widening a
+    // route whose URL comes from whoever is typing in the chat.
+    expect(mockCheckSsrf).toHaveBeenCalledWith('https://example.com/guard-args', true);
+  });
+
+  it('COLLAB-SVC-040: pins the connection to the checked IP and refuses to follow redirects', async () => {
+    const dispatcher = { close: vi.fn().mockResolvedValue(undefined) };
+    mockCreatePinnedDispatcher.mockReturnValueOnce(dispatcher);
+    const fetchMock = stubFetch({ ok: true, text: async () => '<html/>' });
+
+    await freshSvc().linkPreview('https://example.com/init');
+
+    const init = fetchMock.mock.calls[0][1] as Record<string, unknown>;
+    // Without redirect:'error' a public URL could 302 onto an internal one, and
+    // the pin does not cover that hop: Node skips the pinned lookup for a literal IP.
+    expect(init.redirect).toBe('error');
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+    expect(mockCreatePinnedDispatcher).toHaveBeenCalledWith('93.184.216.34');
+    expect(init.dispatcher).toBe(dispatcher);
+    // One Agent is built per preview; leaving it open leaks its sockets.
+    expect(dispatcher.close).toHaveBeenCalled();
+  });
+
+  it('COLLAB-SVC-041: a refused URL comes back with one constant reason, never the one the guard gave', async () => {
+    // The guard distinguishes "could not resolve", "private address" and
+    // "loopback". Relaying that verbatim turns the route into a probe for the
+    // internal DNS of the server, one guessed hostname at a time.
+    mockCheckSsrf.mockResolvedValue({ allowed: false, isPrivate: true, resolvedIp: '10.0.0.5', error: 'Requests to private/internal network addresses are not allowed. Set ALLOW_INTERNAL_NETWORK=true to permit this for self-hosted setups.' });
+    const result = await freshSvc().linkPreview('http://nas.internal/');
+    expect(result.error).toBe('URL not allowed');
+    expect(JSON.stringify(result)).not.toContain('ALLOW_INTERNAL_NETWORK');
+    expect(JSON.stringify(result)).not.toContain('private');
+  });
+
+  it('COLLAB-SVC-042: a document built to make the scrape backtrack still returns promptly', async () => {
+    // '<meta ' with no '>' anywhere used to make each unbounded [^>]* rescan the
+    // rest of the document from every '<meta' it passed: quadratic, and the byte
+    // cap admits half a megabyte of it. At the 240KB used here the unbounded form
+    // measured ~58s; bounded it is well under a second, so the budget below is not
+    // a close call under CI load. Node is single-threaded, so that is the
+    // whole server, on one request, from any trip member.
+    stubFetch({ ok: true, text: async () => '<meta '.repeat(40_000) });
+    const started = Date.now();
+    const result = await freshSvc().linkPreview('https://example.com/redos');
+    expect(Date.now() - started).toBeLessThan(5_000);
+    expect(result.title).toBeNull();
+  });
+
+  it('COLLAB-SVC-043: a body that is not markup is dropped instead of scraped', async () => {
+    const cancel = vi.fn().mockResolvedValue(undefined);
+    stubFetch({
+      ok: true,
+      headers: { get: (h: string) => (h === 'content-type' ? 'video/mp4' : null) },
+      body: { getReader: () => ({ read: async () => ({ done: true }), cancel }), cancel },
+      text: async () => '<title>Nicht gelesen</title>',
+    });
+    const result = await freshSvc().linkPreview('https://example.com/video');
+    expect(result.title).toBeNull();
+    // An unread body keeps its socket reserved until the collector runs.
+    expect(cancel).toHaveBeenCalled();
+  });
+
+  it('COLLAB-SVC-044: an og:image the client could not load safely is dropped', async () => {
+    // The client puts this straight into an <img src>. A previewed page must not
+    // be able to aim that at a scheme, or at a host, of its choosing.
+    for (const [image, expected] of [
+      ['javascript:alert(1)', null],
+      ['data:image/png;base64,AAAA', null],
+      ['file:///etc/passwd', null],
+      ['//evil.example/x.png', null],
+      ['https://cdn.example/ok.png', 'https://cdn.example/ok.png'],
+      ['http://cdn.example/ok.png', 'http://cdn.example/ok.png'],
+    ] as const) {
+      stubFetch({ ok: true, text: async () => `<meta property="og:image" content="${image}">` });
+      const result = await freshSvc().linkPreview(`https://example.com/img-${encodeURIComponent(image)}`);
+      expect(result.image).toBe(expected);
+    }
+  });
+
+  it('COLLAB-SVC-045: a preview already fetched is served again without a second request', async () => {
+    const fetchMock = stubFetch({ ok: true, text: async () => '<title>Einmal geholt</title>' });
+    const service = freshSvc();
+    const first = await service.linkPreview('https://example.com/cached', 7);
+    const second = await service.linkPreview('https://example.com/cached', 7);
+    expect(first.title).toBe('Einmal geholt');
+    expect(second.title).toBe('Einmal geholt');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('COLLAB-SVC-046: the budget runs out per user, and cached previews do not charge it', async () => {
+    const fetchMock = stubFetch({ ok: true, text: async () => '<title>T</title>' });
+    const service = freshSvc();
+
+    // 60 distinct URLs is the whole allowance for a minute.
+    for (let i = 0; i < 60; i++) {
+      expect((await service.linkPreview(`https://example.com/p${i}`, 42)).rateLimited).toBeUndefined();
+    }
+    expect((await service.linkPreview('https://example.com/p60', 42)).rateLimited).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(60);
+
+    // The client re-requests every preview it renders on each mount, so a reload
+    // has to stay free: otherwise the fix is the regression.
+    expect((await service.linkPreview('https://example.com/p0', 42)).rateLimited).toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(60);
+
+    // Another user has their own allowance.
+    expect((await service.linkPreview('https://example.com/p60', 43)).rateLimited).toBeUndefined();
+  });
+
+  it('COLLAB-SVC-048: simultaneous askers for one URL share a single outbound fetch', async () => {
+    // The client renders a preview per message and deduplicates nothing, so the
+    // same link posted twenty times arrives as twenty requests at once — none of
+    // which finds a cache entry, because the first has not answered yet.
+    let release: (() => void) | undefined;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const fetchMock = vi.fn().mockImplementation(async () => {
+      await gate;
+      return { ok: true, headers: { get: () => null }, text: async () => '<title>Geteilt</title>' };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const service = freshSvc();
+    const all = Promise.all(Array.from({ length: 20 }, () => service.linkPreview('https://example.com/same', 9)));
+    release!();
+    const results = await all;
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(results.every(r => r.title === 'Geteilt')).toBe(true);
+    // And the nineteen that joined were not charged for a fetch they did not make.
+    expect(results.some(r => r.rateLimited)).toBe(false);
+  });
+
+  it('COLLAB-SVC-047: a body over the cap, and one behind a failed response, are both released', async () => {
+    for (const response of [
+      { ok: true, headers: { get: (h: string) => (h === 'content-length' ? String(10 * 1024 * 1024) : null) } },
+      { ok: false },
+    ]) {
+      const cancel = vi.fn().mockResolvedValue(undefined);
+      stubFetch({ ...response, body: { getReader: () => ({ read: async () => ({ done: true }), cancel }), cancel }, text: async () => '' });
+      const result = await freshSvc().linkPreview(`https://example.com/drop-${String(response.ok)}`);
+      expect(result.title).toBeNull();
+      expect(cancel).toHaveBeenCalled();
+    }
+  });
+});
+
 // COLLAB-SVC-031..033 (collab.bridge delegation) were deleted with the bridge —
 // its last consumers (the legacy tripService and the legacy get_trip_summary
 // registrar) migrated into the DI-native TripsService/TripsMcp.
@@ -498,7 +666,7 @@ describe('hardening', () => {
   it('COLLAB-SVC-034: votePoll switch is atomic — prior vote survives a failed INSERT', () => {
     const { user1, trip } = setup();
     const dbs = new DatabaseService(testDb);
-    const failing = new CollabService(dbs, new PermissionsService(dbs), new RealtimeService(), notificationsStub(), collabFx.storage);
+    const failing = new CollabService(dbs, new PermissionsService(dbs), new RealtimeService(), notificationsStub(), collabFx.storage, new RateLimitService());
     const poll = failing.createPoll(trip.id, user1.id, { question: 'Q?', options: ['A', 'B'] });
     failing.votePoll(trip.id, poll!.id, user1.id, 0);
 
@@ -519,7 +687,7 @@ describe('hardening', () => {
   it('COLLAB-SVC-035: deleteNote is atomic — trip_files rows survive a failed note DELETE', async () => {
     const { user1, trip } = setup();
     const dbs = new DatabaseService(testDb);
-    const failing = new CollabService(dbs, new PermissionsService(dbs), new RealtimeService(), notificationsStub(), collabFx.storage);
+    const failing = new CollabService(dbs, new PermissionsService(dbs), new RealtimeService(), notificationsStub(), collabFx.storage, new RateLimitService());
     const note = failing.createNote(trip.id, user1.id, { title: 'With file' });
     testDb.prepare('INSERT INTO trip_files (trip_id, note_id, filename, original_name) VALUES (?, ?, ?, ?)')
       .run(trip.id, note.id, 'files/a.pdf', 'a.pdf');
@@ -540,7 +708,7 @@ describe('hardening', () => {
     const { user1, trip } = setup();
     const dbs = new DatabaseService(testDb);
     const failingStorage = { delete: vi.fn().mockRejectedValue(new Error('EACCES')) };
-    const failing = new CollabService(dbs, new PermissionsService(dbs), new RealtimeService(), notificationsStub(), failingStorage as unknown as import('../../../src/nest/storage/storage.service').StorageService);
+    const failing = new CollabService(dbs, new PermissionsService(dbs), new RealtimeService(), notificationsStub(), failingStorage as unknown as import('../../../src/nest/storage/storage.service').StorageService, new RateLimitService());
     const note = failing.createNote(trip.id, user1.id, { title: 'Sticky file' });
     testDb.prepare('INSERT INTO trip_files (trip_id, note_id, filename, original_name) VALUES (?, ?, ?, ?)')
       .run(trip.id, note.id, 'stuck.pdf', 'stuck.pdf');

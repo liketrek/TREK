@@ -70,6 +70,7 @@ let checkPermission: MockInstance;
 
 import { CollabModule } from '../../src/nest/collab/collab.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { RateLimitService } from '../../src/nest/common/rate-limit.service';
 
 describe('Collab e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
@@ -166,6 +167,55 @@ describe('Collab e2e (real auth guard + temp SQLite)', () => {
     expect(res.body.reactions).toHaveLength(1);
     expect(res.body.reactions[0]).toMatchObject({ emoji: '👍', count: 1 });
     expect(db.prepare('SELECT COUNT(*) as c FROM collab_message_reactions WHERE message_id = 3').get()).toEqual({ c: 1 });
+  });
+
+  // The advisory this route was reported under: it answered anyone with a session,
+  // for any trip id, and drove an outbound fetch from that.
+  it('404 on link-preview for a trip the caller cannot reach', async () => {
+    canAccessTrip.mockReturnValue(undefined);
+    const res = await request(server)
+      .get('/api/trips/5/collab/link-preview?url=https://example.com/')
+      .set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Trip not found' });
+  });
+
+  it('401 on link-preview without a session cookie', async () => {
+    const res = await request(server).get('/api/trips/5/collab/link-preview?url=https://example.com/');
+    expect(res.status).toBe(401);
+  });
+
+  // A read-only member still gets previews: the route is requested while rendering
+  // the chat, so gating it on the write permission would blank the chat for them.
+  it('200 on link-preview for a member without collab_edit', async () => {
+    checkPermission.mockReturnValue(false);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, headers: { get: () => null }, text: async () => '<title>Lesbar</title>',
+    }));
+    const res = await request(server)
+      .get('/api/trips/5/collab/link-preview?url=https://example.com/reader')
+      .set('Cookie', sessionCookie(1));
+    vi.unstubAllGlobals();
+    expect(res.status).toBe(200);
+    expect(res.body.title).toBe('Lesbar');
+  });
+
+  it('429 once the caller has spent a minute of preview fetches', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, headers: { get: () => null }, text: async () => '<title>T</title>',
+    }));
+    // Distinct URLs, because a repeat is served from the cache and costs nothing.
+    let last = 200;
+    for (let i = 0; i < 61 && last === 200; i++) {
+      last = (await request(server)
+        .get(`/api/trips/5/collab/link-preview?url=${encodeURIComponent(`https://example.com/e2e-${i}`)}`)
+        .set('Cookie', sessionCookie(1))).status;
+    }
+    vi.unstubAllGlobals();
+    expect(last).toBe(429);
+    // The counters live on the container singleton, so a spent budget would
+    // follow this user into every test declared after it.
+    app.get(RateLimitService).reset('collab_link_preview');
   });
 
   it('400 on link-preview without a url', async () => {

@@ -60,6 +60,7 @@ import { ReservationsReadRepository } from '../../../src/nest/reservations/reser
 import { BudgetService } from '../../../src/nest/budget/budget.service';
 import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
 import { CollabService } from '../../../src/nest/collab/collab.service';
+import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
 import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
 import { TripMembersService } from '../../../src/nest/trip-members/trip-members.service';
@@ -100,7 +101,7 @@ const buildReadModel = (database: DatabaseService, roster: TripMembersService = 
     database, roster, daysSvc, accommodationsSvc, budgetSvc,
     new PackingService(dbs(), new PermissionsService(dbs()), new RealtimeService(), notificationsStub()),
     new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService(), notificationsStub(), new ReservationsReadRepository(dbs())),
-    new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService(), notificationsStub(), makeStorageFixture('').storage),
+    new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService(), notificationsStub(), makeStorageFixture('').storage, new RateLimitService()),
     placesSvc,
     new TodoService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
     new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new EphemeralTokenService(), makeStorageFixture('').storage),

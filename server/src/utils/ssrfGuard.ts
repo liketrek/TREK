@@ -1,7 +1,7 @@
 import dns from 'node:dns/promises';
 import { Agent } from 'undici';
 import { readEnv } from '../app-config';
-import { embeddedTransitionIpv4 } from './ipv6';
+import { embeddedTransitionIpv4, expandIpv6 } from './ipv6';
 
 // Frozen at import on purpose (legacy timing; tests reload the module to change it).
 const ALLOW_INTERNAL_NETWORK = readEnv().net.allowInternalNetwork;
@@ -11,6 +11,20 @@ export interface SsrfResult {
   resolvedIp?: string;
   isPrivate: boolean;
   error?: string;
+}
+
+/**
+ * The IPv4 an IPv4-mapped address (`::ffff:a.b.c.d`) stands for, or null.
+ *
+ * Taken from the hextets rather than from the text, because `::ffff:127.0.0.1`
+ * and `::ffff:7f00:1` are one address in two spellings and `dns.lookup` picks
+ * which one comes back. The prefix regexes this replaces covered the dotted
+ * spelling of two ranges; every other mapped address walked past them.
+ */
+function mappedIpv4(hextets: number[]): string | null {
+  const g = hextets;
+  if (g[0] || g[1] || g[2] || g[3] || g[4] || g[5] !== 0xffff) return null;
+  return `${g[6] >> 8}.${g[6] & 0xff}.${g[7] >> 8}.${g[7] & 0xff}`;
 }
 
 // Always blocked — no override possible
@@ -23,9 +37,21 @@ function isAlwaysBlocked(ip: string): boolean {
   // Unspecified
   if (addr.startsWith('0.')) return true;
   // Link-local / cloud metadata
-  if (addr.startsWith('169.254.') || /^fe80:/i.test(addr)) return true;
-  // IPv4-mapped loopback / link-local: ::ffff:127.x.x.x, ::ffff:169.254.x.x
-  if (/^::ffff:127\./i.test(addr) || /^::ffff:169\.254\./i.test(addr)) return true;
+  if (addr.startsWith('169.254.')) return true;
+
+  const hextets = expandIpv6(addr);
+  if (hextets) {
+    // The IPv6 unspecified address. Connecting to it lands on loopback, so it
+    // reaches a local service without naming one, and it has enough spellings
+    // (`::`, `::0`, `0:0:0:0:0:0:0:0`) that only the expanded hextets settle it.
+    // The `0.` check above never saw any of them: they begin with a colon.
+    if (hextets.every(h => h === 0)) return true;
+    // fe80::/10 spans fe80: through febf:, not just the four characters 'fe80'.
+    if ((hextets[0] & 0xffc0) === 0xfe80) return true;
+    // A mapped address inherits the verdict of the IPv4 it carries.
+    const mapped = mappedIpv4(hextets);
+    if (mapped) return isAlwaysBlocked(mapped);
+  }
   // IPv6 transition addresses (NAT64/6to4/Teredo) embedding a hard-blocked IPv4.
   const embedded = embeddedTransitionIpv4(addr);
   if (embedded) return isAlwaysBlocked(embedded);
@@ -45,10 +71,12 @@ function isPrivateNetwork(ip: string): boolean {
   if (/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(addr)) return true;
   // IPv6 ULA (fc00::/7)
   if (/^f[cd]/i.test(addr)) return true;
-  // IPv4-mapped RFC-1918
-  if (/^::ffff:10\./i.test(addr)) return true;
-  if (/^::ffff:172\.(1[6-9]|2\d|3[01])\./i.test(addr)) return true;
-  if (/^::ffff:192\.168\./i.test(addr)) return true;
+  // A mapped address inherits the verdict of the IPv4 it carries. Deciding on the
+  // hextets rather than on three `::ffff:`-prefix regexes also covers the hex
+  // spelling and the CGNAT range those regexes never listed.
+  const hextets = expandIpv6(addr);
+  const mapped = hextets && mappedIpv4(hextets);
+  if (mapped) return isPrivateNetwork(mapped);
   // IPv6 transition addresses (NAT64/6to4/Teredo) embedding a private IPv4.
   const embedded = embeddedTransitionIpv4(addr);
   if (embedded) return isPrivateNetwork(embedded);

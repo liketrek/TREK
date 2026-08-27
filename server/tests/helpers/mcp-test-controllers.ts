@@ -13,6 +13,7 @@ import { CategoriesMcp } from '../../src/nest/categories/categories.mcp';
 import { CategoriesService } from '../../src/nest/categories/categories.service';
 import { CollabMcp } from '../../src/nest/collab/collab.mcp';
 import { CollabService } from '../../src/nest/collab/collab.service';
+import { RateLimitService } from '../../src/nest/common/rate-limit.service';
 import { CollectionsMcp } from '../../src/nest/collections/collections.mcp';
 import { CollectionsService } from '../../src/nest/collections/collections.service';
 import { DatabaseService } from '../../src/nest/database/database.service';
@@ -111,7 +112,7 @@ export function createMcpTestRegistry(): McpRegistry {
   const daysService = new DaysService(dbService, permissionsService, realtimeService, queryHelpersService);
   const todoService = new TodoService(dbService, permissionsService, realtimeService);
   const packingService = new PackingService(dbService, permissionsService, realtimeService, notificationsStub());
-  const collabService = new CollabService(dbService, permissionsService, realtimeService, notificationsStub(), generalStorage);
+  const collabService = new CollabService(dbService, permissionsService, realtimeService, notificationsStub(), generalStorage, new RateLimitService());
   // Exactly one instance, shared by maps, places and share: its stampede guard
   // and its on-disk set only work if all three readers see the same maps.
   const placePhotoCache = new PlacePhotoCacheService(dbService, makeStorageFixture('photos/google/').storage);

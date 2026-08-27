@@ -66,6 +66,7 @@ import { ReservationsReadRepository } from '../../../src/nest/reservations/reser
 import { BudgetService } from '../../../src/nest/budget/budget.service';
 import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
 import { CollabService } from '../../../src/nest/collab/collab.service';
+import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 import { VacayService } from '../../../src/nest/vacay/vacay.service';
 import { TripsService } from '../../../src/nest/trips/trips.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
@@ -130,7 +131,7 @@ const readModelSvc = new TripReadModelService(
   dbs(), membersSvc, daysSvc, accommodationsSvc, budgetSvc,
   new PackingService(dbs(), new PermissionsService(dbs()), new RealtimeService(), notificationsStub()),
   new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService(), notificationsStub(), new ReservationsReadRepository(dbs())),
-  new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService(), notificationsStub(), coversFx.storage),
+  new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService(), notificationsStub(), coversFx.storage, new RateLimitService()),
   placesSvc,
   new TodoService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
   new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new EphemeralTokenService(), coversFx.storage),

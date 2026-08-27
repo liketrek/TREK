@@ -5,6 +5,8 @@ import os from 'os';
 import path from 'path';
 
 import { CollabController } from '../../../src/nest/collab/collab.controller';
+import { TripAccessGuard, TRIP_PERMISSION_KEY } from '../../../src/nest/permissions/trip-access.guard';
+import { JwtAuthGuard } from '../../../src/nest/auth/jwt-auth.guard';
 import type { CollabService } from '../../../src/nest/collab/collab.service';
 import type { StorageService } from '../../../src/nest/storage/storage.service';
 import type { User } from '../../../src/types';
@@ -181,12 +183,49 @@ describe('CollabController (parity with the legacy /api/trips/:tripId/collab rou
     });
   });
 
+  // The decorators, not the handler body. Constructing the controller directly,
+  // which every test above does, runs no guard at all — so removing the trip check
+  // again would leave this file green. It shipped without one once.
+  describe('link preview guard chain', () => {
+    const guardsOn = (target: object): unknown[] => (Reflect.getMetadata('__guards__', target) as unknown[]) ?? [];
+
+    it('resolves the trip and refuses a caller who cannot reach it', () => {
+      expect(guardsOn(CollabController.prototype.linkPreview)).toContain(TripAccessGuard);
+    });
+
+    it('sits behind the same authentication as the rest of the controller', () => {
+      expect(guardsOn(CollabController)).toContain(JwtAuthGuard);
+    });
+
+    it('demands no write permission, matching the other read routes', () => {
+      // It is requested while rendering a message or a note, never while writing
+      // one. Requiring collab_edit would strip previews from a trip whose owner
+      // narrowed that right, for people who may still read the chat.
+      for (const handler of [CollabController.prototype.linkPreview, CollabController.prototype.listMessages, CollabController.prototype.listNotes]) {
+        expect(Reflect.getMetadata(TRIP_PERMISSION_KEY, handler)).toBeUndefined();
+      }
+      // The write siblings do demand it, so this is a deliberate split, not an omission.
+      expect(Reflect.getMetadata(TRIP_PERMISSION_KEY, CollabController.prototype.createMessage)).toBe('collab_edit');
+    });
+  });
+
   describe('link preview', () => {
     it('400 without url, maps an error result to 400, else returns the preview', async () => {
       expect(await thrownAsync(() => new CollabController(svc(), storageStub).linkPreview(user, '5', undefined))).toEqual({ status: 400, body: { error: 'URL is required' } });
       expect(await thrownAsync(() => new CollabController(svc({ linkPreview: vi.fn().mockResolvedValue({ error: 'bad url' }) } as Partial<CollabService>), storageStub).linkPreview(user, '5', 'http://x'))).toEqual({ status: 400, body: { error: 'bad url' } });
       const s = svc({ linkPreview: vi.fn().mockResolvedValue({ title: 'T', description: null, image: null, url: 'http://x' }) } as Partial<CollabService>);
       expect(await new CollabController(s, storageStub).linkPreview(user, '5', 'http://x')).toEqual({ title: 'T', description: null, image: null, url: 'http://x' });
+    });
+
+    it('maps an exhausted preview budget to 429, not to the 400 a refused URL gets', async () => {
+      const s = svc({ linkPreview: vi.fn().mockResolvedValue({ title: null, description: null, image: null, url: 'http://x', rateLimited: true }) } as Partial<CollabService>);
+      expect(await thrownAsync(() => new CollabController(s, storageStub).linkPreview(user, '5', 'http://x'))).toEqual({ status: 429, body: { error: 'Too many requests' } });
+    });
+
+    it('passes the caller through, so the budget is charged per user and not per instance', async () => {
+      const linkPreview = vi.fn().mockResolvedValue({ title: 'T', description: null, image: null, url: 'http://x' });
+      await new CollabController(svc({ linkPreview } as Partial<CollabService>), storageStub).linkPreview(user, '5', 'http://x');
+      expect(linkPreview).toHaveBeenCalledWith('http://x', user.id);
     });
 
     it('falls back to a null preview when the service throws', async () => {

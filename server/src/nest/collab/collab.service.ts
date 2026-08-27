@@ -6,10 +6,11 @@ import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { avatarUrl } from '../common/avatarUrl';
 import { checkSsrf, createPinnedDispatcher } from '../../utils/ssrfGuard';
-import { exceedsDeclaredLength, readCappedText } from '../../utils/cappedFetch';
+import { discardBody, exceedsDeclaredLength, readCappedText } from '../../utils/cappedFetch';
 import type { CollabNote, CollabPoll, CollabMessage, TripFile, User } from '../../types';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StorageService } from '../storage/storage.service';
+import { RateLimitService } from '../common/rate-limit.service';
 
 type Trip = TripAccess;
 
@@ -51,6 +52,56 @@ export interface LinkPreviewResult {
   image: string | null;
   site_name?: string | null;
   url: string;
+  /** Set when the URL was refused; the controller turns it into a 400. */
+  error?: string;
+  /** Set when the caller is out of preview fetches; the controller turns it into a 429. */
+  rateLimited?: boolean;
+}
+
+/**
+ * Outbound fetches one user may trigger per minute. Deliberately generous: the
+ * client asks for a preview per rendered message (`LIMIT 100`) and per note with
+ * a website, both without debounce, so opening a link-heavy trip is a burst of
+ * dozens. Cache hits are not charged, so this only ever meters *new* URLs.
+ */
+const PREVIEW_FETCHES_PER_MINUTE = 60;
+
+/** How long a scraped preview stays good. og: tags are near-static. */
+const PREVIEW_CACHE_TTL_MS = 10 * 60 * 1000;
+
+/** Entries kept before the least recently used one is dropped. */
+const PREVIEW_CACHE_MAX = 500;
+
+/**
+ * Pulls the og:/<title>/description fields out of a document.
+ *
+ * Every `[^>]` run is bounded. Unbounded, two of them separated by a literal make
+ * the engine rescan the rest of the document from every `<meta` it passes, which
+ * is quadratic: a page of `'<meta '` with no `>` in it took ~58s at 240KB on the
+ * measured build, and the cap admits half a megabyte. Node runs one thread, so
+ * that is the whole server — WebSocket, auth and health included — for one
+ * request. No real attribute list comes close to 512 characters.
+ */
+function scrapeOpenGraph(html: string): Omit<LinkPreviewResult, 'url'> {
+  const og = (prop: string) => {
+    const m = html.match(new RegExp(`<meta[^>]{0,512}property=["']og:${prop}["'][^>]{0,512}content=["']([^"']*)["']`, 'i'))
+      || html.match(new RegExp(`<meta[^>]{0,512}content=["']([^"']*)["'][^>]{0,512}property=["']og:${prop}["']`, 'i'));
+    return m ? m[1] : null;
+  };
+  const titleTag = html.match(/<title[^>]{0,512}>([^<]*)<\/title>/i);
+  const descMeta = html.match(/<meta[^>]{0,512}name=["']description["'][^>]{0,512}content=["']([^"']*)["']/i)
+    || html.match(/<meta[^>]{0,512}content=["']([^"']*)["'][^>]{0,512}name=["']description["']/i);
+  const image = og('image');
+
+  return {
+    title: og('title') || (titleTag ? titleTag[1].trim() : null),
+    description: og('description') || (descMeta ? descMeta[1].trim() : null),
+    // The client renders this straight into an <img src>, so the page being
+    // previewed must not be able to point that at anything but a web address —
+    // the same scheme pin placeImageUrlSchema applies to a stored place picture.
+    image: image && /^https?:\/\//i.test(image) ? image : null,
+    site_name: og('site_name') || null,
+  };
 }
 
 /**
@@ -75,7 +126,22 @@ export class CollabService {
     private readonly realtime: RealtimeService,
     private readonly notifications: NotificationsService,
     private readonly storage: StorageService,
+    private readonly rateLimit: RateLimitService,
   ) {}
+
+  /**
+   * Scraped previews, keyed by URL and ordered least-recently-used first.
+   *
+   * On the service rather than at module scope so a test gets a fresh one per
+   * container. What it buys: the client re-requests every preview it renders on
+   * each mount, so without it a reload of a busy trip is another hundred outbound
+   * fetches — the exact traffic the budget above is meant to stop the server from
+   * emitting on someone else's behalf.
+   */
+  private readonly previewCache = new Map<string, { at: number; result: LinkPreviewResult }>();
+
+  /** Preview fetches currently in flight, so simultaneous askers share one request. */
+  private readonly inFlight = new Map<string, Promise<LinkPreviewResult>>();
 
   verifyTripAccess(tripId: string | number, userId: number) {
     return this.db.canAccessTrip(tripId, userId);
@@ -461,58 +527,112 @@ export class CollabService {
   /*  Link preview                                                       */
   /* ------------------------------------------------------------------ */
 
-  async linkPreview(url: string): Promise<LinkPreviewResult> {
+  async linkPreview(url: string, userId?: number): Promise<LinkPreviewResult> {
     const fallback: LinkPreviewResult = { title: null, description: null, image: null, url };
 
     // A malformed URL returns the fallback directly (the legacy code let
     // `new URL` throw and relied on the controller's catch for the same 200).
     try { new URL(url); } catch { return fallback; }
+
+    // Served before the budget is charged: opening a chat re-requests every
+    // preview it renders, so a reload must not cost the caller its allowance.
+    const cached = this.readPreviewCache(url);
+    if (cached) return cached;
+
+    // A fetch for this URL is already on its way. The client renders one preview
+    // per message and does not deduplicate, so the same link posted twenty times
+    // arrives as twenty simultaneous requests — none of which would find a cache
+    // entry yet, since the first has not answered. Joining the running fetch keeps
+    // that a single outbound request instead of twenty.
+    const running = this.inFlight.get(url);
+    if (running) return { ...(await running), url };
+
+    // Charged per outbound fetch rather than per request, which is what the
+    // budget is actually protecting. Without a user there is no one to charge —
+    // no caller passes that today, and the fetch stays behind the SSRF guard.
+    if (userId !== undefined && !this.rateLimit.check('collab_link_preview', String(userId), PREVIEW_FETCHES_PER_MINUTE, 60_000, Date.now())) {
+      return { ...fallback, rateLimited: true };
+    }
+
+    const task = this.fetchPreview(url, fallback);
+    this.inFlight.set(url, task);
+    try {
+      return await task;
+    } finally {
+      this.inFlight.delete(url);
+    }
+  }
+
+  /** The outbound half of linkPreview, past the cache and the budget. */
+  private async fetchPreview(url: string, fallback: LinkPreviewResult): Promise<LinkPreviewResult> {
     const ssrf = await checkSsrf(url, true);
     if (!ssrf.allowed) {
-      return { ...fallback, error: ssrf.error } as LinkPreviewResult & { error?: string };
+      // The caller learns that the URL was refused, never why: the three distinct
+      // reasons ("could not resolve", "private address", "loopback") would together
+      // map out the server's internal DNS for anyone willing to guess hostnames.
+      return { ...fallback, error: 'URL not allowed' };
     }
 
+    const dispatcher = createPinnedDispatcher(ssrf.resolvedIp!);
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-
-      try {
-        const r = await fetch(url, {
-          redirect: 'error',
-          signal: controller.signal,
-          dispatcher: createPinnedDispatcher(ssrf.resolvedIp!),
-          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NOMAD/1.0; +https://github.com/mauriceboe/NOMAD)' },
-        } as any);
-        clearTimeout(timeout);
-        if (!r.ok) throw new Error('Fetch failed');
-        if (exceedsDeclaredLength(r, MAX_PREVIEW_BYTES)) return fallback;
-
-        // A truncated head still carries the tags we scrape, so a page over the
-        // budget degrades to fewer fields rather than to an error.
-        const { text: html } = await readCappedText(r, MAX_PREVIEW_BYTES);
-        const get = (prop: string) => {
-          const m = html.match(new RegExp(`<meta[^>]*property=["']og:${prop}["'][^>]*content=["']([^"']*)["']`, 'i'))
-            || html.match(new RegExp(`<meta[^>]*content=["']([^"']*)["'][^>]*property=["']og:${prop}["']`, 'i'));
-          return m ? m[1] : null;
-        };
-        const titleTag = html.match(/<title[^>]*>([^<]*)<\/title>/i);
-        const descMeta = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i)
-          || html.match(/<meta[^>]*content=["']([^"']*)["'][^>]*name=["']description["']/i);
-
-        return {
-          title: get('title') || (titleTag ? titleTag[1].trim() : null),
-          description: get('description') || (descMeta ? descMeta[1].trim() : null),
-          image: get('image') || null,
-          site_name: get('site_name') || null,
-          url,
-        };
-      } catch {
-        clearTimeout(timeout);
-        return fallback;
+      // AbortSignal.timeout covers the body as well. The hand-rolled controller
+      // this replaces was cleared as soon as the headers arrived, so a server that
+      // answered fast and then dripped the body one byte at a time held the handler,
+      // the socket and this dispatcher open indefinitely — the byte cap counts
+      // bytes, and at that rate it would never reach one.
+      const r = await fetch(url, {
+        redirect: 'error',
+        signal: AbortSignal.timeout(5000),
+        dispatcher,
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NOMAD/1.0; +https://github.com/mauriceboe/NOMAD)' },
+      } as any);
+      if (!r.ok) { discardBody(r); return this.cachePreview(url, fallback); }
+      // Only markup is worth scraping. A declared type that is not HTML means the
+      // regexes below would comb a video or an archive for og: tags and find nothing.
+      const type = r.headers?.get('content-type') ?? '';
+      if (type && !/^\s*(text\/html|application\/xhtml\+xml|text\/plain)\b/i.test(type)) {
+        discardBody(r);
+        return this.cachePreview(url, fallback);
       }
+      // An unread body keeps its socket reserved until the garbage collector runs,
+      // which is the one thing a size cap is there to prevent.
+      if (exceedsDeclaredLength(r, MAX_PREVIEW_BYTES)) { discardBody(r); return this.cachePreview(url, fallback); }
+
+      // A truncated head still carries the tags we scrape, so a page over the
+      // budget degrades to fewer fields rather than to an error.
+      const { text: html } = await readCappedText(r, MAX_PREVIEW_BYTES);
+      return this.cachePreview(url, { ...scrapeOpenGraph(html), url });
     } catch {
-      return fallback;
+      return this.cachePreview(url, fallback);
+    } finally {
+      // Closed rather than left to the garbage collector: one Agent is built per
+      // preview, and each keeps its sockets until something releases them.
+      void (dispatcher as { close?: () => Promise<void> } | undefined)?.close?.()?.catch(() => {});
     }
+  }
+
+  /** A cached preview, or undefined once its entry has expired or was never there. */
+  private readPreviewCache(url: string): LinkPreviewResult | undefined {
+    const hit = this.previewCache.get(url);
+    if (!hit) return undefined;
+    if (Date.now() - hit.at > PREVIEW_CACHE_TTL_MS) {
+      this.previewCache.delete(url);
+      return undefined;
+    }
+    // Re-insert so the eviction below drops the least recently used entry.
+    this.previewCache.delete(url);
+    this.previewCache.set(url, hit);
+    return { ...hit.result, url };
+  }
+
+  /** Stores a preview and returns it, so call sites can `return this.cachePreview(...)`. */
+  private cachePreview(url: string, result: LinkPreviewResult): LinkPreviewResult {
+    if (this.previewCache.size >= PREVIEW_CACHE_MAX) {
+      const oldest = this.previewCache.keys().next().value;
+      if (oldest !== undefined) this.previewCache.delete(oldest);
+    }
+    this.previewCache.set(url, { at: Date.now(), result });
+    return result;
   }
 
   /** Fire-and-forget collab notification (mirrors the legacy route's dynamic import). */

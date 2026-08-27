@@ -26,6 +26,7 @@ import { LlmConfigResolver } from '../../src/nest/llm-parse/llm-config.resolver'
 import { SettingsService } from '../../src/nest/settings/settings.service';
 import { FilesService } from '../../src/nest/files/files.service';
 import { CollabService } from '../../src/nest/collab/collab.service';
+import { RateLimitService } from '../../src/nest/common/rate-limit.service';
 import { VacayService } from '../../src/nest/vacay/vacay.service';
 import { TripsService } from '../../src/nest/trips/trips.service';
 import { PlacesService } from '../../src/nest/places/places.service';
@@ -94,7 +95,7 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
   const packing = new PackingService(dbs, permissions, realtime, notificationsStub());
   const files = new FilesService(dbs, permissions, realtime, new EphemeralTokenService(), generalStorage);
   const reservations = new ReservationsService(dbs, permissions, budget, realtime, notificationsStub(), new ReservationsReadRepository(dbs));
-  const collab = new CollabService(dbs, permissions, realtime, notificationsStub(), generalStorage);
+  const collab = new CollabService(dbs, permissions, realtime, notificationsStub(), generalStorage, new RateLimitService());
   const vacay = new VacayService(dbs, realtime, notificationsStub());
   const days = new DaysService(dbs, permissions, realtime, queryHelpers);
   const photoCache = new PlacePhotoCacheService(dbs, makeStorageFixture('photos/google/').storage);
