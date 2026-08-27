@@ -16,9 +16,10 @@ import type { MMapAreaProps } from '../MTripShell'
  * setting) with the full desktop feature set: clusters, photo/icon markers,
  * day-order badges, dashed day route, transport overlays per booking, POI
  * explore markers and long-press → add place. Only the floating chrome is
- * mobile: the POI/compass cluster sits centre-top below the day-chip rail, and
- * the map's built-in three-state locate button is lifted above the dock via
- * the --bottom-nav-h contract it already reads.
+ * mobile: the POI bar spans the full width below the day-chip rail, and the two
+ * round controls share the band just above the dock — the compass on the left,
+ * the map's built-in three-state locate button on the right, both riding the
+ * --bottom-nav-h contract the map already reads so they cannot drift apart.
  *
  * Marker data honours the shared places category filter (#1541) because
  * planner.mapPlaces is derived from tripStore's placesCategoryFilter — the
@@ -35,9 +36,10 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
     // `isolate` keeps the map's internal z-indexes (Leaflet panes, the z-1000
     // locate button) inside this layer so they can never paint over the plan
     // timeline (z-10) or the browse/tab overlays (z-30) above it.
-    // The dock is 62px tall at safe-bottom + 12, so a 104px --bottom-nav-h
-    // floats the built-in locate button at the spec's 116px band above it.
-    <div className="absolute inset-0 isolate overflow-hidden bg-[color:var(--m-mapb)] [--bottom-nav-h:calc(env(safe-area-inset-bottom,0px)+104px)]">
+    // The dock is 62px tall at safe-bottom + 12, so a 74px --bottom-nav-h puts
+    // the round controls (which add their own 12px) a dock's gap above it —
+    // close enough to the thumb to reach one-handed, clear of the dock itself.
+    <div className="absolute inset-0 isolate overflow-hidden bg-[color:var(--m-mapb)] [--bottom-nav-h:calc(env(safe-area-inset-bottom,0px)+74px)]">
       <MapViewAuto
         tripId={planner.tripId}
         places={planner.mapPlaces}
@@ -74,22 +76,32 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
         onMapReady={setGlMap}
       />
 
-      {/* Floating map chrome — only while the map view is front-most. Centre-top,
-          below the day-chip rail (safe-top + 50px + ~42px chip height). The
-          compass renders on GL maps only (Leaflet can't rotate). */}
-      {mapActive && (poiPillEnabled || glMap) && (
+      {/* Floating map chrome — only while the map view is front-most. The POI bar
+          sits below the day-chip rail (safe-top + 50px + ~42px chip height) and
+          takes the full width between the screen margins, so its segments are
+          the same size as everything else the thumb aims at on this screen. */}
+      {mapActive && poiPillEnabled && (
         <div className="pointer-events-none absolute left-4 right-4 z-[25] flex flex-col items-center gap-2 top-[calc(var(--m-safe-top,12px)+96px)]">
-          {poiPillEnabled && (
-            <PoiCategoryPill
-              active={poi.active}
-              onToggle={poi.toggle}
-              loadingKeys={poi.loadingKeys}
-              errorKeys={poi.errorKeys}
-              moved={poi.moved}
-              onSearchArea={poi.searchArea}
-            />
-          )}
-          {glMap && <MapCompassPill map={glMap} />}
+          <PoiCategoryPill
+            fullWidth
+            active={poi.active}
+            onToggle={poi.toggle}
+            loadingKeys={poi.loadingKeys}
+            errorKeys={poi.errorKeys}
+            moved={poi.moved}
+            onSearchArea={poi.searchArea}
+          />
+        </div>
+      )}
+
+      {/* Compass — GL maps only (Leaflet can't rotate). Bottom-left, mirroring
+          the locate button's own `right: 12` off the same --bottom-nav-h, so the
+          two round controls always sit on one line. Leaflet has no compass but
+          puts its base-layer switcher in the same corner, so the band reads the
+          same either way. */}
+      {mapActive && glMap && (
+        <div className="pointer-events-none absolute left-3 z-[25]" style={{ bottom: 'calc(var(--bottom-nav-h, 84px) + 12px)' }}>
+          <MapCompassPill map={glMap} />
         </div>
       )}
     </div>

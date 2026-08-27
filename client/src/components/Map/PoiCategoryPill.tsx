@@ -12,12 +12,16 @@ interface Props {
   /** true when the map moved since the last search → offer "search this area" */
   moved?: boolean
   onSearchArea?: () => void
+  /** Stretch the bar across its container and spread the segments evenly.
+   *  The phone map gives it the full width between the screen margins; on
+   *  desktop it floats, so it stays content-width there. */
+  fullWidth?: boolean
 }
 
 // Frosted, icon-only segmented control that floats over the map. Active segments
 // fill with the category colour (matching their markers); the label shows in a
 // custom tooltip on hover so the pill stays compact and never needs to scroll.
-export default function PoiCategoryPill({ active, onToggle, loadingKeys, errorKeys, moved, onSearchArea }: Props) {
+export default function PoiCategoryPill({ active, onToggle, loadingKeys, errorKeys, moved, onSearchArea, fullWidth }: Props) {
   const { t } = useTranslation()
   const anyError = !!errorKeys && Array.from(active).some(k => errorKeys.has(k))
 
@@ -29,8 +33,12 @@ export default function PoiCategoryPill({ active, onToggle, loadingKeys, errorKe
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 4, borderRadius: 999, pointerEvents: 'auto', ...frosted }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, width: fullWidth ? '100%' : undefined }}>
+      <div style={{
+        display: fullWidth ? 'flex' : 'inline-flex',
+        alignSelf: fullWidth ? 'stretch' : undefined,
+        alignItems: 'center', gap: 2, padding: 4, borderRadius: 999, pointerEvents: 'auto', ...frosted,
+      }}>
         {POI_CATEGORIES.map(cat => {
           const on = active.has(cat.key)
           // Only an active category can be loading — a deselected one whose fetch
@@ -47,7 +55,11 @@ export default function PoiCategoryPill({ active, onToggle, loadingKeys, errorKe
                 style={{
                   position: 'relative',
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  width: 34, height: 34, borderRadius: 999, border: 'none', cursor: 'pointer',
+                  flexGrow: fullWidth ? 1 : undefined,
+                  flexShrink: fullWidth ? 1 : undefined,
+                  flexBasis: fullWidth ? 0 : undefined,
+                  minWidth: fullWidth ? 0 : undefined,
+                  width: fullWidth ? 'auto' : 34, height: 34, borderRadius: 999, border: 'none', cursor: 'pointer',
                   background: on ? cat.color : 'transparent',
                   color: on ? '#fff' : undefined,
                   transition: 'background 0.14s, color 0.14s',
