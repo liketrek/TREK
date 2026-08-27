@@ -29,11 +29,29 @@ export const PLACEHOLDER_PATTERNS = [
 
 export const MIN_PROSE_CHARS = 400;
 
+/**
+ * The heading body, with the trailing HTML comment authors use to hide anchors cut off.
+ *
+ * Cut with indexOf rather than a regex on purpose. The obvious spellings — the
+ * `(.+?)\s*(?:<!--.*)?$` this used to be, or a `replace(/\s*<!--.*$/, '')` in front of it —
+ * put two quantifiers on the same run of spaces, and both then backtrack quadratically:
+ * a heading line padded with 80k spaces takes ~12s, 200k takes ~30s. This gate runs over
+ * READMEs anyone can submit to the registry, so that is a stall someone can post. Same
+ * failure the wiki sidebar parser was rewritten for (server/src/nest/help/wiki.ts).
+ */
+function headingBody(line: string): string {
+  const comment = line.indexOf('<!--');
+  return comment < 0 ? line : line.slice(0, comment);
+}
+
 /** Which of REQUIRED_SECTIONS have no matching heading. */
 export function missingSections(md: string): string[] {
-  // The `(?:<!--.*)?` tail mirrors check-readme.mjs — it tolerates a trailing HTML comment
-  // on a heading line, which authors use to hide anchors.
-  const headings = [...md.matchAll(/^#{1,6}\s+(.+?)\s*(?:<!--.*)?$/gm)].map((m) => m[1].toLowerCase());
+  const headings = md
+    .split('\n')
+    // `\S.*\S|\S` instead of a lazy body: the edges are pinned to non-space, so nothing
+    // competes with the trailing `\s*`.
+    .map((line) => /^#{1,6}\s+(\S.*\S|\S)\s*$/.exec(headingBody(line))?.[1].toLowerCase())
+    .filter((h): h is string => h !== undefined);
   return REQUIRED_SECTIONS.filter((want) => !headings.some((got) => got.includes(want.toLowerCase())));
 }
 

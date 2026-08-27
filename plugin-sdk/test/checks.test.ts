@@ -241,6 +241,24 @@ describe('README helpers mirror the registry exactly', () => {
     expect(missingSections('## What it does')).toEqual(['Screenshots', 'Permissions', 'Setup']);
   });
 
+  it('still ignores the trailing anchor comment authors hide on a heading', () => {
+    const md = '## What it does <!-- #what -->\n## Screenshots<!--x-->\n##\tPermissions   \n## Setup <!-- unterminated';
+    expect(missingSections(md)).toEqual([]);
+    // A heading that is nothing but a comment names no section.
+    expect(missingSections('# <!-- only -->')).toEqual(['What it does', 'Screenshots', 'Permissions', 'Setup']);
+  });
+
+  it('does not stall on a heading padded with spaces', () => {
+    // The old `(.+?)\s*(?:<!--.*)?$` was quadratic: ~12s at 80k spaces, ~75s at 200k.
+    // READMEs reach this gate from the registry's submission CI, so the padding is
+    // attacker-supplied. The bound is 1000x the real cost, so it fails on the shape
+    // of the regression, not on a slow machine.
+    const md = `## What it does${' '.repeat(200_000)}x\n## Screenshots\n## Permissions\n## Setup`;
+    const started = performance.now();
+    expect(missingSections(md)).toEqual([]);
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
   it('ignores data: URIs when looking for a screenshot, like the registry does', () => {
     expect(images('![a](data:image/png;base64,xxx)')).toEqual([]);
     expect(images('<img src="shot.png">')).toEqual(['shot.png']);
