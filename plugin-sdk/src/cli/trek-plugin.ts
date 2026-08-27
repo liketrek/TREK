@@ -25,6 +25,7 @@ import { preflight } from './preflight.js';
 import { submitEntry } from './submit.js';
 import { publishPlugin } from './publish.js';
 import { unrelease } from './unrelease.js';
+import { rotateKey } from './rotate-key.js';
 import { needsRetroSign, retroSignVersions } from './retro-sign.js';
 import { loadContext } from './checks/context.js';
 import { runOffline } from './checks/index.js';
@@ -79,11 +80,12 @@ const COMMAND_FLAGS: Record<string, readonly string[]> = {
   pack: ['out', 'json'],
   keygen: ['key'],
   sign: ['key'],
-  entry: ['repo', 'tag', 'dir', 'zip', 'commit', 'asset', 'merge', 'sign', 'key', 'out'],
-  preflight: ['repo', 'tag', 'entry', 'zip', 'commit', 'sign', 'key', 'all', 'registry'],
-  submit: ['repo', 'tag', 'zip', 'commit', 'sign', 'key', 'registry', 'branch', 'draft', 'keep'],
-  release: ['repo', 'tag', 'out', 'notes', 'commit', 'merge', 'sign', 'key'],
-  publish: ['repo', 'tag', 'sign', 'key', 'registry', 'draft', 'notes', 'no-preflight', 'no-checks', 'force', 'keep-release'],
+  'rotate-key': ['key', 'id', 'registry', 'out', 'draft', 'yes'],
+  entry: ['repo', 'tag', 'dir', 'zip', 'commit', 'asset', 'merge', 'sign', 'key', 'out', 'allow-key-change'],
+  preflight: ['repo', 'tag', 'entry', 'zip', 'commit', 'sign', 'key', 'all', 'registry', 'allow-key-change'],
+  submit: ['repo', 'tag', 'zip', 'commit', 'sign', 'key', 'registry', 'branch', 'draft', 'keep', 'allow-key-change'],
+  release: ['repo', 'tag', 'out', 'notes', 'commit', 'merge', 'sign', 'key', 'allow-key-change'],
+  publish: ['repo', 'tag', 'sign', 'key', 'registry', 'draft', 'notes', 'no-preflight', 'no-checks', 'force', 'keep-release', 'allow-key-change'],
   unrelease: ['repo', 'tag', 'registry', 'yes'],
 };
 
@@ -222,7 +224,7 @@ function readPluginId(dir: string): string {
 }
 
 /** Commands that operate on a plugin directory, and so need one when the menu launched them. */
-const DIR_COMMANDS = new Set(['dev', 'status', 'validate', 'pack', 'shot', 'publish', 'preflight', 'submit', 'release']);
+const DIR_COMMANDS = new Set(['dev', 'status', 'validate', 'pack', 'shot', 'publish', 'preflight', 'submit', 'release', 'rotate-key']);
 
 async function promptPluginDir(command: string): Promise<string | undefined> {
   if (!DIR_COMMANDS.has(command)) return undefined;
@@ -337,6 +339,34 @@ async function dispatch(command: string, f: Flags, positional: string[]): Promis
       console.log(`signature:        ${signArtifact(buf, key)}`);
       console.log(`authorPublicKey:  ${publicKeyBase64(key)}`);
     }
+  } else if (command === 'rotate-key') {
+    const dir = positional[0] || '.';
+    const keyPath = f.key || defaultKeyPath();
+    const id = f.id || readPluginId(dir);
+    if (tui && !f.yes) {
+      note(
+        `Rotating re-signs EVERY published version of "${id || '(unknown id)'}" with the key at\n${keyPath} and changes the entry's authorPublicKey.\n\n` +
+          'The registry PR merges only once a maintainer applies the allow-key-change label, and every\n' +
+          'admin who already installed the plugin will see SIGNATURE_KEY_CHANGED until they re-trust it.',
+        'Rotate signing key',
+      );
+      const ok = await promptConfirm({
+        message: f.out ? `Rotate and write the entry to ${f.out}?` : 'Rotate and open the registry PR?',
+        initialValue: false,
+      });
+      if (!ok) { outro('Cancelled — nothing was rotated.'); return; }
+    }
+    const r = await rotateKey({
+      dir, id: f.id, keyPath, registry: f.registry, out: f.out, draft: !!f.draft,
+      log: tui ? clackLogSink : undefined,
+    });
+    if (r.prUrl) {
+      const msg = 'Rotation PR opened — it merges only with a maintainer\'s allow-key-change label, and every admin must re-trust the plugin:';
+      if (tui) logSuccess(msg); else console.error(msg);
+      console.log(r.prUrl); // machine output on stdout
+    } else if (tui && r.outPath) {
+      logSuccess(`Rotated entry written to ${r.outPath}`);
+    }
   } else if (command === 'entry') {
     const { repo, tag } = await ensureRepoTag(f, 'entry needs --repo <owner/name> and --tag <vX.Y.Z>');
     const entry = buildEntry({
@@ -344,6 +374,7 @@ async function dispatch(command: string, f: Flags, positional: string[]): Promis
       zipPath: f.zip || 'plugin.zip',
       commit: f.commit, asset: f.asset, mergePath: f.merge,
       signKeyPath: signKey(f), now: new Date().toISOString(),
+      allowKeyChange: !!f['allow-key-change'],
     });
     await maybeRetroSign(entry, signKey(f));
     const json = JSON.stringify(entry, null, 2) + '\n';
@@ -360,11 +391,11 @@ async function dispatch(command: string, f: Flags, positional: string[]): Promis
       entry = readJsonFile<ReturnType<typeof buildEntry>>(f.entry);
     } else {
       const { repo, tag } = await ensureRepoTag(f, 'preflight needs --repo <owner/name> --tag <vX>, or --entry <file.json>');
-      entry = buildEntry({ dir: positional[0] || '.', repo, tag, zipPath: f.zip || 'plugin.zip', commit: f.commit, signKeyPath: signKey(f), now: new Date().toISOString() });
+      entry = buildEntry({ dir: positional[0] || '.', repo, tag, zipPath: f.zip || 'plugin.zip', commit: f.commit, signKeyPath: signKey(f), now: new Date().toISOString(), allowKeyChange: !!f['allow-key-change'] });
     }
     if (tui) {
       const s = spinner(); s.start('Running the registry CI checks over the network');
-      const rep = await preflight(entry, { all: !!f.all });
+      const rep = await preflight(entry, { all: !!f.all, registry: f.registry, allowKeyChange: !!f['allow-key-change'] });
       s.stop('Checks complete');
       for (const p of rep.passed) logSuccess(p);
       for (const fa of rep.failures) logError(fa);
@@ -372,7 +403,7 @@ async function dispatch(command: string, f: Flags, positional: string[]): Promis
       outro('✓ all checks passed — this entry should sail through CI.');
     } else {
       console.error('Running registry CI checks over the network…\n');
-      const rep = await preflight(entry, { all: !!f.all });
+      const rep = await preflight(entry, { all: !!f.all, registry: f.registry, allowKeyChange: !!f['allow-key-change'] });
       for (const p of rep.passed) console.error('  ✓ ' + p);
       for (const fa of rep.failures) console.error('  ✗ ' + fa);
       if (!rep.ok) { console.error(`\n${rep.failures.length} check(s) would fail CI — fix these before submitting.`); process.exit(1); }
@@ -408,7 +439,7 @@ async function dispatch(command: string, f: Flags, positional: string[]): Promis
       dir, repo, tag,
       signKeyPath, signing, registry: f.registry, draft: !!f.draft,
       notes: f.notes, skipPreflight: !!f['no-preflight'], skipChecks: !!f['no-checks'], force: !!f.force,
-      keepRelease: !!f['keep-release'],
+      keepRelease: !!f['keep-release'], allowKeyChange: !!f['allow-key-change'],
       now: new Date().toISOString(),
       log: tui ? clackLogSink : undefined,
     });
@@ -419,18 +450,19 @@ async function dispatch(command: string, f: Flags, positional: string[]): Promis
     const entry = buildEntry({
       dir: positional[0] || '.', repo, tag,
       zipPath: f.zip || 'plugin.zip', commit: f.commit, signKeyPath: signKey(f), now: new Date().toISOString(),
+      allowKeyChange: !!f['allow-key-change'],
     });
     if (tui) {
       note(`${entry.id} ${entry.versions[0].version}\nrepo ${repo}`, 'Submit registry PR');
       const ok = await promptConfirm({ message: 'Open the registry PR now?', initialValue: true });
       if (!ok) { outro('Cancelled — no PR opened.'); return; }
       const s = spinner(); s.start('Opening the registry PR');
-      const { prUrl } = await submitEntry(entry, { registry: f.registry, branch: f.branch, draft: !!f.draft, keep: !!f.keep, signKeyPath: signKey(f) });
+      const { prUrl } = await submitEntry(entry, { registry: f.registry, branch: f.branch, draft: !!f.draft, keep: !!f.keep, signKeyPath: signKey(f), allowKeyChange: !!f['allow-key-change'] });
       s.stop('Registry PR opened');
       console.log(prUrl);
     } else {
       console.error(`Opening a registry PR for ${entry.id} ${entry.versions[0].version}…`);
-      const { prUrl } = await submitEntry(entry, { registry: f.registry, branch: f.branch, draft: !!f.draft, keep: !!f.keep, signKeyPath: signKey(f) });
+      const { prUrl } = await submitEntry(entry, { registry: f.registry, branch: f.branch, draft: !!f.draft, keep: !!f.keep, signKeyPath: signKey(f), allowKeyChange: !!f['allow-key-change'] });
       console.log(prUrl);
     }
   } else if (command === 'release') {
@@ -445,7 +477,7 @@ async function dispatch(command: string, f: Flags, positional: string[]): Promis
       const s = spinner(); s.start(`Creating GitHub release ${tag}`);
       execFileSync('gh', ['release', 'create', tag, packed.artifact, '--repo', repo, '--title', tag, '--notes', f.notes || `Release ${tag}`], { stdio: 'pipe' });
       s.stop(`Released ${tag} on ${repo}`);
-      const entry = buildEntry({ dir, repo, tag, zipPath: packed.artifact, commit: f.commit, mergePath: f.merge, signKeyPath: signKey(f), now: new Date().toISOString() });
+      const entry = buildEntry({ dir, repo, tag, zipPath: packed.artifact, commit: f.commit, mergePath: f.merge, signKeyPath: signKey(f), now: new Date().toISOString(), allowKeyChange: !!f['allow-key-change'] });
       await maybeRetroSign(entry, signKey(f));
       logInfo(`Registry entry (add as registry/plugins/${entry.id}.json, or run \`npx trek-plugin-sdk submit\`):`);
       process.stdout.write(JSON.stringify(entry, null, 2) + '\n');
@@ -454,7 +486,7 @@ async function dispatch(command: string, f: Flags, positional: string[]): Promis
       console.error(`Packed ${packed.files.length} files (${packed.size} bytes).`);
       console.error(`Creating GitHub release ${tag} on ${repo}…`);
       execFileSync('gh', ['release', 'create', tag, packed.artifact, '--repo', repo, '--title', tag, '--notes', f.notes || `Release ${tag}`], { stdio: 'inherit' });
-      const entry = buildEntry({ dir, repo, tag, zipPath: packed.artifact, commit: f.commit, mergePath: f.merge, signKeyPath: signKey(f), now: new Date().toISOString() });
+      const entry = buildEntry({ dir, repo, tag, zipPath: packed.artifact, commit: f.commit, mergePath: f.merge, signKeyPath: signKey(f), now: new Date().toISOString(), allowKeyChange: !!f['allow-key-change'] });
       await maybeRetroSign(entry, signKey(f));
       console.error('\nRegistry entry (add as registry/plugins/' + entry.id + '.json in a TREK-Plugins PR, or run `npx trek-plugin-sdk submit`):\n');
       process.stdout.write(JSON.stringify(entry, null, 2) + '\n');

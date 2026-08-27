@@ -32,6 +32,8 @@ export interface PreflightOptions {
   registry?: string;
   /** The exact artifact bytes the entry was built from, when the caller still holds them. */
   zipBytes?: Buffer;
+  /** A declared key rotation — the signing-downgrade guard accepts the changed key. */
+  allowKeyChange?: boolean;
 }
 
 /** Flatten a check outcome into the one-line strings this command has always printed. */
@@ -42,6 +44,7 @@ export async function preflight(entry: RegistryEntry, opts: PreflightOptions = {
   const ctx = loadContext(opts.dir ?? '.', { entry, zipBytes: opts.zipBytes });
   ctx.registry = opts.registry;
   ctx.allVersions = opts.all;
+  ctx.allowKeyChange = opts.allowKeyChange;
 
   const report = await runAll(ctx);
   return {

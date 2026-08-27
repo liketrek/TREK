@@ -114,6 +114,12 @@ export interface CheckContext {
   registry?: string;
   /** Check every version in the entry, not just the newest. Mirrors `preflight --all`. */
   allVersions?: boolean;
+  /**
+   * The author declared a deliberate key rotation (`--allow-key-change`). The signing-downgrade
+   * guard then accepts a changed `authorPublicKey` — every version still has to be signed — and
+   * says what the rotation costs instead of refusing it. Never set by default.
+   */
+  allowKeyChange?: boolean;
 }
 
 /** The shape `entry.ts` builds and TREK-Plugins stores at registry/plugins/<id>.json. */

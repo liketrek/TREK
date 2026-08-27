@@ -306,4 +306,8 @@ are refused (they'd collide with admin API routes) — and an `id` stays bound t
 the GitHub owner who first registered it, so
 nobody can repoint an existing plugin. Entries may optionally carry an author
 signing key (`authorPublicKey` + a per-version `signature`) for offline signature
-verification on top of the SHA-256 pin.
+verification on top of the SHA-256 pin. A signed plugin's key changes only through
+a maintainer-approved rotation; an instance that already has the plugin then shows
+`SIGNATURE_KEY_CHANGED` — with both key fingerprints, so you can check the new one
+with the author out of band — and pauses that plugin's updates until you re-trust
+the new key.

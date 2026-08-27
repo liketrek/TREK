@@ -354,6 +354,7 @@ const signingDowngrade: NetworkCheck = {
     // signed, an unsigned update — or one signed with a different key — is REFUSED on every
     // instance that already has it. Merging that would not just fail; it would strand every
     // existing user on the version they have.
+    const keyChanged = !!c.entry.authorPublicKey && c.entry.authorPublicKey !== published.authorPublicKey;
     const problems: string[] = [];
     if (!c.entry.authorPublicKey) {
       problems.push(
@@ -361,19 +362,24 @@ const signingDowngrade: NetworkCheck = {
           '  TREK refuses an unsigned update to a signed plugin — it would break the update for every existing install.\n' +
           '  Sign it: pass --sign (your key should be at ~/.trek-plugin/signing.key).',
       );
-    } else if (c.entry.authorPublicKey !== published.authorPublicKey) {
+    } else if (keyChanged && !c.allowKeyChange) {
       problems.push(
         '• this entry changes authorPublicKey. TREK refuses a key rotation until an admin re-trusts the plugin.\n' +
-          '  Sign with your ORIGINAL key, or ask a maintainer for the allow-key-change label.',
+          '  Sign with your ORIGINAL key — or, if the rotation is deliberate, re-run with --allow-key-change\n' +
+          '  and ask a maintainer for the allow-key-change label.',
       );
     } else {
       // Every version must stay signed, not just the newest — TREK verifies whichever version it
-      // installs, so an unsigned older block is a landmine for a pinned install.
+      // installs, so an unsigned older block is a landmine for a pinned install. Under a declared
+      // rotation this bites twice over: every version must be RE-signed with the new key.
       for (const v of c.entry.versions) {
         if (!v.signature) problems.push(`• ${v.version} has no signature, but this is a signed plugin — TREK will refuse to install it`);
       }
     }
-    return problems.length ? fail(`${problems.length} problem(s)`, problems.join('\n')) : pass('signed with the published key');
+    if (problems.length) return fail(`${problems.length} problem(s)`, problems.join('\n'));
+    return keyChanged
+      ? pass('key rotation declared — merging needs a maintainer\'s allow-key-change label, and every admin must re-trust the new key')
+      : pass('signed with the published key');
   },
 };
 

@@ -28,26 +28,53 @@ function gh(...a: string[]): string {
 }
 
 /** Merge a freshly-built single-version entry onto an existing registry file (update case). */
-function mergeOnto(existing: EntryLike, fresh: EntryLike): EntryLike {
+function mergeOnto(existing: EntryLike, fresh: EntryLike, allowKeyChange = false): { merged: EntryLike; rotated: boolean } {
   const v = fresh.versions[0];
-  if (existing.authorPublicKey && fresh.authorPublicKey && existing.authorPublicKey !== fresh.authorPublicKey) {
-    throw new Error('the signing key differs from the one already published for this plugin — TREK would reject the update. Use the original key.');
+  const keyChanged = !!existing.authorPublicKey && !!fresh.authorPublicKey && existing.authorPublicKey !== fresh.authorPublicKey;
+  if (keyChanged && !allowKeyChange) {
+    throw new Error(
+      'the signing key differs from the one already published for this plugin — TREK would reject the update. Use the original key.\n' +
+      'If you MEAN to rotate the key, re-run with --allow-key-change (the PR then needs a maintainer\'s allow-key-change label, and every admin must re-trust the plugin).',
+    );
   }
   if (existing.authorPublicKey && !fresh.authorPublicKey) {
     throw new Error('this plugin was published signed — sign the update too (pass --sign) or TREK will refuse it.');
   }
-  const versions = [v, ...existing.versions.filter((x) => x.version !== v.version)];
+  let older = existing.versions.filter((x) => x.version !== v.version);
+  if (keyChanged) {
+    // Deliberate rotation: the older versions' signatures were made with the OLD key and no
+    // longer verify against the entry's new authorPublicKey. Strip them so the retro-sign pass
+    // below re-signs each pinned artifact with the new key — a rotated entry must have EVERY
+    // version signed with the key it declares.
+    older = older.map(({ signature: _dropped, ...x }) => x);
+  }
+  const versions = [v, ...older];
   const merged: EntryLike = { ...existing, ...fresh, versions };
   merged.authorPublicKey = fresh.authorPublicKey ?? existing.authorPublicKey;
   if (merged.authorPublicKey === undefined) delete merged.authorPublicKey;
-  return merged;
+  return { merged, rotated: keyChanged };
 }
 
-export async function submitEntry(entry: EntryLike, opts: { registry?: string; branch?: string; draft?: boolean; keep?: boolean; signKeyPath?: string } = {}): Promise<{ prUrl: string }> {
+/** The PR paragraph a key rotation always carries — maintainers gate on it, admins live with it. */
+const ROTATION_BODY =
+  '**This update rotates the author signing key** (`authorPublicKey` changes, and every version is re-signed with the new key).\n' +
+  'Merging needs a maintainer to apply the **allow-key-change** label — CI refuses the key change without it.\n' +
+  'After merge, every instance that already has this plugin will show `SIGNATURE_KEY_CHANGED` until its admin re-trusts the new key.';
+
+export async function submitEntry(entry: EntryLike, opts: {
+  registry?: string; branch?: string; draft?: boolean; keep?: boolean; signKeyPath?: string;
+  /** Accept a deliberately CHANGED signing key on the update path (see mergeOnto). */
+  allowKeyChange?: boolean;
+  /**
+   * `rotate-key`: the entry IS the registry's current entry with its key rotated — no new
+   * version. Write it wholesale instead of merging, and open a rotation PR.
+   */
+  rotateOnly?: boolean;
+} = {}): Promise<{ prUrl: string }> {
   const registry = opts.registry || DEFAULT_REGISTRY;
   const name = registry.split('/')[1];
   const login = gh('api', 'user', '--jq', '.login');
-  const branch = opts.branch || `plugin-${entry.id}-${entry.versions[0].version}`;
+  const branch = opts.branch || (opts.rotateOnly ? `plugin-${entry.id}-rotate-key` : `plugin-${entry.id}-${entry.versions[0].version}`);
 
   // Ensure the fork exists (idempotent — prints "already exists" if it does).
   try { gh('repo', 'fork', registry, '--clone=false'); } catch { /* already forked */ }
@@ -84,9 +111,14 @@ export async function submitEntry(entry: EntryLike, opts: { registry?: string; b
     const abs = path.join(tmp, rel);
     let toWrite = entry;
     let action = 'add';
-    if (fs.existsSync(abs)) {
-      const existing = readJsonFile<EntryLike>(abs);
-      toWrite = mergeOnto(existing, entry);
+    let rotated = !!opts.rotateOnly;
+    if (opts.rotateOnly) {
+      if (!fs.existsSync(abs)) throw new Error(`no registry entry to rotate — ${rel} does not exist in ${registry}.`);
+      action = 'update';
+    } else if (fs.existsSync(abs)) {
+      const m = mergeOnto(readJsonFile<EntryLike>(abs), entry, opts.allowKeyChange);
+      toWrite = m.merged;
+      rotated = m.rotated;
       action = 'update';
     }
     // First signed update onto an unsigned history: the registry refuses a mixed entry (key
@@ -105,15 +137,20 @@ export async function submitEntry(entry: EntryLike, opts: { registry?: string; b
     fs.mkdirSync(path.dirname(abs), { recursive: true });
     fs.writeFileSync(abs, JSON.stringify(toWrite, null, 2) + '\n');
 
-    const title = action === 'add'
-      ? `Add ${entry.name || entry.id} (${entry.versions[0].version})`
-      : `Update ${entry.name || entry.id} to ${entry.versions[0].version}`;
+    const title = opts.rotateOnly
+      ? `Rotate signing key for ${entry.name || entry.id}`
+      : action === 'add'
+        ? `Add ${entry.name || entry.id} (${entry.versions[0].version})`
+        : `Update ${entry.name || entry.id} to ${entry.versions[0].version}${rotated ? ' (key rotation)' : ''}`;
     git(tmp, 'add', rel);
     git(tmp, 'commit', '-m', title);
     git(tmp, 'push', '--force-with-lease', 'origin', branch);
 
     const body = [
-      `${action === 'add' ? 'New plugin' : 'Plugin update'}: **${entry.name || entry.id}** \`${entry.id}\` ${entry.versions[0].version}.`,
+      opts.rotateOnly
+        ? `Key rotation for **${entry.name || entry.id}** \`${entry.id}\` — no new version.`
+        : `${action === 'add' ? 'New plugin' : 'Plugin update'}: **${entry.name || entry.id}** \`${entry.id}\` ${entry.versions[0].version}.`,
+      ...(rotated ? ['', ROTATION_BODY] : []),
       '',
       'Generated with `trek-plugin submit`. CI validates the tag, artifact hash, manifest parity and README.',
     ].join('\n');

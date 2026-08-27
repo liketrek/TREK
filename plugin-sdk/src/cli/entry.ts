@@ -86,6 +86,12 @@ export function buildEntry(opts: {
   commit?: string; asset?: string; mergePath?: string; now: string;
   /** Optional Ed25519 private-key file — signs the artifact and pins the author key. */
   signKeyPath?: string;
+  /**
+   * Declare that a signing key DIFFERENT from the published one is a deliberate rotation, not an
+   * accident. Merging still needs a registry maintainer's `allow-key-change` label, and every
+   * admin who has the plugin must re-trust the new key.
+   */
+  allowKeyChange?: boolean;
 }): Entry {
   const manifest = readJsonFile<Record<string, unknown>>(path.join(opts.dir, 'trek-plugin.json'));
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(opts.repo)) throw new Error(`--repo must be "owner/name", got "${opts.repo}"`);
@@ -134,13 +140,25 @@ export function buildEntry(opts: {
 
   if (opts.mergePath) {
     const existing = readJsonFile<Entry>(opts.mergePath);
-    if (authorPublicKey && existing.authorPublicKey && existing.authorPublicKey !== authorPublicKey) {
-      throw new Error('this signing key differs from the one already published for this plugin — TREK would reject the update. Use the original key.');
+    const keyChanged = !!authorPublicKey && !!existing.authorPublicKey && existing.authorPublicKey !== authorPublicKey;
+    if (keyChanged && !opts.allowKeyChange) {
+      throw new Error(
+        'this signing key differs from the one already published for this plugin — TREK would reject the update. Use the original key.\n' +
+        'If you MEAN to rotate the key, pass --allow-key-change (the registry PR then needs a maintainer\'s allow-key-change label, and every admin must re-trust the plugin).',
+      );
     }
     if (existing.authorPublicKey && !authorPublicKey) {
       throw new Error('this plugin was published signed — sign the update too (pass --sign) or TREK will refuse it.');
     }
-    const versions = [version, ...existing.versions.filter((v) => v.version !== version.version)];
+    let olderVersions = existing.versions.filter((v) => v.version !== version.version);
+    if (keyChanged) {
+      // A deliberate rotation. The older versions' signatures were made with the OLD key — under
+      // the new authorPublicKey they are exactly the "does not verify" failure preflight rejects.
+      // Strip them: the retro-sign pass then re-signs each pinned artifact with the new key, which
+      // is the only way a rotated entry is internally consistent.
+      olderVersions = olderVersions.map(({ signature: _dropped, ...v }) => v as Version);
+    }
+    const versions = [version, ...olderVersions];
     // Refresh the icon from the manifest when this release declares one (an author who adds
     // or changes it should see it in the store), but never wipe an icon the entry already
     // carries just because the manifest omits it.

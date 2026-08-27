@@ -52,6 +52,12 @@ export async function publishPlugin(opts: {
   /** On failure, leave the tag/release this run created in place instead of rolling them back. */
   keepRelease?: boolean;
   /**
+   * A deliberate key ROTATION: sign with a key different from the published one, re-signing the
+   * older versions with it. The registry PR is flagged as a rotation — it merges only with a
+   * maintainer's `allow-key-change` label, and every admin who has the plugin must re-trust it.
+   */
+  allowKeyChange?: boolean;
+  /**
    * A signing state the CLI already looked up (it does, to know whether to offer signing). Passed
    * in so a single publish does not hit the registry twice for the same answer.
    */
@@ -85,7 +91,11 @@ export async function publishPlugin(opts: {
     // So it belongs here, before anything exists to be wasted.
     const id = typeof ctx.manifest?.id === 'string' ? ctx.manifest.id : '';
     if (id) {
-      assertSigningAllowed(opts.signing ?? (await inspectSigning(id, { registry: opts.registry })), opts.signKeyPath);
+      assertSigningAllowed(
+        opts.signing ?? (await inspectSigning(id, { registry: opts.registry })),
+        opts.signKeyPath,
+        { allowKeyChange: opts.allowKeyChange },
+      );
     }
 
     log(`      ✓ ${report.outcomes.filter((o) => o.status === 'pass').length} checks passed`);
@@ -167,12 +177,12 @@ export async function publishPlugin(opts: {
 
   try {
     // 4. Build the entry, then run the gates that need the tag and the release to exist
-    const entry = buildEntry({ dir, repo: opts.repo, tag: opts.tag, zipPath: packed.artifact, signKeyPath: opts.signKeyPath, now: opts.now });
+    const entry = buildEntry({ dir, repo: opts.repo, tag: opts.tag, zipPath: packed.artifact, signKeyPath: opts.signKeyPath, now: opts.now, allowKeyChange: opts.allowKeyChange });
     if (opts.skipPreflight) {
       log('[4/5] Preflight skipped (--no-preflight).');
     } else {
       step(4, 'Preflight — the gates that need the release to exist…');
-      const rep = await preflight(entry, { dir, registry: opts.registry });
+      const rep = await preflight(entry, { dir, registry: opts.registry, allowKeyChange: opts.allowKeyChange });
       for (const f of rep.failures) log('      ✗ ' + f);
       if (!rep.ok) {
         throw new Error(
@@ -185,7 +195,7 @@ export async function publishPlugin(opts: {
 
     // 5. Open the registry PR
     step(5, 'Opening the registry PR…');
-    const { prUrl } = await submitEntry(entry, { registry: opts.registry, draft: opts.draft, signKeyPath: opts.signKeyPath });
+    const { prUrl } = await submitEntry(entry, { registry: opts.registry, draft: opts.draft, signKeyPath: opts.signKeyPath, allowKeyChange: opts.allowKeyChange });
     log('      ✓ done');
     // Keep the artifact. It is the exact bytes the release and the entry's sha256 pin were computed
     // from — a re-pack on another machine or SDK version can differ (CRLF, walk order), so anyone

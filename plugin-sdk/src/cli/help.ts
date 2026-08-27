@@ -18,7 +18,7 @@ export const VERSION_LINE = (v: string): string => `trek-plugin-sdk ${v}`;
 export const PATH_COMMANDS = ['create', 'dev', 'status', 'publish'] as const;
 
 /** Real, supported, and not what a newcomer needs to see first. */
-export const OTHER_COMMANDS = ['validate', 'pack', 'shot', 'keygen', 'sign', 'entry', 'preflight', 'submit', 'release', 'unrelease'] as const;
+export const OTHER_COMMANDS = ['validate', 'pack', 'shot', 'keygen', 'sign', 'rotate-key', 'entry', 'preflight', 'submit', 'release', 'unrelease'] as const;
 
 export interface CommandHelp {
   /** One line, for the top-level list. */
@@ -113,6 +113,12 @@ Scripts are never prompted; pass --sign.
 Needs git and an authenticated \`gh\`.
 
   --sign [key]      sign the artifact (default key: ~/.trek-plugin/signing.key)
+  --allow-key-change  rotate to a NEW signing key as part of this release: the older versions
+                    are re-signed with it, and the registry PR is flagged as a rotation (a
+                    maintainer must apply the allow-key-change label; every admin must
+                    re-trust the plugin). Without this flag, a key that differs from the
+                    published one is refused before anything is tagged. See \`rotate-key\`
+                    to rotate without shipping a version.
   --registry o/n    a registry other than liketrek/TREK-Plugins
   --notes           release notes
   --draft           open the registry PR as a draft
@@ -173,13 +179,36 @@ your plugin changes instead.
 
 BACK IT UP. Signing is a one-way door: once a plugin has shipped signed, TREK refuses an unsigned
 update — and one signed with a different key — on every instance that already has it. Losing the
-key means you cannot ship an update to your own plugin without a maintainer override.`,
+key means \`rotate-key\` with a new one: a registry maintainer must approve the rotation, and every
+admin who has your plugin must re-trust it.`,
   },
 
   sign: {
     summary: 'print a signature for an artifact',
     usage: 'trek-plugin sign [zip] [--key file]',
     body: 'Prints the signature and public key for an artifact. Usually you want `publish --sign` instead.',
+  },
+
+  'rotate-key': {
+    summary: 'move a published plugin to a NEW signing key',
+    usage: 'trek-plugin rotate-key [dir] [--id plugin-id] [--key file] [--out entry.json] [--draft]',
+    body: `For a lost or compromised key, or a planned rotation — WITHOUT shipping a new version. Fetches
+your published registry entry, re-signs EVERY pinned version's artifact with the new key
+(all-or-nothing, each verified against its pinned sha256 first), swaps authorPublicKey, and opens
+the registry PR flagged as a rotation. To rotate WHILE shipping a version instead, use
+\`publish --sign --allow-key-change\`.
+
+A rotation is never just a merge, and this command only does the half tooling can do:
+
+  1. a registry maintainer must apply the allow-key-change label to the PR — CI refuses the
+     changed key without it
+  2. every admin who already installed the plugin sees SIGNATURE_KEY_CHANGED until they re-trust
+     the new key on their instance
+
+  --id plugin-id    when not running from the plugin's directory
+  --key file        the NEW key (default: ~/.trek-plugin/signing.key)
+  --out entry.json  write the rotated entry instead of opening the PR
+  --draft           open the registry PR as a draft`,
   },
 
   entry: {
@@ -193,6 +222,8 @@ computed by hand.
 
   --merge entry.json   prepend this version onto an existing entry (the update case)
   --sign [key]         sign the artifact and pin the author key
+  --allow-key-change   accept that --sign's key differs from the published one (a deliberate
+                       rotation — the older versions' signatures are stripped for re-signing)
   --out file           write it instead of printing it`,
   },
 

@@ -1375,7 +1375,8 @@ whatever else it needs. Pass a command explicitly to skip the menu (and for scri
 CI). `trek-plugin help <command>` — or `trek-plugin <command> --help` — prints a full
 page for any command.
 
-**The path is four commands**, and the other ten are steps one of them already does:
+**The path is four commands**, and the others are steps one of them already does
+(with two exceptions that undo or repair: `unrelease` and `rotate-key`):
 
 ```bash
 trek-plugin create [name] [--type integration|page|widget|trip-page]
@@ -1412,6 +1413,15 @@ trek-plugin shot [dir] [--port 4317] [--out docs/screenshot.png] [--dark] [--no-
 trek-plugin keygen [--key file]
 trek-plugin sign [zip] [--key file]
 
+# Move a published plugin to a NEW signing key WITHOUT shipping a version (lost or
+# compromised key, planned rotation): fetches your published entry, re-signs every
+# pinned version's artifact with the new key (each verified against its sha256 first,
+# all-or-nothing), swaps authorPublicKey, and opens a registry PR flagged as a
+# rotation. The PR needs a maintainer's `allow-key-change` label, and every admin who
+# has the plugin must re-trust the new key. To rotate WHILE shipping a version, use
+# `publish --sign --allow-key-change` instead.
+trek-plugin rotate-key [dir] [--id plugin-id] [--key file] [--out entry.json] [--draft]
+
 # Emit the ready-to-PR registry entry: commitSha (resolved from the git tag),
 # downloadUrl, sha256, size, and the manifest's `trek` range verbatim — plus
 # requiredAddons and pluginDependencies, which the registry parity-checks against the
@@ -1422,8 +1432,9 @@ trek-plugin entry --repo owner/name --tag vX.Y.Z [--zip plugin.zip] [--merge ent
 # The registry checks that genuinely need the network: the tag resolves to the commit
 # the entry pins, the released artifact downloads and hashes to the pinned sha256, the
 # id is not bound to another GitHub owner, and an update does not drop or rotate a
-# signing key you already published under. `publish` runs this for you.
-trek-plugin preflight [dir] --repo owner/name --tag vX.Y.Z [--entry file.json] [--all]
+# signing key you already published under (`--allow-key-change` declares a deliberate
+# rotation, turning that refusal into a pass). `publish` runs this for you.
+trek-plugin preflight [dir] --repo owner/name --tag vX.Y.Z [--entry file.json] [--all] [--allow-key-change]
 
 # Pack -> cut the GitHub release -> print the entry, without opening the registry PR.
 trek-plugin release [dir] --repo owner/name --tag vX.Y.Z [--sign] [--merge entry.json]
@@ -1454,7 +1465,10 @@ opts out). See [[Publishing a Plugin|Plugin-Publishing]].
 - **Optional author signing:** an entry may carry `authorPublicKey` (stable,
   TOFU-pinned on first install) and each version a `signature` over the artifact
   bytes. Unsigned plugins install on sha256 alone; a plugin that was signed can't
-  later go unsigned or swap its key without an explicit admin re-trust.
+  later go unsigned, and a key *rotation* is a deliberate act the SDK drives —
+  `trek-plugin rotate-key`, or `publish --sign --allow-key-change` — that still
+  needs a registry maintainer's `allow-key-change` label plus an explicit admin
+  re-trust on every instance.
 
 Full walkthrough: [[Publishing a Plugin|Plugin-Publishing]]. Overview:
 [[Plugins|Plugins]].

@@ -218,7 +218,8 @@ the network: the tag resolves to the pinned `commitSha`; the **manifest** at tha
 matches the entry; the **README** at that commit passes the quality gate; the released
 artifact downloads, hashes to the pinned **sha256**, carries **no native binaries** and
 verifies against your key; your plugin id is not bound to a different GitHub owner; and
-an update does not drop or rotate a signing key you already published under.
+an update does not drop or rotate a signing key you already published under
+(`--allow-key-change` declares a deliberate rotation — see "Rotating your signing key").
 
 Re-grading the manifest and the README *at the commit* is not redundant with the local
 pass: an author who writes the README and forgets to commit it has a green tree and a
@@ -316,10 +317,12 @@ npx trek-plugin-sdk publish --repo you/repo --tag v1.2.0 --sign
 
 `--sign` signs the exact artifact bytes and fills both `authorPublicKey` (entry)
 and `signature` (version) for you. If the plugin was already published signed,
-`publish` **refuses an unsigned release at step 1** — before anything is packed,
-tagged or released — because a GitHub release is immutable and learning this at
-step 4 would have burned the tag. **Back up `~/.trek-plugin/signing.key`** —
-losing it means you can't ship signed updates.
+`publish` **refuses an unsigned release at step 1** — and, since SDK 1.7.0, one
+whose signing key's *identity* differs from the published `authorPublicKey` —
+before anything is packed, tagged or released, because a GitHub release is
+immutable and learning this at step 4 would have burned the tag. **Back up
+`~/.trek-plugin/signing.key`** — losing it means a full key rotation (see below),
+which strands every install until its admin re-trusts you.
 
 **By hand with minisign**, if you prefer:
 
@@ -361,7 +364,57 @@ matches its pin). What
 you can never do is go back: once a plugin has shipped signed, an *unsigned* update
 is refused (`SIGNATURE_MISSING`) on every instance that already has it, and a key
 *rotation* needs a registry maintainer override (`allow-key-change`) plus an admin
-re-trust on each instance. So sign whenever you like — but back the key up.
+re-trust on each instance — see the next section. So sign whenever you like — but
+back the key up.
+
+### Rotating your signing key
+
+A rotation — lost key, compromised machine, planned hygiene — is the one signing
+change with a sanctioned path, and since SDK 1.7.0 the SDK drives its whole
+artifact half. Two flows, one rule: a rotated entry must have **every** version
+re-signed with the new key, because TREK verifies whichever version it installs
+against the entry's single `authorPublicKey`.
+
+**Without shipping a version:**
+
+```bash
+npx trek-plugin-sdk rotate-key            # from the plugin dir; --id <plugin-id> from elsewhere
+# --key <file> for a key not at ~/.trek-plugin/signing.key
+# --out entry.json writes the rotated entry for a hand-made PR instead of opening one
+```
+
+It fetches your published registry entry, downloads every pinned artifact,
+verifies each against its pinned `sha256`, re-signs all of them with the new key
+(all-or-nothing — one unfetchable or tampered artifact aborts the whole rotation),
+swaps `authorPublicKey`, and opens a registry PR titled as a rotation. (If the key
+was merely *lost*, `keygen` first — the default path is free again. A
+*compromised* key still on disk needs `--key` for the new one; `keygen` refuses to
+overwrite.)
+
+**As part of a release:**
+
+```bash
+npx trek-plugin-sdk publish --repo you/repo --tag v1.3.0 --sign --allow-key-change
+```
+
+Step 1 accepts the new key, the update merges onto your existing entry with the
+older versions re-signed under the new key, and the PR title carries
+"(key rotation)". The same `--allow-key-change` flag exists on
+`entry`/`preflight`/`submit`/`release` for hand-assembled flows.
+
+Either way, the SDK can only do the artifact half. The PR body says the rest out
+loud, and neither step is a formality:
+
+1. a **registry maintainer** must apply the `allow-key-change` label — CI refuses
+   a changed `authorPublicKey` without it, and authors can't self-serve the label;
+2. **every admin** who already installed the plugin sees `SIGNATURE_KEY_CHANGED`
+   (with both key fingerprints, to verify the new one with you out of band) and
+   must re-trust the new key before their instance receives another update.
+
+Without `--allow-key-change`, a differing key is still refused everywhere —
+deliberately, because the *accidental* version of this (publishing from a second
+machine whose freshly-generated key isn't the one you published under) wants the
+original key restored, not a rotation.
 
 ## Updating
 
