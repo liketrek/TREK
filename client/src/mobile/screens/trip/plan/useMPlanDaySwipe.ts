@@ -79,11 +79,34 @@ function band(dx: number, free: number, factor: number, max: number): number {
   return Math.sign(dx) * Math.min(a <= free ? a : free + (a - free) * factor, max)
 }
 
+/**
+ * Which way this finger is going, once it has moved far enough to tell.
+ * `null` means it has not, so the caller waits for the next move.
+ */
+function classifyLock(
+  g: Gesture,
+  dx: number,
+  dy: number,
+  now: number,
+  card: HTMLElement | null,
+  s: { dragging: boolean; editing: boolean },
+): Lock {
+  // The browser has already committed this gesture to scrolling, so obey it.
+  // scrollLeft counts too: overflow-y-auto on its own leaves overflow-x
+  // computing to auto, and a wide markdown table in a day note fills it.
+  if (card && (card.scrollTop !== g.scrollTop0 || card.scrollLeft !== g.scrollLeft0)) return 'dead'
+  if (Math.abs(dx) <= CLASSIFY_PX && Math.abs(dy) <= CLASSIFY_PX) return null
+  // Edit mode only: past the bridge's press window this finger belongs to a
+  // reorder drag. Go mode has no bridge, so a slow swipe still counts.
+  if (s.dragging || (s.editing && now - g.t0 > PRESS_WINDOW_MS)) return 'dead'
+  return Math.abs(dx) >= Math.abs(dy) * AXIS_BIAS ? 'h' : 'dead'
+}
+
 /** The media query plus the app's own appearance toggle, which writes the same
  *  attribute PluginFrame reads. */
 function reducedMotion(): boolean {
   if (typeof window === 'undefined') return false
-  if (document.documentElement.hasAttribute('data-reduce-motion')) return true
+  if (document.documentElement.dataset.reduceMotion !== undefined) return true
   return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false
 }
 
@@ -297,21 +320,8 @@ export function useMPlanDaySwipe({
     while (g.samples.length > 2 && now - g.samples[0].t > SAMPLE_MS) g.samples.shift()
 
     if (g.lock === null) {
-      const card = cardRef.current
-      // The browser has already committed this gesture to scrolling, so obey it.
-      // scrollLeft counts too: overflow-y-auto on its own leaves overflow-x
-      // computing to auto, and a wide markdown table in a day note fills it.
-      if (card && (card.scrollTop !== g.scrollTop0 || card.scrollLeft !== g.scrollLeft0)) {
-        g.lock = 'dead'
-        return
-      }
-      if (Math.abs(dx) <= CLASSIFY_PX && Math.abs(dy) <= CLASSIFY_PX) return
-      const s = latest.current
-      // Edit mode only: past the bridge's press window this finger belongs to a
-      // reorder drag. Go mode has no bridge, so a slow swipe still counts.
-      if (s.dragging || (s.editing && now - g.t0 > PRESS_WINDOW_MS)) { g.lock = 'dead'; return }
-      g.lock = Math.abs(dx) >= Math.abs(dy) * AXIS_BIAS ? 'h' : 'dead'
-      if (g.lock === 'dead') return
+      g.lock = classifyLock(g, dx, dy, now, cardRef.current, latest.current)
+      if (g.lock !== 'h') return
     }
 
     if (reducedMotion()) return // classify and commit, but never follow the finger

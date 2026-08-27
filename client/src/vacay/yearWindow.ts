@@ -110,9 +110,11 @@ export function currentPeriodYear(s: VacayYearSettings = DEFAULT_YEAR_SETTINGS, 
 export function defaultPeriodYear(years: number[], s: VacayYearSettings = DEFAULT_YEAR_SETTINGS, today = new Date()): number {
   const current = currentPeriodYear(s, today)
   if (years.length === 0 || years.includes(current)) return current
+  // Seeded with years[0] rather than left to reduce's implicit first element:
+  // same result, and it cannot throw if the guard above ever loosens.
   return years.reduce((best, year) => {
     const distance = Math.abs(year - current)
     const bestDistance = Math.abs(best - current)
     return distance < bestDistance || (distance === bestDistance && year > best) ? year : best
-  })
+  }, years[0])
 }

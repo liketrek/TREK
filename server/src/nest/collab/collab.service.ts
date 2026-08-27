@@ -545,7 +545,7 @@ export class CollabService {
     // entry yet, since the first has not answered. Joining the running fetch keeps
     // that a single outbound request instead of twenty.
     const running = this.inFlight.get(url);
-    if (running) return { ...(await running), url };
+    if (running !== undefined) return { ...(await running), url };
 
     // Charged per outbound fetch rather than per request, which is what the
     // budget is actually protecting. Without a user there is no one to charge —
