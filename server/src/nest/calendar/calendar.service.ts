@@ -503,13 +503,12 @@ export class CalendarService {
       if (windowSplit.has(r.id)) continue;
       const timeLines = buildReservationTimeLines(r);
       if (!timeLines) continue;
-      const meta = r.metadata ? (typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata) : {};
 
       let ev = `BEGIN:VEVENT\r\nUID:${uid(r.id, 'res')}\r\nDTSTAMP:${now}\r\n`;
       ev += timeLines;
       ev += `SUMMARY:${esc(r.title)}\r\n`;
 
-      const desc = describeReservation(r, meta);
+      const desc = describeReservation(r);
       if (desc) ev += `DESCRIPTION:${esc(desc)}\r\n`;
       if (r.location) ev += `LOCATION:${esc(r.location)}\r\n`;
       ev += `END:VEVENT\r\n`;
@@ -520,7 +519,8 @@ export class CalendarService {
     // event loop because a window booking's two hand-over events carry the same
     // lines: dropping the block must not drop the route or the confirmation with
     // it (#2068).
-    function describeReservation(r: any, meta: any): string {
+    function describeReservation(r: any): string {
+      const meta = r.metadata ? (typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata) : {};
       let desc = r.type ? `Type: ${r.type}` : '';
       if (r.confirmation_number) desc += `\nConfirmation: ${r.confirmation_number}`;
       if (meta.airline) desc += `\nAirline: ${meta.airline}`;
@@ -627,8 +627,7 @@ export class CalendarService {
       if (!split && r.type !== 'car') continue;
 
       const { start, end } = split ?? windowSidesOf(r);
-      const meta = r.metadata ? (typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata) : {};
-      const desc = split ? describeReservation(r, meta) : '';
+      const desc = split ? describeReservation(r) : '';
 
       const handover = (kind: 'pickup' | 'dropoff', side: WindowSide, summary: string) => {
         let ev = `BEGIN:VEVENT\r\nUID:${uid(r.id, kind)}\r\nDTSTAMP:${now}\r\n`;

@@ -1192,6 +1192,55 @@ describe('car rentals', () => {
     expect(ics).toContain('DTEND;VALUE=DATE:20260705');
     expect(ics).not.toContain('Pickup: Night Bus');
   });
+
+  it('CAL-052: a split rental whose endpoints carry no zone falls back to their coordinates', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const rental = createReservation(testDb, trip.id, { title: 'Europcar', type: 'car' });
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(rental.id);
+    // An older import that geocoded both ends but stored no IANA zone.
+    insertEndpoint(rental.id, 'from', 0, 'Paris Office', 48.8566, 2.3522, null, '09:00', '2026-07-07');
+    insertEndpoint(rental.id, 'to', 1, 'Berlin Office', 52.5, 13.4, null, '10:30', '2026-07-14');
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20260707T090000');
+    expect(ics).toContain('DTSTART;TZID=Europe/Berlin:20260714T103000');
+  });
+
+  // reservation_end_time is frequently a bare clock next to the booking's own
+  // date, which puts both hand-overs on the same day — so it is one sitting.
+  it('CAL-053: a bare end clock resolves against the start date rather than splitting', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const parking = createReservation(testDb, trip.id, { title: 'Street Bay', type: 'parking' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+      .run('2026-07-01T08:00', '18:30', parking.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Street Bay\r\n');
+    expect(ics).not.toContain('Drop-off: Street Bay');
+    expect(ics).not.toContain('Pickup: Street Bay');
+  });
+
+  it('CAL-054: an unsplit rental with a day but no clock emits no hand-over of its own', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const day = createDay(testDb, trip.id, { date: '2026-07-03' });
+    const rental = createReservation(testDb, trip.id, { title: 'Dayless', type: 'car' });
+    // A day but no end day and no clock: one side resolves, and it has no time,
+    // so there is nothing to place — the all-day block carries it instead.
+    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL, day_id=?, end_day_id=NULL WHERE id=?')
+      .run(day.id, rental.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Dayless\r\n');
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260703');
+    expect(ics).not.toContain('Pickup: Dayless');
+    expect(ics).not.toContain('Drop-off: Dayless');
+  });
 });
 
 describe('folded quirk branches', () => {
