@@ -1,3 +1,8 @@
+// `orderedEndpoints` is the geometry order's single source of truth, in the module
+// that documents the multi-leg model. Sorting endpoints a second time here is how
+// the two drift.
+import { orderedEndpoints } from './flightLegs'
+
 export const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other'])
 
 export interface MergedItem {
@@ -60,9 +65,23 @@ export function getTransportRouteEndpoints(
   r: any,
   dayId: number
 ): { from: { lat: number; lng: number } | null; to: { lat: number; lng: number } | null } {
+  // A leg of a multi-leg booking spans its OWN pair of airports, endpoints[i] and
+  // endpoints[i+1] — not the booking's outermost two. Handing back the booking's
+  // from/to for every leg put a stop between two legs on a road route from the
+  // arrival airport back to the departure one (#2071).
+  //
+  // Only when the endpoints line up one-per-stop with the legs. An endpoint that
+  // failed to geocode never reaches the row, and a short list would silently map
+  // every earlier leg to the wrong pair — so an ambiguous booking keeps the role
+  // lookup it has always used.
+  const ordered = orderedEndpoints(r)
+  const legIdx: number | null =
+    r.__leg && ordered.length === r.__leg.total + 1 ? (r.__leg.index as number) : null
+  const point = (e: { lat?: number | null; lng?: number | null } | undefined): { lat: number; lng: number } | null =>
+    e && e.lat != null && e.lng != null ? { lat: e.lat, lng: e.lng } : null
   const ep = (role: 'from' | 'to'): { lat: number; lng: number } | null => {
-    const e = (r.endpoints || []).find((x: any) => x.role === role)
-    return e && e.lat != null && e.lng != null ? { lat: e.lat, lng: e.lng } : null
+    if (legIdx != null) return point(ordered[role === 'from' ? legIdx : legIdx + 1])
+    return point((r.endpoints || []).find((x: { role?: string }) => x.role === role))
   }
   switch (getSpanPhase(r, dayId)) {
     case 'start':
@@ -240,8 +259,13 @@ export function getMergedItems(opts: {
     const timed = timedTransports[ti]
     const minutes = timed.minutes
 
-    // Per-day position takes precedence (set by user reorder)
-    const perDayPos = timed.data.day_positions?.[dayId] ?? timed.data.day_positions?.[String(dayId)]
+    // Per-day position takes precedence (set by user reorder), then the booking's
+    // own slot. The map's waypoint builder has always read day_plan_position and
+    // this never did, so a booking carrying only that value sat between the places
+    // on the map and at the bottom of the day everywhere else (#2071).
+    const perDayPos = timed.data.day_positions?.[dayId]
+      ?? timed.data.day_positions?.[String(dayId)]
+      ?? timed.data.day_plan_position
     if (perDayPos != null) {
       result.push({ type: timed.type, sortKey: perDayPos, data: timed.data })
       continue

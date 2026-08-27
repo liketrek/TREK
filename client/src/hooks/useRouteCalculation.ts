@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useTripStore } from '../store/tripStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { calculateRouteWithLegs, withHotelBookends, type RouteProfileKey } from '../components/Map/RouteCalculator'
-import { getTransportRouteEndpoints } from '../utils/dayMerge'
+import { getTransportRouteEndpoints, getTransportForDay, getMergedItems } from '../utils/dayMerge'
 import { getDayBookendHotels, shouldDrawMorningLeg, shouldDrawEveningLeg } from '../utils/dayOrder'
 import { resolveLegMode } from '../components/Planner/legMode'
 import type { TripStoreState } from '../store/tripStore'
@@ -54,46 +54,45 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
     }
     const thisOrder = dayOrder(dayId)
 
-    // Transport reservations for this day with a known position — mirrors getTransportForDay semantics
-    const dayTransports = thisOrder == null ? [] : allReservations.filter(r => {
-      if (!TRANSPORT_TYPES.includes(r.type)) return false
-      const startId = r.day_id
-      if (startId == null) return false
-      const endId = r.end_day_id ?? startId
-      if (startId === endId) {
-        if (startId !== dayId) return false
-      } else {
-        const startOrder = dayOrder(startId)
-        const endOrder = dayOrder(endId)
-        if (startOrder == null || endOrder == null) return false
-        if (thisOrder < startOrder || thisOrder > endOrder) return false
-      }
-      const pos = r.day_positions?.[dayId] ?? r.day_positions?.[String(dayId)] ?? r.day_plan_position
-      return pos != null
+    // The order the day plan shows is the order the map has to draw, so take it from
+    // the same place the plan does rather than rebuilding it here. The old builder
+    // read the BOOKING's position and never expanded metadata.legs, while a
+    // multi-leg booking stores its position per leg — so a layover flight was
+    // dropped from the waypoint list entirely and the airport before it was joined
+    // to the airport after it in one road run across an ocean (#2071).
+    //
+    // getTransportForDay brings the span filter, the hotel/assignment exclusions and
+    // the leg expansion with it; getMergedItems places each leg by its own saved
+    // position, falling back to its time. Notes carry no coordinates, so none are
+    // passed.
+    const dayTransports = thisOrder == null ? [] : getTransportForDay({
+      reservations: allReservations.filter(r => TRANSPORT_TYPES.includes(r.type)),
+      dayId,
+      dayAssignmentIds: da.map(a => a.id),
+      days: allDays,
     })
+    const merged = getMergedItems({ dayAssignments: da, dayNotes: [], dayTransports, dayId })
 
     // Build a unified list of places + transports sorted by effective position.
     type Entry =
       | { kind: 'place'; lat: number; lng: number; pos: number; time: string | null; mode: string | null; incoming: string | null }
       | { kind: 'transport'; from: { lat: number; lng: number } | null; to: { lat: number; lng: number } | null; pos: number }
-    const entries: Entry[] = [
-      ...da.filter(a => a.place?.lat && a.place?.lng).map(a => ({
-        kind: 'place' as const, lat: a.place.lat!, lng: a.place.lng!, pos: a.order_index, time: a.place?.place_time ?? null,
-        // Per-segment travel mode (#1281): mode of the leg leaving this place.
-        mode: (a as { leg_transport_mode?: string | null }).leg_transport_mode ?? null,
-        // Boundary-leg mode (#1281 follow-up): mode of the leg arriving at this place.
-        incoming: (a as { incoming_leg_transport_mode?: string | null }).incoming_leg_transport_mode ?? null,
-      })),
-      ...dayTransports.map(r => {
-        const { from, to } = getTransportRouteEndpoints(r, dayId)
-        return {
-          kind: 'transport' as const,
-          from,
-          to,
-          pos: (r.day_positions?.[dayId] ?? r.day_positions?.[String(dayId)] ?? r.day_plan_position) as number,
-        }
-      }),
-    ].sort((a, b) => a.pos - b.pos)
+    const entries: Entry[] = merged.flatMap((item): Entry[] => {
+      if (item.type === 'place') {
+        const a = item.data
+        if (!a.place?.lat || !a.place?.lng) return []
+        return [{
+          kind: 'place', lat: a.place.lat, lng: a.place.lng, pos: item.sortKey, time: a.place?.place_time ?? null,
+          // Per-segment travel mode (#1281): mode of the leg leaving this place.
+          mode: (a as { leg_transport_mode?: string | null }).leg_transport_mode ?? null,
+          // Boundary-leg mode (#1281 follow-up): mode of the leg arriving at this place.
+          incoming: (a as { incoming_leg_transport_mode?: string | null }).incoming_leg_transport_mode ?? null,
+        }]
+      }
+      if (item.type !== 'transport') return []
+      const { from, to } = getTransportRouteEndpoints(item.data, dayId)
+      return [{ kind: 'transport', from, to, pos: item.sortKey }]
+    })
 
     // Group located places into driving runs.
     // - A transport WITH a location anchors the route to its departure point (you

@@ -151,4 +151,16 @@ describe('placesBrowserModel — tracks pool', () => {
     expect(c.planned).toBe(1)
     expect(c.unplanned).toBe(1)
   })
+
+  // #2072 — the phone pool has to agree with the desktop one; both ask the same
+  // shared helper now.
+  it('FE-MOB-PMODEL-014: a stay and a day-anchored booking both count as planned', () => {
+    const ids = plannedPlaceIds(
+      {},
+      [{ place_id: 7, start_day_id: 10, end_day_id: 12 }],
+      [{ place_id: 8, day_id: 10 }, { place_id: 9, day_id: null }],
+    )
+    expect([...ids].sort((a, b) => a - b)).toEqual([7, 8])
+  })
+
 })

@@ -59,7 +59,12 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
     if (filter === 'tracks' && !hasTracks) setFilter('all')
   }, [filter, hasTracks, setFilter])
 
-  const plannedIds = useMemo(() => plannedPlaceIds(assignments), [assignments])
+  // A hotel is linked through its stay and a venue through its booking; neither is
+  // ever dragged onto a day, and the pool used to call both unplanned (#2072).
+  const plannedIds = useMemo(
+    () => plannedPlaceIds(assignments, planner.tripAccommodations, planner.reservations),
+    [assignments, planner.tripAccommodations, planner.reservations],
+  )
   const dayNumberByPlace = useMemo(() => firstPlannedDayNumbers(assignments, days), [assignments, days])
   const filtered = useMemo(
     () => filterPool(places, { filter, categoryFilters, search, plannedIds }),

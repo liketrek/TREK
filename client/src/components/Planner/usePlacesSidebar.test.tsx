@@ -1,4 +1,4 @@
-// FE-PLANNER-PSHOOK-001 to FE-PLANNER-PSHOOK-048
+// FE-PLANNER-PSHOOK-001 to FE-PLANNER-PSHOOK-051
 import { http, HttpResponse } from 'msw';
 import userEvent from '@testing-library/user-event';
 import { render, screen, fireEvent, act, waitFor } from '../../../tests/helpers/render';
@@ -135,6 +135,39 @@ describe('usePlacesSidebar filtering', () => {
     act(() => { S.setFilter('unplanned'); });
     expect(names()).toEqual(['Loose']);
     expect([...S.plannedIds]).toEqual([1]);
+  });
+
+  // #2072 — a hotel is linked through its stay, never dragged onto a day, so the
+  // pool called it unplanned while the day header printed its name.
+  it('FE-PLANNER-PSHOOK-049: a place linked to a stay counts as planned', () => {
+    const hotel = buildPlace({ id: 1, name: 'Hotel' });
+    const loose = buildPlace({ id: 2, name: 'Loose' });
+    const accommodations = [{ place_id: 1, start_day_id: 3, end_day_id: 5 }];
+    render(<Host {...makeProps({ places: [hotel, loose], accommodations })} />);
+
+    act(() => { S.setFilter('unplanned'); });
+    expect(names()).toEqual(['Loose']);
+    act(() => { S.setFilter('planned'); });
+    expect(names()).toEqual(['Hotel']);
+  });
+
+  it('FE-PLANNER-PSHOOK-050: a place on a day-anchored booking counts as planned', () => {
+    const venue = buildPlace({ id: 1, name: 'Venue' });
+    const loose = buildPlace({ id: 2, name: 'Loose' });
+    seedStore(useTripStore, { reservations: [{ id: 9, place_id: 1, day_id: 3 }] });
+    render(<Host {...makeProps({ places: [venue, loose] })} />);
+
+    act(() => { S.setFilter('unplanned'); });
+    expect(names()).toEqual(['Loose']);
+  });
+
+  it('FE-PLANNER-PSHOOK-051: a booking with no day leaves its place unplanned', () => {
+    const venue = buildPlace({ id: 1, name: 'Venue' });
+    seedStore(useTripStore, { reservations: [{ id: 9, place_id: 1, day_id: null }] });
+    render(<Host {...makeProps({ places: [venue] })} />);
+
+    act(() => { S.setFilter('unplanned'); });
+    expect(names()).toEqual(['Venue']);
   });
 
   it('FE-PLANNER-PSHOOK-006: the planned filter keeps only assigned places', () => {

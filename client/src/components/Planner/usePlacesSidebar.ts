@@ -15,10 +15,16 @@ import { placeToSaveTarget } from '../Collections/saveTarget'
 import type { Place, Category, Day, AssignmentsMap } from '../../types'
 import { getGoogleMapsUrlForPlace } from './placeGoogleMaps'
 import { safeHttpUrl } from '../../utils/safeUrl'
+import { plannedPlaceIds, type PlannedAccommodation } from '../../utils/plannedPlaces'
+
+/** Stable identity — a fresh [] default would invalidate the planned memo on every render. */
+const NO_ACCOMMODATIONS: PlannedAccommodation[] = []
 
 export interface PlacesSidebarProps {
   tripId: number
   places: Place[]
+  /** The trip's stays — hook-local state in useTripPlanner, so it arrives as a prop. */
+  accommodations?: PlannedAccommodation[]
   categories: Category[]
   assignments: AssignmentsMap
   selectedDayId: number | null
@@ -45,13 +51,15 @@ export interface PlacesSidebarProps {
  */
 export function usePlacesSidebar(props: PlacesSidebarProps) {
   const {
-    tripId, places, assignments, selectedDayId,
+    tripId, places, assignments, selectedDayId, accommodations = NO_ACCOMMODATIONS,
     pushUndo, initialScrollTop, onScrollTopChange,
   } = props
   const { t } = useTranslation()
   const toast = useToast()
   const ctxMenu = useContextMenu()
   const trip = useTripStore((s) => s.trip)
+  // A booking plans the place it points at, so the pool has to see them (#2072).
+  const reservations = useTripStore((s) => s.reservations)
   const loadTrip = useTripStore((s) => s.loadTrip)
   const can = useCanDo()
   const canEditPlaces = can('place_edit', trip)
@@ -216,9 +224,10 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const hasTracks = useMemo(() => places.some(p => p.route_geometry), [places])
   useEffect(() => { if (filter === 'tracks' && !hasTracks) setFilter('all') }, [hasTracks, filter])
 
-  const plannedIds = useMemo(() => new Set(
-    Object.values(assignments).flatMap(da => da.map(a => a.place?.id).filter(Boolean))
-  ), [assignments])
+  const plannedIds = useMemo(
+    () => plannedPlaceIds({ assignments, accommodations, reservations }),
+    [assignments, accommodations, reservations],
+  )
 
   const filtered = useMemo(() => {
     const list = places.filter(p => {

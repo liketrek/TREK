@@ -35,6 +35,7 @@ import {
   toggleConnectionId, toggleAllConnections as flipAllConnectionsMode,
   type StoredConnections,
 } from '../../utils/connectionsVisibility'
+import { plannedPlaceIds, plannedPlaceIdsForDay } from '../../utils/plannedPlaces'
 
 /**
  * Trip planner page logic — the big one. Owns the trip store wiring, addon
@@ -445,10 +446,9 @@ export function useTripPlanner() {
     // the whole plan (#2024). 'unplanned' always uses the whole-trip set — a place
     // assigned to any day is not unplanned.
     const plannedIds = placesFilter === 'unplanned' || placesFilter === 'planned'
-      ? new Set((placesFilter === 'planned' && selectedDayId
-        ? (assignments[String(selectedDayId)] || [])
-        : Object.values(assignments).flat()
-      ).map(a => a.place?.id).filter(Boolean))
+      ? (placesFilter === 'planned' && selectedDayId
+        ? plannedPlaceIdsForDay(selectedDayId, days, { assignments, accommodations: tripAccommodations, reservations })
+        : plannedPlaceIds({ assignments, accommodations: tripAccommodations, reservations }))
       : null
 
     return places.filter(p => {
@@ -467,7 +467,7 @@ export function useTripPlanner() {
       if (placesFilter === 'planned' && plannedIds && !plannedIds.has(p.id)) return false
       return true
     })
-  }, [places, placesCategoryFilter, placesFilter, assignments, expandedDayIds, selectedDayId])
+  }, [places, placesCategoryFilter, placesFilter, assignments, expandedDayIds, selectedDayId, days, tripAccommodations, reservations])
 
   const { route, routeSegments, routeVias, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId, routeShown, routeProfile, tripAccommodations)
 

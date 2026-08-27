@@ -339,6 +339,94 @@ describe('useRouteCalculation', () => {
     expect(legs).toContainEqual([`${actB.lat},${actB.lng}`, `${hotel.lat},${hotel.lng}`]);
   });
 
+  // #2071 — Frankfurt → Vancouver via Reykjavik, an airport place either side. The
+  // booking's position lives per LEG in metadata.legs, which this hook never read, so
+  // the flight vanished from the waypoint list and the two airports were joined into
+  // one driving run across the Atlantic.
+  it('FE-HOOK-ROUTE-024: a layover flight breaks the run instead of joining the airports', async () => {
+    const fra = { lat: 50.0379, lng: 8.5622 };
+    const kef = { lat: 63.985, lng: -22.6056 };
+    const yvr = { lat: 49.1947, lng: -123.1792 };
+    const fraPlace = buildPlace({ lat: fra.lat, lng: fra.lng });
+    const yvrPlace = buildPlace({ lat: yvr.lat, lng: yvr.lng });
+
+    const flight = {
+      id: 300, type: 'flight', day_id: 1, end_day_id: 1,
+      endpoints: [
+        { role: 'from', sequence: 0, lat: fra.lat, lng: fra.lng },
+        { role: 'stop', sequence: 1, lat: kef.lat, lng: kef.lng },
+        { role: 'to', sequence: 2, lat: yvr.lat, lng: yvr.lng },
+      ],
+      metadata: JSON.stringify({
+        legs: [
+          { from: 'FRA', to: 'KEF', dep_time: '10:00', arr_time: '12:00', day_positions: { 1: 0.5 } },
+          { from: 'KEF', to: 'YVR', dep_time: '14:00', arr_time: '16:00', day_positions: { 1: 0.6 } },
+        ],
+      }),
+    };
+    const before = buildAssignment({ day_id: 1, order_index: 0, place: fraPlace });
+    const after = buildAssignment({ day_id: 1, order_index: 1, place: yvrPlace });
+    const store = { assignments: { '1': [before, after] } } as unknown as TripStoreState;
+    useTripStore.setState({
+      assignments: store.assignments,
+      reservations: [flight],
+      days: [{ id: 1, day_number: 1 }],
+    } as any);
+
+    const { result } = renderHook(() => useRouteCalculation(store, 1, true, 'driving'));
+    await act(async () => {});
+
+    const legs = (result.current.route ?? []).map(run => run.map(p => `${p[0]},${p[1]}`));
+    // The transatlantic pair is the bug: it must not appear in any run.
+    for (const run of legs) {
+      const i = run.indexOf(`${fra.lat},${fra.lng}`);
+      if (i >= 0) expect(run[i + 1]).not.toBe(`${yvr.lat},${yvr.lng}`);
+    }
+    expect(legs).not.toContainEqual([`${fra.lat},${fra.lng}`, `${yvr.lat},${yvr.lng}`]);
+  });
+
+  // Each leg spans its OWN pair of airports. Reading the booking's outermost two for
+  // every leg put a Reykjavik stop on a Vancouver → Frankfurt drive.
+  it('FE-HOOK-ROUTE-025: a stop between two legs routes against that leg\'s airports', async () => {
+    const fra = { lat: 50.0379, lng: 8.5622 };
+    const kef = { lat: 63.985, lng: -22.6056 };
+    const yvr = { lat: 49.1947, lng: -123.1792 };
+    const cafe = buildPlace({ lat: 64.1466, lng: -21.9426 });
+
+    const flight = {
+      id: 301, type: 'flight', day_id: 1, end_day_id: 1,
+      endpoints: [
+        { role: 'from', sequence: 0, lat: fra.lat, lng: fra.lng },
+        { role: 'stop', sequence: 1, lat: kef.lat, lng: kef.lng },
+        { role: 'to', sequence: 2, lat: yvr.lat, lng: yvr.lng },
+      ],
+      metadata: JSON.stringify({
+        legs: [
+          { from: 'FRA', to: 'KEF', dep_time: '08:00', arr_time: '10:00', day_positions: { 1: 0.5 } },
+          { from: 'KEF', to: 'YVR', dep_time: '16:00', arr_time: '18:00', day_positions: { 1: 1.5 } },
+        ],
+      }),
+    };
+    const stop = buildAssignment({ day_id: 1, order_index: 1, place: cafe });
+    const store = { assignments: { '1': [stop] } } as unknown as TripStoreState;
+    useTripStore.setState({
+      assignments: store.assignments,
+      reservations: [flight],
+      days: [{ id: 1, day_number: 1 }],
+    } as any);
+
+    const { result } = renderHook(() => useRouteCalculation(store, 1, true, 'driving'));
+    await act(async () => {});
+
+    const legs = (result.current.route ?? []).map(run => run.map(p => `${p[0]},${p[1]}`));
+    // The café is reached from Reykjavik and left towards Reykjavik.
+    expect(legs).toContainEqual([`${kef.lat},${kef.lng}`, `${cafe.lat},${cafe.lng}`, `${kef.lat},${kef.lng}`]);
+    // Neither of the far airports may appear next to it.
+    const flat = legs.flat();
+    expect(flat).not.toContain(`${fra.lat},${fra.lng}`);
+    expect(flat).not.toContain(`${yvr.lat},${yvr.lng}`);
+  });
+
   it('FE-HOOK-ROUTE-015: day-1 with a first activity timed after check-in keeps the hotel → first-activity leg', async () => {
     // The check-in day is still a home-base loop when the first activity provably happens
     // at/after check-in (you dropped your bags first) — the hotel → first-stop leg remains.
