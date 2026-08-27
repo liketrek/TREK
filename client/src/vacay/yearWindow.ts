@@ -100,3 +100,19 @@ export function currentPeriodYear(s: VacayYearSettings = DEFAULT_YEAR_SETTINGS, 
   const iso = `${year}-${pad2(today.getMonth() + 1)}-${pad2(today.getDate())}`
   return iso < resolveYearWindow(year, s).start ? year - 1 : year
 }
+
+/**
+ * The year Vacay opens on. The period we are actually in wins; adding 2030 to plan
+ * ahead should not make 2030 the year the page lands on from then on. When that
+ * period has no year yet, the closest one the plan does have is used, and a tie
+ * goes to the later year because planning looks forward.
+ */
+export function defaultPeriodYear(years: number[], s: VacayYearSettings = DEFAULT_YEAR_SETTINGS, today = new Date()): number {
+  const current = currentPeriodYear(s, today)
+  if (years.length === 0 || years.includes(current)) return current
+  return years.reduce((best, year) => {
+    const distance = Math.abs(year - current)
+    const bestDistance = Math.abs(best - current)
+    return distance < bestDistance || (distance === bestDistance && year > best) ? year : best
+  })
+}

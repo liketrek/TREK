@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   DEFAULT_YEAR_SETTINGS,
   currentPeriodYear,
+  defaultPeriodYear,
   gridWindow,
   inGridWindow,
   resolveYearWindow,
@@ -123,5 +124,33 @@ describe('currentPeriodYear', () => {
     expect(currentPeriodYear(fiscal(7), new Date(2026, 2, 15))).toBe(2025)
     expect(currentPeriodYear(fiscal(7), new Date(2026, 7, 15))).toBe(2026)
     expect(currentPeriodYear(fiscal(7), new Date(2026, 6, 1))).toBe(2026)
+  })
+})
+
+describe('defaultPeriodYear', () => {
+  // FE-VACAY-YEARWINDOW-014
+  it('picks the current period when the plan has it', () => {
+    const today = new Date(2026, 2, 15)
+    expect(defaultPeriodYear([2024, 2025, 2026, 2030], DEFAULT_YEAR_SETTINGS, today)).toBe(2026)
+  })
+
+  // FE-VACAY-YEARWINDOW-015
+  it('falls back to the closest year and prefers the coming one on a tie', () => {
+    const today = new Date(2026, 2, 15)
+    expect(defaultPeriodYear([2022, 2024], DEFAULT_YEAR_SETTINGS, today)).toBe(2024)
+    expect(defaultPeriodYear([2028, 2030], DEFAULT_YEAR_SETTINGS, today)).toBe(2028)
+    expect(defaultPeriodYear([2024, 2028], DEFAULT_YEAR_SETTINGS, today)).toBe(2028)
+  })
+
+  // FE-VACAY-YEARWINDOW-016
+  it('is the current period for an empty plan', () => {
+    expect(defaultPeriodYear([], DEFAULT_YEAR_SETTINGS, new Date(2026, 2, 15))).toBe(2026)
+  })
+
+  // FE-VACAY-YEARWINDOW-017
+  it('follows a shifted leave year rather than the calendar year', () => {
+    const today = new Date(2026, 2, 15)
+    expect(defaultPeriodYear([2025, 2026], fiscal(7), today)).toBe(2025)
+    expect(defaultPeriodYear([2026], fiscal(7), today)).toBe(2026)
   })
 })

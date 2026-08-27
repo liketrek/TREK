@@ -7,7 +7,7 @@ import type {
   VacayShareOutgoing, VacayShareIncoming, SharedVacayCalendar, VacayYearSettings,
 } from '../types'
 import { isSchoolHolidayCountrySupported } from '../vacay/schoolHolidayCountries'
-import { DEFAULT_YEAR_SETTINGS, currentPeriodYear, inGridWindow, windowCalendarYears } from '../vacay/yearWindow'
+import { DEFAULT_YEAR_SETTINGS, defaultPeriodYear, inGridWindow, windowCalendarYears } from '../vacay/yearWindow'
 import type {
   VacaySetColorRequest, VacayInviteRequest, VacayInviteActionRequest,
   VacayAddYearRequest, VacayToggleEntryRequest, VacayCompanyHolidayRequest,
@@ -302,12 +302,15 @@ export const useVacayStore = create<VacayState>((set, get) => ({
 
   loadYears: async () => {
     const data = await api.getYears()
-    set({ years: data.years })
-    if (data.years.length > 0) {
-      set({ selectedYear: data.years[data.years.length - 1] })
-    } else {
-      set({ selectedYear: currentPeriodYear(get().yearSettings) })
-    }
+    // Opening Vacay lands on the period we are in, not on whichever year sorts
+    // last. A reload (invite, live settings update) keeps the year the viewer is
+    // looking at as long as it still exists — only the first load picks one.
+    const previous = get().selectedYear
+    const keepSelection = get().years.length > 0 && data.years.includes(previous)
+    set({
+      years: data.years,
+      selectedYear: keepSelection ? previous : defaultPeriodYear(data.years, get().yearSettings),
+    })
   },
 
   addYear: async (year: number) => {
@@ -320,9 +323,7 @@ export const useVacayStore = create<VacayState>((set, get) => ({
     const data = await api.removeYear(year)
     const updates: Partial<VacayState> = { years: data.years }
     if (get().selectedYear === year) {
-      updates.selectedYear = data.years.length > 0
-        ? data.years[data.years.length - 1]
-        : currentPeriodYear(get().yearSettings)
+      updates.selectedYear = defaultPeriodYear(data.years, get().yearSettings)
     }
     set(updates)
     await get().loadStats()
