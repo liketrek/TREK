@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, within } from '../../../helpers/render'
+import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import type { PluginDaySchedule } from '../../../../src/components/Plugins/PluginDaySchedule'
 import type { MPlanTimelineController } from '../../../../src/mobile/screens/trip/plan/useMPlanTimeline'
@@ -9,7 +9,7 @@ import type { MergedItem } from '../../../../src/utils/dayMerge'
 import type { Assignment, Day, DayNote, Place, RouteSegment } from '../../../../src/types'
 import MPlanTimeline from '../../../../src/mobile/screens/trip/plan/MPlanTimeline'
 
-// FE-MOB-PLTL-001 to FE-MOB-PLTL-038
+// FE-MOB-PLTL-001 to FE-MOB-PLTL-045
 
 const mocks = vi.hoisted(() => ({
   tl: {} as Record<string, unknown>,
@@ -570,6 +570,84 @@ describe('MPlanTimeline', () => {
       fireEvent.click(within(transitCard).getByLabelText('common.edit'))
 
       expect(mocks.tl.openTransitJourney).toHaveBeenCalledWith(TRANSIT_RES)
+    })
+  })
+  describe('day swipe (#2051)', () => {
+    const DAYS = [
+      { id: 1, trip_id: 1, day_number: 1 }, DAY, { id: 3, trip_id: 1, day_number: 3 },
+    ] as unknown as Day[]
+
+    const panel = (container: HTMLElement) => container.firstElementChild as HTMLElement
+
+    /** A committing left swipe across the whole panel. */
+    function swipe(el: HTMLElement, from = 300, to = 180) {
+      fireEvent.touchStart(el, { touches: [{ clientX: from, clientY: 300 }] })
+      fireEvent.touchMove(el, { touches: [{ clientX: from - 20, clientY: 300 }] })
+      fireEvent.touchMove(el, { touches: [{ clientX: to, clientY: 300 }] })
+      fireEvent.touchEnd(el, { touches: [], changedTouches: [{ clientX: to, clientY: 300 }] })
+    }
+
+    it('FE-MOB-PLTL-039: swiping the panel selects the next day without re-framing the map', async () => {
+      const { container, planner } = renderTimeline({}, { days: DAYS, selectedDayId: 2 })
+
+      swipe(panel(container))
+
+      // skipFit must be true: the map stays mounted under the timeline, and
+      // re-fitting it here would move it somewhere nobody asked for.
+      await waitFor(() => expect(planner.handleSelectDay).toHaveBeenCalledWith(3, true))
+    })
+
+    it('FE-MOB-PLTL-040: the header chip strip is excluded from the swipe zone', () => {
+      const { container } = renderTimeline({}, { days: DAYS, selectedDayId: 2 })
+
+      expect(container.querySelector('[data-hswipe-ignore]')).toBeInTheDocument()
+    })
+
+    it('FE-MOB-PLTL-041: the live region is present and silent until a swipe lands', () => {
+      const { container } = renderTimeline({}, { days: DAYS, selectedDayId: 2 })
+
+      const live = container.querySelector('[role="status"]') as HTMLElement
+      expect(live).toHaveAttribute('aria-live', 'polite')
+      expect(live).toHaveAttribute('aria-atomic', 'true')
+      expect(live).toHaveTextContent('')
+    })
+
+    it('FE-MOB-PLTL-042: a committed swipe announces the day it reached', async () => {
+      const { container } = renderTimeline({}, { days: DAYS, selectedDayId: 2 })
+
+      swipe(panel(container))
+
+      await waitFor(() => expect(container.querySelector('[role="status"]'))
+        .toHaveTextContent('mobileTrip.dayAnnounce:3,3'))
+    })
+
+    it('FE-MOB-PLTL-043: edit mode keeps both the swipe and the long-press reorder', async () => {
+      const { container, planner } = renderTimeline({}, { days: DAYS, selectedDayId: 2 }, { mode: 'edit' })
+
+      swipe(panel(container))
+
+      await waitFor(() => expect(planner.handleSelectDay).toHaveBeenCalledWith(3, true))
+      expect(card(container)).toHaveAttribute('data-touch-drag')
+    })
+
+    it('FE-MOB-PLTL-044: a plain tap on a place row still opens it', () => {
+      const { planner } = renderTimeline({}, { days: DAYS, selectedDayId: 2 })
+
+      fireEvent.click(screen.getByText('Ueno Park'))
+
+      expect(planner.handlePlaceClick).toHaveBeenCalledWith(102, 12)
+    })
+
+    it('FE-MOB-PLTL-045: nothing narrows touch-action, and the excluded strip stays tappable', () => {
+      const { container, shell } = renderTimeline({}, { days: DAYS, selectedDayId: 2 })
+
+      // touch-action intersects down the tree, so a pan-y here would take the
+      // header strip's own horizontal pan with it.
+      expect(panel(container).style.touchAction).toBe('')
+      expect(card(container).style.touchAction).toBe('')
+
+      fireEvent.click(screen.getByLabelText('day.overview'))
+      expect(shell.openSheet).toHaveBeenCalledWith('day', { dayId: 2 })
     })
   })
 })

@@ -10,6 +10,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.bookingsEmpty': 'Δεν υπάρχουν κρατήσεις ακόμη',
   'mobileTrip.collabFeatureDisabled': 'Αυτή η λειτουργία είναι απενεργοποιημένη για αυτό το ταξίδι',
   'mobileTrip.compactView': 'Συμπαγής προβολή',
+  'mobileTrip.dayAnnounce': 'Ημέρα {current} από {total}',
   'mobileTrip.dayTitlePlaceholder': 'Τίτλος ημέρας',
   'mobileTrip.export': 'Εξαγωγή',
   'mobileTrip.filesEmpty': 'Δεν υπάρχουν αρχεία ακόμη',

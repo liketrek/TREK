@@ -1,10 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen } from '../../../helpers/render'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import type { Day, PackingItem, TodoItem } from '../../../../src/types'
 
-// FE-MOB-SHELL-001 to FE-MOB-SHELL-034
+// FE-MOB-SHELL-001 to FE-MOB-SHELL-046
 
 const mocks = vi.hoisted(() => ({ planner: {} as TripPlanner }))
 
@@ -439,6 +439,49 @@ describe('MTripShell', () => {
     renderShell()
     act(() => { shellApi.openSheet('note', { dayId: 12 }) })
     expect(shellApi.sheet).toEqual({ id: 'note', payload: { dayId: 12 } })
+  })
+
+  // The chip rail overflows from roughly six days on, and swiping the day panel
+  // (#2051) can move the day well past what is on screen.
+  describe('chip rail auto-scroll', () => {
+    const RAIL = { left: 0, right: 300 } as DOMRect
+    /** Rects are all zero without layout, so the two boxes are stubbed by role. */
+    function stubRects(chip: Partial<DOMRect>) {
+      vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+        return (this.tagName === 'BUTTON' ? { ...RAIL, ...chip } : RAIL) as DOMRect
+      })
+    }
+
+    afterEach(() => { vi.restoreAllMocks() })
+
+    it('FE-MOB-SHELL-044: a clipped active chip pulls itself into the middle of the rail', () => {
+      const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView)
+      scrollIntoView.mockClear()
+      stubRects({ left: 480, right: 540 })
+      renderShell({ selectedDayId: 12 } as Partial<TripPlanner>)
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+    })
+
+    it('FE-MOB-SHELL-045: a chip already in view never shifts the rail under the thumb', () => {
+      const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView)
+      scrollIntoView.mockClear()
+      stubRects({ left: 40, right: 100 })
+      renderShell({ selectedDayId: 12 } as Partial<TripPlanner>)
+      expect(scrollIntoView).not.toHaveBeenCalled()
+    })
+
+    it('FE-MOB-SHELL-046: reduced motion jumps instead of gliding', () => {
+      const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView)
+      scrollIntoView.mockClear()
+      stubRects({ left: 480, right: 540 })
+      vi.mocked(window.matchMedia).mockImplementation((query: string) => ({
+        matches: query.includes('reduced-motion'), media: query, onchange: null,
+        addListener: vi.fn(), removeListener: vi.fn(),
+        addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+      }) as unknown as MediaQueryList)
+      renderShell({ selectedDayId: 12 } as Partial<TripPlanner>)
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', inline: 'center', block: 'nearest' })
+    })
   })
 })
 

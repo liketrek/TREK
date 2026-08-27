@@ -10,6 +10,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.bookingsEmpty': 'Nog geen boekingen',
   'mobileTrip.collabFeatureDisabled': 'Deze functie is uitgeschakeld voor deze reis',
   'mobileTrip.compactView': 'Compacte weergave',
+  'mobileTrip.dayAnnounce': 'Dag {current} van {total}',
   'mobileTrip.dayTitlePlaceholder': 'Titel van de dag',
   'mobileTrip.export': 'Exporteren',
   'mobileTrip.filesEmpty': 'Nog geen bestanden',

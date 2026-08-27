@@ -10,6 +10,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.bookingsEmpty': 'Henüz rezervasyon yok',
   'mobileTrip.collabFeatureDisabled': 'Bu özellik bu seyahat için devre dışı',
   'mobileTrip.compactView': 'Kompakt görünüm',
+  'mobileTrip.dayAnnounce': 'Gün {current} / {total}',
   'mobileTrip.dayTitlePlaceholder': 'Gün başlığı',
   'mobileTrip.export': 'Dışa aktar',
   'mobileTrip.filesEmpty': 'Henüz dosya yok',

@@ -10,6 +10,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.bookingsEmpty': 'Még nincsenek foglalások',
   'mobileTrip.collabFeatureDisabled': 'Ez a funkció ki van kapcsolva ennél az utazásnál',
   'mobileTrip.compactView': 'Kompakt nézet',
+  'mobileTrip.dayAnnounce': '{current}. nap / {total}',
   'mobileTrip.dayTitlePlaceholder': 'Nap címe',
   'mobileTrip.export': 'Exportálás',
   'mobileTrip.filesEmpty': 'Még nincsenek fájlok',

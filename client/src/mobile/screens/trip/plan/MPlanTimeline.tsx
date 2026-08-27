@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from 'react'
+import { useRef, useState, type MouseEvent } from 'react'
 import {
   ArrowRight, BedDouble, CalendarDays, CalendarRange, ChevronRight, Compass, LogIn, LogOut,
   MapPin, Pencil, PencilLine, Route, Ticket, TrainFront, Undo2,
@@ -24,6 +24,8 @@ import type { MergedItem } from '../../../../utils/dayMerge'
 import type { Assignment } from '../../../../types'
 import type { ComponentType, ReactNode } from 'react'
 import GoogleMapsIcon from '../../../../components/shared/GoogleMapsIcon'
+import { isRtlLanguage } from '../../../../i18n'
+import { useMPlanDaySwipe } from './useMPlanDaySwipe'
 
 /**
  * Plan-tab timeline of the mobile trip screen: the UP-NEXT card in go mode,
@@ -85,6 +87,25 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
     onMove: tl.moveRowTo,
     enabled: editing,
   })
+  // Swipe the whole panel left/right to step days (#2051) — the one-handed way
+  // to the next day, since the chip rail is pinned to the top of the screen.
+  const panelRef = useRef<HTMLDivElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
+  const daySwipe = useMPlanDaySwipe({
+    days: planner.days,
+    selectedDayId: planner.selectedDayId,
+    // skipFit, exactly like the chip tap in plan view: the map underneath stays
+    // mounted, and re-framing it here would move it somewhere nobody asked for.
+    onSelectDay: dayId => planner.handleSelectDay(dayId, true),
+    panelRef,
+    cardRef,
+    editing,
+    dragging: dnd.draggingKey != null,
+    menuOpen: legMenu.menu != null,
+    rtl: isRtlLanguage(planner.language),
+    describeDay: (i, n) => t('mobileTrip.dayAnnounce', { current: i + 1, total: n }),
+  })
+
   const dragFor = (row: PlanRow): RowDrag | undefined => {
     const props = dnd.dragPropsFor(row)
     if (!props) return undefined
@@ -107,8 +128,12 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
   const chrome = { editing, t, language: tl.language, timeFormat: tl.timeFormat }
 
   return (
-    <div className="absolute inset-0">
+    <div ref={panelRef} className="absolute inset-0" {...daySwipe.handlers}>
       <ContextMenu menu={legMenu.menu} onClose={legMenu.close} />
+      {/* Swipe-committed day changes only — a chip tap already speaks its own
+          button label plus the aria-current flip, so announcing there would say
+          the day twice. */}
+      <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{daySwipe.announcement}</span>
       {!editing && <UpNextCard tl={tl} t={t} onOpen={openPlace} />}
       {editing && <EditHeader tl={tl} planner={planner} shell={shell} />}
 
@@ -116,6 +141,7 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
           collapses that reserved space up to the day chips when the day has no
           up-next (no places), so an empty day shows no gap. */}
       <div
+        ref={cardRef}
         data-touch-drag={editing ? '' : undefined}
         className="absolute left-4 right-4 overflow-y-auto overscroll-contain rounded-[22px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] px-3.5 pb-2 pt-1 backdrop-blur-[24px] backdrop-saturate-[1.6] bottom-[calc(env(safe-area-inset-bottom,0px)+90px)]"
         style={{ top: `calc(var(--m-safe-top, 12px) + ${editing ? 140 : tl.upNext ? 216 : 102}px)` }}
@@ -377,7 +403,10 @@ function TimelineHeader({ tl, dayLabel, openLabel, onOpenDay }: {
   const WeatherIcon = weatherIconFor(tl.weather?.main)
   return (
     <div className="flex items-center gap-1.5 border-b border-[color:var(--m-rowbr)] px-0.5 py-[9px]">
-      <span className="flex min-w-0 items-center gap-1.5 overflow-x-auto">
+      {/* The one horizontal scroller inside the swipe zone, marked so a swipe
+          that starts here is handed back to it — but only while it really
+          overflows, so a short day title still swipes. */}
+      <span data-hswipe-ignore className="flex min-w-0 items-center gap-1.5 overflow-x-auto">
         <button
           type="button"
           onClick={onOpenDay}

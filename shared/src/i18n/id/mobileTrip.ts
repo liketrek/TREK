@@ -10,6 +10,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.bookingsEmpty': 'Belum ada reservasi',
   'mobileTrip.collabFeatureDisabled': 'Fitur ini dinonaktifkan untuk perjalanan ini',
   'mobileTrip.compactView': 'Tampilan ringkas',
+  'mobileTrip.dayAnnounce': 'Hari {current} dari {total}',
   'mobileTrip.dayTitlePlaceholder': 'Judul hari',
   'mobileTrip.export': 'Ekspor',
   'mobileTrip.filesEmpty': 'Belum ada file',

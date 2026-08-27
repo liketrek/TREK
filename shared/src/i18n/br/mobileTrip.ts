@@ -10,6 +10,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.bookingsEmpty': 'Nenhuma reserva ainda',
   'mobileTrip.collabFeatureDisabled': 'Esse recurso está desativado para esta viagem',
   'mobileTrip.compactView': 'Visualização compacta',
+  'mobileTrip.dayAnnounce': 'Dia {current} de {total}',
   'mobileTrip.dayTitlePlaceholder': 'Título do dia',
   'mobileTrip.export': 'Exportar',
   'mobileTrip.filesEmpty': 'Nenhum arquivo ainda',

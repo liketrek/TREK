@@ -10,6 +10,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.bookingsEmpty': 'Zatím žádné rezervace',
   'mobileTrip.collabFeatureDisabled': 'Tato funkce je pro tento výlet vypnuta',
   'mobileTrip.compactView': 'Kompaktní zobrazení',
+  'mobileTrip.dayAnnounce': 'Den {current} z {total}',
   'mobileTrip.dayTitlePlaceholder': 'Název dne',
   'mobileTrip.export': 'Exportovat',
   'mobileTrip.filesEmpty': 'Zatím žádné soubory',

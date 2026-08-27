@@ -10,6 +10,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.bookingsEmpty': '暂无预订',
   'mobileTrip.collabFeatureDisabled': '此功能已针对本次行程停用',
   'mobileTrip.compactView': '紧凑视图',
+  'mobileTrip.dayAnnounce': '第 {current} 天，共 {total} 天',
   'mobileTrip.dayTitlePlaceholder': '天数标题',
   'mobileTrip.export': '导出',
   'mobileTrip.filesEmpty': '暂无文件',

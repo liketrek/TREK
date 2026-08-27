@@ -211,6 +211,27 @@ export default function MTripShell({
     planner.tripActions.setSelectedDay(findTodayDayId(days) ?? days[0].id)
   }, [planner.selectedDayId, days, planner.tripActions])
 
+  // Swiping the day panel (#2051) can move the day well past the chips on
+  // screen — the rail overflows from roughly six days on — so the active chip
+  // pulls itself back into view. Only when it is really clipped, so tapping a
+  // chip you can already see never shifts the rail under your thumb.
+  const chipRefs = useRef(new Map<number, HTMLButtonElement>())
+  useEffect(() => {
+    const chip = planner.selectedDayId != null ? chipRefs.current.get(planner.selectedDayId) : undefined
+    const rail = chip?.parentElement
+    if (!chip || !rail) return
+    const c = chip.getBoundingClientRect()
+    const r = rail.getBoundingClientRect()
+    if (c.left >= r.left - 1 && c.right <= r.right + 1) return
+    // block:'nearest' is not optional: the shell root is `fixed inset-0`, and
+    // 'center' would scroll the document behind it instead.
+    chip.scrollIntoView({
+      behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ? 'auto' : 'smooth',
+      inline: 'center',
+      block: 'nearest',
+    })
+  }, [planner.selectedDayId, days])
+
   const trTab = planner.activeTab
 
   const setTrTab = (tabId: string) => {
@@ -327,6 +348,7 @@ export default function MTripShell({
               return (
                 <button
                   key={day.id}
+                  ref={el => { if (el) chipRefs.current.set(day.id, el); else chipRefs.current.delete(day.id) }}
                   type="button"
                   onClick={() => onDayChipTap(day.id)}
                   aria-current={active ? 'true' : undefined}

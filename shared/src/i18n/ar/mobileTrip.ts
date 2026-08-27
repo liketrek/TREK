@@ -10,6 +10,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.bookingsEmpty': 'لا توجد حجوزات بعد',
   'mobileTrip.collabFeatureDisabled': 'هذه الميزة معطّلة لهذه الرحلة',
   'mobileTrip.compactView': 'عرض مضغوط',
+  'mobileTrip.dayAnnounce': 'اليوم {current} من {total}',
   'mobileTrip.dayTitlePlaceholder': 'عنوان اليوم',
   'mobileTrip.export': 'تصدير',
   'mobileTrip.filesEmpty': 'لا توجد ملفات بعد',

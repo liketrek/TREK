@@ -10,6 +10,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.bookingsEmpty': 'Поки немає бронювань',
   'mobileTrip.collabFeatureDisabled': 'Цю функцію вимкнено для цієї подорожі',
   'mobileTrip.compactView': 'Компактний вигляд',
+  'mobileTrip.dayAnnounce': 'День {current} з {total}',
   'mobileTrip.dayTitlePlaceholder': 'Назва дня',
   'mobileTrip.export': 'Експорт',
   'mobileTrip.filesEmpty': 'Файлів поки немає',

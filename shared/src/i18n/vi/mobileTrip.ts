@@ -10,6 +10,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.bookingsEmpty': 'Chưa có đặt chỗ nào',
   'mobileTrip.collabFeatureDisabled': 'Tính năng này bị tắt cho chuyến đi này',
   'mobileTrip.compactView': 'Chế độ xem gọn',
+  'mobileTrip.dayAnnounce': 'Ngày {current} trong {total}',
   'mobileTrip.dayTitlePlaceholder': 'Tiêu đề ngày',
   'mobileTrip.export': 'Xuất',
   'mobileTrip.filesEmpty': 'Chưa có tập tin nào',

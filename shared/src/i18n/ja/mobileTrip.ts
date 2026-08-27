@@ -10,6 +10,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.bookingsEmpty': '予約はまだありません',
   'mobileTrip.collabFeatureDisabled': 'この機能はこの旅行では無効になっています',
   'mobileTrip.compactView': 'コンパクト表示',
+  'mobileTrip.dayAnnounce': '{current}日目 / 全{total}日',
   'mobileTrip.dayTitlePlaceholder': '日のタイトル',
   'mobileTrip.export': '書き出し',
   'mobileTrip.filesEmpty': 'ファイルはまだありません',
