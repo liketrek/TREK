@@ -5,6 +5,7 @@ import { IS_PUBLIC, OPTIONAL_AUTH } from '../auth/public.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CookieAuthGuard } from '../auth/cookie-auth.guard';
 import { OptionalJwtGuard } from '../auth/optional-jwt.guard';
+import { ApiTokenGuard } from '../public-api/api-token.guard';
 
 export interface RouteGuardEntry {
   /** `ControllerClass.methodName` */
@@ -21,7 +22,7 @@ export interface RouteGuardEntry {
  * no req.user, but they never resolve one, so they only ever appear behind one
  * of these three.
  */
-const AUTHENTICATING_GUARDS: unknown[] = [JwtAuthGuard, CookieAuthGuard, OptionalJwtGuard];
+const AUTHENTICATING_GUARDS: unknown[] = [JwtAuthGuard, CookieAuthGuard, OptionalJwtGuard, ApiTokenGuard];
 
 /**
  * Boot-time gate: every registered route must be authenticated, or say why not.
