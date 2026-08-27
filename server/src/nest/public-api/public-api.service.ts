@@ -43,7 +43,7 @@ export class PublicApiService {
     const ids = this.membership.listAccessibleTripIds(userId);
     if (ids.length === 0) return [];
     const rows = this.db.all<TripRow>(
-      `SELECT id, title, description, start_date, end_date, currency, is_archived
+      `SELECT id, title, description, start_date, end_date, currency, is_archived, updated_at
          FROM trips
         WHERE id IN (${ids.map(() => '?').join(',')})
         ORDER BY start_date DESC, id DESC`,
@@ -62,7 +62,7 @@ export class PublicApiService {
   getTrip(tripId: number, userId: number, include: PublicApiInclude[]): PublicApiTrip | null {
     if (!this.db.canAccessTrip(tripId, userId)) return null;
     const row = this.db.get<TripRow>(
-      `SELECT id, title, description, start_date, end_date, currency, is_archived
+      `SELECT id, title, description, start_date, end_date, currency, is_archived, updated_at
          FROM trips WHERE id = ?`,
       tripId,
     );
@@ -227,6 +227,7 @@ function toTripSummary(row: TripRow): PublicApiTripSummary {
     end_date: row.end_date ?? null,
     currency: row.currency ?? null,
     archived: row.is_archived === 1,
+    updated_at: row.updated_at ?? null,
   };
 }
 
@@ -253,6 +254,7 @@ interface TripRow {
   end_date: string | null;
   currency: string | null;
   is_archived: number | null;
+  updated_at: string | null;
 }
 
 interface DayRow {

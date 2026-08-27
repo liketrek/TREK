@@ -101,6 +101,15 @@ export const publicApiTripSummarySchema = z.object({
   end_date: z.string().nullable(),
   currency: z.string().nullable(),
   archived: z.boolean(),
+  /**
+   * When the trip's own fields last changed — title, dates, currency, cover.
+   *
+   * Explicitly NOT a content timestamp: editing a place, a day or a note does not
+   * touch it, because the child tables carry no `updated_at` of their own. A client
+   * that polls must compare the payload it received, not this value; using it to
+   * skip a fetch would silently miss every itinerary edit.
+   */
+  updated_at: z.string().nullable(),
 });
 export type PublicApiTripSummary = z.infer<typeof publicApiTripSummarySchema>;
 

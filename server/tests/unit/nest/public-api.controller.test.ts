@@ -12,6 +12,7 @@ import type { Request } from 'express';
 import { PUBLIC_API_INCLUDES } from '@trek/shared';
 import { PublicApiController } from '../../../src/nest/public-api/public-api.controller';
 import type { PublicApiService } from '../../../src/nest/public-api/public-api.service';
+import type { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 
 const TRIP = {
   id: 12,
@@ -21,10 +22,13 @@ const TRIP = {
   end_date: '2026-06-22',
   currency: 'EUR',
   archived: false,
+  updated_at: '2026-06-01 10:00:00',
 };
 
-function makeController(svc: Partial<PublicApiService>) {
-  return new PublicApiController(svc as PublicApiService);
+/** The limiter always allows unless a test says otherwise. */
+function makeController(svc: Partial<PublicApiService>, allow = true) {
+  const rl = { check: vi.fn().mockReturnValue(allow) } as unknown as RateLimitService;
+  return new PublicApiController(svc as PublicApiService, rl);
 }
 
 const req = (userId = 7) => ({ user: { id: userId } }) as Request;
@@ -122,6 +126,21 @@ describe('PublicApiController', () => {
       const getTrip = vi.fn();
       const res = thrown(() => makeController({ getTrip }).getTrip(req(7), '12', include));
       expect(res.status).toBe(400);
+      expect(getTrip).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('rate limiting', () => {
+    it('429s the list once the budget is spent, without reaching the service', () => {
+      const listTrips = vi.fn();
+      const res = thrown(() => makeController({ listTrips }, false).listTrips(req(7)));
+      expect(res).toEqual({ status: 429, body: { error: 'Too many requests. Please slow down.' } });
+      expect(listTrips).not.toHaveBeenCalled();
+    });
+
+    it('429s the detail route the same way', () => {
+      const getTrip = vi.fn();
+      expect(thrown(() => makeController({ getTrip }, false).getTrip(req(7), '12', undefined)).status).toBe(429);
       expect(getTrip).not.toHaveBeenCalled();
     });
   });

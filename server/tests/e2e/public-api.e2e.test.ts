@@ -26,7 +26,8 @@ const { db } = vi.hoisted(() => {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_used_at DATETIME);
     CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
       title TEXT NOT NULL, description TEXT, start_date TEXT, end_date TEXT, currency TEXT,
-      is_archived INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+      is_archived INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE trip_members (trip_id INTEGER NOT NULL, user_id INTEGER NOT NULL);
     CREATE TABLE days (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
       day_number INTEGER NOT NULL, date TEXT NOT NULL, notes TEXT, title TEXT);
@@ -68,6 +69,7 @@ vi.mock('../../src/db/database', async (importActual) => {
 });
 
 import { DatabaseModule } from '../../src/nest/database/database.module';
+import { RateLimitModule } from '../../src/nest/common/rate-limit.module';
 import { PublicApiModule } from '../../src/nest/public-api/public-api.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 
@@ -90,7 +92,7 @@ describe('Public API v1 e2e (real guard + real SQL)', () => {
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, PublicApiModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RateLimitModule, PublicApiModule] }).compile();
     const nest = moduleRef.createNestApplication();
     nest.useGlobalFilters(new TrekExceptionFilter());
     await nest.init();

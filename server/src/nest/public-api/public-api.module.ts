@@ -4,6 +4,7 @@ import { PublicApiService } from './public-api.service';
 import { ApiTokenGuard } from './api-token.guard';
 import { TokensModule } from '../tokens/tokens.module';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
+import { RateLimitModule } from '../common/rate-limit.module';
 
 /**
  * Public API v1 — the versioned read-only surface for third-party integrations.
@@ -14,7 +15,7 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
  * this trip" is decided.
  */
 @Module({
-  imports: [TokensModule, TripMembershipModule],
+  imports: [TokensModule, TripMembershipModule, RateLimitModule],
   controllers: [PublicApiController],
   providers: [PublicApiService, ApiTokenGuard],
 })
