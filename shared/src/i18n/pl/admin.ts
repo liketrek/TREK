@@ -702,6 +702,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Wybierz styl…',
   'admin.defaultSettings.mapbox3d': 'Budynki i teren 3D',
   'admin.defaultSettings.mapboxQuality': 'Tryb wysokiej jakości',
+  'admin.defaultSettings.cartoKey': 'Współdzielony klucz CARTO',
+  'admin.defaultSettings.cartoKeyHint':
+    'Używany dla każdego użytkownika, który nie wprowadził własnego klucza, dzięki czemu cała instancja otrzymuje kafelki CARTO bez znaku wodnego. Przechowywany w postaci zaszyfrowanej.',
   'admin.group.users': 'Users',
   'admin.group.config': 'Configuration',
   'admin.group.integration': 'Integrations',

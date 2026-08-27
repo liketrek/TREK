@@ -137,6 +137,8 @@ export function deriveMaps(raw: RawEnv) {
     placesApiKey: raw.PLACES_API_KEY || undefined,
     /** Public pk.* token shipped with a managed instance; reaches the browser by design. */
     mapboxToken: raw.MAPBOX_ACCESS_TOKEN || undefined,
+    /** CARTO basemap key; without one the tiles come back watermarked (#2054). Public too. */
+    cartoKey: raw.CARTO_API_KEY || undefined,
   };
 }
 

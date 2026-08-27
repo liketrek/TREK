@@ -183,7 +183,7 @@ export function createMcpTestRegistry(): McpRegistry {
       new CollectionsMcp(new CollectionsService(dbService, permissionsService, realtimeService, notificationsStub(), generalStorage), dbService, authService, addonsService),
       new TransitMcp(new TransitService(), daysService, reservationsService, dbService, authService, guards),
       new AtlasMcp(new AtlasService(dbService), addonsService, authService),
-      new JourneyMcp(journeyDomain, new JourneyShareService(dbService, journeyDomain), addonsService, authService),
+      new JourneyMcp(journeyDomain, new JourneyShareService(dbService, journeyDomain, new SettingsService(dbService)), addonsService, authService),
       new NotificationsMcp(makeNotificationsService(dbService, realtimeService), authService),
     ],
     { accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess },

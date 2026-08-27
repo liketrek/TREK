@@ -33,6 +33,12 @@ const settings: TranslationStrings = {
   'settings.mapMapboxToken': 'Mapbox Erişim Anahtarı',
   'settings.mapMapboxTokenHint': 'Genel anahtar (pk.*) kaynağı:',
   'settings.mapMapboxTokenLink': 'Mapbox.com → Jetonlara erişim',
+  'settings.mapCartoKey': 'CARTO API anahtarı',
+  'settings.mapCartoKeyHint':
+    'CARTO temel haritaları anahtar olmadan filigran gösterir. Ücretsiz, hesap gerekmez, kaynağı:',
+  'settings.mapCartoKeyLink': 'carto.com temel harita API anahtarı',
+  'settings.mapCartoKeyMissing':
+    'Bu şablon bir CARTO temel haritası. Anahtar olmadan CARTO her karoya "API KEY REQUIRED" damgası basar.',
   'settings.mapStyle': 'Harita Stili',
   'settings.mapStylePlaceholder': 'Bir Mapbox stili seçin',
   'settings.mapStyleHint': 'Ön ayar veya kendi mapbox://styles/KULLANICI/ID adresiniz',

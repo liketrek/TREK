@@ -33,6 +33,12 @@ const settings: TranslationStrings = {
   'settings.mapMapboxToken': 'Токен доступа Mapbox',
   'settings.mapMapboxTokenHint': 'Публичный токен (pk.*) с',
   'settings.mapMapboxTokenLink': 'mapbox.com → Токены доступа',
+  'settings.mapCartoKey': 'Ключ API CARTO',
+  'settings.mapCartoKeyHint':
+    'Без ключа на базовых картах CARTO появляется водяной знак. Бесплатно и без учётной записи, на',
+  'settings.mapCartoKeyLink': 'ключ API базовых карт carto.com',
+  'settings.mapCartoKeyMissing':
+    'Этот шаблон является базовой картой CARTO. Без ключа CARTO наносит "API KEY REQUIRED" на каждый тайл.',
   'settings.mapStyle': 'Стиль карты',
   'settings.mapStylePlaceholder': 'Выберите стиль Mapbox',
   'settings.mapStyleHint': 'Preset или собственный URL mapbox://styles/USER/ID',

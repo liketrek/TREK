@@ -669,6 +669,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'اختر نمطًا…',
   'admin.defaultSettings.mapbox3d': 'المباني والتضاريس ثلاثية الأبعاد',
   'admin.defaultSettings.mapboxQuality': 'وضع الجودة العالية',
+  'admin.defaultSettings.cartoKey': 'مفتاح CARTO المشترك',
+  'admin.defaultSettings.cartoKeyHint':
+    'يُستخدم لكل مستخدم لم يُدخل مفتاحه الخاص، حتى يحصل الخادم بأكمله على بلاطات CARTO بدون علامة مائية. يُخزَّن مشفّرًا.',
   'admin.group.users': 'Users',
   'admin.group.config': 'Configuration',
   'admin.group.integration': 'Integrations',

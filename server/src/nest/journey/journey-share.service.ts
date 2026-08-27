@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import crypto from 'crypto';
 import { DatabaseService } from '../database/database.service';
 import { JourneyDomainService } from './journey-domain.service';
+import { SettingsService } from '../settings/settings.service';
 
 interface JourneySharePermissions {
   share_timeline?: boolean;
@@ -33,6 +34,7 @@ export class JourneyShareService {
   constructor(
     private readonly db: DatabaseService,
     private readonly journey: JourneyDomainService,
+    private readonly settings: SettingsService,
   ) {}
 
   createOrUpdateJourneyShareLink(
@@ -238,6 +240,16 @@ export class JourneyShareService {
       }));
     }
 
+    // Same reason as the trip share payload: CARTO watermarks every tile fetched
+    // without a key (#2054) and the public journey map has no logged-in user to
+    // read one from, so the owner's key travels with it. Only a valid share token
+    // gets this far. getUserSettings composes the owner's own value, the admin
+    // instance default and the managed-instance key in that order; carto_api_key is
+    // encrypted at rest but deliberately unmasked, since it is useless until it
+    // reaches a browser.
+    const ownerCartoKey = this.settings.getUserSettings(journey.user_id)['carto_api_key'];
+    const cartoApiKey = typeof ownerCartoKey === 'string' ? ownerCartoKey.trim() : '';
+
     return {
       journey: {
         title: journey.title,
@@ -252,6 +264,7 @@ export class JourneyShareService {
       // would hand out places the map was deliberately turned off for.
       gallery: shareGallery ? (shareMap ? gallery : stripPhotoGps(gallery)) : [],
       stats,
+      cartoApiKey,
       permissions: {
         share_timeline: shareTimeline,
         share_gallery: shareGallery,

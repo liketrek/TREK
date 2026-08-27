@@ -700,6 +700,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Válassz stílust…',
   'admin.defaultSettings.mapbox3d': '3D épületek & domborzat',
   'admin.defaultSettings.mapboxQuality': 'Kiváló minőségű mód',
+  'admin.defaultSettings.cartoKey': 'Megosztott CARTO-kulcs',
+  'admin.defaultSettings.cartoKeyHint':
+    'Minden olyan felhasználóhoz használatos, aki nem adta meg a saját kulcsát, így az egész példány vízjel nélküli CARTO-csempéket kap. Titkosítva tárolódik.',
   'admin.group.users': 'Users',
   'admin.group.config': 'Configuration',
   'admin.group.integration': 'Integrations',

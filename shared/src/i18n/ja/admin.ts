@@ -660,6 +660,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'スタイルを選択…',
   'admin.defaultSettings.mapbox3d': '3D の建物と地形',
   'admin.defaultSettings.mapboxQuality': '高品質モード',
+  'admin.defaultSettings.cartoKey': '共有 CARTO キー',
+  'admin.defaultSettings.cartoKeyHint':
+    '自分のキーを入力していないすべてのユーザーに使用されます。これによりインスタンス全体で透かしのない CARTO タイルを利用できます。暗号化して保存されます。',
   'admin.group.users': 'Users',
   'admin.group.config': 'Configuration',
   'admin.group.integration': 'Integrations',

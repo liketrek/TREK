@@ -697,6 +697,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Bir stil seçin…',
   'admin.defaultSettings.mapbox3d': '3D binalar & arazi',
   'admin.defaultSettings.mapboxQuality': 'Yüksek kalite modu',
+  'admin.defaultSettings.cartoKey': 'Paylaşılan CARTO anahtarı',
+  'admin.defaultSettings.cartoKeyHint':
+    'Kendi anahtarını girmemiş her kullanıcı için kullanılır, böylece tüm örnek filigransız CARTO döşemeleri alır. Şifrelenmiş olarak saklanır.',
   'admin.group.users': 'Users',
   'admin.group.config': 'Configuration',
   'admin.group.integration': 'Integrations',

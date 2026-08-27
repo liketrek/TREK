@@ -374,6 +374,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Tria un estil…',
   'admin.defaultSettings.mapbox3d': 'Edificis i terreny en 3D',
   'admin.defaultSettings.mapboxQuality': "Mode d'alta qualitat",
+  'admin.defaultSettings.cartoKey': 'Clau CARTO compartida',
+  'admin.defaultSettings.cartoKeyHint':
+    "S'utilitza per a cada usuari que no hagi introduït la seva pròpia clau, de manera que tota la instància obtingui tessel·les de CARTO sense marca d'aigua. S'emmagatzema xifrada.",
   'admin.unsplashKey': "Clau API d'Unsplash",
   'admin.unsplashKeyHint': "Per a la cerca d'imatges. Gratuït a unsplash.com/developers",
   'admin.tabs.plugins': 'Connectors',

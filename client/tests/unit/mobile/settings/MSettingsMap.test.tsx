@@ -5,6 +5,7 @@ import { render, screen, waitFor } from '../../../helpers/render';
 import { resetAllStores, seedStore } from '../../../helpers/store';
 import { buildSettings } from '../../../helpers/factories';
 import { useSettingsStore } from '../../../../src/store/settingsStore';
+import { useAuthStore } from '../../../../src/store/authStore';
 import { ToastContainer } from '../../../../src/components/shared/Toast';
 import type { Settings } from '../../../../src/types';
 import MSettingsMap from '../../../../src/mobile/screens/settings/MSettingsMap';
@@ -30,6 +31,7 @@ vi.mock('../../../../src/components/Settings/MapboxPreview', () => ({
 }));
 
 const OSM_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const CARTO_DARK_TILES = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 
 function seedMap(over: Partial<Settings> = {}, updateSettings = vi.fn().mockResolvedValue(undefined)) {
   seedStore(useSettingsStore, {
@@ -37,6 +39,11 @@ function seedMap(over: Partial<Settings> = {}, updateSettings = vi.fn().mockReso
     updateSettings,
   });
   return updateSettings;
+}
+
+/** The CARTO key input follows its eyebrow label in the card's flat layout. */
+function cartoInput(): HTMLInputElement {
+  return screen.getByText('CARTO API key').nextElementSibling as HTMLInputElement;
 }
 
 function renderMap() {
@@ -188,6 +195,7 @@ describe('MSettingsMap', () => {
       map_provider: 'leaflet',
       map_tile_url: OSM_URL,
       mapbox_access_token: '',
+      carto_api_key: '',
       mapbox_style: 'mapbox://styles/mapbox/dark-v11',
       mapbox_3d_enabled: true,
       mapbox_quality_mode: false,
@@ -271,5 +279,55 @@ describe('MSettingsMap', () => {
     renderMap();
 
     expect(await screen.findByTestId('gl-preview')).toHaveAttribute('data-style', 'https://tiles.openfreemap.org/styles/liberty');
+  });
+
+  it('FE-MOB-SETMAP-020: the Leaflet branch offers the CARTO key field', async () => {
+    const user = userEvent.setup();
+    renderMap();
+
+    expect(screen.getByText('CARTO API key')).toBeInTheDocument();
+
+    await user.click(screen.getByText('Mapbox GL'));
+
+    expect(screen.queryByText('CARTO API key')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-SETMAP-021: a managed instance brings its own key and hides the field', () => {
+    seedStore(useAuthStore, { managed: true });
+    renderMap();
+
+    expect(screen.queryByText('CARTO API key')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-SETMAP-022: a managed instance hides the Mapbox token field too', () => {
+    seedStore(useAuthStore, { managed: true });
+    seedMap({ map_provider: 'mapbox-gl' });
+    renderMap();
+
+    expect(screen.queryByPlaceholderText('pk.eyJ1Ijoi...')).not.toBeInTheDocument();
+    expect(screen.getByText('Mapbox Standard')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-SETMAP-023: the typed CARTO key reaches the save payload', async () => {
+    const user = userEvent.setup();
+    const updateSettings = seedMap();
+    renderMap();
+
+    await user.type(cartoInput(), 'demo-key');
+    await user.click(screen.getByRole('button', { name: 'Save Map' }));
+
+    expect(updateSettings).toHaveBeenCalledWith(expect.objectContaining({ carto_api_key: 'demo-key' }));
+  });
+
+  it('FE-MOB-SETMAP-024: a CARTO template without a key explains the watermark until one is typed', async () => {
+    const user = userEvent.setup();
+    seedMap({ map_tile_url: CARTO_DARK_TILES });
+    renderMap();
+
+    expect(screen.getByText(/API KEY REQUIRED/)).toBeInTheDocument();
+
+    await user.type(cartoInput(), 'demo-key');
+
+    expect(screen.queryByText(/API KEY REQUIRED/)).not.toBeInTheDocument();
   });
 });

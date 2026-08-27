@@ -218,6 +218,7 @@ export const tripSyncManager = {
       // Cache file blobs + map tiles in background (don't block syncAll)
       const cacheTiles = getOfflinePrefs().cacheTiles
       const tileUrl = useSettingsStore.getState().settings.map_tile_url || undefined
+      const cartoKey = useSettingsStore.getState().settings.carto_api_key || undefined
       for (const trip of toSync) {
         if (!isAuthed()) return
         const files = await offlineDb.tripFiles.where('trip_id').equals(trip.id).toArray()
@@ -233,7 +234,7 @@ export const tripSyncManager = {
           for (const trip of toSync) {
             if (!isAuthed() || !navigator.onLine) return
             const places = await offlineDb.places.where('trip_id').equals(trip.id).toArray()
-            await prefetchTilesForTrip(trip.id, places, tileUrl).catch(console.error)
+            await prefetchTilesForTrip(trip.id, places, tileUrl, undefined, cartoKey).catch(console.error)
           }
         })
       }
@@ -289,12 +290,13 @@ export const tripSyncManager = {
       // 3) Map tiles — awaited, and only when the user opted to store them.
       if (getOfflinePrefs().cacheTiles) {
         const tileUrl = useSettingsStore.getState().settings.map_tile_url || undefined
+        const cartoKey = useSettingsStore.getState().settings.carto_api_key || undefined
         i = 0
         for (const trip of toSync) {
           if (!isAuthed()) return 0
           onProgress?.({ phase: 'tiles', current: ++i, total, label: trip.title })
           const places = await offlineDb.places.where('trip_id').equals(trip.id).toArray()
-          await prefetchTilesForTrip(trip.id, places, tileUrl, true).catch(console.error)
+          await prefetchTilesForTrip(trip.id, places, tileUrl, true, cartoKey).catch(console.error)
         }
       }
 

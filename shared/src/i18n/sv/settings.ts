@@ -36,6 +36,11 @@ const settings: TranslationStrings = {
   'settings.mapMapboxToken': 'Mapbox-åtkomsttoken',
   'settings.mapMapboxTokenHint': 'Offentlig token (pk.*) från',
   'settings.mapMapboxTokenLink': 'mapbox.com → Åtkomsttoken',
+  'settings.mapCartoKey': 'CARTO API-nyckel',
+  'settings.mapCartoKeyHint': 'CARTO-bakgrundskartor visar en vattenstämpel utan nyckel. Gratis och utan konto, från',
+  'settings.mapCartoKeyLink': 'API-nyckel för bakgrundskartor på carto.com',
+  'settings.mapCartoKeyMissing':
+    'Den här mallen är en CARTO-bakgrundskarta. Utan nyckel stämplar CARTO "API KEY REQUIRED" på varje ruta.',
   'settings.mapStyle': 'Kartstil',
   'settings.mapStylePlaceholder': 'Välj en Mapbox-stil',
   'settings.mapStyleHint': 'Förinställda eller egna mapbox://styles/USER/ID länk',

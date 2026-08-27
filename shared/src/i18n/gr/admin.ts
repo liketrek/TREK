@@ -710,6 +710,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Επιλέξτε ένα στυλ…',
   'admin.defaultSettings.mapbox3d': 'Κτίρια & ανάγλυφο 3D',
   'admin.defaultSettings.mapboxQuality': 'Λειτουργία υψηλής ποιότητας',
+  'admin.defaultSettings.cartoKey': 'Κοινόχρηστο κλειδί CARTO',
+  'admin.defaultSettings.cartoKeyHint':
+    'Χρησιμοποιείται για κάθε χρήστη που δεν έχει εισαγάγει το δικό του κλειδί, έτσι ολόκληρη η εγκατάσταση λαμβάνει πλακίδια CARTO χωρίς υδατογράφημα. Αποθηκεύεται κρυπτογραφημένο.',
   'admin.group.users': 'Users',
   'admin.group.config': 'Configuration',
   'admin.group.integration': 'Integrations',

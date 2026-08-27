@@ -691,6 +691,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Виберіть стиль…',
   'admin.defaultSettings.mapbox3d': '3D-будівлі та рельєф',
   'admin.defaultSettings.mapboxQuality': 'Режим високої якості',
+  'admin.defaultSettings.cartoKey': 'Спільний ключ CARTO',
+  'admin.defaultSettings.cartoKeyHint':
+    'Використовується для кожного користувача, який не ввів власний ключ, щоб увесь екземпляр отримував плитки CARTO без водяного знака. Зберігається в зашифрованому вигляді.',
   'admin.group.users': 'Users',
   'admin.group.config': 'Configuration',
   'admin.group.integration': 'Integrations',

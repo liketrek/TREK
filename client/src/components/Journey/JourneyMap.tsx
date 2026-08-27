@@ -1,6 +1,9 @@
 import { useEffect, useRef, useImperativeHandle, useCallback, type Ref } from 'react'
 import L from 'leaflet'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useCartoApiKey } from '../../hooks/useTileUrl'
+import { resolveTileUrl } from '../../utils/tileUrl'
+import { CARTO_DARK, CARTO_VOYAGER } from '../../constants/mapDefaults'
 import { escapeHtml, type JourneyTrack } from '@trek/shared'
 
 export interface MapMarkerItem {
@@ -94,6 +97,8 @@ interface Props {
   onMarkerClick?: (id: string, type?: string) => void
   fullScreen?: boolean
   paddingBottom?: number
+  /** CARTO key from the share payload: the public journey has no settings store to read. */
+  cartoApiKey?: string
 }
 
 function buildMarkerItems(entries: MapEntry[]): MapMarkerItem[] {
@@ -142,11 +147,13 @@ const EMPTY_TRACKS: JourneyTrack[] = []
 const TRACK_FALLBACK_COLOR = '#4f46e5'
 
 function JourneyMap(
-  { entries, photos, onPhotoClick, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, ref }: Props,
+  { entries, photos, onPhotoClick, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, cartoApiKey, ref }: Props,
 ) {
   const stableTrail = trail || EMPTY_TRAIL
   const stableTracks = tracks || EMPTY_TRACKS
   const mapTileUrl = useSettingsStore(s => s.settings.map_tile_url)
+  const storedCartoKey = useCartoApiKey()
+  const cartoKey = cartoApiKey || storedCartoKey
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const markersRef = useRef<Map<string, L.Marker>>(new Map())
@@ -225,10 +232,7 @@ function JourneyMap(
     })
     mapRef.current = map
 
-    const defaultTile = dark
-      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-    L.tileLayer(mapTileUrl || defaultTile, {
+    L.tileLayer(resolveTileUrl(mapTileUrl, dark ? CARTO_DARK : CARTO_VOYAGER, cartoKey), {
       maxZoom: 18,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       referrerPolicy: 'strict-origin-when-cross-origin',
@@ -335,7 +339,7 @@ function JourneyMap(
       mapRef.current = null
       markersRef.current.clear()
     }
-  }, [entries, stableTrail, stableTracks, dark, mapTileUrl, fullScreen, paddingBottom])
+  }, [entries, stableTrail, stableTracks, dark, mapTileUrl, cartoKey, fullScreen, paddingBottom])
 
   // Photo layer (#1614). Its own effect on purpose: photos arriving must not tear
   // down and rebuild the map the way the entry effect does. Redrawn on zoom and
@@ -378,7 +382,7 @@ function JourneyMap(
       photoLayerRef.current?.remove()
       photoLayerRef.current = null
     }
-  }, [photos, entries, stableTrail, stableTracks, dark, mapTileUrl, fullScreen, paddingBottom])
+  }, [photos, entries, stableTrail, stableTracks, dark, mapTileUrl, cartoKey, fullScreen, paddingBottom])
 
   // react to activeMarkerId prop changes — runs after map is built
   useEffect(() => {

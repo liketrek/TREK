@@ -124,6 +124,8 @@ export interface Settings {
   map_provider?: 'leaflet' | 'mapbox-gl' | 'maplibre-gl'
   /** Leaflet base layer: default street tiles or a satellite/aerial view. */
   map_base_layer?: 'default' | 'satellite'
+  /** CARTO basemaps watermark keyless tiles; the key is appended as ?key= (#2054). */
+  carto_api_key?: string
   mapbox_access_token?: string
   mapbox_style?: string
   maplibre_style?: string

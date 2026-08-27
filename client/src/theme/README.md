@@ -32,6 +32,25 @@ free **if they follow the contract below**.
 | Overlay / inverse | `--overlay` · `--bg-inverse` / `--text-inverse` · `bg-inverse text-inverse-text` |
 | Type tiers | `text-title` / `text-subtitle` / `text-body` / `text-caption` (scale with the user's per-tier multipliers) |
 
+## Layering
+
+Fixed and sticky surfaces read their stacking order from one scale in
+`src/index.css`, so two of them cannot end up in the wrong order by accident.
+
+| Token | Value | For |
+| --- | --- | --- |
+| `--z-bar` | 60 | `BottomNav`, page-bound sticky bars |
+| `--z-nav` | 200 | the desktop navbar |
+| `--z-modal` | 10000 | `shared/Modal`, `ConfirmDialog` |
+| `--z-overlay` | 99990 | page-owned full-screen overlays |
+| `--z-notice` | 99998 | app-wide system and release notices |
+| `--z-toast` | 100000 | toasts, tooltips, context menus |
+
+A new fixed surface docks onto the step it belongs to (`z-[var(--z-modal)]` as a
+class, `z-index: var(--z-modal)` in CSS) instead of inventing a number. Older
+files still carry literal values; the steps are far enough apart that those keep
+their current position until the file gets converted.
+
 ## The contract (enforced by `npm run theme:lint`)
 
 1. **Surfaces/text/borders** use the semantic utilities (`bg-surface*`,

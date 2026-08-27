@@ -1,8 +1,9 @@
 /**
  * Unit tests for the DI-native SettingsService — SET-SVC-001 through
- * SET-SVC-030 (001–026 moved 1:1 from the legacy
+ * SET-SVC-034 (001–026 moved 1:1 from the legacy
  * tests/unit/services/settingsService.test.ts; 027–030 pin the post-migration
- * quirk fixes: null-serializes-as-'' and the bulk masked-sentinel skip).
+ * quirk fixes: null-serializes-as-'' and the bulk masked-sentinel skip;
+ * 031–034 cover the CARTO basemap key).
  * Uses a real in-memory SQLite DB; apiKeyCrypto is mocked to a passthrough
  * so we don't need real encryption for most tests.
  */
@@ -172,6 +173,60 @@ describe('getUserSettings', () => {
     setAdminDefault('llm_api_key', 'sk-admin-secret');
     testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'llm_api_key', '')").run(user.id);
     expect(svc.getUserSettings(user.id).llm_api_key).toBe('••••••••');
+  });
+
+  // carto_api_key (#2054): encrypted at rest like the other credentials, but
+  // Leaflet builds the tile URL in the browser, so it must come back readable.
+  it('SET-SVC-031 — carto_api_key is stored encrypted and read back in cleartext, never masked', () => {
+    const { user } = createUser(testDb);
+    svc.upsertSetting(user.id, 'carto_api_key', 'carto-user');
+    // Passthrough crypto mock: the stored row is whatever maybe_encrypt_api_key returned.
+    const raw = testDb
+      .prepare("SELECT value FROM settings WHERE user_id = ? AND key = 'carto_api_key'")
+      .get(user.id) as { value: string };
+    expect(raw.value).toBe('carto-user');
+    expect(svc.getUserSettings(user.id).carto_api_key).toBe('carto-user');
+
+    // A digits-only key proves it takes the decrypt branch: a non-encrypted key
+    // would come back JSON-parsed, as the number 12345.
+    svc.upsertSetting(user.id, 'carto_api_key', '12345');
+    expect(svc.getUserSettings(user.id).carto_api_key).toBe('12345');
+  });
+
+  it('SET-SVC-032 — an empty user carto_api_key falls back to the admin default', () => {
+    const { user } = createUser(testDb);
+    setAdminDefault('carto_api_key', 'carto-admin');
+    testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'carto_api_key', '')").run(user.id);
+    expect(svc.getUserSettings(user.id).carto_api_key).toBe('carto-admin');
+  });
+
+  it('SET-SVC-033 — a managed instance injects the operator key over both the user and the admin value', () => {
+    const { user } = createUser(testDb);
+    setAdminDefault('carto_api_key', 'carto-admin');
+    testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'carto_api_key', 'carto-user')").run(user.id);
+    vi.stubEnv('TREK_MANAGED', 'true');
+    vi.stubEnv('CARTO_API_KEY', 'carto-operator');
+    try {
+      expect(svc.getUserSettings(user.id).carto_api_key).toBe('carto-operator');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('SET-SVC-034 — the injected CARTO key leaves map_provider alone', () => {
+    const { user } = createUser(testDb);
+    vi.stubEnv('TREK_MANAGED', 'true');
+    vi.stubEnv('CARTO_API_KEY', 'carto-operator');
+    vi.stubEnv('MAPBOX_ACCESS_TOKEN', '');
+    try {
+      // The Mapbox token flips a managed instance to GL because a token means a
+      // renderer. A basemap key says nothing about which renderer the user wants.
+      const s = svc.getUserSettings(user.id);
+      expect(s.carto_api_key).toBe('carto-operator');
+      expect(s.map_provider).toBeUndefined();
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });
 

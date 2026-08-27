@@ -2,6 +2,8 @@ import React from 'react'
 import { MapViewAuto } from '../Map/MapViewAuto'
 import type { CollectionPlace } from '@trek/shared'
 import { mappablePlaces } from '../../pages/collections/collectionsModel'
+import { useTileUrl } from '../../hooks/useTileUrl'
+import { CARTO_DARK, CARTO_LIGHT } from '../../constants/mapDefaults'
 
 interface CollectionMapProps {
   places: CollectionPlace[]
@@ -20,9 +22,7 @@ interface CollectionMapProps {
  */
 export default function CollectionMap({ places, selectedPlaceId, onOpenPlace, onDeselect, dark }: CollectionMapProps): React.ReactElement {
   const pts = mappablePlaces(places)
-  const tileUrl = dark
-    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+  const tileUrl = useTileUrl(dark ? CARTO_DARK : CARTO_LIGHT)
 
   return (
     <div style={{ width: '100%', height: '100%' }}>

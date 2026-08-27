@@ -33,6 +33,12 @@ const settings: TranslationStrings = {
   'settings.mapMapboxToken': 'Mapbox 액세스 토큰',
   'settings.mapMapboxTokenHint': '공개 토큰 (pk.*) 출처',
   'settings.mapMapboxTokenLink': 'mapbox.com → 액세스 토큰',
+  'settings.mapCartoKey': 'CARTO API 키',
+  'settings.mapCartoKeyHint':
+    'CARTO 배경 지도는 키가 없으면 워터마크가 표시됩니다. 무료이며 계정도 필요 없습니다. 출처',
+  'settings.mapCartoKeyLink': 'carto.com 배경 지도 API 키',
+  'settings.mapCartoKeyMissing':
+    '이 템플릿은 CARTO 배경 지도입니다. 키가 없으면 CARTO가 모든 타일에 "API KEY REQUIRED"를 새깁니다.',
   'settings.mapStyle': '지도 스타일',
   'settings.mapStylePlaceholder': 'Mapbox 스타일 선택',
   'settings.mapStyleHint': '프리셋 또는 mapbox://styles/USER/ID URL 직접 입력',

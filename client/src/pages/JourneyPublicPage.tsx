@@ -140,6 +140,10 @@ export default function JourneyPublicPage() {
     );
   }
 
+  // A visitor of a share link has no settings of their own, so the CARTO key
+  // travels in the payload; without it every tile carries the watermark.
+  const cartoApiKey: string | undefined = data.cartoApiKey;
+
   // In desktop two-column mode the map is always visible — exclude the standalone 'map' tab
   const availableViews = [
     perms.share_timeline && { id: 'timeline' as const, icon: List, label: t('journey.share.timeline') },
@@ -842,6 +846,7 @@ export default function JourneyPublicPage() {
                 fullScreen
                 activeMarkerId={activeEntryId ?? undefined}
                 onMarkerClick={handleMarkerClick}
+                cartoApiKey={cartoApiKey}
               />
             </div>
           </aside>
@@ -885,6 +890,7 @@ export default function JourneyPublicPage() {
               onEntryClick={(entry) => setViewingEntry(entry as any)}
               publicPhotoUrl={(photoId) => `/api/public/journey/${token}/photos/${photoId}/original`}
               carouselBottom="calc(env(safe-area-inset-bottom, 16px) + 8px)"
+              cartoApiKey={cartoApiKey}
             />
           )}
 
@@ -897,7 +903,7 @@ export default function JourneyPublicPage() {
           {/* Map (standalone tab — only in single-column mode) */}
           {view === 'map' && perms.share_map && (
             <div className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-700">
-              <JourneyMap checkins={[]} entries={sidebarMapItems as any} photos={photoLayer} height={500} />
+              <JourneyMap checkins={[]} entries={sidebarMapItems as any} photos={photoLayer} height={500} cartoApiKey={cartoApiKey} />
             </div>
           )}
         </div>

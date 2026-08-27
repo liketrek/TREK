@@ -280,15 +280,27 @@ export class ShareService {
     // honours per-user → admin-default; we then fall back to trip currency → EUR
     // (`||` on purpose: an empty-string trip currency also falls back).
     let baseCurrency = (trip as { currency?: string }).currency || 'EUR';
-    if (shareRow.created_by != null) {
-      const ownerDefault = this.settings.getUserSettings(shareRow.created_by)['default_currency'];
-      if (typeof ownerDefault === 'string' && ownerDefault.trim()) {
-        baseCurrency = ownerDefault.trim();
-      }
+    const ownerSettings: Record<string, unknown> = shareRow.created_by != null
+      ? this.settings.getUserSettings(shareRow.created_by)
+      : {};
+    const ownerDefault = ownerSettings['default_currency'];
+    if (typeof ownerDefault === 'string' && ownerDefault.trim()) {
+      baseCurrency = ownerDefault.trim();
     }
 
+    // CARTO stamps an "API KEY REQUIRED" watermark into every tile fetched without
+    // a key (#2054), and a public viewer has no settings of their own to hold one,
+    // so the owner's key travels in this payload. Nothing without a valid share
+    // token reaches it, and the key is public in the browser anyway. getUserSettings
+    // is the right accessor here even though it is the client-facing one:
+    // carto_api_key is encrypted at rest but deliberately unmasked (same as the
+    // Mapbox token, both have to reach a browser), and it is the only accessor that
+    // composes per-user value → admin instance default → managed-instance key.
+    const ownerCartoKey = ownerSettings['carto_api_key'];
+    const cartoApiKey = typeof ownerCartoKey === 'string' ? ownerCartoKey.trim() : '';
+
     return {
-      trip, baseCurrency, categories, permissions,
+      trip, baseCurrency, cartoApiKey, categories, permissions,
       days, assignments, dayNotes, places,
       reservations, accommodations,
       packing, budget,

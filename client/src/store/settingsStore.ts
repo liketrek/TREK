@@ -4,7 +4,8 @@ import type { Settings } from '../types'
 import { DEFAULT_APPEARANCE } from '@trek/shared'
 import { getApiErrorMessage } from '../types'
 import { SUPPORTED_LANGUAGE_CODES } from '../i18n/supportedLanguages'
-import { normalizeTileUrl } from '../utils/tileUrl'
+import { normalizeTileUrl, stripTileApiKey } from '../utils/tileUrl'
+import { clearTileCache } from '../sync/tilePrefetcher'
 import { rememberStartDestination, DEFAULT_START_PAGE, DEFAULT_START_TRIP_TAB } from '../utils/startDestination'
 
 interface SettingsState {
@@ -43,6 +44,7 @@ export const DEFAULT_SETTINGS: Settings = {
   map_provider: 'leaflet',
   map_base_layer: 'default',
   map_poi_pill_enabled: true,
+  carto_api_key: '',
   mapbox_access_token: '',
   mapbox_style: 'mapbox://styles/mapbox/standard',
   maplibre_style: '',
@@ -68,7 +70,14 @@ let _loadInFlight: Promise<void> | null = null
 // typed by hand survive in the database until the next load put it back (#1733).
 function withNormalizedTileUrl<T extends Partial<Settings>>(patch: T): T {
   if (typeof patch.map_tile_url !== 'string') return patch
-  return { ...patch, map_tile_url: normalizeTileUrl(patch.map_tile_url) }
+  return { ...patch, map_tile_url: cleanTileTemplate(patch.map_tile_url) }
+}
+
+// A CARTO key pasted along with a full tile URL is dropped here: the key lives
+// in its own setting and is appended at render time, so leaving it in the
+// template would freeze it into the saved value and break on the next rotation.
+function cleanTileTemplate(url: string): string {
+  return stripTileApiKey(normalizeTileUrl(url))
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -105,7 +114,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   updateSetting: async (key: keyof Settings, value: Settings[keyof Settings]) => {
     const next =
-      key === 'map_tile_url' && typeof value === 'string' ? normalizeTileUrl(value) : value
+      key === 'map_tile_url' && typeof value === 'string' ? cleanTileTemplate(value) : value
+    if (key === 'carto_api_key' && next !== get().settings.carto_api_key) void clearTileCache()
     set((state) => ({
       settings: { ...state.settings, [key]: next },
     }))
@@ -134,6 +144,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   updateSettings: async (settingsObj: Partial<Settings>) => {
     const patch = withNormalizedTileUrl(settingsObj)
+    // Cached tiles are keyed by their full URL, so a new key leaves the whole
+    // offline cache stranded behind the old one.
+    if ('carto_api_key' in patch && patch.carto_api_key !== get().settings.carto_api_key) {
+      void clearTileCache()
+    }
     set((state) => ({
       settings: { ...state.settings, ...patch },
     }))

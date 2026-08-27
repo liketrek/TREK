@@ -375,6 +375,15 @@ describe('getSharedTripData', () => {
     expect(byName['Uploaded']).toBe('/uploads/pic.jpg');
     expect(byName['Bare']).toBeNull();
   });
+
+  it('SHARE-SVC-027: cartoApiKey resolves owner setting → admin instance default → empty (#2054)', () => {
+    const { user, token } = seedSharedTrip();
+    expect(svc.getSharedTripData(token)!.cartoApiKey).toBe('');
+    testDb.prepare("INSERT INTO app_settings (key, value) VALUES ('default_user_setting_carto_api_key', 'instance-key')").run();
+    expect(svc.getSharedTripData(token)!.cartoApiKey).toBe('instance-key');
+    testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'carto_api_key', ' owner-key ')").run(user.id);
+    expect(svc.getSharedTripData(token)!.cartoApiKey).toBe('owner-key');
+  });
 });
 
 // ── getSharedPlacePhotoKey ───────────────────────────────────────────────────

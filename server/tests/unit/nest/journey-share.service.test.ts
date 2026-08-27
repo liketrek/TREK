@@ -39,10 +39,15 @@ import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
 import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
 import { JourneyShareService } from '../../../src/nest/journey/journey-share.service';
+import { SettingsService } from '../../../src/nest/settings/settings.service';
 import { db as dbConn } from '../../../src/db/database';
 
 const dbs = new DatabaseService(dbConn);
-const svc = new JourneyShareService(dbs, new JourneyDomainService(dbs, new RealtimeService(), new TrekPhotosRepository(dbs)));
+const svc = new JourneyShareService(
+  dbs,
+  new JourneyDomainService(dbs, new RealtimeService(), new TrekPhotosRepository(dbs)),
+  new SettingsService(dbs),
+);
 
 beforeAll(() => {
   createTables(testDb);
@@ -628,5 +633,17 @@ describe('getPublicJourney', () => {
     expect(result.gallery).toEqual([]); // gallery array withheld
     expect(result.entries).toHaveLength(1);
     expect((result.entries[0] as Record<string, unknown>).photos).toEqual([]); // inline photos withheld too
+  });
+
+  it('JOURNEY-SHARE-030: cartoApiKey resolves owner setting → admin instance default → empty (#2054)', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, { share_map: true });
+
+    expect(svc.getPublicJourney(token)!.cartoApiKey).toBe('');
+    testDb.prepare("INSERT INTO app_settings (key, value) VALUES ('default_user_setting_carto_api_key', 'instance-key')").run();
+    expect(svc.getPublicJourney(token)!.cartoApiKey).toBe('instance-key');
+    testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'carto_api_key', ' owner-key ')").run(user.id);
+    expect(svc.getPublicJourney(token)!.cartoApiKey).toBe('owner-key');
   });
 });

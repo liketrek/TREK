@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, Suspense } from 'react'
 import { Box, Check, ChevronDown, Globe2, Layers, Map, Save } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { useSettingsStore } from '../../../store/settingsStore'
+import { useAuthStore } from '../../../store/authStore'
 import { useToast } from '../../../components/shared/Toast'
 import { MapView } from '../../../components/Map/MapView'
 // Same as the desktop map settings tab: on demand, and paired with one engine.
@@ -67,7 +68,9 @@ export default function MSettingsMap() {
   const [saving, setSaving] = useState(false)
   const [provider, setProvider] = useState<Provider>(initialProvider)
   const [mapTileUrl, setMapTileUrl] = useState<string>(settings.map_tile_url || '')
+  const managed = useAuthStore((s) => s.managed)
   const [mapboxToken, setMapboxToken] = useState<string>(settings.mapbox_access_token || '')
+  const [cartoKey, setCartoKey] = useState<string>(settings.carto_api_key || '')
   const [mapboxStyle, setMapboxStyle] = useState<string>(styleForProvider(initialProvider, slotStyle(initialProvider, settings)))
   const [mapbox3d, setMapbox3d] = useState<boolean>(settings.mapbox_3d_enabled !== false)
   const [mapboxQuality, setMapboxQuality] = useState<boolean>(settings.mapbox_quality_mode === true)
@@ -79,6 +82,7 @@ export default function MSettingsMap() {
     setProvider(nextProvider)
     setMapTileUrl(settings.map_tile_url || '')
     setMapboxToken(settings.mapbox_access_token || '')
+    setCartoKey(settings.carto_api_key || '')
     setMapboxStyle(styleForProvider(nextProvider, slotStyle(nextProvider, settings)))
     setMapbox3d(settings.mapbox_3d_enabled !== false)
     setMapboxQuality(settings.mapbox_quality_mode === true)
@@ -118,6 +122,7 @@ export default function MSettingsMap() {
         map_provider: provider,
         map_tile_url: mapTileUrl,
         mapbox_access_token: mapboxToken,
+        carto_api_key: cartoKey,
         ...stylePatch,
         mapbox_3d_enabled: mapbox3d,
         mapbox_quality_mode: mapboxQuality,
@@ -134,6 +139,8 @@ export default function MSettingsMap() {
     setProvider(nextProvider)
     if (nextProvider !== 'leaflet') setMapboxStyle(styleForProvider(nextProvider, mapboxStyle))
   }
+  // Only CARTO burns a watermark into keyless tiles, so the nudge is scoped to its hosts.
+  const cartoNeedsKey = mapTileUrl.includes('basemaps.cartocdn.com') && !cartoKey.trim()
 
   const providers: { id: Provider; name: string; sub: string; icon: typeof Layers }[] = [
     { id: 'leaflet', name: 'Leaflet', sub: t('settings.mapLeafletSubtitle'), icon: Layers },
@@ -193,12 +200,37 @@ export default function MSettingsMap() {
             placeholder="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <MSetHint>{t('settings.mapDefaultHint')}</MSetHint>
+
+          {/* A managed install brings its own key, same as the Mapbox token below. */}
+          {!managed && (
+            <>
+              <MSetEyebrow className="mb-[5px] mt-[14px]">{t('settings.mapCartoKey')}</MSetEyebrow>
+              <MSetInput
+                mono
+                value={cartoKey}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCartoKey(e.target.value)}
+                spellCheck={false}
+                autoComplete="off"
+              />
+              <MSetHint>
+                {t('settings.mapCartoKeyHint')}{' '}
+                <a href="https://carto.com/basemaps/apikey/" target="_blank" rel="noreferrer" className="underline">
+                  {t('settings.mapCartoKeyLink')}
+                </a>
+              </MSetHint>
+              {cartoNeedsKey && (
+                <p className="mt-[6px] font-geist text-[0.625rem] leading-relaxed text-[color:var(--m-st-pending)]">
+                  {t('settings.mapCartoKeyMissing')}
+                </p>
+              )}
+            </>
+          )}
         </>
       )}
 
       {provider !== 'leaflet' && (
         <>
-          {provider === 'mapbox-gl' && (
+          {provider === 'mapbox-gl' && !managed && (
             <>
               <MSetEyebrow className="mb-[5px] mt-[14px]">{t('settings.mapMapboxToken')}</MSetEyebrow>
               <MSetInput mono value={mapboxToken} onChange={(e) => setMapboxToken(e.target.value)} placeholder="pk.eyJ1Ijoi..." />

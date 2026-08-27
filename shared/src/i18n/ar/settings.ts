@@ -32,6 +32,11 @@ const settings: TranslationStrings = {
   'settings.mapMapboxToken': 'رمز وصول Mapbox',
   'settings.mapMapboxTokenHint': 'الرمز العام (pk.*) من',
   'settings.mapMapboxTokenLink': 'mapbox.com ← رموز الوصول',
+  'settings.mapCartoKey': 'مفتاح CARTO API',
+  'settings.mapCartoKeyHint': 'تعرض خرائط CARTO الأساسية علامة مائية بدون مفتاح. مجاني وبدون حساب، من',
+  'settings.mapCartoKeyLink': 'مفتاح API لخرائط carto.com الأساسية',
+  'settings.mapCartoKeyMissing':
+    'هذا القالب خريطة أساسية من CARTO. بدون مفتاح تطبع CARTO عبارة "API KEY REQUIRED" على كل بلاطة.',
   'settings.mapStyle': 'نمط الخريطة',
   'settings.mapStylePlaceholder': 'اختر نمط Mapbox',
   'settings.mapStyleHint': 'إعداد مسبق أو عنوان URL mapbox://styles/USER/ID خاص بك',

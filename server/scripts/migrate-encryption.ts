@@ -404,7 +404,7 @@ async function main() {
     }
 
     // --- settings: per-user encrypted keys ---
-    const encryptedSettingKeys = ['webhook_url', 'ntfy_token', 'mapbox_access_token', 'llm_api_key'];
+    const encryptedSettingKeys = ['webhook_url', 'ntfy_token', 'mapbox_access_token', 'carto_api_key', 'llm_api_key'];
     const settingRows = db.prepare(
       `SELECT user_id, key, value FROM settings WHERE key IN (${encryptedSettingKeys.map(() => '?').join(', ')})`
     ).all(...encryptedSettingKeys) as { user_id: number; key: string; value: string }[];

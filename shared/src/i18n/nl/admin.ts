@@ -693,6 +693,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Kies een stijl…',
   'admin.defaultSettings.mapbox3d': '3D-gebouwen & terrein',
   'admin.defaultSettings.mapboxQuality': 'Hogekwaliteitsmodus',
+  'admin.defaultSettings.cartoKey': 'Gedeelde CARTO-sleutel',
+  'admin.defaultSettings.cartoKeyHint':
+    'Wordt gebruikt voor elke gebruiker die nog geen eigen sleutel heeft ingevoerd, zo krijgt de hele instantie CARTO-tegels zonder watermerk. Versleuteld opgeslagen.',
   'admin.group.users': 'Users',
   'admin.group.config': 'Configuration',
   'admin.group.integration': 'Integrations',

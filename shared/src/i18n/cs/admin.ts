@@ -681,6 +681,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Vyberte styl…',
   'admin.defaultSettings.mapbox3d': '3D budovy & terén',
   'admin.defaultSettings.mapboxQuality': 'Režim vysoké kvality',
+  'admin.defaultSettings.cartoKey': 'Sdílený klíč CARTO',
+  'admin.defaultSettings.cartoKeyHint':
+    'Použije se pro každého uživatele, který nezadal vlastní klíč, takže celá instance získá dlaždice CARTO bez vodoznaku. Ukládá se šifrovaně.',
   'admin.group.users': 'Users',
   'admin.group.config': 'Configuration',
   'admin.group.integration': 'Integrations',

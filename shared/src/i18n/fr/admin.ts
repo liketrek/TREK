@@ -700,6 +700,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Choisissez un style…',
   'admin.defaultSettings.mapbox3d': 'Bâtiments & terrain en 3D',
   'admin.defaultSettings.mapboxQuality': 'Mode haute qualité',
+  'admin.defaultSettings.cartoKey': 'Clé CARTO partagée',
+  'admin.defaultSettings.cartoKeyHint':
+    "Utilisée pour chaque utilisateur n'ayant pas saisi sa propre clé, ainsi toute l'instance reçoit les tuiles CARTO sans filigrane. Stockée de façon chiffrée.",
   'admin.group.users': 'Users',
   'admin.group.config': 'Configuration',
   'admin.group.integration': 'Integrations',

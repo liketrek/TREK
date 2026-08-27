@@ -635,6 +635,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': '選擇樣式…',
   'admin.defaultSettings.mapbox3d': '3D 建築物與地形',
   'admin.defaultSettings.mapboxQuality': '高品質模式',
+  'admin.defaultSettings.cartoKey': '共用的 CARTO 金鑰',
+  'admin.defaultSettings.cartoKeyHint':
+    '用於每一位尚未輸入自己金鑰的使用者，如此整個執行個體都能取得沒有浮水印的 CARTO 圖磚。以加密方式儲存。',
   'admin.group.users': 'Users',
   'admin.group.config': 'Configuration',
   'admin.group.integration': 'Integrations',

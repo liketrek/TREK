@@ -33,6 +33,11 @@ const settings: TranslationStrings = {
   'settings.mapMapboxToken': 'Mapbox přístupový token',
   'settings.mapMapboxTokenHint': 'Veřejný token (pk.*) z',
   'settings.mapMapboxTokenLink': 'mapbox.com → Přístupové tokeny',
+  'settings.mapCartoKey': 'CARTO API klíč',
+  'settings.mapCartoKeyHint': 'Podkladové mapy CARTO se bez klíče zobrazují s vodoznakem. Zdarma a bez účtu, na',
+  'settings.mapCartoKeyLink': 'carto.com API klíč pro podkladové mapy',
+  'settings.mapCartoKeyMissing':
+    'Tato šablona je podkladová mapa CARTO. Bez klíče CARTO vypálí do každé dlaždice nápis "API KEY REQUIRED".',
   'settings.mapStyle': 'Styl mapy',
   'settings.mapStylePlaceholder': 'Vyberte styl Mapbox',
   'settings.mapStyleHint': 'Preset nebo vaše vlastní URL mapbox://styles/USER/ID',

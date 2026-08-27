@@ -42,6 +42,11 @@ const settings: TranslationStrings = {
   'settings.mapMapboxToken': 'Mapbox Access Token',
   'settings.mapMapboxTokenHint': 'Public token (pk.*) from',
   'settings.mapMapboxTokenLink': 'mapbox.com → Access tokens',
+  'settings.mapCartoKey': 'CARTO API key',
+  'settings.mapCartoKeyHint': 'CARTO basemaps show a watermark without a key. Free, no account needed, from',
+  'settings.mapCartoKeyLink': 'carto.com basemap API key',
+  'settings.mapCartoKeyMissing':
+    'This template is a CARTO basemap. Without a key CARTO stamps "API KEY REQUIRED" onto every tile.',
   'settings.mapStyle': 'Map Style',
   'settings.mapStylePlaceholder': 'Select a Mapbox style',
   'settings.mapStyleHint': 'Preset or your own mapbox://styles/USER/ID URL',

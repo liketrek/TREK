@@ -197,6 +197,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Choose a style…',
   'admin.defaultSettings.mapbox3d': '3D buildings & terrain',
   'admin.defaultSettings.mapboxQuality': 'High-quality mode',
+  'admin.defaultSettings.cartoKey': 'Shared CARTO key',
+  'admin.defaultSettings.cartoKeyHint':
+    'Used for every user who has not entered their own key, so the whole instance gets CARTO tiles without a watermark. Stored encrypted.',
   'admin.tabs.templates': 'Packing Templates',
   'admin.packingTemplates.title': 'Packing Templates',
   'admin.packingTemplates.subtitle': 'Create reusable packing lists for your trips',

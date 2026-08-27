@@ -4,7 +4,13 @@ import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyC
 import { MASKED_SETTING_VALUE, normalizeAppearance } from '@trek/shared';
 import { readEnv } from '../../app-config';
 
-const ENCRYPTED_SETTING_KEYS = new Set(['webhook_url', 'ntfy_token', 'mapbox_access_token', 'llm_api_key']);
+const ENCRYPTED_SETTING_KEYS = new Set([
+  'webhook_url',
+  'ntfy_token',
+  'mapbox_access_token',
+  'carto_api_key',
+  'llm_api_key',
+]);
 // Encrypted keys that are masked (••••••••) when returned to the client.
 // Keys not in this set but in ENCRYPTED_SETTING_KEYS are decrypted and returned.
 const MASKED_SETTING_KEYS = new Set(['webhook_url', 'ntfy_token', 'llm_api_key']);
@@ -19,6 +25,10 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
   'default_currency',
   'blur_booking_codes',
   'map_tile_url',
+  // CARTO stamps an "API KEY REQUIRED" watermark into keyless tiles (#2054), and
+  // the key is per-instance rather than per-person: defaultable so one admin
+  // value clears the watermark for everybody at once.
+  'carto_api_key',
   // Instance-wide GL map defaults: admins can set Mapbox token/style or
   // tokenless MapLibre/OpenFreeMap style defaults for new users (#920).
   'map_provider',
@@ -215,6 +225,12 @@ export class SettingsService {
       if (!merged.map_provider || merged.map_provider === 'leaflet') {
         merged.map_provider = 'mapbox-gl';
       }
+    }
+    // Injected the same way, but without touching map_provider: a CARTO key only
+    // says whose basemap account the tiles are billed to, nothing about which
+    // renderer the user wants.
+    if (readEnv().managed.enabled && managedMaps.cartoKey) {
+      merged.carto_api_key = managedMaps.cartoKey;
     }
 
     return merged;

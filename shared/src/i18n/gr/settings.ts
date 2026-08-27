@@ -35,6 +35,12 @@ const settings: TranslationStrings = {
   'settings.mapMapboxToken': 'Mapbox Access Token',
   'settings.mapMapboxTokenHint': 'Δημόσιο token (pk.*) από',
   'settings.mapMapboxTokenLink': 'mapbox.com → Access tokens',
+  'settings.mapCartoKey': 'Κλειδί API CARTO',
+  'settings.mapCartoKeyHint':
+    'Οι βασικοί χάρτες CARTO εμφανίζουν υδατογράφημα χωρίς κλειδί. Δωρεάν, χωρίς λογαριασμό, από',
+  'settings.mapCartoKeyLink': 'κλειδί API βασικών χαρτών carto.com',
+  'settings.mapCartoKeyMissing':
+    'Αυτό το πρότυπο είναι βασικός χάρτης CARTO. Χωρίς κλειδί, η CARTO τυπώνει "API KEY REQUIRED" σε κάθε πλακίδιο.',
   'settings.mapStyle': 'Στυλ Χάρτη',
   'settings.mapStylePlaceholder': 'Επιλέξτε ένα στυλ Mapbox',
   'settings.mapStyleHint': 'Προκαθορισμένο ή δικό σας mapbox://styles/USER/ID URL',

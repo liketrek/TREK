@@ -33,6 +33,11 @@ const settings: TranslationStrings = {
   'settings.mapMapboxToken': 'Token akses Mapbox',
   'settings.mapMapboxTokenHint': 'Token publik (pk.*) dari',
   'settings.mapMapboxTokenLink': 'mapbox.com → Token akses',
+  'settings.mapCartoKey': 'Kunci API CARTO',
+  'settings.mapCartoKeyHint': 'Peta dasar CARTO menampilkan tanda air tanpa kunci. Gratis, tanpa akun, dari',
+  'settings.mapCartoKeyLink': 'kunci API peta dasar carto.com',
+  'settings.mapCartoKeyMissing':
+    'Templat ini adalah peta dasar CARTO. Tanpa kunci, CARTO mencetak "API KEY REQUIRED" di setiap ubin.',
   'settings.mapStyle': 'Gaya peta',
   'settings.mapStylePlaceholder': 'Pilih gaya Mapbox',
   'settings.mapStyleHint': 'Preset atau URL mapbox://styles/USER/ID milikmu',

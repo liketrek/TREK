@@ -633,6 +633,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': '选择一种样式…',
   'admin.defaultSettings.mapbox3d': '3D 建筑与地形',
   'admin.defaultSettings.mapboxQuality': '高质量模式',
+  'admin.defaultSettings.cartoKey': '共享 CARTO 密钥',
+  'admin.defaultSettings.cartoKeyHint':
+    '用于所有未输入自己密钥的用户，这样整个实例都能获得无水印的 CARTO 瓦片。以加密方式存储。',
   'admin.group.users': '用户',
   'admin.group.config': '配置',
   'admin.group.integration': '集成',

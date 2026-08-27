@@ -200,6 +200,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Chọn một phong cách…',
   'admin.defaultSettings.mapbox3d': 'Tòa nhà và địa hình 3D',
   'admin.defaultSettings.mapboxQuality': 'Chế độ chất lượng cao',
+  'admin.defaultSettings.cartoKey': 'Khóa CARTO được chia sẻ',
+  'admin.defaultSettings.cartoKeyHint':
+    'Được sử dụng cho mọi người dùng chưa nhập khóa của riêng họ, vì vậy toàn bộ phiên bản nhận được ô bản đồ CARTO không có hình mờ. Được lưu trữ dưới dạng mã hóa.',
   'admin.tabs.templates': 'Mẫu đóng gói',
   'admin.packingTemplates.title': 'Mẫu đóng gói',
   'admin.packingTemplates.subtitle': 'Tạo danh sách đóng gói có thể tái sử dụng cho chuyến đi của bạn',

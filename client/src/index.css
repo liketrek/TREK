@@ -536,6 +536,19 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --safe-top: env(safe-area-inset-top, 0px);
   --nav-h: 0px;
   --bottom-nav-h: 0px;
+
+  /* Layer scale. Anything fixed or sticky picks a step from here instead of
+     inventing a number, so two overlays can no longer land in the wrong order
+     by accident. The steps are spaced so today's hardcoded z-indexes keep the
+     position they already have; each of those moves onto its token whenever
+     its file gets touched for other reasons. */
+  --z-bar: 60;        /* BottomNav, page-bound sticky bars */
+  --z-nav: 200;       /* the desktop navbar */
+  --z-modal: 10000;   /* shared/Modal, ConfirmDialog */
+  --z-overlay: 99990; /* page-owned full-screen overlays */
+  --z-notice: 99998;  /* app-wide system and release notices */
+  --z-toast: 100000;  /* toasts, tooltips, context menus */
+
   --font-system: 'Poppins', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
   /* Secondary "subtext"/caption tier renders in Geist; primary text + headings stay Poppins. */
   --font-subtext: 'Geist Sans', 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;

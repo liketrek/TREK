@@ -11,6 +11,7 @@ import { fontStack } from './bookFonts'
 import { brightness } from './folioColour'
 import { COUNTRY_SHAPES, countryParts, countryWorldPath, projectMercator, unprojectMercator } from './countryShapes'
 import { projectOntoTiles, tileView, usableStaticUrl } from './mapTiles'
+import { useCartoApiKey } from '../../hooks/useTileUrl'
 import { FLAG_H, FLAG_W, flagBands, flagDisc, flagSpec } from './flags'
 import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
 import { useTranslation } from '../../i18n'
@@ -200,6 +201,7 @@ function MapView({ el, frameStyle, big = false }: {
   /** False in a thumbnail, where a page of imagery would be a page of waste. */
   big?: boolean
 }) {
+  const cartoKey = useCartoApiKey()
   const palette = MAP_PALETTES[el.style]
   // Per element: two cut maps on one spread sharing a stencil would both be cut
   // to whichever of them rendered last.
@@ -591,7 +593,7 @@ function MapView({ el, frameStyle, big = false }: {
       maxLat: topLeft.lat,
       maxLng: bottomRight.lng,
       minLat: bottomRight.lat,
-    }, big ? 'print' : 'preview')
+    }, big ? 'print' : 'preview', cartoKey)
     : null
 
   /*

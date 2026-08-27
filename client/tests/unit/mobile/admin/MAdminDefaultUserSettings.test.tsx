@@ -1,4 +1,4 @@
-// FE-MOB-MDUS-001 to FE-MOB-MDUS-024
+// FE-MOB-MDUS-001 to FE-MOB-MDUS-027
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, within, fireEvent } from '../../../helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -46,6 +46,11 @@ function resetLink(label: string): HTMLElement {
   const holder = screen.getAllByText(label).find(el => el.querySelector('button'));
   if (!holder) throw new Error(`no reset link next to "${label}"`);
   return within(holder).getByRole('button', { name: 'reset' });
+}
+
+/** The CARTO key input sits under its label inside the field's own wrapper. */
+function cartoInput(): HTMLInputElement {
+  return within(screen.getByText('Shared CARTO key').parentElement as HTMLElement).getByRole('textbox');
 }
 
 describe('MAdminDefaultUserSettings', () => {
@@ -375,5 +380,42 @@ describe('MAdminDefaultUserSettings', () => {
     expect(await screen.findByText('nope')).toBeInTheDocument();
     expect(screen.queryByText('Reset to built-in default')).not.toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '°C Celsius' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('FE-MOB-MDUS-025: the shared CARTO key is stored on blur and cleared by its reset link', async () => {
+    const user = userEvent.setup();
+    const { puts } = stubDefaults({ carto_api_key: 'ck.old' });
+    render(<MAdminDefaultUserSettings />);
+    await screen.findByText('Shared CARTO key');
+
+    const input = cartoInput();
+    expect(input).toHaveValue('ck.old');
+    await user.clear(input);
+    await user.type(input, 'ck.new');
+    input.blur();
+    await waitFor(() => expect(puts).toEqual([{ carto_api_key: 'ck.new' }]));
+
+    await user.click(resetLink('Shared CARTO key'));
+    await waitFor(() => expect(puts).toHaveLength(2));
+    expect(puts[1]).toEqual({ carto_api_key: null });
+    await waitFor(() => expect(cartoInput()).toHaveValue(''));
+  });
+
+  it('FE-MOB-MDUS-026: a managed instance brings its own CARTO key and hides the field', async () => {
+    seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin(), managed: true });
+    stubDefaults({ carto_api_key: 'ck.hoster' });
+    render(<MAdminDefaultUserSettings />);
+    await screen.findByText('Default User Settings');
+
+    expect(screen.queryByText('Shared CARTO key')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-MDUS-027: a managed instance hides the shared Mapbox token as well', async () => {
+    seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin(), managed: true });
+    stubDefaults({ map_provider: 'mapbox-gl', mapbox_access_token: 'pk.hoster' });
+    render(<MAdminDefaultUserSettings />);
+    await screen.findByText('Map style');
+
+    expect(screen.queryByText('Shared Mapbox token')).not.toBeInTheDocument();
   });
 });

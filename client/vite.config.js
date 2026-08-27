@@ -66,7 +66,10 @@ export default defineConfig(({ mode }) => ({
             // Carto map tiles (default provider)
             // maxEntries MUST stay >= MAX_TILES in src/sync/tilePrefetcher.ts
             // (both are 12288) so prefetched tiles aren't evicted on arrival.
-            urlPattern: /^https:\/\/[a-d]\.basemaps\.cartocdn\.com\/.*/i,
+            // The apex host counts too: a template without {s} points straight at
+            // basemaps.cartocdn.com, and matching only the shards left those tiles
+            // uncached, so the map went blank offline.
+            urlPattern: /^https:\/\/(?:[a-d]\.)?basemaps\.cartocdn\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'map-tiles',

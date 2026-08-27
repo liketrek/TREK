@@ -19,7 +19,7 @@ import { escapeHtml } from '@trek/shared'
 import type { Day, Reservation, RouteVia } from '../../types'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
 import { resolveTrackColor, hasManualTrackColor } from './trackColors'
-import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, SATELLITE_TILE_URL, SATELLITE_TILE_ATTRIBUTION, SATELLITE_TILE_MAXZOOM } from '../../constants/mapDefaults'
+import { CARTO_LIGHT, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, SATELLITE_TILE_URL, SATELLITE_TILE_ATTRIBUTION, SATELLITE_TILE_MAXZOOM } from '../../constants/mapDefaults'
 import { useSettingsStore } from '../../store/settingsStore'
 import { MapLayerSwitcher } from './MapLayerSwitcher'
 import { computeMapViewport, TILE_SIZE_RASTER, type ViewportPadding } from '../../utils/mapViewport'
@@ -515,7 +515,9 @@ export const MapView = memo(function MapView({
   onMapContextMenu = null,
   center = DEFAULT_MAP_CENTER,
   zoom = DEFAULT_MAP_ZOOM,
-  tileUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+  // Callers hand down a URL that already carries the CARTO key; this is only
+  // the shape a caller without one gets.
+  tileUrl = CARTO_LIGHT,
   fitKey = 0,
   dayOrderMap = {},
   leftWidth = 0,

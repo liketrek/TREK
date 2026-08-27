@@ -33,6 +33,11 @@ const settings: TranslationStrings = {
   'settings.mapMapboxToken': 'Mapbox アクセストークン',
   'settings.mapMapboxTokenHint': 'mapbox.com の公開トークン（pk.*）',
   'settings.mapMapboxTokenLink': 'mapbox.com → Access tokens',
+  'settings.mapCartoKey': 'CARTO API キー',
+  'settings.mapCartoKeyHint': 'キーがないと CARTO のベースマップに透かしが入ります。無料でアカウントも不要、取得先:',
+  'settings.mapCartoKeyLink': 'carto.com ベースマップ API キー',
+  'settings.mapCartoKeyMissing':
+    'このテンプレートは CARTO のベースマップです。キーがないと CARTO はすべてのタイルに "API KEY REQUIRED" を焼き込みます。',
   'settings.mapStyle': '地図スタイル',
   'settings.mapStylePlaceholder': 'Mapboxスタイルを選択',
   'settings.mapStyleHint': 'プリセットまたは mapbox://styles/USER/ID のURL',

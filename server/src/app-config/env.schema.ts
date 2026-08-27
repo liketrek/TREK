@@ -140,6 +140,7 @@ export const envSchema = z.object({
   PLACES_API_BASE: url,
   PLACES_API_KEY: anyString,
   MAPBOX_ACCESS_TOKEN: anyString,
+  CARTO_API_KEY: anyString,
   DEMO_MODE: boolStr,
   DEMO_ADMIN_USER: anyString,
   DEMO_ADMIN_EMAIL: anyString,

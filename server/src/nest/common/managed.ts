@@ -70,8 +70,14 @@ export function isManagedBlocked(env: RuntimeEnvService): boolean {
  * the one that reaches the browser: a managed instance ships with the operator's
  * public pk.* token, injected when the settings are read, and a per-user value
  * saved over it would only break the map for that user.
+ *
+ * carto_api_key is the same shape, injected on read and public in the browser,
+ * and it is the operator's for one more reason: the key is registered to
+ * whoever runs the instance, and CARTO's terms hold that account answerable for
+ * the tiles it fetches.
  */
 export const MANAGED_LOCKED_SETTING_KEYS = [
+  'carto_api_key',
   'llm_api_key',
   'llm_base_url',
   'llm_model',

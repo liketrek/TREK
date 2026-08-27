@@ -34,6 +34,12 @@ const settings: TranslationStrings = {
   'settings.mapMapboxToken': 'Токен доступу Mapbox',
   'settings.mapMapboxTokenHint': 'Публічний токен (pk.*) з',
   'settings.mapMapboxTokenLink': 'mapbox.com → Токени доступу',
+  'settings.mapCartoKey': 'Ключ API CARTO',
+  'settings.mapCartoKeyHint':
+    'Без ключа базові карти CARTO показують водяний знак. Безкоштовно та без облікового запису, на',
+  'settings.mapCartoKeyLink': 'ключ API базових карт carto.com',
+  'settings.mapCartoKeyMissing':
+    'Цей шаблон є базовою картою CARTO. Без ключа CARTO наносить "API KEY REQUIRED" на кожен тайл.',
   'settings.mapStyle': 'Стиль карти',
   'settings.mapStylePlaceholder': 'Виберіть стиль Mapbox',
   'settings.mapStyleHint': 'Preset або власний URL mapbox://styles/USER/ID',

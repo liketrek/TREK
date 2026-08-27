@@ -21,6 +21,8 @@
  * placed so the renderer cannot lose it.
  */
 
+import { withTileApiKey } from '../../utils/tileUrl'
+
 /** A slippy-map tile, in the standard XYZ scheme. */
 export interface Tile {
   x: number
@@ -168,6 +170,14 @@ export function tileView(
    * tiles, deliberately soft, because nobody prints the pages rail.
    */
   quality: 'print' | 'preview' = 'print',
+  /**
+   * The instance's CARTO key, for a book still on a CARTO template.
+   *
+   * Applied here rather than stored: keyless CARTO tiles carry a watermark
+   * since 26.08.2026 (#2054), and a key frozen into the document would be
+   * printed into every export and would outlive the key itself.
+   */
+  cartoKey?: string,
 ): TileView | null {
   if (!template || (!points.length && !extent)) return null
 
@@ -290,6 +300,7 @@ export function tileView(
   const originY = frame.h / 2 - (cy * scale - y0) * size
 
   const tiles: Tile[] = []
+  const source = withTileApiKey(template, cartoKey)
   const wrap = (n: number) => ((n % scale) + scale) % scale
   for (let y = y0; y <= y1; y++) {
     // Past the poles there is no tile — the row simply does not exist.
@@ -299,7 +310,7 @@ export function tileView(
         x: x - x0,
         y: y - y0,
         z: zoom,
-        url: template
+        url: source
           .replace('{z}', String(zoom))
           // Longitude wraps, so a route across the antimeridian keeps its tiles.
           .replace('{x}', String(wrap(x)))

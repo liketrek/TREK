@@ -657,6 +657,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': '스타일을 선택하세요…',
   'admin.defaultSettings.mapbox3d': '3D 건물 & 지형',
   'admin.defaultSettings.mapboxQuality': '고품질 모드',
+  'admin.defaultSettings.cartoKey': '공유 CARTO 키',
+  'admin.defaultSettings.cartoKeyHint':
+    '자신의 키를 입력하지 않은 모든 사용자에게 사용됩니다. 이렇게 하면 인스턴스 전체에서 워터마크 없는 CARTO 타일을 사용할 수 있습니다. 암호화하여 저장됩니다.',
   'admin.group.users': 'Users',
   'admin.group.config': 'Configuration',
   'admin.group.integration': 'Integrations',

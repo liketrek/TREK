@@ -34,6 +34,11 @@ const settings: TranslationStrings = {
   'settings.mapMapboxToken': 'Mapbox Mã thông báo truy cập',
   'settings.mapMapboxTokenHint': 'Mã thông báo công khai (pk.*) từ',
   'settings.mapMapboxTokenLink': 'mapbox.com → Mã thông báo truy cập',
+  'settings.mapCartoKey': 'Khóa API CARTO',
+  'settings.mapCartoKeyHint': 'Bản đồ nền CARTO hiển thị hình mờ nếu không có khóa. Miễn phí, không cần tài khoản, từ',
+  'settings.mapCartoKeyLink': 'khóa API bản đồ nền carto.com',
+  'settings.mapCartoKeyMissing':
+    'Mẫu này là bản đồ nền CARTO. Không có khóa, CARTO in "API KEY REQUIRED" lên mọi ô bản đồ.',
   'settings.mapStyle': 'Kiểu bản đồ',
   'settings.mapStylePlaceholder': 'Chọn kiểu Mapbox',
   'settings.mapStyleHint': 'Đặt trước hoặc của riêng bạn mapbox://styles/USER/ID URL',

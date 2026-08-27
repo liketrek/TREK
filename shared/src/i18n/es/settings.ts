@@ -33,6 +33,11 @@ const settings: TranslationStrings = {
   'settings.mapMapboxToken': 'Token de acceso de Mapbox',
   'settings.mapMapboxTokenHint': 'Token público (pk.*) de',
   'settings.mapMapboxTokenLink': 'mapbox.com → Tokens de acceso',
+  'settings.mapCartoKey': 'Clave de API de CARTO',
+  'settings.mapCartoKeyHint': 'Los mapas base de CARTO muestran una marca de agua sin clave. Gratuita y sin cuenta, en',
+  'settings.mapCartoKeyLink': 'clave de API de mapas base de carto.com',
+  'settings.mapCartoKeyMissing':
+    'Esta plantilla es un mapa base de CARTO. Sin clave, CARTO estampa "API KEY REQUIRED" en cada tesela.',
   'settings.mapStyle': 'Estilo de mapa',
   'settings.mapStylePlaceholder': 'Seleccionar un estilo de Mapbox',
   'settings.mapStyleHint': 'Preset o tu propia URL mapbox://styles/USER/ID',

@@ -695,6 +695,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Scegli uno stile…',
   'admin.defaultSettings.mapbox3d': 'Edifici & terreno in 3D',
   'admin.defaultSettings.mapboxQuality': 'Modalità alta qualità',
+  'admin.defaultSettings.cartoKey': 'Chiave CARTO condivisa',
+  'admin.defaultSettings.cartoKeyHint':
+    "Usata per ogni utente che non ha inserito una propria chiave, così tutta l'istanza ottiene le tessere CARTO senza filigrana. Archiviata in forma crittografata.",
   'admin.group.users': 'Users',
   'admin.group.config': 'Configuration',
   'admin.group.integration': 'Integrations',

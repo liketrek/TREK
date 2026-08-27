@@ -40,6 +40,25 @@ You can also type any XYZ tile URL directly into the text field.
 
 > **Admin:** The admin can set a default map tile URL for all new users via the **User Defaults** tab in the Admin Panel. See [Admin-Panel-Overview](Admin-Panel-Overview).
 
+## CARTO API key
+
+Since 26 August 2026 CARTO stamps an **API KEY REQUIRED** watermark onto every basemap tile fetched without a key, so
+both CartoDB presets need one. The key is free and no CARTO account is required: request it at
+[carto.com/basemaps/apikey](https://carto.com/basemaps/apikey/) with an email address, the domain you run TREK on and
+a one-line description of your project. It arrives by mail, there is no approval queue. The free allowance is 5
+million tile requests per calendar month.
+
+Paste it into **CARTO API key** in Settings, Map. TREK appends it as `?key=...` to every CARTO tile request, which
+covers the Trip Planner, Journey maps, Collections, Atlas, Studio and the offline tile download in one go. The key is
+never stored inside the tile URL itself, so switching keys later does not break a saved template.
+
+> **Admin:** **User Defaults** in the Admin Panel has the same field as **Shared CARTO key**. It applies to every user
+> who has not entered one of their own, which clears the watermark for the whole instance at once. It is stored
+> encrypted at rest.
+
+Other providers are unaffected. If you would rather not register at all, switch the template to OpenStreetMap, which
+needs no key. Note that the OSM tile servers do not permit bulk pre-downloading, so offline maps stay a CARTO feature.
+
 ## Mapbox GL — access token and style
 
 Enter your **public token** (`pk.*`) from [mapbox.com → Access tokens](https://console.mapbox.com/account/access-tokens/).

@@ -34,6 +34,11 @@ const settings: TranslationStrings = {
   'settings.mapMapboxToken': 'Mapbox Access Token',
   'settings.mapMapboxTokenHint': 'Openbaar token (pk.*) van',
   'settings.mapMapboxTokenLink': 'mapbox.com → Access tokens',
+  'settings.mapCartoKey': 'CARTO API-sleutel',
+  'settings.mapCartoKeyHint': 'CARTO-basiskaarten tonen zonder sleutel een watermerk. Gratis en zonder account, via',
+  'settings.mapCartoKeyLink': 'carto.com basemap API-sleutel',
+  'settings.mapCartoKeyMissing':
+    'Deze sjabloon is een CARTO-basiskaart. Zonder sleutel drukt CARTO "API KEY REQUIRED" op elke tegel.',
   'settings.mapStyle': 'Kaartstijl',
   'settings.mapStylePlaceholder': 'Kies een Mapbox-stijl',
   'settings.mapStyleHint': 'Preset of eigen mapbox://styles/USER/ID URL',

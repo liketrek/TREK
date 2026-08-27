@@ -19,7 +19,7 @@ import { createElement, useEffect, useRef } from 'react';
 import { renderIconMarkup } from '../utils/iconMarkup';
 import { MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import { getCategoryIcon } from '../components/shared/categoryIcons';
-import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../constants/mapDefaults';
+import { CARTO_LIGHT, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../constants/mapDefaults';
 import { SUPPORTED_LANGUAGES, useTranslation } from '../i18n';
 import { useSettingsStore } from '../store/settingsStore';
 import { avatarSrc } from '../utils/avatarSrc';
@@ -29,6 +29,7 @@ import { isDayInAccommodationRange } from '../utils/dayOrder';
 import { getFlightLegs, getTrainLegs } from '../utils/flightLegs';
 import { splitReservationDateTime } from '../utils/formatters';
 import { computeMapViewport, TILE_SIZE_RASTER } from '../utils/mapViewport';
+import { resolveTileUrl } from '../utils/tileUrl';
 import { useSharedTrip } from './sharedTrip/useSharedTrip';
 
 const TRANSPORT_ICONS = { flight: Plane, train: Train, bus: Bus, car: Car, cruise: Ship };
@@ -150,6 +151,7 @@ export default function SharedTripPage() {
     categories,
     permissions,
     collab,
+    cartoApiKey,
   } = data;
   const sortedDays = [...(days || [])].sort((a: any, b: any) => a.day_number - b.day_number);
 
@@ -182,6 +184,10 @@ export default function SharedTripPage() {
     padding: { top: 40, right: 40, bottom: 40, left: 40 },
   });
   const initialView = framed ?? { center: DEFAULT_MAP_CENTER, zoom: DEFAULT_MAP_ZOOM };
+
+  // A visitor of a share link has no settings of their own, so the key travels in
+  // the payload; without it CARTO stamps "API KEY REQUIRED" across every tile.
+  const tileUrl = resolveTileUrl(null, CARTO_LIGHT, cartoApiKey);
 
   return (
     <div className="bg-surface-secondary" style={{ minHeight: '100vh', fontFamily: 'var(--font-system)' }}>
@@ -482,7 +488,7 @@ export default function SharedTripPage() {
                 style={{ width: '100%', height: '100%' }}
               >
                 <TileLayer
-                  url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                  url={tileUrl}
                   referrerPolicy="strict-origin-when-cross-origin"
                 />
                 <FitBoundsToPlaces places={mapPlaces} framedOnMount={framed !== null} />

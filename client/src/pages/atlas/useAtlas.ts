@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState, useRef } from 'react'
 import { useNavigate } from 'react-router'
 import { getIntlLanguage, getLocaleForLanguage, useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useTileUrl } from '../../hooks/useTileUrl'
+import { CARTO_DARK_NOLABELS, CARTO_LIGHT_NOLABELS } from '../../constants/mapDefaults'
 import apiClient, { mapsApi, pluginsApi, type PluginAtlasLayer } from '../../api/client'
 import L from 'leaflet'
 import type { GeoJsonFeatureCollection } from '../../types'
@@ -79,6 +81,9 @@ export function useAtlas() {
   const resolveName = useCountryNames(language)
   const dm = settings.dark_mode
   const dark = dm === true || dm === 'dark' || (dm === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  // Label-free tiles on purpose (the country fills carry the names here), so the
+  // user's own template is deliberately not read, only their CARTO key.
+  const tileUrl = useTileUrl(dark ? CARTO_DARK_NOLABELS : CARTO_LIGHT_NOLABELS, true)
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<L.Map | null>(null)
   const geoLayerRef = useRef<L.GeoJSON | null>(null)
@@ -362,10 +367,6 @@ export function useAtlas() {
 
     L.control.zoom({ position: 'bottomright' }).addTo(map)
 
-    const tileUrl = dark
-      ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
-
     L.tileLayer(tileUrl, {
       maxZoom: 10,
       keepBuffer: 25,
@@ -443,7 +444,7 @@ export function useAtlas() {
       regionLayerRef.current = null
       renderedRegionSigRef.current = ''
     }
-  }, [dark, loading])
+  }, [dark, loading, tileUrl])
 
   // Render GeoJSON countries
   useEffect(() => {

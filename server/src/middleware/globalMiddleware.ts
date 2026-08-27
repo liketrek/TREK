@@ -38,15 +38,23 @@ export const SENSITIVE_KEYS = new Set([
  */
 const SENSITIVE_SUFFIXES = ['_token', '_key', '_secret', '_password', '_pass', '_verifier'];
 
+function isSensitiveName(name: string): boolean {
+  const lower = name.toLowerCase();
+  return SENSITIVE_KEYS.has(lower) || SENSITIVE_SUFFIXES.some((suffix) => lower.endsWith(suffix));
+}
+
 /** Deep-redacts every key in `SENSITIVE_KEYS` (case-insensitive) from a request-log value. */
 export function redact(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value;
   if (Array.isArray(value)) return (value as unknown[]).map(redact);
+  const entries = value as Record<string, unknown>;
+  // PUT /api/settings names the setting instead of using it as the field:
+  // {key: 'carto_api_key', value: '<secret>'}. Neither field name is sensitive
+  // on its own, so without this the secret goes into the debug log in cleartext.
+  const namedSecret = typeof entries.key === 'string' && isSensitiveName(entries.key);
   const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-    const lower = k.toLowerCase();
-    const sensitive = SENSITIVE_KEYS.has(lower) || SENSITIVE_SUFFIXES.some((suffix) => lower.endsWith(suffix));
-    out[k] = sensitive ? '[REDACTED]' : redact(v);
+  for (const [k, v] of Object.entries(entries)) {
+    out[k] = isSensitiveName(k) || (namedSecret && k === 'value') ? '[REDACTED]' : redact(v);
   }
   return out;
 }
@@ -181,7 +189,10 @@ export function applyGlobalMiddleware(
           "https://nominatim.openstreetmap.org", "https://overpass-api.de",
           "https://places.googleapis.com", "https://api.openweathermap.org",
           "https://en.wikipedia.org", "https://commons.wikimedia.org",
-          "https://*.basemaps.cartocdn.com",
+          // Both forms here too: CARTO documents the apex host on its key page,
+          // so that is the template users paste in, and the {s} sharded form is
+          // what TREK ships (#2054).
+          "https://basemaps.cartocdn.com", "https://*.basemaps.cartocdn.com",
           // Both forms: a CSP wildcard host never matches the apex, and OSM
           // serves everything from the bare tile.openstreetmap.org since it
           // retired the a/b/c/d shards (#1733). The sharded hosts stay listed

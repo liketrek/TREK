@@ -22,3 +22,37 @@ export function normalizeTileUrl(url: string): string {
   if (!url) return url
   return url.replace(OSM_SHARD, '$1tile.openstreetmap.org')
 }
+
+/**
+ * CARTO started watermarking keyless basemap tiles on 26.08.2026 (#2054). The
+ * key rides along as a `?key=` query parameter, which every template engine in
+ * the client passes through untouched, so it is appended here rather than baked
+ * into the stored template: a saved URL stays portable and survives a key
+ * change. Only CARTO hosts are touched; OSM and self-hosted templates are not.
+ */
+const CARTO_HOST = /^(?:\{s\}|[a-d])?\.?basemaps\.cartocdn\.com$/i
+
+function templateHost(url: string): string {
+  return url.replace(/^\w*:?\/\//, '').split(/[/?#]/)[0]
+}
+
+export function withTileApiKey(url: string, key?: string | null): string {
+  if (!url || !key) return url
+  if (!CARTO_HOST.test(templateHost(url))) return url
+  if (/[?&]key=/.test(url)) return url
+  return `${url}${url.includes('?') ? '&' : '?'}key=${encodeURIComponent(key)}`
+}
+
+/** Keeps the key out of anything we persist: stored templates, book documents. */
+export function stripTileApiKey(url: string): string {
+  if (!url || !/[?&]key=/.test(url)) return url
+  return url.replace(/([?&])key=[^&]*&?/, '$1').replace(/[?&]$/, '')
+}
+
+/**
+ * A blank template means "not configured", not "no tiles": the settings
+ * previews save an empty string and would otherwise render grey.
+ */
+export function resolveTileUrl(template: string | null | undefined, fallback: string, cartoKey?: string | null): string {
+  return withTileApiKey(normalizeTileUrl(template?.trim() || fallback), cartoKey)
+}

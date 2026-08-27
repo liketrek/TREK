@@ -27,6 +27,8 @@ interface Props {
   onAddEntry?: () => void
   publicPhotoUrl?: (photoId: number) => string
   carouselBottom?: string
+  /** CARTO key from the share payload, forwarded to the map (#2054). */
+  cartoApiKey?: string
 }
 
 export default function MobileMapTimeline({
@@ -40,6 +42,7 @@ export default function MobileMapTimeline({
   onAddEntry,
   publicPhotoUrl,
   carouselBottom = 'calc(var(--bottom-nav-h, 84px) + 8px)',
+  cartoApiKey,
 }: Props) {
   const mapRef = useRef<JourneyMapHandle>(null)
   const carouselRef = useRef<HTMLDivElement>(null)
@@ -168,6 +171,7 @@ export default function MobileMapTimeline({
           dark={dark}
           onMarkerClick={handleMarkerClick}
           fullScreen
+          cartoApiKey={cartoApiKey}
         />
         {!readOnly && onAddEntry && (
           <div className="fixed right-4 z-30" style={{ bottom: 'calc(var(--bottom-nav-h, 84px) + 16px)' }}>
@@ -201,6 +205,7 @@ export default function MobileMapTimeline({
         onMarkerClick={handleMarkerClick}
         fullScreen
         paddingBottom={200}
+        cartoApiKey={cartoApiKey}
       />
 
       {/* Bottom carousel */}

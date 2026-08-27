@@ -33,6 +33,12 @@ const settings: TranslationStrings = {
   'settings.mapMapboxToken': "Jeton d'accès Mapbox",
   'settings.mapMapboxTokenHint': 'Jeton public (pk.*) depuis',
   'settings.mapMapboxTokenLink': "mapbox.com → Jetons d'accès",
+  'settings.mapCartoKey': "Clé d'API CARTO",
+  'settings.mapCartoKeyHint':
+    'Les fonds de carte CARTO affichent un filigrane sans clé. Gratuite et sans compte, depuis',
+  'settings.mapCartoKeyLink': "clé d'API de fonds de carte carto.com",
+  'settings.mapCartoKeyMissing':
+    'Ce modèle est un fond de carte CARTO. Sans clé, CARTO appose "API KEY REQUIRED" sur chaque tuile.',
   'settings.mapStyle': 'Style de carte',
   'settings.mapStylePlaceholder': 'Sélectionner un style Mapbox',
   'settings.mapStyleHint': 'Preset ou votre propre URL mapbox://styles/USER/ID',

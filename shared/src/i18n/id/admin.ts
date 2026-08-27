@@ -696,6 +696,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Pilih gaya…',
   'admin.defaultSettings.mapbox3d': 'Bangunan & medan 3D',
   'admin.defaultSettings.mapboxQuality': 'Mode kualitas tinggi',
+  'admin.defaultSettings.cartoKey': 'Kunci CARTO bersama',
+  'admin.defaultSettings.cartoKeyHint':
+    'Digunakan untuk setiap pengguna yang belum memasukkan kunci mereka sendiri, sehingga seluruh instance mendapatkan ubin CARTO tanpa tanda air. Disimpan dalam bentuk terenkripsi.',
   'admin.group.users': 'Users',
   'admin.group.config': 'Configuration',
   'admin.group.integration': 'Integrations',

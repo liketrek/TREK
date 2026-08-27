@@ -693,6 +693,9 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapboxStylePlaceholder': 'Stil auswählen…',
   'admin.defaultSettings.mapbox3d': '3D-Gebäude & Gelände',
   'admin.defaultSettings.mapboxQuality': 'Hochqualitätsmodus',
+  'admin.defaultSettings.cartoKey': 'Gemeinsamer CARTO-Key',
+  'admin.defaultSettings.cartoKeyHint':
+    'Wird für jeden Nutzer verwendet, der keinen eigenen Key eingetragen hat, damit die ganze Instanz CARTO-Kacheln ohne Wasserzeichen bekommt. Verschlüsselt gespeichert.',
   'admin.group.users': 'Benutzer',
   'admin.group.config': 'Konfiguration',
   'admin.group.integration': 'Integrationen',

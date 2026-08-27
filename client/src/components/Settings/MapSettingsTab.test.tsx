@@ -1,4 +1,4 @@
-// FE-COMP-MAP-001 to FE-COMP-MAP-030
+// FE-COMP-MAP-001 to FE-COMP-MAP-035
 import { render, screen, waitFor, within, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { useAuthStore } from '../../store/authStore';
@@ -348,5 +348,74 @@ describe('MapSettingsTab – GL providers', () => {
     await user.click(await screen.findByText('CartoDB Dark'));
 
     expect(screen.getByDisplayValue('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png')).toBeInTheDocument();
+  });
+});
+
+// ── CARTO key (031–035) ─────────────────────────────────────────────
+
+const CARTO_DARK_TILES = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+
+/** The key input sits under its label inside the field's own wrapper. */
+function cartoInput(): HTMLInputElement {
+  return within(screen.getByText('CARTO API key').closest('div') as HTMLElement).getByRole('textbox');
+}
+
+describe('MapSettingsTab – CARTO key', () => {
+  it('FE-COMP-MAP-031: the key field belongs to Leaflet and goes away with the GL providers', async () => {
+    const user = userEvent.setup();
+    render(<MapSettingsTab />);
+
+    expect(screen.getByText('CARTO API key')).toBeInTheDocument();
+
+    await user.click(screen.getByText('Mapbox GL'));
+
+    expect(screen.queryByText('CARTO API key')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-MAP-032: a managed instance brings its own key, so the field is hidden', () => {
+    seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true, managed: true });
+    render(<MapSettingsTab />);
+
+    expect(screen.queryByText('CARTO API key')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-MAP-033: the typed key is part of the save patch', async () => {
+    const user = userEvent.setup();
+    const updateSettings = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, {
+      settings: buildSettings({ map_tile_url: CARTO_DARK_TILES }),
+      updateSettings,
+    });
+    render(<MapSettingsTab />);
+
+    await user.type(cartoInput(), 'demo-key');
+    await user.click(screen.getByText('Save Map'));
+
+    expect(updateSettings).toHaveBeenCalledWith(expect.objectContaining({ carto_api_key: 'demo-key' }));
+  });
+
+  it('FE-COMP-MAP-034: a CARTO template without a key explains the watermark until one is typed', async () => {
+    const user = userEvent.setup();
+    seedStore(useSettingsStore, {
+      settings: buildSettings({ map_tile_url: CARTO_DARK_TILES }),
+      updateSettings: vi.fn().mockResolvedValue(undefined),
+    });
+    render(<MapSettingsTab />);
+
+    expect(screen.getByText(/API KEY REQUIRED/)).toBeInTheDocument();
+
+    await user.type(cartoInput(), 'demo-key');
+
+    expect(screen.queryByText(/API KEY REQUIRED/)).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-MAP-035: a template on another host never gets that notice', () => {
+    seedStore(useSettingsStore, {
+      settings: buildSettings({ map_tile_url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' }),
+      updateSettings: vi.fn().mockResolvedValue(undefined),
+    });
+    render(<MapSettingsTab />);
+
+    expect(screen.queryByText(/API KEY REQUIRED/)).not.toBeInTheDocument();
   });
 });
