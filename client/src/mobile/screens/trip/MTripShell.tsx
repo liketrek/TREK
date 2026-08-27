@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react'
-import { findTodayDayId } from '../../../components/Planner/today'
+import { findRelevantDayId } from '../../../components/Planner/today'
 import {
   ChevronDown, ChevronLeft, Download, FileDown, List, Map as MapIcon, MoreHorizontal, PackageCheck,
   Plane, Plus, Rows3, Ticket, TrainFront, Trash2, Upload, Wallet,
@@ -199,16 +199,19 @@ export default function MTripShell({
   const [openFilesTrashSignal, setOpenFilesTrashSignal] = useState(0)
 
   // The mobile plan is single-day: make sure a day is active once days arrive.
-  // Only seed once so an intentional deselect elsewhere is not fought. When the
-  // trip is currently running, open on today's day instead of day 1 so you don't
-  // have to tap the current day every time; otherwise fall back to the first day.
+  // Only seed once so an intentional deselect elsewhere is not fought. Open on
+  // today, the next dated day, or the final dated day after the trip; undated
+  // itineraries retain the historical first-day fallback.
   const seededDayRef = useRef(false)
   useEffect(() => {
-    if (seededDayRef.current || planner.selectedDayId != null || days.length === 0) return
+    if (seededDayRef.current) return
+    if (planner.selectedDayId != null) {
+      seededDayRef.current = true
+      return
+    }
+    if (days.length === 0) return
     seededDayRef.current = true
-    // Same rule as the desktop day plan (#1567), off the same helper so the two
-    // cannot drift on what "today" means.
-    planner.tripActions.setSelectedDay(findTodayDayId(days) ?? days[0].id)
+    planner.tripActions.setSelectedDay(findRelevantDayId(days) ?? days[0].id)
   }, [planner.selectedDayId, days, planner.tripActions])
 
   const trTab = planner.activeTab

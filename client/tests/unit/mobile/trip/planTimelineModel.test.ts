@@ -11,7 +11,7 @@ import type {
   Accommodation, Assignment, Day, DayNote, Reservation, RouteSegment, TranslationFn,
 } from '../../../../src/types'
 
-// FE-MOB-PTLM-001 to FE-MOB-PTLM-043
+// FE-MOB-PTLM-001 to FE-MOB-PTLM-045
 
 const DAYS = [
   { id: 1, trip_id: 1, day_number: 1, date: '2026-05-01', title: null },
@@ -343,18 +343,33 @@ describe('planTimelineModel — findUpNext', () => {
     const up = findUpNext(DAY2, [late, early, noon], new Date(2026, 4, 2, 10, 15))
     expect(up?.assignment.id).toBe(12)
     expect(up?.minutesUntil).toBe(45)
+    expect(up?.displayTime).toBe('11:00')
   })
 
-  it('FE-MOB-PTLM-033: falls back to the first timed stop once the day is over', () => {
-    const up = findUpNext(DAY2, [early, noon, late], new Date(2026, 4, 2, 23, 30))
+  it('FE-MOB-PTLM-033: returns no stale up-next stop once today\'s timed plan is over', () => {
+    expect(findUpNext(DAY2, [early, noon, late], new Date(2026, 4, 2, 23, 30))).toBeNull()
+  })
+
+  it('FE-MOB-PTLM-044: prefers the assignment time override to the place default', () => {
+    const overridden = {
+      ...early,
+      assignment_time: '14:30',
+    } as Assignment
+    const up = findUpNext(DAY2, [overridden], new Date(2026, 4, 2, 13, 0))
     expect(up?.assignment.id).toBe(11)
-    expect(up?.minutesUntil).toBeNull()
+    expect(up?.minutesUntil).toBe(90)
+    expect(up?.displayTime).toBe('14:30')
   })
 
   it('FE-MOB-PTLM-034: never counts down on a day that is not today', () => {
     const up = findUpNext(DAY2, [late, noon, early], new Date(2026, 4, 1, 8, 0))
     expect(up?.assignment.id).toBe(11)
     expect(up?.minutesUntil).toBeNull()
+    expect(up?.displayTime).toBe('09:00')
+  })
+
+  it('FE-MOB-PTLM-045: hides stale up-next content for a past day', () => {
+    expect(findUpNext(DAY2, [late, noon, early], new Date(2026, 4, 3, 8, 0))).toBeNull()
   })
 
   it('FE-MOB-PTLM-035: uses the manual order when no stop carries a time', () => {

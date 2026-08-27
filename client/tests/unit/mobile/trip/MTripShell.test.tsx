@@ -64,16 +64,17 @@ function renderShell(overrides: Partial<TripPlanner> = {}) {
     TRIP_TABS,
     ...overrides,
   } as Partial<TripPlanner>)
-  const view = render(
+  const Shell = () => (
     <MTripShell
       PlanTimeline={slot('plan-timeline')}
       MapArea={slot('map-area')}
       PlacesBrowser={slot('places-browser')}
       TabPanel={TabSlot}
       Sheets={slot('sheets')}
-    />,
+    />
   )
-  return { ...view, planner: mocks.planner }
+  const view = render(<Shell />)
+  return { ...view, planner: mocks.planner, rerenderShell: () => view.rerender(<Shell />) }
 }
 
 const spy = (planner: TripPlanner, name: keyof TripPlanner) =>
@@ -115,13 +116,17 @@ describe('MTripShell', () => {
     expect(planner.tripActions.setSelectedDay).toHaveBeenCalledWith(12)
   })
 
-  it('FE-MOB-SHELL-005: falls back to the first day when the trip is not running', () => {
-    const { planner } = renderShell({ selectedDayId: null } as Partial<TripPlanner>)
-    expect(planner.tripActions.setSelectedDay).toHaveBeenCalledWith(11)
+  it('FE-MOB-SHELL-005: selects the final dated day after the trip has ended', () => {
+    const endedDays = DAYS.map((day, index) => ({ ...day, date: `2000-05-0${index + 2}` }))
+    const { planner } = renderShell({ selectedDayId: null, days: endedDays } as Partial<TripPlanner>)
+    expect(planner.tripActions.setSelectedDay).toHaveBeenCalledWith(12)
   })
 
-  it('FE-MOB-SHELL-006: leaves an existing day selection alone', () => {
-    const { planner } = renderShell()
+  it('FE-MOB-SHELL-006: leaves an existing and later-cleared day selection alone', () => {
+    const { planner, rerenderShell } = renderShell()
+    expect(planner.tripActions.setSelectedDay).not.toHaveBeenCalled()
+    planner.selectedDayId = null
+    rerenderShell()
     expect(planner.tripActions.setSelectedDay).not.toHaveBeenCalled()
   })
 

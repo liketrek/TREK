@@ -239,19 +239,19 @@ describe('useMPlanTimeline', () => {
     expect(result.current.openTransitKeys.has('tr-61')).toBe(false)
   })
 
-  it('FE-MOB-PLTL-014: counts down on today and never on any other day', () => {
+  it('FE-MOB-PLTL-014: counts down on today and hides stale content for a past day', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 4, 2, 10, 15))
     const today = makePlanner({ assignments: { '2': [TIMED_EARLY, TIMED_LATE] } })
     const { result } = renderHook(() => useMPlanTimeline(today))
-    expect(result.current.upNext).toEqual({ assignment: TIMED_LATE, minutesUntil: 45 })
+    expect(result.current.upNext).toEqual({ assignment: TIMED_LATE, minutesUntil: 45, displayTime: '11:00' })
 
     const past = makePlanner({
       assignments: { '2': [TIMED_EARLY, TIMED_LATE] },
       days: DAYS.map(d => (d.id === 2 ? { ...d, date: '2026-04-30' } : d)),
     })
     const other = renderHook(() => useMPlanTimeline(past))
-    expect(other.result.current.upNext).toEqual({ assignment: TIMED_EARLY, minutesUntil: null })
+    expect(other.result.current.upNext).toBeNull()
   })
 
   it('FE-MOB-PLTL-015: re-evaluates the countdown on the half-minute tick', () => {
@@ -259,11 +259,11 @@ describe('useMPlanTimeline', () => {
     vi.setSystemTime(new Date(2026, 4, 2, 10, 0))
     const planner = makePlanner({ assignments: { '2': [TIMED_EARLY, TIMED_LATE] } })
     const { result } = renderHook(() => useMPlanTimeline(planner))
-    expect(result.current.upNext).toEqual({ assignment: TIMED_LATE, minutesUntil: 60 })
+    expect(result.current.upNext).toEqual({ assignment: TIMED_LATE, minutesUntil: 60, displayTime: '11:00' })
 
     vi.setSystemTime(new Date(2026, 4, 2, 11, 30))
     act(() => { vi.advanceTimersByTime(30_000) })
-    expect(result.current.upNext).toEqual({ assignment: TIMED_EARLY, minutesUntil: null })
+    expect(result.current.upNext).toBeNull()
   })
 
   it('FE-MOB-PLTL-016: reorders the day when a stop is moved down', async () => {

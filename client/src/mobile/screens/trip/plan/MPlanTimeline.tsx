@@ -246,7 +246,7 @@ function UpNextCard({ tl, t, onOpen }: {
   const upNext = tl.upNext
   if (!upNext) return null
   const place = upNext.assignment.place
-  const time = place?.place_time ? formatTime(place.place_time.slice(0, 5), tl.language, tl.timeFormat) : ''
+  const time = upNext.displayTime ? formatTime(upNext.displayTime.slice(0, 5), tl.language, tl.timeFormat) : ''
   const sub = place?.address || place?.description || ''
 
   return (

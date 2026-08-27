@@ -212,30 +212,46 @@ export interface UpNext {
   assignment: Assignment
   /** Minutes until the start time — only when the day is today and the stop is still ahead. */
   minutesUntil: number | null
+  /** Effective assignment time (assignment override first, then place default). */
+  displayTime: string | null
 }
 
 const localIsoDate = (d: Date): string =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
 /**
- * The "UP NEXT" pick: on today's day the first timed stop that hasn't started
- * yet (with a real countdown); otherwise the first timed stop of the day, or
- * simply the first stop. Null when the day has no places.
+ * The "UP NEXT" pick: nothing for a past dated day; on today's day the first
+ * timed stop that hasn't started yet (with a real countdown); otherwise the
+ * first timed stop of the day, or simply the first stop. Null when the day has
+ * no places or today's timed plan has already finished.
  */
 export function findUpNext(day: Day | undefined, dayAssignments: Assignment[], now: Date): UpNext | null {
   if (dayAssignments.length === 0) return null
   const sorted = [...dayAssignments].sort((a, b) => a.order_index - b.order_index)
-  const timeOf = (a: Assignment) => parseTimeToMinutes(a.place?.place_time)
-  const isToday = !!day?.date && day.date.slice(0, 10) === localIsoDate(now)
+  const displayTimeOf = (assignment: Assignment) => assignment.assignment_time || assignment.place?.place_time || null
+  const timeOf = (assignment: Assignment) => parseTimeToMinutes(displayTimeOf(assignment))
+  const today = localIsoDate(now)
+  const dayDate = day?.date?.slice(0, 10)
+  if (dayDate && dayDate < today) return null
+  const isToday = dayDate === today
+  const timed = sorted.filter(a => timeOf(a) != null).sort((a, b) => (timeOf(a) ?? 0) - (timeOf(b) ?? 0))
+
   if (isToday) {
     const nowMinutes = now.getHours() * 60 + now.getMinutes()
-    const upcoming = sorted
-      .filter(a => { const m = timeOf(a); return m != null && m >= nowMinutes })
-      .sort((a, b) => (timeOf(a) ?? 0) - (timeOf(b) ?? 0))
-    if (upcoming.length > 0) return { assignment: upcoming[0], minutesUntil: (timeOf(upcoming[0]) ?? 0) - nowMinutes }
+    const upcoming = timed.find(a => (timeOf(a) ?? 0) >= nowMinutes)
+    if (upcoming) {
+      return {
+        assignment: upcoming,
+        minutesUntil: (timeOf(upcoming) ?? 0) - nowMinutes,
+        displayTime: displayTimeOf(upcoming),
+      }
+    }
+    // Do not show the morning's first stop as "up next" after the timed plan is over.
+    if (timed.length > 0) return null
   }
-  const timed = sorted.filter(a => timeOf(a) != null).sort((a, b) => (timeOf(a) ?? 0) - (timeOf(b) ?? 0))
-  return { assignment: timed[0] ?? sorted[0], minutesUntil: null }
+
+  const assignment = timed[0] ?? sorted[0]
+  return { assignment, minutesUntil: null, displayTime: displayTimeOf(assignment) }
 }
 
 /** Whether a merged item carries its own time (places/notes) or display time (transports). */
