@@ -315,6 +315,14 @@ export const authApi = {
     create: (name: string) => apiClient.post('/auth/mcp-tokens', { name } satisfies McpTokenCreateRequest).then(r => r.data),
     delete: (id: number) => apiClient.delete(`/auth/mcp-tokens/${id}`).then(r => r.data),
   },
+  // Keys for the public API. Same shape as the MCP tokens above and a separate
+  // credential: one drives the assistant tools, the other reads trips over HTTP,
+  // and a key of the wrong kind is refused like one that does not exist.
+  apiKeys: {
+    list: () => apiClient.get('/auth/api-tokens').then(r => r.data),
+    create: (name: string) => apiClient.post('/auth/api-tokens', { name } satisfies McpTokenCreateRequest).then(r => r.data),
+    delete: (id: number) => apiClient.delete(`/auth/api-tokens/${id}`).then(r => r.data),
+  },
   passkey: {
     registerOptions: (password: string) => apiClient.post('/auth/passkey/register/options', { password }).then(r => r.data),
     registerVerify: (attestationResponse: unknown, name?: string) => apiClient.post('/auth/passkey/register/verify', { attestationResponse, name }).then(r => r.data),

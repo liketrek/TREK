@@ -519,6 +519,30 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutes': '예약 경로 항상 표시',
   'settings.alwaysShowRoutesHint':
     '항공편, 기차 등 모든 예약의 경로를 개별적으로 켤 필요 없이 지도에 자동으로 표시합니다.',
+
+  // Public API keys (Settings -> Integrations)
+  'settings.apiKeys.title': 'API 키',
+  'settings.apiKeys.description': '공개 API용 키입니다. 다른 소프트웨어가 여행을 읽을 수 있습니다. 읽기 전용이라 무엇도 바꾸거나 지울 수 없습니다.',
+  'settings.apiKeys.create': '키 만들기',
+  'settings.apiKeys.empty': '아직 키가 없습니다. 다른 소프트웨어를 연결하려면 하나 만드세요.',
+  'settings.apiKeys.createdAt': '생성일',
+  'settings.apiKeys.usedAt': '마지막 사용',
+  'settings.apiKeys.deleteTitle': '키 삭제',
+  'settings.apiKeys.deleteMessage': '이 키를 쓰는 모든 것이 즉시 작동을 멈춥니다. 되돌릴 수 없습니다.',
+  'settings.apiKeys.deleted': '키를 삭제했습니다',
+  'settings.apiKeys.deleteFailed': '키를 삭제하지 못했습니다',
+  'settings.apiKeys.createFailed': '키를 만들지 못했습니다',
+  'settings.apiKeys.copy': '복사',
+  'settings.apiKeys.docsHint': '키를 "Authorization: Bearer ..." 또는 "X-API-Key: ..." 로 /api/v1 에 보내세요.',
+  'settings.apiKeys.modal.createTitle': 'API 키 만들기',
+  'settings.apiKeys.modal.name': '이름',
+  'settings.apiKeys.modal.namePlaceholder': '예: Dawarich',
+  'settings.apiKeys.modal.nameHint': '나중에 키를 알아보기 위한, 본인용 이름입니다.',
+  'settings.apiKeys.modal.creating': '만드는 중...',
+  'settings.apiKeys.modal.create': '만들기',
+  'settings.apiKeys.modal.createdTitle': 'API 키를 만들었습니다',
+  'settings.apiKeys.modal.createdWarning': '지금 키를 복사하세요. 한 번만 표시되며 나중에 다시 확인할 수 없습니다.',
+  'settings.apiKeys.modal.done': '완료',
 };
 
 export default settings;

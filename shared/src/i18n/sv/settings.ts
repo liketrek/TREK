@@ -529,6 +529,30 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutes': 'Visa alltid bokningsrutter',
   'settings.alwaysShowRoutesHint':
     'Visar automatiskt rutten för varje flyg, tåg och annan bokning på kartan, utan att du behöver aktivera det för varje bokning för sig.',
+
+  // Public API keys (Settings -> Integrations)
+  'settings.apiKeys.title': 'API-nycklar',
+  'settings.apiKeys.description': 'Nycklar för det publika API:et, så att annan programvara kan läsa dina resor. Endast läsning: en nyckel kan inte ändra eller ta bort något.',
+  'settings.apiKeys.create': 'Skapa nyckel',
+  'settings.apiKeys.empty': 'Inga nycklar än. Skapa en för att koppla annan programvara.',
+  'settings.apiKeys.createdAt': 'skapad',
+  'settings.apiKeys.usedAt': 'senast använd',
+  'settings.apiKeys.deleteTitle': 'Ta bort nyckel',
+  'settings.apiKeys.deleteMessage': 'Allt som använder den här nyckeln slutar fungera direkt. Det går inte att ångra.',
+  'settings.apiKeys.deleted': 'Nyckeln togs bort',
+  'settings.apiKeys.deleteFailed': 'Kunde inte ta bort nyckeln',
+  'settings.apiKeys.createFailed': 'Kunde inte skapa nyckeln',
+  'settings.apiKeys.copy': 'Kopiera',
+  'settings.apiKeys.docsHint': 'Skicka nyckeln som "Authorization: Bearer ..." eller "X-API-Key: ..." till /api/v1.',
+  'settings.apiKeys.modal.createTitle': 'Skapa API-nyckel',
+  'settings.apiKeys.modal.name': 'Namn',
+  'settings.apiKeys.modal.namePlaceholder': 't.ex. Dawarich',
+  'settings.apiKeys.modal.nameHint': 'Bara för dig, så att du känner igen nyckeln senare.',
+  'settings.apiKeys.modal.creating': 'Skapar...',
+  'settings.apiKeys.modal.create': 'Skapa',
+  'settings.apiKeys.modal.createdTitle': 'API-nyckel skapad',
+  'settings.apiKeys.modal.createdWarning': 'Kopiera nyckeln nu. Den visas en gång och kan inte hämtas senare.',
+  'settings.apiKeys.modal.done': 'Klar',
 };
 
 export default settings;

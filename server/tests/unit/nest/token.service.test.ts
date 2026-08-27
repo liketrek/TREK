@@ -151,6 +151,92 @@ describe('MCP token service', () => {
 });
 
 // ---------------------------------------------------------------------------
+// API keys — the same table, a different door
+//
+// An MCP token drives every assistant tool; an API key reads trips over HTTP.
+// The kind is in the WHERE clause of every lookup, so these tests are the ones
+// that would catch a credential quietly opening the wrong surface.
+// ---------------------------------------------------------------------------
+
+describe('API key service', () => {
+  it('TOKEN-010: an API key does not verify as an MCP token', () => {
+    const { user } = createUser(testDb);
+    const created = svc.createApiToken(user.id, 'dawarich');
+    const raw = (created.token as { raw_token: string }).raw_token;
+
+    expect(svc.verifyApiToken(raw)?.id).toBe(user.id);
+    expect(svc.verifyMcpToken(raw)).toBeNull();
+  });
+
+  it('TOKEN-011: an MCP token does not verify as an API key', () => {
+    const { user } = createUser(testDb);
+    const created = svc.createMcpToken(user.id, 'claude');
+    const raw = (created.token as { raw_token: string }).raw_token;
+
+    expect(svc.verifyMcpToken(raw)?.id).toBe(user.id);
+    expect(svc.verifyApiToken(raw)).toBeNull();
+  });
+
+  it('TOKEN-012: each list shows only its own kind', () => {
+    const { user } = createUser(testDb);
+    svc.createMcpToken(user.id, 'claude');
+    svc.createApiToken(user.id, 'dawarich');
+
+    const mcp = svc.listMcpTokens(user.id) as Record<string, unknown>[];
+    const api = svc.listApiTokens(user.id) as Record<string, unknown>[];
+    expect(mcp.map((t) => t.name)).toEqual(['claude']);
+    expect(api.map((t) => t.name)).toEqual(['dawarich']);
+  });
+
+  it('TOKEN-013: deleting across kinds 404s, identically to an unknown id', () => {
+    const { user } = createUser(testDb);
+    const mcpId = String((svc.createMcpToken(user.id, 'claude').token as { id: number }).id);
+    const apiId = String((svc.createApiToken(user.id, 'dawarich').token as { id: number }).id);
+
+    expect(svc.deleteApiToken(user.id, mcpId)).toEqual({ error: 'Token not found', status: 404 });
+    expect(svc.deleteMcpToken(user.id, apiId)).toEqual({ error: 'Token not found', status: 404 });
+    // Neither row was touched: a wrong-kind delete must not be a way to revoke
+    // someone's assistant access from the API-key screen.
+    expect(testDb.prepare('SELECT id FROM mcp_tokens WHERE id = ?').get(mcpId)).toBeDefined();
+    expect(testDb.prepare('SELECT id FROM mcp_tokens WHERE id = ?').get(apiId)).toBeDefined();
+  });
+
+  it('TOKEN-014: the ten-token ceiling counts each kind on its own', () => {
+    const { user } = createUser(testDb);
+    for (let i = 0; i < 10; i += 1) svc.createMcpToken(user.id, `mcp-${i}`);
+
+    expect(svc.createMcpToken(user.id, 'one-too-many').status).toBe(400);
+    // A full MCP shelf must not lock the user out of minting an API key.
+    expect(svc.createApiToken(user.id, 'dawarich').status).toBeUndefined();
+  });
+
+  it('TOKEN-015: an API key is stored hashed, with only a prefix in the clear', () => {
+    const { user } = createUser(testDb);
+    const created = svc.createApiToken(user.id, 'dawarich');
+    const raw = (created.token as { raw_token: string }).raw_token;
+
+    const row = testDb
+      .prepare('SELECT token_hash, token_prefix, kind FROM mcp_tokens WHERE user_id = ?')
+      .get(user.id) as { token_hash: string; token_prefix: string; kind: string };
+    expect(row.kind).toBe('api');
+    expect(row.token_hash).not.toBe(raw);
+    expect(raw.startsWith(row.token_prefix)).toBe(true);
+  });
+
+  it('TOKEN-016: verifying an API key records last_used_at, so a stale key is visible', () => {
+    const { user } = createUser(testDb);
+    const raw = (svc.createApiToken(user.id, 'dawarich').token as { raw_token: string }).raw_token;
+
+    const before = svc.listApiTokens(user.id) as Record<string, unknown>[];
+    expect(before[0].last_used_at).toBeNull();
+
+    svc.verifyApiToken(raw);
+    const after = svc.listApiTokens(user.id) as Record<string, unknown>[];
+    expect(after[0].last_used_at).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // MCP tokens — the admin half
 //
 // Same table, no user scope. These came from AdminService, which only owned

@@ -534,6 +534,30 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutes': 'Всегда показывать маршруты бронирований',
   'settings.alwaysShowRoutesHint':
     'Автоматически показывает на карте маршрут для каждого рейса, поезда и другого бронирования — без необходимости включать это отдельно для каждого элемента.',
+
+  // Public API keys (Settings -> Integrations)
+  'settings.apiKeys.title': 'Ключи API',
+  'settings.apiKeys.description': 'Ключи для публичного API, чтобы другие программы могли читать ваши поездки. Только чтение: ключ ничего не изменит и не удалит.',
+  'settings.apiKeys.create': 'Создать ключ',
+  'settings.apiKeys.empty': 'Ключей пока нет. Создайте один, чтобы подключить другую программу.',
+  'settings.apiKeys.createdAt': 'создан',
+  'settings.apiKeys.usedAt': 'последнее использование',
+  'settings.apiKeys.deleteTitle': 'Удалить ключ',
+  'settings.apiKeys.deleteMessage': 'Всё, что использует этот ключ, сразу перестанет работать. Отменить нельзя.',
+  'settings.apiKeys.deleted': 'Ключ удалён',
+  'settings.apiKeys.deleteFailed': 'Не удалось удалить ключ',
+  'settings.apiKeys.createFailed': 'Не удалось создать ключ',
+  'settings.apiKeys.copy': 'Копировать',
+  'settings.apiKeys.docsHint': 'Отправляйте ключ как "Authorization: Bearer ..." или "X-API-Key: ..." на /api/v1.',
+  'settings.apiKeys.modal.createTitle': 'Создать ключ API',
+  'settings.apiKeys.modal.name': 'Название',
+  'settings.apiKeys.modal.namePlaceholder': 'например, Dawarich',
+  'settings.apiKeys.modal.nameHint': 'Только для вас, чтобы позже узнать ключ.',
+  'settings.apiKeys.modal.creating': 'Создание...',
+  'settings.apiKeys.modal.create': 'Создать',
+  'settings.apiKeys.modal.createdTitle': 'Ключ API создан',
+  'settings.apiKeys.modal.createdWarning': 'Скопируйте ключ сейчас. Он показывается один раз, позже получить его нельзя.',
+  'settings.apiKeys.modal.done': 'Готово',
 };
 
 export default settings;

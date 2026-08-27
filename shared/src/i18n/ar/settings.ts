@@ -516,6 +516,30 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutes': 'إظهار مسارات الحجوزات دائمًا',
   'settings.alwaysShowRoutesHint':
     'يعرض تلقائيًا مسار كل رحلة طيران وقطار وحجز آخر على الخريطة، دون الحاجة إلى تفعيله لكل عنصر على حدة.',
+
+  // Public API keys (Settings -> Integrations)
+  'settings.apiKeys.title': 'مفاتيح API',
+  'settings.apiKeys.description': 'مفاتيح لواجهة API العامة، حتى تتمكن برامج أخرى من قراءة رحلاتك. للقراءة فقط: لا يمكن للمفتاح تغيير أي شيء أو حذفه.',
+  'settings.apiKeys.create': 'إنشاء مفتاح',
+  'settings.apiKeys.empty': 'لا توجد مفاتيح بعد. أنشئ مفتاحًا لربط برامج أخرى.',
+  'settings.apiKeys.createdAt': 'أُنشئ',
+  'settings.apiKeys.usedAt': 'آخر استخدام',
+  'settings.apiKeys.deleteTitle': 'حذف المفتاح',
+  'settings.apiKeys.deleteMessage': 'كل ما يستخدم هذا المفتاح سيتوقف فورًا. لا يمكن التراجع عن ذلك.',
+  'settings.apiKeys.deleted': 'تم حذف المفتاح',
+  'settings.apiKeys.deleteFailed': 'تعذّر حذف المفتاح',
+  'settings.apiKeys.createFailed': 'تعذّر إنشاء المفتاح',
+  'settings.apiKeys.copy': 'نسخ',
+  'settings.apiKeys.docsHint': 'أرسل المفتاح بصيغة "Authorization: Bearer ..." أو "X-API-Key: ..." إلى /api/v1.',
+  'settings.apiKeys.modal.createTitle': 'إنشاء مفتاح API',
+  'settings.apiKeys.modal.name': 'الاسم',
+  'settings.apiKeys.modal.namePlaceholder': 'مثال: Dawarich',
+  'settings.apiKeys.modal.nameHint': 'لك وحدك، لتتعرّف على المفتاح لاحقًا.',
+  'settings.apiKeys.modal.creating': 'جارٍ الإنشاء...',
+  'settings.apiKeys.modal.create': 'إنشاء',
+  'settings.apiKeys.modal.createdTitle': 'تم إنشاء مفتاح API',
+  'settings.apiKeys.modal.createdWarning': 'انسخ المفتاح الآن. يُعرض مرة واحدة فقط ولا يمكن استرجاعه لاحقًا.',
+  'settings.apiKeys.modal.done': 'تم',
 };
 
 export default settings;

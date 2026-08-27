@@ -496,6 +496,30 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.status': '結果',
   'settings.alwaysShowRoutes': '一律顯示訂票路線',
   'settings.alwaysShowRoutesHint': '自動在地圖上顯示每個航班、火車及其他預訂的路線,不需要逐一手動開啟。',
+
+  // Public API keys (Settings -> Integrations)
+  'settings.apiKeys.title': 'API 金鑰',
+  'settings.apiKeys.description': '公開 API 的金鑰，讓其他軟體讀取你的行程。唯讀：金鑰無法修改或刪除任何內容。',
+  'settings.apiKeys.create': '建立金鑰',
+  'settings.apiKeys.empty': '尚無金鑰。建立一組即可連接其他軟體。',
+  'settings.apiKeys.createdAt': '建立於',
+  'settings.apiKeys.usedAt': '最近使用',
+  'settings.apiKeys.deleteTitle': '刪除金鑰',
+  'settings.apiKeys.deleteMessage': '使用這組金鑰的一切都會立即停止運作，且無法復原。',
+  'settings.apiKeys.deleted': '金鑰已刪除',
+  'settings.apiKeys.deleteFailed': '無法刪除金鑰',
+  'settings.apiKeys.createFailed': '無法建立金鑰',
+  'settings.apiKeys.copy': '複製',
+  'settings.apiKeys.docsHint': '將金鑰以 "Authorization: Bearer ..." 或 "X-API-Key: ..." 傳送到 /api/v1。',
+  'settings.apiKeys.modal.createTitle': '建立 API 金鑰',
+  'settings.apiKeys.modal.name': '名稱',
+  'settings.apiKeys.modal.namePlaceholder': '例如 Dawarich',
+  'settings.apiKeys.modal.nameHint': '僅供你自己辨識，方便日後認出這組金鑰。',
+  'settings.apiKeys.modal.creating': '建立中...',
+  'settings.apiKeys.modal.create': '建立',
+  'settings.apiKeys.modal.createdTitle': 'API 金鑰已建立',
+  'settings.apiKeys.modal.createdWarning': '請立即複製金鑰。它只會顯示一次，之後無法再取得。',
+  'settings.apiKeys.modal.done': '完成',
 };
 
 export default settings;

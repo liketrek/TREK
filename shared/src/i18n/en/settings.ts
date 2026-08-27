@@ -522,6 +522,30 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutes': 'Always show booking routes',
   'settings.alwaysShowRoutesHint':
     'Automatically draw the route for every flight, train and other booking on the map — no need to switch it on per item.',
+
+  // Public API keys (Settings -> Integrations)
+  'settings.apiKeys.title': 'API Keys',
+  'settings.apiKeys.description': 'Keys for the public API, so other software can read your trips. Read-only: a key cannot change or delete anything.',
+  'settings.apiKeys.create': 'Create key',
+  'settings.apiKeys.empty': 'No keys yet. Create one to connect other software.',
+  'settings.apiKeys.createdAt': 'created',
+  'settings.apiKeys.usedAt': 'last used',
+  'settings.apiKeys.deleteTitle': 'Delete key',
+  'settings.apiKeys.deleteMessage': 'Anything using this key stops working immediately. This cannot be undone.',
+  'settings.apiKeys.deleted': 'Key deleted',
+  'settings.apiKeys.deleteFailed': 'Could not delete the key',
+  'settings.apiKeys.createFailed': 'Could not create the key',
+  'settings.apiKeys.copy': 'Copy',
+  'settings.apiKeys.docsHint': 'Send the key as "Authorization: Bearer ..." or "X-API-Key: ..." to /api/v1.',
+  'settings.apiKeys.modal.createTitle': 'Create API key',
+  'settings.apiKeys.modal.name': 'Name',
+  'settings.apiKeys.modal.namePlaceholder': 'e.g. Dawarich',
+  'settings.apiKeys.modal.nameHint': 'Only for you, so you recognise the key later.',
+  'settings.apiKeys.modal.creating': 'Creating...',
+  'settings.apiKeys.modal.create': 'Create',
+  'settings.apiKeys.modal.createdTitle': 'API key created',
+  'settings.apiKeys.modal.createdWarning': 'Copy the key now. It is shown once and cannot be retrieved later.',
+  'settings.apiKeys.modal.done': 'Done',
 };
 
 export default settings;

@@ -533,6 +533,30 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutes': 'Boekingsroutes altijd tonen',
   'settings.alwaysShowRoutesHint':
     'Toont automatisch de route van elke vlucht, trein en andere boeking op de kaart, zonder dat u dit per boeking hoeft in te schakelen.',
+
+  // Public API keys (Settings -> Integrations)
+  'settings.apiKeys.title': 'API-sleutels',
+  'settings.apiKeys.description': 'Sleutels voor de publieke API, zodat andere software je reizen kan lezen. Alleen-lezen: een sleutel kan niets wijzigen of verwijderen.',
+  'settings.apiKeys.create': 'Sleutel aanmaken',
+  'settings.apiKeys.empty': 'Nog geen sleutels. Maak er een om andere software te koppelen.',
+  'settings.apiKeys.createdAt': 'aangemaakt',
+  'settings.apiKeys.usedAt': 'laatst gebruikt',
+  'settings.apiKeys.deleteTitle': 'Sleutel verwijderen',
+  'settings.apiKeys.deleteMessage': 'Alles wat deze sleutel gebruikt, stopt direct met werken. Dit kan niet ongedaan worden gemaakt.',
+  'settings.apiKeys.deleted': 'Sleutel verwijderd',
+  'settings.apiKeys.deleteFailed': 'Sleutel kon niet worden verwijderd',
+  'settings.apiKeys.createFailed': 'Sleutel kon niet worden aangemaakt',
+  'settings.apiKeys.copy': 'Kopiëren',
+  'settings.apiKeys.docsHint': 'Stuur de sleutel als "Authorization: Bearer ..." of "X-API-Key: ..." naar /api/v1.',
+  'settings.apiKeys.modal.createTitle': 'API-sleutel aanmaken',
+  'settings.apiKeys.modal.name': 'Naam',
+  'settings.apiKeys.modal.namePlaceholder': 'bijv. Dawarich',
+  'settings.apiKeys.modal.nameHint': 'Alleen voor jou, zodat je de sleutel later herkent.',
+  'settings.apiKeys.modal.creating': 'Aanmaken...',
+  'settings.apiKeys.modal.create': 'Aanmaken',
+  'settings.apiKeys.modal.createdTitle': 'API-sleutel aangemaakt',
+  'settings.apiKeys.modal.createdWarning': 'Kopieer de sleutel nu. Hij wordt één keer getoond en kan later niet worden opgehaald.',
+  'settings.apiKeys.modal.done': 'Klaar',
 };
 
 export default settings;

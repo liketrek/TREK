@@ -530,6 +530,30 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutes': 'Rezervasyon rotalarını her zaman göster',
   'settings.alwaysShowRoutesHint':
     'Haritada her uçuş, tren ve diğer rezervasyonun rotasını, tek tek açmaya gerek kalmadan otomatik olarak gösterir.',
+
+  // Public API keys (Settings -> Integrations)
+  'settings.apiKeys.title': 'API Anahtarları',
+  'settings.apiKeys.description': 'Genel API için anahtarlar, böylece başka yazılımlar gezilerini okuyabilir. Yalnızca okuma: bir anahtar hiçbir şeyi değiştiremez veya silemez.',
+  'settings.apiKeys.create': 'Anahtar oluştur',
+  'settings.apiKeys.empty': 'Henüz anahtar yok. Başka bir yazılımı bağlamak için bir tane oluştur.',
+  'settings.apiKeys.createdAt': 'oluşturuldu',
+  'settings.apiKeys.usedAt': 'son kullanım',
+  'settings.apiKeys.deleteTitle': 'Anahtarı sil',
+  'settings.apiKeys.deleteMessage': 'Bu anahtarı kullanan her şey hemen çalışmayı durdurur. Bu işlem geri alınamaz.',
+  'settings.apiKeys.deleted': 'Anahtar silindi',
+  'settings.apiKeys.deleteFailed': 'Anahtar silinemedi',
+  'settings.apiKeys.createFailed': 'Anahtar oluşturulamadı',
+  'settings.apiKeys.copy': 'Kopyala',
+  'settings.apiKeys.docsHint': 'Anahtarı "Authorization: Bearer ..." veya "X-API-Key: ..." olarak /api/v1 adresine gönder.',
+  'settings.apiKeys.modal.createTitle': 'API anahtarı oluştur',
+  'settings.apiKeys.modal.name': 'Ad',
+  'settings.apiKeys.modal.namePlaceholder': 'örn. Dawarich',
+  'settings.apiKeys.modal.nameHint': 'Yalnızca senin için, anahtarı sonradan tanıyabilmen için.',
+  'settings.apiKeys.modal.creating': 'Oluşturuluyor...',
+  'settings.apiKeys.modal.create': 'Oluştur',
+  'settings.apiKeys.modal.createdTitle': 'API anahtarı oluşturuldu',
+  'settings.apiKeys.modal.createdWarning': 'Anahtarı şimdi kopyala. Yalnızca bir kez gösterilir ve sonradan alınamaz.',
+  'settings.apiKeys.modal.done': 'Tamam',
 };
 
 export default settings;

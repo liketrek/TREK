@@ -541,6 +541,30 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutes': 'Toujours afficher les itinéraires de réservation',
   'settings.alwaysShowRoutesHint':
     "Affiche automatiquement sur la carte l'itinéraire de chaque vol, trajet en train et autre réservation, sans avoir à l'activer un par un.",
+
+  // Public API keys (Settings -> Integrations)
+  'settings.apiKeys.title': 'Clés API',
+  'settings.apiKeys.description': 'Clés pour l\'API publique, afin que d\'autres logiciels puissent lire vos voyages. Lecture seule : une clé ne peut rien modifier ni supprimer.',
+  'settings.apiKeys.create': 'Créer une clé',
+  'settings.apiKeys.empty': 'Aucune clé pour le moment. Créez-en une pour connecter un autre logiciel.',
+  'settings.apiKeys.createdAt': 'créée',
+  'settings.apiKeys.usedAt': 'dernière utilisation',
+  'settings.apiKeys.deleteTitle': 'Supprimer la clé',
+  'settings.apiKeys.deleteMessage': 'Tout ce qui utilise cette clé cesse de fonctionner immédiatement. Cette action est irréversible.',
+  'settings.apiKeys.deleted': 'Clé supprimée',
+  'settings.apiKeys.deleteFailed': 'Impossible de supprimer la clé',
+  'settings.apiKeys.createFailed': 'Impossible de créer la clé',
+  'settings.apiKeys.copy': 'Copier',
+  'settings.apiKeys.docsHint': 'Envoyez la clé via "Authorization: Bearer ..." ou "X-API-Key: ..." vers /api/v1.',
+  'settings.apiKeys.modal.createTitle': 'Créer une clé API',
+  'settings.apiKeys.modal.name': 'Nom',
+  'settings.apiKeys.modal.namePlaceholder': 'p. ex. Dawarich',
+  'settings.apiKeys.modal.nameHint': 'Uniquement pour vous, afin de reconnaître la clé plus tard.',
+  'settings.apiKeys.modal.creating': 'Création...',
+  'settings.apiKeys.modal.create': 'Créer',
+  'settings.apiKeys.modal.createdTitle': 'Clé API créée',
+  'settings.apiKeys.modal.createdWarning': 'Copiez la clé maintenant. Elle n\'est affichée qu\'une seule fois et ne peut pas être récupérée ensuite.',
+  'settings.apiKeys.modal.done': 'Terminé',
 };
 
 export default settings;

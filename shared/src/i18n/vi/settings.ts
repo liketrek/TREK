@@ -534,6 +534,30 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutes': 'Luôn hiển thị tuyến đường đặt chỗ',
   'settings.alwaysShowRoutesHint':
     'Tự động hiển thị trên bản đồ tuyến đường của mỗi chuyến bay, tàu hỏa và đặt chỗ khác, không cần bật riêng từng mục.',
+
+  // Public API keys (Settings -> Integrations)
+  'settings.apiKeys.title': 'Khóa API',
+  'settings.apiKeys.description': 'Khóa cho API công khai, để phần mềm khác có thể đọc các chuyến đi của bạn. Chỉ đọc: khóa không thể thay đổi hay xóa bất cứ thứ gì.',
+  'settings.apiKeys.create': 'Tạo khóa',
+  'settings.apiKeys.empty': 'Chưa có khóa nào. Tạo một khóa để kết nối phần mềm khác.',
+  'settings.apiKeys.createdAt': 'đã tạo',
+  'settings.apiKeys.usedAt': 'dùng lần cuối',
+  'settings.apiKeys.deleteTitle': 'Xóa khóa',
+  'settings.apiKeys.deleteMessage': 'Mọi thứ đang dùng khóa này sẽ ngừng hoạt động ngay lập tức. Không thể hoàn tác.',
+  'settings.apiKeys.deleted': 'Đã xóa khóa',
+  'settings.apiKeys.deleteFailed': 'Không thể xóa khóa',
+  'settings.apiKeys.createFailed': 'Không thể tạo khóa',
+  'settings.apiKeys.copy': 'Sao chép',
+  'settings.apiKeys.docsHint': 'Gửi khóa dưới dạng "Authorization: Bearer ..." hoặc "X-API-Key: ..." tới /api/v1.',
+  'settings.apiKeys.modal.createTitle': 'Tạo khóa API',
+  'settings.apiKeys.modal.name': 'Tên',
+  'settings.apiKeys.modal.namePlaceholder': 'ví dụ Dawarich',
+  'settings.apiKeys.modal.nameHint': 'Chỉ dành cho bạn, để nhận ra khóa này về sau.',
+  'settings.apiKeys.modal.creating': 'Đang tạo...',
+  'settings.apiKeys.modal.create': 'Tạo',
+  'settings.apiKeys.modal.createdTitle': 'Đã tạo khóa API',
+  'settings.apiKeys.modal.createdWarning': 'Hãy sao chép khóa ngay. Khóa chỉ hiện một lần và không thể lấy lại sau này.',
+  'settings.apiKeys.modal.done': 'Xong',
 };
 
 export default settings;

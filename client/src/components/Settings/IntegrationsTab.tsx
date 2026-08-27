@@ -8,6 +8,7 @@ import { useAddonStore } from '../../store/addonStore'
 import PhotoProvidersSection from './PhotoProvidersSection'
 import AirTrailConnectionSection from './AirTrailConnectionSection'
 import LlmConnectionSection from './LlmConnectionSection'
+import ApiKeysSection from './ApiKeysSection'
 import { ALL_SCOPES } from '../../api/oauthScopes'
 import ScopeGroupPicker from '../OAuth/ScopeGroupPicker'
 import { useAuthStore } from '../../store/authStore'
@@ -109,6 +110,9 @@ export default function IntegrationsTab(): React.ReactElement {
        a managed install. The per-user fallback exists for people who supply their
        own key, and there nobody does. */}
       {S.llmEnabled && !managed && <LlmConnectionSection />}
+      {/* Above MCP on purpose: an API key needs no addon, and someone looking for
+          one should not have to read past a section about AI assistants. */}
+      <ApiKeysSection />
       {S.mcpEnabled && <IntegrationsMcpSection {...S} />}
       <McpTokenModals {...S} />
       <OAuthClientModals {...S} />

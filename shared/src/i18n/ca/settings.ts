@@ -535,6 +535,30 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutes': 'Mostra sempre les rutes de reserva',
   'settings.alwaysShowRoutesHint':
     'Dibuixa automàticament al mapa la ruta de cada vol, tren i altra reserva — no cal activar-la una per una.',
+
+  // Public API keys (Settings -> Integrations)
+  'settings.apiKeys.title': 'Claus API',
+  'settings.apiKeys.description': 'Claus per a l\'API pública, perquè altres programes puguin llegir els teus viatges. Només lectura: una clau no pot canviar ni esborrar res.',
+  'settings.apiKeys.create': 'Crea una clau',
+  'settings.apiKeys.empty': 'Encara no hi ha claus. Crea\'n una per connectar altres programes.',
+  'settings.apiKeys.createdAt': 'creada',
+  'settings.apiKeys.usedAt': 'últim ús',
+  'settings.apiKeys.deleteTitle': 'Elimina la clau',
+  'settings.apiKeys.deleteMessage': 'Tot el que faci servir aquesta clau deixarà de funcionar immediatament. Això no es pot desfer.',
+  'settings.apiKeys.deleted': 'Clau eliminada',
+  'settings.apiKeys.deleteFailed': 'No s\'ha pogut eliminar la clau',
+  'settings.apiKeys.createFailed': 'No s\'ha pogut crear la clau',
+  'settings.apiKeys.copy': 'Copia',
+  'settings.apiKeys.docsHint': 'Envia la clau com a "Authorization: Bearer ..." o "X-API-Key: ..." a /api/v1.',
+  'settings.apiKeys.modal.createTitle': 'Crea una clau API',
+  'settings.apiKeys.modal.name': 'Nom',
+  'settings.apiKeys.modal.namePlaceholder': 'p. ex. Dawarich',
+  'settings.apiKeys.modal.nameHint': 'Només per a tu, perquè reconeguis la clau més endavant.',
+  'settings.apiKeys.modal.creating': 'S\'està creant...',
+  'settings.apiKeys.modal.create': 'Crea',
+  'settings.apiKeys.modal.createdTitle': 'Clau API creada',
+  'settings.apiKeys.modal.createdWarning': 'Copia la clau ara. Només es mostra un cop i no es pot recuperar després.',
+  'settings.apiKeys.modal.done': 'Fet',
 };
 
 export default settings;

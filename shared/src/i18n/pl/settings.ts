@@ -532,6 +532,30 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutes': 'Zawsze pokazuj trasy rezerwacji',
   'settings.alwaysShowRoutesHint':
     'Automatycznie pokazuje na mapie trasę każdego lotu, pociągu i innej rezerwacji, bez konieczności włączania jej pojedynczo.',
+
+  // Public API keys (Settings -> Integrations)
+  'settings.apiKeys.title': 'Klucze API',
+  'settings.apiKeys.description': 'Klucze do publicznego API, aby inne oprogramowanie mogło odczytywać Twoje podróże. Tylko odczyt: klucz niczego nie zmieni ani nie usunie.',
+  'settings.apiKeys.create': 'Utwórz klucz',
+  'settings.apiKeys.empty': 'Brak kluczy. Utwórz jeden, aby połączyć inne oprogramowanie.',
+  'settings.apiKeys.createdAt': 'utworzono',
+  'settings.apiKeys.usedAt': 'ostatnio użyty',
+  'settings.apiKeys.deleteTitle': 'Usuń klucz',
+  'settings.apiKeys.deleteMessage': 'Wszystko, co korzysta z tego klucza, natychmiast przestanie działać. Tej operacji nie można cofnąć.',
+  'settings.apiKeys.deleted': 'Klucz usunięty',
+  'settings.apiKeys.deleteFailed': 'Nie udało się usunąć klucza',
+  'settings.apiKeys.createFailed': 'Nie udało się utworzyć klucza',
+  'settings.apiKeys.copy': 'Kopiuj',
+  'settings.apiKeys.docsHint': 'Wyślij klucz jako "Authorization: Bearer ..." lub "X-API-Key: ..." do /api/v1.',
+  'settings.apiKeys.modal.createTitle': 'Utwórz klucz API',
+  'settings.apiKeys.modal.name': 'Nazwa',
+  'settings.apiKeys.modal.namePlaceholder': 'np. Dawarich',
+  'settings.apiKeys.modal.nameHint': 'Tylko dla Ciebie, abyś później rozpoznał klucz.',
+  'settings.apiKeys.modal.creating': 'Tworzenie...',
+  'settings.apiKeys.modal.create': 'Utwórz',
+  'settings.apiKeys.modal.createdTitle': 'Klucz API utworzony',
+  'settings.apiKeys.modal.createdWarning': 'Skopiuj klucz teraz. Jest pokazywany tylko raz i później nie można go odzyskać.',
+  'settings.apiKeys.modal.done': 'Gotowe',
 };
 
 export default settings;

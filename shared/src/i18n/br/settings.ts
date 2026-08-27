@@ -532,6 +532,30 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutes': 'Sempre mostrar rotas de reserva',
   'settings.alwaysShowRoutesHint':
     'Mostra automaticamente no mapa a rota de cada voo, trem e outra reserva, sem precisar ativar item por item.',
+
+  // Public API keys (Settings -> Integrations)
+  'settings.apiKeys.title': 'Chaves de API',
+  'settings.apiKeys.description': 'Chaves para a API pública, para que outros softwares possam ler suas viagens. Somente leitura: uma chave não pode alterar nem excluir nada.',
+  'settings.apiKeys.create': 'Criar chave',
+  'settings.apiKeys.empty': 'Nenhuma chave ainda. Crie uma para conectar outros softwares.',
+  'settings.apiKeys.createdAt': 'criada',
+  'settings.apiKeys.usedAt': 'último uso',
+  'settings.apiKeys.deleteTitle': 'Excluir chave',
+  'settings.apiKeys.deleteMessage': 'Tudo que usa esta chave para de funcionar imediatamente. Não é possível desfazer.',
+  'settings.apiKeys.deleted': 'Chave excluída',
+  'settings.apiKeys.deleteFailed': 'Não foi possível excluir a chave',
+  'settings.apiKeys.createFailed': 'Não foi possível criar a chave',
+  'settings.apiKeys.copy': 'Copiar',
+  'settings.apiKeys.docsHint': 'Envie a chave como "Authorization: Bearer ..." ou "X-API-Key: ..." para /api/v1.',
+  'settings.apiKeys.modal.createTitle': 'Criar chave de API',
+  'settings.apiKeys.modal.name': 'Nome',
+  'settings.apiKeys.modal.namePlaceholder': 'ex.: Dawarich',
+  'settings.apiKeys.modal.nameHint': 'Apenas para você, para reconhecer a chave depois.',
+  'settings.apiKeys.modal.creating': 'Criando...',
+  'settings.apiKeys.modal.create': 'Criar',
+  'settings.apiKeys.modal.createdTitle': 'Chave de API criada',
+  'settings.apiKeys.modal.createdWarning': 'Copie a chave agora. Ela é exibida uma única vez e não pode ser recuperada depois.',
+  'settings.apiKeys.modal.done': 'Concluído',
 };
 
 export default settings;

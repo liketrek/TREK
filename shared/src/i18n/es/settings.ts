@@ -533,6 +533,30 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutes': 'Mostrar siempre las rutas de reserva',
   'settings.alwaysShowRoutesHint':
     'Muestra automáticamente en el mapa la ruta de cada vuelo, tren y otra reserva, sin necesidad de activarla una por una.',
+
+  // Public API keys (Settings -> Integrations)
+  'settings.apiKeys.title': 'Claves API',
+  'settings.apiKeys.description': 'Claves para la API pública, para que otro software pueda leer tus viajes. Solo lectura: una clave no puede cambiar ni borrar nada.',
+  'settings.apiKeys.create': 'Crear clave',
+  'settings.apiKeys.empty': 'Todavía no hay claves. Crea una para conectar otro software.',
+  'settings.apiKeys.createdAt': 'creada',
+  'settings.apiKeys.usedAt': 'último uso',
+  'settings.apiKeys.deleteTitle': 'Eliminar clave',
+  'settings.apiKeys.deleteMessage': 'Todo lo que use esta clave dejará de funcionar de inmediato. Esto no se puede deshacer.',
+  'settings.apiKeys.deleted': 'Clave eliminada',
+  'settings.apiKeys.deleteFailed': 'No se pudo eliminar la clave',
+  'settings.apiKeys.createFailed': 'No se pudo crear la clave',
+  'settings.apiKeys.copy': 'Copiar',
+  'settings.apiKeys.docsHint': 'Envía la clave como "Authorization: Bearer ..." o "X-API-Key: ..." a /api/v1.',
+  'settings.apiKeys.modal.createTitle': 'Crear clave API',
+  'settings.apiKeys.modal.name': 'Nombre',
+  'settings.apiKeys.modal.namePlaceholder': 'p. ej. Dawarich',
+  'settings.apiKeys.modal.nameHint': 'Solo para ti, para que reconozcas la clave más adelante.',
+  'settings.apiKeys.modal.creating': 'Creando...',
+  'settings.apiKeys.modal.create': 'Crear',
+  'settings.apiKeys.modal.createdTitle': 'Clave API creada',
+  'settings.apiKeys.modal.createdWarning': 'Copia la clave ahora. Se muestra una sola vez y no se puede recuperar después.',
+  'settings.apiKeys.modal.done': 'Listo',
 };
 
 export default settings;

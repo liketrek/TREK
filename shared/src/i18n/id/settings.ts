@@ -530,6 +530,30 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutes': 'Selalu tampilkan rute pemesanan',
   'settings.alwaysShowRoutesHint':
     'Menampilkan rute setiap penerbangan, kereta, dan pemesanan lainnya di peta secara otomatis, tanpa perlu mengaktifkannya satu per satu.',
+
+  // Public API keys (Settings -> Integrations)
+  'settings.apiKeys.title': 'Kunci API',
+  'settings.apiKeys.description': 'Kunci untuk API publik, agar perangkat lunak lain dapat membaca perjalananmu. Hanya baca: kunci tidak dapat mengubah atau menghapus apa pun.',
+  'settings.apiKeys.create': 'Buat kunci',
+  'settings.apiKeys.empty': 'Belum ada kunci. Buat satu untuk menghubungkan perangkat lunak lain.',
+  'settings.apiKeys.createdAt': 'dibuat',
+  'settings.apiKeys.usedAt': 'terakhir dipakai',
+  'settings.apiKeys.deleteTitle': 'Hapus kunci',
+  'settings.apiKeys.deleteMessage': 'Semua yang memakai kunci ini langsung berhenti bekerja. Tindakan ini tidak bisa dibatalkan.',
+  'settings.apiKeys.deleted': 'Kunci dihapus',
+  'settings.apiKeys.deleteFailed': 'Kunci tidak dapat dihapus',
+  'settings.apiKeys.createFailed': 'Kunci tidak dapat dibuat',
+  'settings.apiKeys.copy': 'Salin',
+  'settings.apiKeys.docsHint': 'Kirim kunci sebagai "Authorization: Bearer ..." atau "X-API-Key: ..." ke /api/v1.',
+  'settings.apiKeys.modal.createTitle': 'Buat kunci API',
+  'settings.apiKeys.modal.name': 'Nama',
+  'settings.apiKeys.modal.namePlaceholder': 'mis. Dawarich',
+  'settings.apiKeys.modal.nameHint': 'Hanya untukmu, agar kamu mengenali kunci ini nanti.',
+  'settings.apiKeys.modal.creating': 'Membuat...',
+  'settings.apiKeys.modal.create': 'Buat',
+  'settings.apiKeys.modal.createdTitle': 'Kunci API dibuat',
+  'settings.apiKeys.modal.createdWarning': 'Salin kunci sekarang. Kunci hanya ditampilkan sekali dan tidak bisa diambil lagi.',
+  'settings.apiKeys.modal.done': 'Selesai',
 };
 
 export default settings;

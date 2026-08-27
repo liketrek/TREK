@@ -492,6 +492,30 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.status': '结果',
   'settings.alwaysShowRoutes': '始终显示预订路线',
   'settings.alwaysShowRoutesHint': '自动在地图上显示每个航班、火车和其他预订的路线,无需逐个手动开启。',
+
+  // Public API keys (Settings -> Integrations)
+  'settings.apiKeys.title': 'API 密钥',
+  'settings.apiKeys.description': '公开 API 的密钥，让其他软件读取你的行程。只读：密钥无法修改或删除任何内容。',
+  'settings.apiKeys.create': '创建密钥',
+  'settings.apiKeys.empty': '还没有密钥。创建一个即可连接其他软件。',
+  'settings.apiKeys.createdAt': '创建于',
+  'settings.apiKeys.usedAt': '最近使用',
+  'settings.apiKeys.deleteTitle': '删除密钥',
+  'settings.apiKeys.deleteMessage': '使用该密钥的一切都会立即停止工作，且无法撤销。',
+  'settings.apiKeys.deleted': '密钥已删除',
+  'settings.apiKeys.deleteFailed': '无法删除密钥',
+  'settings.apiKeys.createFailed': '无法创建密钥',
+  'settings.apiKeys.copy': '复制',
+  'settings.apiKeys.docsHint': '把密钥作为 "Authorization: Bearer ..." 或 "X-API-Key: ..." 发送到 /api/v1。',
+  'settings.apiKeys.modal.createTitle': '创建 API 密钥',
+  'settings.apiKeys.modal.name': '名称',
+  'settings.apiKeys.modal.namePlaceholder': '例如 Dawarich',
+  'settings.apiKeys.modal.nameHint': '仅供你自己识别，方便日后辨认这个密钥。',
+  'settings.apiKeys.modal.creating': '创建中...',
+  'settings.apiKeys.modal.create': '创建',
+  'settings.apiKeys.modal.createdTitle': 'API 密钥已创建',
+  'settings.apiKeys.modal.createdWarning': '请立即复制密钥。它只显示一次，之后无法再次获取。',
+  'settings.apiKeys.modal.done': '完成',
 };
 
 export default settings;
