@@ -78,6 +78,9 @@
 - [[Plugin Permissions|Plugin-Permissions]]
 - [[Publishing a Plugin|Plugin-Publishing]]
 
+## Integrations
+- [[Public API|Public-API]]
+
 ## AI / MCP
 - [[MCP Overview|MCP-Overview]]
 - [[MCP Setup|MCP-Setup]]

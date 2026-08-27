@@ -6,6 +6,7 @@ import type {
   PublicApiInclude,
   PublicApiPlace,
   PublicApiReservation,
+  PublicApiTraveller,
   PublicApiTrip,
   PublicApiTripSummary,
 } from '@trek/shared';
@@ -74,6 +75,9 @@ export class PublicApiService {
     }
     if (include.includes('accommodations')) {
       trip.accommodations = this.buildAccommodations(tripId);
+    }
+    if (include.includes('travellers')) {
+      trip.travellers = this.buildTravellers(tripId);
     }
     return trip;
   }
@@ -216,6 +220,29 @@ export class PublicApiService {
       notes: r.notes ?? null,
     }));
   }
+
+  /**
+   * Who is on the trip: the owner first, then members in join order.
+   *
+   * Names only. The query selects `username` and nothing else — no ids, no email
+   * addresses — because an integration key is a credential for reading its owner's
+   * itinerary, not for enumerating the people around them. What it returns is
+   * exactly what those people already see on the trip in TREK.
+   */
+  private buildTravellers(tripId: number): PublicApiTraveller[] {
+    const rows = this.db.all<TravellerRow>(
+      `SELECT u.username, 1 AS is_owner
+         FROM trips t JOIN users u ON u.id = t.user_id
+        WHERE t.id = ?
+        UNION ALL
+       SELECT u.username, 0 AS is_owner
+         FROM trip_members m JOIN users u ON u.id = m.user_id
+        WHERE m.trip_id = ?
+        ORDER BY is_owner DESC`,
+      tripId, tripId,
+    );
+    return rows.map((r) => ({ name: r.username, owner: r.is_owner === 1 }));
+  }
 }
 
 function toTripSummary(row: TripRow): PublicApiTripSummary {
@@ -294,6 +321,11 @@ interface ReservationRow {
   reservation_end_time: string | null;
   status: string | null;
   notes: string | null;
+}
+
+interface TravellerRow {
+  username: string;
+  is_owner: number;
 }
 
 interface AccommodationRow {

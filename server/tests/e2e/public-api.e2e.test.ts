@@ -23,7 +23,8 @@ const { db } = vi.hoisted(() => {
       email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0);
     CREATE TABLE mcp_tokens (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
       name TEXT NOT NULL, token_hash TEXT NOT NULL, token_prefix TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_used_at DATETIME);
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_used_at DATETIME,
+      kind TEXT NOT NULL DEFAULT 'mcp');
     CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
       title TEXT NOT NULL, description TEXT, start_date TEXT, end_date TEXT, currency TEXT,
       is_archived INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -74,18 +75,21 @@ import { PublicApiModule } from '../../src/nest/public-api/public-api.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 
 /** Mints a token the way TokenService does, so the guard's hash lookup is real. */
-function seedToken(userId: number, raw: string): string {
-  db.prepare('INSERT INTO mcp_tokens (user_id, name, token_hash, token_prefix) VALUES (?, ?, ?, ?)').run(
+function seedToken(userId: number, raw: string, kind: 'api' | 'mcp' = 'api'): string {
+  db.prepare('INSERT INTO mcp_tokens (user_id, name, token_hash, token_prefix, kind) VALUES (?, ?, ?, ?, ?)').run(
     userId,
     'test',
     createHash('sha256').update(raw).digest('hex'),
     raw.slice(0, 13),
+    kind,
   );
   return raw;
 }
 
 const ADA_TOKEN = 'trek_' + 'a'.repeat(48);
 const BOB_TOKEN = 'trek_' + 'b'.repeat(48);
+/** A valid credential for /mcp — must not open this surface. */
+const MCP_TOKEN = 'trek_' + 'c'.repeat(48);
 
 describe('Public API v1 e2e (real guard + real SQL)', () => {
   let server: Server;
@@ -104,6 +108,7 @@ describe('Public API v1 e2e (real guard + real SQL)', () => {
     db.prepare("INSERT INTO users (id, username, email) VALUES (2, 'bob', 'bob@example.com')").run();
     seedToken(1, ADA_TOKEN);
     seedToken(2, BOB_TOKEN);
+    seedToken(1, MCP_TOKEN, 'mcp');
 
     // Ada owns trip 1; Bob owns trip 2; trip 3 is Bob's but Ada is a member.
     db.prepare(
@@ -154,6 +159,12 @@ describe('Public API v1 e2e (real guard + real SQL)', () => {
 
     it('401s on an unknown token', async () => {
       expect((await get('/api/v1/trips', 'trek_' + 'z'.repeat(48))).status).toBe(401);
+    });
+
+    it('refuses a valid MCP token — different kind, different door', async () => {
+      const res = await get('/api/v1/trips', MCP_TOKEN);
+      expect(res.status).toBe(401);
+      expect(res.body).toEqual({ error: 'Invalid API token', code: 'API_TOKEN_INVALID' });
     });
 
     it('accepts the token via X-API-Key too', async () => {
@@ -244,6 +255,16 @@ describe('Public API v1 e2e (real guard + real SQL)', () => {
           notes: null,
         },
       ]);
+    });
+
+    it('lists travellers by name, owner first, without ids or emails', async () => {
+      const res = await get('/api/v1/trips/3?include=travellers', ADA_TOKEN);
+      expect(res.status).toBe(200);
+      expect(res.body.travellers).toEqual([
+        { name: 'bob', owner: true },
+        { name: 'ada', owner: false },
+      ]);
+      expect(JSON.stringify(res.body)).not.toContain('@example.com');
     });
 
     it('never exposes internal ids or foreign keys', async () => {

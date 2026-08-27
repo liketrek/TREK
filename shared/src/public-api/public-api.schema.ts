@@ -92,6 +92,20 @@ export const publicApiDaySchema = z.object({
 });
 export type PublicApiDay = z.infer<typeof publicApiDaySchema>;
 
+/**
+ * Someone who is on the trip.
+ *
+ * Display name only. Ids would let a consumer correlate the same person across
+ * instances, and email addresses have no business leaving TREK over an
+ * integration key — the name is what a traveller already sees on the trip.
+ */
+export const publicApiTravellerSchema = z.object({
+  name: z.string(),
+  /** True for the trip's owner; everyone else joined as a member. */
+  owner: z.boolean(),
+});
+export type PublicApiTraveller = z.infer<typeof publicApiTravellerSchema>;
+
 /** Trip without its itinerary — what the list endpoint returns. */
 export const publicApiTripSummarySchema = z.object({
   id: z.number(),
@@ -121,6 +135,7 @@ export type PublicApiTripSummary = z.infer<typeof publicApiTripSummarySchema>;
 export const publicApiTripSchema = publicApiTripSummarySchema.extend({
   days: z.array(publicApiDaySchema).optional(),
   accommodations: z.array(publicApiAccommodationSchema).optional(),
+  travellers: z.array(publicApiTravellerSchema).optional(),
 });
 export type PublicApiTrip = z.infer<typeof publicApiTripSchema>;
 
@@ -129,7 +144,7 @@ export type PublicApiTrip = z.infer<typeof publicApiTripSchema>;
  * case is a full sync; a consumer that only wants notes says so and gets a payload
  * a fraction of the size.
  */
-export const PUBLIC_API_INCLUDES = ['days', 'places', 'notes', 'reservations', 'accommodations'] as const;
+export const PUBLIC_API_INCLUDES = ['days', 'places', 'notes', 'reservations', 'accommodations', 'travellers'] as const;
 export type PublicApiInclude = (typeof PUBLIC_API_INCLUDES)[number];
 
 /**

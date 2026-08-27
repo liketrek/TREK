@@ -5,11 +5,15 @@ import { TokenService } from '../tokens/token.service';
 /**
  * Authenticates a caller of the public API with a long-lived `trek_…` token.
  *
- * The tokens are the ones users already manage under Settings → Integrations; this
- * guard adds no new credential type and no new table. It reuses
- * `TokenService.verifyMcpToken`, which hashes the presented token with SHA-256 and
- * looks up the hash — the raw token is never stored and never compared in the
- * application, so a database read cannot yield a usable credential.
+ * Accepts an **API key** — the kind users mint under Settings → Integrations for
+ * third-party software. An MCP token does not resolve here, and an API key does not
+ * open the MCP surface: the two are separate credentials with separate blast radii,
+ * and `verifyApiToken` puts the kind in the WHERE clause so a token of the wrong
+ * kind is indistinguishable from one that does not exist.
+ *
+ * The lookup hashes the presented key with SHA-256 and matches the hash — the raw
+ * key is never stored and never compared in the application, so a database read
+ * cannot yield a usable credential.
  *
  * Deliberately narrower than the MCP transport's `verifyToken`, which also accepts
  * OAuth bearer tokens and a plain web-session JWT:
@@ -38,7 +42,7 @@ export class ApiTokenGuard implements CanActivate {
         401,
       );
     }
-    const user = this.tokens.verifyMcpToken(token);
+    const user = this.tokens.verifyApiToken(token);
     if (!user) {
       throw new HttpException(
         { error: 'Invalid API token', code: 'API_TOKEN_INVALID' },

@@ -321,6 +321,43 @@ export class AuthController {
     return { success: true };
   }
 
+  /**
+   * Integration keys for the public API (`/api/v1`).
+   *
+   * Separate from the MCP tokens above because they open different doors: an MCP
+   * token drives every assistant tool, an API key reads trips over HTTP. Same
+   * table, different `kind`, and each surface verifies only its own — so a key
+   * handed to a third-party integration cannot be replayed against /mcp.
+   *
+   * Unlike MCP tokens these are not forbidden on a managed instance: the surface
+   * they unlock is read-only and scoped to the caller's own trips, which is the
+   * whole reason it exists.
+   */
+  @Get('api-tokens')
+  listApiTokens(@CurrentUser() user: User) {
+    return { tokens: this.tokens.listApiTokens(user.id) };
+  }
+
+  @Post('api-tokens')
+  @HttpCode(201)
+  createApiToken(@CurrentUser() user: User, @Body() body: McpTokenCreateDto, @Req() req: Request) {
+    this.limit('login', req, 5);
+    const result = this.tokens.createApiToken(user.id, body.name);
+    if (result.error) {
+      throw new HttpException({ error: result.error }, result.status!);
+    }
+    return { token: result.token };
+  }
+
+  @Delete('api-tokens/:id')
+  deleteApiToken(@CurrentUser() user: User, @Param('id') id: string) {
+    const result = this.tokens.deleteApiToken(user.id, id);
+    if (result.error) {
+      throw new HttpException({ error: result.error }, result.status!);
+    }
+    return { success: true };
+  }
+
   @Post('ws-token')
   @HttpCode(200)
   wsToken(@CurrentUser() user: User) {
