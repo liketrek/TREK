@@ -1,8 +1,8 @@
 import {
   McpController, Tool, Resource, ResourceTemplate, Prompt, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, ok,
+  demoDenied, errorResult, ok,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
@@ -13,7 +13,7 @@ import { TripReadModelService } from '../trip-read-model/trip-read-model.service
 import { ADDON_IDS } from '../../addons';
 import { MAX_MCP_TRIP_DAYS, noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { canRead, canReadTrips, canDeleteTrips } from '../../mcp/scopes';
-import { TripsService, NotFoundError, ValidationError } from './trips.service';
+import { TripsService, MAX_TRIP_DAYS, NotFoundError, ValidationError } from './trips.service';
 import { TodoService } from '../todo/todo.service';
 import { CollabService } from '../collab/collab.service';
 import { AddonsService } from '../addons/addons.service';
@@ -87,13 +87,18 @@ export class TripsMcp {
       start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Start date (YYYY-MM-DD)'),
       end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('End date (YYYY-MM-DD)'),
       currency: z.string().length(3).optional().describe('Currency code (e.g. EUR, USD)'),
+      day_count: z.number().int().min(1).max(MAX_TRIP_DAYS).optional().describe(
+        'How many days a trip without dates gets (default 7). Ignored when start_date and end_date are both set, because the range decides the count.'),
+      reminder_days: z.number().int().min(0).max(30).optional().describe(
+        'How many days before departure the pre-trip reminder fires (default 3). 0 turns the reminder off.'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'trips', mode: 'write' },
   })
   async createTrip(
-    { title, description, start_date, end_date, currency }: {
+    { title, description, start_date, end_date, currency, day_count, reminder_days }: {
       title: string; description?: string; start_date?: string; end_date?: string; currency?: string;
+      day_count?: number; reminder_days?: number;
     },
     ctx: McpContext,
   ) {
@@ -111,7 +116,7 @@ export class TripsMcp {
     if (start_date && end_date && new Date(end_date) < new Date(start_date)) {
       return { content: [{ type: 'text' as const, text: 'End date must be after start date.' }], isError: true };
     }
-    const { trip } = this.trips.create(ctx.userId, { title, description, start_date, end_date, currency }, MAX_MCP_TRIP_DAYS);
+    const { trip } = this.trips.create(ctx.userId, { title, description, start_date, end_date, currency, day_count, reminder_days }, MAX_MCP_TRIP_DAYS);
     return ok({ trip });
   }
 
@@ -121,12 +126,18 @@ export class TripsMcp {
     inputSchema: {
       tripId: z.number().int().positive(),
       title: z.string().min(1).max(200).optional(),
-      description: z.string().max(2000).optional(),
+      description: z.string().max(2000).nullable().optional().describe('Trip description; null removes it'),
       start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
       end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      clear_dates: z.boolean().optional().describe(
+        'Drop both dates and turn the trip back into a dateless one. Cannot be combined with start_date or end_date; pair it with day_count to say how many days the dateless trip keeps'),
       currency: z.string().length(3).optional(),
       is_archived: z.boolean().optional().describe('Archive (true) or unarchive (false) the trip'),
-      cover_image: z.string().optional().describe('Cover image path, e.g. /uploads/covers/abc.jpg'),
+      cover_image: z.string().nullable().optional().describe('Cover image path, e.g. /uploads/covers/abc.jpg; null removes the cover'),
+      day_count: z.number().int().min(1).max(MAX_TRIP_DAYS).optional().describe(
+        'Resize a trip without dates to this many days. Days that still hold content are never trimmed. Ignored while the trip has a date range, because the range decides the count'),
+      reminder_days: z.number().int().min(0).max(30).optional().describe(
+        'How many days before departure the pre-trip reminder fires. 0 turns the reminder off'),
       date_shift_mode: z.enum(['keep_bookings', 'shift_all']).optional().describe(
         'When changing dates: keep_bookings (default) keeps dated reservations/accommodations on their dates while day plans move; shift_all moves the whole itinerary, bookings included'),
     },
@@ -134,15 +145,18 @@ export class TripsMcp {
     access: { group: 'trips', mode: 'write' },
   })
   async updateTrip(
-    { tripId, title, description, start_date, end_date, currency, is_archived, cover_image, date_shift_mode }: {
-      tripId: number; title?: string; description?: string; start_date?: string; end_date?: string;
-      currency?: string; is_archived?: boolean; cover_image?: string; date_shift_mode?: 'keep_bookings' | 'shift_all';
+    { tripId, title, description, start_date, end_date, clear_dates, currency, is_archived, cover_image, day_count, reminder_days, date_shift_mode }: {
+      tripId: number; title?: string; description?: string | null; start_date?: string; end_date?: string;
+      clear_dates?: boolean; currency?: string; is_archived?: boolean; cover_image?: string | null;
+      day_count?: number; reminder_days?: number; date_shift_mode?: 'keep_bookings' | 'shift_all';
     },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.trips.canAccessTrip(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('trip_edit', tripId, ctx.userId)) return permissionDenied();
+    if (clear_dates && (start_date || end_date))
+      return errorResult('clear_dates cannot be combined with start_date or end_date.');
     if (start_date) {
       const d = new Date(start_date + 'T00:00:00Z');
       if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== start_date)
@@ -153,11 +167,38 @@ export class TripsMcp {
       if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== end_date)
         return { content: [{ type: 'text' as const, text: 'end_date is not a valid calendar date.' }], isError: true };
     }
+    // updateTrip reads every field with a `!== undefined` presence sentinel, so a
+    // dated trip only goes back to dateless once an explicit null reaches it. A flag
+    // rather than a nullable start_date/end_date: clients that serialise an omitted
+    // optional as null would otherwise wipe the dates of every trip they touched.
+    const dates: { start_date?: string | null; end_date?: string | null } = clear_dates
+      ? { start_date: null, end_date: null }
+      : { start_date, end_date };
     // update() re-anchors the budget before the trip row moves off the old
     // currency (#1543) and then runs the legacy updateTrip core.
-    const { updatedTrip } = await this.trips.update(tripId, ctx.userId, { title, description, start_date, end_date, currency, is_archived, cover_image, date_shift_mode }, 'user');
+    const { updatedTrip } = await this.trips.update(tripId, ctx.userId, { title, description, ...dates, currency, is_archived, cover_image, day_count, reminder_days, date_shift_mode }, 'user');
     this.guards.safeBroadcast(tripId, 'trip:updated', { trip: updatedTrip });
     return ok({ trip: updatedTrip });
+  }
+
+  @Tool({
+    name: 'search_cover_images',
+    description: 'Search Unsplash for candidate cover photos and return their URLs, thumbnails and photographer credits. Use this when the user wants a cover image but has no URL of their own, then pass the chosen photo\'s url back as update_trip\'s cover_image. Nothing is saved to a trip here.',
+    inputSchema: {
+      query: z.string().min(1).max(200).describe('What the cover should show, e.g. "Lisbon rooftops at sunset"'),
+    },
+    annotations: TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
+    access: (ctx) => canReadTrips(ctx.scopes),
+  })
+  async searchCoverImages({ query }: { query: string }, ctx: McpContext) {
+    try {
+      const result = await this.trips.searchCoverImages(query, ctx.userId);
+      if ('error' in result) return errorResult(result.error);
+      return ok({ photos: result.photos });
+    } catch (err) {
+      console.error('Unsplash cover image error:', err);
+      return errorResult('Error searching for cover images');
+    }
   }
 
   @Tool({
@@ -288,7 +329,7 @@ export class TripsMcp {
 
   @Tool({
     name: 'add_trip_member',
-    description: 'Add a user to a trip by their username or email address. Only the trip owner can do this.',
+    description: 'Add a user to a trip by their username or email address. Needs the member_manage permission, which by default only the trip owner holds. Use create_trip_guest instead for a companion who has no TREK account.',
     inputSchema: {
       tripId: z.number().int().positive(),
       identifier: z.string().min(1).describe('Username or email of the user to add'),
@@ -300,8 +341,11 @@ export class TripsMcp {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.trips.canAccessTrip(tripId, ctx.userId)) return noAccess();
     const ownerRow = this.trips.getOwner(tripId);
-    if (!ownerRow || ownerRow.user_id !== ctx.userId)
-      return { content: [{ type: 'text' as const, text: 'Only the trip owner can add members.' }], isError: true };
+    if (!ownerRow) return noAccess();
+    // member_manage rather than a hardcoded owner test: the action is admin-lowerable
+    // in the permission matrix, and POST /api/trips/:id/members has always honoured
+    // that setting (and the admin bypass inside checkPermission) where this did not.
+    if (!this.guards.hasTripPermission('member_manage', tripId, ctx.userId)) return permissionDenied();
     try {
       const result = this.members.addMember(tripId, identifier, ownerRow.user_id, ctx.userId);
       this.guards.safeBroadcast(tripId, 'member:added', { member: result.member });
@@ -314,7 +358,7 @@ export class TripsMcp {
 
   @Tool({
     name: 'remove_trip_member',
-    description: 'Remove a member from a trip. Only the trip owner can do this.',
+    description: 'Remove somebody else from a trip. Needs the member_manage permission, which by default only the trip owner holds. When the user means themselves, prefer leave_trip: it says so plainly and needs no permission.',
     inputSchema: {
       tripId: z.number().int().positive(),
       memberId: z.number().int().positive().describe('User ID of the member to remove'),
@@ -325,11 +369,35 @@ export class TripsMcp {
   async removeTripMember({ tripId, memberId }: { tripId: number; memberId: number }, ctx: McpContext) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.trips.canAccessTrip(tripId, ctx.userId)) return noAccess();
-    const ownerRow = this.trips.getOwner(tripId);
-    if (!ownerRow || ownerRow.user_id !== ctx.userId)
-      return { content: [{ type: 'text' as const, text: 'Only the trip owner can remove members.' }], isError: true };
+    // Giving up your own access is not member management, so it carries no permission
+    // requirement: the same self-removal bypass DELETE /api/trips/:id/members/:userId has.
+    if (memberId !== ctx.userId && !this.guards.hasTripPermission('member_manage', tripId, ctx.userId))
+      return permissionDenied();
     this.members.removeMember(tripId, memberId);
     this.guards.safeBroadcast(tripId, 'member:removed', { userId: memberId });
+    return ok({ success: true });
+  }
+
+  @Tool({
+    name: 'leave_trip',
+    description: 'Leave a trip you were invited to, giving up your own access to it. Prefer this over remove_trip_member whenever the user means themselves. The owner cannot leave their own trip.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+    },
+    annotations: TOOL_ANNOTATIONS_DELETE,
+    access: { group: 'trips', mode: 'write' },
+  })
+  async leaveTrip({ tripId }: { tripId: number }, ctx: McpContext) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.trips.canAccessTrip(tripId, ctx.userId)) return noAccess();
+    const ownerRow = this.trips.getOwner(tripId);
+    if (!ownerRow) return noAccess();
+    // removeMember only deletes a trip_members row, and the owner has none, so an
+    // owner calling this would get a success that changed nothing. Say so instead.
+    if (ownerRow.user_id === ctx.userId)
+      return errorResult('You own this trip, so you cannot leave it. Hand it to another member first, or delete it.');
+    this.members.removeMember(tripId, ctx.userId);
+    this.guards.safeBroadcast(tripId, 'member:removed', { userId: ctx.userId });
     return ok({ success: true });
   }
 
@@ -345,7 +413,7 @@ export class TripsMcp {
 
   @Tool({
     name: 'create_trip_guest',
-    description: 'Add a travelling companion who has no TREK account to a trip. Use this when the person cannot be found by username or email — a guest can be assigned to budget splits, packing items, to-dos and day participants like any member, but never signs in and is never emailed. Only the trip owner can do this.',
+    description: 'Add a travelling companion who has no TREK account to a trip. Use this when the person cannot be found by username or email. A guest can be assigned to budget splits, packing items, to-dos and day participants like any member, but never signs in and is never emailed. Only the trip owner can do this.',
     inputSchema: {
       tripId: z.number().int().positive(),
       name: z.string().min(1).max(50).describe('Display name of the guest, e.g. "Anna"'),
@@ -399,7 +467,7 @@ export class TripsMcp {
 
   @Tool({
     name: 'delete_trip_guest',
-    description: 'Remove a guest from a trip. This deletes the guest outright — they exist only for this trip — and re-splits any expenses they were part of. Only the trip owner can do this.',
+    description: 'Remove a guest from a trip. This deletes the guest outright (they exist only for this trip) and re-splits any expenses they were part of. Only the trip owner can do this.',
     inputSchema: {
       tripId: z.number().int().positive(),
       guestId: z.number().int().positive().describe('User ID of the guest, from list_trip_members'),
