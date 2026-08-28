@@ -76,7 +76,7 @@ export default function DepartureCountdownBoard({
         <span className={compact ? 'font-bold uppercase tracking-wider' : 'departure-countdown-title'}>
           {t('dashboard.hero.departureIn')}
         </span>
-        <span className="truncate opacity-80">
+        <span className={compact ? 'truncate opacity-80' : 'departure-countdown-transport'}>
           {departure.title} · {departureTime}
         </span>
       </div>
