@@ -188,5 +188,9 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': 'Időzóna hozzáadása',
   'dashboard.aria.removeTimezone': '{city} eltávolítása',
   'dashboard.dayCountRequired': 'A napok száma kötelező',
+  'dashboard.hero.departureIn': 'Departure in',
+  'dashboard.hero.hourUnit': 'Hours',
+  'dashboard.hero.minuteUnit': 'Minutes',
+  'dashboard.hero.secondUnit': 'Seconds',
 };
 export default dashboard;

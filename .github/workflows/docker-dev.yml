@@ -102,6 +102,7 @@ jobs:
           no-cache: true
           build-args: |
             APP_VERSION=${{ needs.version-bump.outputs.version }}
+            SOURCE_CODE_URL=https://github.com/mnlauaa/TREK/tree/${{ github.sha }}
 
       - name: Export digest
         run: |

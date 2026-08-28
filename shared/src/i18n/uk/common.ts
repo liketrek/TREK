@@ -73,5 +73,12 @@ const common: TranslationStrings = {
   'common.errorUpdateTitle': 'Доступна нова версія',
   'common.errorUpdateBody': 'TREK оновився, поки ця вкладка була відкрита. Перезавантажте, щоб отримати нову версію.',
   'common.errorPluginTitle': 'Не вдалося показати цей плагін',
+  'legal.title': 'Legal & source',
+  'legal.description': 'License information and the exact source code for this deployed version.',
+  'legal.agpl':
+    'This application is licensed under the GNU Affero General Public License version 3. Remote users may obtain the corresponding source code at no charge.',
+  'legal.license': 'Read the license',
+  'legal.source': 'Corresponding source',
+  'legal.sourceDescription': 'Source code for this deployed build:',
 };
 export default common;

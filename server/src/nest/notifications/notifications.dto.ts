@@ -5,6 +5,8 @@ import {
   testWebhookRequestSchema,
   testNtfyRequestSchema,
   notificationRespondRequestSchema,
+  webPushCurrentRequestSchema,
+  webPushRenameRequestSchema,
 } from '@trek/shared';
 
 /**
@@ -19,3 +21,5 @@ export class TestSmtpDto extends createZodDto(testSmtpRequestSchema) {}
 export class TestWebhookDto extends createZodDto(testWebhookRequestSchema) {}
 export class TestNtfyDto extends createZodDto(testNtfyRequestSchema) {}
 export class NotificationRespondDto extends createZodDto(notificationRespondRequestSchema) {}
+export class WebPushCurrentDto extends createZodDto(webPushCurrentRequestSchema) {}
+export class WebPushRenameDto extends createZodDto(webPushRenameRequestSchema) {}

@@ -71,7 +71,15 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Erneut versuchen',
   'common.errorReload': 'Seite neu laden',
   'common.errorUpdateTitle': 'Eine neue Version ist verfügbar',
-  'common.errorUpdateBody': 'TREK wurde aktualisiert, während dieser Tab offen war. Lade neu, um die neue Version zu erhalten.',
+  'common.errorUpdateBody':
+    'TREK wurde aktualisiert, während dieser Tab offen war. Lade neu, um die neue Version zu erhalten.',
   'common.errorPluginTitle': 'Dieses Plugin konnte nicht angezeigt werden',
+  'legal.title': 'Legal & source',
+  'legal.description': 'License information and the exact source code for this deployed version.',
+  'legal.agpl':
+    'This application is licensed under the GNU Affero General Public License version 3. Remote users may obtain the corresponding source code at no charge.',
+  'legal.license': 'Read the license',
+  'legal.source': 'Corresponding source',
+  'legal.sourceDescription': 'Source code for this deployed build:',
 };
 export default common;

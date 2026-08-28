@@ -1,3 +1,39 @@
+// ---------------------------------------------------------------------------
+// Imports (after mocks)
+// ---------------------------------------------------------------------------
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { revokeUserSessions } from '../../../src/mcp/sessionManager';
+import { hashBackupCode } from '../../../src/nest/auth/auth.helpers';
+import { AuthService } from '../../../src/nest/auth/auth.service';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import { createEphemeralToken } from '../../../src/nest/auth/ephemeral-tokens';
+import { verifyJwtAndLoadUser } from '../../../src/nest/auth/jwt-verify';
+import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
+import { DEFAULT_ALLOWED_EXTENSIONS } from '../../../src/nest/files/files.constants';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { TokenService } from '../../../src/nest/tokens/token.service';
+import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
+import {
+  createUser,
+  createAdmin,
+  createInviteToken,
+  createTrip,
+  createPlace,
+  createReservation,
+} from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+
+import { authenticator } from 'otplib';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll, vi } from 'vitest';
+
 /**
  * auth.service.test.ts
  *
@@ -26,7 +62,7 @@ const { testDb, dbMock } = vi.hoisted(() => {
     canAccessTrip: (tripId: any, userId: number) =>
       db
         .prepare(
-          `SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`
+          `SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`,
         )
         .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
@@ -56,35 +92,6 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
 vi.mock('../../../src/nest/auth/ephemeral-tokens', () => ({ createEphemeralToken: vi.fn() }));
 vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() }));
 
-// ---------------------------------------------------------------------------
-// Imports (after mocks)
-// ---------------------------------------------------------------------------
-
-import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll, vi } from 'vitest';
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createAdmin, createInviteToken, createTrip, createPlace, createReservation } from '../../helpers/factories';
-import { AuthService } from '../../../src/nest/auth/auth.service';
-import { TokenService } from '../../../src/nest/tokens/token.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { BudgetService } from '../../../src/nest/budget/budget.service';
-import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { verifyJwtAndLoadUser } from '../../../src/nest/auth/jwt-verify';
-import { authenticator } from 'otplib';
-import { hashBackupCode } from '../../../src/nest/auth/auth.helpers';
-import { createEphemeralToken } from '../../../src/nest/auth/ephemeral-tokens';
-import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
-import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
-import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
-import { revokeUserSessions } from '../../../src/mcp/sessionManager';
-import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
-import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
-import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
-import { DEFAULT_ALLOWED_EXTENSIONS } from '../../../src/nest/files/files.constants';
-
 // MailerService is injected since the notifications fold — a stub instead of a
 // module mock. sendPasswordResetEmail is the only thing auth reaches for.
 const mailerStub = { sendPasswordResetEmail: vi.fn() } as unknown as MailerService;
@@ -102,7 +109,15 @@ const svc = new AuthService(
   new PermissionsService(new DatabaseService(testDb)),
   membershipStub,
   new WebauthnConfigService(new DatabaseService(testDb)),
-  new UserCleanupService(new DatabaseService(testDb), new BudgetService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new ExchangeRatesService(), new RealtimeService())),
+  new UserCleanupService(
+    new DatabaseService(testDb),
+    new BudgetService(
+      new DatabaseService(testDb),
+      new PermissionsService(new DatabaseService(testDb)),
+      new ExchangeRatesService(new DatabaseService(testDb)),
+      new RealtimeService(),
+    ),
+  ),
   mailerStub,
   new EphemeralTokenService(),
   new AllowedFileTypesService(new DatabaseService(testDb)),
@@ -130,15 +145,17 @@ describe('requestPasswordReset — OIDC/SSO accounts', () => {
     const { user } = createUser(testDb);
     // OIDC users are created with a random bcrypt hash, so password_hash is set —
     // the old guard keyed off a missing hash and therefore let the reset through.
-    testDb.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?')
+    testDb
+      .prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?')
       .run('sub-1129', 'https://idp.example', user.id);
 
     const result = svc.requestPasswordReset(user.email, null);
 
     expect(result.reason).toBe('oidc_only');
     expect(result.tokenForDelivery).toBeNull();
-    const { n } = testDb.prepare('SELECT COUNT(*) AS n FROM password_reset_tokens WHERE user_id = ?')
-      .get(user.id) as { n: number };
+    const { n } = testDb.prepare('SELECT COUNT(*) AS n FROM password_reset_tokens WHERE user_id = ?').get(user.id) as {
+      n: number;
+    };
     expect(n).toBe(0);
   });
 
@@ -164,9 +181,7 @@ describe('getAppSettings', () => {
 
   it('AUTH-DB-014: returns settings object for admin with known key allow_registration', () => {
     const { user } = createAdmin(testDb);
-    testDb
-      .prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('allow_registration', 'true')")
-      .run();
+    testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('allow_registration', 'true')").run();
     const result = svc.getAppSettings(user.id);
     expect(result.status).toBeUndefined();
     expect(result.data).toBeDefined();
@@ -209,7 +224,11 @@ describe('isOidcOnlyMode', () => {
 describe('resolveAuthToggles', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
-    testDb.prepare("DELETE FROM app_settings WHERE key IN ('password_login','password_registration','oidc_login','oidc_registration','oidc_only','allow_registration')").run();
+    testDb
+      .prepare(
+        "DELETE FROM app_settings WHERE key IN ('password_login','password_registration','oidc_login','oidc_registration','oidc_only','allow_registration')",
+      )
+      .run();
   });
 
   it('AUTH-DB-022a: returns all true by default (no DB keys, no env override)', () => {
@@ -454,7 +473,8 @@ describe('changePassword — OIDC-only mode', () => {
 
 describe('changePassword — session invalidation', () => {
   const pvOf = (id: number) =>
-    (testDb.prepare('SELECT password_version FROM users WHERE id = ?').get(id) as { password_version: number }).password_version;
+    (testDb.prepare('SELECT password_version FROM users WHERE id = ?').get(id) as { password_version: number })
+      .password_version;
   const mcpCount = (id: number) =>
     (testDb.prepare('SELECT COUNT(*) c FROM mcp_tokens WHERE user_id = ?').get(id) as { c: number }).c;
 
@@ -489,7 +509,12 @@ describe('changePassword — session invalidation', () => {
     const jwt = require('jsonwebtoken');
     const { user, password } = createUser(testDb);
 
-    const result = svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' }, true);
+    const result = svc.changePassword(
+      user.id,
+      user.email,
+      { current_password: password, new_password: 'New1234!' },
+      true,
+    );
     expect(result.success).toBe(true);
     const decoded = jwt.decode(result.token!) as { remember?: boolean; iat: number; exp: number };
     expect(decoded.remember).toBe(true);
@@ -576,7 +601,9 @@ describe('getAppConfig', () => {
   it('AUTH-DB-051: authenticated caller gets the permissions block; app_settings rows flow through', () => {
     const { user } = createUser(testDb);
     testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('require_mfa', 'true')").run();
-    testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('notification_channels', 'email,webhook')").run();
+    testDb
+      .prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('notification_channels', 'email,webhook')")
+      .run();
     testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('allowed_file_types', 'jpg,png')").run();
     const cfg = svc.getAppConfig({ id: user.id } as never);
     expect(cfg.permissions).toBeDefined();
@@ -656,21 +683,34 @@ describe('registerUser — success paths', () => {
 
   it('AUTH-DB-057: missing fields / bad email / duplicate answer their bespoke 400/409s', () => {
     createUser(testDb, { username: 'taken', email: 'taken@x.com' });
-    expect(svc.registerUser({ username: '', email: 'a@x.com', password: 'Secure123!' }))
-      .toEqual({ error: 'Username, email and password are required', status: 400 });
-    expect(svc.registerUser({ username: 'u', email: 'not-an-email', password: 'Secure123!' }))
-      .toEqual({ error: 'Invalid email format', status: 400 });
-    expect(svc.registerUser({ username: 'TAKEN', email: 'other@x.com', password: 'Secure123!' }))
-      .toEqual({ error: 'Registration failed. Please try different credentials.', status: 409 });
+    expect(svc.registerUser({ username: '', email: 'a@x.com', password: 'Secure123!' })).toEqual({
+      error: 'Username, email and password are required',
+      status: 400,
+    });
+    expect(svc.registerUser({ username: 'u', email: 'not-an-email', password: 'Secure123!' })).toEqual({
+      error: 'Invalid email format',
+      status: 400,
+    });
+    expect(svc.registerUser({ username: 'TAKEN', email: 'other@x.com', password: 'Secure123!' })).toEqual({
+      error: 'Registration failed. Please try different credentials.',
+      status: 409,
+    });
   });
 
   it('AUTH-DB-058: an invite bypasses disabled registration and bumps used_count', () => {
     createUser(testDb);
     testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('allow_registration', 'false')").run();
     const invite = createInviteToken(testDb, { max_uses: 2 });
-    const result = svc.registerUser({ username: 'invited', email: 'invited@x.com', password: 'Secure123!', invite_token: invite.token });
+    const result = svc.registerUser({
+      username: 'invited',
+      email: 'invited@x.com',
+      password: 'Secure123!',
+      invite_token: invite.token,
+    });
     expect(result.error).toBeUndefined();
-    const { used_count } = testDb.prepare('SELECT used_count FROM invite_tokens WHERE id = ?').get(invite.id) as { used_count: number };
+    const { used_count } = testDb.prepare('SELECT used_count FROM invite_tokens WHERE id = ?').get(invite.id) as {
+      used_count: number;
+    };
     expect(used_count).toBe(1);
     testDb.prepare("DELETE FROM app_settings WHERE key = 'allow_registration'").run();
   });
@@ -684,7 +724,10 @@ describe('loginUser — credential branches', () => {
   });
 
   it('AUTH-DB-060: missing fields answer the bespoke 400', () => {
-    expect(svc.loginUser({ email: '', password: '' })).toEqual({ error: 'Email and password are required', status: 400 });
+    expect(svc.loginUser({ email: '', password: '' })).toEqual({
+      error: 'Email and password are required',
+      status: 400,
+    });
   });
 
   it('AUTH-DB-061: wrong password answers the generic 401 with the wrong_password audit reason', () => {
@@ -700,7 +743,10 @@ describe('loginUser — credential branches', () => {
     expect(typeof result.token).toBe('string');
     expect(result.user).not.toHaveProperty('password_hash');
     expect(result.auditAction).toBe('user.login');
-    const row = testDb.prepare('SELECT login_count, last_login FROM users WHERE id = ?').get(user.id) as { login_count: number; last_login: string };
+    const row = testDb.prepare('SELECT login_count, last_login FROM users WHERE id = ?').get(user.id) as {
+      login_count: number;
+      last_login: string;
+    };
     expect(row.login_count).toBe(1);
     expect(row.last_login).not.toBeNull();
   });
@@ -729,14 +775,18 @@ describe('getCurrentUser', () => {
 describe('deleteAccount', () => {
   it('AUTH-DB-065: refuses to delete the last admin', () => {
     const { user } = createAdmin(testDb);
-    expect(svc.deleteAccount(user.id, user.email, 'admin'))
-      .toEqual({ error: 'Cannot delete the last admin account', status: 400 });
+    expect(svc.deleteAccount(user.id, user.email, 'admin')).toEqual({
+      error: 'Cannot delete the last admin account',
+      status: 400,
+    });
   });
 
   it('AUTH-DB-066: demo mode blocks deletion', () => {
     vi.stubEnv('DEMO_MODE', 'true');
-    expect(svc.deleteAccount(1, 'demo@nomad.app', 'user'))
-      .toEqual({ error: 'Account deletion is disabled in demo mode.', status: 403 });
+    expect(svc.deleteAccount(1, 'demo@nomad.app', 'user')).toEqual({
+      error: 'Account deletion is disabled in demo mode.',
+      status: 403,
+    });
     vi.unstubAllEnvs();
   });
 
@@ -772,7 +822,10 @@ describe('updateAppSettings', () => {
   it('AUTH-DB-074: lockout prevention refuses disabling every login method', () => {
     const { user } = createAdmin(testDb);
     const result = svc.updateAppSettings(user.id, { password_login: 'false', oidc_login: 'false' });
-    expect(result).toEqual({ error: 'Cannot disable all login methods. At least one must remain enabled.', status: 400 });
+    expect(result).toEqual({
+      error: 'Cannot disable all login methods. At least one must remain enabled.',
+      status: 400,
+    });
   });
 
   it('AUTH-DB-075: the smtp_pass masking sentinel is skipped on a notification-settings change', () => {
@@ -782,7 +835,9 @@ describe('updateAppSettings', () => {
     testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('smtp_pass', 'stored')").run();
     const result = svc.updateAppSettings(user.id, { smtp_pass: '••••••••', notification_channels: 'email' });
     expect(result.success).toBe(true);
-    const { value } = testDb.prepare("SELECT value FROM app_settings WHERE key = 'smtp_pass'").get() as { value: string };
+    const { value } = testDb.prepare("SELECT value FROM app_settings WHERE key = 'smtp_pass'").get() as {
+      value: string;
+    };
     expect(value).toBe('stored'); // sentinel never overwrites the secret
     expect(result.auditDebugDetails).not.toHaveProperty('smtp_pass', 'stored');
     testDb.prepare("DELETE FROM app_settings WHERE key IN ('smtp_pass','notification_channels')").run();
@@ -797,7 +852,10 @@ describe('MFA success flows', () => {
     const result = svc.enableMfa(user.id, code);
     expect(result.success).toBe(true);
     expect(result.backup_codes).toHaveLength(10);
-    const row = testDb.prepare('SELECT mfa_enabled, mfa_secret FROM users WHERE id = ?').get(user.id) as { mfa_enabled: number; mfa_secret: string };
+    const row = testDb.prepare('SELECT mfa_enabled, mfa_secret FROM users WHERE id = ?').get(user.id) as {
+      mfa_enabled: number;
+      mfa_secret: string;
+    };
     expect(row.mfa_enabled).toBe(1);
     expect(row.mfa_secret).toBe('enc:' + setup.secret);
   });
@@ -814,7 +872,10 @@ describe('MFA success flows', () => {
     testDb.prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ? WHERE id = ?').run('enc:' + secret, user.id);
     const result = svc.disableMfa(user.id, user.email, { password, code: authenticator.generate(secret) });
     expect(result).toEqual({ success: true, mfa_enabled: false });
-    const row = testDb.prepare('SELECT mfa_enabled, mfa_secret FROM users WHERE id = ?').get(user.id) as { mfa_enabled: number; mfa_secret: string | null };
+    const row = testDb.prepare('SELECT mfa_enabled, mfa_secret FROM users WHERE id = ?').get(user.id) as {
+      mfa_enabled: number;
+      mfa_secret: string | null;
+    };
     expect(row.mfa_enabled).toBe(0);
     expect(row.mfa_secret).toBeNull();
   });
@@ -823,8 +884,10 @@ describe('MFA success flows', () => {
     const { user } = createUser(testDb);
     const secret = authenticator.generateSecret();
     testDb.prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ? WHERE id = ?').run('enc:' + secret, user.id);
-    expect(svc.disableMfa(user.id, user.email, { password: 'wrong', code: authenticator.generate(secret) }))
-      .toEqual({ error: 'Incorrect password', status: 401 });
+    expect(svc.disableMfa(user.id, user.email, { password: 'wrong', code: authenticator.generate(secret) })).toEqual({
+      error: 'Incorrect password',
+      status: 401,
+    });
   });
 
   it('AUTH-DB-080: verifyMfaLogin succeeds with a TOTP code from the interstitial token', () => {
@@ -843,12 +906,15 @@ describe('MFA success flows', () => {
     const secret = authenticator.generateSecret();
     const codes = ['AAAA-1111', 'BBBB-2222'];
     // hashBackupCode (legacy SHA-256) hashes still verify via matchBackupCode.
-    testDb.prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ?, mfa_backup_codes = ? WHERE id = ?')
+    testDb
+      .prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ?, mfa_backup_codes = ? WHERE id = ?')
       .run('enc:' + secret, JSON.stringify(codes.map(hashBackupCode)), user.id);
     const interstitial = svc.loginUser({ email: user.email, password });
     const result = svc.verifyMfaLogin({ mfa_token: interstitial.mfa_token, code: 'AAAA-1111' });
     expect(typeof result.token).toBe('string');
-    const row = testDb.prepare('SELECT mfa_backup_codes FROM users WHERE id = ?').get(user.id) as { mfa_backup_codes: string };
+    const row = testDb.prepare('SELECT mfa_backup_codes FROM users WHERE id = ?').get(user.id) as {
+      mfa_backup_codes: string;
+    };
     expect(JSON.parse(row.mfa_backup_codes)).toHaveLength(1); // used code spliced out
     // the spent code no longer verifies
     const again = svc.loginUser({ email: user.email, password });
@@ -863,42 +929,59 @@ describe('resetPassword', () => {
     expect(issued.reason).toBe('issued');
     const result = svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' });
     expect(result).toEqual({ success: true, userId: user.id });
-    const row = testDb.prepare('SELECT password_version FROM users WHERE id = ?').get(user.id) as { password_version: number };
+    const row = testDb.prepare('SELECT password_version FROM users WHERE id = ?').get(user.id) as {
+      password_version: number;
+    };
     expect(row.password_version).toBe(1);
     // token is burned — a second use answers the bespoke 400
-    expect(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh456!' }))
-      .toEqual({ error: 'This reset link has already been used', status: 400 });
+    expect(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh456!' })).toEqual({
+      error: 'This reset link has already been used',
+      status: 400,
+    });
   });
 
   it('AUTH-DB-083: bespoke 400s for missing/unknown/expired tokens', () => {
     expect(svc.resetPassword({ new_password: 'Fresh123!' })).toEqual({ error: 'Reset token is required', status: 400 });
     expect(svc.resetPassword({ token: 't' })).toEqual({ error: 'New password is required', status: 400 });
-    expect(svc.resetPassword({ token: 'unknown-token', new_password: 'Fresh123!' }))
-      .toEqual({ error: 'Invalid or expired reset link', status: 400 });
+    expect(svc.resetPassword({ token: 'unknown-token', new_password: 'Fresh123!' })).toEqual({
+      error: 'Invalid or expired reset link',
+      status: 400,
+    });
 
     const { user } = createUser(testDb);
     const issued = svc.requestPasswordReset(user.email, null);
-    testDb.prepare("UPDATE password_reset_tokens SET expires_at = '2000-01-01T00:00:00.000Z' WHERE user_id = ?").run(user.id);
-    expect(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' }))
-      .toEqual({ error: 'Reset link has expired. Please request a new one.', status: 400 });
+    testDb
+      .prepare("UPDATE password_reset_tokens SET expires_at = '2000-01-01T00:00:00.000Z' WHERE user_id = ?")
+      .run(user.id);
+    expect(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })).toEqual({
+      error: 'Reset link has expired. Please request a new one.',
+      status: 400,
+    });
   });
 
   it('AUTH-DB-084: an MFA-enabled account demands a code, then consumes a backup code', () => {
     const { user } = createUser(testDb);
     const secret = authenticator.generateSecret();
-    testDb.prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ?, mfa_backup_codes = ? WHERE id = ?')
+    testDb
+      .prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ?, mfa_backup_codes = ? WHERE id = ?')
       .run('enc:' + secret, JSON.stringify([hashBackupCode('CCCC-3333')]), user.id);
     const issued = svc.requestPasswordReset(user.email, null);
     // no code → mfa_required interstitial, token NOT burned
-    expect(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' }))
-      .toEqual({ mfa_required: true, status: 200 });
+    expect(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })).toEqual({
+      mfa_required: true,
+      status: 200,
+    });
     // wrong code → 401
-    expect(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!', mfa_code: '000000' }))
-      .toEqual({ error: 'Invalid MFA code', status: 401 });
+    expect(
+      svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!', mfa_code: '000000' }),
+    ).toEqual({ error: 'Invalid MFA code', status: 401 });
     // backup code → success + code consumed
-    expect(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!', mfa_code: 'CCCC-3333' }))
-      .toEqual({ success: true, userId: user.id });
-    const row = testDb.prepare('SELECT mfa_backup_codes FROM users WHERE id = ?').get(user.id) as { mfa_backup_codes: string };
+    expect(
+      svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!', mfa_code: 'CCCC-3333' }),
+    ).toEqual({ success: true, userId: user.id });
+    const row = testDb.prepare('SELECT mfa_backup_codes FROM users WHERE id = ?').get(user.id) as {
+      mfa_backup_codes: string;
+    };
     expect(JSON.parse(row.mfa_backup_codes)).toHaveLength(0);
   });
 
@@ -929,7 +1012,6 @@ describe('ephemeral + demo helpers', () => {
   });
 });
 
-
 // ---------------------------------------------------------------------------
 // Quirk fixes after the DI fold (trailing fix(server) commit): AUTH-DB-089+.
 // The relocation carried these verbatim; the fixes land on top with a pin each.
@@ -941,32 +1023,43 @@ describe('auth quirk fixes', () => {
     const trip = createTrip(testDb, owner.id);
     const invite = createInviteToken(testDb, { max_uses: 5 });
     testDb.prepare('UPDATE invite_tokens SET trip_id = ? WHERE id = ?').run(trip.id, invite.id);
-    joinTripAsMember.mockImplementationOnce(() => { throw new Error('boom'); });
+    joinTripAsMember.mockImplementationOnce(() => {
+      throw new Error('boom');
+    });
 
-    const result = svc.registerUser({ username: 'rollback', email: 'rollback@x.com', password: 'Secure123!', invite_token: invite.token });
+    const result = svc.registerUser({
+      username: 'rollback',
+      email: 'rollback@x.com',
+      password: 'Secure123!',
+      invite_token: invite.token,
+    });
 
     expect(result).toEqual({ error: 'Error creating user', status: 500 });
     expect(testDb.prepare("SELECT id FROM users WHERE email = 'rollback@x.com'").get()).toBeUndefined();
-    const { used_count } = testDb.prepare('SELECT used_count FROM invite_tokens WHERE id = ?').get(invite.id) as { used_count: number };
+    const { used_count } = testDb.prepare('SELECT used_count FROM invite_tokens WHERE id = ?').get(invite.id) as {
+      used_count: number;
+    };
     expect(used_count).toBe(0);
   });
 
   it('AUTH-DB-091: a backup-code login burns the code and records the login as one atomic pair', () => {
     const { user, password } = createUser(testDb);
     const secret = authenticator.generateSecret();
-    testDb.prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ?, mfa_backup_codes = ? WHERE id = ?')
+    testDb
+      .prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ?, mfa_backup_codes = ? WHERE id = ?')
       .run('enc:' + secret, JSON.stringify([hashBackupCode('DDDD-4444')]), user.id);
     const interstitial = svc.loginUser({ email: user.email, password });
 
     const result = svc.verifyMfaLogin({ mfa_token: interstitial.mfa_token, code: 'DDDD-4444' });
 
     expect(typeof result.token).toBe('string');
-    const row = testDb.prepare('SELECT mfa_backup_codes, login_count, last_login FROM users WHERE id = ?').get(user.id) as { mfa_backup_codes: string; login_count: number; last_login: string | null };
+    const row = testDb
+      .prepare('SELECT mfa_backup_codes, login_count, last_login FROM users WHERE id = ?')
+      .get(user.id) as { mfa_backup_codes: string; login_count: number; last_login: string | null };
     expect(JSON.parse(row.mfa_backup_codes)).toHaveLength(0);
     expect(row.login_count).toBe(1);
     expect(row.last_login).not.toBeNull();
   });
-
 });
 
 // ---------------------------------------------------------------------------
@@ -997,11 +1090,19 @@ describe('generateToken remember claim (#1927)', () => {
 
   it('AUTH-TOKEN-001: embeds remember and picks the matching lifetime when the caller chose', () => {
     const { user } = createUser(testDb);
-    const long = jwt.decode(svc.generateToken({ id: user.id }, true)) as { remember?: boolean; iat: number; exp: number };
+    const long = jwt.decode(svc.generateToken({ id: user.id }, true)) as {
+      remember?: boolean;
+      iat: number;
+      exp: number;
+    };
     expect(long.remember).toBe(true);
     expect(long.exp - long.iat).toBe(2592000);
 
-    const short = jwt.decode(svc.generateToken({ id: user.id }, false)) as { remember?: boolean; iat: number; exp: number };
+    const short = jwt.decode(svc.generateToken({ id: user.id }, false)) as {
+      remember?: boolean;
+      iat: number;
+      exp: number;
+    };
     expect(short.remember).toBe(false);
     expect(short.exp - short.iat).toBe(86400);
   });

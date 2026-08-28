@@ -71,11 +71,25 @@ describe('useTripWebSocket', () => {
     expect(registeredFunctions).toContain(handler);
   });
 
-  it('FE-HOOK-WS-006b: collab file sync listener is also registered (second addListener call)', () => {
+  it('FE-HOOK-WS-006b: collab and fork synchronization listeners are registered', () => {
     const { unmount } = renderHook(() => useTripWebSocket(42));
-    // Two listeners registered: handleRemoteEvent + collabFileSync
-    expect((wsMock.addListener as ReturnType<typeof vi.fn>).mock.calls.length).toBe(2);
+    // handleRemoteEvent + collabFileSync + forkSync
+    expect((wsMock.addListener as ReturnType<typeof vi.fn>).mock.calls.length).toBe(3);
     unmount();
+  });
+
+  it('FE-HOOK-WS-006f: fork events refresh their authoritative trip slices', () => {
+    const loadBudgetItems = vi.fn();
+    const hydrateActiveTrip = vi.fn();
+    useTripStore.setState({ loadBudgetItems, hydrateActiveTrip } as any);
+    renderHook(() => useTripWebSocket(42));
+
+    const forkSync = (wsMock.addListener as ReturnType<typeof vi.fn>).mock.calls[2]?.[0];
+    act(() => forkSync({ type: 'budget:exchange-rates-applied' }));
+    act(() => forkSync({ type: 'guest:identity-transferred' }));
+
+    expect(loadBudgetItems).toHaveBeenCalledWith(42);
+    expect(hydrateActiveTrip).toHaveBeenCalledWith(42);
   });
 
   it('FE-HOOK-WS-006c: collab file sync listener reacts to collab:note:deleted events', () => {

@@ -184,5 +184,9 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': '新增時區',
   'dashboard.aria.removeTimezone': '移除 {city}',
   'dashboard.dayCountRequired': '天數為必填項',
+  'dashboard.hero.departureIn': '距離出發',
+  'dashboard.hero.hourUnit': '小時',
+  'dashboard.hero.minuteUnit': '分鐘',
+  'dashboard.hero.secondUnit': '秒',
 };
 export default dashboard;

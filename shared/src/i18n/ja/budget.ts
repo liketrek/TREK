@@ -146,5 +146,21 @@ const budget: TranslationStrings = {
   'costs.splitBalanced': '分割は合計と一致しています',
   'costs.splitSumUnder': '分割の合計: {total} のうち {sum}（{diff} 不足）',
   'costs.splitSumOver': '分割の合計: {total} のうち {sum}（{diff} 超過）',
+  'budget.exchangeRates.title': 'Trip exchange rates',
+  'budget.exchangeRates.description':
+    'Defaults for new expenses and payments. Existing frozen values change only through a preview.',
+  'budget.exchangeRates.rate': 'Rate',
+  'budget.exchangeRates.note': 'Note (optional)',
+  'budget.exchangeRates.saved': 'Exchange rate saved.',
+  'budget.exchangeRates.preview': 'Preview changes',
+  'budget.exchangeRates.previewTitle': 'Select frozen items to update',
+  'budget.exchangeRates.applied': 'Selected exchange rates updated.',
+  'budget.exchangeRates.apply': 'Apply to {count}',
+  'budget.exchangeRates.provenance': 'Frozen at {rate} · {source}',
+  'budget.exchangeRates.source.identity': 'Trip currency',
+  'budget.exchangeRates.source.global': 'Global snapshot',
+  'budget.exchangeRates.source.trip': 'Trip default',
+  'budget.exchangeRates.source.explicit': 'Explicit rate',
+  'budget.exchangeRates.source.legacy': 'Legacy rate',
 };
 export default budget;

@@ -185,5 +185,9 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': 'タイムゾーンを追加',
   'dashboard.aria.removeTimezone': '{city}を削除',
   'dashboard.dayCountRequired': '日数は必須です',
+  'dashboard.hero.departureIn': 'Departure in',
+  'dashboard.hero.hourUnit': 'Hours',
+  'dashboard.hero.minuteUnit': 'Minutes',
+  'dashboard.hero.secondUnit': 'Seconds',
 };
 export default dashboard;

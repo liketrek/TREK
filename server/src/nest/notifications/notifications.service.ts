@@ -1,13 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import type { ChannelTestResult } from '@trek/shared';
 import { readEnv, getAppUrl } from '../../app-config';
 import { logDebug, logError } from '../audit/audit-log.logger';
+import { avatarUrl } from '../common/avatarUrl';
+import { DatabaseService } from '../database/database.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import { getChannel, listChannels } from './channel-registry';
+import { registerBuiltinChannels } from './channels/builtins';
+import { getAction } from './in-app-actions';
 import { getEventText } from './mailer/email-html';
 import { MailerService } from './mailer/mailer.service';
-import { NtfyService, type NtfyConfig } from './transports/ntfy.service';
-import { WebhookService } from './transports/webhook.service';
-import { NotificationPreferencesService, type PreferencesMatrix } from './notification-preferences.service';
-import { registerBuiltinChannels } from './channels/builtins';
 import {
   ADMIN_SCOPED_EVENTS,
   isAdminGlobalChannel,
@@ -15,12 +15,12 @@ import {
   type ExternalChannel,
   type NotifEventType,
 } from './notification-events';
-import { getChannel, listChannels } from './channel-registry';
-import { getAction } from './in-app-actions';
-import { avatarUrl } from '../common/avatarUrl';
-import { DatabaseService } from '../database/database.service';
-import { RealtimeService } from '../realtime/realtime.service';
-
+import { NotificationPreferencesService, type PreferencesMatrix } from './notification-preferences.service';
+import { NtfyService, type NtfyConfig } from './transports/ntfy.service';
+import { WebhookService } from './transports/webhook.service';
+import { WebPushService } from './web-push.service';
+import { Injectable, Optional } from '@nestjs/common';
+import type { ChannelTestResult } from '@trek/shared';
 
 // SQLite's CURRENT_TIMESTAMP is UTC but the string ('YYYY-MM-DD HH:MM:SS') has
 // no 'T'/'Z', so `new Date(...)` parses it as LOCAL time. Normalize to ISO-UTC
@@ -130,7 +130,7 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     titleKey: 'notif.plugin.title',
     textKey: 'notif.plugin.text',
     navigateTextKey: 'notif.action.view',
-    navigateTarget: p => p.link || null,
+    navigateTarget: (p) => p.link || null,
   },
   // ── Production events ─────────────────────────────────────────────────────
   trip_invite: {
@@ -138,35 +138,35 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     titleKey: 'notif.trip_invite.title',
     textKey: 'notif.trip_invite.text',
     navigateTextKey: 'notif.action.view_trip',
-    navigateTarget: p => (p.tripId ? `/trips/${p.tripId}` : null),
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
   },
   booking_change: {
     inAppType: 'navigate',
     titleKey: 'notif.booking_change.title',
     textKey: 'notif.booking_change.text',
     navigateTextKey: 'notif.action.view_trip',
-    navigateTarget: p => (p.tripId ? `/trips/${p.tripId}` : null),
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
   },
   trip_reminder: {
     inAppType: 'navigate',
     titleKey: 'notif.trip_reminder.title',
     textKey: 'notif.trip_reminder.text',
     navigateTextKey: 'notif.action.view_trip',
-    navigateTarget: p => (p.tripId ? `/trips/${p.tripId}` : null),
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
   },
   todo_due: {
     inAppType: 'navigate',
     titleKey: 'notif.todo_due.title',
     textKey: 'notif.todo_due.text',
     navigateTextKey: 'notif.action.view_trip',
-    navigateTarget: p => (p.tripId ? `/trips/${p.tripId}` : null),
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
   },
   vacay_invite: {
     inAppType: 'navigate',
     titleKey: 'notif.vacay_invite.title',
     textKey: 'notif.vacay_invite.text',
     navigateTextKey: 'notif.action.view_vacay',
-    navigateTarget: p => (p.planId ? `/vacay/${p.planId}` : null),
+    navigateTarget: (p) => (p.planId ? `/vacay/${p.planId}` : null),
   },
   vacay_share: {
     inAppType: 'navigate',
@@ -180,28 +180,28 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     titleKey: 'notif.collection_invite.title',
     textKey: 'notif.collection_invite.text',
     navigateTextKey: 'notif.action.view_collection',
-    navigateTarget: p => (p.collectionId ? `/collections/${p.collectionId}` : '/collections'),
+    navigateTarget: (p) => (p.collectionId ? `/collections/${p.collectionId}` : '/collections'),
   },
   photos_shared: {
     inAppType: 'navigate',
     titleKey: 'notif.photos_shared.title',
     textKey: 'notif.photos_shared.text',
     navigateTextKey: 'notif.action.view_trip',
-    navigateTarget: p => (p.tripId ? `/trips/${p.tripId}` : null),
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
   },
   collab_message: {
     inAppType: 'navigate',
     titleKey: 'notif.collab_message.title',
     textKey: 'notif.collab_message.text',
     navigateTextKey: 'notif.action.view_collab',
-    navigateTarget: p => (p.tripId ? `/trips/${p.tripId}` : null),
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
   },
   packing_tagged: {
     inAppType: 'navigate',
     titleKey: 'notif.packing_tagged.title',
     textKey: 'notif.packing_tagged.text',
     navigateTextKey: 'notif.action.view_packing',
-    navigateTarget: p => (p.tripId ? `/trips/${p.tripId}` : null),
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
   },
   version_available: {
     inAppType: 'navigate',
@@ -213,7 +213,8 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
   replica_failure: {
     inAppType: 'navigate',
     titleKey: 'notif.replica_failure.title',
-    textKey: (p) => (p.suppressed && p.suppressed !== '0' ? 'notif.replica_failure.textSuppressed' : 'notif.replica_failure.text'),
+    textKey: (p) =>
+      p.suppressed && p.suppressed !== '0' ? 'notif.replica_failure.textSuppressed' : 'notif.replica_failure.text',
     navigateTextKey: 'notif.action.view',
     navigateTarget: () => '/admin?tab=storage',
   },
@@ -316,12 +317,13 @@ export class NotificationsService {
     private readonly webhook: WebhookService,
     private readonly ntfy: NtfyService,
     private readonly prefs: NotificationPreferencesService,
+    @Optional() private readonly webPush?: WebPushService,
   ) {
     // The registry is a module singleton shared with the plugin runtime and any
     // separately-constructed instance (which never runs onModuleInit), so
     // registering from here means every path that can dispatch has the
     // built-ins. registerChannel is an idempotent Map.set.
-    registerBuiltinChannels({ mailer, webhook, ntfy });
+    registerBuiltinChannels({ mailer, webhook, ntfy, webPush });
   }
 
   getPreferences(userId: number, role: string): PreferencesMatrix {
@@ -383,7 +385,10 @@ export class NotificationsService {
     // single chokepoint for in-app/email/webhook/ntfy, so filtering here covers all channels.
     if (scope === 'trip') {
       const owner = this.db.get<{ user_id: number }>('SELECT user_id FROM trips WHERE id = ?', target);
-      const members = this.db.all<{ user_id: number }>('SELECT m.user_id FROM trip_members m JOIN users u ON u.id = m.user_id WHERE m.trip_id = ? AND COALESCE(u.is_guest, 0) = 0', target);
+      const members = this.db.all<{ user_id: number }>(
+        'SELECT m.user_id FROM trip_members m JOIN users u ON u.id = m.user_id WHERE m.trip_id = ? AND COALESCE(u.is_guest, 0) = 0',
+        target,
+      );
       const ids = new Set<number>();
       if (owner) ids.add(owner.user_id);
       for (const m of members) ids.add(m.user_id);
@@ -393,13 +398,16 @@ export class NotificationsService {
       const u = this.db.get<{ is_guest?: number }>('SELECT is_guest FROM users WHERE id = ?', target);
       userIds = u && u.is_guest ? [] : [target];
     } else if (scope === 'admin') {
-      const admins = this.db.all<{ id: number }>("SELECT id FROM users WHERE role = ? AND COALESCE(is_guest, 0) = 0", 'admin');
-      userIds = admins.map(a => a.id);
+      const admins = this.db.all<{ id: number }>(
+        'SELECT id FROM users WHERE role = ? AND COALESCE(is_guest, 0) = 0',
+        'admin',
+      );
+      userIds = admins.map((a) => a.id);
     }
 
     // Only exclude sender for group scopes (trip/admin) — for user scope, the target is explicit
     if (excludeUserId != null && scope !== 'user') {
-      userIds = userIds.filter(id => id !== excludeUserId);
+      userIds = userIds.filter((id) => id !== excludeUserId);
     }
 
     return userIds;
@@ -454,10 +462,21 @@ export class NotificationsService {
         }
 
         const result = stmt.run(
-          input.type, input.scope, input.target, input.sender_id, recipientId,
-          input.title_key, titleParams, input.text_key, textParams,
-          positiveTextKey, negativeTextKey, positiveCallback, negativeCallback,
-          navigateTextKey, navigateTarget
+          input.type,
+          input.scope,
+          input.target,
+          input.sender_id,
+          recipientId,
+          input.title_key,
+          titleParams,
+          input.text_key,
+          textParams,
+          positiveTextKey,
+          negativeTextKey,
+          positiveCallback,
+          negativeCallback,
+          navigateTextKey,
+          navigateTarget,
         );
 
         insertedPairs.push({ id: result.lastInsertRowid as number, recipientId });
@@ -466,12 +485,18 @@ export class NotificationsService {
 
     // Fetch sender info once for WS payloads
     const sender = input.sender_id
-      ? this.db.get<{ username: string; avatar: string | null }>('SELECT username, avatar FROM users WHERE id = ?', input.sender_id)
+      ? this.db.get<{ username: string; avatar: string | null }>(
+          'SELECT username, avatar FROM users WHERE id = ?',
+          input.sender_id,
+        )
       : null;
 
     // Broadcast to each recipient
     for (const { id: notificationId, recipientId } of insertedPairs) {
-      const row = this.db.get<NotificationRow>('SELECT * FROM notifications WHERE id = ?', notificationId) as NotificationRow;
+      const row = this.db.get<NotificationRow>(
+        'SELECT * FROM notifications WHERE id = ?',
+        notificationId,
+      ) as NotificationRow;
       if (!row) continue;
 
       this.realtime.broadcastToUser(recipientId, {
@@ -485,7 +510,7 @@ export class NotificationsService {
       });
     }
 
-    return insertedPairs.map(p => p.id);
+    return insertedPairs.map((p) => p.id);
   }
 
   /**
@@ -495,7 +520,7 @@ export class NotificationsService {
   createNotificationForRecipient(
     input: NotificationInput,
     recipientId: number,
-    sender: { username: string; avatar: string | null } | null
+    sender: { username: string; avatar: string | null } | null,
   ): number | null {
     const titleParams = JSON.stringify(input.title_params ?? {});
     const textParams = JSON.stringify(input.text_params ?? {});
@@ -517,7 +542,8 @@ export class NotificationsService {
       navigateTarget = input.navigate_target;
     }
 
-    const result = this.db.run(`
+    const result = this.db.run(
+      `
     INSERT INTO notifications (
       type, scope, target, sender_id, recipient_id,
       title_key, title_params, text_key, text_params,
@@ -525,10 +551,21 @@ export class NotificationsService {
       navigate_text_key, navigate_target
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
-      input.type, input.scope, input.target, input.sender_id, recipientId,
-      input.title_key, titleParams, input.text_key, textParams,
-      positiveTextKey, negativeTextKey, positiveCallback, negativeCallback,
-      navigateTextKey, navigateTarget
+      input.type,
+      input.scope,
+      input.target,
+      input.sender_id,
+      recipientId,
+      input.title_key,
+      titleParams,
+      input.text_key,
+      textParams,
+      positiveTextKey,
+      negativeTextKey,
+      positiveCallback,
+      negativeCallback,
+      navigateTextKey,
+      navigateTarget,
     );
 
     const notificationId = result.lastInsertRowid as number;
@@ -552,7 +589,7 @@ export class NotificationsService {
   // client-facing InAppListResult contract); the controller surfaces it as-is.
   listInApp(
     userId: number,
-    options: { limit?: number; offset?: number; unreadOnly?: boolean } = {}
+    options: { limit?: number; offset?: number; unreadOnly?: boolean } = {},
   ): { notifications: NotificationRow[]; total: number; unread_count: number } {
     const limit = Math.min(options.limit ?? 20, 50);
     const offset = options.offset ?? 0;
@@ -561,19 +598,30 @@ export class NotificationsService {
     const whereAliased = unreadOnly ? 'WHERE n.recipient_id = ? AND n.is_read = 0' : 'WHERE n.recipient_id = ?';
     const wherePlain = unreadOnly ? 'WHERE recipient_id = ? AND is_read = 0' : 'WHERE recipient_id = ?';
 
-    const rows = this.db.all<NotificationRow>(`
+    const rows = this.db.all<NotificationRow>(
+      `
     SELECT n.*, u.username AS sender_username, u.avatar AS sender_avatar
     FROM notifications n
     LEFT JOIN users u ON n.sender_id = u.id
     ${whereAliased}
     ORDER BY n.created_at DESC
     LIMIT ? OFFSET ?
-  `, userId, limit, offset);
+  `,
+      userId,
+      limit,
+      offset,
+    );
 
-    const { total } = this.db.get<{ total: number }>(`SELECT COUNT(*) as total FROM notifications ${wherePlain}`, userId) as { total: number };
-    const { unread_count } = this.db.get<{ unread_count: number }>('SELECT COUNT(*) as unread_count FROM notifications WHERE recipient_id = ? AND is_read = 0', userId) as { unread_count: number };
+    const { total } = this.db.get<{ total: number }>(
+      `SELECT COUNT(*) as total FROM notifications ${wherePlain}`,
+      userId,
+    ) as { total: number };
+    const { unread_count } = this.db.get<{ unread_count: number }>(
+      'SELECT COUNT(*) as unread_count FROM notifications WHERE recipient_id = ? AND is_read = 0',
+      userId,
+    ) as { unread_count: number };
 
-    const mapped = rows.map(r => ({
+    const mapped = rows.map((r) => ({
       ...r,
       created_at: toUtcIso(r.created_at),
       sender_avatar: avatarUrl({ avatar: r.sender_avatar }),
@@ -583,17 +631,28 @@ export class NotificationsService {
   }
 
   unreadCount(userId: number): number {
-    const row = this.db.get<{ count: number }>('SELECT COUNT(*) as count FROM notifications WHERE recipient_id = ? AND is_read = 0', userId) as { count: number };
+    const row = this.db.get<{ count: number }>(
+      'SELECT COUNT(*) as count FROM notifications WHERE recipient_id = ? AND is_read = 0',
+      userId,
+    ) as { count: number };
     return row.count;
   }
 
   markRead(notificationId: number, userId: number): boolean {
-    const result = this.db.run('UPDATE notifications SET is_read = 1 WHERE id = ? AND recipient_id = ?', notificationId, userId);
+    const result = this.db.run(
+      'UPDATE notifications SET is_read = 1 WHERE id = ? AND recipient_id = ?',
+      notificationId,
+      userId,
+    );
     return result.changes > 0;
   }
 
   markUnread(notificationId: number, userId: number): boolean {
-    const result = this.db.run('UPDATE notifications SET is_read = 0 WHERE id = ? AND recipient_id = ?', notificationId, userId);
+    const result = this.db.run(
+      'UPDATE notifications SET is_read = 0 WHERE id = ? AND recipient_id = ?',
+      notificationId,
+      userId,
+    );
     return result.changes > 0;
   }
 
@@ -612,12 +671,12 @@ export class NotificationsService {
     return result.changes;
   }
 
-  async respond(
-    notificationId: number,
-    userId: number,
-    response: NotificationResponse
-  ): Promise<RespondResult> {
-    const notification = this.db.get<NotificationRow>('SELECT * FROM notifications WHERE id = ? AND recipient_id = ?', notificationId, userId);
+  async respond(notificationId: number, userId: number, response: NotificationResponse): Promise<RespondResult> {
+    const notification = this.db.get<NotificationRow>(
+      'SELECT * FROM notifications WHERE id = ? AND recipient_id = ?',
+      notificationId,
+      userId,
+    );
 
     if (!notification) return { success: false, error: 'Notification not found' };
     if (notification.type !== 'boolean') return { success: false, error: 'Not a boolean notification' };
@@ -641,7 +700,9 @@ export class NotificationsService {
     // (the legacy order ran the handler first, letting both submits through).
     const result = this.db.run(
       'UPDATE notifications SET response = ?, is_read = 1 WHERE id = ? AND recipient_id = ? AND response IS NULL',
-      response, notificationId, userId
+      response,
+      notificationId,
+      userId,
     );
 
     if (result.changes === 0) return { success: false, error: 'Already responded' };
@@ -653,17 +714,22 @@ export class NotificationsService {
       // failure returns its message and leaves the notification unresponded.
       this.db.run(
         'UPDATE notifications SET response = NULL, is_read = ? WHERE id = ? AND recipient_id = ?',
-        notification.is_read, notificationId, userId
+        notification.is_read,
+        notificationId,
+        userId,
       );
       return { success: false, error: err instanceof Error ? err.message : 'Action failed' };
     }
 
-    const updated = this.db.get<NotificationRow>(`
+    const updated = this.db.get<NotificationRow>(
+      `
     SELECT n.*, u.username AS sender_username, u.avatar AS sender_avatar
     FROM notifications n
     LEFT JOIN users u ON n.sender_id = u.id
     WHERE n.id = ?
-  `, notificationId) as NotificationRow;
+  `,
+      notificationId,
+    ) as NotificationRow;
 
     const mappedUpdated = {
       ...updated,
@@ -689,16 +755,24 @@ export class NotificationsService {
     if (!configEntry) {
       logDebug(`notificationService.send: unknown event type "${event}", using fallback`);
       if (readEnv().app.isDevelopment && actorId != null) {
-        const devSender = this.db.get<{ username: string; avatar: string | null }>('SELECT username, avatar FROM users WHERE id = ?', actorId) ?? null;
-        this.createNotificationForRecipient({
-          type: 'simple',
-          scope: 'user',
-          target: actorId,
-          sender_id: null,
-          title_key: 'notif.dev.unknown_event.title',
-          text_key: 'notif.dev.unknown_event.text',
-          text_params: { event },
-        }, actorId, devSender);
+        const devSender =
+          this.db.get<{ username: string; avatar: string | null }>(
+            'SELECT username, avatar FROM users WHERE id = ?',
+            actorId,
+          ) ?? null;
+        this.createNotificationForRecipient(
+          {
+            type: 'simple',
+            scope: 'user',
+            target: actorId,
+            sender_id: null,
+            title_key: 'notif.dev.unknown_event.title',
+            text_key: 'notif.dev.unknown_event.text',
+            text_params: { event },
+          },
+          actorId,
+          devSender,
+        );
       }
     }
     const config = configEntry ?? FALLBACK_EVENT_CONFIG;
@@ -716,110 +790,127 @@ export class NotificationsService {
 
     // Fetch sender info once for in-app WS payloads
     const sender = actorId
-      ? this.db.get<{ username: string; avatar: string | null }>('SELECT username, avatar FROM users WHERE id = ?', actorId) ?? null
+      ? (this.db.get<{ username: string; avatar: string | null }>(
+          'SELECT username, avatar FROM users WHERE id = ?',
+          actorId,
+        ) ?? null)
       : null;
 
-    logDebug(`notificationService.send event=${event} scope=${scope} targetId=${targetId} recipients=${recipients.length} channels=inapp,${activeChannels.join(',')}`);
+    logDebug(
+      `notificationService.send event=${event} scope=${scope} targetId=${targetId} recipients=${recipients.length} channels=inapp,${activeChannels.join(',')}`,
+    );
 
     // Dispatch to each recipient in parallel
-    await Promise.all(recipients.map(async (recipientId) => {
-      const promises: Promise<unknown>[] = [];
+    await Promise.all(
+      recipients.map(async (recipientId) => {
+        const promises: Promise<unknown>[] = [];
 
-      // ── In-app ──────────────────────────────────────────────────────────
-      if (this.prefs.isEnabledForEvent(recipientId, event, 'inapp')) {
-        const inAppType = inApp?.type ?? config.inAppType;
-        let notifInput: NotificationInput;
+        // ── In-app ──────────────────────────────────────────────────────────
+        if (this.prefs.isEnabledForEvent(recipientId, event, 'inapp')) {
+          const inAppType = inApp?.type ?? config.inAppType;
+          let notifInput: NotificationInput;
 
-        if (inAppType === 'boolean' && inApp?.positiveCallback && inApp?.negativeCallback) {
-          notifInput = {
-            type: 'boolean',
-            scope,
-            target: targetId,
-            sender_id: actorId,
-            event_type: event,
-            title_key: config.titleKey,
-            title_params: params,
-            text_key: textKey,
-            text_params: params,
-            positive_text_key: inApp.positiveTextKey ?? 'notif.action.accept',
-            negative_text_key: inApp.negativeTextKey ?? 'notif.action.decline',
-            positive_callback: inApp.positiveCallback,
-            negative_callback: inApp.negativeCallback,
-          };
-        } else if (inAppType === 'navigate' && navigateTarget) {
-          notifInput = {
-            type: 'navigate',
-            scope,
-            target: targetId,
-            sender_id: actorId,
-            event_type: event,
-            title_key: config.titleKey,
-            title_params: params,
-            text_key: textKey,
-            text_params: params,
-            navigate_text_key: config.navigateTextKey ?? 'notif.action.view',
-            navigate_target: navigateTarget,
-          };
-        } else {
-          notifInput = {
-            type: 'simple',
-            scope,
-            target: targetId,
-            sender_id: actorId,
-            event_type: event,
-            title_key: config.titleKey,
-            title_params: params,
-            text_key: textKey,
-            text_params: params,
-          };
+          if (inAppType === 'boolean' && inApp?.positiveCallback && inApp?.negativeCallback) {
+            notifInput = {
+              type: 'boolean',
+              scope,
+              target: targetId,
+              sender_id: actorId,
+              event_type: event,
+              title_key: config.titleKey,
+              title_params: params,
+              text_key: textKey,
+              text_params: params,
+              positive_text_key: inApp.positiveTextKey ?? 'notif.action.accept',
+              negative_text_key: inApp.negativeTextKey ?? 'notif.action.decline',
+              positive_callback: inApp.positiveCallback,
+              negative_callback: inApp.negativeCallback,
+            };
+          } else if (inAppType === 'navigate' && navigateTarget) {
+            notifInput = {
+              type: 'navigate',
+              scope,
+              target: targetId,
+              sender_id: actorId,
+              event_type: event,
+              title_key: config.titleKey,
+              title_params: params,
+              text_key: textKey,
+              text_params: params,
+              navigate_text_key: config.navigateTextKey ?? 'notif.action.view',
+              navigate_target: navigateTarget,
+            };
+          } else {
+            notifInput = {
+              type: 'simple',
+              scope,
+              target: targetId,
+              sender_id: actorId,
+              event_type: event,
+              title_key: config.titleKey,
+              title_params: params,
+              text_key: textKey,
+              text_params: params,
+            };
+          }
+
+          promises.push(
+            Promise.resolve().then(() => this.createNotificationForRecipient(notifInput, recipientId, sender ?? null)),
+          );
         }
 
-        promises.push(
-          Promise.resolve().then(() => this.createNotificationForRecipient(notifInput, recipientId, sender ?? null))
+        // ── External channels (email, webhook, ntfy, plugin:*) ───────────────
+        // One loop over the registry. The message is rendered once per recipient, in
+        // their language, and handed to every channel that wants it — so a plugin
+        // channel never touches i18n.
+        const deliverable = channels.filter((ch) =>
+          shouldSendToUser(ch, event, recipientId, activeChannels, this.prefs),
         );
-      }
-
-      // ── External channels (email, webhook, ntfy, plugin:*) ───────────────
-      // One loop over the registry. The message is rendered once per recipient, in
-      // their language, and handed to every channel that wants it — so a plugin
-      // channel never touches i18n.
-      const deliverable = channels.filter(ch => shouldSendToUser(ch, event, recipientId, activeChannels, this.prefs));
-      if (deliverable.length > 0) {
-        const lang = this.mailer.getUserLanguage(recipientId);
-        const { title, body } = getEventText(lang, event, params);
-        const msg: ChannelMessage = {
-          event,
-          title,
-          body,
-          navigateTarget: navigateTarget ?? undefined,
-          url: fullLink,
-          tripName: params.trip,
-        };
-        for (const ch of deliverable) promises.push(ch.sendToUser(recipientId, msg));
-      }
-
-      const results = await Promise.allSettled(promises);
-      for (const result of results) {
-        if (result.status === 'rejected') {
-          logError(`notificationService.send channel dispatch failed event=${event} recipient=${recipientId}: ${result.reason instanceof Error ? result.reason.message : result.reason}`);
+        if (deliverable.length > 0) {
+          const lang = this.mailer.getUserLanguage(recipientId);
+          const { title, body } = getEventText(lang, event, params);
+          const msg: ChannelMessage = {
+            event,
+            title,
+            body,
+            navigateTarget: navigateTarget ?? undefined,
+            url: fullLink,
+            tripName: params.trip,
+          };
+          for (const ch of deliverable) promises.push(ch.sendToUser(recipientId, msg));
         }
-      }
-    }));
+
+        const results = await Promise.allSettled(promises);
+        for (const result of results) {
+          if (result.status === 'rejected') {
+            logError(
+              `notificationService.send channel dispatch failed event=${event} recipient=${recipientId}: ${result.reason instanceof Error ? result.reason.message : result.reason}`,
+            );
+          }
+        }
+      }),
+    );
 
     // ── Admin-global copies (scope: admin) ───────────────────────────────
     // One send per channel, over the admin's own credentials, not per-recipient.
     // Always rendered in English — there is no single recipient to take a language from.
     if (scope === 'admin') {
       const globalChannels = channels.filter(
-        ch => ch.sendGlobal && ch.supportsEvent(event) && isAdminGlobalChannel(ch.id) && this.prefs.getAdminGlobalPref(event, ch.id),
+        (ch) =>
+          ch.sendGlobal &&
+          ch.supportsEvent(event) &&
+          isAdminGlobalChannel(ch.id) &&
+          this.prefs.getAdminGlobalPref(event, ch.id),
       );
       if (globalChannels.length > 0) {
         const { title, body } = getEventText('en', event, params);
         const msg: ChannelMessage = { event, title, body, navigateTarget: navigateTarget ?? undefined, url: fullLink };
         await Promise.all(
-          globalChannels.map(ch =>
+          globalChannels.map((ch) =>
             ch.sendGlobal!(msg).catch((err: unknown) => {
-              logError(`notificationService.send admin ${ch.id} failed event=${event}: ${err instanceof Error ? err.message : err}`);
+              logError(
+                `notificationService.send admin ${ch.id} failed event=${event}: ${err instanceof Error ? err.message : err}`,
+              );
             }),
           ),
         );

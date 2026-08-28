@@ -46,8 +46,28 @@ const { RATES } = vi.hoisted(() => ({
 // as the SUT.
 vi.mock('../../../src/nest/budget/exchange-rates.service', () => ({
   ExchangeRatesService: class {
+    constructor(private readonly db: { get?: (sql: string, ...params: unknown[]) => unknown }) {}
+
     async getRates(base: string) {
       return RATES[base.toUpperCase()] ?? null;
+    }
+
+    async freezeRateForWrite(
+      tripId: string | number,
+      data: { currency?: string | null; exchange_rate?: number },
+      _userId?: number,
+      existing?: { currency?: string | null } | null,
+    ) {
+      if (data.exchange_rate !== undefined) return;
+      const currency = data.currency?.toUpperCase();
+      if (!currency || existing?.currency?.toUpperCase() === currency) return;
+      const trip = this.db.get?.('SELECT currency FROM trips WHERE id = ?', tripId) as
+        | { currency?: string | null }
+        | undefined;
+      const base = (trip?.currency || 'EUR').toUpperCase();
+      if (currency === base) return;
+      const rates = await this.getRates(base);
+      if (rates?.[currency] > 0) data.exchange_rate = rates[currency];
     }
   },
 }));
@@ -76,7 +96,7 @@ import { notificationsStub } from '../../helpers/notifications';
 const budget = new BudgetService(
   new DatabaseService(testDb),
   new PermissionsService(new DatabaseService(testDb)),
-  new ExchangeRatesService(),
+  new ExchangeRatesService(new DatabaseService(testDb)),
   new RealtimeService(),
 );
 

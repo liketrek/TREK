@@ -186,5 +186,9 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': 'Saat dilimi ekle',
   'dashboard.aria.removeTimezone': '{city} kaldır',
   'dashboard.dayCountRequired': 'Gün sayısı gereklidir',
+  'dashboard.hero.departureIn': 'Departure in',
+  'dashboard.hero.hourUnit': 'Hours',
+  'dashboard.hero.minuteUnit': 'Minutes',
+  'dashboard.hero.secondUnit': 'Seconds',
 };
 export default dashboard;

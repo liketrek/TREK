@@ -73,5 +73,12 @@ const common: TranslationStrings = {
   'common.errorUpdateTitle': '새 버전이 있습니다',
   'common.errorUpdateBody': '이 탭이 열려 있는 동안 TREK이 업데이트되었습니다. 새로고침하여 새 버전을 받으세요.',
   'common.errorPluginTitle': '이 플러그인을 표시할 수 없습니다',
+  'legal.title': 'Legal & source',
+  'legal.description': 'License information and the exact source code for this deployed version.',
+  'legal.agpl':
+    'This application is licensed under the GNU Affero General Public License version 3. Remote users may obtain the corresponding source code at no charge.',
+  'legal.license': 'Read the license',
+  'legal.source': 'Corresponding source',
+  'legal.sourceDescription': 'Source code for this deployed build:',
 };
 export default common;

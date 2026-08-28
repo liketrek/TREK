@@ -49,7 +49,7 @@ function tarHeader(name: string, size: number, typeflag = '0'): Buffer {
 // without it would be testing the version gate rather than whatever the test is about.
 // Pass an explicit `trek` (or null, spread last) to exercise the gate itself.
 function makeArtifact(manifest: object): Buffer {
-  const withTrek = { trek: '>=3.2.0 <4.0.0', ...manifest };
+  const withTrek = { trek: '>=3.2.0 <5.0.0', ...manifest };
   const files = [
     { name: 'plug-abc/', type: '5' as const, data: '' },
     { name: 'plug-abc/trek-plugin.json', type: '0' as const, data: JSON.stringify(withTrek) },

@@ -516,7 +516,7 @@ describe('Navbar styling and menu details', () => {
     render(<Navbar />);
     await user.click(screen.getByText('adminuser'));
 
-    for (const name of [/^Settings$/, /^Help$/, /^Admin$/]) {
+    for (const name of [/^Settings$/, /^Legal & source$/, /^Admin$/]) {
       const link = screen.getByRole('link', { name });
       fireEvent.mouseEnter(link);
       expect(link.style.background).toBe('var(--bg-hover)');
@@ -524,12 +524,7 @@ describe('Navbar styling and menu details', () => {
       expect(link.style.background).toBe('transparent');
     }
 
-    const discord = screen.getByTitle('Discord');
-    fireEvent.mouseEnter(discord);
-    expect(discord.style.background).toBe('rgba(88, 101, 242, 0.125)');
-    fireEvent.mouseLeave(discord);
-    expect(discord.style.background).toBe('var(--bg-tertiary)');
-
+    expect(screen.queryByTitle('Discord')).not.toBeInTheDocument();
     expect(document.querySelector('img[src="/text-light.svg"]')).not.toBeNull();
   });
 
@@ -541,7 +536,7 @@ describe('Navbar styling and menu details', () => {
     });
     render(<Navbar />);
 
-    for (const name of [/^Settings$/, /^Help$/, /^Admin$/]) {
+    for (const name of [/^Settings$/, /^Legal & source$/, /^Admin$/]) {
       await user.click(screen.getByText('adminuser'));
       await user.click(screen.getByRole('link', { name }));
       expect(screen.queryByRole('link', { name: /^Settings$/ })).not.toBeInTheDocument();

@@ -929,9 +929,8 @@ export default function JourneyPublicPage() {
           </span>
         </div>
         <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: '#d1d5db' }}>
-          Made with <span style={{ color: '#ef4444' }}>♥</span> by Maurice ·{' '}
-          <a href="https://github.com/liketrek/TREK" style={{ color: '#9ca3af', textDecoration: 'none' }}>
-            GitHub
+          <a href="/legal" style={{ color: '#9ca3af', textDecoration: 'none' }}>
+            {t('legal.title')}
           </a>
         </div>
       </div>

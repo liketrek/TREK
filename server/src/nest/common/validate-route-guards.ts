@@ -115,6 +115,7 @@ export const PUBLIC_ROUTE_ALLOW_LIST: string[] = [
   'FeedsPublicController.userFeed',
   // The download link carries its own short-lived token.
   'FilesDownloadController.download',
+  'GlobalExchangeRateController.get',
   'HelpController.asset',
   'HelpController.index',
   'HelpController.page',

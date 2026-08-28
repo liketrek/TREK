@@ -71,7 +71,15 @@ const common: TranslationStrings = {
   'common.errorRetry': '再試行',
   'common.errorReload': 'ページを再読み込み',
   'common.errorUpdateTitle': '新しいバージョンがあります',
-  'common.errorUpdateBody': 'このタブを開いている間に TREK が更新されました。再読み込みして新しいバージョンを取得してください。',
+  'common.errorUpdateBody':
+    'このタブを開いている間に TREK が更新されました。再読み込みして新しいバージョンを取得してください。',
   'common.errorPluginTitle': 'このプラグインを表示できませんでした',
+  'legal.title': 'Legal & source',
+  'legal.description': 'License information and the exact source code for this deployed version.',
+  'legal.agpl':
+    'This application is licensed under the GNU Affero General Public License version 3. Remote users may obtain the corresponding source code at no charge.',
+  'legal.license': 'Read the license',
+  'legal.source': 'Corresponding source',
+  'legal.sourceDescription': 'Source code for this deployed build:',
 };
 export default common;

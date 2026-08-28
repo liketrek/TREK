@@ -9,9 +9,28 @@
  * ReDoS-sensitive issuer trailing-slash regex. Constructed directly (no
  * TestingModule, repo convention) over a real in-memory SQLite database.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { AuthService } from '../../../src/nest/auth/auth.service';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+import { OidcService } from '../../../src/nest/oidc/oidc.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
+import { createUser, createTrip } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { generateKeyPairSync } from 'crypto';
+import type { Request, Response } from 'express';
 import jwtLib from 'jsonwebtoken';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
 
@@ -27,11 +46,15 @@ const { testDb, dbMock } = vi.hoisted(() => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`
+      db
+        .prepare(
+          `
         SELECT t.id, t.user_id FROM trips t
         LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
         WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-      `).get(userId, tripId, userId),
+      `,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -75,7 +98,6 @@ vi.mock('../../../src/utils/ssrfGuard', async (importOriginal) => {
   };
 });
 
-
 const { getAppUrlMock } = vi.hoisted(() => ({ getAppUrlMock: vi.fn() }));
 vi.mock('../../../src/app-config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../src/app-config')>();
@@ -87,25 +109,6 @@ vi.mock('../../../src/nest/common/cookie', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../src/nest/common/cookie')>();
   return { ...actual, setAuthCookie: setAuthCookieMock };
 });
-
-import type { Request, Response } from 'express';
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { BudgetService } from '../../../src/nest/budget/budget.service';
-import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
-import { AuthService } from '../../../src/nest/auth/auth.service';
-import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
-import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
-import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
-import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
-import { OidcService } from '../../../src/nest/oidc/oidc.service';
-import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
 
 // MailerService is injected since the notifications fold — a stub instead of a
 // module mock. sendPasswordResetEmail is the only thing auth reaches for.
@@ -121,7 +124,15 @@ const auth = new AuthService(
   new PermissionsService(new DatabaseService(testDb)),
   membership,
   new WebauthnConfigService(new DatabaseService(testDb)),
-  new UserCleanupService(new DatabaseService(testDb), new BudgetService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new ExchangeRatesService(), new RealtimeService())),
+  new UserCleanupService(
+    new DatabaseService(testDb),
+    new BudgetService(
+      new DatabaseService(testDb),
+      new PermissionsService(new DatabaseService(testDb)),
+      new ExchangeRatesService(new DatabaseService(testDb)),
+      new RealtimeService(),
+    ),
+  ),
   mailerStub,
   new EphemeralTokenService(),
   new AllowedFileTypesService(new DatabaseService(testDb)),
@@ -318,10 +329,13 @@ describe('discover', () => {
       token_endpoint: 'https://oidc.example.com/token',
       userinfo_endpoint: 'https://oidc.example.com/userinfo',
     };
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => doc,
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => doc,
+      }),
+    );
 
     // Use unique issuer to bypass the instance-level cache from other tests
     const result = await svc.discover('https://unique-1.example.com');
@@ -363,9 +377,7 @@ describe('discover', () => {
     };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => doc }));
 
-    await expect(svc.discover('https://unique-2.example.com')).rejects.toThrow(
-      'OIDC discovery issuer mismatch',
-    );
+    await expect(svc.discover('https://unique-2.example.com')).rejects.toThrow('OIDC discovery issuer mismatch');
   });
 
   it('OIDC-SVC-049: passes an abort-signal timeout to the discovery fetch', async () => {
@@ -384,9 +396,7 @@ describe('discover', () => {
 
   it('OIDC-SVC-050: rejects a discovery document missing the required endpoints', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ foo: 'bar' }) }));
-    await expect(svc.discover('https://unique-bad.example.com')).rejects.toThrow(
-      'Invalid OIDC discovery document',
-    );
+    await expect(svc.discover('https://unique-bad.example.com')).rejects.toThrow('Invalid OIDC discovery document');
   });
 
   it('OIDC-SVC-051: caches per discovery URL — two issuers do not thrash each other', async () => {
@@ -423,10 +433,7 @@ describe('discover', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => doc }));
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    await svc.discover(
-      'https://auth.example.com',
-      'https://auth.example.com/.well-known/openid-configuration',
-    );
+    await svc.discover('https://auth.example.com', 'https://auth.example.com/.well-known/openid-configuration');
 
     expect(warnSpy).not.toHaveBeenCalled();
     warnSpy.mockRestore();
@@ -454,12 +461,13 @@ describe('findOrCreateUser', () => {
   it('OIDC-SVC-020: finds existing user by oidc_sub', () => {
     const { user } = createUser(testDb, { email: 'alice@example.com' });
     // Link the sub manually
-    testDb.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?')
+    testDb
+      .prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?')
       .run('sub-alice-123', MOCK_CONFIG.issuer, user.id);
 
     const result = svc.findOrCreateUser(
       { sub: 'sub-alice-123', email: 'alice@example.com', name: 'Alice' },
-      MOCK_CONFIG
+      MOCK_CONFIG,
     );
     expect('user' in result).toBe(true);
     expect((result as { user: any }).user.id).toBe(user.id);
@@ -470,7 +478,7 @@ describe('findOrCreateUser', () => {
 
     const result = svc.findOrCreateUser(
       { sub: 'sub-bob-new', email: 'bob@example.com', name: 'Bob', email_verified: true },
-      MOCK_CONFIG
+      MOCK_CONFIG,
     );
     expect('user' in result).toBe(true);
     expect((result as { user: any }).user.id).toBe(user.id);
@@ -479,7 +487,7 @@ describe('findOrCreateUser', () => {
   it('OIDC-SVC-022: creates new user when registration is open', () => {
     const result = svc.findOrCreateUser(
       { sub: 'sub-new-1', email: 'newuser@example.com', name: 'New User' },
-      MOCK_CONFIG
+      MOCK_CONFIG,
     );
     expect('user' in result).toBe(true);
     const newUser = testDb.prepare("SELECT * FROM users WHERE email = 'newuser@example.com'").get();
@@ -488,10 +496,7 @@ describe('findOrCreateUser', () => {
 
   it('OIDC-SVC-023: first user gets admin role', () => {
     // DB is empty after resetTestDb
-    const result = svc.findOrCreateUser(
-      { sub: 'sub-first', email: 'first@example.com', name: 'First' },
-      MOCK_CONFIG
-    );
+    const result = svc.findOrCreateUser({ sub: 'sub-first', email: 'first@example.com', name: 'First' }, MOCK_CONFIG);
     expect('user' in result).toBe(true);
     expect((result as { user: any }).user.role).toBe('admin');
   });
@@ -502,7 +507,7 @@ describe('findOrCreateUser', () => {
 
     const result = svc.findOrCreateUser(
       { sub: 'sub-blocked', email: 'blocked@example.com', name: 'Blocked' },
-      MOCK_CONFIG
+      MOCK_CONFIG,
     );
     expect('error' in result).toBe(true);
     expect((result as { error: string }).error).toBe('registration_disabled');
@@ -515,7 +520,7 @@ describe('findOrCreateUser', () => {
 
     svc.findOrCreateUser(
       { sub: 'sub-charlie-linked', email: 'charlie@example.com', name: 'Charlie', email_verified: true },
-      MOCK_CONFIG
+      MOCK_CONFIG,
     );
 
     const updated = testDb.prepare('SELECT oidc_sub FROM users WHERE id = ?').get(user.id) as any;
@@ -530,7 +535,7 @@ describe('findOrCreateUser', () => {
     // not be able to take over a pre-existing password account.
     const result = svc.findOrCreateUser(
       { sub: 'sub-dora-attacker', email: 'dora@example.com', name: 'Dora' },
-      MOCK_CONFIG
+      MOCK_CONFIG,
     );
 
     expect('error' in result).toBe(true);
@@ -542,14 +547,15 @@ describe('findOrCreateUser', () => {
   it('OIDC-SVC-026: existing user role is updated when OIDC claim mapping changes it', () => {
     const { user } = createUser(testDb, { email: 'diana@example.com', role: 'user' });
     // Link oidc_sub manually so the user is found by sub lookup
-    testDb.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?')
+    testDb
+      .prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?')
       .run('sub-diana-role', MOCK_CONFIG.issuer, user.id);
 
     process.env.OIDC_ADMIN_VALUE = 'admins';
 
     const result = svc.findOrCreateUser(
       { sub: 'sub-diana-role', email: 'diana@example.com', name: 'Diana', groups: ['admins'] },
-      MOCK_CONFIG
+      MOCK_CONFIG,
     );
 
     expect('user' in result).toBe(true);
@@ -561,14 +567,14 @@ describe('findOrCreateUser', () => {
 
   it('OIDC-SVC-027: new user with valid invite token increments used_count', () => {
     const { user: creator } = createUser(testDb, { email: 'creator@example.com' });
-    testDb.prepare(
-      "INSERT INTO invite_tokens (token, max_uses, used_count, created_by) VALUES ('tok-valid', 5, 0, ?)"
-    ).run(creator.id);
+    testDb
+      .prepare("INSERT INTO invite_tokens (token, max_uses, used_count, created_by) VALUES ('tok-valid', 5, 0, ?)")
+      .run(creator.id);
 
     const result = svc.findOrCreateUser(
       { sub: 'sub-invite-user', email: 'invitee@example.com', name: 'Invitee' },
       MOCK_CONFIG,
-      'tok-valid'
+      'tok-valid',
     );
 
     expect('user' in result).toBe(true);
@@ -579,14 +585,16 @@ describe('findOrCreateUser', () => {
 
   it('OIDC-SVC-028: new user with expired invite token is created but invite is ignored', () => {
     const { user: creator } = createUser(testDb, { email: 'creator2@example.com' });
-    testDb.prepare(
-      "INSERT INTO invite_tokens (token, max_uses, used_count, expires_at, created_by) VALUES ('tok-expired', 5, 0, '2000-01-01T00:00:00.000Z', ?)"
-    ).run(creator.id);
+    testDb
+      .prepare(
+        "INSERT INTO invite_tokens (token, max_uses, used_count, expires_at, created_by) VALUES ('tok-expired', 5, 0, '2000-01-01T00:00:00.000Z', ?)",
+      )
+      .run(creator.id);
 
     const result = svc.findOrCreateUser(
       { sub: 'sub-expired-invite', email: 'expired-invitee@example.com', name: 'ExpiredInvitee' },
       MOCK_CONFIG,
-      'tok-expired'
+      'tok-expired',
     );
 
     // User is still created because open registration is allowed
@@ -601,14 +609,14 @@ describe('findOrCreateUser', () => {
 
   it('OIDC-SVC-029: new user with max_uses exceeded invite token is created but invite is ignored', () => {
     const { user: creator } = createUser(testDb, { email: 'creator3@example.com' });
-    testDb.prepare(
-      "INSERT INTO invite_tokens (token, max_uses, used_count, created_by) VALUES ('tok-full', 1, 1, ?)"
-    ).run(creator.id);
+    testDb
+      .prepare("INSERT INTO invite_tokens (token, max_uses, used_count, created_by) VALUES ('tok-full', 1, 1, ?)")
+      .run(creator.id);
 
     const result = svc.findOrCreateUser(
       { sub: 'sub-full-invite', email: 'full-invitee@example.com', name: 'FullInvitee' },
       MOCK_CONFIG,
-      'tok-full'
+      'tok-full',
     );
 
     // User is still created because open registration is allowed
@@ -626,7 +634,7 @@ describe('findOrCreateUser', () => {
   it('OIDC-SVC-040: new user stores the https picture claim as their avatar', () => {
     const result = svc.findOrCreateUser(
       { sub: 'sub-pic-1', email: 'pic1@example.com', name: 'Pic One', picture: 'https://idp.example.com/u/pic1.png' },
-      MOCK_CONFIG
+      MOCK_CONFIG,
     );
     expect('user' in result).toBe(true);
     const row = testDb.prepare("SELECT avatar FROM users WHERE email = 'pic1@example.com'").get() as any;
@@ -636,7 +644,7 @@ describe('findOrCreateUser', () => {
   it('OIDC-SVC-041: new user with a non-https picture claim stores no avatar', () => {
     svc.findOrCreateUser(
       { sub: 'sub-pic-2', email: 'pic2@example.com', name: 'Pic Two', picture: 'http://idp.example.com/u/pic2.png' },
-      MOCK_CONFIG
+      MOCK_CONFIG,
     );
     const row = testDb.prepare("SELECT avatar FROM users WHERE email = 'pic2@example.com'").get() as any;
     expect(row.avatar).toBeNull();
@@ -644,11 +652,12 @@ describe('findOrCreateUser', () => {
 
   it('OIDC-SVC-042: existing user with no avatar gets the OIDC picture', () => {
     const { user } = createUser(testDb, { email: 'pic3@example.com' });
-    testDb.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ?, avatar = NULL WHERE id = ?')
+    testDb
+      .prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ?, avatar = NULL WHERE id = ?')
       .run('sub-pic-3', MOCK_CONFIG.issuer, user.id);
     svc.findOrCreateUser(
       { sub: 'sub-pic-3', email: 'pic3@example.com', name: 'Pic Three', picture: 'https://idp.example.com/u/pic3.png' },
-      MOCK_CONFIG
+      MOCK_CONFIG,
     );
     const row = testDb.prepare('SELECT avatar FROM users WHERE id = ?').get(user.id) as any;
     expect(row.avatar).toBe('https://idp.example.com/u/pic3.png');
@@ -656,11 +665,12 @@ describe('findOrCreateUser', () => {
 
   it('OIDC-SVC-043: a custom uploaded avatar is never overwritten by the OIDC picture', () => {
     const { user } = createUser(testDb, { email: 'pic4@example.com' });
-    testDb.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ?, avatar = ? WHERE id = ?')
+    testDb
+      .prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ?, avatar = ? WHERE id = ?')
       .run('sub-pic-4', MOCK_CONFIG.issuer, 'uploaded-abc.jpg', user.id);
     svc.findOrCreateUser(
       { sub: 'sub-pic-4', email: 'pic4@example.com', name: 'Pic Four', picture: 'https://idp.example.com/u/pic4.png' },
-      MOCK_CONFIG
+      MOCK_CONFIG,
     );
     const row = testDb.prepare('SELECT avatar FROM users WHERE id = ?').get(user.id) as any;
     expect(row.avatar).toBe('uploaded-abc.jpg');
@@ -668,11 +678,12 @@ describe('findOrCreateUser', () => {
 
   it('OIDC-SVC-044: a previously stored OIDC picture URL is refreshed on next login', () => {
     const { user } = createUser(testDb, { email: 'pic5@example.com' });
-    testDb.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ?, avatar = ? WHERE id = ?')
+    testDb
+      .prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ?, avatar = ? WHERE id = ?')
       .run('sub-pic-5', MOCK_CONFIG.issuer, 'https://idp.example.com/u/old.png', user.id);
     svc.findOrCreateUser(
       { sub: 'sub-pic-5', email: 'pic5@example.com', name: 'Pic Five', picture: 'https://idp.example.com/u/new.png' },
-      MOCK_CONFIG
+      MOCK_CONFIG,
     );
     const row = testDb.prepare('SELECT avatar FROM users WHERE id = ?').get(user.id) as any;
     expect(row.avatar).toBe('https://idp.example.com/u/new.png');
@@ -687,7 +698,7 @@ describe('findOrCreateUser', () => {
   it('OIDC-SVC-054: a new user is returned as the re-selected DB row, not a hand-built partial', () => {
     const result = svc.findOrCreateUser(
       { sub: 'sub-full-row', email: 'fullrow@example.com', name: 'Full Row' },
-      MOCK_CONFIG
+      MOCK_CONFIG,
     );
     expect('user' in result).toBe(true);
     const user = (result as { user: any }).user;
@@ -701,14 +712,16 @@ describe('findOrCreateUser', () => {
   it('OIDC-SVC-045: a trip-bound invite auto-adds the new SSO user as a trip member (#1402)', () => {
     const { user: admin } = createUser(testDb, { role: 'admin' });
     const trip = createTrip(testDb, admin.id);
-    testDb.prepare(
-      'INSERT INTO invite_tokens (token, max_uses, used_count, expires_at, created_by, trip_id) VALUES (?, 5, 0, NULL, ?, ?)'
-    ).run('inv-trip-join', admin.id, trip.id);
+    testDb
+      .prepare(
+        'INSERT INTO invite_tokens (token, max_uses, used_count, expires_at, created_by, trip_id) VALUES (?, 5, 0, NULL, ?, ?)',
+      )
+      .run('inv-trip-join', admin.id, trip.id);
 
     const result = svc.findOrCreateUser(
       { sub: 'sub-trip-join', email: 'joiner@example.com', name: 'Joiner' },
       MOCK_CONFIG,
-      'inv-trip-join'
+      'inv-trip-join',
     );
     expect('user' in result).toBe(true);
     const uid = (result as { user: any }).user.id;
@@ -726,14 +739,23 @@ describe('exchangeCodeForToken', () => {
 
   it('OIDC-SVC-030: sends correct POST body and returns token data', async () => {
     const mockTokenData = { access_token: 'tok', token_type: 'Bearer' };
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => mockTokenData,
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockTokenData,
+      }),
+    );
 
     const doc = { token_endpoint: 'https://oidc.example.com/token' } as any;
-    const result = await svc.exchangeCodeForToken(doc, 'auth-code-123', 'https://app/callback', 'client-id', 'client-secret');
+    const result = await svc.exchangeCodeForToken(
+      doc,
+      'auth-code-123',
+      'https://app/callback',
+      'client-id',
+      'client-secret',
+    );
 
     expect(result.access_token).toBe('tok');
     expect(result._ok).toBe(true);
@@ -745,11 +767,14 @@ describe('exchangeCodeForToken', () => {
   });
 
   it('OIDC-SVC-031: reflects _ok=false when provider returns error status', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 400,
-      json: async () => ({ error: 'invalid_grant' }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ error: 'invalid_grant' }),
+      }),
+    );
 
     const doc = { token_endpoint: 'https://oidc.example.com/token' } as any;
     const result = await svc.exchangeCodeForToken(doc, 'bad-code', 'https://app/callback', 'c', 's');
@@ -768,10 +793,13 @@ describe('getUserInfo', () => {
 
   it('OIDC-SVC-032: fetches userinfo with Bearer token and returns parsed JSON', async () => {
     const userInfoData = { sub: 'user-sub', email: 'user@example.com', name: 'User Name' };
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => userInfoData,
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => userInfoData,
+      }),
+    );
 
     const result = await svc.getUserInfo('https://oidc.example.com/userinfo', 'access-token-123');
 
@@ -783,11 +811,14 @@ describe('getUserInfo', () => {
   });
 
   it('OIDC-SVC-052: throws on a non-ok userinfo response instead of parsing the error body', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 401,
-      json: async () => ({ error: 'invalid_token' }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({ error: 'invalid_token' }),
+      }),
+    );
 
     await expect(svc.getUserInfo('https://oidc.example.com/userinfo', 'expired-token')).rejects.toThrow(
       'Userinfo fetch failed: HTTP 401',
@@ -805,23 +836,29 @@ describe('verifyIdToken', () => {
   const JWKS_URI = 'https://auth.example.com/.well-known/jwks.json';
 
   function mockJwks() {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ keys: [jwk] }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ keys: [jwk] }),
+      }),
+    );
   }
 
   function makeToken(iss: string, overrides: object = {}) {
-    return jwtLib.sign(
-      { sub: 'user-sub', email: 'user@example.com', ...overrides },
-      privateKey,
-      { algorithm: 'RS256', audience: CLIENT_ID, issuer: iss, expiresIn: '1h' }
-    );
+    return jwtLib.sign({ sub: 'user-sub', email: 'user@example.com', ...overrides }, privateKey, {
+      algorithm: 'RS256',
+      audience: CLIENT_ID,
+      issuer: iss,
+      expiresIn: '1h',
+    });
   }
 
   const doc = { jwks_uri: JWKS_URI } as any;
 
-  afterEach(() => { vi.unstubAllGlobals(); });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
   it('OIDC-SVC-033: accepts token whose iss matches expectedIssuer exactly', async () => {
     mockJwks();
@@ -847,11 +884,11 @@ describe('verifyIdToken', () => {
 
   it('OIDC-SVC-036: rejects token with wrong audience', async () => {
     mockJwks();
-    const wrongAudToken = jwtLib.sign(
-      { sub: 'user-sub', iss: ISSUER },
-      privateKey,
-      { algorithm: 'RS256', audience: 'wrong-client', expiresIn: '1h' }
-    );
+    const wrongAudToken = jwtLib.sign({ sub: 'user-sub', iss: ISSUER }, privateKey, {
+      algorithm: 'RS256',
+      audience: 'wrong-client',
+      expiresIn: '1h',
+    });
     const result = await svc.verifyIdToken(wrongAudToken, doc, CLIENT_ID, ISSUER);
     expect(result.ok).toBe(false);
   });
@@ -933,7 +970,9 @@ describe('OIDC settings — the lockout guard', () => {
     const toggles = vi.spyOn(auth, 'resolveAuthToggles').mockReturnValue({ password_login: false } as never);
     expect(svc.updateOidcSettings({ issuer: '', client_id: 'x' })).toMatchObject({ status: 400 });
     expect(svc.updateOidcSettings({ issuer: 'x', client_id: '' })).toMatchObject({ status: 400 });
-    expect((svc.updateOidcSettings({ issuer: '', client_id: '' }) as { error?: string }).error).toMatch(/password login/i);
+    expect((svc.updateOidcSettings({ issuer: '', client_id: '' }) as { error?: string }).error).toMatch(
+      /password login/i,
+    );
     toggles.mockRestore();
   });
 

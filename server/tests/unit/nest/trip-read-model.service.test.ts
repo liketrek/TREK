@@ -8,6 +8,39 @@
  * packing items (#858) out of both aggregates.
  * Uses a real in-memory SQLite DB so SQL logic is exercised faithfully.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
+import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import { CollabService } from '../../../src/nest/collab/collab.service';
+import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { DaysService } from '../../../src/nest/days/days.service';
+import { FilesService } from '../../../src/nest/files/files.service';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { MapsService } from '../../../src/nest/maps/maps.service';
+import { PackingService } from '../../../src/nest/packing/packing.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
+import { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { PlacesService } from '../../../src/nest/places/places.service';
+import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { ReservationsReadRepository } from '../../../src/nest/reservations/reservations-read.repository';
+import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
+import { TodoService } from '../../../src/nest/todo/todo.service';
+import { TripMembersService } from '../../../src/nest/trip-members/trip-members.service';
+import { TripReadModelService } from '../../../src/nest/trip-read-model/trip-read-model.service';
+import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
+import { createUser, createTrip, addTripMember } from '../../helpers/factories';
+import { notificationsStub } from '../../helpers/notifications';
+import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
@@ -24,11 +57,15 @@ const { testDb, dbMock } = vi.hoisted(() => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`
+      db
+        .prepare(
+          `
         SELECT t.id, t.user_id FROM trips t
         LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
         WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-      `).get(userId, tripId, userId),
+      `,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -44,67 +81,79 @@ vi.mock('../../../src/config', () => ({
 const { broadcast } = vi.hoisted(() => ({ broadcast: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast }));
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, addTripMember } from '../../helpers/factories';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { DaysService } from '../../../src/nest/days/days.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { TodoService } from '../../../src/nest/todo/todo.service';
-import { PackingService } from '../../../src/nest/packing/packing.service';
-import { FilesService } from '../../../src/nest/files/files.service';
-import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
-import { ReservationsReadRepository } from '../../../src/nest/reservations/reservations-read.repository';
-import { BudgetService } from '../../../src/nest/budget/budget.service';
-import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
-import { CollabService } from '../../../src/nest/collab/collab.service';
-import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
-import { PlacesService } from '../../../src/nest/places/places.service';
-import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
-import { TripMembersService } from '../../../src/nest/trip-members/trip-members.service';
-import { TripReadModelService } from '../../../src/nest/trip-read-model/trip-read-model.service';
-import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
-import { MapsService } from '../../../src/nest/maps/maps.service';
-import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
-import { notificationsStub } from '../../helpers/notifications';
-import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
-import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
-import { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
-import { makeStorageFixture } from '../../helpers/storage-fixture';
-import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
-
 // Real sibling services over the same in-memory DB — the aggregation runs the
 // actual SQL of every domain it fans out to, so a shape change downstream shows
 // up here instead of being papered over by a stub.
 const dbs = () => new DatabaseService(testDb);
-const budgetSvc = new BudgetService(dbs(), new PermissionsService(dbs()), new ExchangeRatesService(), new RealtimeService());
-const daysSvc = new DaysService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new QueryHelpersService(dbs()));
+const budgetSvc = new BudgetService(
+  dbs(),
+  new PermissionsService(dbs()),
+  new ExchangeRatesService(dbs()),
+  new RealtimeService(),
+);
+const daysSvc = new DaysService(
+  dbs(),
+  new PermissionsService(dbs()),
+  new RealtimeService(),
+  new QueryHelpersService(dbs()),
+);
 // One shared cache instance (the PlacePhotoCacheService rule): the in-flight dedup in
 // PlacePhotoCacheService only works while both consumers hold the same object.
 const photoCache = new PlacePhotoCacheService(dbs(), makeStorageFixture('photos/google/').storage);
 const placesSvc = new PlacesService(
-  dbs(), new PermissionsService(dbs()), new RealtimeService(),
-  new MapsService(dbs(), photoCache), new QueryHelpersService(dbs()),
-  new UnsplashService(dbs(), new RuntimeEnvService(), makeStorageFixture('').storage), photoCache,
+  dbs(),
+  new PermissionsService(dbs()),
+  new RealtimeService(),
+  new MapsService(dbs(), photoCache),
+  new QueryHelpersService(dbs()),
+  new UnsplashService(dbs(), new RuntimeEnvService(), makeStorageFixture('').storage),
+  photoCache,
   new JourneyDomainService(dbs(), new RealtimeService(), new TrekPhotosRepository(dbs())),
   makeStorageFixture('').storage,
 );
 const accommodationsSvc = new AccommodationsService(dbs(), new PermissionsService(dbs()), new RealtimeService());
-const membersSvc = new TripMembersService(dbs(), budgetSvc, new UserCleanupService(dbs(), budgetSvc), new PermissionsService(dbs()), new RealtimeService(), notificationsStub());
+const membersSvc = new TripMembersService(
+  dbs(),
+  budgetSvc,
+  new UserCleanupService(dbs(), budgetSvc),
+  new PermissionsService(dbs()),
+  new RealtimeService(),
+  notificationsStub(),
+);
 
 const buildReadModel = (database: DatabaseService, roster: TripMembersService = membersSvc) =>
   new TripReadModelService(
-    database, roster, daysSvc, accommodationsSvc, budgetSvc,
+    database,
+    roster,
+    daysSvc,
+    accommodationsSvc,
+    budgetSvc,
     new PackingService(dbs(), new PermissionsService(dbs()), new RealtimeService(), notificationsStub()),
-    new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService(), notificationsStub(), new ReservationsReadRepository(dbs())),
-    new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService(), notificationsStub(), makeStorageFixture('').storage, new RateLimitService()),
+    new ReservationsService(
+      dbs(),
+      new PermissionsService(dbs()),
+      budgetSvc,
+      new RealtimeService(),
+      notificationsStub(),
+      new ReservationsReadRepository(dbs()),
+    ),
+    new CollabService(
+      dbs(),
+      new PermissionsService(dbs()),
+      new RealtimeService(),
+      notificationsStub(),
+      makeStorageFixture('').storage,
+      new RateLimitService(),
+    ),
     placesSvc,
     new TodoService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
-    new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new EphemeralTokenService(), makeStorageFixture('').storage),
+    new FilesService(
+      dbs(),
+      new PermissionsService(dbs()),
+      new RealtimeService(),
+      new EphemeralTokenService(),
+      makeStorageFixture('').storage,
+    ),
   );
 
 const svc = buildReadModel(dbs());
@@ -125,12 +174,12 @@ afterAll(() => {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const addBudgetItem = (tripId: number, name: string, totalPrice: number) =>
-  testDb.prepare("INSERT INTO budget_items (trip_id, category, name, total_price) VALUES (?, 'food', ?, ?)")
+  testDb
+    .prepare("INSERT INTO budget_items (trip_id, category, name, total_price) VALUES (?, 'food', ?, ?)")
     .run(tripId, name, totalPrice);
 
 const addPackingItem = (tripId: number, name: string, checked: number) =>
-  testDb.prepare('INSERT INTO packing_items (trip_id, name, checked) VALUES (?, ?, ?)')
-    .run(tripId, name, checked);
+  testDb.prepare('INSERT INTO packing_items (trip_id, name, checked) VALUES (?, ?, ?)').run(tripId, name, checked);
 
 /**
  * A DatabaseService whose connection cannot resolve the owner lookup, standing in
@@ -143,7 +192,7 @@ function ownerlessDbs(): DatabaseService {
     get(target, prop) {
       if (prop === 'prepare') {
         return (sql: string) =>
-          (sql.includes('SELECT user_id FROM trips') ? { get: () => undefined } : target.prepare(sql));
+          sql.includes('SELECT user_id FROM trips') ? { get: () => undefined } : target.prepare(sql);
       }
       const v = (target as any)[prop];
       return typeof v === 'function' ? v.bind(target) : v;
@@ -221,7 +270,8 @@ describe('bundle shaping', () => {
     // spread throws and the whole offline bundle fails, taking days, places and
     // reservations down with it over a trip that simply has no collaborators.
     const roster = vi.spyOn(membersSvc, 'listMembers').mockReturnValue({
-      owner: { id: owner.id, username: 'solo' }, members: undefined,
+      owner: { id: owner.id, username: 'solo' },
+      members: undefined,
     } as never);
     try {
       const result = svc.bundle(String(trip.id), { user_id: owner.id }, owner.id) as any;
@@ -239,7 +289,8 @@ describe('bundle shaping', () => {
     // row deleted while the trip lingers). Clients index the member list to render
     // avatars, so an undefined slot in it crashes the offline view.
     const roster = vi.spyOn(membersSvc, 'listMembers').mockReturnValue({
-      owner: undefined, members: [{ id: 42, username: 'left-behind' }],
+      owner: undefined,
+      members: [{ id: 42, username: 'left-behind' }],
     } as never);
     try {
       const result = svc.bundle(String(trip.id), { user_id: owner.id }, owner.id) as any;
@@ -256,7 +307,8 @@ describe('private packing items stay viewer-scoped (#858)', () => {
     const { user: viewer } = createUser(testDb);
     const trip = createTrip(testDb, owner.id, { start_date: '2025-06-01', end_date: '2025-06-02' });
     addTripMember(testDb, trip.id, viewer.id);
-    testDb.prepare("INSERT INTO packing_items (trip_id, name, is_private, owner_id) VALUES (?, 'Ring', 1, ?)")
+    testDb
+      .prepare("INSERT INTO packing_items (trip_id, name, is_private, owner_id) VALUES (?, 'Ring', 1, ?)")
       .run(trip.id, owner.id);
     testDb.prepare("INSERT INTO packing_items (trip_id, name) VALUES (?, 'Tent')").run(trip.id);
 
@@ -274,7 +326,8 @@ describe('private packing items stay viewer-scoped (#858)', () => {
     // The owner still sees their own private item through both paths, so the
     // assertions above are the filter working, not an empty fixture.
     expect(svc.getTripSummary(trip.id, owner.id)!.packing.items.map((i: any) => i.name)).toEqual(['Ring', 'Tent']);
-    expect((svc.bundle(String(trip.id), { user_id: owner.id }, owner.id) as any)
-      .packingItems.map((i: any) => i.name)).toEqual(['Ring', 'Tent']);
+    expect(
+      (svc.bundle(String(trip.id), { user_id: owner.id }, owner.id) as any).packingItems.map((i: any) => i.name),
+    ).toEqual(['Ring', 'Tent']);
   });
 });

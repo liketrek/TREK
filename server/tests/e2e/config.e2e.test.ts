@@ -34,6 +34,10 @@ describe('Public config e2e (no auth guard)', () => {
   it('200 with the default language and no cookie required', async () => {
     const res = await request(server).get('/api/config');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ defaultLanguage: DEFAULT_LANGUAGE });
+    expect(res.body).toEqual({
+      defaultLanguage: DEFAULT_LANGUAGE,
+      sourceCodeUrl: expect.stringContaining('mnlauaa/TREK'),
+      version: expect.any(String),
+    });
   });
 });

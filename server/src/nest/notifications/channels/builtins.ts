@@ -1,8 +1,9 @@
 import { registerChannel } from '../channel-registry';
-import type { ChannelMessage, ExternalChannel } from '../notification-events';
 import type { MailerService } from '../mailer/mailer.service';
+import type { ChannelMessage, ExternalChannel } from '../notification-events';
 import { resolveAdminNtfyUrl, resolveNtfyUrl, type NtfyService } from '../transports/ntfy.service';
 import type { WebhookService } from '../transports/webhook.service';
+import type { WebPushService } from '../web-push.service';
 
 // The three built-in external channels, wrapping the transports that were free
 // functions in services/notifications.ts before the fold. No delivery logic is
@@ -17,6 +18,7 @@ export interface BuiltinChannelDeps {
   mailer: MailerService;
   webhook: WebhookService;
   ntfy: NtfyService;
+  webPush?: WebPushService;
 }
 
 /**
@@ -32,7 +34,7 @@ export interface BuiltinChannelDeps {
  * preferences; dropping that import would have silenced email, webhook and ntfy
  * without a single error.
  */
-export function buildBuiltinChannels({ mailer, webhook, ntfy }: BuiltinChannelDeps): ExternalChannel[] {
+export function buildBuiltinChannels({ mailer, webhook, ntfy, webPush }: BuiltinChannelDeps): ExternalChannel[] {
   const emailChannel: ExternalChannel = {
     id: 'email',
     source: 'builtin',
@@ -66,7 +68,13 @@ export function buildBuiltinChannels({ mailer, webhook, ntfy }: BuiltinChannelDe
     async sendToUser(userId, msg) {
       const url = webhook.getUserWebhookUrl(userId);
       if (!url) return false;
-      return webhook.sendWebhook(url, { event: msg.event, title: msg.title, body: msg.body, tripName: msg.tripName, link: msg.url });
+      return webhook.sendWebhook(url, {
+        event: msg.event,
+        title: msg.title,
+        body: msg.body,
+        tripName: msg.tripName,
+        link: msg.url,
+      });
     },
     async sendGlobal(msg: ChannelMessage) {
       const url = webhook.getAdminWebhookUrl();
@@ -92,7 +100,12 @@ export function buildBuiltinChannels({ mailer, webhook, ntfy }: BuiltinChannelDe
       const adminCfg = ntfy.getAdminNtfyConfig();
       const url = resolveNtfyUrl(adminCfg, userCfg);
       if (!url) return false;
-      return ntfy.sendNtfy(url, userCfg?.token ?? adminCfg.token, { event: msg.event, title: msg.title, body: msg.body, link: msg.url });
+      return ntfy.sendNtfy(url, userCfg?.token ?? adminCfg.token, {
+        event: msg.event,
+        title: msg.title,
+        body: msg.body,
+        link: msg.url,
+      });
     },
     async sendGlobal(msg: ChannelMessage) {
       const adminCfg = ntfy.getAdminNtfyConfig();
@@ -111,7 +124,20 @@ export function buildBuiltinChannels({ mailer, webhook, ntfy }: BuiltinChannelDe
     },
   };
 
-  return [emailChannel, webhookChannel, ntfyChannel];
+  const webPushChannel: ExternalChannel | null = webPush
+    ? {
+        id: 'webpush',
+        source: 'builtin',
+        labelKey: 'settings.notificationPreferences.webpush',
+        settingsPath: '/settings?tab=notifications',
+        supportsEvent: supportsAllButSynology,
+        isInstanceConfigured: () => webPush.config().available,
+        isConfiguredFor: (userId) => webPush.hasActiveSubscription(userId),
+        sendToUser: (userId, msg) => webPush.sendToUser(userId, msg),
+      }
+    : null;
+
+  return [emailChannel, webhookChannel, ntfyChannel, ...(webPushChannel ? [webPushChannel] : [])];
 }
 
 /** Idempotent - safe to call from every entry point that needs the registry populated. */

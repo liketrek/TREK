@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import apiClient, { adminApi, authApi } from '../../api/client'
 import { useAuthStore } from '../../store/authStore'
@@ -20,7 +20,7 @@ import type { AdminUser, AdminStats, OidcConfig, UpdateInfo } from './adminModel
  */
 const ADMIN_TAB_IDS = [
   'users', 'defaults', 'config', 'settings', 'addons', 'plugins', 'storage',
-  'notifications', 'mcp-tokens', 'github', 'backup', 'audit', 'dev-notifications',
+  'notifications', 'mcp-tokens', 'backup', 'audit', 'dev-notifications',
 ]
 
 /**
@@ -31,7 +31,7 @@ const ADMIN_TAB_IDS = [
  * hosted instance. Checked in an effect rather than in the initial state
  * because `managed` arrives with /app-config, after the first render.
  */
-const MANAGED_HIDDEN = ['storage', 'github', 'backup']
+const MANAGED_HIDDEN = ['storage', 'backup']
 
 /**
  * Admin page logic — owns every admin data slice (users, stats, invites, auth
@@ -125,6 +125,7 @@ export function useAdmin() {
 
   // Invite links
   const [invites, setInvites] = useState<any[]>([])
+  const inviteMutationVersion = useRef(0)
   const [inviteTrips, setInviteTrips] = useState<{ id: number; title: string }[]>([])
   const [showCreateInvite, setShowCreateInvite] = useState<boolean>(false)
   const [inviteForm, setInviteForm] = useState<{ max_uses: number; expires_in_days: number | ''; trip_id: number | '' }>({ max_uses: 1, expires_in_days: 7, trip_id: '' })
@@ -183,6 +184,7 @@ export function useAdmin() {
   }, [])
 
   const loadData = async () => {
+    const inviteVersionAtStart = inviteMutationVersion.current
     setIsLoading(true)
     try {
       const [usersData, statsData, invitesData, inviteTripsData] = await Promise.all([
@@ -193,7 +195,7 @@ export function useAdmin() {
       ])
       setUsers(usersData.users)
       setStats(statsData)
-      setInvites(invitesData.invites || [])
+      if (inviteMutationVersion.current === inviteVersionAtStart) setInvites(invitesData.invites || [])
       setInviteTrips(inviteTripsData.trips || [])
     } catch (err: unknown) {
       toast.error(t('admin.toast.loadError'))
@@ -339,6 +341,7 @@ export function useAdmin() {
   }
 
   const handleCreateInvite = async () => {
+    inviteMutationVersion.current += 1
     try {
       const data = await adminApi.createInvite({
         max_uses: inviteForm.max_uses,
@@ -357,6 +360,7 @@ export function useAdmin() {
   }
 
   const handleDeleteInvite = async (id: number) => {
+    inviteMutationVersion.current += 1
     try {
       await adminApi.deleteInvite(id)
       setInvites(prev => prev.filter(i => i.id !== id))

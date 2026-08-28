@@ -52,18 +52,18 @@ const common: TranslationStrings = {
   'common.justNow': '剛剛',
   'common.hoursAgo': '{count}小時前',
   'common.daysAgo': '{count}天前',
-  'common.datepicker.prevMonth': 'Previous month', // en-fallback
-  'common.datepicker.nextMonth': 'Next month', // en-fallback
-  'common.datepicker.prevYear': 'Previous year', // en-fallback
-  'common.datepicker.nextYear': 'Next year', // en-fallback
-  'common.datepicker.prevYears': 'Previous years', // en-fallback
-  'common.datepicker.nextYears': 'Next years', // en-fallback
-  'common.datepicker.selectMonth': 'Select month', // en-fallback
-  'common.datepicker.selectYear': 'Select year', // en-fallback
-  'common.datepicker.enterManually': 'Enter date manually', // en-fallback
-  'common.datepicker.typeDate': 'Type a date', // en-fallback
-  'common.datepicker.dialog': 'Date picker', // en-fallback
-  'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.datepicker.prevMonth': '上個月',
+  'common.datepicker.nextMonth': '下個月',
+  'common.datepicker.prevYear': '上一年',
+  'common.datepicker.nextYear': '下一年',
+  'common.datepicker.prevYears': '前幾年',
+  'common.datepicker.nextYears': '後幾年',
+  'common.datepicker.selectMonth': '選擇月份',
+  'common.datepicker.selectYear': '選擇年份',
+  'common.datepicker.enterManually': '手動輸入日期',
+  'common.datepicker.typeDate': '輸入日期',
+  'common.datepicker.dialog': '日期選擇器',
+  'common.datepicker.clearDate': '清除日期',
   'common.errorTitle': '發生錯誤',
   'common.errorBody': '應用程式的這個部分已停止運作。您的資料是安全的。',
   'common.errorPanelTitle': '無法顯示此區段',
@@ -73,5 +73,11 @@ const common: TranslationStrings = {
   'common.errorUpdateTitle': '有新版本可用',
   'common.errorUpdateBody': '此分頁開啟期間 TREK 已更新。請重新載入以取得新版本。',
   'common.errorPluginTitle': '無法顯示此外掛程式',
+  'legal.title': '法律資訊與原始碼',
+  'legal.description': '此部署版本的授權資訊及確切原始碼。',
+  'legal.agpl': '此應用程式依 GNU Affero General Public License 第 3 版授權。遠端使用者可免費取得對應原始碼。',
+  'legal.license': '閱讀授權條款',
+  'legal.source': '對應原始碼',
+  'legal.sourceDescription': '此部署版本的原始碼：',
 };
 export default common;

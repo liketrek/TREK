@@ -86,7 +86,7 @@ import { makeStorageFixture } from './storage-fixture';
 export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostFactory {
   const generalStorage = makeStorageFixture('').storage;
   const permissions = new PermissionsService(dbs);
-  const exchangeRates = new ExchangeRatesService();
+  const exchangeRates = new ExchangeRatesService(dbs);
   const realtime = new RealtimeService();
   const budget = new BudgetService(dbs, permissions, exchangeRates, realtime);
   const addons = new AddonsService(dbs);
@@ -129,7 +129,7 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
     new AccommodationsRpc(accommodations, realtime, guards),
     new ItineraryRpc(assignments, realtime, guards),
     new TripsRpc(trips, reservations, days, membership, dbs, realtime, guards, accommodations, members),
-    new CostsRpc(budget, dbs, realtime, guards, membership),
+    new CostsRpc(budget, dbs, realtime, guards, membership, exchangeRates),
     new ReservationsRpc(reservations, realtime, guards),
     new CollabRpc(collab, realtime, guards),
     new AtlasRpc(atlas, guards),

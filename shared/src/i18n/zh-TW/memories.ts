@@ -21,7 +21,7 @@ const memories: TranslationStrings = {
   'memories.providerPassword': '密碼',
   'memories.providerOTP': 'MFA 驗證碼（如已啟用）',
   'memories.skipSSLVerification': '跳過 SSL 憑證驗證',
-  'memories.immichAutoUpload': '上傳 Journey 照片時同步到 Immich',
+  'memories.immichAutoUpload': '上傳旅程照片時同步到 Immich',
   'memories.providerUrlHintSynology': '在網址中包含照片應用程式路徑，例如 https://nas:5001/photo',
   'memories.testConnection': '測試連線',
   'memories.testShort': '測試',

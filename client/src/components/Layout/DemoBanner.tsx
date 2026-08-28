@@ -550,9 +550,7 @@ export default function DemoBanner(): React.ReactElement | null {
             <Github size={13} />
             <span>{t.selfHost}</span>
             <a
-              href="https://github.com/liketrek/TREK"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/legal"
               style={{ color: '#111827', fontWeight: 600, textDecoration: 'none' }}
             >
               {t.selfHostLink}

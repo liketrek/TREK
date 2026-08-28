@@ -1,7 +1,8 @@
-import { Controller, Get } from '@nestjs/common';
-import type { PublicConfig } from '@trek/shared';
+import { readEnv } from '../../app-config';
 import { DEFAULT_LANGUAGE } from '../../config';
 import { Public } from '../auth/public.decorator';
+import { Controller, Get } from '@nestjs/common';
+import type { PublicConfig } from '@trek/shared';
 
 /**
  * /api/config — public (unauthenticated) bootstrap config.
@@ -15,6 +16,11 @@ import { Public } from '../auth/public.decorator';
 export class ConfigController {
   @Get()
   getConfig(): PublicConfig {
-    return { defaultLanguage: DEFAULT_LANGUAGE };
+    const version: string = readEnv().app.appVersion ?? require('../../../package.json').version;
+    return {
+      defaultLanguage: DEFAULT_LANGUAGE,
+      sourceCodeUrl: readEnv().app.sourceCodeUrl || 'https://github.com/mnlauaa/TREK',
+      version,
+    };
   }
 }

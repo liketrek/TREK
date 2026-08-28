@@ -187,5 +187,9 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': 'Tambah zona waktu',
   'dashboard.aria.removeTimezone': 'Hapus {city}',
   'dashboard.dayCountRequired': 'Jumlah hari wajib diisi',
+  'dashboard.hero.departureIn': 'Departure in',
+  'dashboard.hero.hourUnit': 'Hours',
+  'dashboard.hero.minuteUnit': 'Minutes',
+  'dashboard.hero.secondUnit': 'Seconds',
 };
 export default dashboard;

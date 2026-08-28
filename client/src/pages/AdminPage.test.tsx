@@ -250,16 +250,15 @@ describe('AdminPage', () => {
     });
   });
 
-  describe('FE-PAGE-ADMIN-011: GitHub tab renders GitHubPanel', () => {
-    it('clicking GitHub tab shows github-panel', async () => {
+  describe('FE-PAGE-ADMIN-011: upstream support navigation is removed', () => {
+    it('does not render the GitHub/support tab', async () => {
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
       render(<AdminPage />);
 
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
 
-      fireEvent.click(screen.getByRole('button', { name: /^github$/i }));
-
-      expect(screen.getByTestId('github-panel')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^github$/i })).not.toBeInTheDocument();
+      expect(screen.queryByTestId('github-panel')).not.toBeInTheDocument();
     });
   });
 

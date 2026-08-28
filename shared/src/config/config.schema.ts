@@ -10,5 +10,7 @@ import { z } from 'zod';
  */
 export const publicConfigSchema = z.object({
   defaultLanguage: z.string(),
+  sourceCodeUrl: z.url(),
+  version: z.string(),
 });
 export type PublicConfig = z.infer<typeof publicConfigSchema>;

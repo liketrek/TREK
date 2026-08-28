@@ -46,6 +46,10 @@ export function deriveApp(raw: RawEnv) {
     appVersion: raw.APP_VERSION,
     /** Raw APP_URL — trailing-slash stripping differs per site (feeds strips one, notifications strips all). */
     appUrl: raw.APP_URL,
+    sourceCodeUrl: raw.SOURCE_CODE_URL,
+    webPushVapidPublicKey: raw.WEB_PUSH_VAPID_PUBLIC_KEY,
+    webPushVapidPrivateKey: raw.WEB_PUSH_VAPID_PRIVATE_KEY,
+    webPushVapidSubject: raw.WEB_PUSH_VAPID_SUBJECT,
     tz: raw.TZ,
     logLevel: raw.LOG_LEVEL,
     /** Resolved: lowercased, validated against the supported set, falls back to 'en' (src/config.ts semantics). */

@@ -121,6 +121,8 @@ const ALLOWED_DESTRUCTIVE: Record<string, string> = {
     'IF EXISTS drop to recreate the template-items table with a category_id FK. Template scaffolding.',
   'DROP TABLE notification_preferences':
     'IF EXISTS drop AFTER migration 71 copied the data into notification_channel_preferences.',
+  'DROP TABLE exchange_rate_quotes':
+    'Migration 200 removes an unreleased ephemeral quote cache; durable snapshots, trip defaults and previews are preserved.',
 
   // ── guarded column drop ──────────────────────────────────────────────────
   'ALTER TABLE photo_providers DROP COLUMN config':

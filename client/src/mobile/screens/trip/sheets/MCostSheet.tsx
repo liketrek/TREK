@@ -1,47 +1,62 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, ChevronDown, Plus, Trash2, Wallet } from 'lucide-react'
-import MSheet from '../../../components/MSheet'
-import CustomSelect from '../../../../components/shared/CustomSelect'
-import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
-import { NumericInput } from '../../../../components/shared/NumericInput'
-import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
-import { useTranslation } from '../../../../i18n'
-import { useToast } from '../../../../components/shared/Toast'
-import { useTripStore } from '../../../../store/tripStore'
-import { useExchangeRates } from '../../../../hooks/useExchangeRates'
-import { formatMoney, localizeAmountInput, cleanAmount } from '../../../../utils/formatters'
-import { SYMBOLS, SPLIT_COLORS, currenciesWith } from '../../../../components/Budget/BudgetPanel.constants'
-import { COST_CATEGORY_LIST, catMeta } from '../../../../components/Budget/costsCategories'
-import { localToday } from '../../../../components/Planner/today'
-import { calculateTicketShares, hasTicketSplit, NOTE_MAX, readTicketItems, readUserNote, splitEqualShares, writeTicketItems, type TicketItem } from '../../../../components/Budget/CostsPanel.helpers'
-import type { ExpensePrefill } from '../../../../components/Budget/CostsPanel'
-import { payersBalanced, rebalancePayers } from '../../../../components/Budget/CostsPanel.helpers'
-import GuestBadge from '../../../../components/shared/GuestBadge'
-import type { TripMember } from '../../../../components/Budget/BudgetPanelMemberChips'
-import type { BudgetItem } from '../../../../types'
+import type { ExchangeRateResolution } from '@trek/shared';
+import { Check, ChevronDown, Plus, Trash2, Wallet } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { budgetApi } from '../../../../api/client';
+import { SPLIT_COLORS, SYMBOLS, currenciesWith } from '../../../../components/Budget/BudgetPanel.constants';
+import type { TripMember } from '../../../../components/Budget/BudgetPanelMemberChips';
+import { COST_CATEGORY_LIST, catMeta } from '../../../../components/Budget/costsCategories';
+import type { ExpensePrefill } from '../../../../components/Budget/CostsPanel';
+import {
+  NOTE_MAX,
+  calculateTicketShares,
+  hasTicketSplit,
+  payersBalanced,
+  readTicketItems,
+  readUserNote,
+  rebalancePayers,
+  splitEqualShares,
+  writeTicketItems,
+  type TicketItem,
+} from '../../../../components/Budget/CostsPanel.helpers';
+import { localToday } from '../../../../components/Planner/today';
+import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker';
+import CustomSelect from '../../../../components/shared/CustomSelect';
+import GuestBadge from '../../../../components/shared/GuestBadge';
+import { NumericInput } from '../../../../components/shared/NumericInput';
+import { useToast } from '../../../../components/shared/Toast';
+import { useExchangeRates } from '../../../../hooks/useExchangeRates';
+import { useTranslation } from '../../../../i18n';
+import { useTripStore } from '../../../../store/tripStore';
+import type { BudgetItem } from '../../../../types';
+import { cleanAmount, formatMoney, localizeAmountInput } from '../../../../utils/formatters';
+import MSheet from '../../../components/MSheet';
+import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome';
 
 export interface MCostSheetProps {
-  tripId: number
-  base: string
-  people: TripMember[]
-  me: number
-  editing: BudgetItem | null
-  prefill?: ExpensePrefill
-  onClose: () => void
-  onSaved: () => void
+  tripId: number;
+  base: string;
+  tripCurrency?: string;
+  people: TripMember[];
+  me: number;
+  editing: BudgetItem | null;
+  prefill?: ExpensePrefill;
+  onClose: () => void;
+  onSaved: () => void;
 }
 
 // Nested surfaces for the split/payer rows on the opaque sheet: the row sits on
 // --m-ic, the amount box drops back to the solid sheet fill so it reads as a
 // distinct input in both themes.
-const ROW_CLS = 'flex items-center gap-[9px] rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[9px]'
-const MINI_INPUT_WRAP = 'flex items-center gap-1 rounded-[9px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] px-[10px]'
+const ROW_CLS =
+  'flex items-center gap-[9px] rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[9px]';
+const MINI_INPUT_WRAP =
+  'flex items-center gap-1 rounded-[9px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] px-[10px]';
 
 const SPLIT_MODES = [
   { id: 'equally', labelKey: 'costs.splitEqually' },
   { id: 'custom', labelKey: 'costs.splitCustom' },
   { id: 'ticket', labelKey: 'costs.splitTicket' },
-] as const
+] as const;
 
 /**
  * Add/edit expense sheet — the mobile counterpart of the desktop ExpenseModal
@@ -51,202 +66,285 @@ const SPLIT_MODES = [
  * multi-currency with live conversion, single/multi payer, and the Equally /
  * Custom / Ticket splits.
  */
-export default function MCostSheet({ tripId, base, people, me, editing, prefill, onClose, onSaved }: MCostSheetProps) {
-  const { t, locale } = useTranslation()
-  const toast = useToast()
-  const { addBudgetItem, updateBudgetItem, deleteBudgetItem } = useTripStore()
-  const { convert } = useExchangeRates(base)
-  const sym = (c: string) => SYMBOLS[c] || (c + ' ')
+export default function MCostSheet({
+  tripId,
+  base,
+  tripCurrency = base,
+  people,
+  me,
+  editing,
+  prefill,
+  onClose,
+  onSaved,
+}: MCostSheetProps) {
+  const { t, locale } = useTranslation();
+  const toast = useToast();
+  const { addBudgetItem, updateBudgetItem, deleteBudgetItem } = useTripStore();
+  const { convert } = useExchangeRates(base);
+  const sym = (c: string) => SYMBOLS[c] || c + ' ';
 
   // Internal open flag so the exit animation still plays even though the parent
   // unmounts us on close.
-  const [open, setOpen] = useState(true)
-  const closeTimer = useRef<number | null>(null)
-  useEffect(() => () => { if (closeTimer.current) window.clearTimeout(closeTimer.current) }, [])
+  const [open, setOpen] = useState(true);
+  const closeTimer = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (closeTimer.current) window.clearTimeout(closeTimer.current);
+    },
+    []
+  );
   const requestClose = () => {
-    setOpen(false)
-    closeTimer.current = window.setTimeout(onClose, 280)
-  }
+    setOpen(false);
+    closeTimer.current = window.setTimeout(onClose, 280);
+  };
 
-  const [name, setName] = useState(editing?.name || prefill?.name || '')
-  const [cat, setCat] = useState<string>(editing ? catMeta(editing.category).key : (prefill?.category || 'food'))
-  const [catOpen, setCatOpen] = useState(false)
-  const [note, setNote] = useState(() => readUserNote(editing))
-  const [currency, setCurrency] = useState((editing?.currency || base).toUpperCase())
-  const [day, setDay] = useState(editing?.expense_date || localToday())
+  const [name, setName] = useState(editing?.name || prefill?.name || '');
+  const [cat, setCat] = useState<string>(editing ? catMeta(editing.category).key : prefill?.category || 'food');
+  const [catOpen, setCatOpen] = useState(false);
+  const [note, setNote] = useState(() => readUserNote(editing));
+  const [currency, setCurrency] = useState((editing?.currency || base).toUpperCase());
+  const [rateHint, setRateHint] = useState<ExchangeRateResolution | null>(null);
+  const [day, setDay] = useState(editing?.expense_date || localToday());
   const [total, setTotal] = useState<string>(() => {
-    if (editing) return editing.total_price ? String(cleanAmount(editing.total_price)) : ''
-    if (prefill?.amount != null) return String(prefill.amount)
-    return ''
-  })
+    if (editing) return editing.total_price ? String(cleanAmount(editing.total_price)) : '';
+    if (prefill?.amount != null) return String(prefill.amount);
+    return '';
+  });
   const [participants, setParticipants] = useState<Set<number>>(() =>
-    editing ? new Set((editing.members || []).map(m => m.user_id)) : new Set(people.map(p => p.id)))
+    editing ? new Set((editing.members || []).map((m) => m.user_id)) : new Set(people.map((p) => p.id))
+  );
 
   // Payer state — same model as the desktop modal. 0 = "Nobody (planning entry)".
-  const initialPayers = (editing?.payers || []).filter(p => p.amount > 0)
+  const initialPayers = (editing?.payers || []).filter((p) => p.amount > 0);
   const [payerId, setPayerId] = useState<number>(() => {
-    const existingPayer = initialPayers[0]
-    if (existingPayer) return existingPayer.user_id
-    return editing ? 0 : me
-  })
-  const [multiPayer, setMultiPayer] = useState(() => initialPayers.length > 1)
-  const [payerIds, setPayerIds] = useState<Set<number>>(() => new Set(initialPayers.map(p => p.user_id)))
+    const existingPayer = initialPayers[0];
+    if (existingPayer) return existingPayer.user_id;
+    return editing ? 0 : me;
+  });
+  const [multiPayer, setMultiPayer] = useState(() => initialPayers.length > 1);
+  const [payerIds, setPayerIds] = useState<Set<number>>(() => new Set(initialPayers.map((p) => p.user_id)));
   const [payerAmounts, setPayerAmounts] = useState<Record<number, string>>(() => {
-    const m: Record<number, string> = {}
-    for (const p of initialPayers) m[p.user_id] = String(p.amount)
-    return m
-  })
-  const [pinnedPayers, setPinnedPayers] = useState<Set<number>>(() => new Set(initialPayers.map(p => p.user_id)))
+    const m: Record<number, string> = {};
+    for (const p of initialPayers) m[p.user_id] = String(p.amount);
+    return m;
+  });
+  const [pinnedPayers, setPinnedPayers] = useState<Set<number>>(() => new Set(initialPayers.map((p) => p.user_id)));
 
   const [splitMode, setSplitMode] = useState<'equally' | 'custom' | 'ticket'>(() => {
-    if (hasTicketSplit(editing)) return 'ticket'
+    if (hasTicketSplit(editing)) return 'ticket';
     if (editing && editing.members && editing.members.length > 0) {
-      const hasCustom = editing.members.some(m => m.amount !== null && m.amount !== undefined)
-      return hasCustom ? 'custom' : 'equally'
+      const hasCustom = editing.members.some((m) => m.amount !== null && m.amount !== undefined);
+      return hasCustom ? 'custom' : 'equally';
     }
-    return 'equally'
-  })
+    return 'equally';
+  });
 
-  const [ticketItems, setTicketItems] = useState<TicketItem[]>(() => readTicketItems(editing))
+  const [ticketItems, setTicketItems] = useState<TicketItem[]>(() => readTicketItems(editing));
 
   const [customAmounts, setCustomAmounts] = useState<Record<number, string>>(() => {
-    const m: Record<number, string> = {}
+    const m: Record<number, string> = {};
     if (editing && editing.members) {
       for (const member of editing.members) {
-        if (member.amount !== null && member.amount !== undefined) m[member.user_id] = String(member.amount)
+        if (member.amount !== null && member.amount !== undefined) m[member.user_id] = String(member.amount);
       }
     }
-    return m
-  })
+    return m;
+  });
 
-  const [saving, setSaving] = useState(false)
-  const [deleteArmed, setDeleteArmed] = useState(false)
+  const [saving, setSaving] = useState(false);
+  const [deleteArmed, setDeleteArmed] = useState(false);
 
-  const isTicketMode = splitMode === 'ticket'
-  const ticketInfo = useMemo(() => calculateTicketShares(ticketItems), [ticketItems])
+  useEffect(() => {
+    if (currency === tripCurrency.toUpperCase()) {
+      setRateHint(null);
+      return;
+    }
+    if (editing && currency === (editing.currency || tripCurrency).toUpperCase() && editing.exchange_rate) {
+      setRateHint({
+        trip_id: tripId,
+        trip_currency: tripCurrency.toUpperCase(),
+        item_currency: currency,
+        exchange_rate: editing.exchange_rate,
+        source: editing.exchange_rate_source || 'legacy',
+        source_version: editing.exchange_rate_source_version || 'legacy',
+        effective_date: editing.exchange_rate_effective_date || null,
+        fetched_at: editing.exchange_rate_set_at || null,
+        stale: false,
+      });
+      return;
+    }
+    let active = true;
+    budgetApi
+      .resolveExchangeRate(tripId, currency)
+      .then((resolution) => {
+        if (active) setRateHint(resolution);
+      })
+      .catch(() => {
+        if (active) setRateHint(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [currency, editing, tripCurrency, tripId]);
 
-  const totalNum = isTicketMode ? ticketInfo.total : (Number.parseFloat(total) || 0)
-  const splitSum = [...participants].reduce((sum, id) => sum + (Number.parseFloat(customAmounts[id]) || 0), 0)
-  const customBalanced = Math.round(splitSum * 100) === Math.round(totalNum * 100)
-  const each = participants.size > 0 ? totalNum / participants.size : 0
+  const isTicketMode = splitMode === 'ticket';
+  const ticketInfo = useMemo(() => calculateTicketShares(ticketItems), [ticketItems]);
+
+  const totalNum = isTicketMode ? ticketInfo.total : Number.parseFloat(total) || 0;
+  const splitSum = [...participants].reduce((sum, id) => sum + (Number.parseFloat(customAmounts[id]) || 0), 0);
+  const customBalanced = Math.round(splitSum * 100) === Math.round(totalNum * 100);
+  const each = participants.size > 0 ? totalNum / participants.size : 0;
   const equalShares = useMemo(
-    () => splitEqualShares(totalNum, [...participants].map(id => ({ user_id: id })), editing?.id || 0),
-    [totalNum, participants, editing],
-  )
+    () =>
+      splitEqualShares(
+        totalNum,
+        [...participants].map((id) => ({ user_id: id })),
+        editing?.id || 0
+      ),
+    [totalNum, participants, editing]
+  );
 
   const placeholderShares = useMemo(() => {
-    const emptyParts = [...participants].filter(id => !customAmounts[id])
-    if (emptyParts.length === 0) return {}
+    const emptyParts = [...participants].filter((id) => !customAmounts[id]);
+    if (emptyParts.length === 0) return {};
     const enteredSum = [...participants]
-      .filter(id => customAmounts[id])
-      .reduce((sum, id) => sum + (Number.parseFloat(customAmounts[id]) || 0), 0)
-    const remaining = Math.max(0, totalNum - enteredSum)
-    return splitEqualShares(remaining, emptyParts.map(id => ({ user_id: id })), editing?.id || 0)
-  }, [totalNum, participants, customAmounts, editing])
+      .filter((id) => customAmounts[id])
+      .reduce((sum, id) => sum + (Number.parseFloat(customAmounts[id]) || 0), 0);
+    const remaining = Math.max(0, totalNum - enteredSum);
+    return splitEqualShares(
+      remaining,
+      emptyParts.map((id) => ({ user_id: id })),
+      editing?.id || 0
+    );
+  }, [totalNum, participants, customAmounts, editing]);
 
-  const ticketValid = ticketItems.length > 0 && ticketItems.every(item => item.name.trim().length > 0 && (Number.parseFloat(item.price) || 0) > 0 && item.participants.size > 0)
-  const payersOk = !multiPayer || (payerIds.size > 0 && payersBalanced(payerAmounts, payerIds, totalNum))
-  const valid = name.trim().length > 0 && payersOk && (
-    isTicketMode
+  const ticketValid =
+    ticketItems.length > 0 &&
+    ticketItems.every(
+      (item) => item.name.trim().length > 0 && (Number.parseFloat(item.price) || 0) > 0 && item.participants.size > 0
+    );
+  const payersOk = !multiPayer || (payerIds.size > 0 && payersBalanced(payerAmounts, payerIds, totalNum));
+  const valid =
+    name.trim().length > 0 &&
+    payersOk &&
+    (isTicketMode
       ? ticketValid
-      : totalNum > 0 && (participants.size === 0 || splitMode === 'equally' || customBalanced)
-  )
+      : totalNum > 0 && (participants.size === 0 || splitMode === 'equally' || customBalanced));
 
-  const onTotalChange = (v: string) => setTotal(v.replace(',', '.'))
+  const onTotalChange = (v: string) => setTotal(v.replace(',', '.'));
 
   // Keep payer amounts summing to the total as it changes (also in ticket mode).
   useEffect(() => {
-    if (!multiPayer) return
-    setPayerAmounts(prev => rebalancePayers(prev, pinnedPayers, payerIds, totalNum))
+    if (!multiPayer) return;
+    setPayerAmounts((prev) => rebalancePayers(prev, pinnedPayers, payerIds, totalNum));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalNum])
+  }, [totalNum]);
 
   const enableMultiPayer = () => {
-    const seed = payerIds.size > 0 ? new Set(payerIds) : new Set<number>([payerId > 0 ? payerId : me])
-    const pinned = new Set<number>()
-    setPayerIds(seed)
-    setPinnedPayers(pinned)
-    setPayerAmounts(prev => rebalancePayers(prev, pinned, seed, totalNum))
-    setMultiPayer(true)
-  }
+    const seed = payerIds.size > 0 ? new Set(payerIds) : new Set<number>([payerId > 0 ? payerId : me]);
+    const pinned = new Set<number>();
+    setPayerIds(seed);
+    setPinnedPayers(pinned);
+    setPayerAmounts((prev) => rebalancePayers(prev, pinned, seed, totalNum));
+    setMultiPayer(true);
+  };
 
   const disableMultiPayer = () => {
-    const [first] = [...payerIds]
-    setPayerId(first ?? me)
-    setMultiPayer(false)
-  }
+    const [first] = [...payerIds];
+    setPayerId(first ?? me);
+    setMultiPayer(false);
+  };
 
   const togglePayer = (id: number) => {
-    const nextIds = new Set(payerIds)
-    const nextPinned = new Set(pinnedPayers)
-    if (nextIds.has(id)) { nextIds.delete(id); nextPinned.delete(id) } else { nextIds.add(id) }
-    setPayerIds(nextIds)
-    setPinnedPayers(nextPinned)
-    setPayerAmounts(prev => rebalancePayers(prev, nextPinned, nextIds, totalNum))
-  }
+    const nextIds = new Set(payerIds);
+    const nextPinned = new Set(pinnedPayers);
+    if (nextIds.has(id)) {
+      nextIds.delete(id);
+      nextPinned.delete(id);
+    } else {
+      nextIds.add(id);
+    }
+    setPayerIds(nextIds);
+    setPinnedPayers(nextPinned);
+    setPayerAmounts((prev) => rebalancePayers(prev, nextPinned, nextIds, totalNum));
+  };
 
   const onPayerAmountChange = (id: number, v: string) => {
-    const val = v.replace(',', '.')
-    const nextPinned = new Set(pinnedPayers)
-    nextPinned.add(id)
-    setPinnedPayers(nextPinned)
-    setPayerAmounts(prev => rebalancePayers({ ...prev, [id]: val }, nextPinned, payerIds, totalNum))
-  }
+    const val = v.replace(',', '.');
+    const nextPinned = new Set(pinnedPayers);
+    nextPinned.add(id);
+    setPinnedPayers(nextPinned);
+    setPayerAmounts((prev) => rebalancePayers({ ...prev, [id]: val }, nextPinned, payerIds, totalNum));
+  };
 
   const handleCustomAmountChange = (id: number, val: string) => {
-    val = val.replace(',', '.')
-    if (/^\d*\.?\d{0,2}$/.test(val) || val === '') setCustomAmounts(prev => ({ ...prev, [id]: val }))
-  }
+    val = val.replace(',', '.');
+    if (/^\d*\.?\d{0,2}$/.test(val) || val === '') setCustomAmounts((prev) => ({ ...prev, [id]: val }));
+  };
 
   const handleAddEmptyItem = () => {
-    setTicketItems(prev => [
+    setTicketItems((prev) => [
       ...prev,
-      { id: String(Date.now() + Math.random()), name: '', price: '', participants: new Set(people.map(p => p.id)) },
-    ])
-  }
-  const handleUpdateItemName = (id: string, itemName: string) => setTicketItems(prev => prev.map(item => item.id === id ? { ...item, name: itemName } : item))
+      { id: String(Date.now() + Math.random()), name: '', price: '', participants: new Set(people.map((p) => p.id)) },
+    ]);
+  };
+  const handleUpdateItemName = (id: string, itemName: string) =>
+    setTicketItems((prev) => prev.map((item) => (item.id === id ? { ...item, name: itemName } : item)));
   const handleUpdateItemPrice = (id: string, price: string) => {
-    price = price.replace(',', '.')
-    if (/^\d*\.?\d{0,2}$/.test(price) || price === '') setTicketItems(prev => prev.map(item => item.id === id ? { ...item, price } : item))
-  }
-  const handleRemoveItem = (id: string) => setTicketItems(prev => prev.filter(item => item.id !== id))
+    price = price.replace(',', '.');
+    if (/^\d*\.?\d{0,2}$/.test(price) || price === '')
+      setTicketItems((prev) => prev.map((item) => (item.id === id ? { ...item, price } : item)));
+  };
+  const handleRemoveItem = (id: string) => setTicketItems((prev) => prev.filter((item) => item.id !== id));
   const handleToggleItemParticipant = (itemId: string, userId: number) => {
-    setTicketItems(prev => prev.map(item => {
-      if (item.id !== itemId) return item
-      const nextParts = new Set(item.participants)
-      if (nextParts.has(userId)) nextParts.delete(userId); else nextParts.add(userId)
-      return { ...item, participants: nextParts }
-    }))
-  }
+    setTicketItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== itemId) return item;
+        const nextParts = new Set(item.participants);
+        if (nextParts.has(userId)) nextParts.delete(userId);
+        else nextParts.add(userId);
+        return { ...item, participants: nextParts };
+      })
+    );
+  };
 
   const toggleParticipant = (id: number) => {
-    const nextParts = new Set(participants)
+    const nextParts = new Set(participants);
     if (nextParts.has(id)) {
-      nextParts.delete(id)
-      setCustomAmounts(prev => { const copy = { ...prev }; delete copy[id]; return copy })
+      nextParts.delete(id);
+      setCustomAmounts((prev) => {
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
     } else {
-      nextParts.add(id)
+      nextParts.add(id);
     }
-    setParticipants(nextParts)
-  }
+    setParticipants(nextParts);
+  };
 
   const save = async () => {
-    if (!valid || saving) return
-    setSaving(true)
+    if (!valid || saving) return;
+    setSaving(true);
     // A picked payer always goes out, even when nobody shares the expense: the
     // server re-derives total_price from the payer sum (CostsPanel.helpers), so
     // dropping the payer would store the entry with a total of 0.
     const payerList = multiPayer
-      ? [...payerIds].map(id => ({ user_id: id, amount: Number.parseFloat(payerAmounts[id]) || 0 })).filter(p => p.amount > 0)
-      : payerId > 0 ? [{ user_id: payerId, amount: totalNum }] : []
-    const memberList = [...participants].map(id => ({
+      ? [...payerIds]
+          .map((id) => ({ user_id: id, amount: Number.parseFloat(payerAmounts[id]) || 0 }))
+          .filter((p) => p.amount > 0)
+      : payerId > 0
+        ? [{ user_id: payerId, amount: totalNum }]
+        : [];
+    const memberList = [...participants].map((id) => ({
       user_id: id,
-      amount: splitMode === 'custom'
-        ? (Number.parseFloat(customAmounts[id]) || 0)
-        : splitMode === 'ticket'
-          ? (ticketInfo.shares[id] || 0)
-          : null,
-    }))
+      amount:
+        splitMode === 'custom'
+          ? Number.parseFloat(customAmounts[id]) || 0
+          : splitMode === 'ticket'
+            ? ticketInfo.shares[id] || 0
+            : null,
+    }));
     const data = {
       name: name.trim(),
       category: cat,
@@ -260,52 +358,73 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
       ticket_json: splitMode === 'ticket' ? writeTicketItems(ticketItems) : null,
       ...(!editing && prefill?.reservationId ? { reservation_id: prefill.reservationId } : {}),
       ...(!editing && prefill?.placeId ? { place_id: prefill.placeId } : {}),
-    }
+    };
     try {
-      if (editing) await updateBudgetItem(tripId, editing.id, data)
-      else await addBudgetItem(tripId, data)
-      onSaved()
+      if (editing) await updateBudgetItem(tripId, editing.id, data);
+      else await addBudgetItem(tripId, data);
+      onSaved();
     } catch {
-      toast.error(t('common.unknownError'))
-      setSaving(false)
+      toast.error(t('common.unknownError'));
+      setSaving(false);
     }
-  }
+  };
 
   const handleDelete = async () => {
-    if (!editing) return
+    if (!editing) return;
     if (!deleteArmed) {
-      setDeleteArmed(true)
-      toast.warning(t('mobileTrip.tapAgainToDelete'))
-      return
+      setDeleteArmed(true);
+      toast.warning(t('mobileTrip.tapAgainToDelete'));
+      return;
     }
     try {
-      await deleteBudgetItem(tripId, editing.id)
-      onSaved()
+      await deleteBudgetItem(tripId, editing.id);
+      onSaved();
     } catch {
-      toast.error(t('common.unknownError'))
-      setDeleteArmed(false)
+      toast.error(t('common.unknownError'));
+      setDeleteArmed(false);
     }
-  }
+  };
 
-  const initialOf = (p: TripMember) => (p.id === me ? t('costs.youShort') : (p.username || '?').charAt(0)).toUpperCase()
-  const nameOf = (p: TripMember) => (p.id === me ? t('costs.you') : p.username)
+  const initialOf = (p: TripMember) =>
+    (p.id === me ? t('costs.youShort') : (p.username || '?').charAt(0)).toUpperCase();
+  const nameOf = (p: TripMember) => (p.id === me ? t('costs.you') : p.username);
 
   const Avatar = ({ p, idx, size = 22, dim = false }: { p: TripMember; idx: number; size?: number; dim?: boolean }) =>
-    p.avatar_url
-      ? <img src={p.avatar_url} alt="" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, opacity: dim ? 0.45 : 1 }} />
-      : (
-        <span
-          style={{
-            width: size, height: size, borderRadius: '50%', background: SPLIT_COLORS[idx % SPLIT_COLORS.length].gradient,
-            // theme-lint-disable — white initial on the member's tint, and the glyph scales with the avatar
-            color: '#fff', display: 'grid', placeItems: 'center', fontSize: size * 0.4, fontWeight: 700, flexShrink: 0, opacity: dim ? 0.45 : 1,
-          }}
-        >
-          {initialOf(p)}
-        </span>
-      )
+    p.avatar_url ? (
+      <img
+        src={p.avatar_url}
+        alt=""
+        style={{
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          objectFit: 'cover',
+          flexShrink: 0,
+          opacity: dim ? 0.45 : 1,
+        }}
+      />
+    ) : (
+      <span
+        style={{
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          background: SPLIT_COLORS[idx % SPLIT_COLORS.length].gradient,
+          // theme-lint-disable — white initial on the member's tint, and the glyph scales with the avatar
+          color: '#fff',
+          display: 'grid',
+          placeItems: 'center',
+          fontSize: size * 0.4,
+          fontWeight: 700,
+          flexShrink: 0,
+          opacity: dim ? 0.45 : 1,
+        }}
+      >
+        {initialOf(p)}
+      </span>
+    );
 
-  const submitLabel = saving ? t('common.saving') : editing ? t('common.save') : t('common.add')
+  const submitLabel = saving ? t('common.saving') : editing ? t('common.save') : t('common.add');
 
   return (
     <MSheet
@@ -327,14 +446,16 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
         <input
           type="text"
           value={name}
-          onChange={e => setName(e.target.value)}
+          onChange={(e) => setName(e.target.value)}
           placeholder={t('costs.namePlaceholder')}
           className={FIELD_CLS}
         />
 
         {/* TOTAL AMOUNT */}
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('costs.totalAmount')}</Eyebrow>
-        <div className={`flex items-center gap-1 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[10px] ${isTicketMode ? 'opacity-60' : ''}`}>
+        <div
+          className={`flex items-center gap-1 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[10px] ${isTicketMode ? 'opacity-60' : ''}`}
+        >
           <span className="text-[0.84375rem] font-medium text-m-faint">{sym(currency)}</span>
           <NumericInput
             mode="decimal"
@@ -352,10 +473,13 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
             <Eyebrow className="mb-[5px] uppercase">{t('costs.currency')}</Eyebrow>
             <CustomSelect
               value={currency}
-              onChange={v => setCurrency(String(v))}
+              onChange={(v) => setCurrency(String(v))}
               searchable
               size="sm"
-              options={currenciesWith(currency).map(c => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }))}
+              options={currenciesWith(currency).map((c) => ({
+                value: c,
+                label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c,
+              }))}
               style={{ width: '100%' }}
             />
           </div>
@@ -374,6 +498,14 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
             <span className="text-m-faint">· {t('costs.liveRate')}</span>
           </div>
         )}
+        {rateHint && (
+          <div className="mt-2 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[9px] text-[0.6875rem] text-m-muted">
+            {t('budget.exchangeRates.provenance', {
+              rate: rateHint.exchange_rate,
+              source: t(`budget.exchangeRates.source.${rateHint.source}`),
+            })}
+          </div>
+        )}
 
         {/* CATEGORY — a dropdown rather than eleven pills, which took a third of
             the sheet and pushed the split below the fold. Same shape as the
@@ -382,35 +514,48 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
         <button
           type="button"
           aria-expanded={catOpen}
-          onClick={() => setCatOpen(v => !v)}
+          onClick={() => setCatOpen((v) => !v)}
           className="flex w-full items-center gap-[10px] overflow-hidden rounded-xl border border-[color:var(--m-rowbr)] bg-m-card px-[13px] py-[11px] text-left"
         >
           {(() => {
-            const meta = catMeta(cat)
-            const Icon = meta.Icon
-            return <Icon size={15} strokeWidth={2} style={{ color: meta.color }} className="flex-none" />
+            const meta = catMeta(cat);
+            const Icon = meta.Icon;
+            return <Icon size={15} strokeWidth={2} style={{ color: meta.color }} className="flex-none" />;
           })()}
-          <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold text-m-ink">{t(catMeta(cat).labelKey)}</span>
-          <ChevronDown size={14} strokeWidth={2} className={`flex-none text-m-faint transition-transform duration-200 ${catOpen ? 'rotate-180' : ''}`} />
+          <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold text-m-ink">
+            {t(catMeta(cat).labelKey)}
+          </span>
+          <ChevronDown
+            size={14}
+            strokeWidth={2}
+            className={`flex-none text-m-faint transition-transform duration-200 ${catOpen ? 'rotate-180' : ''}`}
+          />
         </button>
         {catOpen && (
           <div className="mt-[6px] max-h-[240px] overflow-y-auto overscroll-contain rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)]">
-            {COST_CATEGORY_LIST.map(c => {
-              const Icon = c.Icon
-              const on = cat === c.key
+            {COST_CATEGORY_LIST.map((c) => {
+              const Icon = c.Icon;
+              const on = cat === c.key;
               return (
                 <button
                   key={c.key}
                   type="button"
                   aria-pressed={on}
-                  onClick={() => { setCat(c.key); setCatOpen(false) }}
+                  onClick={() => {
+                    setCat(c.key);
+                    setCatOpen(false);
+                  }}
                   className="flex w-full items-center gap-[10px] border-b border-[color:var(--m-rowbr)] px-[13px] py-[11px] text-left last:border-b-0"
                 >
                   <Icon size={14} strokeWidth={2} style={{ color: c.color }} className="flex-none" />
-                  <span className={`flex-1 text-[0.78125rem] ${on ? 'font-bold text-m-ink' : 'font-medium text-m-muted'}`}>{t(c.labelKey)}</span>
+                  <span
+                    className={`flex-1 text-[0.78125rem] ${on ? 'font-bold text-m-ink' : 'font-medium text-m-muted'}`}
+                  >
+                    {t(c.labelKey)}
+                  </span>
                   {on && <Check size={14} strokeWidth={2.4} className="flex-none text-m-ink" />}
                 </button>
-              )
+              );
             })}
           </div>
         )}
@@ -429,11 +574,11 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
         {!multiPayer ? (
           <CustomSelect
             value={String(payerId)}
-            onChange={v => setPayerId(Number(v))}
+            onChange={(v) => setPayerId(Number(v))}
             size="sm"
             options={[
               { value: '0', label: t('costs.noOnePaid') },
-              ...people.map(p => ({ value: String(p.id), label: nameOf(p) })),
+              ...people.map((p) => ({ value: String(p.id), label: nameOf(p) })),
             ]}
             style={{ width: '100%' }}
           />
@@ -441,7 +586,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
           <>
             <div className="flex flex-col gap-[6px]">
               {people.map((p, idx) => {
-                const on = payerIds.has(p.id)
+                const on = payerIds.has(p.id);
                 return (
                   <div key={p.id} className={`${ROW_CLS} ${on ? '' : 'opacity-60'}`}>
                     <button
@@ -459,17 +604,21 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                           mode="decimal"
                           placeholder={localizeAmountInput('0.00', currency)}
                           value={localizeAmountInput(payerAmounts[p.id] || '', currency)}
-                          onValueChange={v => onPayerAmountChange(p.id, v)}
+                          onValueChange={(v) => onPayerAmountChange(p.id, v)}
                           className="w-full border-0 bg-transparent py-[7px] text-right text-[0.8125rem] font-semibold text-m-ink outline-none"
                         />
                       </div>
                     ) : (
-                      <button type="button" onClick={() => togglePayer(p.id)} className="flex-none text-[0.6875rem] text-m-faint">
+                      <button
+                        type="button"
+                        onClick={() => togglePayer(p.id)}
+                        className="flex-none text-[0.6875rem] text-m-faint"
+                      >
                         {t('costs.tapToInclude')}
                       </button>
                     )}
                   </div>
-                )
+                );
               })}
             </div>
             {!payersOk && (
@@ -483,7 +632,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
         {/* SPLIT */}
         <Eyebrow className="mb-[6px] mt-3 uppercase">{t('costs.split')}</Eyebrow>
         <div className="flex rounded-full bg-[color:var(--m-ic)] p-[3px]">
-          {SPLIT_MODES.map(m => (
+          {SPLIT_MODES.map((m) => (
             <button
               key={m.id}
               type="button"
@@ -497,14 +646,17 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
 
         {isTicketMode ? (
           <div className="mt-2 flex flex-col gap-2">
-            {ticketItems.map(item => (
-              <div key={item.id} className="flex flex-col gap-2 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-[10px]">
+            {ticketItems.map((item) => (
+              <div
+                key={item.id}
+                className="flex flex-col gap-2 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-[10px]"
+              >
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
                     placeholder={t('costs.whatFor')}
                     value={item.name}
-                    onChange={e => handleUpdateItemName(item.id, e.target.value)}
+                    onChange={(e) => handleUpdateItemName(item.id, e.target.value)}
                     className="min-w-0 flex-[2] rounded-[9px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] px-[10px] py-[7px] text-[0.8125rem] font-medium text-m-ink outline-none placeholder:text-m-faint"
                   />
                   <div className={`${MINI_INPUT_WRAP} min-w-0 flex-1`}>
@@ -513,11 +665,16 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                       mode="decimal"
                       placeholder={localizeAmountInput('0.00', currency)}
                       value={localizeAmountInput(item.price, currency)}
-                      onValueChange={v => handleUpdateItemPrice(item.id, v)}
+                      onValueChange={(v) => handleUpdateItemPrice(item.id, v)}
                       className="w-full border-0 bg-transparent py-[7px] text-right text-[0.8125rem] font-semibold text-m-ink outline-none"
                     />
                   </div>
-                  <button type="button" onClick={() => handleRemoveItem(item.id)} className="flex-none text-m-muted" aria-label={t('common.delete')}>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveItem(item.id)}
+                    className="flex-none text-m-muted"
+                    aria-label={t('common.delete')}
+                  >
                     <Trash2 size={15} strokeWidth={2} />
                   </button>
                 </div>
@@ -528,7 +685,9 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                       type="button"
                       onClick={() => handleToggleItemParticipant(item.id, p.id)}
                       className={`flex items-center gap-[4px] rounded-full px-[8px] py-[3px] text-[0.6875rem] font-medium ${
-                        item.participants.has(p.id) ? 'bg-m-act text-m-actfg' : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] text-m-muted'
+                        item.participants.has(p.id)
+                          ? 'bg-m-act text-m-actfg'
+                          : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] text-m-muted'
                       }`}
                     >
                       <Avatar p={p} idx={idx} size={14} dim={!item.participants.has(p.id)} />
@@ -549,10 +708,13 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
               <div className="rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3">
                 <Eyebrow className="mb-[8px] uppercase">{t('costs.split')}</Eyebrow>
                 <div className="flex flex-col gap-1">
-                  {people.map(p => (
+                  {people.map((p) => (
                     <div key={p.id} className="flex justify-between text-[0.8125rem]">
                       <span className="text-m-muted">{nameOf(p)}</span>
-                      <span className="font-semibold text-m-ink [font-variant-numeric:tabular-nums]">{sym(currency)}{(ticketInfo.shares[p.id] || 0).toFixed(2)}</span>
+                      <span className="font-semibold text-m-ink [font-variant-numeric:tabular-nums]">
+                        {sym(currency)}
+                        {(ticketInfo.shares[p.id] || 0).toFixed(2)}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -563,7 +725,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
           <>
             <div className="mt-2 flex flex-col gap-[6px]">
               {people.map((p, idx) => {
-                const on = participants.has(p.id)
+                const on = participants.has(p.id);
                 return (
                   <div key={p.id} className={`${ROW_CLS} ${on ? '' : 'opacity-60'}`}>
                     <button
@@ -578,7 +740,8 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                     {splitMode === 'equally' ? (
                       on ? (
                         <span className="flex-none pr-1 text-[0.8125rem] font-semibold text-m-ink [font-variant-numeric:tabular-nums]">
-                          {sym(currency)}{(equalShares[p.id] || 0).toFixed(2)}
+                          {sym(currency)}
+                          {(equalShares[p.id] || 0).toFixed(2)}
                         </span>
                       ) : (
                         <span className="flex-none pr-1 text-[0.6875rem] text-m-faint">{t('costs.tapToInclude')}</span>
@@ -591,26 +754,33 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                           inputMode="decimal"
                           placeholder={localizeAmountInput((placeholderShares[p.id] || 0).toFixed(2), currency)}
                           value={localizeAmountInput(customAmounts[p.id] || '', currency)}
-                          onChange={e => handleCustomAmountChange(p.id, e.target.value)}
+                          onChange={(e) => handleCustomAmountChange(p.id, e.target.value)}
                           className="w-full border-0 bg-transparent py-[7px] text-right text-[0.8125rem] font-semibold text-m-ink outline-none placeholder:text-m-faint"
                         />
                       </div>
                     ) : (
-                      <button type="button" onClick={() => toggleParticipant(p.id)} className="flex-none text-[0.6875rem] text-m-faint">
+                      <button
+                        type="button"
+                        onClick={() => toggleParticipant(p.id)}
+                        className="flex-none text-[0.6875rem] text-m-faint"
+                      >
                         {t('costs.tapToInclude')}
                       </button>
                     )}
                   </div>
-                )
+                );
               })}
             </div>
             <div className="mt-2 text-[0.71875rem]">
               {splitMode === 'equally' ? (
                 <span className="text-m-faint">
-                  {participants.size > 0 && t('costs.splitSummary', { count: participants.size, amount: sym(currency) + each.toFixed(2) })}
+                  {participants.size > 0 &&
+                    t('costs.splitSummary', { count: participants.size, amount: sym(currency) + each.toFixed(2) })}
                 </span>
               ) : (
-                <span className={`font-semibold ${customBalanced ? 'text-[color:var(--m-st-confirmed)]' : 'text-[color:var(--m-st-danger)]'}`}>
+                <span
+                  className={`font-semibold ${customBalanced ? 'text-[color:var(--m-st-confirmed)]' : 'text-[color:var(--m-st-danger)]'}`}
+                >
                   {customBalanced
                     ? t('costs.splitSummary', { count: participants.size, amount: sym(currency) + each.toFixed(2) })
                     : `${sym(currency)}${splitSum.toFixed(2)} / ${sym(currency)}${totalNum.toFixed(2)}`}
@@ -625,7 +795,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
         <Eyebrow className="mb-[6px] mt-3 uppercase">{t('costs.note')}</Eyebrow>
         <textarea
           value={note}
-          onChange={e => setNote(e.target.value)}
+          onChange={(e) => setNote(e.target.value)}
           rows={2}
           maxLength={NOTE_MAX}
           placeholder={t('costs.notePlaceholder')}
@@ -644,5 +814,5 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
         submitDisabled={!valid || saving}
       />
     </MSheet>
-  )
+  );
 }

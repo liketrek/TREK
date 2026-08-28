@@ -73,5 +73,12 @@ const common: TranslationStrings = {
   'common.errorUpdateTitle': 'يتوفر إصدار جديد',
   'common.errorUpdateBody': 'تم تحديث TREK أثناء فتح علامة التبويب هذه. أعد التحميل للحصول على الإصدار الجديد.',
   'common.errorPluginTitle': 'تعذّر عرض هذه الإضافة',
+  'legal.title': 'Legal & source',
+  'legal.description': 'License information and the exact source code for this deployed version.',
+  'legal.agpl':
+    'This application is licensed under the GNU Affero General Public License version 3. Remote users may obtain the corresponding source code at no charge.',
+  'legal.license': 'Read the license',
+  'legal.source': 'Corresponding source',
+  'legal.sourceDescription': 'Source code for this deployed build:',
 };
 export default common;

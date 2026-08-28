@@ -12,6 +12,7 @@
     "typecheck:tests": "tsc -p tsconfig.tests.json --noEmit",
     "gen:plugin-facts": "node --import tsx scripts/gen-plugin-facts.ts",
     "check:plugin-facts": "node --import tsx scripts/gen-plugin-facts.ts --check",
+    "audit:v4-upgrade": "node --import tsx scripts/audit-v4-upgrade.ts",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
@@ -68,6 +69,7 @@
     "undici": "^7.29.0",
     "unzipper": "^0.12.3",
     "uuid": "^14.0.0",
+    "web-push": "^3.6.7",
     "ws": "^8.21.0",
     "zod": "^4.3.6"
   },
@@ -103,6 +105,7 @@
     "@types/supertest": "^6.0.3",
     "@types/unzipper": "^0.10.11",
     "@types/uuid": "^10.0.0",
+    "@types/web-push": "^3.6.4",
     "@types/ws": "^8.18.1",
     "@vitest/coverage-istanbul": "^4.1.9",
     "@vitest/coverage-v8": "^4.1.9",

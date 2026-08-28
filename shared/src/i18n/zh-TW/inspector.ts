@@ -12,7 +12,7 @@ const inspector: TranslationStrings = {
   'inspector.addToDay': '新增到當天',
   'inspector.confirmedRes': '已確認預訂',
   'inspector.pendingRes': '待確認預訂',
-  'inspector.google': 'Google Maps',
+  'inspector.google': 'Google 地圖',
   'inspector.navigation': '導航',
   'inspector.openWith': '開啟方式',
   'inspector.openStreetMap': 'OpenStreetMap',

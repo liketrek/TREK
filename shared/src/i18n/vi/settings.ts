@@ -534,6 +534,27 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutes': 'Luôn hiển thị tuyến đường đặt chỗ',
   'settings.alwaysShowRoutesHint':
     'Tự động hiển thị trên bản đồ tuyến đường của mỗi chuyến bay, tàu hỏa và đặt chỗ khác, không cần bật riêng từng mục.',
+  'settings.notificationPreferences.webpush': 'Push',
+  'settings.webPush.title': 'Web Push devices',
+  'settings.webPush.description': 'Receive TREK notifications through this browser, even when TREK is closed.',
+  'settings.webPush.enable': 'Enable push on this device',
+  'settings.webPush.enabling': 'Enabling…',
+  'settings.webPush.adminDisabled': 'Web Push is currently disabled by your administrator.',
+  'settings.webPush.unavailable': 'Web Push is unavailable on this TREK installation.',
+  'settings.webPush.unsupported': 'This browser does not support Web Push.',
+  'settings.webPush.denied': 'Notifications are blocked. Allow them in your browser or device settings.',
+  'settings.webPush.iosInstall': 'Add TREK to your Home Screen before enabling push notifications on iPhone or iPad.',
+  'settings.webPush.current': 'This device',
+  'settings.webPush.lastSeen': 'Last seen: {date}',
+  'settings.webPush.neverDelivered': 'No successful delivery yet',
+  'settings.webPush.lastDelivered': 'Last delivered: {date}',
+  'settings.webPush.rename': 'Rename',
+  'settings.webPush.revoke': 'Revoke',
+  'settings.webPush.test': 'Send test',
+  'settings.webPush.renamePrompt': 'Device name',
+  'settings.webPush.enabled': 'Push notifications enabled on this device.',
+  'settings.webPush.revoked': 'Device revoked.',
+  'settings.webPush.notNow': 'Not now',
 };
 
 export default settings;

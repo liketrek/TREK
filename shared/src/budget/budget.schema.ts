@@ -1,3 +1,5 @@
+import { exchangeRateSourceSchema } from '../exchange-rate/exchange-rate.schema';
+
 import { z } from 'zod';
 
 /**
@@ -112,6 +114,13 @@ export const budgetItemSchema = z.object({
   total_price: z.number(),
   currency: z.string().nullable().optional(),
   exchange_rate: z.number().optional(),
+  exchange_rate_source: exchangeRateSourceSchema.optional(),
+  exchange_rate_source_version: z.string().nullable().optional(),
+  exchange_rate_effective_date: z.string().nullable().optional(),
+  exchange_rate_set_at: z.string().nullable().optional(),
+  exchange_rate_set_by_user_id: z.number().nullable().optional(),
+  exchange_rate_note: z.string().nullable().optional(),
+  exchange_rate_reset_at: z.string().nullable().optional(),
   persons: z.number().nullable().optional(),
   days: z.number().nullable().optional(),
   note: z.string().nullable().optional(),
@@ -146,6 +155,7 @@ export const budgetCreateItemRequestSchema = z.object({
   total_price: z.number().optional(),
   currency: z.string().nullable().optional(),
   exchange_rate: z.number().optional(),
+  exchange_rate_note: z.string().max(500).nullable().optional(),
   // Multi-payer: who paid how much (in the expense currency). When omitted, the
   // server falls back to total_price with no explicit payer.
   payers: z.array(payerInputSchema).optional(),
@@ -173,6 +183,7 @@ export const budgetUpdateItemRequestSchema = z.object({
   total_price: z.number().optional(),
   currency: z.string().nullable().optional(),
   exchange_rate: z.number().optional(),
+  exchange_rate_note: z.string().max(500).nullable().optional(),
   payers: z.array(payerInputSchema).optional(),
   member_ids: z.array(z.number()).optional(),
   members: z.array(memberInputSchema).optional(),
@@ -206,6 +217,13 @@ export const budgetSettlementSchema = z.object({
   amount: z.number(),
   currency: z.string().nullable().optional(),
   exchange_rate: z.number().optional(),
+  exchange_rate_source: exchangeRateSourceSchema.optional(),
+  exchange_rate_source_version: z.string().nullable().optional(),
+  exchange_rate_effective_date: z.string().nullable().optional(),
+  exchange_rate_set_at: z.string().nullable().optional(),
+  exchange_rate_set_by_user_id: z.number().nullable().optional(),
+  exchange_rate_note: z.string().nullable().optional(),
+  exchange_rate_reset_at: z.string().nullable().optional(),
   created_at: z.string().optional(),
   created_by_user_id: z.number().nullable().optional(),
   from_username: z.string().optional(),
@@ -221,6 +239,8 @@ export const budgetCreateSettlementRequestSchema = z.object({
   amount: z.number(),
   // The display currency the amount was entered in; the server freezes its FX rate.
   currency: z.string().nullable().optional(),
+  exchange_rate: z.number().positive().finite().optional(),
+  exchange_rate_note: z.string().max(500).nullable().optional(),
 });
 export type BudgetCreateSettlementRequest = z.infer<typeof budgetCreateSettlementRequestSchema>;
 
@@ -230,6 +250,8 @@ export const budgetUpdateSettlementRequestSchema = z.object({
   to_user_id: z.number(),
   amount: z.number(),
   currency: z.string().nullable().optional(),
+  exchange_rate: z.number().positive().finite().optional(),
+  exchange_rate_note: z.string().max(500).nullable().optional(),
 });
 export type BudgetUpdateSettlementRequest = z.infer<typeof budgetUpdateSettlementRequestSchema>;
 

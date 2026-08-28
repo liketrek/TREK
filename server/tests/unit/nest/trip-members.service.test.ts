@@ -9,6 +9,24 @@
  * mutation takes when a row is missing or a name is unusable. Same in-memory
  * SQLite harness, so the SQL is exercised for real.
  */
+import { runMigrations } from '../../../src/db/migrations';
+// notifyInvite reaches the bridge through a dynamic import — keep the send in scope
+// but out of the transports.
+
+import { createTables } from '../../../src/db/schema';
+import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import { NotFoundError, ValidationError } from '../../../src/nest/common/domain-errors';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { TripMembersService } from '../../../src/nest/trip-members/trip-members.service';
+import type { User } from '../../../src/types';
+import { createUser, createTrip, addTripMember } from '../../helpers/factories';
+import { notificationsStub } from '../../helpers/notifications';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
@@ -25,11 +43,15 @@ const { testDb, dbMock, broadcast, notifySend } = vi.hoisted(() => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`
+      db
+        .prepare(
+          `
         SELECT t.id, t.user_id FROM trips t
         LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
         WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-      `).get(userId, tripId, userId),
+      `,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -48,27 +70,22 @@ vi.mock('../../../src/config', () => ({
   updateJwtSecret: () => {},
 }));
 vi.mock('../../../src/websocket', () => ({ broadcast }));
-// notifyInvite reaches the bridge through a dynamic import — keep the send in scope
-// but out of the transports.
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, addTripMember } from '../../helpers/factories';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { BudgetService } from '../../../src/nest/budget/budget.service';
-import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
-import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
-import { TripMembersService } from '../../../src/nest/trip-members/trip-members.service';
-import { NotFoundError, ValidationError } from '../../../src/nest/common/domain-errors';
-import type { User } from '../../../src/types';
-import { notificationsStub } from '../../helpers/notifications';
 
 const dbs = () => new DatabaseService(testDb);
-const budgetSvc = new BudgetService(dbs(), new PermissionsService(dbs()), new ExchangeRatesService(), new RealtimeService());
-const roster = new TripMembersService(dbs(), budgetSvc, new UserCleanupService(dbs(), budgetSvc), new PermissionsService(dbs()), new RealtimeService(), notificationsStub(notifySend));
+const budgetSvc = new BudgetService(
+  dbs(),
+  new PermissionsService(dbs()),
+  new ExchangeRatesService(dbs()),
+  new RealtimeService(),
+);
+const roster = new TripMembersService(
+  dbs(),
+  budgetSvc,
+  new UserCleanupService(dbs(), budgetSvc),
+  new PermissionsService(dbs()),
+  new RealtimeService(),
+  notificationsStub(notifySend),
+);
 
 /**
  * A roster whose connection reports "no such row" for the first result of every
@@ -97,8 +114,19 @@ function rosterWithMissingRow(match: string) {
       return typeof v === 'function' ? v.bind(target) : v;
     },
   });
-  const frozen = { connection: conn, canAccessTrip: dbMock.canAccessTrip, isOwner: dbMock.isOwner } as unknown as DatabaseService;
-  return new TripMembersService(frozen, budgetSvc, new UserCleanupService(dbs(), budgetSvc), new PermissionsService(dbs()), new RealtimeService(), notificationsStub(notifySend));
+  const frozen = {
+    connection: conn,
+    canAccessTrip: dbMock.canAccessTrip,
+    isOwner: dbMock.isOwner,
+  } as unknown as DatabaseService;
+  return new TripMembersService(
+    frozen,
+    budgetSvc,
+    new UserCleanupService(dbs(), budgetSvc),
+    new PermissionsService(dbs()),
+    new RealtimeService(),
+    notificationsStub(notifySend),
+  );
 }
 
 beforeAll(() => {
@@ -165,7 +193,13 @@ describe('TripMembersService delegation', () => {
     // named-parameter query has to keep matching a string id against the INTEGER
     // column — and the payload the clients re-read must carry their own is_owner.
     const asOwner = roster.getTripForViewer(String(trip.id), owner.id) as Record<string, unknown>;
-    expect(asOwner).toMatchObject({ id: trip.id, title: 'Handover', is_owner: 1, owner_username: owner.username, shared_count: 1 });
+    expect(asOwner).toMatchObject({
+      id: trip.id,
+      title: 'Handover',
+      is_owner: 1,
+      owner_username: owner.username,
+      shared_count: 1,
+    });
     const asMember = roster.getTripForViewer(trip.id, member.id) as Record<string, unknown>;
     expect(asMember.is_owner).toBe(0);
     expect(roster.getTripForViewer(999999, owner.id)).toBeUndefined();
@@ -212,7 +246,9 @@ describe('addMember fallbacks', () => {
     const broken = rosterWithMissingRow('SELECT title FROM trips WHERE id = ?');
     const result = broken.addMember(trip.id, invitee.email, owner.id, owner.id);
     expect(result.tripTitle).toBe('Untitled');
-    expect(testDb.prepare('SELECT id FROM trip_members WHERE trip_id = ? AND user_id = ?').get(trip.id, invitee.id)).toBeDefined();
+    expect(
+      testDb.prepare('SELECT id FROM trip_members WHERE trip_id = ? AND user_id = ?').get(trip.id, invitee.id),
+    ).toBeDefined();
   });
 
   it('MEMBERS-SVC-008: addMember resolves a padded identifier and matches on username as well as email', () => {
@@ -248,7 +284,9 @@ describe('transferOwnership guard rails', () => {
     // its owner either way.
     expect(() => roster.transferOwnership(trip.id, 999999, owner.id)).toThrow(NotFoundError);
     expect(() => roster.transferOwnership(trip.id, 999999, owner.id)).toThrow('User not found');
-    expect((testDb.prepare('SELECT user_id FROM trips WHERE id = ?').get(trip.id) as { user_id: number }).user_id).toBe(owner.id);
+    expect((testDb.prepare('SELECT user_id FROM trips WHERE id = ?').get(trip.id) as { user_id: number }).user_id).toBe(
+      owner.id,
+    );
   });
 
   it('MEMBERS-SVC-011: completes with an empty fromEmail when the former owner cannot be read', () => {
@@ -264,7 +302,9 @@ describe('transferOwnership guard rails', () => {
     const result = broken.transferOwnership(trip.id, member.id, owner.id);
     expect(result.fromEmail).toBe('');
     expect(result.toEmail).toBe(member.email);
-    expect((testDb.prepare('SELECT user_id FROM trips WHERE id = ?').get(trip.id) as { user_id: number }).user_id).toBe(member.id);
+    expect((testDb.prepare('SELECT user_id FROM trips WHERE id = ?').get(trip.id) as { user_id: number }).user_id).toBe(
+      member.id,
+    );
   });
 });
 
@@ -277,7 +317,9 @@ describe('guest name validation', () => {
 
     expect(() => roster.createGuest(trip.id, undefined as never, owner.id)).toThrow(ValidationError);
     expect(() => roster.createGuest(trip.id, '   ', owner.id)).toThrow('Guest name is required');
-    expect(() => roster.createGuest(trip.id, 'x'.repeat(51), owner.id)).toThrow('Guest name must be 50 characters or fewer');
+    expect(() => roster.createGuest(trip.id, 'x'.repeat(51), owner.id)).toThrow(
+      'Guest name must be 50 characters or fewer',
+    );
 
     // The guards run ahead of the transaction, so a rejected name can never leave
     // a credential-less users row behind with no trip to belong to.
@@ -295,16 +337,24 @@ describe('guest name validation', () => {
 
     expect(() => roster.renameGuest(trip.id, guest.id, undefined as never)).toThrow(ValidationError);
     expect(() => roster.renameGuest(trip.id, guest.id, '  ')).toThrow('Guest name is required');
-    expect(() => roster.renameGuest(trip.id, guest.id, 'x'.repeat(51))).toThrow('Guest name must be 50 characters or fewer');
+    expect(() => roster.renameGuest(trip.id, guest.id, 'x'.repeat(51))).toThrow(
+      'Guest name must be 50 characters or fewer',
+    );
 
     // Order matters for the status code: an unusable name throws (400) even for an
     // id that is not a guest of this trip, where the scope check returns false (404).
     expect(() => roster.renameGuest(trip.id, owner.id, '')).toThrow('Guest name is required');
-    expect((testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(guest.id) as { display_name: string }).display_name).toBe('Ida');
+    expect(
+      (testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(guest.id) as { display_name: string })
+        .display_name,
+    ).toBe('Ida');
 
     // A padded name is stored trimmed, so the roster does not render the spaces.
     expect(roster.renameGuest(trip.id, guest.id, '  Ida M.  ')).toBe(true);
-    expect((testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(guest.id) as { display_name: string }).display_name).toBe('Ida M.');
+    expect(
+      (testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(guest.id) as { display_name: string })
+        .display_name,
+    ).toBe('Ida M.');
   });
 
   it("MEMBERS-SVC-014: deleteGuest is trip-scoped — another trip's owner cannot erase this trip's guest", () => {
@@ -331,17 +381,23 @@ describe('listMembers shaping', () => {
     const { user: sso } = createUser(testDb);
     const { user: bare } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
-    testDb.prepare('UPDATE users SET avatar = ?, display_name = ? WHERE id = ?').run('me.png', 'Owner Displayed', owner.id);
+    testDb
+      .prepare('UPDATE users SET avatar = ?, display_name = ? WHERE id = ?')
+      .run('me.png', 'Owner Displayed', owner.id);
     testDb.prepare('UPDATE users SET avatar = ? WHERE id = ?').run('a.png', uploaded.id);
     testDb.prepare('UPDATE users SET avatar = ? WHERE id = ?').run('https://idp.example.test/p.jpg', sso.id);
-    testDb.prepare('INSERT INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)').run(trip.id, uploaded.id, owner.id);
-    testDb.prepare('INSERT INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)').run(trip.id, sso.id, owner.id);
+    testDb
+      .prepare('INSERT INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)')
+      .run(trip.id, uploaded.id, owner.id);
+    testDb
+      .prepare('INSERT INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)')
+      .run(trip.id, sso.id, owner.id);
     addTripMember(testDb, trip.id, bare.id);
 
     const { owner: ownerRow, members } = roster.listMembers(trip.id, owner.id);
     // added_at has second resolution, so rows created in one test are tied — index
     // by id rather than asserting the ORDER BY.
-    const byId = new Map(members.map(m => [m.id, m]));
+    const byId = new Map(members.map((m) => [m.id, m]));
 
     // An uploaded file name becomes a /uploads/avatars path; an OIDC picture claim
     // (#1399) is an absolute URL and must pass through untouched; a member without

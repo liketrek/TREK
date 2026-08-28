@@ -228,7 +228,7 @@ describe('MAdmin', () => {
     expect(screen.getByTestId('backup-panel')).toBeInTheDocument();
   });
 
-  it('FE-MOB-ADMIN-009: the audit and GitHub panels get the server timezone and prerelease flag', async () => {
+  it('FE-MOB-ADMIN-009: audit gets the server timezone and upstream support navigation is absent', async () => {
     server.use(
       http.get('/api/admin/version-check', () =>
         HttpResponse.json({
@@ -247,8 +247,8 @@ describe('MAdmin', () => {
     await openSection('Audit');
     expect(screen.getByTestId('audit-panel')).toHaveTextContent('Europe/Berlin');
 
-    await openSection('GitHub');
-    await waitFor(() => expect(screen.getByTestId('github-panel')).toHaveTextContent('true'));
+    expect(screen.queryByRole('button', { name: 'GitHub' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('github-panel')).not.toBeInTheDocument();
   });
 
   it('FE-MOB-ADMIN-010: the update banner opens the how-to-update sheet', async () => {

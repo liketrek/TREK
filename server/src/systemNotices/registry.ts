@@ -31,9 +31,11 @@ export const RETIRED_NOTICE_IDS = [
   'v3-mcp',
   'v3-features',
   'welcome-v1',
+  'release-4-0-0',
+  'thank-you-support',
 ] as const;
 
-export const SYSTEM_NOTICES: SystemNotice[] = [
+const SYSTEM_NOTICE_REGISTRY: SystemNotice[] = [
   // ── 4.0.0 release — what shipped, and a note from the maintainer ────────────
   // Carries `release`, so it renders as the two-column release modal rather than
   // the generic notice body. Shown once, not per-version: the copy is about this
@@ -179,3 +181,9 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
     minVersion: '3.0.14',
   },
 ];
+
+// This downstream build keeps operational/security notices but removes
+// upstream release promotion and support solicitations from the product UI.
+export const SYSTEM_NOTICES: SystemNotice[] = SYSTEM_NOTICE_REGISTRY.filter(
+  (notice) => notice.id !== 'release-4-0-0' && notice.id !== 'thank-you-support',
+);

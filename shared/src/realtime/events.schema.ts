@@ -144,6 +144,14 @@ export const TREK_WS_EVENTS = {
   'budget:settlement-created': { scope: 'trip', payload: z.object({ settlement: entity }) },
   'budget:settlement-updated': { scope: 'trip', payload: z.object({ settlement: entity }) },
   'budget:settlement-deleted': { scope: 'trip', payload: z.object({ settlementId: id }) },
+  'budget:exchange-rates-updated': {
+    scope: 'trip',
+    payload: z.union([z.object({ rate: entity }), z.object({ currency: z.string(), deleted: z.literal(true) })]),
+  },
+  'budget:exchange-rates-applied': {
+    scope: 'trip',
+    payload: z.object({ rate: entity, updated: z.array(z.object({ type: z.string(), id })) }),
+  },
 
   // ── Reservations ─────────────────────────────────────────────────────────
   // DRIFT: the accommodation cascade paths emit an empty refetch ping `{}`;
@@ -194,6 +202,10 @@ export const TREK_WS_EVENTS = {
   'trip:deleted': { scope: 'trip', payload: z.object({ id }) },
   'member:added': { scope: 'trip', payload: z.object({ member: entity }) },
   'member:removed': { scope: 'trip', payload: z.object({ userId: id }) },
+  'guest:identity-transferred': {
+    scope: 'trip',
+    payload: z.object({ guestUserId: id, transferredByUserId: id }),
+  },
 
   // ── Files ────────────────────────────────────────────────────────────────
   'file:created': { scope: 'trip', payload: z.object({ file: entity }) },

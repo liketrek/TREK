@@ -91,11 +91,11 @@ describe('DemoBanner', () => {
   });
 
   // FE-COMP-DEMOBANNER-012
-  it('self-host link points to GitHub', () => {
+  it('self-host link points to the neutral legal/source page', () => {
     render(<DemoBanner />);
     const link = screen.getByText('self-host it').closest('a')!;
-    expect(link).toHaveAttribute('href', 'https://github.com/liketrek/TREK');
-    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('href', '/legal');
+    expect(link).not.toHaveAttribute('target');
   });
 
   // Timer update test
