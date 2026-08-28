@@ -3188,3 +3188,92 @@ describe('readWikiIdentity', () => {
     expect(identity).toEqual({ wikidata: null, wikipedia: null, wikimedia_commons: null });
   });
 });
+
+describe('brandLogo', () => {
+  // A fresh service per case: the logo cache lives on the instance, and a hit from
+  // one case would answer the next one's question before its fetch stub ran.
+  const service = (): MapsService => new MapsService(new DatabaseService(db as never), photoCacheStub);
+
+  const claimResponse = (file: string | null) => ({
+    ok: true,
+    json: async () => (file === null ? { claims: {} } : { claims: { P154: [{ mainsnak: { datavalue: { value: file } } }] } }),
+  });
+
+  const imageResponse = (bytes: number, contentType = 'image/png') => ({
+    ok: true,
+    headers: new Headers({ 'content-type': contentType, 'content-length': String(bytes) }),
+    arrayBuffer: async () => new ArrayBuffer(bytes),
+  });
+
+  it('MAPS-147: reads the logo claim and serves the bytes Commons returns', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(claimResponse('Aral Logo.svg'))
+      .mockResolvedValueOnce(imageResponse(2278));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const logo = await service().brandLogo('Q565734');
+
+    expect(logo?.bytes.byteLength).toBe(2278);
+    expect(logo?.contentType).toBe('image/png');
+    const [claimUrl] = fetchMock.mock.calls[0];
+    expect(claimUrl).toContain('wbgetclaims');
+    expect(claimUrl).toContain('property=P154');
+    const [fileUrl] = fetchMock.mock.calls[1];
+    // Special:FilePath renders the thumbnail and redirects, so the width rides along.
+    expect(fileUrl).toContain('Special:FilePath/Aral%20Logo.svg');
+    expect(fileUrl).toContain('width=96');
+  });
+
+  it('MAPS-148: asks Wikidata nothing when the id is not one', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    for (const bad of ['', 'Q', 'P154', 'Q0', '../secrets', 'Q12; DROP TABLE places']) {
+      expect(await service().brandLogo(bad)).toBeNull();
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('MAPS-149: answers a repeat from memory instead of asking again', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(claimResponse('Esso.png'))
+      .mockResolvedValueOnce(imageResponse(1024));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const svcOne = service();
+    await svcOne.brandLogo('Q867662');
+    await svcOne.brandLogo('Q867662');
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('MAPS-150: remembers that a brand has no logo, so a map pan does not ask again', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(claimResponse(null));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const svcOne = service();
+    expect(await svcOne.brandLogo('Q89432390')).toBeNull();
+    expect(await svcOne.brandLogo('Q89432390')).toBeNull();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('MAPS-151: refuses an image that is too big, and one that is not an image', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(claimResponse('Huge.png'))
+      .mockResolvedValueOnce(imageResponse(4 * 1024 * 1024)));
+    expect(await service().brandLogo('Q1')).toBeNull();
+
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(claimResponse('NotAnImage.svg'))
+      .mockResolvedValueOnce(imageResponse(500, 'text/html')));
+    expect(await service().brandLogo('Q2')).toBeNull();
+  });
+
+  it('MAPS-152: a refused hop leaves the marker without a logo rather than failing', async () => {
+    mockCheckSsrf.mockResolvedValue({ allowed: false, error: 'blocked' } as SsrfResult);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(claimResponse('Blocked.png')));
+
+    expect(await service().brandLogo('Q3')).toBeNull();
+  });
+})

@@ -361,6 +361,29 @@ function isGoogleMapsHost(hostname: string): boolean {
 
 const WIKI_TIMEOUT_MS = 6000;
 
+// ── Brand logos ──────────────────────────────────────────────────────────────
+//
+// A road trip corridor is mostly chains — Shell, Aral, JET — and the brand is the
+// fastest thing to recognise on a map. OSM carries `brand:wikidata` on most of them,
+// Wikidata carries the logo (P154), and Commons serves it.
+//
+// The bytes are proxied rather than linked so the browser never talks to Wikimedia:
+// one self-hosted instance asking for a handful of logos is a very different egress
+// profile from every visitor's browser announcing which petrol stations they are
+// looking at. The cache is in memory on purpose — a GET must not write to the DB, and
+// there are only so many fuel brands.
+const BRAND_LOGO_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const BRAND_LOGO_CACHE_MAX = 300;
+/** Well past any logo; a Commons original can be a multi-megabyte SVG or print-res PNG. */
+const BRAND_LOGO_MAX_BYTES = 512 * 1024;
+const BRAND_LOGO_WIDTH = 96;
+const WIKIDATA_ID_RE = /^Q[1-9][0-9]{0,11}$/;
+
+export interface BrandLogo {
+  bytes: Buffer;
+  contentType: string;
+}
+
 // Tighter than the wiki calls, because this one sits at the FRONT of a chain:
 // identity, then sitelinks, then the extract. Nominatim answers a bounded
 // search in 0.2-0.7s in practice, so anything past a couple of seconds is a bad
@@ -523,6 +546,10 @@ export class MapsService {
     private readonly photoCache: PlacePhotoCacheService,
   ) {}
 
+  /** Brand id → logo bytes, or null for "asked, has none". Insertion-ordered, so the
+   *  oldest entry is the one evicted when it fills up. */
+  private readonly brandLogoCache = new Map<string, { at: number; logo: BrandLogo | null }>();
+
   private isSettingDisabled(key: string): boolean {
     const row = this.database.get<{ value: string }>(
       'SELECT value FROM app_settings WHERE key = ?',
@@ -575,6 +602,70 @@ export class MapsService {
 
   resolveUrl(url: string): Promise<MapsResolveUrlResult> {
     return this.resolveGoogleMapsUrl(url) as Promise<MapsResolveUrlResult>;
+  }
+
+  /**
+   * The logo of a brand, by its Wikidata id, as bytes.
+   *
+   * Two hops: Wikidata says which Commons file is the logo (property P154), Commons
+   * serves a thumbnail of it. Both answers are cached, including "this brand has no
+   * logo" — otherwise every map pan would ask Wikidata about the same supermarket
+   * chain again. Returns null whenever anything is missing or unreadable; a marker
+   * without a logo falls back to its category icon, which is a fine outcome.
+   */
+  async brandLogo(wikidataId: string): Promise<BrandLogo | null> {
+    if (!WIKIDATA_ID_RE.test(wikidataId)) return null;
+
+    const cached = this.brandLogoCache.get(wikidataId);
+    if (cached && Date.now() - cached.at < BRAND_LOGO_CACHE_TTL_MS) return cached.logo;
+
+    const remember = (logo: BrandLogo | null): BrandLogo | null => {
+      if (this.brandLogoCache.size >= BRAND_LOGO_CACHE_MAX) {
+        const oldest = this.brandLogoCache.keys().next().value;
+        if (oldest !== undefined) this.brandLogoCache.delete(oldest);
+      }
+      this.brandLogoCache.set(wikidataId, { at: Date.now(), logo });
+      return logo;
+    };
+
+    try {
+      const params = new URLSearchParams({
+        action: 'wbgetclaims',
+        entity: wikidataId,
+        property: 'P154',
+        format: 'json',
+      });
+      const claimRes = await fetch(`https://www.wikidata.org/w/api.php?${params}`, {
+        headers: { 'User-Agent': UA },
+        signal: AbortSignal.timeout(WIKI_TIMEOUT_MS),
+      });
+      if (!claimRes.ok) return remember(null);
+      const claims = (await claimRes.json()) as {
+        claims?: { P154?: { mainsnak?: { datavalue?: { value?: unknown } } }[] };
+      };
+      const file = claims.claims?.P154?.[0]?.mainsnak?.datavalue?.value;
+      if (typeof file !== 'string' || !file.trim()) return remember(null);
+
+      // Special:FilePath renders a thumbnail at the width asked for and redirects to
+      // the CDN, so each hop is re-checked by the guard rather than trusted.
+      const url = `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=${BRAND_LOGO_WIDTH}`;
+      const imgRes = await safeFetchFollow(url, undefined, { bypassInternalIpAllowed: true });
+      if (!imgRes.ok) return remember(null);
+
+      const declared = Number(imgRes.headers.get('content-length') ?? '0');
+      if (declared > BRAND_LOGO_MAX_BYTES) return remember(null);
+      const bytes = Buffer.from(await imgRes.arrayBuffer());
+      // Checked again after reading: a chunked response has no length to check first.
+      if (bytes.byteLength === 0 || bytes.byteLength > BRAND_LOGO_MAX_BYTES) return remember(null);
+
+      const contentType = imgRes.headers.get('content-type') ?? '';
+      if (!contentType.startsWith('image/')) return remember(null);
+
+      return remember({ bytes, contentType });
+    } catch (err) {
+      if (err instanceof SsrfBlockedError) return remember(null);
+      return remember(null);
+    }
   }
 
   // OSM-only POI search by category within a viewport bbox (never calls Google).
@@ -908,6 +999,10 @@ export class MapsService {
         phone: tags.phone || tags['contact:phone'] || null,
         opening_hours: tags.opening_hours || null,
         cuisine: tags.cuisine || null,
+        brand: tags.brand || tags.operator || null,
+        // Only the plain Q-id form is passed on; anything else would be a lookup we
+        // would have to guess at.
+        brand_wikidata: /^Q[0-9]+$/.test(tags['brand:wikidata'] || '') ? tags['brand:wikidata'] : null,
         source: 'openstreetmap',
       });
     }

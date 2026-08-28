@@ -172,6 +172,9 @@ export interface OverpassPoi {
   phone: string | null;
   opening_hours: string | null;
   cuisine: string | null;
+  /** Brand name and its Wikidata id, when OSM carries them — the logo is looked up from the id. */
+  brand: string | null;
+  brand_wikidata: string | null;
   source: 'openstreetmap';
 }
 

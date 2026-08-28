@@ -47,6 +47,9 @@ export interface Poi {
   lng: number
   category: string
   poi_type: string
+  /** Brand name and its Wikidata id, when OSM carries them (road categories mostly do). */
+  brand?: string | null
+  brand_wikidata?: string | null
   address: string | null
   website: string | null
   phone: string | null

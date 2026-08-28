@@ -215,6 +215,28 @@ export class MapsController {
     }
   }
 
+  /**
+   * A brand's logo, by Wikidata id — what makes a corridor full of petrol stations
+   * readable at a glance.
+   *
+   * Proxied rather than linked: the browser never announces to Wikimedia which brands
+   * a user is looking at, and one instance asking for a handful of logos is a very
+   * different egress profile from every visitor doing it. An unknown or logo-less
+   * brand answers 204, like the photo route above and for the same reason — a marker
+   * per petrol station would otherwise be a burst of 404s from one address.
+   */
+  @Get('brand-logo/:wikidataId')
+  async brandLogo(@Param('wikidataId') wikidataId: string, @Res() res: Response): Promise<void> {
+    const logo = await this.maps.brandLogo(wikidataId);
+    if (!logo) {
+      this.emptyPhoto(res);
+      return;
+    }
+    res.set('Cache-Control', 'public, max-age=2592000, immutable');
+    res.type(logo.contentType);
+    res.send(logo.bytes);
+  }
+
   // 204 for "no bytes to serve". Overrides the immutable Cache-Control the hit
   // path already set — a photo that reappears in the cache must not stay hidden
   // behind a month-old empty response.

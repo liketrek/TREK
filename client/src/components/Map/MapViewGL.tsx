@@ -395,14 +395,31 @@ function buildPluginMarkerPopup(mk: PluginMapMarker): HTMLDivElement {
 }
 
 // Small coloured pin for an OSM "explore" POI (matches the pill category colour).
-function createPoiMarkerElement(category: string): HTMLDivElement {
+// A chain shows its logo instead of the category icon: on a corridor full of petrol
+// stations the brand is what the eye is looking for, and the server proxies it so the
+// browser never asks Wikimedia which ones are on screen.
+function createPoiMarkerElement(category: string, brandWikidata?: string | null): HTMLDivElement {
   const cat = POI_CATEGORY_BY_KEY[category]
   const color = cat?.color || '#6b7280'
   const svg = cat ? renderIconMarkup(createElement(cat.Icon, { size: 13, color: 'white', strokeWidth: 2.5 })) : ''
   const el = document.createElement('div')
-  el.style.cssText = 'width:26px;height:26px;cursor:pointer;'
-  el.innerHTML = `<div style="width:26px;height:26px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;box-sizing:border-box;">${svg}</div>`
+  el.style.cssText = 'width:26px;height:26px;cursor:pointer;will-change:transform;'
+  const inner = brandLogoMarkup(brandWikidata) || svg
+  const background = brandWikidata ? '#fff' : color
+  el.innerHTML = `<div style="width:26px;height:26px;border-radius:50%;background:${background};border:2px solid ${color};box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;box-sizing:border-box;overflow:hidden;">${inner}</div>`
   return el
+}
+
+/**
+ * The <img> for a brand logo, or '' when there is no brand.
+ *
+ * `onerror` empties the wrapper rather than leaving a broken-image glyph: the route
+ * answers 204 for a brand Wikidata has no logo for, and an empty circle in the
+ * category colour is the right fallback.
+ */
+function brandLogoMarkup(brandWikidata?: string | null): string {
+  if (!brandWikidata || !/^Q[1-9][0-9]{0,11}$/.test(brandWikidata)) return ''
+  return `<img src="/api/maps/brand-logo/${brandWikidata}" alt="" width="18" height="18" style="display:block;object-fit:contain;" onerror="this.remove()" />`
 }
 
 export function MapViewGL({
@@ -1234,7 +1251,7 @@ export function MapViewGL({
     poiMarkersRef.current.forEach(m => m.remove())
     poiMarkersRef.current = []
     for (const poi of (pois as Poi[])) {
-      const el = createPoiMarkerElement(poi.category)
+      const el = createPoiMarkerElement(poi.category, poi.brand_wikidata)
       el.addEventListener('mouseenter', () => {
         popupRef.current?.setLngLat([poi.lng, poi.lat]).setHTML(buildPoiPopupHtml(poi)).addTo(map)
       })

@@ -159,20 +159,30 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
 // Small coloured pin for an OSM "explore" POI — distinct from the photo-circle
 // markers of planned places; the colour matches its pill category.
 const poiIconCache = new Map<string, L.DivIcon>()
-function createPoiIcon(category: string) {
-  const cached = poiIconCache.get(category)
+function createPoiIcon(category: string, brandWikidata?: string | null) {
+  // A chain shows its logo instead of the category icon — on a corridor full of petrol
+  // stations the brand is what the eye looks for. The bytes come from TREK, which
+  // proxies them, so the browser never tells Wikimedia what is on screen.
+  const brand = brandWikidata && /^Q[1-9][0-9]{0,11}$/.test(brandWikidata) ? brandWikidata : null
+  const cacheKey = brand ? `${category}:${brand}` : category
+  const cached = poiIconCache.get(cacheKey)
   if (cached) return cached
   const cat = POI_CATEGORY_BY_KEY[category]
   const color = cat?.color || '#6b7280'
   const svg = cat ? renderIconMarkup(createElement(cat.Icon, { size: 13, color: 'white', strokeWidth: 2.5 })) : ''
+  // onerror empties the wrapper: the route answers 204 for a brand Wikidata has no
+  // logo for, and an empty circle in the category colour is the right fallback.
+  const inner = brand
+    ? `<img src="/api/maps/brand-logo/${brand}" alt="" width="18" height="18" style="display:block;object-fit:contain;" onerror="this.remove()" />`
+    : svg
   const icon = L.divIcon({
     className: '',
-    html: `<div style="width:26px;height:26px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;">${svg}</div>`,
+    html: `<div style="width:26px;height:26px;border-radius:50%;background:${brand ? '#fff' : color};border:2px solid ${brand ? color : 'white'};box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;">${inner}</div>`,
     iconSize: [26, 26],
     iconAnchor: [13, 13],
     tooltipAnchor: [0, -14],
   })
-  poiIconCache.set(category, icon)
+  poiIconCache.set(cacheKey, icon)
   return icon
 }
 
@@ -547,7 +557,7 @@ export const MapView = memo(function MapView({
     <Marker
       key={`poi-${poi.osm_id}`}
       position={[poi.lat, poi.lng]}
-      icon={createPoiIcon(poi.category)}
+      icon={createPoiIcon(poi.category, poi.brand_wikidata)}
       zIndexOffset={500}
       eventHandlers={{ click: () => onPoiClick?.(poi) }}
     >
