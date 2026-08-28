@@ -14,6 +14,10 @@ import { devLinkEnabled } from './dev-link';
 import { PluginActivateDto, PluginConfigDto, PluginEgressHostsDto, PluginInstallDto, PluginLinkDto, PluginRetrustDto, PluginUninstallDto, PluginUpdateDto } from './plugins.dto';
 import { ManagedForbidden, isManagedBlocked, MANAGED_FORBIDDEN_ERROR } from '../common/managed';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
+// Straight from sessionManager, not the src/mcp barrel: that one evaluates
+// readEnv().mcp at module scope and installs the sweep interval, which a domain
+// module must not drag into every test that mocks app-config partially.
+import { invalidateMcpSessions } from '../../mcp/sessionManager';
 
 /**
  * Flatten a registry/install failure into the error envelope — CARRYING THE CODE.
@@ -188,6 +192,7 @@ export class PluginsController {
       }
       throw new HttpException({ error: e instanceof Error ? e.message : 'activation failed' }, 400);
     }
+    invalidateMcpSessions();
     return { status: this.runtime.isActive(id) ? 'active' : 'error' };
   }
 
@@ -197,6 +202,7 @@ export class PluginsController {
     // Cascade: disabling a plugin also disables everything that depends on it (a
     // dependent can't run without its dependency). The client refresh reflects it.
     await this.runtime.deactivateWithDependents(id);
+    invalidateMcpSessions();
     return { status: 'inactive' };
   }
 
@@ -236,6 +242,7 @@ export class PluginsController {
       // (any path) releases a stale hold. Only after success — a failed update
       // changed nothing and must not touch the flag.
       await this.registry.recomputeUpdateHold(id, res.version, !!body?.version);
+      invalidateMcpSessions();
       return res;
     } catch (e) {
       throw registryFailure(e, 'update failed');
@@ -274,7 +281,9 @@ export class PluginsController {
     if (!body?.version) throw new HttpException({ error: 'version is required' }, 400);
     if (!body?.publicKey) throw new HttpException({ error: 'publicKey is required' }, 400);
     try {
-      return await this.runtime.retrust(id, body.version, body.publicKey, { userId: user?.id ?? null, ip: getClientIp(req) });
+      const res = await this.runtime.retrust(id, body.version, body.publicKey, { userId: user?.id ?? null, ip: getClientIp(req) });
+      invalidateMcpSessions();
+      return res;
     } catch (e) {
       throw registryFailure(e, 'retrust failed');
     }
@@ -284,6 +293,7 @@ export class PluginsController {
   @HttpCode(200)
   async uninstall(@Param('id') id: string, @Body() body: PluginUninstallDto) {
     await this.runtime.uninstall(id, !!body?.deleteData);
+    invalidateMcpSessions();
     return { status: 'uninstalled' };
   }
 

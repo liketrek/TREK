@@ -260,7 +260,12 @@ export class AdminController {
     // plugin that transitively depends on them) so a plugin never runs against a
     // disabled addon (#plugins dependencies).
     if (result.addon && result.addon.enabled === false && (body as { enabled?: boolean })?.enabled === false) {
-      await this.pluginRuntime.deactivateForDisabledAddon(id);
+      const stopped = await this.pluginRuntime.deactivateForDisabledAddon(id);
+      // A stopped plugin takes its MCP tools off the surface, and the addon that
+      // cascaded here is not necessarily an MCP-relevant one, so mcpAffected
+      // above does not cover this. Still conditional on something actually
+      // stopping, which keeps the #1414 rule that a no-op save kills nothing.
+      if (stopped.length && !result.mcpAffected) this.admin.invalidateMcpSessions();
     }
     return { addon: result.addon };
   }
