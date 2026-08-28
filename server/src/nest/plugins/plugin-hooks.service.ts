@@ -10,6 +10,14 @@ export interface HookChannelMessage {
   tripName?: string;
 }
 
+/** One MCP tool call, as the plugin that published the tool receives it. */
+export interface HookMcpToolCall {
+  /** The plugin-local tool name, without the `plugin_<id>_` advertisement prefix. */
+  name: string;
+  /** Whatever the assistant passed. Validated against the declared schema first. */
+  args: unknown;
+}
+
 /** The waypoint request a route provider is asked to solve. */
 export interface HookRouteRequest {
   tripId: number;
@@ -145,5 +153,25 @@ export class PluginHooks {
   @PluginHook('notificationChannel', { permission: 'hook:notification-channel', fn: 'test', timeoutMs: 8000 })
   testNotification(pluginId: string, userSettings: unknown): Promise<unknown> {
     return this.runtime.invokeHook(pluginId, 'notificationChannel', 'test', [userSettings], undefined, 8000);
+  }
+
+  /**
+   * One MCP tool call the assistant made, dispatched into the plugin that
+   * published the tool.
+   *
+   * The longest budget of any read hook. Every other one backs a render that a
+   * user is waiting on, and falls back to something reasonable when it times
+   * out; this one backs a chat turn, and the plugin is likely talking to a
+   * third-party API of its own. Still well under the supervisor's 30s default,
+   * which no hook uses: 30s of a blocked MCP request is not a budget, it is a
+   * hung client.
+   *
+   * One fn for every tool, because tool names are runtime data and
+   * hookContracts() is keyed by (hook, fn). The name is checked against the
+   * advertised set before we get here.
+   */
+  @PluginHook('mcpToolProvider', { permission: 'mcp:tools', fn: 'callTool', timeoutMs: 15_000 })
+  callMcpTool(pluginId: string, call: HookMcpToolCall, userId: number): Promise<unknown> {
+    return this.runtime.invokeHook(pluginId, 'mcpToolProvider', 'callTool', [call], userId, 15_000);
   }
 }

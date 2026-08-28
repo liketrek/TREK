@@ -332,6 +332,8 @@ const admin: TranslationStrings = {
     'Aggiungere voci orarie al piano della giornata (soste di ricarica, margini di sicurezza)',
   'admin.plugins.perm.hook:day-tint-provider':
     'Colorare i giorni nel piano della giornata (ad esempio a quale tratta del viaggio appartiene un giorno)',
+  'admin.plugins.perm.mcp:tools':
+    'Pubblicare strumenti che un assistente IA può eseguire per tuo conto (agisce con i permessi che concedi qui al plugin, non con i propri)',
   'admin.plugins.perm.geolocation:read':
     'Richiedere la tua posizione in tempo reale mentre una delle sue viste è aperta (TREK la legge con il permesso di posizione di questo sito, non con uno proprio del plugin)',
   'admin.plugins.perm.hook:pdf-section-provider': "Aggiungere sezioni di testo all'esportazione PDF del viaggio",

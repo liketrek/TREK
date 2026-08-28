@@ -380,6 +380,8 @@ const admin: TranslationStrings = {
     'Melampirkan entri waktu ke rencana hari (pemberhentian pengisian daya, jeda keamanan)',
   'admin.plugins.perm.hook:day-tint-provider':
     'Memberi warna pada hari di rencana hari (misalnya bagian perjalanan mana yang memuat suatu hari)',
+  'admin.plugins.perm.mcp:tools':
+    'Menerbitkan alat yang dapat dijalankan asisten AI atas nama Anda (bertindak dengan akses yang Anda berikan ke plugin di sini, bukan milik asisten)',
   'admin.plugins.perm.geolocation:read':
     'Meminta lokasi terkinimu selama salah satu tampilannya terbuka (TREK membacanya dengan izin lokasi situs ini, bukan izin milik plugin sendiri)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Menambahkan bagian teks ke ekspor PDF perjalanan',

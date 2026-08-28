@@ -45,6 +45,7 @@ const CONTRACTS: Array<[hook: string, fn: string, timeoutMs: number]> = [
   ['tripCardProvider', 'getCards', 5000],
   ['notificationChannel', 'send', 8000],
   ['notificationChannel', 'test', 8000],
+  ['mcpToolProvider', 'callTool', 15_000],
 ];
 
 describe('PluginHooks contracts', () => {
@@ -135,6 +136,16 @@ describe('PluginHooks contracts', () => {
     expect(invokeHook).toHaveBeenCalledWith('p', 'notificationChannel', 'send', [message, { token: 'x' }], undefined, 8000);
     await h.testNotification('p', { token: 'x' });
     expect(invokeHook).toHaveBeenCalledWith('p', 'notificationChannel', 'test', [{ token: 'x' }], undefined, 8000);
+  });
+
+  it('PLUGHOOK-010 an MCP tool call binds the requesting user and takes the long budget', async () => {
+    // The acting user is the whole reason this goes through a hook rather than a
+    // bespoke invoke: it is bound host-side from the supervisor's invocation map,
+    // so a tool called by user A reaches A's data whatever the model put in args.
+    const { hooks: h, invokeHook } = hooks();
+    const call = { name: 'echo', args: { value: 'x' } };
+    await h.callMcpTool('p', call, 7);
+    expect(invokeHook).toHaveBeenCalledWith('p', 'mcpToolProvider', 'callTool', [call], 7, 15_000);
   });
 
   it('PLUGHOOK-009 the class is listed in its module providers', () => {

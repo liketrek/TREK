@@ -324,6 +324,8 @@ const admin: TranslationStrings = {
     'Anexar entradas de horário ao plano do dia (paradas de recarga, margens de segurança)',
   'admin.plugins.perm.hook:day-tint-provider':
     'Colorir os dias no plano do dia (por exemplo, a qual trecho da viagem um dia pertence)',
+  'admin.plugins.perm.mcp:tools':
+    'Publicar ferramentas que um assistente de IA pode executar em seu nome (ele age com o acesso que você concede ao plugin aqui, não com o dele)',
   'admin.plugins.perm.geolocation:read':
     'Consultar sua localização em tempo real enquanto uma das visualizações dele estiver aberta (o TREK a lê com a permissão de localização deste site, não com uma permissão própria do plugin)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Anexar seções de texto à exportação em PDF da viagem',

@@ -389,6 +389,8 @@ const admin: TranslationStrings = {
     'Lägga till tidsposter i dagsplanen (laddstopp, säkerhetsmarginaler)',
   'admin.plugins.perm.hook:day-tint-provider':
     'Färgkoda dagar i dagsplanen (till exempel vilken etapp av resan en dag tillhör)',
+  'admin.plugins.perm.mcp:tools':
+    'Publicera verktyg som en AI-assistent kan köra åt dig (det agerar med de rättigheter du ger tillägget här, inte med assistentens egna)',
   'admin.plugins.perm.geolocation:read':
     'Fråga efter din position i realtid medan en av dess vyer är öppen (TREK läser den med den här webbplatsens platsbehörighet, inte med en egen behörighet för tillägget)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Lägga till textavsnitt i resans PDF-export',

@@ -18,6 +18,7 @@ export const HOOK_PERMISSION: Readonly<Record<string, string>> = {
   journalEntryProvider: 'hook:journal-entry-provider',
   tripCardProvider: 'hook:trip-card-provider',
   notificationChannel: 'hook:notification-channel',
+  mcpToolProvider: 'mcp:tools',
 };
 
 export const KNOWN_PERMISSIONS: string[] = [
@@ -84,6 +85,7 @@ export const KNOWN_PERMISSIONS: string[] = [
   'ai:invoke',
   'oauth:client',
   'geolocation:read',
+  'mcp:tools',
 ];
 
 export const METHOD_PERMISSION: Readonly<Record<string, string>> = {

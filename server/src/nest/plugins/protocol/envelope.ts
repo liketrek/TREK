@@ -388,6 +388,17 @@ export const KNOWN_PERMISSIONS = [
   // applies. Nothing is sent to the server; the plugin's server code never sees a
   // position unless its own client ships it through one of its routes.
   'geolocation:read',
+  // Lets the plugin publish tools on TREK's own MCP server, so an assistant can
+  // call into it as the requesting user. Modelled on the hook:* family rather
+  // than on geolocation:read above: the host dispatches INTO the child for
+  // every call, so it needs the active-and-holds-the-grant check and the
+  // acting-user binding that HOOK_PERMISSION gives it. The name has no hook:
+  // prefix because the surface it opens is MCP, not a TREK render slot, and
+  // nothing keys off that prefix.
+  //
+  // This is the real boundary on plugin tools. The user-facing plugins:use
+  // OAuth scope only decides whether they are advertised to a client at all.
+  'mcp:tools',
 ] as const;
 
 /**
@@ -431,6 +442,10 @@ export const HOOK_PERMISSION = {
   journalEntryProvider: 'hook:journal-entry-provider',
   tripCardProvider: 'hook:trip-card-provider',
   notificationChannel: 'hook:notification-channel',
+  // The one entry whose permission is not hook:*-shaped; see mcp:tools in
+  // KNOWN_PERMISSIONS. Being here is what buys it providersOf()'s grant check
+  // and requireTotalCoverage's boot assertion.
+  mcpToolProvider: 'mcp:tools',
 } as const satisfies Record<string, KnownPermission>;
 
 export type HookKey = keyof typeof HOOK_PERMISSION;

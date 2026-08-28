@@ -338,6 +338,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:day-schedule-provider': 'إلحاق مدخلات زمنية بخطة اليوم (توقفات للشحن، هوامش احتياطية)',
   'admin.plugins.perm.hook:day-tint-provider':
     'تلوين الأيام في خطة اليوم (مثلاً تحديد المرحلة التي ينتمي إليها كل يوم)',
+  'admin.plugins.perm.mcp:tools':
+    'نشر أدوات يمكن لمساعد ذكاء اصطناعي تشغيلها نيابة عنك (يعمل بالصلاحيات التي تمنحها للإضافة هنا، وليس بصلاحياته هو)',
   'admin.plugins.perm.geolocation:read':
     'الاستعلام عن موقعك المباشر ما دامت إحدى واجهاته مفتوحة (يقرأه TREK بإذن الموقع الممنوح لهذا الموقع الإلكتروني، لا بإذن خاص بالإضافة)',
   'admin.plugins.perm.hook:pdf-section-provider': 'إضافة أقسام نصية إلى تصدير PDF للرحلة',

@@ -67,6 +67,7 @@ export const PLUGIN_PERMISSIONS: readonly string[] = [
   'ai:invoke',
   'oauth:client',
   'geolocation:read',
+  'mcp:tools',
 ];
 
 export const PLUGIN_HOOK_PERMISSION: Readonly<Record<string, string>> = {
@@ -85,4 +86,5 @@ export const PLUGIN_HOOK_PERMISSION: Readonly<Record<string, string>> = {
   journalEntryProvider: 'hook:journal-entry-provider',
   tripCardProvider: 'hook:trip-card-provider',
   notificationChannel: 'hook:notification-channel',
+  mcpToolProvider: 'mcp:tools',
 };

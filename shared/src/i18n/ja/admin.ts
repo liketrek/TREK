@@ -347,6 +347,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:day-schedule-provider':
     '日程プランに時間エントリーを追加（充電ストップ、保安検査のバッファ）',
   'admin.plugins.perm.hook:day-tint-provider': '日程プランの日付を色分け（例：その日が旅程のどの区間に属するか）',
+  'admin.plugins.perm.mcp:tools':
+    'AI アシスタントがあなたの代わりに実行できるツールを公開する（ここでプラグインに付与した権限で動作し、アシスタント自身の権限ではありません）',
   'admin.plugins.perm.geolocation:read':
     'このプラグインのビューが開いている間、あなたの現在地を取得（TREK がこのサイトの位置情報の許可を使って読み取ります。プラグイン専用の許可は求められません）',
   'admin.plugins.perm.hook:pdf-section-provider': '旅行の PDF エクスポートにテキストセクションを追加',

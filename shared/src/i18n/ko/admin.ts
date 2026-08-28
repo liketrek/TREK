@@ -348,6 +348,8 @@ const admin: TranslationStrings = {
     '플래너가 일자 경로 계산에 사용할 라우팅 프로필 제공(예: 충전소 경유 전기차 라우팅)',
   'admin.plugins.perm.hook:day-schedule-provider': '일자 계획에 시간 항목 추가(충전 정차, 보안 검색 여유 시간)',
   'admin.plugins.perm.hook:day-tint-provider': '일자 계획에서 날짜를 색으로 구분(예: 해당 날짜가 여행의 어느 구간인지)',
+  'admin.plugins.perm.mcp:tools':
+    'AI 어시스턴트가 사용자를 대신해 실행할 수 있는 도구 게시 (여기서 플러그인에 부여한 권한으로 동작하며, 어시스턴트 자신의 권한이 아닙니다)',
   'admin.plugins.perm.geolocation:read':
     '해당 플러그인 화면이 열려 있는 동안 실시간 위치 요청 (TREK이 이 사이트에 부여된 위치 권한으로 읽으며, 플러그인용 권한을 따로 묻지 않음)',
   'admin.plugins.perm.hook:pdf-section-provider': '여행 PDF 내보내기에 텍스트 섹션 추가',

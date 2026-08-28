@@ -471,6 +471,8 @@ const admin: TranslationStrings = {
     'Afegir entrades horàries al pla del dia (parades de recàrrega, marges de seguretat)',
   'admin.plugins.perm.hook:day-tint-provider':
     'Acolorir els dies del pla del dia (per exemple, a quin tram del viatge pertany un dia)',
+  'admin.plugins.perm.mcp:tools':
+    "Publicar eines que un assistent d'IA pot executar en nom teu (actua amb els permisos que concedeixes aquí al connector, no amb els seus)",
   'admin.plugins.perm.geolocation:read':
     "Consultar la teva ubicació en temps real mentre una de les seves vistes és oberta (el TREK la llegeix amb el permís d'ubicació d'aquest lloc, no amb un permís propi del connector)",
   'admin.plugins.updateConsentTitle': 'Aquesta actualització necessita permisos nous',

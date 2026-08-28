@@ -667,6 +667,25 @@ export interface PluginSubscription {
   handler(payload: unknown, ctx: PluginContext): Promise<void> | void;
 }
 
+/**
+ * Publishes MCP tools on TREK's own MCP server, so an assistant can call into
+ * the plugin as the requesting user. Requires the `mcp:tools` permission.
+ *
+ * `tools` lists which of the tools declared in `capabilities.mcpTools` this
+ * build actually implements. The host advertises the intersection of the two:
+ * the manifest is signed and re-consented, this list is not, so a tool the
+ * manifest never declared is ignored rather than trusted.
+ *
+ * `callTool` receives the plugin-local name, without the `plugin_<id>_` prefix
+ * the tool is advertised under. Return anything JSON-serialisable; the host
+ * wraps it into an MCP result envelope, and a throw becomes a tool error the
+ * assistant can read and recover from.
+ */
+export interface McpToolProvider {
+  tools: string[];
+  callTool(call: { name: string; args: unknown }, ctx: PluginContext): Promise<unknown> | unknown;
+}
+
 export interface PluginDefinition {
   onLoad?(ctx: PluginContext): Promise<void> | void;
   onUnload?(ctx: PluginContext): Promise<void> | void;
@@ -709,6 +728,7 @@ export interface PluginDefinition {
     journalEntryProvider?: JournalEntryProvider;
     tripCardProvider?: TripCardProvider;
     notificationChannel?: NotificationChannel;
+    mcpToolProvider?: McpToolProvider;
   };
   /** Functions exposed to dependents (names must match manifest capabilities.provides). */
   exports?: Record<string, PluginExport>;
