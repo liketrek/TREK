@@ -6,6 +6,12 @@ import {
   demoDenied, errorResult, ok,
 } from '../../nest-mcp';
 import { z } from 'zod';
+import {
+  vacayAddHolidayCalendarRequestSchema,
+  vacayToggleEntryRequestSchema,
+  vacayUpdatePlanRequestSchema,
+} from '@trek/shared';
+import type { VacayUpdatePlanRequest } from '@trek/shared';
 import { AuthService } from '../auth/auth.service';
 import { ADDON_IDS } from '../../addons';
 import { VacayService } from './vacay.service';
@@ -14,6 +20,42 @@ import { AddonsService } from '../addons/addons.service';
 
 /** Legacy registrar gate: the whole vacay surface rides the vacay addon. */
 const vacayAddonOn = addonGate(ADDON_IDS.VACAY);
+
+/** The controller derives the openholidaysapi response language the same way. */
+function schoolHolidayLanguage(country: string): string {
+  return country.toUpperCase() === 'DE' ? 'DE' : 'EN';
+}
+
+/** One node of the provider's region tree; children nest arbitrarily deep. */
+interface RegionNode { code?: string; shortName?: string; children?: RegionNode[] | null }
+
+function flattenRegionCodes(items: RegionNode[] | undefined): string[] {
+  const out: string[] = [];
+  for (const item of items ?? []) {
+    const code = item.code ?? item.shortName;
+    if (code) out.push(code);
+    out.push(...flattenRegionCodes(item.children ?? undefined));
+  }
+  return out;
+}
+
+/**
+ * The region strings add_holiday_calendar has to be given, which are not always
+ * the provider's own codes. A group is stored as `<COUNTRY>|group:<CODE>`, and
+ * the reader (parseCalendarRegion in the client's vacay store) treats a bare
+ * code as a subdivision, so handing back the raw group code produces a calendar
+ * that queries nothing. Belgium and the Netherlands are the countries that use
+ * groups; deriving it from which list came back populated keeps the country
+ * table in the one place it already lives, on the client.
+ */
+function calendarRegionCodes(country: string, data: unknown): { region: string; kind: 'group' | 'subdivision' }[] {
+  const payload = (data ?? {}) as { groups?: RegionNode[]; subdivisions?: RegionNode[] };
+  const upper = country.toUpperCase();
+  return [
+    ...flattenRegionCodes(payload.groups).map(code => ({ region: `${upper}|group:${code}`, kind: 'group' as const })),
+    ...flattenRegionCodes(payload.subdivisions).map(code => ({ region: code, kind: 'subdivision' as const })),
+  ];
+}
 
 /**
  * Vacay MCP surface — ported 1:1 from the legacy registrars: the 26 tools from
@@ -26,8 +68,12 @@ const vacayAddonOn = addonGate(ADDON_IDS.VACAY);
  * `if (W)` checks, resolved by trekMcpAccessPolicy). Vacay is plan-scoped, not
  * trip-scoped, so there is no trip-permission layer; the only per-call guard is
  * the demo-user check on every write (including decline_vacay_invite, which the
- * legacy registrar missed). The two nager.at-backed lookups carry the
- * open-world readonly annotation.
+ * legacy registrar missed). The nager.at- and openholidaysapi-backed lookups
+ * carry the open-world readonly annotation.
+ *
+ * Tools past the original 26 close REST surface the legacy registrar never had:
+ * the leave-year window, the school-holiday lookups behind a school_holiday
+ * calendar, and the share picker (a different query from the fusion picker).
  */
 @McpController()
 export class VacayMcp {
@@ -51,30 +97,44 @@ export class VacayMcp {
   }
 
   @Tool({
+    name: 'get_vacay_year_settings',
+    description: "Get the caller's leave-year window: 'calendar' runs January to December, 'fiscal' starts on a configured month and day, 'anniversary' on the hire date's month and day. Read this before interpreting a year in get_vacay_stats or get_vacay_entries, which count over that window rather than the calendar year.",
+    inputSchema: {},
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    when: vacayAddonOn,
+    access: { group: 'vacay', mode: 'read' },
+  })
+  async getVacayYearSettings(_args: Record<string, never>, ctx: McpContext) {
+    return ok({ settings: this.vacay.getYearSettings(ctx.userId) });
+  }
+
+  @Tool({
     name: 'update_vacay_plan',
-    description: 'Update vacation plan settings (weekends blocking, holidays, carry-over).',
+    description: 'Update vacation plan settings (weekend blocking and which weekdays count as weekend, public and school holidays, company holidays, carry-over).',
     inputSchema: {
-      block_weekends: z.boolean().optional(),
-      holidays_enabled: z.boolean().optional(),
-      holidays_region: z.string().nullable().optional(),
-      company_holidays_enabled: z.boolean().optional(),
-      carry_over_enabled: z.boolean().optional(),
+      ...vacayUpdatePlanRequestSchema.shape,
+      weekend_days: vacayUpdatePlanRequestSchema.shape.weekend_days.describe("Comma-separated weekday numbers that count as weekend, 0 is Sunday (e.g. '0,6')"),
+      week_start: vacayUpdatePlanRequestSchema.shape.week_start.describe('First column of the calendar grid: 0 for Sunday, anything else for Monday'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: vacayAddonOn,
     access: { group: 'vacay', mode: 'write' },
   })
   async updateVacayPlan(
-    { block_weekends, holidays_enabled, holidays_region, company_holidays_enabled, carry_over_enabled }: {
-      block_weekends?: boolean; holidays_enabled?: boolean; holidays_region?: string | null; company_holidays_enabled?: boolean; carry_over_enabled?: boolean;
-    },
+    {
+      block_weekends, holidays_enabled, holidays_region, school_holidays_enabled,
+      company_holidays_enabled, carry_over_enabled, weekend_days, week_start,
+    }: VacayUpdatePlanRequest,
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     const planId = this.vacay.getActivePlanId(ctx.userId);
     // updatePlan already returns the fully-hydrated { plan }; surface it so the
     // AI consumer sees the updated plan, matching get_vacay_plan.
-    const result = await this.vacay.updatePlan(planId, { block_weekends, holidays_enabled, holidays_region, company_holidays_enabled, carry_over_enabled }, undefined);
+    const result = await this.vacay.updatePlan(planId, {
+      block_weekends, holidays_enabled, holidays_region, school_holidays_enabled,
+      company_holidays_enabled, carry_over_enabled, weekend_days, week_start,
+    }, undefined);
     return ok(result);
   }
 
@@ -260,18 +320,33 @@ export class VacayMcp {
 
   @Tool({
     name: 'toggle_vacay_entry',
-    description: 'Toggle a day on or off as a vacation day for the current user.',
+    description: 'Toggle a day in the vacation calendar. Repeating a date with the same fraction and kind clears it, a different fraction or kind converts the day in place. Defaults to a full vacation day for the calling user.',
     inputSchema: {
       date: z.string().describe('ISO date YYYY-MM-DD'),
+      fraction: vacayToggleEntryRequestSchema.shape.fraction.describe('0.5 for a half day, 1 (the default) for a full day'),
+      kind: vacayToggleEntryRequestSchema.shape.kind.describe("'comp' for a flex/comp day, which does not draw on the entitlement; 'vacation' is the default"),
+      targetUserId: z.number().int().positive().optional().describe('Log the day for another member of the shared plan instead of the caller'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: vacayAddonOn,
     access: { group: 'vacay', mode: 'write' },
   })
-  async toggleVacayEntry({ date }: { date: string }, ctx: McpContext) {
+  async toggleVacayEntry(
+    { date, fraction, kind, targetUserId }: { date: string; fraction?: 0.5 | 1; kind?: 'vacation' | 'comp'; targetUserId?: number },
+    ctx: McpContext,
+  ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     const planId = this.vacay.getActivePlanId(ctx.userId);
-    const result = this.vacay.toggleEntry(ctx.userId, planId, date, 1, 'vacation', undefined);
+    let userId = ctx.userId;
+    if (targetUserId !== undefined && targetUserId !== ctx.userId) {
+      // Same gate as POST /entries/toggle: booking for someone else reaches only
+      // the members of the caller's own plan, and nobody outside it.
+      if (!this.vacay.getPlanUsers(planId).find((u) => u.id === targetUserId)) {
+        return errorResult('User not in plan');
+      }
+      userId = targetUserId;
+    }
+    const result = this.vacay.toggleEntry(userId, planId, date, fraction, kind, undefined);
     if (result.error) return errorResult(result.error);
     return ok(result);
   }
@@ -330,9 +405,10 @@ export class VacayMcp {
 
   @Tool({
     name: 'add_holiday_calendar',
-    description: 'Add a public holiday calendar (by region code) to the vacation plan.',
+    description: "Add a holiday calendar (by region code) to the vacation plan. Public holidays take a country or country-region code from list_holiday_countries; a school-holiday calendar needs type 'school_holiday' plus a subdivision code from list_school_holiday_regions, and only shows up once update_vacay_plan has school_holidays_enabled set.",
     inputSchema: {
-      region: z.string().describe('Country/region code e.g. US, GB, DE'),
+      region: z.string().describe("Country/region code e.g. US, GB, DE, or a subdivision like DE-BY. For a school-holiday calendar take calendar_regions[].region from list_school_holiday_regions verbatim, including the COUNTRY|group:CODE form that Belgium and the Netherlands use."),
+      type: vacayAddHolidayCalendarRequestSchema.shape.type.describe("'school_holiday', or 'public_holiday' (the default)"),
       label: z.string().nullable().optional(),
       color: z.string().optional(),
       sortOrder: z.number().int().optional(),
@@ -342,12 +418,14 @@ export class VacayMcp {
     access: { group: 'vacay', mode: 'write' },
   })
   async addHolidayCalendar(
-    { region, label, color, sortOrder }: { region: string; label?: string | null; color?: string; sortOrder?: number },
+    { region, type, label, color, sortOrder }: { region: string; type?: 'public_holiday' | 'school_holiday'; label?: string | null; color?: string; sortOrder?: number },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     const planId = this.vacay.getActivePlanId(ctx.userId);
-    const calendar = this.vacay.addHolidayCalendar(planId, region, label ?? null, color, sortOrder, undefined);
+    // An omitted type stays undefined so the service default (and the default
+    // colour that goes with it) applies, exactly as on the REST route.
+    const calendar = this.vacay.addHolidayCalendar(planId, region, label ?? null, color, sortOrder, undefined, type);
     return ok({ calendar });
   }
 
@@ -423,6 +501,44 @@ export class VacayMcp {
   }
 
   @Tool({
+    name: 'list_school_holiday_regions',
+    description: "List a country's school-holiday regions. Use calendar_regions[].region verbatim as add_holiday_calendar's region: a group is stored as COUNTRY|group:CODE and a bare group code would be read back as a subdivision, leaving the calendar empty. The raw provider payload is alongside it under regions, and its plain codes are what list_school_holidays filters by. Public holiday calendars use list_holiday_countries instead.",
+    inputSchema: {
+      country: z.string().describe('ISO 3166-1 alpha-2 code'),
+    },
+    annotations: TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
+    when: vacayAddonOn,
+    access: { group: 'vacay', mode: 'read' },
+  })
+  async listSchoolHolidayRegions({ country }: { country: string }, _ctx: McpContext) {
+    const result = await this.vacay.getSchoolHolidayRegions(country, schoolHolidayLanguage(country));
+    if (result.error) return errorResult(result.error);
+    return ok({ regions: result.data, calendar_regions: calendarRegionCodes(country, result.data) });
+  }
+
+  @Tool({
+    name: 'list_school_holidays',
+    description: 'List school holidays for a country and year, narrowed to a subdivision or group code from list_school_holiday_regions. School holidays are term breaks, so prefer list_holidays for the public holidays a day off is normally counted against.',
+    inputSchema: {
+      country: z.string().describe('ISO 3166-1 alpha-2 code'),
+      year: z.number().int(),
+      subdivision: z.string().optional().describe('Subdivision code from list_school_holiday_regions, e.g. DE-BY'),
+      group: z.string().optional().describe('Group code from list_school_holiday_regions'),
+    },
+    annotations: TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
+    when: vacayAddonOn,
+    access: { group: 'vacay', mode: 'read' },
+  })
+  async listSchoolHolidays(
+    { country, year, subdivision, group }: { country: string; year: number; subdivision?: string; group?: string },
+    _ctx: McpContext,
+  ) {
+    const result = await this.vacay.getSchoolHolidays(String(year), country, subdivision, schoolHolidayLanguage(country), group);
+    if (result.error) return errorResult(result.error);
+    return ok({ holidays: result.data });
+  }
+
+  @Tool({
     name: 'list_vacay_shares',
     description: 'List read-only calendar shares: who the current user shares their vacation calendar with, and which calendars are shared with them.',
     inputSchema: {},
@@ -432,6 +548,18 @@ export class VacayMcp {
   })
   async listVacayShares(_args: Record<string, never>, ctx: McpContext) {
     return ok(this.vacay.listShares(ctx.userId));
+  }
+
+  @Tool({
+    name: 'get_shareable_vacay_users',
+    description: "List the users the caller can share their calendar with, for share_vacay_calendar's targetUserId. This is a wider set than get_available_vacay_users, which lists candidates for merging plans and therefore leaves out everyone who already sits in a plan of their own.",
+    inputSchema: {},
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    when: vacayAddonOn,
+    access: { group: 'vacay', mode: 'read' },
+  })
+  async getShareableVacayUsers(_args: Record<string, never>, ctx: McpContext) {
+    return ok({ users: this.vacay.getShareAvailableUsers(ctx.userId) });
   }
 
   @Tool({
