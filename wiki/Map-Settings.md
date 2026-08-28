@@ -32,18 +32,25 @@ When Leaflet is selected, pick a preset or enter a custom tile URL.
 |------|-----|
 | OpenStreetMap | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` |
 | OpenStreetMap DE | `https://tile.openstreetmap.de/{z}/{x}/{y}.png` |
-| CartoDB Light | `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png` |
-| CartoDB Dark | `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png` |
+| OpenFreeMap Positron | `https://tiles.openfreemap.org/styles/positron` |
+| OpenFreeMap Bright | `https://tiles.openfreemap.org/styles/bright` |
+| CartoDB Light (needs a key) | `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png` |
+| CartoDB Dark (needs a key) | `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png` |
 | Stadia Smooth | `https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png` |
 
-You can also type any XYZ tile URL directly into the text field.
+**OpenFreeMap Positron is the default** and is what every map falls back to when the field is empty. It needs no key,
+no account and has no request limit, and it is a MapLibre *style* rather than an XYZ template — TREK renders it with
+MapLibre inside the Leaflet map, so markers, routes and clusters behave exactly as before.
+
+You can also type any XYZ tile URL, or the URL of any MapLibre style document, directly into the text field.
 
 > **Admin:** The admin can set a default map tile URL for all new users via the **User Defaults** tab in the Admin Panel. See [Admin-Panel-Overview](Admin-Panel-Overview).
 
 ## CARTO API key
 
 Since 26 August 2026 CARTO stamps an **API KEY REQUIRED** watermark onto every basemap tile fetched without a key, so
-both CartoDB presets need one. The key is free and no CARTO account is required: request it at
+both CartoDB presets need one. This is why CARTO is no longer the default; you only need this section if you
+deliberately want the CartoDB look back. The key is free and no CARTO account is required: request it at
 [carto.com/basemaps/apikey](https://carto.com/basemaps/apikey/) with an email address, the domain you run TREK on and
 a one-line description of your project. It arrives by mail, there is no approval queue. The free allowance is 5
 million tile requests per calendar month.
@@ -56,8 +63,11 @@ never stored inside the tile URL itself, so switching keys later does not break 
 > who has not entered one of their own, which clears the watermark for the whole instance at once. It is stored
 > encrypted at rest.
 
-Other providers are unaffected. If you would rather not register at all, switch the template to OpenStreetMap, which
-needs no key. Note that the OSM tile servers do not permit bulk pre-downloading, so offline maps stay a CARTO feature.
+Other providers are unaffected, and a keyless CARTO template is treated as "not configured" so the map falls back to
+OpenFreeMap instead of drawing watermarked tiles. Save a key and your template is kept as you entered it.
+
+Offline pre-download works on OpenFreeMap and on CARTO. It does not work on the OpenStreetMap presets, whose tile
+servers do not permit bulk downloading.
 
 ## Mapbox GL — access token and style
 

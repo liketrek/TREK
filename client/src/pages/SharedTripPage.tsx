@@ -19,7 +19,8 @@ import { createElement, useEffect, useRef } from 'react';
 import { renderIconMarkup } from '../utils/iconMarkup';
 import { MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import { getCategoryIcon } from '../components/shared/categoryIcons';
-import { CARTO_LIGHT, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../constants/mapDefaults';
+import { OFM_POSITRON, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, attributionForTile } from '../constants/mapDefaults';
+import VectorBasemap from '../components/Map/VectorBasemap';
 import { SUPPORTED_LANGUAGES, useTranslation } from '../i18n';
 import { useSettingsStore } from '../store/settingsStore';
 import { avatarSrc } from '../utils/avatarSrc';
@@ -29,7 +30,7 @@ import { isDayInAccommodationRange } from '../utils/dayOrder';
 import { getFlightLegs, getTrainLegs } from '../utils/flightLegs';
 import { splitReservationDateTime } from '../utils/formatters';
 import { computeMapViewport, TILE_SIZE_RASTER } from '../utils/mapViewport';
-import { resolveTileUrl } from '../utils/tileUrl';
+import { resolveBasemap } from '../utils/tileUrl';
 import { useSharedTrip } from './sharedTrip/useSharedTrip';
 
 const TRANSPORT_ICONS = { flight: Plane, train: Train, bus: Bus, car: Car, cruise: Ship };
@@ -185,9 +186,12 @@ export default function SharedTripPage() {
   });
   const initialView = framed ?? { center: DEFAULT_MAP_CENTER, zoom: DEFAULT_MAP_ZOOM };
 
-  // A visitor of a share link has no settings of their own, so the key travels in
-  // the payload; without it CARTO stamps "API KEY REQUIRED" across every tile.
-  const tileUrl = resolveTileUrl(null, CARTO_LIGHT, cartoApiKey);
+  // A visitor of a share link has no settings of their own, so the basemap is the
+  // app default: OpenFreeMap, a vector style that needs no key at all. The owner's
+  // CARTO key still travels in the payload and is still applied, because the
+  // fallback is only a fallback — a raster template reaching this page keeps
+  // working, and without the key CARTO would stamp "API KEY REQUIRED" over it.
+  const basemap = resolveBasemap(null, OFM_POSITRON, cartoApiKey);
 
   return (
     <div className="bg-surface-secondary" style={{ minHeight: '100vh', fontFamily: 'var(--font-system)' }}>
@@ -487,10 +491,15 @@ export default function SharedTripPage() {
                 zoomControl={false}
                 style={{ width: '100%', height: '100%' }}
               >
-                <TileLayer
-                  url={tileUrl}
-                  referrerPolicy="strict-origin-when-cross-origin"
-                />
+                {basemap.kind === 'vector' ? (
+                  <VectorBasemap style={basemap.style} />
+                ) : (
+                  <TileLayer
+                    url={basemap.url}
+                    attribution={attributionForTile(basemap.url)}
+                    referrerPolicy="strict-origin-when-cross-origin"
+                  />
+                )}
                 <FitBoundsToPlaces places={mapPlaces} framedOnMount={framed !== null} />
                 {selectedDay && mapPlaces.length > 1 && (
                   <Polyline

@@ -139,13 +139,23 @@ export default defineConfig(({ mode }) => ({
           {
             // OpenFreeMap MapLibre glyphs, sprites and vector tiles (the style
             // itself is handled by the style rule above).
-            // Same best-effort offline model as Mapbox GL: viewed resources are
-            // reused from cache, but the vector tile pipeline is not prefetched.
+            //
+            // CacheFirst, and sharing its cache with the prefetcher: OpenFreeMap
+            // serves tiles under a versioned planet path, so a cached tile is
+            // never stale — a new planet is a new URL. StaleWhileRevalidate
+            // would revalidate every tile of a pre-downloaded region on the next
+            // online visit for nothing.
+            //
+            // cacheName matches sync/glPrefetcher.ts, which writes here directly:
+            // one cache means normal browsing tops the offline region up instead
+            // of filling a second copy beside it. maxEntries is above the
+            // prefetcher's own cap so a browsing session cannot evict a region
+            // the user asked to keep.
             urlPattern: /^https:\/\/tiles\.openfreemap\.org\/.*/i,
-            handler: 'StaleWhileRevalidate',
+            handler: 'CacheFirst',
             options: {
-              cacheName: 'openfreemap-tiles',
-              expiration: { maxEntries: 3000, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheName: 'gl-map-offline',
+              expiration: { maxEntries: 6000, maxAgeSeconds: 90 * 24 * 60 * 60 },
               cacheableResponse: { statuses: [200] },
             },
           },

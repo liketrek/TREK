@@ -19,7 +19,9 @@ import { escapeHtml } from '@trek/shared'
 import type { Day, Reservation, RouteVia } from '../../types'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
 import { resolveTrackColor, hasManualTrackColor } from './trackColors'
-import { CARTO_LIGHT, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, SATELLITE_TILE_URL, SATELLITE_TILE_ATTRIBUTION, SATELLITE_TILE_MAXZOOM } from '../../constants/mapDefaults'
+import { OFM_POSITRON, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, SATELLITE_TILE_URL, SATELLITE_TILE_ATTRIBUTION, SATELLITE_TILE_MAXZOOM, attributionForTile } from '../../constants/mapDefaults'
+import { resolveBasemap } from '../../utils/tileUrl'
+import VectorBasemap from './VectorBasemap'
 import { useSettingsStore } from '../../store/settingsStore'
 import { MapLayerSwitcher } from './MapLayerSwitcher'
 import { computeMapViewport, TILE_SIZE_RASTER, type ViewportPadding } from '../../utils/mapViewport'
@@ -517,7 +519,7 @@ export const MapView = memo(function MapView({
   zoom = DEFAULT_MAP_ZOOM,
   // Callers hand down a URL that already carries the CARTO key; this is only
   // the shape a caller without one gets.
-  tileUrl = CARTO_LIGHT,
+  tileUrl = OFM_POSITRON,
   fitKey = 0,
   dayOrderMap = {},
   leftWidth = 0,
@@ -537,6 +539,10 @@ export const MapView = memo(function MapView({
   tripId,
   routeVias = [],
 }: any) {
+  // The caller hands over whatever the user configured; what kind of basemap
+  // that is decides which layer draws it. A saved raster template still wins,
+  // the default is a vector style.
+  const basemap = useMemo(() => resolveBasemap(tileUrl, OFM_POSITRON), [tileUrl])
   const poiMarkers = useMemo(() => (pois as Poi[]).map((poi: Poi) => (
     <Marker
       key={`poi-${poi.osm_id}`}
@@ -828,17 +834,36 @@ export const MapView = memo(function MapView({
       zoomControl={false}
       className="w-full h-full bg-[#e5e7eb]"
     >
-      {/* key remounts the layer on switch, else attribution/maxZoom stick at mount-time values. */}
-      <TileLayer
-        key={isSatellite ? 'satellite' : 'default'}
-        url={isSatellite ? SATELLITE_TILE_URL : tileUrl}
-        attribution={isSatellite ? SATELLITE_TILE_ATTRIBUTION : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}
-        maxZoom={isSatellite ? SATELLITE_TILE_MAXZOOM : 19}
-        keepBuffer={8}
-        updateWhenZooming={false}
-        updateWhenIdle={true}
-        referrerPolicy="strict-origin-when-cross-origin"
-      />
+      {/* The basemap is a vector style by default and a raster template when the
+          user brought their own, so the two are drawn by different things. The
+          satellite toggle is always raster.
+          key remounts the raster layer on switch, else attribution/maxZoom stick
+          at mount-time values. */}
+      {isSatellite ? (
+        <TileLayer
+          key="satellite"
+          url={SATELLITE_TILE_URL}
+          attribution={SATELLITE_TILE_ATTRIBUTION}
+          maxZoom={SATELLITE_TILE_MAXZOOM}
+          keepBuffer={8}
+          updateWhenZooming={false}
+          updateWhenIdle={true}
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+      ) : basemap.kind === 'vector' ? (
+        <VectorBasemap style={basemap.style} />
+      ) : (
+        <TileLayer
+          key="raster"
+          url={basemap.url}
+          attribution={attributionForTile(basemap.url)}
+          maxZoom={19}
+          keepBuffer={8}
+          updateWhenZooming={false}
+          updateWhenIdle={true}
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+      )}
 
       <MapController center={center} zoom={zoom} />
       <BoundsController places={dayPlaces.length > 0 ? dayPlaces : places} routeCoords={dayPlaces.length > 0 ? routeCoords : []} fitKey={fitKey} paddingOpts={paddingOpts} framedOnMount={initialView.framed} />

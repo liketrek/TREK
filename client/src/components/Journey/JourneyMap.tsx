@@ -2,8 +2,9 @@ import { useEffect, useRef, useImperativeHandle, useCallback, type Ref } from 'r
 import L from 'leaflet'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useCartoApiKey } from '../../hooks/useTileUrl'
-import { resolveTileUrl } from '../../utils/tileUrl'
-import { CARTO_DARK, CARTO_VOYAGER } from '../../constants/mapDefaults'
+import { isVectorStyle, resolveTileUrl } from '../../utils/tileUrl'
+import { OFM_DARK, OFM_POSITRON, attributionForTile } from '../../constants/mapDefaults'
+import { attachVectorBasemap, type GlLeafletLayer } from '../Map/VectorBasemap'
 import { escapeHtml, type JourneyTrack } from '@trek/shared'
 
 export interface MapMarkerItem {
@@ -154,13 +155,16 @@ function JourneyMap(
   const mapTileUrl = useSettingsStore(s => s.settings.map_tile_url)
   const storedCartoKey = useCartoApiKey()
   const cartoKey = cartoApiKey || storedCartoKey
-  const tileUrl = resolveTileUrl(mapTileUrl, dark ? CARTO_DARK : CARTO_VOYAGER, cartoKey)
+  const tileUrl = resolveTileUrl(mapTileUrl, dark ? OFM_DARK : OFM_POSITRON, cartoKey)
   // Read through a ref by the map effect, retiled in place by its own effect below:
   // the CARTO key reaches the store after the first render, and rebuilding the map
   // for that raced with the markers and layers already on it (#2097).
   const tileUrlRef = useRef(tileUrl)
   tileUrlRef.current = tileUrl
   const tileLayerRef = useRef<L.TileLayer | null>(null)
+  const glLayerRef = useRef<GlLeafletLayer | null>(null)
+  // The vector basemap loads async; a map torn down before it lands must not get one.
+  const cancelledRef = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const markersRef = useRef<Map<string, L.Marker>>(new Map())
@@ -238,20 +242,27 @@ function JourneyMap(
       touchZoom: true,
     })
     mapRef.current = map
+    cancelledRef.current = false
 
-    const tiles = L.tileLayer(tileUrlRef.current, {
-      maxZoom: 18,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      referrerPolicy: 'strict-origin-when-cross-origin',
-      // Leaflet defaults updateWhenIdle:true on mobile (waits for pan to settle
-      // before loading tiles). On the journey mobile combined view we flyTo
-      // constantly when switching cards, so tiles lag visibly — force eager
-      // updates and keep a larger ring of off-screen tiles ready.
-      updateWhenIdle: false,
-      keepBuffer: 4,
-    } as any)
-    tiles.addTo(map)
-    tileLayerRef.current = tiles
+    // The basemap is a vector style unless the user brought their own raster
+    // template, so which layer draws it is decided per template rather than once.
+    if (isVectorStyle(tileUrlRef.current)) {
+      void attachVectorBasemap(map, tileUrlRef.current, glLayerRef, () => cancelledRef.current)
+    } else {
+      const tiles = L.tileLayer(tileUrlRef.current, {
+        maxZoom: 18,
+        attribution: attributionForTile(tileUrlRef.current),
+        referrerPolicy: 'strict-origin-when-cross-origin',
+        // Leaflet defaults updateWhenIdle:true on mobile (waits for pan to settle
+        // before loading tiles). On the journey mobile combined view we flyTo
+        // constantly when switching cards, so tiles lag visibly — force eager
+        // updates and keep a larger ring of off-screen tiles ready.
+        updateWhenIdle: false,
+        keepBuffer: 4,
+      } as any)
+      tiles.addTo(map)
+      tileLayerRef.current = tiles
+    }
 
     const items = buildMarkerItems(entries)
     itemsRef.current = items
@@ -344,17 +355,22 @@ function JourneyMap(
     }, 200)
 
     return () => {
+      cancelledRef.current = true
       map.remove()
       mapRef.current = null
       tileLayerRef.current = null
+      glLayerRef.current?.remove()
+      glLayerRef.current = null
       markersRef.current.clear()
     }
   }, [entries, stableTrail, stableTracks, dark, fullScreen, paddingBottom])
 
   // Retile in place rather than through the effect above, which would drop every
-  // marker and track it just drew.
+  // marker and track it just drew. A vector basemap restyles instead, which also
+  // avoids spending a WebGL context on every theme toggle.
   useEffect(() => {
-    tileLayerRef.current?.setUrl(tileUrl)
+    if (isVectorStyle(tileUrl)) glLayerRef.current?.getMaplibreMap()?.setStyle(tileUrl)
+    else tileLayerRef.current?.setUrl(tileUrl)
   }, [tileUrl])
 
   // Photo layer (#1614). Its own effect on purpose: photos arriving must not tear

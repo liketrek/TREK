@@ -9,6 +9,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import L from 'leaflet';
 import { A2_TO_A3 } from './atlasModel';
 import { useAtlas } from './useAtlas';
+import { maplibreGL } from '@maplibre/maplibre-gl-leaflet';
 
 // FE-HOOK-ATLAS-001 to FE-HOOK-ATLAS-035
 
@@ -58,6 +59,24 @@ const lf = vi.hoisted(() => ({
     this.markers = 0;
   },
 }));
+
+// maplibre-gl-leaflet hangs the vector basemap into Leaflet's tile pane. The mock
+// only has to be callable and hand back a layer with the three methods the callers
+// use, since nothing here renders WebGL.
+vi.mock('@maplibre/maplibre-gl-leaflet', () => ({
+  maplibreGL: vi.fn(() => {
+    // One GL map per layer, kept stable: a fresh object per call would hand the
+    // assertions a different spy than the code just used.
+    const gl = {
+      setStyle: vi.fn(), on: vi.fn(), isStyleLoaded: () => false,
+      getStyle: () => ({ layers: [] }), setLayoutProperty: vi.fn(),
+    }
+    const layer: Record<string, unknown> = { remove: vi.fn(), getMaplibreMap: vi.fn(() => gl) }
+    layer.addTo = vi.fn(() => layer)
+    return layer
+  }),
+}));
+vi.mock('../../components/Map/engines/maplibre', () => ({ default: {} }));
 
 vi.mock('leaflet', () => {
   // The bounds a country layer reports carry its own code, so the map's bounds can
@@ -708,32 +727,32 @@ describe('useAtlas', () => {
       expect(lf.mapsRemoved).toBeGreaterThan(0);
     });
 
-    it('FE-HOOK-ATLAS-043: a CARTO key arriving after mount retiles instead of rebuilding the map (#2097)', async () => {
-      // Sliced from here: L.tileLayer's mock results carry over from earlier tests.
-      const madeBefore = vi.mocked(L.tileLayer).mock.results.length;
+    it('FE-HOOK-ATLAS-043: the basemap is a single label-free vector layer and the map is still built once', async () => {
+      // Sliced from here: the mock results carry over from earlier tests.
+      const madeBefore = vi.mocked(maplibreGL).mock.results.length;
       await mountAtlas({ geo: geoCountries });
       await waitFor(() => expect(lf.geoJson.length).toBeGreaterThan(0));
 
-      const tiles = vi.mocked(L.tileLayer).mock.results
-        .slice(madeBefore)
-        .map((r) => r.value as { setUrl: ReturnType<typeof vi.fn> });
-      expect(tiles.length).toBeGreaterThan(0);
-      const layersBefore = lf.geoJson.length;
-
-      act(() => {
-        seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: false, carto_api_key: 'k1' }) });
+      // One basemap layer, not two: the second raster layer only warmed the cache
+      // of neighbouring zoom levels, which a vector basemap does not need.
+      const layers = await waitFor(() => {
+        const made = vi.mocked(maplibreGL).mock.results.slice(madeBefore);
+        expect(made.length).toBe(1);
+        return made.map((r) => r.value as { getMaplibreMap: () => { setStyle: ReturnType<typeof vi.fn>; on: ReturnType<typeof vi.fn> } });
       });
+      // It is a vector style, and it is the label-free variant the country fills
+      // need: OpenFreeMap has no nolabels style, so the symbol layers are switched
+      // off on the live map instead, re-armed on every style.load.
+      const calls = vi.mocked(maplibreGL).mock.calls;
+      const call = calls[calls.length - 1]?.[0] as { style: string };
+      expect(call.style).toContain('openfreemap.org');
+      expect(layers[0].getMaplibreMap().on).toHaveBeenCalledWith('style.load', expect.any(Function));
 
-      // The key reaches the tiles that are already on the map...
-      await waitFor(() => {
-        for (const t of tiles) expect(t.setUrl).toHaveBeenCalledWith(expect.stringContaining('key=k1'));
-      });
-      // ...and nothing else is torn down: rebuilding the map dropped the country layer
-      // (only redrawn when its own data changes) and left Leaflet redrawing a canvas
-      // renderer whose map had gone.
+      // And the map is still built once with its country layer on it: the basemap
+      // swap must not reintroduce the teardown #2097 removed.
       expect(lf.mapsCreated).toBe(1);
       expect(lf.mapsRemoved).toBe(0);
-      expect(lf.geoJson.length).toBe(layersBefore);
+      expect(lf.geoJson.length).toBeGreaterThan(0);
     });
 
     it('FE-HOOK-ATLAS-027: a plugin layer naming no country in the map draws nothing', async () => {

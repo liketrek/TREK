@@ -14,7 +14,7 @@ vi.mock('react-leaflet', () => ({
   MapContainer: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="map-container">{children}</div>
   ),
-  TileLayer: () => null,
+  TileLayer: ({ url }: { url: string }) => <div data-testid="raster-tiles" data-url={url} />,
   Marker: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   Polyline: () => <div data-testid="route-line" />,
   Tooltip: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
@@ -22,6 +22,13 @@ vi.mock('react-leaflet', () => ({
     fitBounds: vi.fn(),
     getCenter: vi.fn(() => ({ lat: 0, lng: 0 })),
   }),
+}));
+
+// The basemap is a MapLibre style now, and the real component reaches for
+// maplibre-gl through a dynamic import. The page test only cares that it is the
+// thing being rendered.
+vi.mock('../components/Map/VectorBasemap', () => ({
+  default: ({ style }: { style: string }) => <div data-testid="vector-basemap" data-style={style} />,
 }));
 
 vi.mock('leaflet', () => {
@@ -928,6 +935,23 @@ describe('SharedTripPage', () => {
         expect(screen.getByRole('button', { name: 'Day 1' })).toHaveAttribute('aria-pressed', 'true'),
       );
       expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'false');
+    });
+  });
+
+  describe('FE-PAGE-SHARED-041: a share link visitor gets a basemap that needs no key', () => {
+    const louvre = { id: 201, name: 'Louvre', lat: 48.86, lng: 2.33, category: null };
+
+    it('draws the OpenFreeMap style rather than raster tiles', async () => {
+      // A visitor has no settings of their own, so the map falls back to the app
+      // default. CARTO stamps "API KEY REQUIRED" over keyless tiles since
+      // 26.08.2026, and a share link is exactly where nobody has a key.
+      await open('basemap-token', payload({ days: [], places: [louvre], assignments: {} }));
+
+      expect(screen.getByTestId('vector-basemap')).toHaveAttribute(
+        'data-style',
+        'https://tiles.openfreemap.org/styles/positron',
+      );
+      expect(screen.queryByTestId('raster-tiles')).toBeNull();
     });
   });
 

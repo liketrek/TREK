@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router'
 import { getIntlLanguage, getLocaleForLanguage, useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTileUrl } from '../../hooks/useTileUrl'
-import { CARTO_DARK_NOLABELS, CARTO_LIGHT_NOLABELS } from '../../constants/mapDefaults'
+import { OFM_DARK, OFM_POSITRON } from '../../constants/mapDefaults'
+import { attachVectorBasemap, hideLabelLayers, type GlLeafletLayer } from '../../components/Map/VectorBasemap'
+import { isVectorStyle } from '../../utils/tileUrl'
 import apiClient, { mapsApi, pluginsApi, type PluginAtlasLayer } from '../../api/client'
 import L from 'leaflet'
 import type { GeoJsonFeatureCollection } from '../../types'
@@ -83,13 +85,16 @@ export function useAtlas() {
   const dark = dm === true || dm === 'dark' || (dm === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
   // Label-free tiles on purpose (the country fills carry the names here), so the
   // user's own template is deliberately not read, only their CARTO key.
-  const tileUrl = useTileUrl(dark ? CARTO_DARK_NOLABELS : CARTO_LIGHT_NOLABELS, true)
+  const tileUrl = useTileUrl(dark ? OFM_DARK : OFM_POSITRON, true)
   // The template is read through a ref inside the map effect so a template change —
   // the CARTO key arriving after the first render is the usual one — retiles the
   // layers below instead of tearing the whole map down and building it again (#2097).
   const tileUrlRef = useRef(tileUrl)
   tileUrlRef.current = tileUrl
   const tileLayersRef = useRef<L.TileLayer[]>([])
+  const glLayerRef = useRef<GlLeafletLayer | null>(null)
+  // The vector basemap loads async; a map torn down before it lands must not get one.
+  const cancelledRef = useRef(false)
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<L.Map | null>(null)
   const geoLayerRef = useRef<L.GeoJSON | null>(null)
@@ -373,29 +378,27 @@ export function useAtlas() {
 
     L.control.zoom({ position: 'bottomright' }).addTo(map)
 
-    const baseTiles = L.tileLayer(tileUrlRef.current, {
-      maxZoom: 10,
-      keepBuffer: 25,
-      updateWhenZooming: true,
-      updateWhenIdle: false,
-      tileSize: 256,
-      zoomOffset: 0,
-      crossOrigin: true,
-      referrerPolicy: 'strict-origin-when-cross-origin',
-    } as any)
-    baseTiles.addTo(map)
-
-    // Preload adjacent zoom level tiles
-    const preloadTiles = L.tileLayer(tileUrlRef.current, {
-      maxZoom: 10,
-      keepBuffer: 10,
-      opacity: 0,
-      tileSize: 256,
-      crossOrigin: true,
-      referrerPolicy: 'strict-origin-when-cross-origin',
-    })
-    preloadTiles.addTo(map)
-    tileLayersRef.current = [baseTiles, preloadTiles]
+    // One layer, not two. The second raster layer existed to warm the HTTP cache
+    // of neighbouring zoom levels; a vector basemap scales what it already has, so
+    // a second one would only cost a second WebGL context and a second copy of the
+    // tiles. Labels are hidden because the country fills carry the names here.
+    if (isVectorStyle(tileUrlRef.current)) {
+      cancelledRef.current = false
+      void attachVectorBasemap(map, tileUrlRef.current, glLayerRef, () => cancelledRef.current, { hideLabels: true })
+    } else {
+      const baseTiles = L.tileLayer(tileUrlRef.current, {
+        maxZoom: 10,
+        keepBuffer: 25,
+        updateWhenZooming: true,
+        updateWhenIdle: false,
+        tileSize: 256,
+        zoomOffset: 0,
+        crossOrigin: true,
+        referrerPolicy: 'strict-origin-when-cross-origin',
+      } as any)
+      baseTiles.addTo(map)
+      tileLayersRef.current = [baseTiles]
+    }
 
     // Custom pane for region layer — above overlay (z-index 400)
     map.createPane('regionPane')
@@ -453,6 +456,9 @@ export function useAtlas() {
       regionLayerRef.current = null
       renderedRegionSigRef.current = ''
       tileLayersRef.current = []
+      cancelledRef.current = true
+      glLayerRef.current?.remove()
+      glLayerRef.current = null
     }
   }, [dark, loading])
 
@@ -461,6 +467,15 @@ export function useAtlas() {
   // would come back bare — and Leaflet keeps redrawing the torn-down canvas renderer
   // for a frame after the map goes (#2097).
   useEffect(() => {
+    if (isVectorStyle(tileUrl)) {
+      const layer = glLayerRef.current
+      if (!layer) return
+      layer.getMaplibreMap()?.setStyle(tileUrl)
+      // setStyle drops the layer list, and style.load fires again with the new
+      // one, so the label rule has to be re-armed rather than assumed.
+      hideLabelLayers(layer)
+      return
+    }
     for (const layer of tileLayersRef.current) layer.setUrl(tileUrl)
   }, [tileUrl])
 

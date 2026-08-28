@@ -36,7 +36,7 @@ const settings: TranslationStrings = {
   'settings.mapCartoKey': 'CARTO API 密钥',
   'settings.mapCartoKeyHint': '没有密钥时 CARTO 底图会显示水印。免费且无需账户，来自',
   'settings.mapCartoKeyLink': 'carto.com 底图 API 密钥',
-  'settings.mapCartoKeyMissing': '此模板是 CARTO 底图。没有密钥时，CARTO 会在每个瓦片上打上 "API KEY REQUIRED"。',
+  'settings.mapCartoKeyMissing': '此模板是 CARTO 底图。没有密钥时，CARTO 会在每个瓦片上打上 "API KEY REQUIRED"。 在输入密钥之前，TREK 会显示默认底图。',
   'settings.mapStyle': '地图样式',
   'settings.mapStylePlaceholder': '选择 Mapbox 样式',
   'settings.mapStyleHint': '预设或您自己的 mapbox://styles/USER/ID URL',

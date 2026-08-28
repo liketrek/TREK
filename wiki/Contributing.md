@@ -59,7 +59,7 @@ See the [[Development Environment|Development-environment]] page for the full se
 | Real-time | WebSocket (ws)                                                                            |
 | Database | SQLite with WAL mode                                                                      |
 | Auth | JWT (HS256), bcrypt, TOTP MFA, OIDC                                                       |
-| Maps | Leaflet + react-leaflet (default, CartoDB tiles), MapLibre GL, Mapbox GL, OSRM, Nominatim |
+| Maps | Leaflet + react-leaflet (default, OpenFreeMap vector basemap via maplibre-gl-leaflet), MapLibre GL, Mapbox GL, OSRM, Nominatim |
 | i18n | 23 languages, EN canonical (locale directories live in shared/src/i18n/)                  |
 
 Every translation key must exist in all 23 locales — the `i18n Key Parity` CI job fails on drift, so run `npm run i18n:parity:strict --workspace=shared` before pushing. Two directory names differ from the language they hold: Brazilian Portuguese is `br`, Greek is `gr`.

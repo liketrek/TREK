@@ -28,10 +28,10 @@ TREK uses Workbox service-worker caching plus an IndexedDB database (Dexie) for 
 
 | Content | Cache name | Strategy | Duration | Max entries |
 |---------|------------|----------|----------|-------------|
-| CartoDB / OpenStreetMap map tiles | `map-tiles` | CacheFirst | 30 days | 12 288 |
+| Raster map tiles (OpenStreetMap, CartoDB, custom XYZ) | `map-tiles` | CacheFirst | 30 days | 12 288 |
 | Mapbox GL and OpenFreeMap style documents | `gl-map-styles` | NetworkFirst (5 s timeout) | 30 days | 20 |
 | Mapbox GL glyphs, sprites and vector tiles | `mapbox-tiles` | StaleWhileRevalidate | 30 days | 3 000 |
-| OpenFreeMap MapLibre glyphs, sprites and vector tiles | `openfreemap-tiles` | StaleWhileRevalidate | 30 days | 3 000 |
+| OpenFreeMap glyphs, sprites and vector tiles | `gl-map-offline` | CacheFirst | 90 days | 6 000 |
 | Cover images and avatars (`/uploads/covers`, `/uploads/avatars`) | `user-uploads` | CacheFirst | 7 days | 300 |
 | App shell and every page of the app (HTML / JS / CSS) | precache | Precached | Until next deploy | — |
 
@@ -87,7 +87,7 @@ The stats panel shows cached trips, pending changes, conflicts and failed change
 - Creating a trip requires connectivity. Trip creation is not queued, so a new trip cannot be started while offline.
 - Photo uploads require connectivity. Photo and video attachments are not pre-cached; every other file attachment is pre-cached automatically during sync.
 - Real-time collaboration features require an active WebSocket connection.
-- Mapbox GL / vector tiles are not pre-downloaded; raster (Leaflet) tiles are. With map-tile storage off, individually viewed tiles may still be cached opportunistically by the service worker.
+- The Leaflet basemap is pre-downloaded, whether it is an OpenFreeMap vector style (style, sprite, glyphs and the vector tiles for the trip's area) or a raster template. Mapbox GL tiles are not pre-downloaded. With map-tile storage off, individually viewed tiles may still be cached opportunistically by the service worker.
 
 ## See also
 

@@ -1778,11 +1778,11 @@ describe('useTripPlanner — booking import review', () => {
 })
 
 describe('useTripPlanner — misc state', () => {
-  it('FE-TP-HOOK-095: the map tile url falls back to the Carto basemap', async () => {
+  it('FE-TP-HOOK-095: the map tile url falls back to the default basemap', async () => {
     seedTrip()
 
     const { result } = await renderPlanner()
-    expect(result.current.mapTileUrl).toContain('basemaps.cartocdn.com')
+    expect(result.current.mapTileUrl).toContain('openfreemap.org')
 
     act(() => { setSettings({ map_tile_url: 'https://tiles/{z}/{x}/{y}.png' }) })
     expect(result.current.mapTileUrl).toBe('https://tiles/{z}/{x}/{y}.png')

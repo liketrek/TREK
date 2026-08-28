@@ -3,7 +3,7 @@ import { MapViewAuto } from '../Map/MapViewAuto'
 import type { CollectionPlace } from '@trek/shared'
 import { mappablePlaces } from '../../pages/collections/collectionsModel'
 import { useTileUrl } from '../../hooks/useTileUrl'
-import { CARTO_DARK, CARTO_LIGHT } from '../../constants/mapDefaults'
+import { OFM_DARK, OFM_POSITRON } from '../../constants/mapDefaults'
 
 interface CollectionMapProps {
   places: CollectionPlace[]
@@ -22,7 +22,7 @@ interface CollectionMapProps {
  */
 export default function CollectionMap({ places, selectedPlaceId, onOpenPlace, onDeselect, dark }: CollectionMapProps): React.ReactElement {
   const pts = mappablePlaces(places)
-  const tileUrl = useTileUrl(dark ? CARTO_DARK : CARTO_LIGHT)
+  const tileUrl = useTileUrl(dark ? OFM_DARK : OFM_POSITRON)
 
   return (
     <div style={{ width: '100%', height: '100%' }}>
