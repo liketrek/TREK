@@ -5,6 +5,7 @@ import {
   MCP_TOOLS_MAX,
   McpToolSchemaError,
   TOOL_NAME_RE,
+  buildToolInputSchema,
   normaliseToolSchema,
   sanitiseToolText,
 } from '../mcp-tool-schema';
@@ -480,6 +481,10 @@ export function parseMcpToolCapabilities(raw: unknown): McpToolCapability[] {
     try {
       const text = sanitiseToolText(t.title, t.description);
       const inputSchema = normaliseToolSchema(t.inputSchema);
+      // Build the validator here purely so an unenforceable keyword fails the
+      // INSTALL, loudly, rather than at advertise time where the per-plugin
+      // catch would turn it into a tool that silently never appears.
+      buildToolInputSchema(inputSchema);
       tools.push({
         name,
         ...text,

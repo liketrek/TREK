@@ -7,7 +7,7 @@ import type { OAuthRegisteredClientsStore } from '@modelcontextprotocol/sdk/serv
 import { InvalidClientMetadataError, ServerError } from '@modelcontextprotocol/sdk/server/auth/errors';
 import { OauthService } from './oauth.service';
 import { AuditService } from '../audit/audit.service';
-import { ALL_SCOPES } from '../../mcp/scopes';
+import { ALL_SCOPES, DEFAULT_CLIENT_SCOPES } from '../../mcp/scopes';
 import { getMcpSafeUrl } from '../../app-config';
 
 /**
@@ -82,9 +82,11 @@ export class TrekClientsStore implements OAuthRegisteredClientsStore {
         const isPublic = metadata.token_endpoint_auth_method === 'none';
         const name = (typeof metadata.client_name === 'string' ? metadata.client_name.trim() : '').slice(0, 100) || 'MCP Client';
 
-        // When scope is absent (ChatGPT DCR), default to all scopes.
-        // The user still grants only what they approve at the consent screen.
-        const rawScopes = metadata.scope ? metadata.scope.split(' ') : ALL_SCOPES;
+        // When scope is absent (ChatGPT DCR), default to the safe set rather than
+        // everything: an opt-in-only scope like plugins:use would otherwise be
+        // pre-selected on the consent screen for a client that never asked for
+        // it, and "the user approves it" is not consent to a default nobody chose.
+        const rawScopes = metadata.scope ? metadata.scope.split(' ') : DEFAULT_CLIENT_SCOPES;
         const scopes = rawScopes.filter(s => (ALL_SCOPES as string[]).includes(s));
         if (scopes.length === 0) throw new InvalidClientMetadataError('No valid scopes requested');
 

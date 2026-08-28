@@ -1630,7 +1630,11 @@ function PluginDetailSheet({ item, installed, busy, onInstall, onClose, t, local
                     <Bot size={15} className="text-accent mt-0.5 shrink-0" />
                     <div className="min-w-0">
                       <code className="text-[12px] font-mono text-content">{tool.name}</code>
-                      <p className="text-[12.5px] text-content-secondary leading-snug">{tool.title || tool.description}</p>
+                      {tool.title && <p className="text-[12.5px] font-medium text-content leading-snug">{tool.title}</p>}
+                      {/* The description is the assistant-facing text: it is what the
+                          model reads to decide whether to call the tool, so it is the
+                          line an admin most needs to see. Never hidden behind a title. */}
+                      <p className="text-[12.5px] text-content-secondary leading-snug">{tool.description}</p>
                     </div>
                   </li>
                 ))}

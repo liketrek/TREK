@@ -26,7 +26,7 @@ import { InvalidClientMetadataError, ServerError } from '@modelcontextprotocol/s
 import { TrekClientsStore, TrekOAuthProvider } from '../../../src/nest/oauth/oauth-sdk.provider';
 import { OauthModule } from '../../../src/nest/oauth/oauth.module';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import { ALL_SCOPES } from '../../../src/mcp/scopes';
+import { ALL_SCOPES, DEFAULT_CLIENT_SCOPES, OPT_IN_ONLY_SCOPES } from '../../../src/mcp/scopes';
 import type { OauthService } from '../../../src/nest/oauth/oauth.service';
 import type { AuditService } from '../../../src/nest/audit/audit.service';
 import type { OAuthClientInformationFull } from '@modelcontextprotocol/sdk/shared/auth';
@@ -179,12 +179,35 @@ describe('TrekClientsStore.registerClient', () => {
     expect(vi.mocked(oauth.createOAuthClient).mock.calls[1][1]).toBe('x'.repeat(100));
   });
 
-  it('SDKP-015: absent scope defaults to every scope (consent still narrows later)', async () => {
+  it('SDKP-015: absent scope defaults to the safe set, not every scope', async () => {
     const oauth = makeOauth();
     await new TrekClientsStore(oauth).registerClient({
       redirect_uris: ['https://a.example.com/cb'], token_endpoint_auth_method: 'none',
     } as never);
-    expect(vi.mocked(oauth.createOAuthClient).mock.calls[0][3]).toEqual(ALL_SCOPES);
+    expect(vi.mocked(oauth.createOAuthClient).mock.calls[0][3]).toEqual(DEFAULT_CLIENT_SCOPES);
+  });
+
+  it('SDKP-015b: an opt-in-only scope is never handed out by the default', async () => {
+    // A scope in the default set is PRE-SELECTED on the consent screen, so
+    // "the user still approves it" is not consent to a default nobody asked
+    // for. plugins:use runs third-party code as the caller.
+    const oauth = makeOauth();
+    await new TrekClientsStore(oauth).registerClient({
+      redirect_uris: ['https://a.example.com/cb'], token_endpoint_auth_method: 'none',
+    } as never);
+    const granted = vi.mocked(oauth.createOAuthClient).mock.calls[0][3] as string[];
+    expect(OPT_IN_ONLY_SCOPES.length).toBeGreaterThan(0);
+    for (const scope of OPT_IN_ONLY_SCOPES) expect(granted).not.toContain(scope);
+    // Still reachable when a client asks for it by name.
+    expect(ALL_SCOPES).toContain('plugins:use');
+  });
+
+  it('SDKP-015c: a client that names plugins:use still gets it', async () => {
+    const oauth = makeOauth();
+    await new TrekClientsStore(oauth).registerClient({
+      redirect_uris: ['https://a.example.com/cb'], scope: 'trips:read plugins:use',
+    } as never);
+    expect(vi.mocked(oauth.createOAuthClient).mock.calls[0][3]).toEqual(['trips:read', 'plugins:use']);
   });
 
   it('SDKP-016: unknown scopes are filtered; nothing valid left is an error', async () => {

@@ -15,6 +15,8 @@ import { Injectable } from '@nestjs/common';
 import fs from 'node:fs';
 import path from 'node:path';
 import semver from 'semver';
+import { MCP_TOOLS_MAX, TOOL_DESCRIPTION_MAX, TOOL_TITLE_MAX } from '../mcp-tool-schema';
+import { sanitiseAssistantText } from '../text-sanitize';
 
 /**
  * TREK-side of the plugin registry (#plugins, M5). Fetches the single aggregated
@@ -122,7 +124,17 @@ export interface ManifestPreview {
    * The UI-facing slice of `capabilities`. A plugin that replaces planner tabs hides core
    * UI, so the reviewer has to see it BEFORE installing, not only on the installed row.
    */
-  capabilities: { widget?: { slot?: string }; tripPage?: { replaces?: string[] } };
+  capabilities: {
+    widget?: { slot?: string };
+    tripPage?: { replaces?: string[] };
+    /**
+     * The tools this plugin will publish into every user's assistant context if
+     * `mcp:tools` is granted. Carried in the PREVIEW, not just on the installed
+     * row, because the whole point is that an admin reads the text before
+     * approving the grant rather than meeting it later inside a chat.
+     */
+    mcpTools?: Array<{ name: string; title?: string; description: string }>;
+  };
 }
 
 let _cache: { data: Registry; expiresAt: number } | null = null;
@@ -769,7 +781,14 @@ function trekRequirement(v: RegistryVersion): string {
  * empty lists instead of throwing — a future manifest field must never break
  * browsing (strict validation happens against the downloaded artifact instead).
  */
-function previewManifest(raw: unknown): ManifestPreview {
+/**
+ * The reviewer-facing slice of a registry manifest.
+ *
+ * Exported for its unit test: this function is the reason the admin dialog can
+ * show anything at all before install, and a field it forgets to carry makes
+ * the corresponding UI section silently dead.
+ */
+export function previewManifest(raw: unknown): ManifestPreview {
   const m = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const operatorEgress = m.operatorEgress === true;
   const strings = (v: unknown): string[] =>
@@ -808,6 +827,23 @@ function previewManifest(raw: unknown): ManifestPreview {
   const capabilities: ManifestPreview['capabilities'] = {};
   if (widget) capabilities.widget = typeof widget.slot === 'string' ? { slot: widget.slot } : {};
   if (tripPage) capabilities.tripPage = { replaces: strings(tripPage.replaces) };
+  // Sanitised here too. This text comes from a registry entry the host has not
+  // installed or verified yet, and it is about to be rendered in the admin's
+  // own chrome, so it gets the same treatment as the advertised copy rather
+  // than being trusted because it came from the registry.
+  if (Array.isArray(rawCaps.mcpTools)) {
+    const tools = rawCaps.mcpTools
+      .filter((t): t is Record<string, unknown> => !!t && typeof t === 'object' && !Array.isArray(t))
+      .slice(0, MCP_TOOLS_MAX)
+      .map((t) => ({
+        name: sanitiseAssistantText(t.name, 96),
+        title: sanitiseAssistantText(t.title, TOOL_TITLE_MAX),
+        description: sanitiseAssistantText(t.description, TOOL_DESCRIPTION_MAX),
+      }))
+      .filter((t) => t.name)
+      .map((t) => ({ name: t.name, ...(t.title ? { title: t.title } : {}), description: t.description }));
+    if (tools.length) capabilities.mcpTools = tools;
+  }
 
   return {
     permissions: strings(m.permissions),

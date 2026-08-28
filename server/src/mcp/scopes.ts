@@ -62,6 +62,25 @@ export type ScopeGroup = Scope extends `${infer G}:${string}` ? G : never;
 
 export const ALL_SCOPES: Scope[] = Object.values(SCOPES) as Scope[];
 
+/**
+ * Scopes a client must ask for BY NAME, never handed out by a default.
+ *
+ * plugins:use runs third-party code as the caller. Nobody registering an MCP
+ * client intends to turn that on implicitly, so it is excluded from the DCR
+ * fallback below and from the client-side presets (see PRESET_OPT_IN_ONLY in
+ * client/src/api/oauthScopes.ts). Asking for it explicitly still works.
+ */
+export const OPT_IN_ONLY_SCOPES: readonly Scope[] = ['plugins:use'];
+
+/**
+ * What a Dynamic Client Registration gets when it names no scopes at all.
+ *
+ * The consent screen is a second gate, not the only one: a scope in this list
+ * is pre-selected there, so "the user still approves it" is not a reason to
+ * include something they never asked for.
+ */
+export const DEFAULT_CLIENT_SCOPES: Scope[] = ALL_SCOPES.filter((s) => !OPT_IN_ONLY_SCOPES.includes(s));
+
 export interface ScopeInfo {
   label: string;
   description: string;

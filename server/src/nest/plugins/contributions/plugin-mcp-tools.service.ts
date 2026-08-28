@@ -28,17 +28,23 @@ import {
 import { sanitiseAssistantText } from '../text-sanitize';
 import { setPluginMcpToolSource } from '../../../plugin-mcp-tools';
 
-import { demoDenied, errorResult, ok, type McpContext, type McpDynamicTool, type McpTextResult } from '../../../nest-mcp';
+import { demoDenied, errorResult, type McpContext, type McpDynamicTool, type McpTextResult } from '../../../nest-mcp';
 
 /** The hook a plugin implements to publish tools. */
 const HOOK = 'mcpToolProvider';
 
 /**
- * Ceiling on one tool result, in characters. A plugin must not be able to flood
- * the assistant's context, and a result this large is a bug on the plugin's side
- * rather than something a model can use.
+ * Ceiling on a WHOLE tool result, in characters, across every content block.
+ * A plugin must not be able to flood the assistant's context, and a result this
+ * large is a bug on the plugin's side rather than something a model can use.
  */
 const RESULT_MAX = 64 * 1024;
+
+/**
+ * Ceiling on content blocks in one result. Without it, the byte budget alone
+ * still lets a plugin return tens of thousands of empty blocks.
+ */
+const RESULT_BLOCKS_MAX = 32;
 
 /** Error text a plugin produced, bounded before it reaches the model. */
 const RESULT_ERROR_MAX = 300;
@@ -175,25 +181,77 @@ function isTextResult(v: unknown): v is McpTextResult {
 }
 
 /**
+ * Trim a list of text blocks so the WHOLE result fits the budget.
+ *
+ * Per-block slicing is not a limit: a hundred blocks of the maximum size is a
+ * hundred times the maximum. The budget is spent in order and the first block
+ * that does not fit is truncated, so a plugin returning one huge blob and one
+ * returning many small ones cost the assistant the same.
+ */
+function fitToBudget(blocks: Array<{ type: 'text'; text: string }>): Array<{ type: 'text'; text: string }> {
+  const out: Array<{ type: 'text'; text: string }> = [];
+  let left = RESULT_MAX;
+  let dropped = 0;
+  for (const block of blocks.slice(0, RESULT_BLOCKS_MAX)) {
+    if (left <= 0) {
+      dropped += 1;
+      continue;
+    }
+    const text = block.text.length > left ? block.text.slice(0, left) : block.text;
+    left -= text.length;
+    out.push({ type: 'text', text });
+  }
+  dropped += Math.max(0, blocks.length - RESULT_BLOCKS_MAX);
+  if (dropped > 0) {
+    out.push({ type: 'text', text: `[truncated: ${dropped} more content block(s) omitted]` });
+  }
+  return out;
+}
+
+/**
  * Whatever the plugin returned, as a result the SDK and every client accept.
  * Exported for the tests, which is where the shapes are enumerated.
  */
 export function toMcpTextResult(raw: unknown): McpTextResult {
   if (isTextResult(raw)) {
-    const content = raw.content
+    const blocks = raw.content
       .filter((c): c is { type: 'text'; text: string } => !!c && (c as { type?: unknown }).type === 'text')
-      .map((c) => ({ type: 'text' as const, text: String(c.text ?? '').slice(0, RESULT_MAX) }));
+      .map((c) => ({ type: 'text' as const, text: String(c.text ?? '') }));
     // A content array we cannot read is worse than none: fall through and
     // serialise the whole thing rather than emit an empty result.
-    if (content.length) return { content, ...(raw.isError === true ? { isError: true as const } : {}) };
+    if (blocks.length) {
+      return { content: fitToBudget(blocks), ...(raw.isError === true ? { isError: true as const } : {}) };
+    }
   }
-  if (typeof raw === 'string') return { content: [{ type: 'text', text: raw.slice(0, RESULT_MAX) }] };
+  if (typeof raw === 'string') return { content: fitToBudget([{ type: 'text', text: raw }]) };
   try {
-    const result = ok(raw);
-    const [first] = result.content;
-    return { content: [{ type: 'text', text: String(first?.text ?? '').slice(0, RESULT_MAX) }] };
+    // Serialised with a budget rather than stringified whole and then sliced: a
+    // plugin returning a 200 MB object should not cost the host that string
+    // before the cap is applied.
+    return { content: fitToBudget([{ type: 'text', text: serialiseBounded(raw) }]) };
   } catch {
-    // JSON.stringify throws on a cycle or a BigInt.
+    // JSON.stringify still throws on a cycle or a BigInt.
     return errorResult('The plugin returned a value that could not be serialised.');
   }
+}
+
+/**
+ * JSON.stringify, abandoned once the output passes the budget.
+ *
+ * The replacer runs per value, so a runaway structure is cut off while it is
+ * being built instead of after. Throws exactly like JSON.stringify on a cycle
+ * or a BigInt, so the caller's catch still handles those.
+ */
+function serialiseBounded(value: unknown): string {
+  let budget = RESULT_MAX;
+  const text = JSON.stringify(value, (_key, v: unknown) => {
+    if (budget <= 0) return undefined;
+    if (typeof v === 'string') {
+      budget -= v.length;
+      return budget <= 0 ? v.slice(0, Math.max(0, v.length + budget)) : v;
+    }
+    budget -= 8; // rough cost of a number, boolean, or structural token
+    return v;
+  }, 2);
+  return text ?? '';
 }

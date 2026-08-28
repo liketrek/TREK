@@ -221,4 +221,27 @@ describe('toMcpTextResult', () => {
     const res = toMcpTextResult(huge);
     expect(res.content[0].text.length).toBeLessThanOrEqual(64 * 1024);
   });
+
+  it('MCPTOOLS-020: the budget covers the WHOLE result, not each block', () => {
+    // Per-block slicing is not a limit: 100 blocks of the maximum size is 100
+    // times the maximum. This shape produced 6.5M characters before the fix.
+    const many = { content: Array.from({ length: 100 }, () => ({ type: 'text', text: 'x'.repeat(200_000) })) };
+    const res = toMcpTextResult(many);
+    const total = res.content.reduce((n, c) => n + c.text.length, 0);
+    expect(total).toBeLessThan(70 * 1024);
+  });
+
+  it('MCPTOOLS-021: caps the number of content blocks and says it truncated', () => {
+    const many = { content: Array.from({ length: 500 }, (_, i) => ({ type: 'text', text: `b${i}` })) };
+    const res = toMcpTextResult(many);
+    expect(res.content.length).toBeLessThanOrEqual(33);
+    expect(res.content[res.content.length - 1].text).toContain('truncated');
+  });
+
+  it('MCPTOOLS-022: bounds a huge object without serialising it whole first', () => {
+    const fat = { rows: Array.from({ length: 20_000 }, (_, i) => ({ i, blob: 'y'.repeat(500) })) };
+    const res = toMcpTextResult(fat);
+    const total = res.content.reduce((n, c) => n + c.text.length, 0);
+    expect(total).toBeLessThan(70 * 1024);
+  });
 });

@@ -34,6 +34,19 @@ export interface ManifestCapabilities {
   tripPage?: { replaces?: string[]; position?: number };
   notificationChannel?: { title?: string; events?: string[] };
   routeProfiles?: Array<{ id: string; label: string; icon?: string }>;
+  /** MCP tools published via the mcpToolProvider hook. Requires `mcp:tools`. */
+  mcpTools?: Array<{
+    name: string;
+    title?: string;
+    description: string;
+    inputSchema?: Record<string, unknown>;
+    annotations?: {
+      readOnlyHint?: boolean;
+      destructiveHint?: boolean;
+      idempotentHint?: boolean;
+      openWorldHint?: boolean;
+    };
+  }>;
   provides?: string[];
   emits?: string[];
 }
