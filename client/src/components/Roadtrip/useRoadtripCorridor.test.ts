@@ -48,7 +48,8 @@ const routes = (days: RoadtripDay[]): RoadtripRoutes => ({
 
 /** What the corridor hook was handed on the last render. */
 const lastCall = (): { line: LatLng[]; categories: string[]; widthKm: number } => {
-  const call = useCorridorPois.mock.calls.at(-1)!
+  const calls = useCorridorPois.mock.calls
+  const call = calls[calls.length - 1]
   return { line: call[0], categories: call[1], widthKm: call[2] }
 }
 
