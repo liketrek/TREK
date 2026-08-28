@@ -57,6 +57,9 @@ export function distanceToSegmentKm(p: LatLng, a: LatLng, b: LatLng): number {
  * the drive — taking the segment's midpoint instead makes every petrol station on a long
  * straight report the same position.
  */
+/** A segment shorter than a millimetre, squared — below this there is nothing to project onto. */
+const DEGENERATE_SEGMENT_KM2 = 1e-12
+
 export function projectOnSegment(p: LatLng, a: LatLng, b: LatLng): { distanceKm: number; t: number } {
   const latScale = KM_PER_DEG_LAT
   const lngScale = KM_PER_DEG_LAT * Math.cos(toRad((a.lat + b.lat) / 2))
@@ -69,7 +72,10 @@ export function projectOnSegment(p: LatLng, a: LatLng, b: LatLng): { distanceKm:
   const dx = bx - ax
   const dy = by - ay
   const lenSq = dx * dx + dy * dy
-  if (lenSq === 0) return { distanceKm: haversineKm(p, a), t: 0 }
+  // A segment whose two ends are the same point to within a millimetre has no
+  // direction to project onto, so measure straight to it. Written as a range because
+  // the ends came through a chain of floating point arithmetic and never land on 0.
+  if (lenSq < DEGENERATE_SEGMENT_KM2) return { distanceKm: haversineKm(p, a), t: 0 }
   // Clamped so a point beside the segment's end measures to the end, not to the
   // infinite line — otherwise a stop 200 km past the destination looks "on the way".
   const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq))
@@ -117,6 +123,31 @@ export function projectOntoRoute(p: LatLng, line: LatLng[]): CorridorHit | null 
  * rather than sent as one. Boxes are grown along the route until one would exceed the
  * span, so a straight motorway needs far fewer requests than a mountain road.
  */
+/**
+ * Splits a step that is longer than a box into even pieces.
+ *
+ * The simplifier is right to reduce a dead straight motorway stretch to its two ends,
+ * but tiling walks point to point: two ends 100 km apart produce a box at each end and
+ * nothing in between, so the middle of the drive would never be searched.
+ */
+function densify(line: LatLng[], maxStepDeg: number): LatLng[] {
+  if (line.length < 2) return line
+  const out: LatLng[] = [line[0]]
+  for (let i = 1; i < line.length; i++) {
+    const a = line[i - 1]
+    const b = line[i]
+    const span = Math.max(Math.abs(b.lat - a.lat), Math.abs(b.lng - a.lng))
+    const steps = Math.max(1, Math.ceil(span / maxStepDeg))
+    for (let s = 1; s <= steps; s++) {
+      out.push({
+        lat: a.lat + ((b.lat - a.lat) * s) / steps,
+        lng: a.lng + ((b.lng - a.lng) * s) / steps,
+      })
+    }
+  }
+  return out
+}
+
 export function corridorTiles(line: LatLng[], widthKm: number, maxSpanDeg = 0.45): Bbox[] {
   if (line.length === 0) return []
   const padLat = widthKm / KM_PER_DEG_LAT
@@ -136,7 +167,7 @@ export function corridorTiles(line: LatLng[], widthKm: number, maxSpanDeg = 0.45
     }
   }
 
-  for (const p of line) {
+  for (const p of densify(line, maxSpanDeg / 2)) {
     if (!current) {
       current = { south: p.lat, north: p.lat, west: p.lng, east: p.lng }
       continue

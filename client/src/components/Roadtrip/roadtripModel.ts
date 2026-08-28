@@ -74,6 +74,27 @@ export interface Schedule {
  * `legSeconds[i]` is the drive from stop i to stop i+1; a leg that never routed is
  * `undefined` and breaks the chain rather than inventing a duration.
  */
+/**
+ * Where a stop's clock actually starts.
+ *
+ * A pinned time wins over whatever the drive before it worked out and restarts the
+ * cascade from there. When it sits before the arrival the drive implies, the plan does
+ * not fit: the caller is told by how much rather than the pinned time being moved.
+ */
+function resolveArrival(
+  anchor: number | null,
+  cursor: number | null,
+  dayOffset: number,
+): { arrival: number | null; lateBy: number | null } {
+  if (anchor === null) return { arrival: cursor, lateBy: null }
+  if (cursor === null) return { arrival: anchor, lateBy: null }
+  const anchorToday = anchor + dayOffset * 24 * 60
+  return {
+    arrival: anchorToday,
+    lateBy: cursor > anchorToday + 1 ? Math.round(cursor - anchorToday) : null,
+  }
+}
+
 export function computeSchedule(stops: ScheduleStop[], legSeconds: (number | undefined)[]): Schedule {
   const entries: ScheduleEntry[] = []
   const warnings: ScheduleWarning[] = []
@@ -84,20 +105,8 @@ export function computeSchedule(stops: ScheduleStop[], legSeconds: (number | und
   for (let i = 0; i < stops.length; i++) {
     const stop = stops[i]
     const anchor = parseClock(stop.anchor)
-    let arrival: number | null = cursor
-
-    if (anchor !== null) {
-      if (arrival !== null) {
-        const anchorToday = anchor + dayOffset * 24 * 60
-        // The pinned time is in the past relative to the drive: the plan does not fit.
-        if (arrival > anchorToday + 1) {
-          warnings.push({ index: i, code: 'late', minutes: Math.round(arrival - anchorToday) })
-        }
-        arrival = anchorToday
-      } else {
-        arrival = anchor
-      }
-    }
+    const { arrival, lateBy } = resolveArrival(anchor, cursor, dayOffset)
+    if (lateBy !== null) warnings.push({ index: i, code: 'late', minutes: lateBy })
 
     if (arrival === null) {
       entries.push({ arrival: null, departure: null, anchored: false, dayOffset: 0 })

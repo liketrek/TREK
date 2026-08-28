@@ -102,6 +102,31 @@ describe('corridorTiles', () => {
     expect(north.east - north.west).toBeGreaterThan(south.east - south.west)
   })
 
+  it('covers the middle of a long straight leg, not only its two ends', () => {
+    // A motorway with no bend in it reduces to two points, 250 km apart. Tiling walks
+    // point to point, so without splitting the step everything between them goes
+    // unsearched while the search still reports itself complete.
+    const straight = [{ lat: 53.55, lng: 9.99 }, { lat: 52.52, lng: 13.4 }]
+    const tiles = corridorTiles(straight, 10)
+
+    expect(tiles.length).toBeGreaterThan(4)
+    // A box somewhere over the middle of the drive, which is what was missing.
+    const midLat = 53.03
+    const midLng = 11.7
+    expect(tiles.some(t => t.south <= midLat && t.north >= midLat && t.west <= midLng && t.east >= midLng)).toBe(true)
+  })
+
+  it('leaves no gap between consecutive boxes along a route', () => {
+    const tiles = corridorTiles([{ lat: 53.55, lng: 9.99 }, { lat: 52.52, lng: 13.4 }], 10)
+    for (let i = 1; i < tiles.length; i++) {
+      const a = tiles[i - 1]
+      const b = tiles[i]
+      // Overlapping or touching in both axes: a hole here is a stretch nobody looks at.
+      expect(Math.min(a.north, b.north) - Math.max(a.south, b.south)).toBeGreaterThanOrEqual(0)
+      expect(Math.min(a.east, b.east) - Math.max(a.west, b.west)).toBeGreaterThanOrEqual(0)
+    }
+  })
+
   it('has nothing to cover for an empty route', () => {
     expect(corridorTiles([], 10)).toEqual([])
   })

@@ -1029,7 +1029,7 @@ export class MapsService {
     const osmLang = toApiLang(lang).split('-')[0].toLowerCase();
 
     // Serve repeat pans/toggles of the same area straight from the cache.
-    const cacheKey = `${[...categories].sort().join('+')}|${osmLang}|${south.toFixed(2)},${west.toFixed(2)},${north.toFixed(2)},${east.toFixed(2)}|${cap}`;
+    const cacheKey = `${[...categories].sort((a, b) => a.localeCompare(b)).join('+')}|${osmLang}|${south.toFixed(2)},${west.toFixed(2)},${north.toFixed(2)},${east.toFixed(2)}|${cap}`;
     const cached = POI_CACHE.get(cacheKey);
     if (cached && Date.now() - cached.at < POI_CACHE_TTL_MS) return cached.value;
     if (cached) POI_CACHE.delete(cacheKey); // expired — drop it before refetching
