@@ -34,7 +34,8 @@ const { db } = vi.hoisted(() => {
       day_number INTEGER NOT NULL, date TEXT NOT NULL, notes TEXT, title TEXT);
     CREATE TABLE places (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
       name TEXT NOT NULL, address TEXT, lat REAL, lng REAL, category_id INTEGER,
-      place_time TEXT, end_time TEXT, duration_minutes INTEGER, notes TEXT, transport_mode TEXT);
+      place_time TEXT, end_time TEXT, duration_minutes INTEGER, notes TEXT, transport_mode TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL);
     CREATE TABLE day_assignments (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
       place_id INTEGER NOT NULL, order_index INTEGER NOT NULL DEFAULT 0);
@@ -47,6 +48,9 @@ const { db } = vi.hoisted(() => {
       day_id INTEGER, end_day_id INTEGER, place_id INTEGER, assignment_id INTEGER, title TEXT,
       accommodation_id TEXT, reservation_time TEXT, reservation_end_time TEXT, location TEXT,
       confirmation_number TEXT, notes TEXT, status TEXT, type TEXT);
+    CREATE TABLE bucket_list (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
+      name TEXT NOT NULL, lat REAL, lng REAL, country_code TEXT, notes TEXT,
+      target_date TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   `);
   return { db: tmp };
 });
@@ -128,6 +132,12 @@ describe('Public API v1 e2e (real guard + real SQL)', () => {
     db.prepare("INSERT INTO places (id, trip_id, name) VALUES (3, 1, 'Hotel Alba')").run();
     // Deliberately inserted out of order to prove order_index decides the sequence.
     db.prepare('INSERT INTO day_assignments (day_id, place_id, order_index) VALUES (1, 2, 1)').run();
+    // Ein Ort auf der Shortlist: Koordinaten, aber noch kein Tag.
+    db.prepare("INSERT INTO places (id, trip_id, name, lat, lng, notes) VALUES (4, 1, 'Boboli-Garten', 43.762, 11.248, 'vielleicht')").run();
+    // Eine Buchung, die keinen Tag (mehr) hat.
+    db.prepare("INSERT INTO reservations (trip_id, day_id, type, title, location, reservation_time, status) VALUES (1, NULL, 'flight', 'LH 1234', 'FRA', '2026-06-14T08:00', 'confirmed')").run();
+    db.prepare("INSERT INTO bucket_list (user_id, name, lat, lng, country_code, notes, target_date) VALUES (1, 'Hokkaido', 43.06, 141.35, 'JP', 'im Winter', '2027-02-01')").run();
+    db.prepare("INSERT INTO bucket_list (user_id, name, lat, lng) VALUES (2, 'Bobs Traumziel', 1.0, 2.0)").run();
     db.prepare('INSERT INTO day_assignments (day_id, place_id, order_index) VALUES (1, 1, 0)').run();
     db.prepare("INSERT INTO day_notes (day_id, trip_id, text, time, sort_order) VALUES (1, 1, 'Tickets mitnehmen', '09:00', 0)").run();
     db.prepare(
@@ -267,6 +277,39 @@ describe('Public API v1 e2e (real guard + real SQL)', () => {
       expect(JSON.stringify(res.body)).not.toContain('@example.com');
     });
 
+    it('returns shortlisted places, which are half of a real trip', async () => {
+      const res = await get('/api/v1/trips/1?include=places', ADA_TOKEN);
+      expect(res.status).toBe(200);
+      expect(res.body.unplanned_places).toEqual([
+        expect.objectContaining({ name: 'Boboli-Garten', lat: 43.762, lng: 11.248, notes: 'vielleicht' }),
+      ]);
+      // Hotel Alba has no day either, but it is the accommodation and is
+      // reported there — a shortlist that includes your hotel is not a shortlist.
+      expect(res.body.unplanned_places.map((p: { name: string }) => p.name)).not.toContain('Hotel Alba');
+      // And the scheduled ones still sit on their day, not in both places.
+      expect(res.body.days[0].places.map((p: { name: string }) => p.name)).toEqual(['Uffizien', 'Ponte Vecchio']);
+    });
+
+    it('returns bookings that lost their day instead of dropping them', async () => {
+      const res = await get('/api/v1/trips/1?include=reservations', ADA_TOKEN);
+      expect(res.status).toBe(200);
+      expect(res.body.unscheduled_reservations).toEqual([
+        expect.objectContaining({ type: 'flight', title: 'LH 1234', location: 'FRA' }),
+      ]);
+    });
+
+    it('implies days when asked for something that lives on one', async () => {
+      // The section Evgenii named first. Before days were implied this answered
+      // the trip summary and nothing else, without saying so.
+      const res = await get('/api/v1/trips/1?include=notes', ADA_TOKEN);
+      expect(res.status).toBe(200);
+      expect(res.body.days).toBeDefined();
+      expect(res.body.days[0].day_notes.length).toBeGreaterThan(0);
+      // Still only what was asked for: no places came along for the ride.
+      expect(res.body.days[0].places).toEqual([]);
+      expect(res.body.unplanned_places).toBeUndefined();
+    });
+
     it('never exposes internal ids or foreign keys', async () => {
       const res = await get('/api/v1/trips/1', ADA_TOKEN);
       const serialised = JSON.stringify(res.body);
@@ -291,6 +334,29 @@ describe('Public API v1 e2e (real guard + real SQL)', () => {
 
     it('400s on a non-numeric trip id', async () => {
       expect((await get('/api/v1/trips/abc', ADA_TOKEN)).status).toBe(400);
+    });
+  });
+
+  describe('bucket list', () => {
+    it("returns the caller's own wishlist, with coordinates", async () => {
+      const res = await get('/api/v1/bucket-list', ADA_TOKEN);
+      expect(res.status).toBe(200);
+      expect(res.body.items).toEqual([
+        { name: 'Hokkaido', lat: 43.06, lng: 141.35, country_code: 'JP', notes: 'im Winter', target_date: '2027-02-01' },
+      ]);
+    });
+
+    it("does not leak another user's wishlist", async () => {
+      const res = await get('/api/v1/bucket-list', BOB_TOKEN);
+      expect(res.status).toBe(200);
+      expect(res.body.items).toEqual([
+        { name: 'Bobs Traumziel', lat: 1, lng: 2, country_code: null, notes: null, target_date: null },
+      ]);
+    });
+
+    it('needs a token like everything else here', async () => {
+      const res = await request(server).get('/api/v1/bucket-list');
+      expect(res.status).toBe(401);
     });
   });
 });

@@ -25,6 +25,15 @@ const TRIP = {
   updated_at: '2026-06-01 10:00:00',
 };
 
+const ITEM = {
+  name: 'Hokkaido',
+  lat: 43.06,
+  lng: 141.35,
+  country_code: 'JP',
+  notes: null,
+  target_date: null,
+};
+
 /** The limiter always allows unless a test says otherwise. */
 function makeController(svc: Partial<PublicApiService>, allow = true) {
   const rl = { check: vi.fn().mockReturnValue(allow) } as unknown as RateLimitService;
@@ -47,6 +56,29 @@ function thrown(fn: () => unknown): { status: number; body: unknown } {
 }
 
 describe('PublicApiController', () => {
+  describe('GET /api/v1/bucket-list', () => {
+    it('returns the caller’s wishlist and passes the id from the guard, never the query', () => {
+      const listBucketList = vi.fn().mockReturnValue([ITEM]);
+      expect(makeController({ listBucketList }).listBucketList(req(7))).toEqual({ items: [ITEM] });
+      expect(listBucketList).toHaveBeenCalledWith(7);
+    });
+
+    it('401s when the guard left no user behind', () => {
+      const listBucketList = vi.fn();
+      expect(thrown(() => makeController({ listBucketList }).listBucketList(reqWithoutUser()))).toEqual({
+        status: 401,
+        body: { error: 'API token required', code: 'API_TOKEN_REQUIRED' },
+      });
+      expect(listBucketList).not.toHaveBeenCalled();
+    });
+
+    it('counts against the same rate budget as everything else', () => {
+      const listBucketList = vi.fn();
+      expect(thrown(() => makeController({ listBucketList }, false).listBucketList(req(7))).status).toBe(429);
+      expect(listBucketList).not.toHaveBeenCalled();
+    });
+  });
+
   describe('GET /api/v1/trips', () => {
     it('returns the accessible trips for the token owner', () => {
       const listTrips = vi.fn().mockReturnValue([TRIP]);

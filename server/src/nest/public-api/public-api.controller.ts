@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import {
   PUBLIC_API_INCLUDES,
   publicApiIncludeQuerySchema,
+  type PublicApiBucketList,
   type PublicApiInclude,
   type PublicApiTrip,
   type PublicApiTripList,
@@ -64,6 +65,19 @@ export class PublicApiController {
   }
 
   /**
+   * The caller's bucket list: places they want to reach, with no trip attached.
+   *
+   * Its own endpoint rather than an `include`, because it hangs off the user and
+   * not off any trip. For a consumer that knows where someone has actually been,
+   * this is the one list in TREK it can answer questions about.
+   */
+  @Get('bucket-list')
+  listBucketList(@Req() req: Request): PublicApiBucketList {
+    this.limit(req);
+    return { items: this.api.listBucketList(requireUserId(req)) };
+  }
+
+  /**
    * One trip, with the sections named in `?include=`.
    *
    * A trip the caller may not read answers 404, identical to one that does not
@@ -122,6 +136,10 @@ function parseTripId(raw: string): number {
  * An unknown section is a 400 rather than being ignored: silently dropping a typo
  * would hand the caller a payload that is missing exactly what they asked for, and
  * they would debug their own code for it.
+ *
+ * `places`, `notes` and `reservations` are reported on days, so asking for one of
+ * them brings `days` along; the service handles that rather than this parser, so
+ * the echo of what the caller asked for stays honest.
  */
 function parseInclude(raw?: string): PublicApiInclude[] {
   if (raw === undefined || raw.trim() === '') return [...PUBLIC_API_INCLUDES];

@@ -106,6 +106,32 @@ export const publicApiTravellerSchema = z.object({
 });
 export type PublicApiTraveller = z.infer<typeof publicApiTravellerSchema>;
 
+/**
+ * An entry on the traveller's bucket list: somewhere they want to go, with no
+ * trip attached yet.
+ *
+ * Lives on the user rather than on a trip, which is why it has its own endpoint
+ * rather than an `include`. It is the one part of TREK that is explicitly about
+ * places not yet visited, so a consumer that knows where someone actually went
+ * can tell them they got there.
+ */
+export const publicApiBucketListItemSchema = z.object({
+  name: z.string(),
+  lat: z.number().nullable(),
+  lng: z.number().nullable(),
+  /** ISO 3166-1 alpha-2, when the entry is pinned to a country. */
+  country_code: z.string().nullable(),
+  notes: z.string().nullable(),
+  /** An optional date the traveller is aiming for. Not a booking. */
+  target_date: z.string().nullable(),
+});
+export type PublicApiBucketListItem = z.infer<typeof publicApiBucketListItemSchema>;
+
+export const publicApiBucketListSchema = z.object({
+  items: z.array(publicApiBucketListItemSchema),
+});
+export type PublicApiBucketList = z.infer<typeof publicApiBucketListSchema>;
+
 /** Trip without its itinerary — what the list endpoint returns. */
 export const publicApiTripSummarySchema = z.object({
   id: z.number(),
@@ -136,6 +162,24 @@ export const publicApiTripSchema = publicApiTripSummarySchema.extend({
   days: z.array(publicApiDaySchema).optional(),
   accommodations: z.array(publicApiAccommodationSchema).optional(),
   travellers: z.array(publicApiTravellerSchema).optional(),
+  /**
+   * Places on the trip that sit on no day yet — the shortlist a traveller
+   * collects before deciding when to go where.
+   *
+   * Comes with `include=places`, because a section called "places" that silently
+   * omitted half of them would be worse than one that did not exist. On a real
+   * instance these are routinely half of a trip's places, and they carry the
+   * coordinates that make them worth matching against.
+   */
+  unplanned_places: z.array(publicApiPlaceSchema).optional(),
+  /**
+   * Bookings not pinned to a day. A reservation keeps its `day_id` as a nullable
+   * reference, and deleting a day sets it null rather than deleting the booking,
+   * so these exist in the wild and are not an edge case.
+   *
+   * Comes with `include=reservations`, for the same reason as above.
+   */
+  unscheduled_reservations: z.array(publicApiReservationSchema).optional(),
 });
 export type PublicApiTrip = z.infer<typeof publicApiTripSchema>;
 

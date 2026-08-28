@@ -10,6 +10,7 @@ Read trips. That is deliberate and complete:
 
 - list the trips you own or are a member of
 - fetch one trip with its days, places in planned order, day notes, reservations, accommodations and fellow travellers
+- read the bucket list: places the traveller wants to reach, not tied to any trip
 
 It cannot write anything. An integration that reads your itinerary needs no ability to delete a place, and a key that can only read is a very different thing to hand to third-party software.
 
@@ -83,6 +84,15 @@ Pick what you need with `?include=`, comma-separated:
 | `accommodations` | where you sleep, with the date range resolved and check-in/check-out times |
 | `travellers` | who is on the trip, by display name |
 
+Two sections come back at trip level rather than on a day, because that is where they live:
+
+| Field | Comes with | What it is |
+|---|---|---|
+| `unplanned_places` | `places` | places collected but not scheduled yet. On a real instance these are routinely **half** of a trip's places, and they carry coordinates. A hotel is not listed here; it is under `accommodations`. |
+| `unscheduled_reservations` | `reservations` | bookings with no day. Deleting a day detaches its bookings rather than deleting them, so these exist in the wild. |
+
+Asking for `places`, `notes` or `reservations` brings `days` along automatically, since that is where they are reported. `?include=notes` returns the day skeleton with its notes and empty place lists, not an empty trip.
+
 Omitting `include` returns everything. A section you did not ask for is **absent** rather than empty, so your code can tell "not requested" apart from "nothing there". An unknown section name is a `400` rather than being silently ignored — a typo should not hand you a payload quietly missing what you wanted.
 
 ```bash
@@ -131,11 +141,28 @@ curl -H "Authorization: Bearer trek_…" \
 }
 ```
 
+### `GET /api/v1/bucket-list`
+
+Places the caller wants to reach, with no trip attached. Its own endpoint because it hangs off the user, not a trip.
+
+```json
+{
+  "items": [
+    { "name": "Hokkaido", "lat": 43.06, "lng": 141.35,
+      "country_code": "JP", "notes": "in winter", "target_date": "2027-02-01" }
+  ]
+}
+```
+
+`target_date` is an aspiration, not a booking. Entries are returned whether or not the Atlas addon is switched on: the addon governs whether TREK shows the feature, not whether the rows exist, and an endpoint whose answers change when an unrelated toggle moves is one nobody can build on.
+
 ## Notes for integrators
 
 **Join on dates, not ids.** Every day carries an ISO `date`, and accommodations carry a resolved date range rather than internal day ids. If your software keeps its own notion of a trip, the date is the one thing both sides can agree on. TREK's internal ids are not in the payload at all, by design — they would tie you to storage details that are free to change.
 
 **One request, not many.** Rather than separate endpoints per section, `?include=` lets you fetch exactly what you need in a single call. Fetching a trip four times for four sections would burn your rate budget for no benefit.
+
+**There are no timezones.** Times are stored and returned exactly as the traveller typed them: `14:00` means two in the afternoon wherever they were. If you are matching against timestamps of your own, the trip's dates are the reliable join; the times are a hint, not a UTC instant.
 
 **Rate limit: 120 requests per minute**, counted per user rather than per IP address. A self-hosted integration and its owner's browser often share an address, and an IP-based limit would let one starve the other. Exceeding it returns `429`; back off and retry.
 

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type {
   PublicApiAccommodation,
+  PublicApiBucketListItem,
   PublicApiDay,
   PublicApiDayNote,
   PublicApiInclude,
@@ -70,8 +71,17 @@ export class PublicApiService {
     if (!row) return null;
 
     const trip: PublicApiTrip = toTripSummary(row);
-    if (include.includes('days')) {
+    // Places, notes and reservations hang off days, so asking for one of them
+    // and not for `days` used to return the trip and nothing else — silently,
+    // which is the worst way to answer. Days are implied instead.
+    if (DAY_SCOPED.some((section) => include.includes(section))) {
       trip.days = this.buildDays(tripId, include);
+    }
+    if (include.includes('places')) {
+      trip.unplanned_places = this.buildUnplannedPlaces(tripId);
+    }
+    if (include.includes('reservations')) {
+      trip.unscheduled_reservations = this.buildUnscheduledReservations(tripId);
     }
     if (include.includes('accommodations')) {
       trip.accommodations = this.buildAccommodations(tripId);
@@ -135,18 +145,7 @@ export class PublicApiService {
         ORDER BY da.day_id ASC, da.order_index ASC`,
       tripId,
     );
-    return groupBy(rows, (r) => r.day_id, (r) => ({
-      name: r.name,
-      address: r.address ?? null,
-      lat: r.lat ?? null,
-      lng: r.lng ?? null,
-      time: r.place_time ?? null,
-      end_time: r.end_time ?? null,
-      duration_minutes: r.duration_minutes ?? null,
-      category: r.category ?? null,
-      notes: r.notes ?? null,
-      transport_mode: r.transport_mode ?? null,
-    }));
+    return groupBy(rows, (r: PlaceRow) => r.day_id, toPlace);
   }
 
   private dayNotesByDay(tripId: number): Map<number, PublicApiDayNote[]> {
@@ -178,15 +177,7 @@ export class PublicApiService {
         ORDER BY day_id ASC, reservation_time ASC`,
       tripId,
     );
-    return groupBy(rows, (r) => r.day_id, (r) => ({
-      type: r.type ?? null,
-      title: r.title ?? null,
-      location: r.location ?? null,
-      time: r.reservation_time ?? null,
-      end_time: r.reservation_end_time ?? null,
-      status: r.status ?? null,
-      notes: r.notes ?? null,
-    }));
+    return groupBy(rows, (r: ReservationRow) => r.day_id, toReservation);
   }
 
   /**
@@ -222,6 +213,84 @@ export class PublicApiService {
   }
 
   /**
+   * Places the traveller collected but has not scheduled: no row in
+   * `day_assignments`, so they belong to the trip rather than to any day.
+   *
+   * These are not leftovers. On a real instance roughly half the places on a
+   * trip sit here, and they are the ones a consumer can most usefully act on:
+   * somewhere the traveller wants to go, with a coordinate, and no claim yet
+   * about when.
+   *
+   * Ordered by creation, which is the only order they have: an unscheduled place
+   * has no position relative to its siblings.
+   *
+   * Hotels are excluded. An accommodation's place has no day assignment either,
+   * but it is not a shortlist entry and it is already reported in full under
+   * `accommodations` — listing it twice would read as two different intentions.
+   */
+  private buildUnplannedPlaces(tripId: number): PublicApiPlace[] {
+    const rows = this.db.all<Omit<PlaceRow, 'day_id'>>(
+      `SELECT p.name, p.address, p.lat, p.lng, p.place_time, p.end_time,
+              p.duration_minutes, p.notes, p.transport_mode,
+              c.name AS category
+         FROM places p
+         LEFT JOIN categories c ON c.id = p.category_id
+        WHERE p.trip_id = ?
+          AND NOT EXISTS (SELECT 1 FROM day_assignments da WHERE da.place_id = p.id)
+          AND NOT EXISTS (SELECT 1 FROM day_accommodations a WHERE a.place_id = p.id)
+        ORDER BY p.created_at ASC, p.id ASC`,
+      tripId,
+    );
+    return rows.map(toPlace);
+  }
+
+  /**
+   * Bookings with no day. `reservations.day_id` is nullable and a deleted day
+   * sets it null rather than cascading, so a flight can outlive the day it was
+   * pinned to. Reporting only day-bound bookings would quietly lose those.
+   */
+  private buildUnscheduledReservations(tripId: number): PublicApiReservation[] {
+    const rows = this.db.all<Omit<ReservationRow, 'day_id'>>(
+      `SELECT type, title, location, reservation_time, reservation_end_time,
+              status, notes
+         FROM reservations
+        WHERE trip_id = ? AND day_id IS NULL
+        ORDER BY reservation_time ASC, id ASC`,
+      tripId,
+    );
+    return rows.map(toReservation);
+  }
+
+  /**
+   * The caller's bucket list: places they want to reach, with no trip attached.
+   *
+   * Read here rather than through AtlasService, for the same reason every other
+   * table in this file is: importing a domain module for one SELECT drags its
+   * whole graph in, and this surface has to be able to boot on its own. The query
+   * is scoped by `user_id` in SQL, which is the part that matters.
+   *
+   * Returns entries even when the Atlas addon is switched off: the addon governs
+   * whether TREK shows the feature, not whether the rows exist, and a key whose
+   * answers change when an unrelated toggle moves is a key nobody can build on.
+   */
+  listBucketList(userId: number): PublicApiBucketListItem[] {
+    const rows = this.db.all<BucketListRow>(
+      `SELECT name, lat, lng, country_code, notes, target_date
+         FROM bucket_list WHERE user_id = ?
+        ORDER BY created_at DESC, id DESC`,
+      userId,
+    );
+    return rows.map((r) => ({
+      name: r.name,
+      lat: r.lat ?? null,
+      lng: r.lng ?? null,
+      country_code: r.country_code ?? null,
+      notes: r.notes ?? null,
+      target_date: r.target_date ?? null,
+    }));
+  }
+
+  /**
    * Who is on the trip: the owner first, then members in join order.
    *
    * Names only. The query selects `username` and nothing else — no ids, no email
@@ -243,6 +312,44 @@ export class PublicApiService {
     );
     return rows.map((r) => ({ name: r.username, owner: r.is_owner === 1 }));
   }
+}
+
+/**
+ * Sections that live on a day. Asking for any of them implies `days`, because
+ * that is where they are reported.
+ */
+const DAY_SCOPED: PublicApiInclude[] = ['days', 'places', 'notes', 'reservations'];
+
+/**
+ * One definition of what a place looks like on the wire, used both for places on
+ * a day and for unscheduled ones. Two copies would drift, and the second copy is
+ * always the one that forgets a field.
+ */
+function toPlace(row: Omit<PlaceRow, 'day_id'>): PublicApiPlace {
+  return {
+    name: row.name,
+    address: row.address ?? null,
+    lat: row.lat ?? null,
+    lng: row.lng ?? null,
+    time: row.place_time ?? null,
+    end_time: row.end_time ?? null,
+    duration_minutes: row.duration_minutes ?? null,
+    category: row.category ?? null,
+    notes: row.notes ?? null,
+    transport_mode: row.transport_mode ?? null,
+  };
+}
+
+function toReservation(row: Omit<ReservationRow, 'day_id'>): PublicApiReservation {
+  return {
+    type: row.type ?? null,
+    title: row.title ?? null,
+    location: row.location ?? null,
+    time: row.reservation_time ?? null,
+    end_time: row.reservation_end_time ?? null,
+    status: row.status ?? null,
+    notes: row.notes ?? null,
+  };
 }
 
 function toTripSummary(row: TripRow): PublicApiTripSummary {
@@ -338,4 +445,13 @@ interface AccommodationRow {
   check_in: string | null;
   check_out: string | null;
   notes: string | null;
+}
+
+interface BucketListRow {
+  name: string;
+  lat: number | null;
+  lng: number | null;
+  country_code: string | null;
+  notes: string | null;
+  target_date: string | null;
 }

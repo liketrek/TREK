@@ -23,7 +23,7 @@ function contextWith(headers: Record<string, string | undefined>) {
 }
 
 function makeGuard(verify: (raw: string) => User | null) {
-  return new ApiTokenGuard({ verifyMcpToken: verify } as unknown as TokenService);
+  return new ApiTokenGuard({ verifyApiToken: verify } as unknown as TokenService);
 }
 
 /** Run the guard, expecting a refusal; return its { status, body }. */
@@ -67,6 +67,15 @@ describe('ApiTokenGuard', () => {
       body: { error: 'API token required', code: 'API_TOKEN_REQUIRED' },
     });
     expect(verify).not.toHaveBeenCalled();
+  });
+
+  it('never reaches for the MCP verifier, so the two credentials cannot swap', () => {
+    const verifyApiToken = vi.fn().mockReturnValue(USER);
+    const verifyMcpToken = vi.fn();
+    const guard = new ApiTokenGuard({ verifyApiToken, verifyMcpToken } as unknown as TokenService);
+    guard.canActivate(contextWith({ authorization: 'Bearer trek_abc123' }));
+    expect(verifyApiToken).toHaveBeenCalledTimes(1);
+    expect(verifyMcpToken).not.toHaveBeenCalled();
   });
 
   it('401s on a token the store does not know, without saying which part was wrong', () => {
