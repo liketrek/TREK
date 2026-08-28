@@ -106,5 +106,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:read.description': 'Read units, time format, language, default currency, and start page',
   'oauth.scope.settings:write.label': 'Change your preferences',
   'oauth.scope.settings:write.description': 'Change units, time format, language, default currency, and start page. Never stored API keys',
+  'oauth.scope.group.plugins': 'Plugins',
+  'oauth.scope.plugins:use.label': 'Run plugin tools',
+  'oauth.scope.plugins:use.description': 'Let this client call tools published by the plugins an administrator installed and approved. Each plugin acts with the access it was already granted, not with the scopes on this token',
 };
 export default oauth;

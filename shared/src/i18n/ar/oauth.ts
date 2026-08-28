@@ -105,5 +105,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:read.description': 'قراءة الوحدات وتنسيق الوقت واللغة والعملة الافتراضية وصفحة البداية',
   'oauth.scope.settings:write.label': 'تغيير تفضيلاتك',
   'oauth.scope.settings:write.description': 'تغيير الوحدات وتنسيق الوقت واللغة والعملة الافتراضية وصفحة البداية. لا مفاتيح API المخزنة أبدًا',
+  'oauth.scope.group.plugins': 'الإضافات',
+  'oauth.scope.plugins:use.label': 'تشغيل أدوات الإضافات',
+  'oauth.scope.plugins:use.description': 'السماح لهذا التطبيق باستدعاء الأدوات التي توفرها الإضافات التي ثبّتها المسؤول ووافق عليها. تعمل كل إضافة بالصلاحيات الممنوحة لها مسبقًا، وليس بنطاقات هذا الرمز',
 };
 export default oauth;

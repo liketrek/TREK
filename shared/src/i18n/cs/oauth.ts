@@ -105,5 +105,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:read.description': 'Číst jednotky, formát času, jazyk, výchozí měnu a úvodní stránku',
   'oauth.scope.settings:write.label': 'Změnit vaše předvolby',
   'oauth.scope.settings:write.description': 'Změnit jednotky, formát času, jazyk, výchozí měnu a úvodní stránku. Nikdy uložené API klíče',
+  'oauth.scope.group.plugins': 'Pluginy',
+  'oauth.scope.plugins:use.label': 'Spouštět nástroje pluginů',
+  'oauth.scope.plugins:use.description': 'Umožní tomuto klientovi volat nástroje zveřejněné pluginy, které správce nainstaloval a schválil. Každý plugin jedná s oprávněními, která už dostal, nikoli s rozsahy tohoto tokenu',
 };
 export default oauth;

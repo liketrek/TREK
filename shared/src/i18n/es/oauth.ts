@@ -106,5 +106,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:read.description': 'Leer unidades, formato de hora, idioma, moneda predeterminada y página de inicio',
   'oauth.scope.settings:write.label': 'Cambiar tus preferencias',
   'oauth.scope.settings:write.description': 'Cambiar unidades, formato de hora, idioma, moneda predeterminada y página de inicio. Nunca las claves API guardadas',
+  'oauth.scope.group.plugins': 'Complementos',
+  'oauth.scope.plugins:use.label': 'Ejecutar herramientas de complementos',
+  'oauth.scope.plugins:use.description': 'Permite a este cliente llamar a las herramientas publicadas por los complementos que un administrador instaló y aprobó. Cada complemento actúa con los permisos que ya tenía concedidos, no con los ámbitos de este token',
 };
 export default oauth;

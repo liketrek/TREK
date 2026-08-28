@@ -107,5 +107,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:read.description': 'Odczyt jednostek, formatu czasu, języka, waluty domyślnej i strony startowej',
   'oauth.scope.settings:write.label': 'Zmiana preferencji',
   'oauth.scope.settings:write.description': 'Zmiana jednostek, formatu czasu, języka, waluty domyślnej i strony startowej. Nigdy zapisanych kluczy API',
+  'oauth.scope.group.plugins': 'Wtyczki',
+  'oauth.scope.plugins:use.label': 'Uruchamianie narzędzi wtyczek',
+  'oauth.scope.plugins:use.description': 'Pozwala temu klientowi wywoływać narzędzia udostępniane przez wtyczki zainstalowane i zatwierdzone przez administratora. Każda wtyczka działa z uprawnieniami, które już otrzymała, a nie z zakresami tego tokenu',
 };
 export default oauth;

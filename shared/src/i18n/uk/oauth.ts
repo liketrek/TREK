@@ -106,5 +106,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:read.description': 'Читання одиниць вимірювання, формату часу, мови, валюти за умовчанням і стартової сторінки',
   'oauth.scope.settings:write.label': 'Зміна ваших налаштувань',
   'oauth.scope.settings:write.description': 'Зміна одиниць вимірювання, формату часу, мови, валюти за умовчанням і стартової сторінки. Ніколи збережених ключів API',
+  'oauth.scope.group.plugins': 'Плагіни',
+  'oauth.scope.plugins:use.label': 'Запуск інструментів плагінів',
+  'oauth.scope.plugins:use.description': 'Дозволяє цьому клієнту викликати інструменти, які надають плагіни, встановлені та схвалені адміністратором. Кожен плагін діє з уже наданими йому правами, а не з областями доступу цього токена',
 };
 export default oauth;

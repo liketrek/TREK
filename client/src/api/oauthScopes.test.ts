@@ -1,9 +1,9 @@
-// FE-OAUTH-SCOPES-001 to FE-OAUTH-SCOPES-011
+// FE-OAUTH-SCOPES-001 to FE-OAUTH-SCOPES-014
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { SCOPE_GROUPS, ALL_SCOPES, SCOPE_GROUP_NAMES, getScopesByGroup } from './oauthScopes'
+import { SCOPE_GROUPS, ALL_SCOPES, SCOPE_GROUP_NAMES, getScopesByGroup, PRESET_OPT_IN_ONLY, PRESET_SCOPES_DEFAULT, PRESET_SCOPES_READONLY } from './oauthScopes'
 
 // The consent page mirrors the server's scope list by hand, so read the server
 // file and compare. Parsing keeps this a client-only test (no server import).
@@ -31,6 +31,7 @@ describe('SCOPE_GROUPS', () => {
       'vacay:read', 'vacay:write',
       'geo:read', 'weather:read',
       'journey:read', 'journey:write', 'journey:share',
+      'plugins:use',
     ]
     for (const scope of expected) {
       expect(SCOPE_GROUPS).toHaveProperty(scope)
@@ -121,5 +122,28 @@ describe('getScopesByGroup', () => {
     const groups = getScopesByGroup(t)
     expect(groups['Trips']).toBeDefined()
     expect(groups['oauth.scope.group.trips']).toBeUndefined()
+  })
+})
+
+describe('client presets', () => {
+  // The presets are written as "everything except deletes", so a new scope joins
+  // them silently. That is right for a scope over the user's own data and wrong
+  // for one that runs third-party code, so the exclusion gets a test.
+  it('FE-OAUTH-SCOPES-012: never offers an opt-in-only scope by default', () => {
+    expect(PRESET_OPT_IN_ONLY.size).toBeGreaterThan(0)
+    for (const scope of PRESET_OPT_IN_ONLY) {
+      expect(PRESET_SCOPES_DEFAULT).not.toContain(scope)
+      expect(PRESET_SCOPES_READONLY).not.toContain(scope)
+    }
+  })
+
+  it('FE-OAUTH-SCOPES-013: still offers every other non-destructive scope', () => {
+    const expected = ALL_SCOPES.filter(s => !s.includes(':delete') && !PRESET_OPT_IN_ONLY.has(s))
+    expect(PRESET_SCOPES_DEFAULT).toEqual(expected)
+    expect(PRESET_SCOPES_DEFAULT).toContain('trips:write')
+  })
+
+  it('FE-OAUTH-SCOPES-014: the read-only preset stays read-only', () => {
+    expect(PRESET_SCOPES_READONLY.every(s => s.endsWith(':read'))).toBe(true)
   })
 })

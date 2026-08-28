@@ -109,5 +109,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:read.description': 'Einheiten, Zeitformat, Sprache, Standardwährung und Startseite lesen',
   'oauth.scope.settings:write.label': 'Einstellungen ändern',
   'oauth.scope.settings:write.description': 'Einheiten, Zeitformat, Sprache, Standardwährung und Startseite ändern. Niemals gespeicherte API-Schlüssel',
+  'oauth.scope.group.plugins': 'Plugins',
+  'oauth.scope.plugins:use.label': 'Plugin-Tools ausführen',
+  'oauth.scope.plugins:use.description': 'Erlaubt diesem Client, Tools aufzurufen, die von den durch einen Administrator installierten und freigegebenen Plugins bereitgestellt werden. Jedes Plugin handelt mit den ihm bereits erteilten Rechten, nicht mit den Berechtigungen dieses Tokens',
 };
 export default oauth;

@@ -106,5 +106,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:read.description': '単位、時刻表示、言語、既定通貨、開始ページの読み取り',
   'oauth.scope.settings:write.label': '環境設定を変更',
   'oauth.scope.settings:write.description': '単位、時刻表示、言語、既定通貨、開始ページの変更。保存されたAPIキーは対象外',
+  'oauth.scope.group.plugins': 'プラグイン',
+  'oauth.scope.plugins:use.label': 'プラグインのツールを実行',
+  'oauth.scope.plugins:use.description': '管理者がインストールして承認したプラグインが公開するツールを、このクライアントから呼び出せるようにします。各プラグインは、このトークンのスコープではなく、すでに付与されている権限で動作します',
 };
 export default oauth;

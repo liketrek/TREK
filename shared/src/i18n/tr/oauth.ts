@@ -110,5 +110,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:read.description': 'Birimleri, saat biçimini, dili, varsayılan para birimini ve başlangıç sayfasını oku',
   'oauth.scope.settings:write.label': 'Tercihlerini değiştir',
   'oauth.scope.settings:write.description': 'Birimleri, saat biçimini, dili, varsayılan para birimini ve başlangıç sayfasını değiştir. Kayıtlı API anahtarlarını asla',
+  'oauth.scope.group.plugins': 'Eklentiler',
+  'oauth.scope.plugins:use.label': 'Eklenti araçlarını çalıştır',
+  'oauth.scope.plugins:use.description': 'Bu istemcinin, bir yöneticinin kurup onayladığı eklentilerin sunduğu araçları çağırmasına izin verir. Her eklenti, bu belirtecin kapsamlarıyla değil, kendisine önceden verilmiş yetkilerle çalışır',
 };
 export default oauth;

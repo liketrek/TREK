@@ -111,5 +111,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:read.description': 'Ανάγνωση μονάδων, μορφής ώρας, γλώσσας, προεπιλεγμένου νομίσματος και αρχικής σελίδας',
   'oauth.scope.settings:write.label': 'Αλλαγή προτιμήσεων',
   'oauth.scope.settings:write.description': 'Αλλαγή μονάδων, μορφής ώρας, γλώσσας, προεπιλεγμένου νομίσματος και αρχικής σελίδας. Ποτέ αποθηκευμένων κλειδιών API',
+  'oauth.scope.group.plugins': 'Πρόσθετα',
+  'oauth.scope.plugins:use.label': 'Εκτέλεση εργαλείων προσθέτων',
+  'oauth.scope.plugins:use.description': 'Επιτρέπει σε αυτήν την εφαρμογή να καλεί εργαλεία που δημοσιεύουν τα πρόσθετα που εγκατέστησε και ενέκρινε ένας διαχειριστής. Κάθε πρόσθετο ενεργεί με τα δικαιώματα που του έχουν ήδη δοθεί, όχι με τα εύρη αυτού του διακριτικού',
 };
 export default oauth;

@@ -48,9 +48,26 @@ export const SCOPE_GROUPS: Record<string, ScopeKeys> = {
   'files:content':       { labelKey: 'oauth.scope.files:content.label',       descriptionKey: 'oauth.scope.files:content.description',       groupKey: 'oauth.scope.group.files' },
   'settings:read':       { labelKey: 'oauth.scope.settings:read.label',       descriptionKey: 'oauth.scope.settings:read.description',       groupKey: 'oauth.scope.group.settings' },
   'settings:write':      { labelKey: 'oauth.scope.settings:write.label',      descriptionKey: 'oauth.scope.settings:write.description',      groupKey: 'oauth.scope.group.settings' },
+  'plugins:use':         { labelKey: 'oauth.scope.plugins:use.label',         descriptionKey: 'oauth.scope.plugins:use.description',         groupKey: 'oauth.scope.group.plugins' },
 }
 
 export const ALL_SCOPES = Object.keys(SCOPE_GROUPS)
+
+/**
+ * Scopes a client preset must never tick for you.
+ *
+ * The presets are written as "everything except deletes", so a new scope joins
+ * them silently. That is right for a new read or write scope on data the user
+ * already owns, and wrong for plugins:use: it turns on third-party tool
+ * execution, which nobody would have chosen by installing an editor.
+ */
+export const PRESET_OPT_IN_ONLY = new Set(['plugins:use'])
+
+/** The five full-access presets: everything destructive or opt-in-only removed. */
+export const PRESET_SCOPES_DEFAULT = ALL_SCOPES.filter(s => !s.includes(':delete') && !PRESET_OPT_IN_ONLY.has(s))
+
+/** The read-only preset (VS Code). Kept beside the default so the pair stays visible. */
+export const PRESET_SCOPES_READONLY = ALL_SCOPES.filter(s => s.endsWith(':read') && !PRESET_OPT_IN_ONLY.has(s))
 
 // Group all scopes for the client registration form
 export const SCOPE_GROUP_NAMES = [...new Set(Object.values(SCOPE_GROUPS).map(s => s.groupKey))]

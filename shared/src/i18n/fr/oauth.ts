@@ -109,5 +109,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:read.description': 'Lire les unités, le format horaire, la langue, la devise par défaut et la page d’accueil',
   'oauth.scope.settings:write.label': 'Modifier vos préférences',
   'oauth.scope.settings:write.description': 'Modifier les unités, le format horaire, la langue, la devise par défaut et la page d’accueil. Jamais les clés API enregistrées',
+  'oauth.scope.group.plugins': 'Extensions',
+  'oauth.scope.plugins:use.label': 'Exécuter les outils d\'extension',
+  'oauth.scope.plugins:use.description': 'Autorise ce client à appeler les outils publiés par les extensions installées et approuvées par un administrateur. Chaque extension agit avec les accès qui lui ont déjà été accordés, et non avec les portées de ce jeton',
 };
 export default oauth;

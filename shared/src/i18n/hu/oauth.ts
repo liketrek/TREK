@@ -109,5 +109,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:read.description': 'Mértékegységek, időformátum, nyelv, alapértelmezett pénznem és kezdőoldal olvasása',
   'oauth.scope.settings:write.label': 'Beállítások módosítása',
   'oauth.scope.settings:write.description': 'Mértékegységek, időformátum, nyelv, alapértelmezett pénznem és kezdőoldal módosítása. Soha nem a tárolt API-kulcsok',
+  'oauth.scope.group.plugins': 'Bővítmények',
+  'oauth.scope.plugins:use.label': 'Bővítményeszközök futtatása',
+  'oauth.scope.plugins:use.description': 'Engedélyezi, hogy ez az ügyfél meghívja a rendszergazda által telepített és jóváhagyott bővítmények eszközeit. Minden bővítmény a már megkapott jogosultságaival működik, nem a token hatóköreivel',
 };
 export default oauth;

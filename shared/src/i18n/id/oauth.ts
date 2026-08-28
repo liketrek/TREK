@@ -106,5 +106,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:read.description': 'Membaca satuan, format waktu, bahasa, mata uang bawaan, dan halaman awal',
   'oauth.scope.settings:write.label': 'Ubah preferensi Anda',
   'oauth.scope.settings:write.description': 'Mengubah satuan, format waktu, bahasa, mata uang bawaan, dan halaman awal. Tidak pernah kunci API tersimpan',
+  'oauth.scope.group.plugins': 'Plugin',
+  'oauth.scope.plugins:use.label': 'Jalankan alat plugin',
+  'oauth.scope.plugins:use.description': 'Izinkan klien ini memanggil alat yang disediakan oleh plugin yang dipasang dan disetujui administrator. Setiap plugin bertindak dengan akses yang sudah diberikan kepadanya, bukan dengan cakupan token ini',
 };
 export default oauth;

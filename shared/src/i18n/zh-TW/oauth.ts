@@ -104,5 +104,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:read.description': '讀取單位、時間格式、語言、預設貨幣和起始頁',
   'oauth.scope.settings:write.label': '更改你的偏好設定',
   'oauth.scope.settings:write.description': '更改單位、時間格式、語言、預設貨幣和起始頁。絕不涉及已儲存的 API 金鑰',
+  'oauth.scope.group.plugins': '外掛',
+  'oauth.scope.plugins:use.label': '執行外掛工具',
+  'oauth.scope.plugins:use.description': '允許此用戶端呼叫由管理員安裝並核准的外掛所發布的工具。每個外掛都以其已獲授予的權限運作，而非以此權杖的權限範圍運作',
 };
 export default oauth;

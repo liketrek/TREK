@@ -3,7 +3,7 @@ import { Check, ChevronDown, ChevronRight, Copy, KeyRound, Plus, RefreshCw, Term
 import { useTranslation } from '../../../i18n'
 import { useToast } from '../../../components/shared/Toast'
 import { authApi, oauthApi } from '../../../api/client'
-import { ALL_SCOPES } from '../../../api/oauthScopes'
+import { PRESET_SCOPES_DEFAULT, PRESET_SCOPES_READONLY } from '../../../api/oauthScopes'
 import MScopeGroupPicker from './MScopeGroupPicker'
 import MSheet from '../../components/MSheet'
 import MToggle from '../../components/MToggle'
@@ -21,12 +21,12 @@ interface OAuthPreset {
 }
 
 const OAUTH_PRESETS: OAuthPreset[] = [
-  { id: 'claude-web', label: 'Claude.ai', name: 'Claude.ai', uris: 'https://claude.ai/api/mcp/auth_callback', scopes: ALL_SCOPES.filter((s) => !s.includes(':delete')) },
-  { id: 'claude-desktop', label: 'Claude Desktop', name: 'Claude Desktop', uris: 'http://localhost', scopes: ALL_SCOPES.filter((s) => !s.includes(':delete')) },
-  { id: 'cursor', label: 'Cursor', name: 'Cursor', uris: 'http://localhost', scopes: ALL_SCOPES.filter((s) => !s.includes(':delete')) },
-  { id: 'vscode', label: 'VS Code', name: 'VS Code / Copilot', uris: 'http://localhost', scopes: ALL_SCOPES.filter((s) => s.endsWith(':read')) },
-  { id: 'windsurf', label: 'Windsurf', name: 'Windsurf', uris: 'http://localhost', scopes: ALL_SCOPES.filter((s) => !s.includes(':delete')) },
-  { id: 'zed', label: 'Zed', name: 'Zed', uris: 'http://localhost', scopes: ALL_SCOPES.filter((s) => !s.includes(':delete')) },
+  { id: 'claude-web', label: 'Claude.ai', name: 'Claude.ai', uris: 'https://claude.ai/api/mcp/auth_callback', scopes: PRESET_SCOPES_DEFAULT },
+  { id: 'claude-desktop', label: 'Claude Desktop', name: 'Claude Desktop', uris: 'http://localhost', scopes: PRESET_SCOPES_DEFAULT },
+  { id: 'cursor', label: 'Cursor', name: 'Cursor', uris: 'http://localhost', scopes: PRESET_SCOPES_DEFAULT },
+  { id: 'vscode', label: 'VS Code', name: 'VS Code / Copilot', uris: 'http://localhost', scopes: PRESET_SCOPES_READONLY },
+  { id: 'windsurf', label: 'Windsurf', name: 'Windsurf', uris: 'http://localhost', scopes: PRESET_SCOPES_DEFAULT },
+  { id: 'zed', label: 'Zed', name: 'Zed', uris: 'http://localhost', scopes: PRESET_SCOPES_DEFAULT },
 ]
 
 interface OAuthClient {

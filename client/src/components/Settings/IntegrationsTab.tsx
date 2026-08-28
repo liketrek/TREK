@@ -9,7 +9,7 @@ import PhotoProvidersSection from './PhotoProvidersSection'
 import AirTrailConnectionSection from './AirTrailConnectionSection'
 import LlmConnectionSection from './LlmConnectionSection'
 import ApiKeysSection from './ApiKeysSection'
-import { ALL_SCOPES } from '../../api/oauthScopes'
+import { PRESET_SCOPES_DEFAULT, PRESET_SCOPES_READONLY } from '../../api/oauthScopes'
 import ScopeGroupPicker from '../OAuth/ScopeGroupPicker'
 import { useAuthStore } from '../../store/authStore'
 
@@ -27,42 +27,42 @@ const OAUTH_PRESETS: OAuthPreset[] = [
     label: 'Claude.ai',
     name: 'Claude.ai',
     uris: 'https://claude.ai/api/mcp/auth_callback',
-    scopes: ALL_SCOPES.filter(s => !s.includes(':delete')),
+    scopes: PRESET_SCOPES_DEFAULT,
   },
   {
     id: 'claude-desktop',
     label: 'Claude Desktop',
     name: 'Claude Desktop',
     uris: 'http://localhost',
-    scopes: ALL_SCOPES.filter(s => !s.includes(':delete')),
+    scopes: PRESET_SCOPES_DEFAULT,
   },
   {
     id: 'cursor',
     label: 'Cursor',
     name: 'Cursor',
     uris: 'http://localhost',
-    scopes: ALL_SCOPES.filter(s => !s.includes(':delete')),
+    scopes: PRESET_SCOPES_DEFAULT,
   },
   {
     id: 'vscode',
     label: 'VS Code',
     name: 'VS Code / Copilot',
     uris: 'http://localhost',
-    scopes: ALL_SCOPES.filter(s => s.endsWith(':read')),
+    scopes: PRESET_SCOPES_READONLY,
   },
   {
     id: 'windsurf',
     label: 'Windsurf',
     name: 'Windsurf',
     uris: 'http://localhost',
-    scopes: ALL_SCOPES.filter(s => !s.includes(':delete')),
+    scopes: PRESET_SCOPES_DEFAULT,
   },
   {
     id: 'zed',
     label: 'Zed',
     name: 'Zed',
     uris: 'http://localhost',
-    scopes: ALL_SCOPES.filter(s => !s.includes(':delete')),
+    scopes: PRESET_SCOPES_DEFAULT,
   },
 ]
 

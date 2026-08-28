@@ -109,5 +109,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:read.description': 'Đọc đơn vị, định dạng giờ, ngôn ngữ, tiền tệ mặc định và trang khởi đầu',
   'oauth.scope.settings:write.label': 'Thay đổi tuỳ chọn của bạn',
   'oauth.scope.settings:write.description': 'Thay đổi đơn vị, định dạng giờ, ngôn ngữ, tiền tệ mặc định và trang khởi đầu. Không bao giờ khoá API đã lưu',
+  'oauth.scope.group.plugins': 'Tiện ích',
+  'oauth.scope.plugins:use.label': 'Chạy công cụ của tiện ích',
+  'oauth.scope.plugins:use.description': 'Cho phép ứng dụng này gọi các công cụ do những tiện ích mà quản trị viên đã cài đặt và phê duyệt cung cấp. Mỗi tiện ích hoạt động với quyền đã được cấp trước đó, không phải với phạm vi của mã thông báo này',
 };
 export default oauth;

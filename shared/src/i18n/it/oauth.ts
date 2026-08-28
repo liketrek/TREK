@@ -107,5 +107,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:read.description': 'Leggere unità, formato orario, lingua, valuta predefinita e pagina iniziale',
   'oauth.scope.settings:write.label': 'Modificare le tue preferenze',
   'oauth.scope.settings:write.description': 'Modificare unità, formato orario, lingua, valuta predefinita e pagina iniziale. Mai le chiavi API salvate',
+  'oauth.scope.group.plugins': 'Plugin',
+  'oauth.scope.plugins:use.label': 'Eseguire gli strumenti dei plugin',
+  'oauth.scope.plugins:use.description': 'Consente a questo client di chiamare gli strumenti pubblicati dai plugin installati e approvati da un amministratore. Ogni plugin agisce con i permessi che gli sono già stati concessi, non con gli ambiti di questo token',
 };
 export default oauth;

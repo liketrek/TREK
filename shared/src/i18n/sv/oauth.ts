@@ -112,5 +112,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:read.description': 'Läsa enheter, tidsformat, språk, standardvaluta och startsida',
   'oauth.scope.settings:write.label': 'Ändra dina inställningar',
   'oauth.scope.settings:write.description': 'Ändra enheter, tidsformat, språk, standardvaluta och startsida. Aldrig sparade API-nycklar',
+  'oauth.scope.group.plugins': 'Tillägg',
+  'oauth.scope.plugins:use.label': 'Kör tilläggsverktyg',
+  'oauth.scope.plugins:use.description': 'Låter den här klienten anropa verktyg som publiceras av de tillägg en administratör har installerat och godkänt. Varje tillägg agerar med de rättigheter det redan har fått, inte med det här tokenets omfattningar',
 };
 export default oauth;

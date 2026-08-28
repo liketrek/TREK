@@ -108,5 +108,8 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:read.description': 'Eenheden, tijdnotatie, taal, standaardvaluta en startpagina lezen',
   'oauth.scope.settings:write.label': 'Je voorkeuren wijzigen',
   'oauth.scope.settings:write.description': 'Eenheden, tijdnotatie, taal, standaardvaluta en startpagina wijzigen. Nooit opgeslagen API-sleutels',
+  'oauth.scope.group.plugins': 'Plug-ins',
+  'oauth.scope.plugins:use.label': 'Plug-intools uitvoeren',
+  'oauth.scope.plugins:use.description': 'Laat deze client tools aanroepen die worden aangeboden door de plug-ins die een beheerder heeft geïnstalleerd en goedgekeurd. Elke plug-in handelt met de rechten die deze al had, niet met de scopes van dit token',
 };
 export default oauth;

@@ -42,6 +42,17 @@ export const SCOPES = {
   FILES_CONTENT:       'files:content',
   SETTINGS_READ:       'settings:read',
   SETTINGS_WRITE:      'settings:write',
+  // One coarse scope, and a fourth mode rather than a per-plugin group. Which
+  // plugins are installed is runtime data, so a per-plugin scope cannot be
+  // statically enumerated: it would break the ${group}:${mode} derivation and
+  // the AssertExact guards in nest-mcp-policy.ts, and its consent copy could
+  // not be written ahead of time for a third-party plugin name. Tokens issued
+  // before a plugin existed could never carry its scope either.
+  //
+  // Per-plugin granularity already exists one layer down, as the admin's
+  // mcp:tools grant, and that is the real boundary: this scope only decides
+  // whether plugin tools are advertised to a client at all.
+  PLUGINS_USE:         'plugins:use',
 } as const;
 
 export type Scope = typeof SCOPES[keyof typeof SCOPES];
@@ -92,6 +103,7 @@ export const SCOPE_INFO: Record<Scope, ScopeInfo> = {
   'files:content':       { label: 'Read file contents',         description: 'Read what is inside an uploaded document, such as a booking PDF or a ticket', group: 'Files' },
   'settings:read':       { label: 'View your preferences',      description: 'Read units, time format, language, default currency, and start page',   group: 'Settings' },
   'settings:write':      { label: 'Change your preferences',    description: 'Change units, time format, language, default currency, and start page. Never stored API keys', group: 'Settings' },
+  'plugins:use':         { label: 'Run plugin tools',           description: 'Let this client call tools published by the plugins an administrator installed and approved. Each plugin acts with the access it was already granted, not with the scopes on this token', group: 'Plugins' },
 };
 
 // ---------------------------------------------------------------------------
