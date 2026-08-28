@@ -1,4 +1,4 @@
-// FE-PLANNER-RESMODAL-001 to FE-PLANNER-RESMODAL-080
+// FE-PLANNER-RESMODAL-001 to FE-PLANNER-RESMODAL-093
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -1435,6 +1435,96 @@ describe('ReservationModal', () => {
     expect(screen.getByDisplayValue('Grand Hotel')).toBeInTheDocument();
     const times = screen.getAllByTestId('time-picker') as HTMLInputElement[];
     expect(times.map(i => i.value)).toEqual(['', '', '']);
+  });
+
+  // #2107 — a booking that lasts a whole day has no clock to compare, and filling the
+  // missing one with midnight made the comparison read as inverted.
+  it('FE-PLANNER-RESMODAL-089: the same start and end date with no times is accepted', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<ReservationModal {...defaultProps} onSave={onSave} days={reviewDays()} />);
+
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Park permit');
+    const datePickers = screen.getAllByTestId('date-picker');
+    fireEvent.change(datePickers[0], { target: { value: '2026-05-02' } });
+    fireEvent.change(datePickers[1], { target: { value: '2026-05-02' } });
+
+    expect(screen.queryByText(/End date\/time must be after start/i)).toBeNull();
+    fireEvent.submit(document.querySelector('form')!);
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+  });
+
+  it('FE-PLANNER-RESMODAL-090: an all-day booking is saved as bare dates on both ends', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<ReservationModal {...defaultProps} onSave={onSave} days={reviewDays()} />);
+
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Park permit');
+    const datePickers = screen.getAllByTestId('date-picker');
+    fireEvent.change(datePickers[0], { target: { value: '2026-05-02' } });
+    fireEvent.change(datePickers[1], { target: { value: '2026-05-02' } });
+    fireEvent.submit(document.querySelector('form')!);
+
+    // The stored shape matters: the calendar export branches on whether the value
+    // carries a clock, and a bare date is what makes it an all-day event.
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ reservation_time: '2026-05-02', reservation_end_time: '2026-05-02' }),
+    ));
+  });
+
+  it('FE-PLANNER-RESMODAL-091: an end date before the start is still refused without times', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    render(<ReservationModal {...defaultProps} onSave={onSave} days={reviewDays()} />);
+
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Backwards');
+    const datePickers = screen.getAllByTestId('date-picker');
+    fireEvent.change(datePickers[0], { target: { value: '2026-05-02' } });
+    fireEvent.change(datePickers[1], { target: { value: '2026-05-01' } });
+    fireEvent.submit(document.querySelector('form')!);
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(addToast).toHaveBeenCalledWith(expect.stringMatching(/End date\/time must be after start/i), 'error', undefined);
+    delete window.__addToast;
+  });
+
+  it('FE-PLANNER-RESMODAL-092: a stored booking whose end is a bare date on the start day stays editable', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    // The shape the booking import and the mobile sheet both write. Nothing is typed
+    // here: the row alone used to leave the save button dead.
+    const res = buildReservation({
+      id: 21, type: 'event', title: 'Day permit',
+      reservation_time: '2026-05-02T10:00:00', reservation_end_time: '2026-05-02',
+    });
+    render(<ReservationModal {...defaultProps} reservation={res} onSave={onSave} days={reviewDays()} />);
+
+    expect(screen.queryByText(/End date\/time must be after start/i)).toBeNull();
+    fireEvent.submit(document.querySelector('form')!);
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+  });
+
+  it('FE-PLANNER-RESMODAL-093: switching to hotel clears a date error the hidden panel cannot explain', async () => {
+    render(<ReservationModal {...defaultProps} days={reviewDays()} />);
+
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Switched');
+    const datePickers = screen.getAllByTestId('date-picker');
+    const timePickers = screen.getAllByTestId('time-picker');
+    fireEvent.change(datePickers[0], { target: { value: '2026-05-02' } });
+    fireEvent.change(timePickers[0], { target: { value: '19:00' } });
+    fireEvent.change(datePickers[1], { target: { value: '2026-05-01' } });
+    expect(screen.getByText(/End date\/time must be after start/i)).toBeTruthy();
+    // The footer button reads 'Add' while creating and 'Update' while editing.
+    const save = () => Array.from(document.querySelectorAll('button'))
+      .find(b => /^\s*(Add|Update)\s*$/.test(b.textContent || '')) as HTMLButtonElement;
+    expect(save().disabled).toBe(true);
+
+    // The date panel is hidden for hotels, and the message sits inside it, so
+    // asserting on the message proves nothing here. The save button is the part
+    // that stayed dead with no visible reason.
+    // The hotel type is labelled 'Accommodation' in the picker.
+    const hotelBtn = Array.from(document.querySelectorAll('button'))
+      .find(b => /^\s*Accommodation\s*$/.test(b.textContent || ''))!;
+    fireEvent.click(hotelBtn);
+    expect(save().disabled).toBe(false);
   });
 
   it('FE-PLANNER-RESMODAL-088: double-encoded metadata still fills the check-in times', () => {

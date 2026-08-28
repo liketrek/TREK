@@ -224,14 +224,25 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
     return next
   })
 
+  // Mirrors the mobile sheet, which has had this shape since 72a82b3c while the
+  // desktop copy was never pulled across (#2107). Filling a missing clock with '00:00' made a
+  // day-long booking compare as midnight against midnight, and the comparison is
+  // strict, so an all-day permit on a single date was refused. It also left every
+  // booking with a date-only end time uneditable here, which is the shape the booking
+  // import and the mobile sheet both write.
+  //
+  // The hotel guard matters for the same reason it does on mobile: the date panel is
+  // hidden for hotels, so a type switch after typing dates would leave the save button
+  // dead with its explanation inside the hidden block.
   const isEndBeforeStart = (() => {
-    if (!form.end_date || !form.reservation_time) return false
+    if (form.type === 'hotel' || !form.end_date || !form.reservation_time) return false
     const startDate = form.reservation_time.split('T')[0]
-    const startTime = form.reservation_time.split('T')[1] || '00:00'
-    const endTime = form.reservation_end_time || '00:00'
-    const startFull = `${startDate}T${startTime}`
-    const endFull = `${form.end_date}T${endTime}`
-    return endFull <= startFull
+    const startTime = form.reservation_time.split('T')[1] || ''
+    const endTime = form.reservation_end_time || ''
+    // Without a time on either side the booking is all-day, so an end on the
+    // start day is fine — only compare the dates there.
+    if (!startTime || !endTime) return form.end_date < startDate
+    return `${form.end_date}T${endTime}` <= `${startDate}T${startTime}`
   })()
 
   const handleSubmit = async (e?: { preventDefault?: () => void }) => {
