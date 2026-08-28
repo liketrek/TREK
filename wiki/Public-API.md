@@ -11,6 +11,7 @@ Read trips. That is deliberate and complete:
 - list the trips you own or are a member of
 - fetch one trip with its days, places in planned order, day notes, reservations, accommodations and fellow travellers
 - read the bucket list: places the traveller wants to reach, not tied to any trip
+- read a handful of totals for a dashboard widget: trips, countries, cities, places, days, flown distance, and the last trip taken
 
 It cannot write anything. An integration that reads your itinerary needs no ability to delete a place, and a key that can only read is a very different thing to hand to third-party software.
 
@@ -155,6 +156,53 @@ Places the caller wants to reach, with no trip attached. Its own endpoint becaus
 ```
 
 `target_date` is an aspiration, not a booking. Entries are returned whether or not the Atlas addon is switched on: the addon governs whether TREK shows the feature, not whether the rows exist, and an endpoint whose answers change when an unrelated toggle moves is one nobody can build on.
+
+### `GET /api/v1/stats`
+
+Totals for a dashboard. Built for widgets like Homepage's `customapi`, which render a few numbers from one request and cannot aggregate a list themselves.
+
+```json
+{
+  "total_trips": 12,
+  "total_countries": 23,
+  "total_cities": 41,
+  "total_places": 143,
+  "total_days": 87,
+  "total_distance_km": 84213,
+  "last_trip": {
+    "title": "Hokkaido in winter",
+    "start_date": "2026-02-03",
+    "end_date": "2026-02-14",
+    "country": "JP",
+    "countries": ["JP"]
+  }
+}
+```
+
+These are the same figures TREK's own dashboard shows, computed from the same source — a widget cannot disagree with the passport card next to it. In particular `total_countries` follows TREK's notion of *visited*: countries reached only by a flight or train count, layovers do not, and countries hidden by hand in Atlas stay hidden.
+
+`last_trip` is the most recent trip that has **started** — a trip booked for next year is not one you have been on — and is `null` when every trip is still ahead. `country` is the country most of its places sit in, and is the head of `countries`, which lists them all for a trip that crossed a border. Both are empty or `null` for a trip whose places were never geocoded.
+
+A Homepage widget then needs no scripting:
+
+```yaml
+- TREK:
+    icon: mdi-map-marker-path
+    widget:
+      type: customapi
+      url: https://trek.example.com/api/v1/stats
+      headers:
+        X-API-Key: trek_your_key_here
+      mappings:
+        - field: total_trips
+          label: Trips
+        - field: total_countries
+          label: Countries
+        - field: total_cities
+          label: Cities
+        - field: last_trip.country
+          label: Last
+```
 
 ## Notes for integrators
 

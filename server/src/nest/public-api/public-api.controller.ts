@@ -10,8 +10,8 @@ import {
 } from '@trek/shared';
 import { ApiTokenGuard } from './api-token.guard';
 import { PublicApiService } from './public-api.service';
+import { enforcePublicApiRateLimit, requireUserId } from './public-api-request';
 import { RateLimitService } from '../common/rate-limit.service';
-import type { User } from '../../types';
 
 /**
  * `/api/v1` — the versioned, read-only surface for third-party integrations.
@@ -28,15 +28,10 @@ import type { User } from '../../types';
  * yet, and a token that reads everything is a very different thing from one that
  * can also delete a trip.
  *
- * Rate limited per token rather than per IP: a self-hosted integration and its
- * user's browser routinely share an address, and limiting by IP would let one
- * starve the other. The budget is generous — this is a sync surface, not a login
- * form — but bounded, so a runaway poll degrades its own integration instead of
- * the instance.
+ * Rate limited per caller rather than per IP — the budget lives in
+ * `public-api-request.ts`, because the stats route enforces the same one from
+ * `atlas/`.
  */
-const RATE_WINDOW_MS = 60_000;
-const RATE_MAX_PER_MINUTE = 120;
-
 @Controller('api/v1')
 @UseGuards(ApiTokenGuard)
 export class PublicApiController {
@@ -45,16 +40,8 @@ export class PublicApiController {
     private readonly rl: RateLimitService,
   ) {}
 
-  /**
-   * Keyed by token id, not by IP. Falls back to the user id when a token somehow
-   * carries none, so the limiter can never end up with a shared bucket.
-   */
   private limit(req: Request): void {
-    const user = req.user as User | undefined;
-    const key = `user:${user?.id ?? 'unknown'}`;
-    if (!this.rl.check('public-api', key, RATE_MAX_PER_MINUTE, RATE_WINDOW_MS, Date.now())) {
-      throw new HttpException({ error: 'Too many requests. Please slow down.' }, 429);
-    }
+    enforcePublicApiRateLimit(this.rl, req);
   }
 
   /** Every trip the token's owner can reach, without itineraries. */
@@ -98,19 +85,6 @@ export class PublicApiController {
     }
     return trip;
   }
-}
-
-/**
- * The guard has already resolved the user; this is the type narrowing plus a
- * belt-and-braces check. If it ever throws, a route was mounted without the guard —
- * a 401 is then the right answer, and a loud one.
- */
-function requireUserId(req: Request): number {
-  const id = req.user?.id;
-  if (typeof id !== 'number') {
-    throw new HttpException({ error: 'API token required', code: 'API_TOKEN_REQUIRED' }, 401);
-  }
-  return id;
 }
 
 /**

@@ -1695,3 +1695,71 @@ describe('getVisitedRegions — status (#1048)', () => {
     expect(after.regions['FR'][0].status).toBe('visited');
   });
 });
+
+// ── lastTrip (#1367, feeds GET /api/v1/stats) ───────────────────────────────
+
+describe('lastTrip', () => {
+  it('ATLAS-LAST-001: returns null when the user has no trips at all', () => {
+    const { user } = createUser(testDb);
+    expect(atlas.lastTrip(user.id)).toBeNull();
+  });
+
+  it('ATLAS-LAST-002: ignores trips that have not started yet', () => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'Next spring', start_date: FUTURE_START, end_date: FUTURE_END });
+    // A booked trip is not one you have been on, so there is no "last trip" here.
+    expect(atlas.lastTrip(user.id)).toBeNull();
+  });
+
+  it('ATLAS-LAST-003: picks the most recent started trip and reports its countries', () => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'Older', start_date: isoOffsetDays(-90), end_date: isoOffsetDays(-80) });
+    const recent = createTrip(testDb, user.id, { title: 'Recent', start_date: PAST_START, end_date: PAST_END });
+    createTrip(testDb, user.id, { title: 'Booked', start_date: FUTURE_START, end_date: FUTURE_END });
+
+    const place = insertPlaceWithCoords(testDb, recent.id, 'Paris Hotel', 48.85, 2.35);
+    testDb
+      .prepare('INSERT OR REPLACE INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)')
+      .run(place.id, 'fr', 'FR-75', 'Ile-de-France');
+
+    const last = atlas.lastTrip(user.id);
+    expect(last).toMatchObject({ title: 'Recent', start_date: PAST_START, end_date: PAST_END });
+    // Upper-cased on the way out — place_regions is not consistent about it.
+    expect(last!.countries).toEqual(['FR']);
+  });
+
+  it('ATLAS-LAST-004: orders a multi-country trip by how many places sit in each', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Interrail', start_date: PAST_START, end_date: PAST_END });
+    const stamp = testDb.prepare('INSERT OR REPLACE INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)');
+    stamp.run(insertPlaceWithCoords(testDb, trip.id, 'Wien', 48.2, 16.37).id, 'AT', 'AT-9', 'Wien');
+    stamp.run(insertPlaceWithCoords(testDb, trip.id, 'Praha', 50.08, 14.44).id, 'CZ', 'CZ-10', 'Praha');
+    stamp.run(insertPlaceWithCoords(testDb, trip.id, 'Brno', 49.19, 16.61).id, 'CZ', 'CZ-64', 'Brno');
+
+    // Two Czech stops beat one Austrian, so CZ leads and becomes `country`.
+    expect(atlas.lastTrip(user.id)!.countries).toEqual(['CZ', 'AT']);
+  });
+
+  it('ATLAS-LAST-005: a trip whose places were never geocoded reports no countries, not a wrong one', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Roadtrip', start_date: PAST_START, end_date: PAST_END });
+    insertPlace(testDb, trip.id, 'That diner off the highway');
+    expect(atlas.lastTrip(user.id)!.countries).toEqual([]);
+  });
+
+  it('ATLAS-LAST-006: a trip shared by membership counts as the caller own last trip', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id, { title: 'Shared', start_date: PAST_START, end_date: PAST_END });
+    testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(trip.id, member.id);
+    expect(atlas.lastTrip(member.id)?.title).toBe('Shared');
+  });
+
+  it('ATLAS-LAST-007: two trips ending the same day resolve deterministically', () => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'First', start_date: PAST_START, end_date: PAST_END });
+    createTrip(testDb, user.id, { title: 'Second', start_date: PAST_START, end_date: PAST_END });
+    // The id is the tie-break, so the answer cannot depend on storage order.
+    expect(atlas.lastTrip(user.id)?.title).toBe('Second');
+  });
+});

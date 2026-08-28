@@ -251,4 +251,77 @@ describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
       expect((await request(server).get('/api/addons/atlas/locate?lat=41.9&lng=12.5')).status).toBe(401);
     });
   });
+
+  // ── GET /api/v1/stats (#1367) ─────────────────────────────────────────────
+  //
+  // Mounted from this module rather than public-api/ because its figures are
+  // AtlasService's; see the controller's docblock. Exercised here because this
+  // is the suite that already boots the real AtlasModule against a full schema —
+  // the public-api e2e builds a hand-rolled minimal one and could not.
+  describe('public API stats', () => {
+    function mintApiKey(uid: number, kind = 'api'): string {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { createHash, randomBytes } = require('crypto');
+      const raw = 'trek_' + randomBytes(24).toString('hex');
+      db.prepare('INSERT INTO mcp_tokens (user_id, name, token_hash, token_prefix, kind) VALUES (?, ?, ?, ?, ?)')
+        .run(uid, `key-${kind}-${uid}`, createHash('sha256').update(raw).digest('hex'), raw.slice(0, 12), kind);
+      return raw;
+    }
+
+    it('401 without a key, and a session cookie is not a substitute', async () => {
+      expect((await request(server).get('/api/v1/stats')).status).toBe(401);
+      // The whole point of a machine credential: the browser session does not open it.
+      const res = await request(server).get('/api/v1/stats').set('Cookie', sessionCookie(userId));
+      expect(res.status).toBe(401);
+      expect(res.body).toEqual({ error: 'API token required', code: 'API_TOKEN_REQUIRED' });
+    });
+
+    it('401 for an MCP token — the wrong kind is indistinguishable from no token', async () => {
+      const mcpKey = mintApiKey(userId, 'mcp');
+      const res = await request(server).get('/api/v1/stats').set('X-API-Key', mcpKey);
+      expect(res.status).toBe(401);
+      expect(res.body).toEqual({ error: 'Invalid API token', code: 'API_TOKEN_INVALID' });
+    });
+
+    it('200 with counts and the last started trip, over both header spellings', async () => {
+      const { user } = createUser(db as never, { username: 'stats-e2e', email: 'stats-e2e@test.example' });
+      const key = mintApiKey(user.id);
+      const iso = (offset: number) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
+
+      createTrip(db as never, user.id, { title: 'Older', start_date: iso(-90), end_date: iso(-80) });
+      const recent = createTrip(db as never, user.id, { title: 'Recent', start_date: iso(-40), end_date: iso(-30) });
+      createTrip(db as never, user.id, { title: 'Booked', start_date: iso(30), end_date: iso(40) });
+      const cat = db.prepare('SELECT id FROM categories LIMIT 1').get() as { id: number } | undefined;
+      const placeId = db
+        .prepare('INSERT INTO places (trip_id, name, address, category_id) VALUES (?, ?, ?, ?)')
+        .run(recent.id, 'Trevi', 'Piazza di Trevi, 00187, Roma, Italy', cat?.id ?? null).lastInsertRowid as number;
+      db.prepare('INSERT OR REPLACE INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)')
+        .run(placeId, 'IT', 'IT-62', 'Lazio');
+
+      const res = await request(server).get('/api/v1/stats').set('Authorization', `Bearer ${key}`);
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        total_trips: 3,
+        total_countries: 1,
+        total_places: 1,
+        last_trip: { title: 'Recent', country: 'IT', countries: ['IT'] },
+      });
+      // Scalars all the way — a widget maps fields, it cannot aggregate a list.
+      for (const k of ['total_trips', 'total_countries', 'total_cities', 'total_places', 'total_days', 'total_distance_km']) {
+        expect(typeof res.body[k]).toBe('number');
+      }
+
+      const viaHeader = await request(server).get('/api/v1/stats').set('X-API-Key', key);
+      expect(viaHeader.body).toEqual(res.body);
+    });
+
+    it('counts only the caller own trips', async () => {
+      const { user: stranger } = createUser(db as never, { username: 'stats-other', email: 'stats-other@test.example' });
+      const key = mintApiKey(stranger.id);
+      const res = await request(server).get('/api/v1/stats').set('X-API-Key', key);
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({ total_trips: 0, total_countries: 0, last_trip: null });
+    });
+  });
+
 });

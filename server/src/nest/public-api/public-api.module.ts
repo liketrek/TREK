@@ -18,6 +18,10 @@ import { RateLimitModule } from '../common/rate-limit.module';
  * graph along: AtlasModule needs AuthModule, which boots the storage registry,
  * which reads app_settings on init. A read-only surface that cannot start without
  * half the application is one that breaks for reasons it has nothing to do with.
+ *
+ * That constraint is why `GET /api/v1/stats` is not declared here: its figures are
+ * AtlasService's, so the route lives in `atlas/` instead and provides this guard
+ * class itself. No module edge either way — which is the point.
  */
 @Module({
   imports: [TokensModule, TripMembershipModule, RateLimitModule],

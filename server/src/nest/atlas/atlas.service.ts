@@ -925,6 +925,55 @@ export class AtlasService {
   // travel-stats.controller.ts in this directory.
   // ---------------------------------------------------------------------------
 
+  /**
+   * The trip the user most recently took, with the countries it touched.
+   *
+   * Started, not created: a trip booked for next spring is not what anybody means
+   * by their last trip, so the same `<= date('now')` cut the visited-country query
+   * below uses applies here. All-future trips give null rather than a trip nobody
+   * has been on yet.
+   *
+   * Ordered by end date with the start date as fallback, and the id as a
+   * tie-break — two trips ending the same day is ordinary (a weekend away either
+   * side of a work trip), and without the second key which one is "last" would be
+   * whatever the storage engine happened to return first.
+   *
+   * Countries come from `place_regions`, Atlas's own cache, most-visited first.
+   * No fallback to `getCountryFromCoords` here on purpose: this answers a
+   * dashboard widget, and a point-in-polygon scan over 4MB of boundaries is too
+   * much to spend on a label. An unresolved trip reports an empty list, which the
+   * caller renders as "no country" rather than as a wrong one.
+   */
+  lastTrip(userId: number): { title: string; start_date: string | null; end_date: string | null; countries: string[] } | null {
+    const trip = this.db.get<{ id: number; title: string; start_date: string | null; end_date: string | null }>(`
+    SELECT t.id, t.title, t.start_date, t.end_date
+    FROM trips t
+    LEFT JOIN trip_members tm ON t.id = tm.trip_id
+    WHERE (t.user_id = ? OR tm.user_id = ?)
+      AND COALESCE(t.start_date, t.end_date) IS NOT NULL
+      AND COALESCE(t.start_date, t.end_date) <= date('now')
+    ORDER BY COALESCE(t.end_date, t.start_date) DESC, t.id DESC
+    LIMIT 1
+  `, userId, userId);
+    if (!trip) return null;
+
+    const rows = this.db.all<{ country_code: string; places: number }>(`
+    SELECT pr.country_code, COUNT(DISTINCT p.id) AS places
+    FROM place_regions pr
+    JOIN places p ON p.id = pr.place_id
+    WHERE p.trip_id = ? AND pr.country_code IS NOT NULL
+    GROUP BY pr.country_code
+    ORDER BY places DESC, pr.country_code ASC
+  `, trip.id);
+
+    return {
+      title: trip.title,
+      start_date: trip.start_date,
+      end_date: trip.end_date,
+      countries: rows.map(r => r.country_code.toUpperCase()),
+    };
+  }
+
   getTravelStats(userId: number) {
     // The resolved region rides along so cityFromAddress can tell the city apart from
     // the region sitting right above it in the same address (#1115).

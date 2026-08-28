@@ -205,3 +205,61 @@ export const publicApiTripListSchema = z.object({
   trips: z.array(publicApiTripSummarySchema),
 });
 export type PublicApiTripList = z.infer<typeof publicApiTripListSchema>;
+
+/**
+ * The trip the traveller most recently took, for a dashboard that wants to name it.
+ *
+ * "Most recently took" means started, not created: a trip booked for next year is
+ * not what anybody means by their last trip. A user whose trips are all in the
+ * future therefore gets `null` here rather than a trip they have not been on.
+ */
+export const publicApiLastTripSchema = z.object({
+  title: z.string(),
+  start_date: z.string().nullable(),
+  end_date: z.string().nullable(),
+  /**
+   * ISO-3166-1 alpha-2 of the country the trip mostly took place in — the one a
+   * widget shows when it has room for exactly one. Null when no place on the trip
+   * ever resolved to a country, which is normal for a trip jotted down without
+   * geocoded stops.
+   */
+  country: z.string().nullable(),
+  /**
+   * Every country the trip touched, most-visited first. `country` is this list's
+   * head; a multi-country trip is not lossy here.
+   */
+  countries: z.array(z.string()),
+});
+export type PublicApiLastTrip = z.infer<typeof publicApiLastTripSchema>;
+
+/**
+ * Aggregate counts for a dashboard widget (#1367) — Homepage's `customapi` and
+ * anything else that renders a handful of numbers and cannot aggregate a list
+ * itself.
+ *
+ * Scalars rather than the arrays behind them. `GET /api/v1/trips` already hands
+ * out the rows for a consumer that wants to count its own way; this endpoint
+ * exists for the one that wants a number and a single HTTP request.
+ *
+ * The figures are the ones TREK's own dashboard shows, computed from the same
+ * source, so a widget cannot disagree with the passport card sitting next to it.
+ * That is the whole reason this is not a fresh count over `/trips`: "visited
+ * countries" carries years of accumulated rules — countries reached only by a
+ * flight, layovers that do not count as visited, countries the user hid by hand —
+ * and a second implementation would drift from the first the week after it shipped.
+ */
+export const publicApiStatsSchema = z.object({
+  /** Trips the caller owns or is a member of, archived ones included. */
+  total_trips: z.number(),
+  /** Distinct countries counted as visited. */
+  total_countries: z.number(),
+  /** Distinct cities, derived from place addresses. */
+  total_cities: z.number(),
+  total_places: z.number(),
+  /** Days across all trips, not days travelled. */
+  total_days: z.number(),
+  /** Flown distance, summed over non-cancelled flight bookings. Kilometres. */
+  total_distance_km: z.number(),
+  last_trip: publicApiLastTripSchema.nullable(),
+});
+export type PublicApiStats = z.infer<typeof publicApiStatsSchema>;
