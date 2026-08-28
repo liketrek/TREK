@@ -4,6 +4,8 @@ import type {
   McpAccessValidator,
   McpAttachOptions,
   McpContext,
+  McpDynamicTool,
+  McpDynamicToolSource,
   McpEntry,
   McpRegistryListing,
   PromptOptions,
@@ -13,8 +15,6 @@ import type {
 } from './types';
 import { ResourceTemplate as SdkResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
-
-import type { ZodRawShape } from 'zod';
 
 interface BoundEntry {
   entry: McpEntry;
@@ -43,6 +43,16 @@ interface LooseRegistrar {
     cb: (...cbArgs: unknown[]) => unknown,
   ): unknown;
   registerPrompt(name: string, config: Record<string, unknown>, cb: (...cbArgs: unknown[]) => unknown): unknown;
+}
+
+/** `this` for a dynamic tool that declares no owner. */
+const NO_OWNER: object = Object.freeze({});
+
+/** Stands in for the method name a decorated entry would carry, in diagnostics. */
+const DYNAMIC_METHOD_NAME = '(dynamic)';
+
+function describeError(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }
 
 function describeBound({ entry, instance }: BoundEntry): string {
@@ -74,6 +84,8 @@ export class McpRegistry {
   private readonly bound: BoundEntry[] = [];
   private readonly accessPolicy?: McpAccessPolicy;
   private readonly validateAccess?: McpAccessValidator;
+  /** Memoised `reservedNames()`; dropped by register() so it can never go stale. */
+  private reserved?: ReadonlySet<string>;
 
   constructor(options: McpRegistryOptions = {}) {
     this.accessPolicy = options.accessPolicy;
@@ -95,6 +107,7 @@ export class McpRegistry {
       const entry = getEntry(ctor, name);
       if (entry) this.bound.push({ entry, instance });
     }
+    this.reserved = undefined;
   }
 
   /**
@@ -120,6 +133,74 @@ export class McpRegistry {
         case 'prompt':
           this.attachPrompt(registrar, entry.options, instance, handler, ctx, opts);
           break;
+      }
+    }
+    // After the registered entries, never before. Four reasons, in order of how
+    // much they cost if ignored: a reservation bug then throws on the dynamic
+    // registration, inside the catch below, instead of on a registered one
+    // outside it; a throwing source cannot stop a built-in from attaching;
+    // tools/list is insertion-ordered, so host-contributed tools sort last,
+    // which is the right priority signal in a long list; and it reads the way
+    // it works — the registry, then whatever this session added on top.
+    if (opts?.dynamicTools) this.attachDynamicTools(registrar, ctx, opts, opts.dynamicTools);
+  }
+
+  /**
+   * Every name a REGISTERED entry occupies — deliberately not every name this
+   * session can see.
+   *
+   * Reserving against what the session was granted would mean a token scoped to
+   * `trips:read` has no `create_trip` attached, so a dynamic tool could take
+   * that name for a caller holding no scope for it. The set is also
+   * kind-agnostic: the SDK namespaces tools and prompts separately, but a
+   * contributor owning a built-in's string in any namespace is a
+   * name-confusion surface, and the wider set costs one Set lookup.
+   */
+  private reservedNames(): ReadonlySet<string> {
+    if (!this.reserved) this.reserved = new Set(this.bound.map((b) => b.entry.options.name));
+    return this.reserved;
+  }
+
+  private attachDynamicTools(
+    registrar: LooseRegistrar,
+    ctx: McpContext,
+    opts: McpAttachOptions,
+    source: McpDynamicToolSource,
+  ): void {
+    let tools: readonly McpDynamicTool[];
+    try {
+      tools = source(ctx) ?? [];
+    } catch (err) {
+      // A session with no dynamic tools is degraded; a session that throws here
+      // is a 500 on initialize, because hosts call attach() outside their try.
+      console.warn(`[nest-mcp] dynamic tool source failed, no dynamic tools this session: ${describeError(err)}`);
+      return;
+    }
+    const reserved = this.reservedNames();
+    const claimed = new Set<string>();
+    for (const tool of tools) {
+      const name = tool?.options?.name;
+      try {
+        if (typeof tool?.handler !== 'function') throw new Error('handler is not a function');
+        if (typeof name !== 'string' || !name) throw new Error('name is missing');
+        // The type says required, but this is a trust boundary: an absent
+        // marker takes allowed()'s "always registered" branch.
+        if (tool.options.access === undefined) throw new Error('access is required for a dynamic tool');
+        if (reserved.has(name)) throw new Error('name is reserved by a registered entry');
+        if (claimed.has(name)) throw new Error('duplicate name in this source');
+        // Claimed before the gate, so a denied entry still owns its name and a
+        // later duplicate cannot slip in behind it.
+        claimed.add(name);
+        const owner = tool.owner ?? NO_OWNER;
+        // allowed() is inside the try because it is the second live throw site:
+        // declarative access with no configured accessPolicy. Registered
+        // entries only avoid it because validate() pre-checks them at boot, and
+        // a per-session source has no boot to be checked at.
+        const entry: McpEntry = { kind: 'tool', methodName: DYNAMIC_METHOD_NAME, options: tool.options };
+        if (!this.allowed(entry, ctx, owner)) continue;
+        this.attachTool(registrar, tool.options, owner, tool.handler as AnyHandler, ctx, opts);
+      } catch (err) {
+        console.warn(`[nest-mcp] skipped dynamic tool "${String(name)}": ${describeError(err)}`);
       }
     }
   }
@@ -213,7 +294,7 @@ export class McpRegistry {
     const config: Record<string, unknown> = {
       title: options.title,
       description: options.description,
-      inputSchema: options.inputSchema as ZodRawShape | undefined,
+      inputSchema: options.inputSchema,
       outputSchema: options.outputSchema,
       annotations: options.annotations,
       _meta: options._meta,

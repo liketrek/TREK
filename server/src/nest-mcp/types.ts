@@ -109,13 +109,30 @@ interface McpEntryOptionsBase {
 }
 
 /**
- * Mirrors the SDK's `registerTool` config. `inputSchema` is a ZodRawShape
- * passed straight through — the SDK does the parsing/validation.
+ * A whole Zod schema, as opposed to the shape its properties are spelled out
+ * in. Structural for the same reason `annotations`/`_meta` are: the package's
+ * public d.ts never imports a deep zod subpath.
+ *
+ * The SDK accepts either form (`registerTool<InputArgs extends undefined |
+ * ZodRawShapeCompat | AnySchema>`, and `normalizeObjectSchema` narrows them to
+ * one object schema), so passing a whole schema costs nothing here. What it
+ * buys is `.meta()`: Zod merges registry metadata into the `toJSONSchema`
+ * output that `tools/list` is rendered from, which is how a host advertises a
+ * schema it did not author without converting it into Zod first.
+ */
+export interface McpZodSchema {
+  readonly _zod: unknown;
+  parse(value: unknown): unknown;
+}
+
+/**
+ * Mirrors the SDK's `registerTool` config. `inputSchema` is passed straight
+ * through — the SDK does the parsing/validation.
  * `annotations`/`_meta` are kept structural so the package's public d.ts
  * never imports deep SDK subpaths.
  */
 export interface ToolOptions extends McpEntryOptionsBase {
-  inputSchema?: ZodRawShape;
+  inputSchema?: ZodRawShape | McpZodSchema;
   outputSchema?: ZodRawShape;
   annotations?: Record<string, unknown>;
   _meta?: Record<string, unknown>;
@@ -153,7 +170,48 @@ export interface McpAttachOptions {
    * failure handling.
    */
   onInvoke?: (info: { kind: McpEntryKind; name: string }) => void;
+  /**
+   * Extra tools contributed for THIS session only, on top of the decorated
+   * ones. Consulted once per `attach()`, after every registered entry.
+   *
+   * They go through the same `attachTool()` as a decorated entry, so `onInvoke`
+   * fires for them and the host's audit trail sees them. That is the whole
+   * reason this lives here rather than the host calling `server.registerTool()`
+   * itself: anything registered outside `attach()` is invisible to the seam.
+   *
+   * Contract, and the inverse of `onInvoke`'s: this source and its entries MAY
+   * throw. `attach()` contains both, per entry, because hosts call it outside
+   * their request try block — an escape there is a 500 on every `initialize`,
+   * so one bad contributor would take MCP down for everyone. A failure costs
+   * that one tool (or, for the source itself, this session's dynamic tools);
+   * it never costs a registered entry.
+   */
+  dynamicTools?: McpDynamicToolSource;
 }
+
+/** One host-contributed tool, supplied per session by an `McpDynamicToolSource`. */
+export interface McpDynamicTool {
+  /**
+   * `access` is required here, unlike on a decorated entry: `allowed()` reads
+   * an absent marker as "always registered", so omitting it would put the tool
+   * on every session ungated. `attach()` re-checks it at runtime — this is a
+   * trust boundary, and the type alone is not the enforcement.
+   */
+  options: ToolOptions & { access: McpAccess };
+  handler: (args: unknown, ctx: McpContext) => unknown;
+  /** Bound as `this` on `handler`, and handed to `when(ctx, self)`. */
+  owner?: object;
+}
+
+/**
+ * Consulted once per `attach()`, with that session's ctx.
+ *
+ * Synchronous by design: `attach()` runs inside the `initialize` request, so an
+ * awaited source would put a third party's round trip in front of every session
+ * creation. A source that needs to ask something slow what tools exist should
+ * answer from state it already holds.
+ */
+export type McpDynamicToolSource = (ctx: McpContext) => readonly McpDynamicTool[];
 
 export type McpEntry =
   | { kind: 'tool'; methodName: string; options: ToolOptions }

@@ -2,7 +2,7 @@ import { McpController, Prompt, Resource, ResourceTemplate, Tool } from '../../.
 import { getEntry, isMcpController, type ClassRef } from '../../../src/nest-mcp/metadata';
 
 import { describe, expect, it } from 'vitest';
-import { z } from 'zod';
+import { z, type ZodRawShape } from 'zod';
 
 @McpController()
 class Decorated {
@@ -83,7 +83,9 @@ describe('nest-mcp decorators', () => {
     const tool = getEntry(ctor(Decorated), 'doThing');
     expect(tool?.kind).toBe('tool');
     if (tool?.kind === 'tool') {
-      expect(tool.options.inputSchema?.what).toBeInstanceOf(z.ZodString);
+      // inputSchema is `ZodRawShape | McpZodSchema` since dynamic tools started
+      // passing whole schemas; this decorator declared the raw-shape arm.
+      expect((tool.options.inputSchema as ZodRawShape).what).toBeInstanceOf(z.ZodString);
     }
   });
 
