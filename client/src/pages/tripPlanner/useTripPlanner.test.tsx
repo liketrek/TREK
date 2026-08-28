@@ -1642,8 +1642,10 @@ describe('useTripPlanner — booking import review', () => {
     const { result } = await renderPlanner()
     const odd = { type: 'shuttle-voucher', title: 'Airport transfer' }
 
-    act(() => { result.current.setBookingImportKind('transports') })
-    act(() => { result.current.startImportReview([odd] as never) })
+    // The tab now travels with the review rather than living in component state:
+    // the parse outlives navigation and reload, and the review is triggered by the
+    // global widget, so by then the state has remounted back to its default.
+    act(() => { result.current.startImportReview([odd] as never, [], 'transports') })
 
     expect(result.current.showTransportModal).toBe(true)
     expect(result.current.showReservationModal).toBe(false)
@@ -1654,8 +1656,33 @@ describe('useTripPlanner — booking import review', () => {
     const { result } = await renderPlanner()
     const odd = { type: 'shuttle-voucher', title: 'Airport transfer' }
 
-    act(() => { result.current.setBookingImportKind('bookings') })
-    act(() => { result.current.startImportReview([odd] as never) })
+    act(() => { result.current.startImportReview([odd] as never, [], 'bookings') })
+
+    expect(result.current.showReservationModal).toBe(true)
+    expect(result.current.showTransportModal).toBe(false)
+  })
+
+  // The case that actually occurs. The server only ever emits its eight known
+  // types, so 'shuttle-voucher' above never reaches a real import: a document the
+  // model could not classify arrived as a placeholder 'hotel', which IS a booking
+  // type, so the tie-breaker never ran and the tab lost every time (#2076).
+  it('FE-TP-HOOK-112b: a guessed hotel opens the transport form when the import began there', async () => {
+    seedTrip()
+    const { result } = await renderPlanner()
+    const guessed = { type: 'hotel', title: 'Airport transfer', type_guessed: true }
+
+    act(() => { result.current.startImportReview([guessed] as never, [], 'transports') })
+
+    expect(result.current.showTransportModal).toBe(true)
+    expect(result.current.showReservationModal).toBe(false)
+  })
+
+  it('FE-TP-HOOK-112c: a real hotel from the same tab still opens the booking form', async () => {
+    seedTrip()
+    const { result } = await renderPlanner()
+    const real = { type: 'hotel', title: 'Ryokan' }
+
+    act(() => { result.current.startImportReview([real] as never, [], 'transports') })
 
     expect(result.current.showReservationModal).toBe(true)
     expect(result.current.showTransportModal).toBe(false)

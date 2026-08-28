@@ -274,6 +274,11 @@ export function useTripPlanner() {
   const importQueueRef = useRef<BookingImportPreviewItem[]>([])
   // The files this import was parsed from, so each reviewed booking can attach its source doc.
   const importSourceFilesRef = useRef<File[]>([])
+  // The tab the items under review came from. A ref, not the bookingImportKind
+  // state: the parse outlives navigation and reload, and the review is triggered
+  // by the global widget, so by then the state has remounted back to its default.
+  // The value comes off the persisted job (#2076).
+  const importKindRef = useRef<'transports' | 'bookings'>('bookings')
   // Manual route planning: off by default, toggled from the day-plan footer. Mode
   // is per-session and selects which travel time the connectors show — either a
   // built-in OSRM profile or a plugin route profile ('plugin:<id>/<profile>').
@@ -933,7 +938,7 @@ export function useTripPlanner() {
     const srcName = item.source?.fileName
     const srcFile = srcName ? importSourceFilesRef.current.find(f => f.name === srcName) : undefined
     if (srcFile) draft._sourceFiles = [srcFile]
-    if (isTransportItem(item) || (isUnplaceableItem(item) && bookingImportKind === 'transports')) {
+    if (isTransportItem(item) || (isUnplaceableItem(item) && importKindRef.current === 'transports')) {
       setShowReservationModal(false); setEditingReservation(null); setReservationPrefill(null)
       setEditingTransport(null); setTransportModalDayId(null)
       setTransportPrefill(draft); setShowTransportModal(true)
@@ -944,9 +949,14 @@ export function useTripPlanner() {
     }
   }
 
-  const startImportReview = (items: BookingImportPreviewItem[], sourceFiles: File[] = []) => {
+  const startImportReview = (
+    items: BookingImportPreviewItem[],
+    sourceFiles: File[] = [],
+    kind: 'transports' | 'bookings' = 'bookings',
+  ) => {
     if (!items.length) return
     importSourceFilesRef.current = sourceFiles
+    importKindRef.current = kind
     importQueueRef.current = items.slice(1)
     setImportReviewActive(true)
     openImportItem(items[0])
@@ -967,12 +977,13 @@ export function useTripPlanner() {
       const items = task.items
       const jobId = task.id
       const inMemory = task.sourceFiles
+      const kind = task.kind ?? 'bookings'
       dismissBgTask(jobId)
       // Prefer the in-memory files (immediate path); after a reload they live in IndexedDB.
       void (async () => {
         const files = inMemory && inMemory.length ? inMemory : await getImportFiles(jobId)
         deleteImportFiles(jobId)
-        startImportReview(items, files)
+        startImportReview(items, files, kind)
       })()
     }
   }, [bgTasks, tripId, startImportReview, dismissBgTask])

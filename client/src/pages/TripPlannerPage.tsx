@@ -252,7 +252,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     prefillCoords, setPrefillCoords, editingAssignmentId, setEditingAssignmentId,
     showTripForm, setShowTripForm, showMembersModal, setShowMembersModal,
     showReservationModal, setShowReservationModal, editingReservation, setEditingReservation,
-    showBookingImport, setShowBookingImport, setBookingImportKind, bookingImportAvailable,
+    showBookingImport, setShowBookingImport, bookingImportKind, setBookingImportKind, bookingImportAvailable,
     airTrailAvailable, showAirTrailImport, setShowAirTrailImport,
     bookingForAssignmentId, setBookingForAssignmentId,
     showTransportModal, setShowTransportModal, editingTransport, setEditingTransport,
@@ -877,7 +877,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
           </Suspense>
         </ErrorBoundary>
       )}
-      <BookingImportModal isOpen={showBookingImport} onClose={() => setShowBookingImport(false)} tripId={tripId} />
+      <BookingImportModal isOpen={showBookingImport} onClose={() => setShowBookingImport(false)} tripId={tripId} kind={bookingImportKind} />
       <AirTrailImportModal isOpen={showAirTrailImport} onClose={() => setShowAirTrailImport(false)} tripId={tripId} pushUndo={pushUndo} />
       <ConfirmDialog
         isOpen={!!deletePlaceId}

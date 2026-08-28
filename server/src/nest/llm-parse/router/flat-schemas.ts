@@ -23,6 +23,13 @@ export const FLAT_TYPES: FlatType[] = ['flight', 'train', 'bus', 'ferry', 'car',
  *  are the ones the router reads directly; the index signature carries the rest unchanged. */
 export interface FlatLike {
   type: FlatType;
+  /**
+   * The type was not read from the document, it was filled in because neither the
+   * keyword table nor the model produced a valid one. The extractor still uses the
+   * hotel shape so the item survives mapping, but the flag rides along so the
+   * importer opens the form the user was actually importing into (#2076).
+   */
+  type_guessed?: boolean;
   booking_reference?: string;
   vehicle_number?: string;
   from_code?: string;

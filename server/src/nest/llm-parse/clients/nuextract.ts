@@ -170,6 +170,9 @@ function buildNode(x: Record<string, unknown>): Record<string, unknown> | undefi
 
   const node: Record<string, unknown> = {
     '@type': atType,
+    // Not a schema.org field: it says the router had to guess the type, so the
+    // importer can offer the form the user was importing into (#2076).
+    ...(x.type_guessed === true ? { trekTypeGuessed: true } : {}),
     reservationNumber: x.booking_reference,
     seat: x.seat,
     class: x.travel_class,

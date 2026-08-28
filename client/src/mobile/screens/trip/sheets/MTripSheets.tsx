@@ -126,7 +126,7 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
         />
       )}
 
-      <BookingImportModal isOpen={planner.showBookingImport} onClose={() => planner.setShowBookingImport(false)} tripId={tripId} />
+      <BookingImportModal isOpen={planner.showBookingImport} onClose={() => planner.setShowBookingImport(false)} tripId={tripId} kind={planner.bookingImportKind} />
       <AirTrailImportModal isOpen={planner.showAirTrailImport} onClose={() => planner.setShowAirTrailImport(false)} tripId={tripId} pushUndo={planner.pushUndo} />
 
       {/* Trip edit + share/members, opened from the Mehr sheet. */}

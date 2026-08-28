@@ -52,9 +52,16 @@ export function isTransportItem(item: BookingImportPreviewItem): boolean {
 }
 
 /**
- * Neither form can express this type, so neither is obviously right. The tab the
- * user started the import from breaks the tie (#2076).
+ * Neither form is obviously right, so the tab the user started the import from
+ * breaks the tie (#2076).
+ *
+ * Two cases. A type neither form can express, and a type the extractor filled in
+ * rather than read. The second is the one that actually occurs: the server can
+ * only ever emit its eight known types, so the first branch never fires on a real
+ * document, and a ferry voucher the model could not classify arrived as a
+ * placeholder 'hotel' with no way to tell it from a real one.
  */
 export function isUnplaceableItem(item: BookingImportPreviewItem): boolean {
+  if (item.type_guessed === true) return true
   return !TRANSPORT_TYPES.has(item.type) && !BOOKING_TYPES.has(item.type)
 }
