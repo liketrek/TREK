@@ -395,4 +395,53 @@ describe('DashboardPage (desktop)', () => {
     }
   });
 
+  // #2115 — the stats call carries no loading flag of its own, so every tile fell
+  // back to zero until it answered. On a slow connection that reads as "my trips
+  // are gone" rather than "not loaded yet".
+  it('FE-PAGE-DESKDASH-028: the stats tiles show placeholders instead of zeros before the numbers arrive', async () => {
+    let release: (() => void) | null = null;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    server.use(http.get('/api/auth/travel-stats', async () => {
+      await held;
+      return HttpResponse.json({ totalTrips: 12, totalPlaces: 40, totalDays: 30, totalDistanceKm: 5000, countries: ['FR'] });
+    }));
+
+    const { container } = render(<DashboardPage />);
+
+    // The tile is on screen and reads as pending, not as a real zero.
+    const tiles = await waitFor(() => {
+      const found = container.querySelectorAll('.atlas-card');
+      expect(found.length).toBeGreaterThan(0);
+      return found;
+    });
+    expect(container.querySelectorAll('.atlas-card .trek-skeleton').length).toBeGreaterThan(0);
+    for (const tile of Array.from(tiles)) {
+      expect((tile.querySelector('.value')?.textContent || '').trim()).not.toBe('0');
+    }
+
+    release!();
+    expect(await screen.findByText('12')).toBeInTheDocument();
+    expect(container.querySelectorAll('.atlas-card .trek-skeleton').length).toBe(0);
+  });
+
+  it('FE-PAGE-DESKDASH-029: the trip grid stands in for itself while the trips load', async () => {
+    let release: (() => void) | null = null;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    server.use(http.get('/api/trips', async ({ request }) => {
+      await held;
+      const url = new URL(request.url);
+      return HttpResponse.json({ trips: url.searchParams.get('archived') ? [] : [buildTrip({ id: 101, title: 'Kyoto' })] });
+    }));
+
+    const { container } = render(<DashboardPage />);
+
+    await waitFor(() => expect(container.querySelectorAll('.trips .trek-skeleton').length).toBeGreaterThan(0));
+    // The finished empty state must not show while the answer is still in flight.
+    expect(screen.queryByText(/no trips yet/i)).toBeNull();
+
+    release!();
+    expect(await screen.findByText('Kyoto')).toBeInTheDocument();
+    expect(container.querySelectorAll('.trips .trek-skeleton').length).toBe(0);
+  });
+
 });
