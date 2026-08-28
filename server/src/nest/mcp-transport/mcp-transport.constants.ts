@@ -69,6 +69,7 @@ The following features are optional and may not be available on every TREK insta
 - When the user asks to "add X to day Y", resolve both the place (search + create if needed) and the day ID before calling \`assign_place_to_day\`.
 - Do not batch destructive operations (delete trip, delete day, delete place) without explicit user confirmation for each.
 - Present budget amounts with the trip's currency. Use \`get_trip_summary\` to read the currency field.
+- Read \`get_display_settings\` before rendering a temperature, a distance or a clock time: the user has picked units, a time format and a default currency, and guessing at them contradicts what they see in the app.
 - For group trips, always check member IDs via \`list_trip_members\` before calling tools that require a \`userId\` (e.g. budget splits, assignment participants).
 `.trim();
 
