@@ -99,5 +99,17 @@ const oauth: TranslationStrings = {
   'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
   'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs', // en-fallback
   'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool', // en-fallback
+  'oauth.scope.group.files': 'Αρχεία',
+  'oauth.scope.group.settings': 'Ρυθμίσεις',
+  'oauth.scope.files:read.label': 'Προβολή αρχείων ταξιδιού',
+  'oauth.scope.files:read.description': 'Λίστα των εγγράφων ενός ταξιδιού: ονόματα, μεγέθη, ποιος τα ανέβασε και με τι συνδέονται',
+  'oauth.scope.files:write.label': 'Διαχείριση αρχείων ταξιδιού',
+  'oauth.scope.files:write.description': 'Μετονομασία και περιγραφή αρχείων, σύνδεσή τους με κρατήσεις και τοποθεσίες, επισήμανση και διαγραφή',
+  'oauth.scope.files:content.label': 'Ανάγνωση περιεχομένου αρχείων',
+  'oauth.scope.files:content.description': 'Ανάγνωση του περιεχομένου ενός ανεβασμένου εγγράφου, όπως ένα PDF κράτησης ή ένα εισιτήριο',
+  'oauth.scope.settings:read.label': 'Προβολή προτιμήσεων',
+  'oauth.scope.settings:read.description': 'Ανάγνωση μονάδων, μορφής ώρας, γλώσσας, προεπιλεγμένου νομίσματος και αρχικής σελίδας',
+  'oauth.scope.settings:write.label': 'Αλλαγή προτιμήσεων',
+  'oauth.scope.settings:write.description': 'Αλλαγή μονάδων, μορφής ώρας, γλώσσας, προεπιλεγμένου νομίσματος και αρχικής σελίδας. Ποτέ αποθηκευμένων κλειδιών API',
 };
 export default oauth;

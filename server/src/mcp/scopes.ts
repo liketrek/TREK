@@ -32,6 +32,16 @@ export const SCOPES = {
   JOURNEY_READ:        'journey:read',
   JOURNEY_WRITE:       'journey:write',
   JOURNEY_SHARE:       'journey:share',
+  FILES_READ:          'files:read',
+  FILES_WRITE:         'files:write',
+  // A third mode rather than a second group: listing what a trip carries and
+  // reading the bytes of a booking PDF are different privileges, and the plugin
+  // host already draws that line (db:read:files vs db:read:files:content). Not
+  // implied by files:write, the way journey:share is not implied by
+  // journey:write. The policy's fallback branch covers both.
+  FILES_CONTENT:       'files:content',
+  SETTINGS_READ:       'settings:read',
+  SETTINGS_WRITE:      'settings:write',
 } as const;
 
 export type Scope = typeof SCOPES[keyof typeof SCOPES];
@@ -77,6 +87,11 @@ export const SCOPE_INFO: Record<Scope, ScopeInfo> = {
   'journey:read':        { label: 'View journeys',              description: 'Read journeys, entries, and contributor list',                          group: 'Journey' },
   'journey:write':       { label: 'Manage journeys',            description: 'Create, update, and delete journeys and their entries',                 group: 'Journey' },
   'journey:share':       { label: 'Manage journey links',       description: 'Create, update, and revoke public share links for journeys',            group: 'Journey' },
+  'files:read':          { label: 'View trip files',            description: 'List the documents on a trip: names, sizes, who uploaded them, what they link to', group: 'Files' },
+  'files:write':         { label: 'Organise trip files',        description: 'Rename and describe files, link them to bookings and places, star and trash them', group: 'Files' },
+  'files:content':       { label: 'Read file contents',         description: 'Read what is inside an uploaded document, such as a booking PDF or a ticket', group: 'Files' },
+  'settings:read':       { label: 'View your preferences',      description: 'Read units, time format, language, default currency, and start page',   group: 'Settings' },
+  'settings:write':      { label: 'Change your preferences',    description: 'Change units, time format, language, default currency, and start page. Never stored API keys', group: 'Settings' },
 };
 
 // ---------------------------------------------------------------------------
@@ -112,6 +127,15 @@ export function canDeleteTrips(scopes: string[] | null): boolean {
 export function canShareTrips(scopes: string[] | null): boolean {
   if (!scopes) return true;
   return scopes.includes('trips:share');
+}
+
+/**
+ * files:content is a separate scope from files:read: a token may list a trip's
+ * documents without being allowed to read what is inside them.
+ */
+export function canReadFileContent(scopes: string[] | null): boolean {
+  if (!scopes) return true;
+  return scopes.includes('files:content');
 }
 
 /** journey:share is a separate scope for managing public share links for journeys */

@@ -96,5 +96,17 @@ const oauth: TranslationStrings = {
   'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
   'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs', // en-fallback
   'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool', // en-fallback
+  'oauth.scope.group.files': 'Bestanden',
+  'oauth.scope.group.settings': 'Instellingen',
+  'oauth.scope.files:read.label': 'Reisbestanden bekijken',
+  'oauth.scope.files:read.description': 'De documenten van een reis tonen: namen, groottes, wie ze heeft geüpload en waaraan ze gekoppeld zijn',
+  'oauth.scope.files:write.label': 'Reisbestanden beheren',
+  'oauth.scope.files:write.description': 'Bestanden hernoemen en beschrijven, koppelen aan boekingen en plaatsen, markeren en naar de prullenbak verplaatsen',
+  'oauth.scope.files:content.label': 'Bestandsinhoud lezen',
+  'oauth.scope.files:content.description': 'De inhoud van een geüpload document lezen, zoals een boekings-PDF of een ticket',
+  'oauth.scope.settings:read.label': 'Je voorkeuren bekijken',
+  'oauth.scope.settings:read.description': 'Eenheden, tijdnotatie, taal, standaardvaluta en startpagina lezen',
+  'oauth.scope.settings:write.label': 'Je voorkeuren wijzigen',
+  'oauth.scope.settings:write.description': 'Eenheden, tijdnotatie, taal, standaardvaluta en startpagina wijzigen. Nooit opgeslagen API-sleutels',
 };
 export default oauth;

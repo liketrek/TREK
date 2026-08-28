@@ -46,7 +46,7 @@ describe('ALL_SCOPES', () => {
     expect(ALL_SCOPES.length).toBeGreaterThan(0);
   });
 
-  it('derives exactly the 14 known scope groups (ScopeGroup lockstep)', () => {
+  it('derives exactly the 16 known scope groups (ScopeGroup lockstep)', () => {
     // The runtime half of the ScopeGroup lockstep — the type half is
     // MCP_ACCESS_GROUPS_MATCH_SCOPE_GROUPS in src/mcp/nest-mcp-policy.ts,
     // covered by `npm run typecheck`. If this list changes, the MCP
@@ -57,12 +57,14 @@ describe('ALL_SCOPES', () => {
       'budget',
       'collab',
       'collections',
+      'files',
       'geo',
       'journey',
       'notifications',
       'packing',
       'places',
       'reservations',
+      'settings',
       'todos',
       'trips',
       'vacay',

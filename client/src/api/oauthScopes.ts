@@ -43,6 +43,11 @@ export const SCOPE_GROUPS: Record<string, ScopeKeys> = {
   'journey:read':        { labelKey: 'oauth.scope.journey:read.label',        descriptionKey: 'oauth.scope.journey:read.description',        groupKey: 'oauth.scope.group.journey' },
   'journey:write':       { labelKey: 'oauth.scope.journey:write.label',       descriptionKey: 'oauth.scope.journey:write.description',       groupKey: 'oauth.scope.group.journey' },
   'journey:share':       { labelKey: 'oauth.scope.journey:share.label',       descriptionKey: 'oauth.scope.journey:share.description',       groupKey: 'oauth.scope.group.journey' },
+  'files:read':          { labelKey: 'oauth.scope.files:read.label',          descriptionKey: 'oauth.scope.files:read.description',          groupKey: 'oauth.scope.group.files' },
+  'files:write':         { labelKey: 'oauth.scope.files:write.label',         descriptionKey: 'oauth.scope.files:write.description',         groupKey: 'oauth.scope.group.files' },
+  'files:content':       { labelKey: 'oauth.scope.files:content.label',       descriptionKey: 'oauth.scope.files:content.description',       groupKey: 'oauth.scope.group.files' },
+  'settings:read':       { labelKey: 'oauth.scope.settings:read.label',       descriptionKey: 'oauth.scope.settings:read.description',       groupKey: 'oauth.scope.group.settings' },
+  'settings:write':      { labelKey: 'oauth.scope.settings:write.label',      descriptionKey: 'oauth.scope.settings:write.description',      groupKey: 'oauth.scope.group.settings' },
 }
 
 export const ALL_SCOPES = Object.keys(SCOPE_GROUPS)

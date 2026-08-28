@@ -6,7 +6,7 @@ OAuth scopes control exactly which data your AI client can read or write in TREK
 
 ## All scopes
 
-TREK defines 29 scopes across 14 groups.
+TREK defines 34 scopes across 16 groups.
 
 | Group | Scope | Permission |
 |---|---|---|
@@ -39,12 +39,19 @@ TREK defines 29 scopes across 14 groups.
 | **Journey** | `journey:read` | Read journeys, entries, and contributor list |
 | | `journey:write` | Create, update, and delete journeys and their entries |
 | | `journey:share` | Create, update, and revoke public share links for journeys |
+| **Files** | `files:read` | List the documents on a trip: names, sizes, who uploaded them, what they link to |
+| | `files:write` | Rename and describe files, link them to bookings and places, star and trash them |
+| | `files:content` | Read what is inside an uploaded document, such as a booking PDF or a ticket |
+| **Settings** | `settings:read` | Read units, time format, language, default currency, and start page |
+| | `settings:write` | Change units, time format, language, default currency, and start page |
 
 ## Scope rules
 
 - A `:write` scope implies `:read` access for the same group (e.g. `budget:write` also grants read access to budget data).
 - Any `trips:*` scope (`trips:read`, `trips:write`, `trips:delete`, or `trips:share`) grants trip read access.
-- `journey:read` or `journey:write` grants journey read access. `journey:share` alone does **not** grant read access — it only enables managing public share links.
+- `journey:read` or `journey:write` grants journey read access. `journey:share` alone does **not** grant read access, it only enables managing public share links.
+- `files:content` is a **separate** scope from `files:read` and is not implied by `files:write`. A token can list a trip's documents without being allowed to read what is inside them. Content reads are capped at 10 MB per file.
+- `settings:write` never reaches a stored credential. The API keys, tokens and webhook URLs kept in settings are refused by the same allow-list the REST route uses, so an assistant can switch you to Fahrenheit but cannot read or replace your Mapbox key.
 - `list_trips` and `get_trip_summary` are always available regardless of scope — they are navigation tools.
 - Static tokens and web session JWTs have full access equivalent to all scopes.
 - Addon-gated tools (Packing, To-dos, Budget, Collections, Atlas, Collab, Vacay, Journey) require both the relevant scope **and** the corresponding addon to be enabled by an admin. The to-do tools ride the **Packing** addon, not an addon of their own.
