@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { calculateRouteWithLegs } from '../Map/RouteCalculator'
 import { resolveLegMode } from '../Planner/legMode'
-import { computeSchedule, type Schedule } from './roadtripModel'
+import { computeSchedule, splitIntoRuns, type Schedule } from './roadtripModel'
 import { useSettingsStore } from '../../store/settingsStore'
 import type { Assignment, AssignmentsMap, Day, RouteSegment } from '../../types'
 
@@ -54,6 +54,8 @@ export interface RoadtripRoutes {
  * the first handful answer and the rest come back 429.
  */
 const REQUEST_SPACING_MS = 1100
+/** Anything answered faster than this came out of RouteCalculator cache, not the network. */
+const CACHE_HIT_MS = 60
 /** How often a leg that failed (usually a rate limit) is tried again, and how long after. */
 const RETRY_DELAYS_MS = [1500, 4000]
 
@@ -95,10 +97,13 @@ const asStop = (a: Assignment): RoadtripStop | null => {
  * Distance and driving time for every leg of every day of the trip.
  *
  * The day plan sidebar routes one day at a time because that is all it shows; a road
- * trip is the whole chain, which is exactly what #435 asks for. Legs are fetched
- * pairwise so RouteCalculator's cache is shared with the sidebar — a day already drawn
- * on the map costs nothing here — and the worker pool stays small because the routing
- * host is usually someone else's OSRM.
+ * trip is the whole chain, which is exactly what #435 asks for.
+ *
+ * A day is one request, not one per leg: the router already returns a leg for every
+ * consecutive pair of the waypoints it is handed. Requests go out one after another
+ * with a gap, because the public routing hosts TREK ships with allow about one per
+ * second — but only the ones that actually reach the network are paced, so returning
+ * to this view costs nothing.
  */
 export function useRoadtripRoutes(
   tripId: number | string | null,
@@ -166,27 +171,33 @@ export function useRoadtripRoutes(
       const dayLegs: Record<number, RoutedLeg> = {}
       collected[day.dayId] = dayLegs
       const dfMode = dayDefault(day.dayId)
-      for (let i = 0; i < day.stops.length - 1; i++) {
-        const from = day.stops[i]
-        const to = day.stops[i + 1]
-        const mode = resolveLegMode(
+
+      const runs = splitIntoRuns(day.stops, (from, to) =>
+        resolveLegMode(
           { isPlace: true, leg_transport_mode: from.legMode },
           { isPlace: true, incoming_leg_transport_mode: to.incomingLegMode },
           dfMode,
-        )
+        ))
+
+      for (const { stops: run, mode } of runs) {
         tasks.push(async () => {
           for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
             if (controller.signal.aborted) return
             try {
               const r = await calculateRouteWithLegs(
-                [{ lat: from.lat, lng: from.lng }, { lat: to.lat, lng: to.lng }],
+                run.map(s => ({ lat: s.lat, lng: s.lng })),
                 { signal: controller.signal, profile: mode, tripId: tripId ?? null, dayId: day.dayId },
               )
-              if (r.legs[0]) dayLegs[from.assignmentId] = { seg: { ...r.legs[0], mode }, line: r.coordinates }
+              // legs[i] is the drive from run[i] to run[i+1]; the geometry comes back for
+              // the run as a whole, which is what the map draws.
+              r.legs.forEach((leg, i) => {
+                const from = run[i]
+                if (from) dayLegs[from.assignmentId] = { seg: { ...leg, mode }, line: i === 0 ? r.coordinates : [] }
+              })
               return
             } catch {
               // Almost always a rate limit on the shared routing host. Back off and try
-              // again; a leg that still won't route (island hop, dead router) simply stays
+              // again; a run that still won't route (island hop, dead router) simply stays
               // blank, and the totals say so by being partial rather than wrong.
               const delay = RETRY_DELAYS_MS[attempt]
               if (delay === undefined) return
@@ -202,12 +213,17 @@ export function useRoadtripRoutes(
     // public routing hosts answer that with 429 after the first handful. Results are
     // published as they land so the rail fills in instead of sitting empty.
     void (async () => {
-      for (const task of tasks) {
+      for (let i = 0; i < tasks.length; i++) {
         if (controller.signal.aborted) return
-        await task()
+        const startedAt = performance.now()
+        await tasks[i]()
         if (controller.signal.aborted) return
         setLegsByDay({ ...collected })
-        await sleep(REQUEST_SPACING_MS, controller.signal)
+        // Only pace what actually went out. RouteCalculator answers a repeat from its
+        // cache in well under a millisecond, and switching back into road trip mode is
+        // all repeats — waiting a second between those made a warm view feel broken.
+        const wasNetwork = performance.now() - startedAt > CACHE_HIT_MS
+        if (wasNetwork && i < tasks.length - 1) await sleep(REQUEST_SPACING_MS, controller.signal)
       }
       if (!controller.signal.aborted) setLoading(false)
     })()

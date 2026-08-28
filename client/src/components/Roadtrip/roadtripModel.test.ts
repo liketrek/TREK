@@ -4,6 +4,7 @@ import {
   formatClock,
   formatDurationShort,
   parseClock,
+  splitIntoRuns,
   sumLegSeconds,
 } from './roadtripModel'
 
@@ -173,6 +174,41 @@ describe('computeSchedule', () => {
     )
     expect(entries[0].departure).toBe('08:00')
     expect(entries[1].arrival).toBe('09:00')
+  })
+})
+
+describe('splitIntoRuns', () => {
+  const drive = (): string => 'driving'
+
+  it('asks for a whole day travelled one way in a single run', () => {
+    const runs = splitIntoRuns(['a', 'b', 'c', 'd'], drive)
+    expect(runs).toEqual([{ stops: ['a', 'b', 'c', 'd'], mode: 'driving' }])
+  })
+
+  it('splits where the travel mode changes, and repeats the stop on both sides', () => {
+    // Drive to b, walk to c, drive on to d: the walk is its own request, and b and c
+    // each belong to two runs because they are the ends of neighbouring legs.
+    const modes = ['driving', 'walking', 'driving']
+    const runs = splitIntoRuns(['a', 'b', 'c', 'd'], (from) => modes[['a', 'b', 'c'].indexOf(from)])
+    expect(runs).toEqual([
+      { stops: ['a', 'b'], mode: 'driving' },
+      { stops: ['b', 'c'], mode: 'walking' },
+      { stops: ['c', 'd'], mode: 'driving' },
+    ])
+  })
+
+  it('keeps consecutive legs of the same mode together across a change and back', () => {
+    const modes = ['driving', 'driving', 'walking', 'walking']
+    const runs = splitIntoRuns(['a', 'b', 'c', 'd', 'e'], (from) => modes[['a', 'b', 'c', 'd'].indexOf(from)])
+    expect(runs).toEqual([
+      { stops: ['a', 'b', 'c'], mode: 'driving' },
+      { stops: ['c', 'd', 'e'], mode: 'walking' },
+    ])
+  })
+
+  it('has nothing to ask for when there is no leg', () => {
+    expect(splitIntoRuns([], drive)).toEqual([])
+    expect(splitIntoRuns(['a'], drive)).toEqual([])
   })
 })
 

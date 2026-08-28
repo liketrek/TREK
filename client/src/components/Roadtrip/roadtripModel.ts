@@ -126,6 +126,37 @@ export function computeSchedule(stops: ScheduleStop[], legSeconds: (number | und
   return { entries, warnings }
 }
 
+/**
+ * Splits a day's stops into the stretches that can be asked for in one routing request:
+ * consecutive stops whose leg shares a travel mode.
+ *
+ * The router returns a leg for every consecutive pair of the waypoints it is handed, so
+ * a day travelled one way is a single request rather than one per leg — the difference
+ * between a road trip appearing at once and crawling in over ten seconds. A day that
+ * mixes walking and driving splits at the change, because one request carries one mode.
+ */
+export function splitIntoRuns<T>(stops: T[], modeOfLeg: (from: T, to: T) => string): { stops: T[]; mode: string }[] {
+  const runs: { stops: T[]; mode: string }[] = []
+  let current: T[] = []
+  let currentMode: string | null = null
+
+  for (let i = 0; i < stops.length - 1; i++) {
+    const mode = modeOfLeg(stops[i], stops[i + 1])
+    if (currentMode === null) {
+      current = [stops[i], stops[i + 1]]
+      currentMode = mode
+    } else if (mode === currentMode) {
+      current.push(stops[i + 1])
+    } else {
+      runs.push({ stops: current, mode: currentMode })
+      current = [stops[i], stops[i + 1]]
+      currentMode = mode
+    }
+  }
+  if (currentMode !== null && current.length > 1) runs.push({ stops: current, mode: currentMode })
+  return runs
+}
+
 /** Total driving seconds of the legs that actually routed. */
 export function sumLegSeconds(legSeconds: (number | undefined)[]): number {
   return legSeconds.reduce<number>((sum, s) => sum + (s ?? 0), 0)

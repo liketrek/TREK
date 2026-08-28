@@ -247,7 +247,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     selectedDayId, isLoading, tripActions, can, canUploadFiles,
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
     enabledAddons, collabFeatures, tripAccommodations, setTripAccommodations,
-    roadtripMode, toggleRoadtripMode, roadtripActive, roadtripRoutes,
+    roadtripMode, toggleRoadtripMode, roadtripActive, roadtripRoutes, roadtripCorridor,
     allowedFileTypes, tripMembers, setTripMembers, refreshMembers, loadAccommodations,
     TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange,
     leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed, startResizeLeft, startResizeRight,
@@ -302,7 +302,9 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
 
   const poi = usePoiExplore()
   const [glMap, setGlMap] = useState<CompassMap | null>(null)
-  const poiPillEnabled = useSettingsStore(s => s.settings.map_poi_pill_enabled) !== false
+  // The corridor search draws into the same map channel and answers the same question for
+  // a drive, so the explore pill stands down while road trip mode is on.
+  const poiPillEnabled = useSettingsStore(s => s.settings.map_poi_pill_enabled) !== false && !roadtripActive
 
   // Costs expense editor opened from a booking modal (save-then-open). Lives at the
   // page level so it has tripMembers / base currency / current user available.
@@ -396,7 +398,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 const r = reservations.find(x => x.id === rid)
                 if (r) setMapTransportDetail(r)
               }}
-              pois={poi.pois}
+              pois={roadtripActive ? roadtripCorridor.search.results : poi.pois}
               onPoiClick={openAddPlaceFromPoi}
               onViewportChange={poi.onViewportChange}
               onMapReady={setGlMap}
@@ -568,7 +570,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', paddingLeft: 4 }}>
                   {roadtripActive ? (
                     <LazyPanel id="roadtrip-corridor">
-                      <RoadtripCorridorPanel routes={roadtripRoutes} onAddPoi={openAddPlaceFromPoi} />
+                      <RoadtripCorridorPanel corridor={roadtripCorridor} routes={roadtripRoutes} onAddPoi={openAddPlaceFromPoi} />
                     </LazyPanel>
                   ) : (
                   <PlacesSidebar
