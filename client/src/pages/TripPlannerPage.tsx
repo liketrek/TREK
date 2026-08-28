@@ -69,6 +69,7 @@ const ExpenseModal = lazyWithRetry(() =>
 )
 const CollabPanel = lazyWithRetry(() => import('../components/Collab/CollabPanel'))
 const RoadtripSidebar = lazyWithRetry(() => import('../components/Roadtrip/RoadtripSidebar'))
+const RoadtripCorridorPanel = lazyWithRetry(() => import('../components/Roadtrip/RoadtripCorridorPanel'))
 // Already rendered conditionally, so lazy bites immediately. Worth it beyond its
 // own 63 kB: it is the only path to TransitSearchPanel, which drags in tz-lookup
 // — about 200 kB of packed zone geometry that every trip used to load.
@@ -565,6 +566,11 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                   />
                 )}
                 <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', paddingLeft: 4 }}>
+                  {roadtripActive ? (
+                    <LazyPanel id="roadtrip-corridor">
+                      <RoadtripCorridorPanel routes={roadtripRoutes} onAddPoi={openAddPlaceFromPoi} />
+                    </LazyPanel>
+                  ) : (
                   <PlacesSidebar
                     tripId={tripId}
                     places={places}
@@ -584,6 +590,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                     days={days}
                     isMobile={false}
                   />
+                  )}
                 </div>
               </div>
             </div>

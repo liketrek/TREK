@@ -196,6 +196,13 @@ export const CATEGORY_OSM_FILTERS: Record<string, string[]> = {
   activity: ['tourism=theme_park', 'tourism=zoo', 'tourism=aquarium', 'leisure=water_park'],
   shopping: ['shop=mall', 'shop=department_store', 'amenity=marketplace'],
   supermarket: ['shop=supermarket', 'shop=convenience'],
+  // What a drive needs rather than what a city visit does (#1797). Separate from
+  // `activity`/`nature` on purpose: nobody browsing museums wants petrol stations in
+  // the same result set, and the road trip panel asks for these by name.
+  fuel: ['amenity=fuel'],
+  charging: ['amenity=charging_station'],
+  rest_area: ['highway=rest_area', 'highway=services'],
+  campsite: ['tourism=camp_site', 'tourism=caravan_site'],
 };
 
 export const POI_CATEGORY_KEYS = Object.keys(CATEGORY_OSM_FILTERS);

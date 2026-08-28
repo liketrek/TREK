@@ -871,7 +871,11 @@ export class MapsService {
     const pois: OverpassPoi[] = [];
     for (const el of elements) {
       const tags = el.tags || {};
-      const name = tags[`name:${osmLang}`] || tags['int_name'] || tags.name || tags.brand || null;
+      // `operator` comes last but matters for the road categories: petrol stations,
+      // charging points and service areas are routinely mapped with an operator and no
+      // name, and dropping those would empty the road trip corridor over long stretches.
+      const name =
+        tags[`name:${osmLang}`] || tags['int_name'] || tags.name || tags.brand || tags.operator || null;
       if (!name) continue; // unnamed POIs aren't useful to add to a plan
       // A shut-down place is not somewhere to plan a visit (#1341). OSM usually
       // re-tags one with a `disused:`/`abandoned:` prefix, and those never match
