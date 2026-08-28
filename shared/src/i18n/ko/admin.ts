@@ -348,6 +348,9 @@ const admin: TranslationStrings = {
     '플래너가 일자 경로 계산에 사용할 라우팅 프로필 제공(예: 충전소 경유 전기차 라우팅)',
   'admin.plugins.perm.hook:day-schedule-provider': '일자 계획에 시간 항목 추가(충전 정차, 보안 검색 여유 시간)',
   'admin.plugins.perm.hook:day-tint-provider': '일자 계획에서 날짜를 색으로 구분(예: 해당 날짜가 여행의 어느 구간인지)',
+  'admin.plugins.cap.mcpTools': 'AI 도구 게시',
+  'admin.plugins.mcpToolsTitle': '게시하는 AI 도구',
+  'admin.plugins.mcpToolsHint': '어시스턴트가 사용자를 대신해 실행할 수 있습니다. 각 도구는 위에서 부여한 권한으로 동작합니다.',
   'admin.plugins.perm.mcp:tools':
     'AI 어시스턴트가 사용자를 대신해 실행할 수 있는 도구 게시 (여기서 플러그인에 부여한 권한으로 동작하며, 어시스턴트 자신의 권한이 아닙니다)',
   'admin.plugins.perm.geolocation:read':

@@ -327,6 +327,9 @@ const admin: TranslationStrings = {
     'Dołączanie wpisów czasowych do planu dnia (postoje na ładowanie, bufory czasowe)',
   'admin.plugins.perm.hook:day-tint-provider':
     'Oznaczanie dni w planie dnia kolorami (na przykład do którego etapu podróży należy dany dzień)',
+  'admin.plugins.cap.mcpTools': 'Publikuje narzędzia AI',
+  'admin.plugins.mcpToolsTitle': 'Publikowane narzędzia AI',
+  'admin.plugins.mcpToolsHint': 'Asystent może je uruchomić w imieniu użytkownika. Każde działa z uprawnieniami nadanymi powyżej.',
   'admin.plugins.perm.mcp:tools':
     'Publikowanie narzędzi, które asystent AI może uruchomić w Twoim imieniu (działa z uprawnieniami nadanymi tutaj wtyczce, nie z własnymi)',
   'admin.plugins.perm.geolocation:read':

@@ -338,6 +338,9 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:day-schedule-provider': 'إلحاق مدخلات زمنية بخطة اليوم (توقفات للشحن، هوامش احتياطية)',
   'admin.plugins.perm.hook:day-tint-provider':
     'تلوين الأيام في خطة اليوم (مثلاً تحديد المرحلة التي ينتمي إليها كل يوم)',
+  'admin.plugins.cap.mcpTools': 'ينشر أدوات ذكاء اصطناعي',
+  'admin.plugins.mcpToolsTitle': 'أدوات الذكاء الاصطناعي المنشورة',
+  'admin.plugins.mcpToolsHint': 'يمكن لمساعد ذكي تشغيلها نيابة عن المستخدم. وتعمل كل أداة بالصلاحيات الممنوحة أعلاه.',
   'admin.plugins.perm.mcp:tools':
     'نشر أدوات يمكن لمساعد ذكاء اصطناعي تشغيلها نيابة عنك (يعمل بالصلاحيات التي تمنحها للإضافة هنا، وليس بصلاحياته هو)',
   'admin.plugins.perm.geolocation:read':

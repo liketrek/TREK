@@ -376,6 +376,9 @@ const admin: TranslationStrings = {
     'Gün planına zaman girişleri ekler (şarj durakları, güvenlik tamponları)',
   'admin.plugins.perm.hook:day-tint-provider':
     'Gün planındaki günleri renklendirir (örneğin bir günün yolculuğun hangi etabına ait olduğu)',
+  'admin.plugins.cap.mcpTools': 'Yapay zekâ araçları yayımlar',
+  'admin.plugins.mcpToolsTitle': 'Yayımlanan yapay zekâ araçları',
+  'admin.plugins.mcpToolsHint': 'Bir asistan bunları kullanıcı adına çalıştırabilir. Her biri yukarıda verilen yetkilerle çalışır.',
   'admin.plugins.perm.mcp:tools':
     'Bir yapay zekâ asistanının sizin adınıza çalıştırabileceği araçlar yayımlamak (burada eklentiye verdiğiniz yetkilerle çalışır, asistanın kendi yetkileriyle değil)',
   'admin.plugins.perm.geolocation:read':

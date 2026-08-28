@@ -293,6 +293,9 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:route-provider': '提供路线规划方案，供规划器计算每日路线（例如带充电停靠点的电动车路线）',
   'admin.plugins.perm.hook:day-schedule-provider': '向当日计划添加时间条目（充电停靠点、安全缓冲时间）',
   'admin.plugins.perm.hook:day-tint-provider': '为当日计划中的日期标注颜色（例如某天属于行程的哪一段）',
+  'admin.plugins.cap.mcpTools': '发布 AI 工具',
+  'admin.plugins.mcpToolsTitle': '发布的 AI 工具',
+  'admin.plugins.mcpToolsHint': '助手可以代用户运行这些工具。每个工具都以上方授予的权限运行。',
   'admin.plugins.perm.mcp:tools':
     '发布 AI 助手可以代你运行的工具（它以你在此处授予插件的权限运行，而非助手自身的权限）',
   'admin.plugins.perm.geolocation:read': '在其某个视图打开时请求你的实时位置（由 TREK 使用本站点已有的位置权限读取，不会单独为插件询问）',

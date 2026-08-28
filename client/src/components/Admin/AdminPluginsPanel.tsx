@@ -6,7 +6,7 @@ import {
   ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search, Link2, KeyRound, ShieldAlert,
   SlidersHorizontal, ArrowUpDown, CircleDot, MoreHorizontal, RotateCw, ArrowRight, Database, Users, LayoutDashboard,
   Radio, Luggage, Globe, Image, CalendarDays, Bell, Info, History, PauseCircle,
-  Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag, FileText, Route, Navigation, Clock, LocateFixed, Palette,
+  Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag, FileText, Route, Navigation, Clock, LocateFixed, Palette, Bot,
 } from 'lucide-react'
 import PluginIcon from '../shared/PluginIcon'
 import { adminApi } from '../../api/client'
@@ -123,7 +123,12 @@ interface RegistryDetail extends RegistryItem {
     requiredAddons?: string[]
     pluginDependencies?: PluginDep[]
     /** Display slice of the manifest's capabilities — drives the same chips as an installed row. */
-    capabilities?: { widget?: { slot?: string }; tripPage?: { replaces?: string[] } }
+    capabilities?: {
+      widget?: { slot?: string }
+      tripPage?: { replaces?: string[] }
+      /** Tools the plugin will publish on the MCP server once mcp:tools is granted. */
+      mcpTools?: Array<{ name: string; title?: string; description: string }>
+    }
   } | null
 }
 
@@ -241,6 +246,7 @@ function deriveCaps(perms: string[], caps: { widget?: { slot?: string }; tripPag
   }
   // Replacing planner tabs is the one capability that HIDES core UI — always chip it.
   if (caps.tripPage?.replaces?.length) out.push({ icon: LayoutDashboard, label: t('admin.plugins.cap.replacesTabs') })
+  if (perms.includes('mcp:tools')) out.push({ icon: Bot, label: t('admin.plugins.cap.mcpTools') })
   if (perms.some(p => p.startsWith('ws:broadcast'))) out.push({ icon: Radio, label: t('admin.plugins.cap.realtime') })
   if (perms.includes('hook:photo-provider')) out.push({ icon: Image, label: t('admin.plugins.cap.photos') })
   if (perms.includes('hook:calendar-source')) out.push({ icon: CalendarDays, label: t('admin.plugins.cap.calendar') })
@@ -1565,6 +1571,28 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* The tool text a plugin publishes goes straight into every user's
+              assistant context once mcp:tools is granted, and nothing else in
+              this dialog shows it. An admin approving the grant should read the
+              names and descriptions first, not discover them in a chat. */}
+          {manifest && (manifest.capabilities?.mcpTools?.length ?? 0) > 0 && (
+            <div className="mt-5">
+              <h4 className="text-[11px] font-semibold uppercase tracking-wider text-content-muted">{t('admin.plugins.mcpToolsTitle')}</h4>
+              <ul className="mt-2 space-y-1.5">
+                {(manifest.capabilities?.mcpTools ?? []).map(tool => (
+                  <li key={tool.name} className="flex items-start gap-2.5 py-0.5">
+                    <Bot size={15} className="text-accent mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <code className="text-[12px] font-mono text-content">{tool.name}</code>
+                      <p className="text-[12.5px] text-content-secondary leading-snug">{tool.title || tool.description}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[11.5px] text-content-faint mt-2">{t('admin.plugins.mcpToolsHint')}</p>
             </div>
           )}
 

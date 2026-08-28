@@ -335,6 +335,9 @@ const admin: TranslationStrings = {
     'Ajouter des entrées horaires au plan de la journée (arrêts de recharge, marges de sécurité)',
   'admin.plugins.perm.hook:day-tint-provider':
     'Colorer les jours du plan de la journée (par exemple, à quelle étape du voyage appartient un jour)',
+  'admin.plugins.cap.mcpTools': 'Publie des outils IA',
+  'admin.plugins.mcpToolsTitle': 'Outils IA publiés',
+  'admin.plugins.mcpToolsHint': "Un assistant peut les exécuter au nom d'un utilisateur. Chacun agit avec les accès accordés ci-dessus.",
   'admin.plugins.perm.mcp:tools':
     "Publier des outils qu'un assistant IA peut exécuter en votre nom (il agit avec les accès que vous accordez ici à l'extension, pas avec les siens)",
   'admin.plugins.perm.geolocation:read':

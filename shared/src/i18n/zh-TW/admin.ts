@@ -335,6 +335,9 @@ const admin: TranslationStrings = {
     '提供路線規劃設定檔，供規劃工具計算每日路線（例如含充電停靠站的電動車路線規劃）',
   'admin.plugins.perm.hook:day-schedule-provider': '向每日行程附加時間項目（充電停靠站、緩衝時間）',
   'admin.plugins.perm.hook:day-tint-provider': '為每日行程中的日期標示顏色（例如某天屬於旅程的哪一段）',
+  'admin.plugins.cap.mcpTools': '發布 AI 工具',
+  'admin.plugins.mcpToolsTitle': '發布的 AI 工具',
+  'admin.plugins.mcpToolsHint': '助理可以代用戶執行這些工具。每個工具都以上方授予的權限運作。',
   'admin.plugins.perm.mcp:tools':
     '發布 AI 助理可以代你執行的工具（它以你在此處授予外掛的權限運作，而非助理自身的權限）',
   'admin.plugins.perm.geolocation:read': '在其任一檢視開啟時查詢你的即時位置（由 TREK 使用本站台既有的位置權限讀取，不會另外為外掛詢問）',

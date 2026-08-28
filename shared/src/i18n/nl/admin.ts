@@ -331,6 +331,9 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:day-schedule-provider': 'Tijdsitems aan het dagplan koppelen (laadstops, buffertijden)',
   'admin.plugins.perm.hook:day-tint-provider':
     'Dagen in het dagplan een kleur geven (bijvoorbeeld bij welk deel van de reis een dag hoort)',
+  'admin.plugins.cap.mcpTools': 'Publiceert AI-tools',
+  'admin.plugins.mcpToolsTitle': 'Gepubliceerde AI-tools',
+  'admin.plugins.mcpToolsHint': 'Een assistent kan deze namens een gebruiker uitvoeren. Elke tool handelt met de hierboven verleende rechten.',
   'admin.plugins.perm.mcp:tools':
     'Tools publiceren die een AI-assistent namens jou kan uitvoeren (die handelt met de rechten die je de plug-in hier geeft, niet met die van de assistent)',
   'admin.plugins.perm.geolocation:read':

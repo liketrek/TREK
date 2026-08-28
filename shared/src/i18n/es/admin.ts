@@ -333,6 +333,9 @@ const admin: TranslationStrings = {
     'Añadir entradas de tiempo al plan del día (paradas de carga, márgenes de seguridad)',
   'admin.plugins.perm.hook:day-tint-provider':
     'Colorear los días del plan del día (por ejemplo, a qué tramo del viaje pertenece un día)',
+  'admin.plugins.cap.mcpTools': 'Publica herramientas de IA',
+  'admin.plugins.mcpToolsTitle': 'Herramientas de IA que publica',
+  'admin.plugins.mcpToolsHint': 'Un asistente puede ejecutarlas en nombre de un usuario. Cada una actúa con los permisos concedidos arriba.',
   'admin.plugins.perm.mcp:tools':
     'Publicar herramientas que un asistente de IA puede ejecutar en tu nombre (actúa con el acceso que concedes aquí al complemento, no con el del asistente)',
   'admin.plugins.perm.geolocation:read':

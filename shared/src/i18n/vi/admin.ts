@@ -332,6 +332,9 @@ const admin: TranslationStrings = {
     'Gắn các mục thời gian vào kế hoạch ngày (điểm dừng sạc, thời gian đệm an ninh)',
   'admin.plugins.perm.hook:day-tint-provider':
     'Tô màu các ngày trong kế hoạch ngày (ví dụ ngày đó thuộc chặng nào của chuyến đi)',
+  'admin.plugins.cap.mcpTools': 'Xuất bản công cụ AI',
+  'admin.plugins.mcpToolsTitle': 'Công cụ AI được xuất bản',
+  'admin.plugins.mcpToolsHint': 'Trợ lý có thể chạy chúng thay cho người dùng. Mỗi công cụ hoạt động với quyền được cấp ở trên.',
   'admin.plugins.perm.mcp:tools':
     'Xuất bản các công cụ mà trợ lý AI có thể chạy thay bạn (nó hoạt động với quyền bạn cấp cho tiện ích tại đây, không phải quyền của trợ lý)',
   'admin.plugins.perm.geolocation:read':

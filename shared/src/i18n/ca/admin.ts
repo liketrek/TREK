@@ -471,6 +471,9 @@ const admin: TranslationStrings = {
     'Afegir entrades horàries al pla del dia (parades de recàrrega, marges de seguretat)',
   'admin.plugins.perm.hook:day-tint-provider':
     'Acolorir els dies del pla del dia (per exemple, a quin tram del viatge pertany un dia)',
+  'admin.plugins.cap.mcpTools': 'Publica eines d’IA',
+  'admin.plugins.mcpToolsTitle': 'Eines d’IA que publica',
+  'admin.plugins.mcpToolsHint': 'Un assistent pot executar-les en nom d’un usuari. Cadascuna actua amb els permisos concedits a dalt.',
   'admin.plugins.perm.mcp:tools':
     "Publicar eines que un assistent d'IA pot executar en nom teu (actua amb els permisos que concedeixes aquí al connector, no amb els seus)",
   'admin.plugins.perm.geolocation:read':

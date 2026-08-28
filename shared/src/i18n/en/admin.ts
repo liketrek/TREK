@@ -371,6 +371,9 @@ const admin: TranslationStrings = {
     'Attach time entries to the day plan (charging stops, security buffers)',
   'admin.plugins.perm.hook:day-tint-provider':
     'Colour-code days in the day plan (e.g. which leg of the trip a day belongs to)',
+  'admin.plugins.cap.mcpTools': 'Publishes AI tools',
+  'admin.plugins.mcpToolsTitle': 'AI tools it publishes',
+  'admin.plugins.mcpToolsHint': 'An assistant can run these on a user’s behalf. Each one acts with the access granted above.',
   'admin.plugins.perm.mcp:tools':
     'Publish tools that an AI assistant can run on your behalf (it acts with the access you grant the plugin here, not with the assistant’s own)',
   'admin.plugins.perm.geolocation:read':

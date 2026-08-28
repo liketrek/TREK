@@ -330,6 +330,9 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:day-schedule-provider': 'Zeiteinträge an den Tagesplan anhängen (Ladestopps, Puffer)',
   'admin.plugins.perm.hook:day-tint-provider':
     'Tage im Tagesplan farblich markieren (z. B. zu welchem Reiseabschnitt ein Tag gehört)',
+  'admin.plugins.cap.mcpTools': 'Veröffentlicht KI-Tools',
+  'admin.plugins.mcpToolsTitle': 'Veröffentlichte KI-Tools',
+  'admin.plugins.mcpToolsHint': 'Ein Assistent kann sie im Namen eines Nutzers ausführen. Jedes handelt mit den oben erteilten Rechten.',
   'admin.plugins.perm.mcp:tools':
     'Tools veröffentlichen, die ein KI-Assistent in deinem Namen ausführen kann (es handelt mit den Rechten, die du dem Plugin hier erteilst, nicht mit denen des Assistenten)',
   'admin.plugins.perm.geolocation:read':

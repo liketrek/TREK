@@ -324,6 +324,9 @@ const admin: TranslationStrings = {
     'Anexar entradas de horário ao plano do dia (paradas de recarga, margens de segurança)',
   'admin.plugins.perm.hook:day-tint-provider':
     'Colorir os dias no plano do dia (por exemplo, a qual trecho da viagem um dia pertence)',
+  'admin.plugins.cap.mcpTools': 'Publica ferramentas de IA',
+  'admin.plugins.mcpToolsTitle': 'Ferramentas de IA publicadas',
+  'admin.plugins.mcpToolsHint': 'Um assistente pode executá-las em nome de um usuário. Cada uma age com o acesso concedido acima.',
   'admin.plugins.perm.mcp:tools':
     'Publicar ferramentas que um assistente de IA pode executar em seu nome (ele age com o acesso que você concede ao plugin aqui, não com o dele)',
   'admin.plugins.perm.geolocation:read':

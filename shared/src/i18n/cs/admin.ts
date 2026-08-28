@@ -325,6 +325,9 @@ const admin: TranslationStrings = {
     'Připojovat časové položky k dennímu plánu (zastávky na nabíjení, časové rezervy)',
   'admin.plugins.perm.hook:day-tint-provider':
     'Barevně odlišovat dny v denním plánu (například ke které části cesty den patří)',
+  'admin.plugins.cap.mcpTools': 'Zveřejňuje AI nástroje',
+  'admin.plugins.mcpToolsTitle': 'Zveřejněné AI nástroje',
+  'admin.plugins.mcpToolsHint': 'Asistent je může spustit jménem uživatele. Každý jedná s oprávněními udělenými výše.',
   'admin.plugins.perm.mcp:tools':
     'Zveřejňovat nástroje, které může AI asistent spustit vaším jménem (jedná s oprávněními, která zde pluginu udělíte, ne se svými)',
   'admin.plugins.perm.geolocation:read':
