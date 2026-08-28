@@ -25,6 +25,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.search': 'Искать вдоль маршрута',
   'roadtrip.poi.searching': 'Поиск {done} из {total}',
   'roadtrip.poi.capped': 'Маршрут длинный — просмотрен только первый участок.',
+  'roadtrip.poi.partial': 'Не удалось просмотреть участков: {count} — поиск мест не ответил.',
   'roadtrip.poi.failed': 'Поиск мест сейчас не отвечает.',
   'roadtrip.poi.empty': 'Выберите нужное и запустите поиск.',
   'roadtrip.poi.add': 'Добавить',

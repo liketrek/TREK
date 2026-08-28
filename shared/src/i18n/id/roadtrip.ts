@@ -25,6 +25,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.search': 'Cari di sepanjang rute',
   'roadtrip.poi.searching': 'Mencari {done} dari {total}',
   'roadtrip.poi.capped': 'Rute panjang — hanya bagian pertama yang dicari.',
+  'roadtrip.poi.partial': '{count} ruas tidak dapat dicari — pencarian tempat tidak merespons.',
   'roadtrip.poi.failed': 'Pencarian tempat sedang tidak merespons.',
   'roadtrip.poi.empty': 'Pilih yang Anda butuhkan lalu cari.',
   'roadtrip.poi.add': 'Tambah',

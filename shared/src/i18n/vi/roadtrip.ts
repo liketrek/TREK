@@ -25,6 +25,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.search': 'Tìm dọc lộ trình',
   'roadtrip.poi.searching': 'Đang tìm {done}/{total}',
   'roadtrip.poi.capped': 'Lộ trình dài — chỉ đoạn đầu được tìm kiếm.',
+  'roadtrip.poi.partial': 'Không tìm được {count} đoạn — tìm kiếm địa điểm không phản hồi.',
   'roadtrip.poi.failed': 'Tìm kiếm địa điểm hiện không phản hồi.',
   'roadtrip.poi.empty': 'Chọn thứ bạn cần rồi tìm.',
   'roadtrip.poi.add': 'Thêm',

@@ -214,6 +214,13 @@ export default function RoadtripCorridorPanel({ corridor, routes, onAddPoi }: Ro
             <AlertTriangle size={12} className="mt-0.5 shrink-0" aria-hidden />
             {t('roadtrip.poi.failed')}
           </p>
+        ) : search.failedAreas > 0 ? (
+          // Some boxes answered and some did not. Saying so is the difference between
+          // "there is no fuel on this stretch" and "nobody looked at this stretch".
+          <p className="flex items-start gap-1.5 text-caption text-warning">
+            <AlertTriangle size={12} className="mt-0.5 shrink-0" aria-hidden />
+            {t('roadtrip.poi.partial', { count: search.failedAreas })}
+          </p>
         ) : null}
       </div>
 

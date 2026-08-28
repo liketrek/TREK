@@ -25,6 +25,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.search': '경로 주변 검색',
   'roadtrip.poi.searching': '검색 중 {done}/{total}',
   'roadtrip.poi.capped': '경로가 길어 앞부분만 검색했습니다.',
+  'roadtrip.poi.partial': '{count}개 구간을 검색하지 못했습니다. 장소 검색이 응답하지 않았습니다.',
   'roadtrip.poi.failed': '장소 검색이 지금 응답하지 않습니다.',
   'roadtrip.poi.empty': '필요한 항목을 고르고 검색하세요.',
   'roadtrip.poi.add': '추가',

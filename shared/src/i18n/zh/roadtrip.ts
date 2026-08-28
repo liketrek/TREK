@@ -25,6 +25,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.search': '沿路线搜索',
   'roadtrip.poi.searching': '搜索中 {done}/{total}',
   'roadtrip.poi.capped': '路线较长，仅搜索了前段。',
+  'roadtrip.poi.partial': '有 {count} 段无法搜索 — 地点搜索没有响应。',
   'roadtrip.poi.failed': '地点搜索暂时没有响应。',
   'roadtrip.poi.empty': '选择你需要的，然后搜索。',
   'roadtrip.poi.add': '添加',

@@ -25,6 +25,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.search': 'Cerca al llarg de la ruta',
   'roadtrip.poi.searching': 'Cercant {done} de {total}',
   'roadtrip.poi.capped': 'La ruta és llarga: només s’ha cercat el primer tram.',
+  'roadtrip.poi.partial': 'No s’han pogut cercar {count} trams: la cerca de llocs no ha respost.',
   'roadtrip.poi.failed': 'La cerca de llocs no respon ara mateix.',
   'roadtrip.poi.empty': 'Tria què necessites i cerca.',
   'roadtrip.poi.add': 'Afegeix',

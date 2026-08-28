@@ -25,6 +25,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.search': 'Rota boyunca ara',
   'roadtrip.poi.searching': 'Aranıyor {done}/{total}',
   'roadtrip.poi.capped': 'Rota uzun — yalnızca ilk bölüm arandı.',
+  'roadtrip.poi.partial': '{count} bölüm aranamadı — yer araması yanıt vermedi.',
   'roadtrip.poi.failed': 'Yer araması şu anda yanıt vermiyor.',
   'roadtrip.poi.empty': 'Neye ihtiyacın olduğunu seç ve ara.',
   'roadtrip.poi.add': 'Ekle',

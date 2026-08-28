@@ -25,6 +25,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.search': 'Sök längs rutten',
   'roadtrip.poi.searching': 'Söker {done} av {total}',
   'roadtrip.poi.capped': 'Rutten är lång – bara första sträckan genomsöktes.',
+  'roadtrip.poi.partial': '{count} sträckor kunde inte genomsökas – platssökningen svarade inte.',
   'roadtrip.poi.failed': 'Platssökningen svarar inte just nu.',
   'roadtrip.poi.empty': 'Välj vad du behöver och sök.',
   'roadtrip.poi.add': 'Lägg till',

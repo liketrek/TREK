@@ -25,6 +25,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.search': 'Αναζήτηση κατά μήκος της διαδρομής',
   'roadtrip.poi.searching': 'Αναζήτηση {done} από {total}',
   'roadtrip.poi.capped': 'Η διαδρομή είναι μεγάλη — αναζητήθηκε μόνο το πρώτο τμήμα.',
+  'roadtrip.poi.partial': 'Δεν ήταν δυνατή η αναζήτηση σε {count} τμήματα — η αναζήτηση τοποθεσιών δεν απάντησε.',
   'roadtrip.poi.failed': 'Η αναζήτηση τοποθεσιών δεν απαντά αυτή τη στιγμή.',
   'roadtrip.poi.empty': 'Διαλέξτε τι χρειάζεστε και αναζητήστε.',
   'roadtrip.poi.add': 'Προσθήκη',

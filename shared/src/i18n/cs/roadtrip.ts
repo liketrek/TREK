@@ -25,6 +25,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.search': 'Hledat podél trasy',
   'roadtrip.poi.searching': 'Hledání {done} z {total}',
   'roadtrip.poi.capped': 'Trasa je dlouhá — prohledán byl jen první úsek.',
+  'roadtrip.poi.partial': '{count} úseků se nepodařilo prohledat — vyhledávání míst neodpovědělo.',
   'roadtrip.poi.failed': 'Vyhledávání míst právě neodpovídá.',
   'roadtrip.poi.empty': 'Vyberte, co potřebujete, a hledejte.',
   'roadtrip.poi.add': 'Přidat',

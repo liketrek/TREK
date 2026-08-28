@@ -25,6 +25,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.search': 'Keresés az útvonal mentén',
   'roadtrip.poi.searching': 'Keresés {done}/{total}',
   'roadtrip.poi.capped': 'Az útvonal hosszú – csak az első szakaszon kerestünk.',
+  'roadtrip.poi.partial': '{count} szakaszon nem sikerült keresni – a helykeresés nem válaszolt.',
   'roadtrip.poi.failed': 'A helykeresés most nem válaszol.',
   'roadtrip.poi.empty': 'Válaszd ki, mire van szükséged, és keress.',
   'roadtrip.poi.add': 'Hozzáadás',

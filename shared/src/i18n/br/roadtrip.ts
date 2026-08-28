@@ -25,6 +25,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.search': 'Buscar ao longo da rota',
   'roadtrip.poi.searching': 'Buscando {done} de {total}',
   'roadtrip.poi.capped': 'A rota é longa — apenas o primeiro trecho foi pesquisado.',
+  'roadtrip.poi.partial': 'Não foi possível pesquisar {count} trechos — a busca de locais não respondeu.',
   'roadtrip.poi.failed': 'A busca de locais não está respondendo agora.',
   'roadtrip.poi.empty': 'Escolha o que precisa e pesquise.',
   'roadtrip.poi.add': 'Adicionar',

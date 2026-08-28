@@ -1,4 +1,4 @@
-import { Utensils, Coffee, Wine, BedDouble, Camera, Landmark, Trees, Ticket, type LucideIcon } from 'lucide-react'
+import { Utensils, Coffee, Wine, BedDouble, Camera, Landmark, Trees, Ticket, Fuel, Zap, ParkingSquare, Tent, type LucideIcon } from 'lucide-react'
 
 // The POI categories shown in the map "explore" pill. The `key` is the contract
 // with the server (CATEGORY_OSM_FILTERS in mapsService.ts) — the OSM tag mapping
@@ -22,8 +22,21 @@ export const POI_CATEGORIES: PoiCategory[] = [
   { key: 'activity', labelKey: 'poi.cat.activities', Icon: Ticket, color: '#F59E0B' },
 ]
 
+/**
+ * What a drive needs. Kept out of POI_CATEGORIES on purpose: these are not offered by
+ * the explore pill, they are what the road trip corridor searches for. They are in the
+ * lookup below all the same, so a hit drawn on the map gets its own icon and colour
+ * instead of the nameless grey dot an unknown category falls back to.
+ */
+export const ROADTRIP_POI_CATEGORIES: PoiCategory[] = [
+  { key: 'fuel', labelKey: 'roadtrip.poi.fuel', Icon: Fuel, color: '#0EA5E9' },
+  { key: 'charging', labelKey: 'roadtrip.poi.charging', Icon: Zap, color: '#10B981' },
+  { key: 'rest_area', labelKey: 'roadtrip.poi.rest', Icon: ParkingSquare, color: '#64748B' },
+  { key: 'campsite', labelKey: 'roadtrip.poi.campsite', Icon: Tent, color: '#65A30D' },
+]
+
 export const POI_CATEGORY_BY_KEY: Record<string, PoiCategory> = Object.fromEntries(
-  POI_CATEGORIES.map(c => [c.key, c]),
+  [...POI_CATEGORIES, ...ROADTRIP_POI_CATEGORIES].map(c => [c.key, c]),
 )
 
 // One POI result from /api/maps/pois (mirror of the server's OverpassPoi).

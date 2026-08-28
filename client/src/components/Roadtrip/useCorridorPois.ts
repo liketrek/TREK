@@ -17,6 +17,8 @@ export interface CorridorSearch {
   loading: boolean
   /** True when the route was longer than the request budget and the tail was left out. */
   capped: boolean
+  /** Boxes the place search could not answer — a partial result is still shown. */
+  failedAreas: number
   error: boolean
   search: () => void
   clear: () => void
@@ -58,6 +60,7 @@ export function useCorridorPois(line: LatLng[], categories: string[], widthKm: n
   const [progress, setProgress] = useState({ done: 0, total: 0 })
   const [loading, setLoading] = useState(false)
   const [capped, setCapped] = useState(false)
+  const [failedAreas, setFailedAreas] = useState(0)
   const [error, setError] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const runIdRef = useRef(0)
@@ -68,6 +71,7 @@ export function useCorridorPois(line: LatLng[], categories: string[], widthKm: n
     setProgress({ done: 0, total: 0 })
     setLoading(false)
     setCapped(false)
+    setFailedAreas(0)
     setError(false)
   }, [])
 
@@ -90,6 +94,7 @@ export function useCorridorPois(line: LatLng[], categories: string[], widthKm: n
     const tiles = allTiles.slice(0, MAX_TILES)
 
     setCapped(allTiles.length > tiles.length)
+    setFailedAreas(0)
     setError(false)
     setResults([])
     setLoading(true)
@@ -124,6 +129,7 @@ export function useCorridorPois(line: LatLng[], categories: string[], widthKm: n
             // One dead mirror or one clamped box must not empty the whole search; the run
             // is only called a failure if every request failed.
             failures++
+            setFailedAreas(failures)
           }
           done++
           if (controller.signal.aborted || runId !== runIdRef.current) return
@@ -142,5 +148,5 @@ export function useCorridorPois(line: LatLng[], categories: string[], widthKm: n
 
   useEffect(() => () => abortRef.current?.abort(), [])
 
-  return { results, progress, loading, capped, error, search, clear }
+  return { results, progress, loading, capped, failedAreas, error, search, clear }
 }
