@@ -69,6 +69,7 @@ const trip: TranslationStrings = {
   'transit.min': '{count} dk',
   'transit.stops': '{count} durak',
   'transit.walkTo': '{name} durağına yürü',
+  'transit.changeAt': '{name} durağında aktarma',
   'transit.platform': 'Peron {track}',
   'transit.adding': 'Ekleniyor…',
   'transit.addToDay': 'Güne ekle',

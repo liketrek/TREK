@@ -69,6 +69,7 @@ const trip: TranslationStrings = {
   'transit.min': '{count}분',
   'transit.stops': '{count}개 정류장',
   'transit.walkTo': '{name}까지 도보',
+  'transit.changeAt': '{name}에서 환승',
   'transit.platform': '{track}번 승강장',
   'transit.adding': '추가 중…',
   'transit.addToDay': '일정에 추가',

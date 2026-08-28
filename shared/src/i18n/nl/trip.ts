@@ -69,6 +69,7 @@ const trip: TranslationStrings = {
   'transit.min': '{count} min',
   'transit.stops': '{count} haltes',
   'transit.walkTo': 'Loop naar {name}',
+  'transit.changeAt': 'Overstappen in {name}',
   'transit.platform': 'Perron {track}',
   'transit.adding': 'Toevoegen…',
   'transit.addToDay': 'Toevoegen aan dag',

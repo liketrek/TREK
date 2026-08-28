@@ -69,6 +69,7 @@ const trip: TranslationStrings = {
   'transit.min': '{count} perc',
   'transit.stops': '{count} megálló',
   'transit.walkTo': 'Gyaloglás ide: {name}',
+  'transit.changeAt': 'Átszállás itt: {name}',
   'transit.platform': '{track}. vágány',
   'transit.adding': 'Hozzáadás…',
   'transit.addToDay': 'Hozzáadás a naphoz',

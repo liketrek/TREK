@@ -69,6 +69,7 @@ const trip: TranslationStrings = {
   'transit.min': '{count}分',
   'transit.stops': '{count}駅',
   'transit.walkTo': '{name}まで徒歩',
+  'transit.changeAt': '{name}で乗り換え',
   'transit.platform': '{track}番線',
   'transit.adding': '追加中…',
   'transit.addToDay': '日程に追加',

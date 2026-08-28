@@ -69,6 +69,7 @@ const trip: TranslationStrings = {
   'transit.min': '{count} phút',
   'transit.stops': '{count} điểm dừng',
   'transit.walkTo': 'Đi bộ đến {name}',
+  'transit.changeAt': 'Đổi tuyến tại {name}',
   'transit.platform': 'Sân ga {track}',
   'transit.adding': 'Đang thêm…',
   'transit.addToDay': 'Thêm vào ngày',

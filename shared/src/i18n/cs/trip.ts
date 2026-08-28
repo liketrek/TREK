@@ -69,6 +69,7 @@ const trip: TranslationStrings = {
   'transit.min': '{count} min',
   'transit.stops': '{count} zastávek',
   'transit.walkTo': 'Pěšky k {name}',
+  'transit.changeAt': 'Přestup v {name}',
   'transit.platform': 'Nástupiště {track}',
   'transit.adding': 'Přidávání…',
   'transit.addToDay': 'Přidat ke dni',

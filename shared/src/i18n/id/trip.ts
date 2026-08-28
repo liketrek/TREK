@@ -69,6 +69,7 @@ const trip: TranslationStrings = {
   'transit.min': '{count} mnt',
   'transit.stops': '{count} halte',
   'transit.walkTo': 'Jalan kaki ke {name}',
+  'transit.changeAt': 'Ganti di {name}',
   'transit.platform': 'Peron {track}',
   'transit.adding': 'Menambahkan…',
   'transit.addToDay': 'Tambahkan ke hari',

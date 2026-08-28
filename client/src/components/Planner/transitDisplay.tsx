@@ -16,6 +16,8 @@ export interface TransitLegDisplay {
   duration?: number
   headsign?: string | null
   stops?: number
+  /** Server-side flag: this walk begins and ends in the same station. */
+  sameStationTransfer?: boolean
   from?: { name?: string; time?: string | null; track?: string | null }
   to?: { name?: string; time?: string | null; track?: string | null }
 }
@@ -39,10 +41,17 @@ export function TransitWalkDivider({ leg, t, size = 'md' }: {
     background: `linear-gradient(to ${dir}, var(--text-faint), transparent)`,
     opacity: 0.55,
   })
+  // A change between two feeds' copies of one station comes back as a walk from
+  // that station to itself, so "Walk to Shinagawa" was shown to somebody already
+  // standing in Shinagawa. The minutes are real and stay; only the wording moves
+  // to a transfer, and the name is taken from `from` because `to` is the copy.
+  const label = leg.sameStationTransfer
+    ? t('transit.changeAt', { name: leg.from?.name || leg.to?.name || '' })
+    : t('transit.walkTo', { name: leg.to?.name || '' })
   // On phones the minutes lead so a long stop name only ever clips the name.
   const text = isMobile
-    ? `${mins ? `${t('transit.min', { count: mins })} · ` : ''}${t('transit.walkTo', { name: leg.to?.name || '' })}`
-    : `${t('transit.walkTo', { name: leg.to?.name || '' })}${mins ? ` · ${t('transit.min', { count: mins })}` : ''}`
+    ? `${mins ? `${t('transit.min', { count: mins })} · ` : ''}${label}`
+    : `${label}${mins ? ` · ${t('transit.min', { count: mins })}` : ''}`
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: size === 'sm' ? '1px 0' : '2px 0' }}>
       <span style={rule('left')} />

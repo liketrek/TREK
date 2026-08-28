@@ -67,6 +67,10 @@ const transitLegSchema = z.object({
   lineTextColor: colorSchema,
   agency: z.string().max(300).nullable(),
   intermediateStops: z.number().int().nonnegative(),
+  // Optional with a default rather than required: a journey saved before this
+  // field existed must still validate, and z.object would otherwise strip the
+  // key on the way in and lose the flag on every save.
+  sameStationTransfer: z.boolean().optional().default(false),
   geometry: z.string().max(MAX_GEOMETRY_CHARS).nullable(),
   geometryPrecision: z.number().int().min(0).max(10),
 });

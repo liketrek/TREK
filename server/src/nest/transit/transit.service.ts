@@ -10,6 +10,7 @@ import {
   type TransitLegStop,
   type TransitPlace,
 } from './transit.helpers';
+import { isInternalLineId, isSameStation } from './same-station';
 
 /**
  * Public transit routing (#1065) backed by Transitous (api.transitous.org), the
@@ -242,25 +243,38 @@ export class TransitService {
 
     const itineraries: TransitItinerary[] = (raw.itineraries || []).flatMap((it) => {
       if (!it.startTime || !it.endTime || !Array.isArray(it.legs)) return [];
-      const legs: TransitLeg[] = it.legs.map((leg) => ({
-        mode: (leg.mode || 'WALK').toUpperCase(),
-        from: mapStop(leg.from, 'departure'),
-        to: mapStop(leg.to, 'arrival'),
-        duration: typeof leg.duration === 'number' ? leg.duration : 0,
-        distance: typeof leg.distance === 'number' ? Math.round(leg.distance) : null,
-        headsign: leg.headsign || null,
-        // displayName is the public identifier MOTIS resolved for the run, taking
-        // the trip number into account where the feed has one. Plenty of operators
-        // (German long distance among them) keep routeShortName as an internal line
-        // number, so preferring it showed "20" instead of "ICE 72" (#1715).
-        line: leg.displayName || leg.routeShortName || null,
-        lineColor: safeColor(leg.routeColor),
-        lineTextColor: safeColor(leg.routeTextColor),
-        agency: leg.agencyName || null,
-        intermediateStops: Array.isArray(leg.intermediateStops) ? leg.intermediateStops.length : 0,
-        geometry: leg.legGeometry?.points || null,
-        geometryPrecision: leg.legGeometry?.precision ?? 6,
-      }));
+      const legs: TransitLeg[] = it.legs.map((leg) => {
+        const mode = (leg.mode || 'WALK').toUpperCase();
+        const from = mapStop(leg.from, 'departure');
+        const to = mapStop(leg.to, 'arrival');
+        // Only a walk can be one: a rail leg between two copies of a station is
+        // a real (if pointless-looking) service, not a rendering artefact.
+        const sameStationTransfer = mode === 'WALK' && isSameStation(from.name, to.name);
+        // displayName is preferred below, so a feed with a usable name is
+        // unaffected; this only strips the bare id that surfaces when a feed
+        // gives every departure its own route.
+        const rawLine = leg.displayName || leg.routeShortName || null;
+        return {
+          mode,
+          from,
+          to,
+          duration: typeof leg.duration === 'number' ? leg.duration : 0,
+          distance: typeof leg.distance === 'number' ? Math.round(leg.distance) : null,
+          headsign: leg.headsign || null,
+          // displayName is the public identifier MOTIS resolved for the run, taking
+          // the trip number into account where the feed has one. Plenty of operators
+          // (German long distance among them) keep routeShortName as an internal line
+          // number, so preferring it showed "20" instead of "ICE 72" (#1715).
+          line: isInternalLineId(rawLine) ? null : rawLine,
+          lineColor: safeColor(leg.routeColor),
+          lineTextColor: safeColor(leg.routeTextColor),
+          agency: leg.agencyName || null,
+          intermediateStops: Array.isArray(leg.intermediateStops) ? leg.intermediateStops.length : 0,
+          sameStationTransfer,
+          geometry: leg.legGeometry?.points || null,
+          geometryPrecision: leg.legGeometry?.precision ?? 6,
+        };
+      });
       const stats = deriveTransitStats(it.startTime, it.endTime, legs, it.transfers);
       return [
         {

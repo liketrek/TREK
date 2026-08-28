@@ -69,6 +69,7 @@ const trip: TranslationStrings = {
   'transit.min': '{count} دقيقة',
   'transit.stops': '{count} محطات',
   'transit.walkTo': 'امشِ إلى {name}',
+  'transit.changeAt': 'التبديل في {name}',
   'transit.platform': 'الرصيف {track}',
   'transit.adding': 'جارٍ الإضافة…',
   'transit.addToDay': 'إضافة إلى اليوم',

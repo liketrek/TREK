@@ -55,6 +55,17 @@ export interface TransitLeg {
   lineTextColor: string | null;
   agency: string | null;
   intermediateStops: number;
+  /**
+   * True when this WALK leg starts and ends at the same station, which happens
+   * where two feeds each carry their own copy of it. The leg keeps its duration
+   * because the change really does take that long; only the wording changes,
+   * from "walk to X" to a transfer at X.
+   *
+   * Optional because itineraries are saved into trips: one stored before this
+   * shipped has no such field, and absent reads as false — the old wording,
+   * which is exactly what those journeys were saved with.
+   */
+  sameStationTransfer?: boolean;
   /** Encoded polyline of the leg's real path (Google encoding) + its precision. */
   geometry: string | null;
   geometryPrecision: number;

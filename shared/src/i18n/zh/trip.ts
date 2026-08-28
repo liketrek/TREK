@@ -68,6 +68,7 @@ const trip: TranslationStrings = {
   'transit.min': '{count} 分钟',
   'transit.stops': '{count} 站',
   'transit.walkTo': '步行至 {name}',
+  'transit.changeAt': '在 {name} 换乘',
   'transit.platform': '{track} 站台',
   'transit.adding': '添加中…',
   'transit.addToDay': '添加到当天',

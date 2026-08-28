@@ -264,3 +264,69 @@ describe('quirk repairs (DI fold fix pass)', () => {
     expect(fetchMock.mock.calls.length).toBe(fetchesBeforeTouch + 1);
   });
 });
+
+/*
+ * Same-station transfers and internal line ids, mapped end to end.
+ *
+ * The fixture is a real api.transitous.org response (Shinjuku 35.6896,139.7006
+ * to Kyoto 34.9858,135.7588, captured 2026-08-28), trimmed to the legs that
+ * matter. It is the itinerary from issue triage: the journey itself is right —
+ * Narita Express to Shinagawa, change to the Nozomi — but the change between
+ * two feeds' copies of Shinagawa arrived as a 399 m walk from the station to
+ * itself, and a Yamanote service arrived as line "7896371".
+ */
+describe('same-station transfers (two feeds, one station)', () => {
+  const japanPlan = {
+    itineraries: [
+      {
+        startTime: '2026-09-03T09:00:00Z',
+        endTime: '2026-09-03T11:20:00Z',
+        transfers: 1,
+        legs: [
+          { mode: 'WALK', duration: 120, distance: 129, from: { name: 'START' }, to: { name: '新宿 Shinjuku' } },
+          { mode: 'REGIONAL_RAIL', duration: 1200, routeShortName: 'N’EX', from: { name: '新宿 Shinjuku' }, to: { name: '品川 Shinagawa' } },
+          { mode: 'WALK', duration: 120, distance: 399, from: { name: '品川 Shinagawa' }, to: { name: '品川' } },
+          { mode: 'REGIONAL_RAIL', duration: 300, routeShortName: '7896371', from: { name: '品川' }, to: { name: '品川' } },
+          { mode: 'HIGHSPEED_RAIL', duration: 7800, routeShortName: 'のぞみ279号', from: { name: '品川' }, to: { name: '京都' } },
+        ],
+      },
+    ],
+  };
+
+  it('TRANSIT-SVC-100: marks the walk between two copies of one station, and keeps its duration', async () => {
+    fetchMock.mockResolvedValue(okJson(japanPlan));
+    const { itineraries } = await svc.plan({ from: '35.6896,139.7006', to: '34.9858,135.7588', time: '2026-09-03T09:00:00Z' });
+    const legs = itineraries[0].legs;
+
+    const transfer = legs[2];
+    expect(transfer.sameStationTransfer).toBe(true);
+    // The change really does take two minutes — shortening the journey would be
+    // a worse bug than the wording this fixes.
+    expect(transfer.duration).toBe(120);
+    expect(transfer.distance).toBe(399);
+  });
+
+  it('TRANSIT-SVC-101: leaves a genuine walk alone', async () => {
+    fetchMock.mockResolvedValue(okJson(japanPlan));
+    const { itineraries } = await svc.plan({ from: '35.6896,139.7007', to: '34.9858,135.7588', time: '2026-09-03T09:00:00Z' });
+    // START -> 新宿: two different places, so it stays an ordinary walk.
+    expect(itineraries[0].legs[0].sameStationTransfer).toBe(false);
+  });
+
+  it('TRANSIT-SVC-102: never marks a rail leg, even between two copies of a station', async () => {
+    fetchMock.mockResolvedValue(okJson(japanPlan));
+    const { itineraries } = await svc.plan({ from: '35.6896,139.7008', to: '34.9858,135.7588', time: '2026-09-03T09:00:00Z' });
+    const railBetweenCopies = itineraries[0].legs[3];
+    expect(railBetweenCopies.mode).toBe('REGIONAL_RAIL');
+    expect(railBetweenCopies.sameStationTransfer).toBe(false);
+  });
+
+  it('TRANSIT-SVC-103: drops a bare route id as a line name but keeps real ones', async () => {
+    fetchMock.mockResolvedValue(okJson(japanPlan));
+    const { itineraries } = await svc.plan({ from: '35.6896,139.7009', to: '34.9858,135.7588', time: '2026-09-03T09:00:00Z' });
+    const legs = itineraries[0].legs;
+    expect(legs[3].line).toBeNull();      // was "7896371"
+    expect(legs[1].line).toBe('N’EX');
+    expect(legs[4].line).toBe('のぞみ279号');
+  });
+});
