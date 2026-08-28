@@ -1,5 +1,3 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
 /**
  * Import pipeline against the real test DB — only the AirTrail client and the
  * per-user credentials are mocked. Covers the joined multi-leg import (#1535):
@@ -7,21 +5,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  * member id recorded for dedupe; plus the fallbacks when a requested join
  * doesn't actually chain.
  */
-
 import { db } from '../../../src/db/database';
-import { createUser, createTrip } from '../../helpers/factories';
-import type { AirtrailAirport, AirtrailFlightRaw } from '../../../src/nest/integrations/airtrail.client';
-import { AirtrailImportService } from '../../../src/nest/integrations/airtrail-import.service';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { BudgetService } from '../../../src/nest/budget/budget.service';
 import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
-import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
-import { ReservationsReadRepository } from '../../../src/nest/reservations/reservations-read.repository';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { AirtrailImportService } from '../../../src/nest/integrations/airtrail-import.service';
+import type { AirtrailAirport, AirtrailFlightRaw } from '../../../src/nest/integrations/airtrail.client';
 import type { AirtrailClient } from '../../../src/nest/integrations/airtrail.client';
 import type { AirtrailService } from '../../../src/nest/integrations/airtrail.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { ReservationsReadRepository } from '../../../src/nest/reservations/reservations-read.repository';
+import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
+import { createUser, createTrip } from '../../helpers/factories';
 import { notificationsStub } from '../../helpers/notifications';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // The client and the per-user credentials are the only stubs; the reservation
 // writes go through the real service against the real test DB, as before. They
@@ -39,7 +38,7 @@ function makeImportService(): AirtrailImportService {
     new ReservationsService(
       dbs(),
       permissions,
-      new BudgetService(dbs(), permissions, new ExchangeRatesService(), realtime),
+      new BudgetService(dbs(), permissions, new ExchangeRatesService(dbs()), realtime),
       realtime,
       notificationsStub(),
       new ReservationsReadRepository(dbs()),
@@ -51,14 +50,49 @@ function makeImportService(): AirtrailImportService {
   );
 }
 
-const importAirtrailFlights = (
-  ...args: Parameters<AirtrailImportService['importAirtrailFlights']>
-) => makeImportService().importAirtrailFlights(...args);
+const importAirtrailFlights = (...args: Parameters<AirtrailImportService['importAirtrailFlights']>) =>
+  makeImportService().importAirtrailFlights(...args);
 
-const BRU: AirtrailAirport = { id: 1, icao: 'EBBR', iata: 'BRU', name: 'Brussels', lat: 50.9014, lon: 4.4844, tz: 'Europe/Brussels', country: 'BE' };
-const HEL: AirtrailAirport = { id: 2, icao: 'EFHK', iata: 'HEL', name: 'Helsinki-Vantaa', lat: 60.3172, lon: 24.9633, tz: 'Europe/Helsinki', country: 'FI' };
-const JFK: AirtrailAirport = { id: 3, icao: 'KJFK', iata: 'JFK', name: 'John F. Kennedy Intl.', lat: 40.6413, lon: -73.7781, tz: 'America/New_York', country: 'US' };
-const LHR: AirtrailAirport = { id: 4, icao: 'EGLL', iata: 'LHR', name: 'London Heathrow', lat: 51.4706, lon: -0.4619, tz: 'Europe/London', country: 'GB' };
+const BRU: AirtrailAirport = {
+  id: 1,
+  icao: 'EBBR',
+  iata: 'BRU',
+  name: 'Brussels',
+  lat: 50.9014,
+  lon: 4.4844,
+  tz: 'Europe/Brussels',
+  country: 'BE',
+};
+const HEL: AirtrailAirport = {
+  id: 2,
+  icao: 'EFHK',
+  iata: 'HEL',
+  name: 'Helsinki-Vantaa',
+  lat: 60.3172,
+  lon: 24.9633,
+  tz: 'Europe/Helsinki',
+  country: 'FI',
+};
+const JFK: AirtrailAirport = {
+  id: 3,
+  icao: 'KJFK',
+  iata: 'JFK',
+  name: 'John F. Kennedy Intl.',
+  lat: 40.6413,
+  lon: -73.7781,
+  tz: 'America/New_York',
+  country: 'US',
+};
+const LHR: AirtrailAirport = {
+  id: 4,
+  icao: 'EGLL',
+  iata: 'LHR',
+  name: 'London Heathrow',
+  lat: 51.4706,
+  lon: -0.4619,
+  tz: 'Europe/London',
+  country: 'GB',
+};
 
 function rawFlight(over: Partial<AirtrailFlightRaw> = {}): AirtrailFlightRaw {
   return {
@@ -143,7 +177,7 @@ describe('importAirtrailFlights connection joining (#1535)', () => {
     const meta = JSON.parse(r.metadata);
     expect(meta.airtrail_ids).toEqual(['101', '102']);
     expect(meta.legs).toHaveLength(2);
-    expect(endpointsOf(r.id).map(e => [e.role, e.code])).toEqual([
+    expect(endpointsOf(r.id).map((e) => [e.role, e.code])).toEqual([
       ['from', 'BRU'],
       ['stop', 'HEL'],
       ['to', 'JFK'],
@@ -151,7 +185,9 @@ describe('importAirtrailFlights connection joining (#1535)', () => {
 
     // Each leg is filed on its own trip day so the day planner renders the
     // legs where they belong (both flights are on Aug 1 here).
-    const day1 = db.prepare("SELECT id FROM days WHERE trip_id = ? AND date = '2026-08-01'").get(tripId) as { id: number };
+    const day1 = db.prepare("SELECT id FROM days WHERE trip_id = ? AND date = '2026-08-01'").get(tripId) as {
+      id: number;
+    };
     expect(meta.legs[0]).toMatchObject({ dep_day_id: day1.id, arr_day_id: day1.id });
     expect(meta.legs[1]).toMatchObject({ dep_day_id: day1.id, arr_day_id: day1.id });
   });
@@ -167,7 +203,8 @@ describe('importAirtrailFlights connection joining (#1535)', () => {
 
     await importAirtrailFlights(tripId, userId, ['101', '102'], undefined, [['101', '102']]);
     const [r] = tripReservations(tripId);
-    const dayId = (d: string) => (db.prepare('SELECT id FROM days WHERE trip_id = ? AND date = ?').get(tripId, d) as { id: number }).id;
+    const dayId = (d: string) =>
+      (db.prepare('SELECT id FROM days WHERE trip_id = ? AND date = ?').get(tripId, d) as { id: number }).id;
     const legs = JSON.parse(r.metadata).legs;
     expect(legs[0].dep_day_id).toBe(dayId('2026-08-01'));
     expect(legs[1].dep_day_id).toBe(dayId('2026-08-02'));
@@ -232,7 +269,12 @@ describe('importAirtrailFlights connection joining (#1535)', () => {
   });
 
   it('falls back to individual imports when the layover exceeds 24 h', async () => {
-    const lateLeg2 = { ...legHelJfk(), departure: '2026-08-03T11:00:00.000+00:00', arrival: '2026-08-03T19:00:00.000+00:00', date: '2026-08-03' };
+    const lateLeg2 = {
+      ...legHelJfk(),
+      departure: '2026-08-03T11:00:00.000+00:00',
+      arrival: '2026-08-03T19:00:00.000+00:00',
+      date: '2026-08-03',
+    };
     listFlights.mockResolvedValue([legBruHel(), lateLeg2]);
 
     const result = await importAirtrailFlights(tripId, userId, ['101', '102'], undefined, [['101', '102']]);

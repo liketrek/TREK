@@ -91,7 +91,14 @@ export class BudgetController {
   ) {
     const settlement = await this.budget.createSettlement(
       tripId,
-      { from_user_id: body.from_user_id, to_user_id: body.to_user_id, amount: body.amount, currency: body.currency },
+      {
+        from_user_id: body.from_user_id,
+        to_user_id: body.to_user_id,
+        amount: body.amount,
+        currency: body.currency,
+        exchange_rate: body.exchange_rate,
+        exchange_rate_note: body.exchange_rate_note,
+      },
       user.id,
     );
     // A party who is not on this trip gets the same answer as a settlement that
@@ -112,12 +119,19 @@ export class BudgetController {
     @Body() body: BudgetUpdateSettlementDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const settlement = await this.budget.updateSettlement(settlementId, tripId, {
-      from_user_id: body.from_user_id,
-      to_user_id: body.to_user_id,
-      amount: body.amount,
-      currency: body.currency,
-    });
+    const settlement = await this.budget.updateSettlement(
+      settlementId,
+      tripId,
+      {
+        from_user_id: body.from_user_id,
+        to_user_id: body.to_user_id,
+        amount: body.amount,
+        currency: body.currency,
+        exchange_rate: body.exchange_rate,
+        exchange_rate_note: body.exchange_rate_note,
+      },
+      user.id,
+    );
     if (!settlement) {
       throw new HttpException({ error: 'Settlement not found' }, 404);
     }
@@ -148,7 +162,7 @@ export class BudgetController {
     @Body() body: BudgetCreateItemDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const item = await this.budget.create(tripId, body);
+    const item = await this.budget.create(tripId, body, user.id);
     this.budget.broadcast(tripId, 'budget:created', { item }, socketId);
     return { item };
   }
@@ -188,7 +202,7 @@ export class BudgetController {
     @Body() body: BudgetUpdateItemDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const updated = await this.budget.update(id, tripId, body);
+    const updated = await this.budget.update(id, tripId, body, user.id);
     if (!updated) {
       throw new HttpException({ error: 'Budget item not found' }, 404);
     }

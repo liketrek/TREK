@@ -1,78 +1,84 @@
-import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react'
-import { useSettingsStore } from '../store/settingsStore'
-import en from '@trek/shared/i18n/en'
-import type { SupportedLanguageCode } from '@trek/shared'
+import type { SupportedLanguageCode } from '@trek/shared';
 import {
   SUPPORTED_LANGUAGES,
-  getLocaleForLanguage,
-  getIntlLanguage,
-  isRtlLanguage,
   escapeHtml,
+  getIntlLanguage,
+  getLocaleForLanguage,
+  isRtlLanguage,
   sanitizeInlineHtml,
-} from '@trek/shared'
-import type { TranslationStrings } from '@trek/shared/i18n'
+} from '@trek/shared';
+import type { TranslationStrings } from '@trek/shared/i18n';
+import en from '@trek/shared/i18n/en';
+import { ReactNode, createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { useSettingsStore } from '../store/settingsStore';
 
-export { SUPPORTED_LANGUAGES }
+export { SUPPORTED_LANGUAGES };
 
 // One explicit dynamic import per locale — Vite code-splits a separate chunk per locale.
 // Only the active locale is fetched; en is always available synchronously as the fallback.
 const localeLoaders: Record<SupportedLanguageCode, () => Promise<{ default: TranslationStrings }>> = {
-  en:      () => Promise.resolve({ default: en }),
-  de:      () => import('@trek/shared/i18n/de'),
-  es:      () => import('@trek/shared/i18n/es'),
-  fr:      () => import('@trek/shared/i18n/fr'),
-  hu:      () => import('@trek/shared/i18n/hu'),
-  it:      () => import('@trek/shared/i18n/it'),
-  tr:      () => import('@trek/shared/i18n/tr'),
-  ru:      () => import('@trek/shared/i18n/ru'),
-  zh:      () => import('@trek/shared/i18n/zh'),
+  en: () => Promise.resolve({ default: en }),
+  de: () => import('@trek/shared/i18n/de'),
+  es: () => import('@trek/shared/i18n/es'),
+  fr: () => import('@trek/shared/i18n/fr'),
+  hu: () => import('@trek/shared/i18n/hu'),
+  it: () => import('@trek/shared/i18n/it'),
+  tr: () => import('@trek/shared/i18n/tr'),
+  ru: () => import('@trek/shared/i18n/ru'),
+  zh: () => import('@trek/shared/i18n/zh'),
   'zh-TW': () => import('@trek/shared/i18n/zh-TW'),
-  nl:      () => import('@trek/shared/i18n/nl'),
-  id:      () => import('@trek/shared/i18n/id'),
-  ar:      () => import('@trek/shared/i18n/ar'),
-  br:      () => import('@trek/shared/i18n/br'),
-  cs:      () => import('@trek/shared/i18n/cs'),
-  pl:      () => import('@trek/shared/i18n/pl'),
-  ja:      () => import('@trek/shared/i18n/ja'),
-  ko:      () => import('@trek/shared/i18n/ko'),
-  uk:      () => import('@trek/shared/i18n/uk'),
-  gr:      () => import('@trek/shared/i18n/gr'),
-  sv:      () => import('@trek/shared/i18n/sv'),
-  vi:      () => import('@trek/shared/i18n/vi'),
-  ca:      () => import('@trek/shared/i18n/ca'),
-}
+  nl: () => import('@trek/shared/i18n/nl'),
+  id: () => import('@trek/shared/i18n/id'),
+  ar: () => import('@trek/shared/i18n/ar'),
+  br: () => import('@trek/shared/i18n/br'),
+  cs: () => import('@trek/shared/i18n/cs'),
+  pl: () => import('@trek/shared/i18n/pl'),
+  ja: () => import('@trek/shared/i18n/ja'),
+  ko: () => import('@trek/shared/i18n/ko'),
+  uk: () => import('@trek/shared/i18n/uk'),
+  gr: () => import('@trek/shared/i18n/gr'),
+  sv: () => import('@trek/shared/i18n/sv'),
+  vi: () => import('@trek/shared/i18n/vi'),
+  ca: () => import('@trek/shared/i18n/ca'),
+};
 
 // Re-export pure helpers that live in shared so downstream consumers can import them
 // through this module without changing their import path.
-export { getLocaleForLanguage, getIntlLanguage, isRtlLanguage }
+export { getIntlLanguage, getLocaleForLanguage, isRtlLanguage };
 
 // Detects the user's preferred language from browser/OS settings.
 // Returns null if no supported language matches.
 export function detectBrowserLanguage(): string | null {
-  if (typeof navigator === 'undefined') return null
+  if (typeof navigator === 'undefined') return null;
   const browserLangs = navigator.languages?.length
     ? navigator.languages
-    : navigator.language ? [navigator.language] : []
-  const supported = SUPPORTED_LANGUAGES.map(l => l.value)
+    : navigator.language
+      ? [navigator.language]
+      : [];
+  const supported = SUPPORTED_LANGUAGES.map((l) => l.value);
 
   for (const lang of browserLangs) {
-    const exactMatch = supported.find(s => s.toLowerCase() === lang.toLowerCase())
-    if (exactMatch) return exactMatch
+    const exactMatch = supported.find((s) => s.toLowerCase() === lang.toLowerCase());
+    if (exactMatch) return exactMatch;
+
+    // Hong Kong browsers commonly report zh-HK; the generic prefix match would
+    // otherwise select Simplified Chinese.
+    if (lang.toLowerCase() === 'zh-hk') return 'zh-TW';
 
     // pt-BR has no exact match (our code is 'br'), so map it explicitly.
     // pt-PT and bare 'pt' are NOT mapped — they fall through to null.
-    if (lang.toLowerCase() === 'pt-br') return 'br'
+    if (lang.toLowerCase() === 'pt-br') return 'br';
 
-    const prefix = lang.split('-')[0]?.toLowerCase()
-    const prefixMatch = supported.find(s => s.toLowerCase() === prefix)
-    if (prefixMatch) return prefixMatch
+    const prefix = lang.split('-')[0]?.toLowerCase();
+    const prefixMatch = supported.find((s) => s.toLowerCase() === prefix);
+    if (prefixMatch) return prefixMatch;
   }
 
-  return null
+  return null;
 }
 
 interface TranslationContextValue {
-  t: (key: string, params?: Record<string, string | number>) => string
+  t: (key: string, params?: Record<string, string | number>) => string;
   /**
    * HTML-aware variant of `t()`. Use ONLY when the translated template
    * legitimately contains markup (e.g. `'Turn <strong>{title}</strong> into a Journey'`).
@@ -88,9 +94,9 @@ interface TranslationContextValue {
    * pattern; reach for `tHtml()` directly only when you need the raw string
    * (e.g. constructing an `aria-label`).
    */
-  tHtml: (key: string, params?: Record<string, string | number>) => string
-  language: string
-  locale: string
+  tHtml: (key: string, params?: Record<string, string | number>) => string;
+  language: string;
+  locale: string;
 }
 
 const TranslationContext = createContext<TranslationContextValue>({
@@ -98,70 +104,74 @@ const TranslationContext = createContext<TranslationContextValue>({
   tHtml: (k: string) => k,
   language: 'en',
   locale: 'en-US',
-})
+});
 
 interface TranslationProviderProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export function TranslationProvider({ children }: TranslationProviderProps) {
-  const language = useSettingsStore((s) => s.settings.language) || 'en'
-  const [strings, setStrings] = useState<TranslationStrings>(en)
+  const language = useSettingsStore((s) => s.settings.language) || 'en';
+  const [strings, setStrings] = useState<TranslationStrings>(en);
 
   useEffect(() => {
-    document.documentElement.lang = language
-    document.documentElement.dir = isRtlLanguage(language) ? 'rtl' : 'ltr'
-  }, [language])
+    document.documentElement.lang = language;
+    document.documentElement.dir = isRtlLanguage(language) ? 'rtl' : 'ltr';
+  }, [language]);
 
   useEffect(() => {
-    const loader = localeLoaders[language as SupportedLanguageCode]
-    if (!loader) return
+    const loader = localeLoaders[language as SupportedLanguageCode];
+    if (!loader) return;
 
-    let cancelled = false
-    loader().then(mod => {
-      if (!cancelled) setStrings(mod.default)
-    }).catch(err => {
-      // The locale chunk can be gone after a deploy. Keep the strings we have —
-      // an untranslated UI beats an unhandled rejection and a blank screen.
-      console.error('[i18n] locale chunk failed to load', err)
-    })
-    return () => { cancelled = true }
-  }, [language])
+    let cancelled = false;
+    loader()
+      .then((mod) => {
+        if (!cancelled) setStrings(mod.default);
+      })
+      .catch((err) => {
+        // The locale chunk can be gone after a deploy. Keep the strings we have —
+        // an untranslated UI beats an unhandled rejection and a blank screen.
+        console.error('[i18n] locale chunk failed to load', err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [language]);
 
   const value = useMemo((): TranslationContextValue => {
     function t(key: string, params?: Record<string, string | number>): string {
-      let val: string = (strings[key] ?? en[key] ?? key) as string
+      let val: string = (strings[key] ?? en[key] ?? key) as string;
       if (params) {
         Object.entries(params).forEach(([k, v]) => {
           // Function replacement: a value carrying `$&` or `$1` (a trip named
           // "A$&B") would otherwise be expanded as a replacement pattern.
-          val = val.replace(new RegExp(`\\{${k}\\}`, 'g'), () => String(v))
-        })
+          val = val.replace(new RegExp(`\\{${k}\\}`, 'g'), () => String(v));
+        });
       }
-      return val
+      return val;
     }
 
     function tHtml(key: string, params?: Record<string, string | number>): string {
-      let val: string = (strings[key] ?? en[key] ?? key) as string
+      let val: string = (strings[key] ?? en[key] ?? key) as string;
       if (params) {
         Object.entries(params).forEach(([k, v]) => {
           // Escape BEFORE substitution so a user-controlled value with `<` or
           // `&` cannot break out of the surrounding template's markup.
-          val = val.replace(new RegExp(`\\{${k}\\}`, 'g'), () => escapeHtml(String(v)))
-        })
+          val = val.replace(new RegExp(`\\{${k}\\}`, 'g'), () => escapeHtml(String(v)));
+        });
       }
       // Then re-sanitise the fully-built string: even if a translator ships a
       // template with stray `<script>` or `onclick`, the rendered output is
       // restricted to the inline tag allow-list.
-      return sanitizeInlineHtml(val)
+      return sanitizeInlineHtml(val);
     }
 
-    return { t, tHtml, language, locale: getLocaleForLanguage(language) }
-  }, [strings, language])
+    return { t, tHtml, language, locale: getLocaleForLanguage(language) };
+  }, [strings, language]);
 
-  return <TranslationContext value={value}>{children}</TranslationContext>
+  return <TranslationContext value={value}>{children}</TranslationContext>;
 }
 
 export function useTranslation(): TranslationContextValue {
-  return useContext(TranslationContext)
+  return useContext(TranslationContext);
 }

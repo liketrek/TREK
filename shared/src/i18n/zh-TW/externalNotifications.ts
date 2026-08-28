@@ -25,12 +25,12 @@ const zhTW: NotificationLocale = {
       body: `「${p.trip}」中的「${p.todo}」將於 ${p.due} 到期。`,
     }),
     vacay_invite: (p) => ({
-      title: 'Vacay 融合邀請',
+      title: '假期融合邀請',
       body: `${p.actor} 邀請您合併假期計畫。開啟 TREK 以接受或拒絕。`,
     }),
     vacay_share: (p) => ({
-      title: 'Vacay 日曆已共享',
-      body: `${p.actor} 與您共享了假期日曆。開啟 TREK 以檢視。`,
+      title: '已分享假期行事曆',
+      body: `${p.actor} 與您分享了假期行事曆。開啟 TREK 即可查看。`,
     }),
     collection_invite: (p) => ({
       title: '收藏邀請',
@@ -53,10 +53,10 @@ const zhTW: NotificationLocale = {
       body: `TREK ${p.version} 現已可用。請前往管理面板進行更新。`,
     }),
     replica_failure: (p) => ({
-      title: '儲存複本故障',
+      title: '儲存空間複寫失敗',
       body:
-        `寫入複本 '${p.backend}' 失敗：${p.op} / ${p.key} — ${p.error}。` +
-        (p.suppressed !== '0' ? `自上次通知以來，還有 ${p.suppressed} 個失敗已被抑制。` : ''),
+        `複寫至「${p.backend}」時失敗：${p.op} ${p.key} — ${p.error}。` +
+        (p.suppressed !== '0' ? ` 自上次通知後另有 ${p.suppressed} 次失敗未逐一通知。` : ''),
     }),
     synology_session_cleared: () => ({
       title: 'Synology 工作階段已清除',

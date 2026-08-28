@@ -65,13 +65,21 @@ const common: TranslationStrings = {
   'common.datepicker.dialog': 'Selettore di date',
   'common.datepicker.clearDate': 'Cancella data',
   'common.errorTitle': 'Qualcosa è andato storto',
-  'common.errorBody': 'Questa parte dell\'app ha smesso di funzionare. I tuoi dati sono al sicuro.',
+  'common.errorBody': "Questa parte dell'app ha smesso di funzionare. I tuoi dati sono al sicuro.",
   'common.errorPanelTitle': 'Impossibile mostrare questa sezione',
   'common.errorPanelBody': 'Il resto della pagina funziona ancora.',
   'common.errorRetry': 'Riprova',
   'common.errorReload': 'Ricarica la pagina',
   'common.errorUpdateTitle': 'È disponibile una nuova versione',
-  'common.errorUpdateBody': 'TREK è stato aggiornato mentre questa scheda era aperta. Ricarica per ottenere la nuova versione.',
+  'common.errorUpdateBody':
+    'TREK è stato aggiornato mentre questa scheda era aperta. Ricarica per ottenere la nuova versione.',
   'common.errorPluginTitle': 'Impossibile mostrare questo plugin',
+  'legal.title': 'Legal & source',
+  'legal.description': 'License information and the exact source code for this deployed version.',
+  'legal.agpl':
+    'This application is licensed under the GNU Affero General Public License version 3. Remote users may obtain the corresponding source code at no charge.',
+  'legal.license': 'Read the license',
+  'legal.source': 'Corresponding source',
+  'legal.sourceDescription': 'Source code for this deployed build:',
 };
 export default common;

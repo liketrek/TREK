@@ -188,5 +188,9 @@ const dashboard: TranslationStrings = {
   'dashboard.mobile.spotlightDayOf': 'Dia {day} de {total}',
   'dashboard.mobile.spotlightDayOne': '{count} dia',
   'dashboard.mobile.spotlightDaysMany': '{count} dies',
+  'dashboard.hero.departureIn': 'Departure in',
+  'dashboard.hero.hourUnit': 'Hours',
+  'dashboard.hero.minuteUnit': 'Minutes',
+  'dashboard.hero.secondUnit': 'Seconds',
 };
 export default dashboard;

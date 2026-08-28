@@ -96,7 +96,7 @@ export function createMcpTestRegistry(): McpRegistry {
   // userCleanup/mailer/tokens were undefined.
   const realtimeService = new RealtimeService();
   const guards = new McpToolGuardsService(dbService, permissionsService, realtimeService);
-  const exchangeRatesService = new ExchangeRatesService();
+  const exchangeRatesService = new ExchangeRatesService(dbService);
   const budgetService = new BudgetService(dbService, permissionsService, exchangeRatesService, realtimeService);
   const authService = new AuthService(
     dbService,

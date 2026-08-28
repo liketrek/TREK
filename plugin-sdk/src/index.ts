@@ -13,15 +13,125 @@ export const PLUGIN_API_VERSION = 1 as const;
 // are the fields plugins most commonly use (typed for autocomplete), left optional
 // because they mirror raw DB rows — and every shape keeps an index signature, so no
 // column is ever hidden from you.
-export interface Trip { id: number; user_id?: number; title?: string; start_date?: string | null; end_date?: string | null; currency?: string | null; [k: string]: unknown }
-export interface Place { id: number; trip_id?: number; name?: string; lat?: number | null; lng?: number | null; day_id?: number | null; category_id?: number | null; notes?: string | null; [k: string]: unknown }
-export interface Day { id: number; trip_id?: number; date?: string | null; title?: string | null; [k: string]: unknown }
-export interface Reservation { id: number; trip_id?: number; type?: string; [k: string]: unknown }
-export interface PackingItem { id: number; trip_id?: number; name?: string; [k: string]: unknown }
-export interface TripFile { id: number; trip_id?: number; filename?: string; [k: string]: unknown }
-export interface BudgetItem { id: number; trip_id?: number; name?: string; total_price?: number | null; currency?: string | null; [k: string]: unknown }
-export interface Assignment { id: number; day_id?: number; place_id?: number; notes?: string | null; [k: string]: unknown }
-export interface User { id: number; username?: string; display_name?: string | null; avatar?: string | null; [k: string]: unknown }
+export interface Trip {
+  id: number;
+  user_id?: number;
+  title?: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  currency?: string | null;
+  [k: string]: unknown;
+}
+export interface Place {
+  id: number;
+  trip_id?: number;
+  name?: string;
+  lat?: number | null;
+  lng?: number | null;
+  day_id?: number | null;
+  category_id?: number | null;
+  notes?: string | null;
+  [k: string]: unknown;
+}
+export interface Day {
+  id: number;
+  trip_id?: number;
+  date?: string | null;
+  title?: string | null;
+  [k: string]: unknown;
+}
+export interface Reservation {
+  id: number;
+  trip_id?: number;
+  type?: string;
+  [k: string]: unknown;
+}
+export interface PackingItem {
+  id: number;
+  trip_id?: number;
+  name?: string;
+  [k: string]: unknown;
+}
+export interface TripFile {
+  id: number;
+  trip_id?: number;
+  filename?: string;
+  [k: string]: unknown;
+}
+export type ExchangeRateSource =
+  | "identity"
+  | "global"
+  | "trip"
+  | "explicit"
+  | "legacy";
+export interface BudgetItem {
+  id: number;
+  trip_id?: number;
+  name?: string;
+  total_price?: number | null;
+  currency?: string | null;
+  exchange_rate?: number;
+  exchange_rate_source?: ExchangeRateSource;
+  exchange_rate_source_version?: string | null;
+  exchange_rate_effective_date?: string | null;
+  exchange_rate_set_at?: string | null;
+  exchange_rate_set_by_user_id?: number | null;
+  exchange_rate_note?: string | null;
+  exchange_rate_reset_at?: string | null;
+  [k: string]: unknown;
+}
+export interface BudgetSettlement {
+  id: number;
+  trip_id?: number;
+  from_user_id?: number;
+  to_user_id?: number;
+  amount?: number;
+  currency?: string | null;
+  exchange_rate?: number;
+  exchange_rate_source?: ExchangeRateSource;
+  exchange_rate_source_version?: string | null;
+  exchange_rate_effective_date?: string | null;
+  exchange_rate_set_at?: string | null;
+  exchange_rate_set_by_user_id?: number | null;
+  exchange_rate_note?: string | null;
+  exchange_rate_reset_at?: string | null;
+  [k: string]: unknown;
+}
+export interface TripExchangeRate {
+  trip_id: number;
+  currency: string;
+  exchange_rate: number;
+  source_version: string;
+  set_at: string;
+  set_by_user_id: number | null;
+  note: string | null;
+  [k: string]: unknown;
+}
+export interface ExchangeRateResolution {
+  trip_id: number;
+  trip_currency: string;
+  item_currency: string;
+  exchange_rate: number;
+  source: ExchangeRateSource;
+  source_version: string;
+  effective_date: string | null;
+  fetched_at: string | null;
+  stale: boolean;
+}
+export interface Assignment {
+  id: number;
+  day_id?: number;
+  place_id?: number;
+  notes?: string | null;
+  [k: string]: unknown;
+}
+export interface User {
+  id: number;
+  username?: string;
+  display_name?: string | null;
+  avatar?: string | null;
+  [k: string]: unknown;
+}
 
 /** Every ctx.* call is rate-limited per plugin at the host RPC dispatch boundary:
  * burst 60, sustained 20/s, 16 in-flight. A throttled call is refused (retryable)
@@ -47,7 +157,9 @@ export interface PluginContext {
     /** Run several statements atomically on your OWN db — all commit or all roll
      * back. Each op is one statement; reads see the batch's own earlier writes.
      * A read returns `{ rows }`, a write `{ changes }`. Max 100 statements. */
-    tx(ops: Array<{ sql: string; args?: unknown[] }>): Promise<{ results: Array<{ changes?: number; rows?: unknown[] }> }>;
+    tx(
+      ops: Array<{ sql: string; args?: unknown[] }>,
+    ): Promise<{ results: Array<{ changes?: number; rows?: unknown[] }> }>;
   };
   trips: {
     // `asUserId` is accepted for source compatibility but IGNORED by the host —
@@ -55,10 +167,19 @@ export interface PluginContext {
     // the current invocation (the request's `req.user`), which the plugin cannot
     // override. Only reachable from a route handler (a user context); a job has
     // no user and its trip reads are refused.
-    getById(tripId: number, /** @deprecated ignored by the host */ asUserId?: number): Promise<Trip | null>;
-    getPlaces(tripId: number, /** @deprecated ignored by the host */ asUserId?: number): Promise<Place[]>;
+    getById(
+      tripId: number,
+      /** @deprecated ignored by the host */ asUserId?: number,
+    ): Promise<Trip | null>;
+    getPlaces(
+      tripId: number,
+      /** @deprecated ignored by the host */ asUserId?: number,
+    ): Promise<Place[]>;
     /** Hydrated like the REST list: each row carries `endpoints`, `day_positions` + the day/place joins. */
-    getReservations(tripId: number, /** @deprecated ignored by the host */ asUserId?: number): Promise<Reservation[]>;
+    getReservations(
+      tripId: number,
+      /** @deprecated ignored by the host */ asUserId?: number,
+    ): Promise<Reservation[]>;
     /** The trip's days with their `assignments` + `notes_items` (the planner GET's shape). Needs `db:read:trips`. */
     getDays(tripId: number): Promise<Day[]>;
     /** The trip's lodging blocks (day_accommodations) with joined place fields. Needs `db:read:trips`. */
@@ -68,11 +189,22 @@ export interface PluginContext {
     /** Update trip fields; needs `db:write:trips` + the acting user's trip_edit permission. Route context only. */
     update(tripId: number, input: Record<string, unknown>): Promise<Trip>;
     /** Create a new trip owned by the acting user (importers). `title` required. Needs `db:create:trips` + the acting user's trip_create. */
-    create(input: { title: string; description?: string; start_date?: string; end_date?: string; currency?: string; reminder_days?: number; day_count?: number }): Promise<Trip>;
+    create(input: {
+      title: string;
+      description?: string;
+      start_date?: string;
+      end_date?: string;
+      currency?: string;
+      reminder_days?: number;
+      day_count?: number;
+    }): Promise<Trip>;
     /** The trip's member roster (id + display fields only). Membership-checked. Needs `db:read:trips`. */
     members(tripId: number): Promise<User[]>;
     /** Add a user to a trip (GRANTS ACCESS — its own permission). Needs `db:write:members` + the acting user's member_manage. */
-    addMember(tripId: number, userId: number): Promise<{ joined: boolean; tripId: number }>;
+    addMember(
+      tripId: number,
+      userId: number,
+    ): Promise<{ joined: boolean; tripId: number }>;
     /** Remove a member from a trip (not the owner). Needs `db:write:members` + member_manage. */
     removeMember(tripId: number, userId: number): Promise<{ removed: boolean }>;
   };
@@ -85,11 +217,21 @@ export interface PluginContext {
     listMine(): Promise<Reservation[]>;
     /** Create a booking on a trip. An `endpoints` array (from/to/stop legs for flights,
      * trains, ferries) is persisted with it. */
-    create(tripId: number, input: Record<string, unknown>): Promise<Reservation>;
+    create(
+      tripId: number,
+      input: Record<string, unknown>,
+    ): Promise<Reservation>;
     /** Update a booking. `endpoints` semantics: omitted = keep, [] = delete all,
      * array = replace (endpoint ids are NOT stable). */
-    update(tripId: number, reservationId: number, input: Record<string, unknown>): Promise<Reservation>;
-    delete(tripId: number, reservationId: number): Promise<{ deleted: boolean }>;
+    update(
+      tripId: number,
+      reservationId: number,
+      input: Record<string, unknown>,
+    ): Promise<Reservation>;
+    delete(
+      tripId: number,
+      reservationId: number,
+    ): Promise<{ deleted: boolean }>;
   };
   // Lodging blocks (day_accommodations): a hotel span from a start day to an end day.
   // Reads ride on `db:read:trips` (ctx.trips.getAccommodations); writes need
@@ -97,39 +239,117 @@ export interface PluginContext {
   // path — accommodations live in the day service, not the bookings one). Creating one
   // auto-creates its partner hotel reservation, exactly like the app.
   accommodations: {
-    create(tripId: number, input: { place_id: number; start_day_id: number; end_day_id: number; check_in?: string | null; check_in_end?: string | null; check_out?: string | null; confirmation?: string | null; notes?: string | null }): Promise<unknown>;
-    update(tripId: number, accommodationId: number, input: Record<string, unknown>): Promise<unknown>;
-    delete(tripId: number, accommodationId: number): Promise<{ deleted: boolean }>;
+    create(
+      tripId: number,
+      input: {
+        place_id: number;
+        start_day_id: number;
+        end_day_id: number;
+        check_in?: string | null;
+        check_in_end?: string | null;
+        check_out?: string | null;
+        confirmation?: string | null;
+        notes?: string | null;
+      },
+    ): Promise<unknown>;
+    update(
+      tripId: number,
+      accommodationId: number,
+      input: Record<string, unknown>,
+    ): Promise<unknown>;
+    delete(
+      tripId: number,
+      accommodationId: number,
+    ): Promise<{ deleted: boolean }>;
   };
   packing: {
     /** A trip's packing items (hydrated bags/assignees). Needs `db:read:packing`. */
     list(tripId: number): Promise<PackingItem[]>;
     /** Add a packing item (owner = acting user). Needs `db:write:packing` + packing_edit. */
-    create(tripId: number, input: { name: string; category?: string; checked?: boolean; is_private?: boolean; visibility?: 'common' | 'personal' | 'shared'; recipient_ids?: number[] }): Promise<PackingItem>;
+    create(
+      tripId: number,
+      input: {
+        name: string;
+        category?: string;
+        checked?: boolean;
+        is_private?: boolean;
+        visibility?: "common" | "personal" | "shared";
+        recipient_ids?: number[];
+      },
+    ): Promise<PackingItem>;
     /** Update a packing item. Needs `db:write:packing` + packing_edit. */
-    update(tripId: number, itemId: number, input: Record<string, unknown>): Promise<PackingItem>;
+    update(
+      tripId: number,
+      itemId: number,
+      input: Record<string, unknown>,
+    ): Promise<PackingItem>;
     /** Delete a packing item. Needs `db:write:packing` + packing_edit. */
     delete(tripId: number, itemId: number): Promise<{ deleted: boolean }>;
     // List/create/update/delete packing bags + set members (no privacy). Needs
     // `db:write:packing` + packing_edit.
     /** Needs 'db:write:packing' (intentional — bags are the write-side structure; packing.list is the read surface). */
     listBags(tripId: number): Promise<unknown[]>;
-    createBag(tripId: number, input: { name: string; color?: string }): Promise<unknown>;
-    updateBag(tripId: number, bagId: number, input: Record<string, unknown>): Promise<unknown>;
+    createBag(
+      tripId: number,
+      input: { name: string; color?: string },
+    ): Promise<unknown>;
+    updateBag(
+      tripId: number,
+      bagId: number,
+      input: Record<string, unknown>,
+    ): Promise<unknown>;
     deleteBag(tripId: number, bagId: number): Promise<{ deleted: boolean }>;
-    setBagMembers(tripId: number, bagId: number, userIds: number[]): Promise<unknown>;
+    setBagMembers(
+      tripId: number,
+      bagId: number,
+      userIds: number[],
+    ): Promise<unknown>;
   };
   files: {
     /** A trip's files, trash excluded. Needs `db:read:files`. */
     list(tripId: number): Promise<TripFile[]>;
     /** A file's bytes as base64 (10MB cap; trashed files refused). Needs `db:read:files:content`. */
-    getContent(tripId: number, fileId: number): Promise<{ name: string; mimetype: string; size: number; content_base64: string }>;
+    getContent(
+      tripId: number,
+      fileId: number,
+    ): Promise<{
+      name: string;
+      mimetype: string;
+      size: number;
+      content_base64: string;
+    }>;
     /** Store base64 content as a trip file (10MB cap, blocked extensions refused). Needs `db:write:files` + file_upload. */
-    create(tripId: number, input: { name: string; content_base64: string; mimetype?: string; description?: string; place_id?: number; reservation_id?: number }): Promise<TripFile>;
+    create(
+      tripId: number,
+      input: {
+        name: string;
+        content_base64: string;
+        mimetype?: string;
+        description?: string;
+        place_id?: number;
+        reservation_id?: number;
+      },
+    ): Promise<TripFile>;
     /** Link an existing file to a same-trip reservation/place/assignment. Needs `db:write:files` + file_edit. */
-    createLink(tripId: number, fileId: number, opts: { reservation_id?: number; assignment_id?: number; place_id?: number }): Promise<unknown>;
+    createLink(
+      tripId: number,
+      fileId: number,
+      opts: {
+        reservation_id?: number;
+        assignment_id?: number;
+        place_id?: number;
+      },
+    ): Promise<unknown>;
     /** Update a file's description/links. Needs `db:write:files` + file_edit. */
-    update(tripId: number, fileId: number, input: { description?: string; place_id?: number | null; reservation_id?: number | null }): Promise<TripFile>;
+    update(
+      tripId: number,
+      fileId: number,
+      input: {
+        description?: string;
+        place_id?: number | null;
+        reservation_id?: number | null;
+      },
+    ): Promise<TripFile>;
     /** Move a file to the trash. Needs `db:write:files` + file_delete. */
     softDelete(tripId: number, fileId: number): Promise<{ deleted: boolean }>;
   };
@@ -141,10 +361,36 @@ export interface PluginContext {
     listPolls(tripId: number): Promise<unknown[]>;
     /** A trip's chat messages (newest 100, oldest first; `before` = a message id to page back). Needs `db:read:collab`. */
     listMessages(tripId: number, before?: number): Promise<unknown[]>;
-    createNote(tripId: number, input: { title: string; content?: string; category?: string; color?: string; website?: string; pinned?: boolean }): Promise<unknown>;
-    createPoll(tripId: number, input: { question: string; options: unknown[]; multiple?: boolean; deadline?: string }): Promise<unknown>;
-    votePoll(tripId: number, pollId: number, optionIndex: number): Promise<unknown>;
-    createMessage(tripId: number, text: string, replyTo?: number): Promise<unknown>;
+    createNote(
+      tripId: number,
+      input: {
+        title: string;
+        content?: string;
+        category?: string;
+        color?: string;
+        website?: string;
+        pinned?: boolean;
+      },
+    ): Promise<unknown>;
+    createPoll(
+      tripId: number,
+      input: {
+        question: string;
+        options: unknown[];
+        multiple?: boolean;
+        deadline?: string;
+      },
+    ): Promise<unknown>;
+    votePoll(
+      tripId: number,
+      pollId: number,
+      optionIndex: number,
+    ): Promise<unknown>;
+    createMessage(
+      tripId: number,
+      text: string,
+      replyTo?: number,
+    ): Promise<unknown>;
   };
   /** Host-mediated notification. The plugin supplies only target + plain text; the host
    * owns delivery + preferences. Recipient is FORCED to the acting user (scope 'user',
@@ -152,7 +398,13 @@ export interface PluginContext {
    * Daily budget: 100/day per plugin (UTC midnight rollover); past it `send` throws
    * "daily notification budget exhausted (resets at UTC midnight)". See README § Runtime limits. */
   notify: {
-    send(input: { title: string; body: string; link?: string; scope: 'user' | 'trip'; targetId: number }): Promise<{ sent: boolean }>;
+    send(input: {
+      title: string;
+      body: string;
+      link?: string;
+      scope: "user" | "trip";
+      targetId: number;
+    }): Promise<{ sent: boolean }>;
   };
   /** Host-mediated LLM using the admin/user-configured provider — the plugin never holds a
    * key. `complete` returns { text }; `extract` returns { results } for your JSON schema.
@@ -161,7 +413,11 @@ export interface PluginContext {
    * "daily AI budget exhausted (resets at UTC midnight)". See README § Runtime limits. */
   ai: {
     complete(prompt: string, system?: string): Promise<{ text: string }>;
-    extract(text: string, jsonSchema: object, prompt?: string): Promise<{ results: Record<string, unknown>[] }>;
+    extract(
+      text: string,
+      jsonSchema: object,
+      prompt?: string,
+    ): Promise<{ results: Record<string, unknown>[] }>;
   };
   /** Host-brokered outbound OAuth: a short-lived access token for the ACTING USER of a
    * third-party service the host connected on their behalf (Settings → Plugins → Connect).
@@ -187,11 +443,23 @@ export interface PluginContext {
    * `set` is an upsert by name; `cancel` removes it. */
   scheduler: {
     /** Fire once at an absolute epoch-ms time. */
-    at(whenMs: number, name: string, payload?: unknown): Promise<{ scheduled: boolean }>;
+    at(
+      whenMs: number,
+      name: string,
+      payload?: unknown,
+    ): Promise<{ scheduled: boolean }>;
     /** Fire once after `ms` from now. */
-    in(ms: number, name: string, payload?: unknown): Promise<{ scheduled: boolean }>;
+    in(
+      ms: number,
+      name: string,
+      payload?: unknown,
+    ): Promise<{ scheduled: boolean }>;
     /** Fire repeatedly every `ms` (first fire after `ms`). */
-    every(ms: number, name: string, payload?: unknown): Promise<{ scheduled: boolean }>;
+    every(
+      ms: number,
+      name: string,
+      payload?: unknown,
+    ): Promise<{ scheduled: boolean }>;
     /** Cancel a scheduled task by name. */
     cancel(name: string): Promise<{ cancelled: boolean }>;
   };
@@ -212,14 +480,31 @@ export interface PluginContext {
   tags: {
     list(): Promise<unknown[]>;
     create(input: { name: string; color?: string }): Promise<unknown>;
-    update(tagId: number, input: { name?: string; color?: string }): Promise<unknown>;
+    update(
+      tagId: number,
+      input: { name?: string; color?: string },
+    ): Promise<unknown>;
     delete(tagId: number): Promise<{ deleted: boolean }>;
   };
   /** A trip's to-dos. Needs `db:read:todos` (list) / `db:write:todos` + packing_edit (create/update/delete). */
   todos: {
     list(tripId: number): Promise<unknown[]>;
-    create(tripId: number, input: { name: string; category?: string; due_date?: string; description?: string; assigned_user_id?: number; priority?: number }): Promise<unknown>;
-    update(tripId: number, todoId: number, input: Record<string, unknown>): Promise<unknown>;
+    create(
+      tripId: number,
+      input: {
+        name: string;
+        category?: string;
+        due_date?: string;
+        description?: string;
+        assigned_user_id?: number;
+        priority?: number;
+      },
+    ): Promise<unknown>;
+    update(
+      tripId: number,
+      todoId: number,
+      input: Record<string, unknown>,
+    ): Promise<unknown>;
     delete(tripId: number, todoId: number): Promise<{ deleted: boolean }>;
   };
   // The acting user's OWN subsystem data across all their trips (not one trip), each
@@ -230,13 +515,23 @@ export interface PluginContext {
     /** The entries of one of the acting user's journeys (photos/story/checkins), access-checked. Needs `db:read:journal`. */
     getEntries(journeyId: number): Promise<unknown[]>;
     /** Create an entry on a journey the acting user can edit. Needs `db:write:journal`. */
-    createEntry(journeyId: number, input: { entry_date: string; [k: string]: unknown }): Promise<unknown>;
+    createEntry(
+      journeyId: number,
+      input: { entry_date: string; [k: string]: unknown },
+    ): Promise<unknown>;
     /** Create a journal owned by the acting user (importers bootstrap the journal they fill). Needs `db:write:journal`. */
-    createJourney(input: { title: string; subtitle?: string; trip_ids?: number[] }): Promise<unknown>;
+    createJourney(input: {
+      title: string;
+      subtitle?: string;
+      trip_ids?: number[];
+    }): Promise<unknown>;
     /** Delete one of the acting user's journals. Needs `db:write:journal`. */
     deleteJourney(journeyId: number): Promise<{ deleted: boolean }>;
     /** Update an entry (owner/contributor-gated). Needs `db:write:journal`. */
-    updateEntry(entryId: number, input: Record<string, unknown>): Promise<unknown>;
+    updateEntry(
+      entryId: number,
+      input: Record<string, unknown>,
+    ): Promise<unknown>;
     /** Delete an entry (owner/contributor-gated). Needs `db:write:journal`. */
     deleteEntry(entryId: number): Promise<{ deleted: boolean }>;
   };
@@ -248,9 +543,20 @@ export interface PluginContext {
     /** Mark/unmark the ACTING USER's own visited countries/regions + bucket list. Needs `db:write:atlas`. */
     markCountry(code: string): Promise<unknown>;
     unmarkCountry(code: string): Promise<unknown>;
-    markRegion(regionCode: string, countryCode: string, regionName?: string): Promise<unknown>;
+    markRegion(
+      regionCode: string,
+      countryCode: string,
+      regionName?: string,
+    ): Promise<unknown>;
     unmarkRegion(regionCode: string): Promise<unknown>;
-    createBucketItem(input: { name: string; lat?: number; lng?: number; country_code?: string; notes?: string; target_date?: string }): Promise<unknown>;
+    createBucketItem(input: {
+      name: string;
+      lat?: number;
+      lng?: number;
+      country_code?: string;
+      notes?: string;
+      target_date?: string;
+    }): Promise<unknown>;
     deleteBucketItem(itemId: number): Promise<{ deleted: boolean }>;
   };
   vacay: {
@@ -259,7 +565,10 @@ export interface PluginContext {
     /** Toggle the ACTING USER's own PTO day on their active plan. Needs `db:write:vacay`. */
     toggleEntry(date: string): Promise<{ action: string }>;
     /** Toggle a company holiday on the acting user's active plan. Needs `db:write:vacay`. */
-    toggleCompanyHoliday(date: string, note?: string): Promise<{ action: string }>;
+    toggleCompanyHoliday(
+      date: string,
+      note?: string,
+    ): Promise<{ action: string }>;
   };
   collections: {
     /** The acting user's saved-place collections. Needs `db:read:collections` + the collections addon. */
@@ -277,11 +586,24 @@ export interface PluginContext {
     /** A day's notes on a trip (membership-checked). Needs `db:read:daynotes`. */
     list(tripId: number, dayId: number): Promise<unknown[]>;
     /** Add a note to a day. Needs `db:write:daynotes` + the acting user's day_edit. */
-    create(tripId: number, dayId: number, input: Record<string, unknown>): Promise<unknown>;
+    create(
+      tripId: number,
+      dayId: number,
+      input: Record<string, unknown>,
+    ): Promise<unknown>;
     /** Update a day note. Needs `db:write:daynotes` + day_edit. */
-    update(tripId: number, dayId: number, noteId: number, input: Record<string, unknown>): Promise<unknown>;
+    update(
+      tripId: number,
+      dayId: number,
+      noteId: number,
+      input: Record<string, unknown>,
+    ): Promise<unknown>;
     /** Delete a day note. Needs `db:write:daynotes` + day_edit. */
-    delete(tripId: number, dayId: number, noteId: number): Promise<{ deleted: boolean }>;
+    delete(
+      tripId: number,
+      dayId: number,
+      noteId: number,
+    ): Promise<{ deleted: boolean }>;
   };
   // "Costs" = budget items. The acting user is bound by the host to the current
   // invocation; create/update/delete also need 'budget_edit' and the Costs addon
@@ -290,24 +612,70 @@ export interface PluginContext {
     getByTrip(tripId: number): Promise<BudgetItem[]>;
     listMine(): Promise<BudgetItem[]>;
     create(tripId: number, input: Record<string, unknown>): Promise<BudgetItem>;
-    update(tripId: number, itemId: number, input: Record<string, unknown>): Promise<BudgetItem>;
+    update(
+      tripId: number,
+      itemId: number,
+      input: Record<string, unknown>,
+    ): Promise<BudgetItem>;
     delete(tripId: number, itemId: number): Promise<{ deleted: boolean }>;
+    listRates(tripId: number): Promise<TripExchangeRate[]>;
+    resolveRate(
+      tripId: number,
+      currency: string,
+    ): Promise<ExchangeRateResolution | null>;
+    setRate(
+      tripId: number,
+      currency: string,
+      exchangeRate: number,
+      note?: string,
+    ): Promise<TripExchangeRate>;
+    deleteRate(tripId: number, currency: string): Promise<{ deleted: boolean }>;
+    listSettlements(tripId: number): Promise<BudgetSettlement[]>;
+    createSettlement(
+      tripId: number,
+      input: Record<string, unknown>,
+    ): Promise<BudgetSettlement>;
+    updateSettlement(
+      tripId: number,
+      settlementId: number,
+      input: Record<string, unknown>,
+    ): Promise<BudgetSettlement>;
+    deleteSettlement(
+      tripId: number,
+      settlementId: number,
+    ): Promise<{ deleted: boolean }>;
   };
   // Core planner writes (#1429). Membership-checked against the invocation's user;
   // each needs the matching write scope + the app's place_edit/day_edit permission.
   places: {
     create(tripId: number, input: Record<string, unknown>): Promise<Place>;
-    update(tripId: number, placeId: number, input: Record<string, unknown>): Promise<Place>;
+    update(
+      tripId: number,
+      placeId: number,
+      input: Record<string, unknown>,
+    ): Promise<Place>;
     delete(tripId: number, placeId: number): Promise<{ deleted: boolean }>;
   };
   days: {
     create(tripId: number, input: Record<string, unknown>): Promise<Day>;
-    update(tripId: number, dayId: number, input: Record<string, unknown>): Promise<Day>;
+    update(
+      tripId: number,
+      dayId: number,
+      input: Record<string, unknown>,
+    ): Promise<Day>;
     delete(tripId: number, dayId: number): Promise<{ deleted: boolean }>;
   };
   itinerary: {
-    assign(tripId: number, dayId: number, placeId: number, notes?: string | null): Promise<Assignment>;
-    unassign(tripId: number, assignmentId: number): Promise<{ deleted: boolean }>;
+    assign(
+      tripId: number,
+      dayId: number,
+      placeId: number,
+      notes?: string | null,
+    ): Promise<Assignment>;
+    unassign(
+      tripId: number,
+      assignmentId: number,
+    ): Promise<{ deleted: boolean }>;
   };
   // Your OWN namespaced key/value store on a trip/place/day (#1429) — enrich core
   // entities without forking the schema. Needs `db:meta`; the entity must belong to
@@ -315,15 +683,39 @@ export interface PluginContext {
   // plugin + entity): 64 KB serialized JSON per value, 256 chars per key, 100 keys.
   // See README § Runtime limits.
   meta: {
-    get(entityType: 'trip' | 'place' | 'day' | 'reservation' | 'accommodation', entityId: number, key: string): Promise<unknown>;
-    set(entityType: 'trip' | 'place' | 'day' | 'reservation' | 'accommodation', entityId: number, key: string, value: unknown): Promise<unknown>;
-    list(entityType: 'trip' | 'place' | 'day' | 'reservation' | 'accommodation', entityId: number): Promise<Record<string, unknown>>;
-    delete(entityType: 'trip' | 'place' | 'day' | 'reservation' | 'accommodation', entityId: number, key: string): Promise<{ deleted: boolean }>;
+    get(
+      entityType: "trip" | "place" | "day" | "reservation" | "accommodation",
+      entityId: number,
+      key: string,
+    ): Promise<unknown>;
+    set(
+      entityType: "trip" | "place" | "day" | "reservation" | "accommodation",
+      entityId: number,
+      key: string,
+      value: unknown,
+    ): Promise<unknown>;
+    list(
+      entityType: "trip" | "place" | "day" | "reservation" | "accommodation",
+      entityId: number,
+    ): Promise<Record<string, unknown>>;
+    delete(
+      entityType: "trip" | "place" | "day" | "reservation" | "accommodation",
+      entityId: number,
+      key: string,
+    ): Promise<{ deleted: boolean }>;
   };
   users: { getById(id: number): Promise<User | null> };
   ws: {
-    broadcastToTrip(tripId: number, event: string, data: Record<string, unknown>): Promise<void>;
-    broadcastToUser(userId: number, event: string, data: Record<string, unknown>): Promise<void>;
+    broadcastToTrip(
+      tripId: number,
+      event: string,
+      data: Record<string, unknown>,
+    ): Promise<void>;
+    broadcastToUser(
+      userId: number,
+      event: string,
+      data: Record<string, unknown>,
+    ): Promise<void>;
   };
   log: {
     info(msg: string, meta?: Record<string, unknown>): void;
@@ -368,7 +760,7 @@ export interface PluginResponse {
   body?: unknown;
 }
 export interface PluginRoute {
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   path: string;
   /** Default true. Set false for OAuth callbacks / webhooks (public route). */
   auth?: boolean;
@@ -394,7 +786,11 @@ export interface PhotoProvider {
    * ctx.settings/oauth/http. Needs `hook:photo-provider`. Surfaced in the photo picker
    * and at `GET /api/plugin-photos/search`; thumbnail/full URLs must be http/https.
    * The host caps results at 60 photos per page. */
-  search(query: string, opts: { page: number; limit: number }, ctx: PluginContext): Promise<{ photos: Photo[]; total: number; hasMore: boolean }>;
+  search(
+    query: string,
+    opts: { page: number; limit: number },
+    ctx: PluginContext,
+  ): Promise<{ photos: Photo[]; total: number; hasMore: boolean }>;
   getById(id: string, ctx: PluginContext): Promise<Photo | null>;
 }
 /**
@@ -425,7 +821,11 @@ export interface NotificationMessage {
  *   "capabilities": { "notificationChannel": { "title": "Gotify" } }
  */
 export interface NotificationChannel {
-  send(msg: NotificationMessage, config: Record<string, unknown>, ctx: PluginContext): Promise<void>;
+  send(
+    msg: NotificationMessage,
+    config: Record<string, unknown>,
+    ctx: PluginContext,
+  ): Promise<void>;
   /** Backs the "Send test" button in the user's notification settings. */
   test?(config: Record<string, unknown>, ctx: PluginContext): Promise<void>;
 }
@@ -454,17 +854,31 @@ export interface CalendarSource {
   // arrive as a string anyway (kept in lockstep with the runtime SDK copy). `ctx` is the
   // last arg. Aggregated for the signed-in user at `GET /api/plugin-calendar`.
   // The host caps results at 500 events per source per request.
-  getEvents(userId: number, start: string, end: string, ctx: PluginContext): Promise<CalendarEvent[]>;
+  getEvents(
+    userId: number,
+    start: string,
+    end: string,
+    ctx: PluginContext,
+  ): Promise<CalendarEvent[]>;
 }
 /** One row of extra place info TREK renders natively (reviews/ratings/links/…). */
-export interface PlaceDetailItem { label: string; value?: string; url?: string; }
+export interface PlaceDetailItem {
+  label: string;
+  value?: string;
+  url?: string;
+}
 export interface PlaceDetailProvider {
   /** Extra info for a place; core calls this for a `place-detail` panel. Needs `hook:place-detail-provider`.
    * The host caps results at 12 items per provider. */
   getDetails(placeId: number, ctx: PluginContext): Promise<PlaceDetailItem[]>;
 }
 /** A validation/warning a plugin raises on a trip; TREK surfaces it in the planner. */
-export interface TripWarning { level: 'info' | 'warning' | 'error'; message: string; dayId?: number; placeId?: number; }
+export interface TripWarning {
+  level: "info" | "warning" | "error";
+  message: string;
+  dayId?: number;
+  placeId?: number;
+}
 export interface WarningProvider {
   /** Problems/warnings for a trip (e.g. overpacked day, place closed). Needs `hook:trip-warning-provider`.
    * The host caps results at 20 warnings per provider, each message truncated to 300 chars. */
@@ -475,109 +889,123 @@ export interface WarningProvider {
  * keyed to an entity by id. DECLARATIVE ONLY — a column is text/badge/link, an action is
  * a labelled button whose target opens your sandboxed frame or calls a route. Never raw
  * HTML/markup; the host renders + sanitizes everything. */
-export type ContributionTone = 'default' | 'success' | 'warn' | 'danger';
+export type ContributionTone = "default" | "success" | "warn" | "danger";
 /** An extra read-only cell/badge on an entity's row/card. */
 export interface TableColumnContribution {
-  kind: 'column';
+  kind: "column";
   entityId: number; // the reservation/place/day id this attaches to
-  id: string;       // stable per-contribution id (for React keys / dedupe)
+  id: string; // stable per-contribution id (for React keys / dedupe)
   label: string;
   value?: string;
-  url?: string;     // http/https/mailto only — the host rejects any other scheme
-  icon?: string;    // a lucide icon name, resolved by the host
+  url?: string; // http/https/mailto only — the host rejects any other scheme
+  icon?: string; // a lucide icon name, resolved by the host
   tone?: ContributionTone;
 }
 /** A labelled button on an entity's row/card; its target opens your sandboxed frame
  * (`{kind:'frame', sub}`) or invokes one of your routes (`{kind:'route', method, sub}`). */
 export interface TableActionContribution {
-  kind: 'action';
+  kind: "action";
   entityId: number;
   id: string;
   label: string;
   icon?: string;
-  target: { kind: 'frame'; sub: string } | { kind: 'route'; method: 'GET' | 'POST'; sub: string };
+  target:
+    | { kind: "frame"; sub: string }
+    | { kind: "route"; method: "GET" | "POST"; sub: string };
 }
-export type TableContribution = TableColumnContribution | TableActionContribution;
+export type TableContribution =
+  | TableColumnContribution
+  | TableActionContribution;
 export interface TableContributor {
   /** `view` is one of 'reservations' | 'places' | 'day' | 'costs' | 'packing' | 'files'.
    * Runs with the current user bound, on a short timeout; a slow/failing call is
    * skipped, never fatal. Needs `hook:table-contributor`. The host caps results at
    * 20 columns and 10 actions per entity. */
-  getContributions(view: string, tripId: number, ctx: PluginContext): Promise<TableContribution[]>;
+  getContributions(
+    view: string,
+    tripId: number,
+    ctx: PluginContext,
+  ): Promise<TableContribution[]>;
 }
 
 /** A bounded marker the host renders onto the trip map (#587). Declarative only —
  * the host draws a Leaflet marker + popup; plugin JS never runs on the map canvas. */
 export interface MapMarkerContribution {
-  id: string;            // stable per-marker id (React key / dedupe)
-  lat: number;           // -90..90
-  lng: number;           // -180..180
-  label?: string;        // short label shown in the popup title
-  popupText?: string;    // one line of body text (host-sanitized, plain text)
-  url?: string;          // http/https/mailto only — the host rejects any other scheme
-  icon?: string;         // a lucide icon name, resolved by the host
+  id: string; // stable per-marker id (React key / dedupe)
+  lat: number; // -90..90
+  lng: number; // -180..180
+  label?: string; // short label shown in the popup title
+  popupText?: string; // one line of body text (host-sanitized, plain text)
+  url?: string; // http/https/mailto only — the host rejects any other scheme
+  icon?: string; // a lucide icon name, resolved by the host
   tone?: ContributionTone;
 }
 export interface MapMarkerProvider {
   /** Return markers to overlay on a trip's map. Runs with the current user bound,
    * on a short timeout; the host caps the marker count and skips a failing call.
    * Needs `hook:map-marker-provider`. The host caps results at 200 markers per provider. */
-  getMarkers(tripId: number, ctx: PluginContext): Promise<MapMarkerContribution[]>;
+  getMarkers(
+    tripId: number,
+    ctx: PluginContext,
+  ): Promise<MapMarkerContribution[]>;
 }
 
 /** One shape in a map layer. Declarative only — the host draws it; styling is the
  * tone palette plus clamped numerics (width 1–8, opacity 0.05–1) and a dash enum. */
 export interface MapLayerFeature {
-  type: 'polyline' | 'polygon' | 'circle';
+  type: "polyline" | "polygon" | "circle";
   points?: Array<[number, number]>; // [lat,lng] pairs — polyline (≥2) / polygon (≥3)
-  center?: [number, number];        // circle center [lat,lng]
-  radiusM?: number;                 // circle radius in metres (1..2,000,000)
+  center?: [number, number]; // circle center [lat,lng]
+  radiusM?: number; // circle radius in metres (1..2,000,000)
   tone?: ContributionTone;
-  width?: number;                   // stroke width, clamped 1..8 (default 3)
-  dash?: 'solid' | 'dash' | 'dot';  // stroke style (default solid)
-  opacity?: number;                 // stroke opacity, clamped 0.05..1 (default 0.8)
-  fill?: boolean;                   // polygon/circle: tint the inside (default true)
-  label?: string;                   // short tooltip text (≤80 chars)
+  width?: number; // stroke width, clamped 1..8 (default 3)
+  dash?: "solid" | "dash" | "dot"; // stroke style (default solid)
+  opacity?: number; // stroke opacity, clamped 0.05..1 (default 0.8)
+  fill?: boolean; // polygon/circle: tint the inside (default true)
+  label?: string; // short tooltip text (≤80 chars)
 }
 /** A bounded vector overlay the host renders onto the trip map — a computed route,
  * a reachable-range corridor, a zone. Complements mapMarkerProvider (points). */
 export interface MapLayerContribution {
-  id: string;                 // stable per-layer id (React key / dedupe)
-  name?: string;              // short layer name
+  id: string; // stable per-layer id (React key / dedupe)
+  name?: string; // short layer name
   features: MapLayerFeature[]; // host caps: 4 layers + 150 features + 8000 vertices per plugin
 }
 export interface MapLayerProvider {
   /** Return layers to overlay on a trip's map. Runs with the current user bound,
    * on a short timeout; the host caps the vertex budget and skips a failing call.
    * Needs `hook:map-layer-provider`. */
-  getLayers(tripId: number, ctx: PluginContext): Promise<MapLayerContribution[]>;
+  getLayers(
+    tripId: number,
+    ctx: PluginContext,
+  ): Promise<MapLayerContribution[]>;
 }
 
 /** One waypoint of a route request — a located stop of the day being routed. */
 export interface RouteWaypoint {
   lat: number;
   lng: number;
-  name?: string;    // the stop's display name, when known
+  name?: string; // the stop's display name, when known
   placeId?: number; // the TREK place behind this stop, when it is one
 }
 /** What the planner asks a routeProvider to route. */
 export interface RouteRequest {
   tripId: number;
-  dayId: number | null;   // the selected day, when the request is day-scoped
-  profile: string;        // one of the plugin's declared capabilities.routeProfiles ids
+  dayId: number | null; // the selected day, when the request is day-scoped
+  profile: string; // one of the plugin's declared capabilities.routeProfiles ids
   waypoints: RouteWaypoint[]; // 2..30 located stops, in visit order
 }
 /** One leg of the returned route — between consecutive request waypoints. */
 export interface RouteLeg {
   distance: number; // metres
   duration: number; // seconds (driving + any stop time you fold into the leg)
-  note?: string;    // short text shown on the leg connector (e.g. "25 min charge"), ≤120 chars
+  note?: string; // short text shown on the leg connector (e.g. "25 min charge"), ≤120 chars
 }
 /** An intermediate stop on the returned route (a charging stop, a rest area). */
 export interface RouteViaPoint {
   lat: number;
   lng: number;
-  label?: string;        // short marker text, ≤80 chars
+  label?: string; // short marker text, ≤80 chars
   tone?: ContributionTone;
   dwellSeconds?: number; // planned time at the stop (0..86400)
 }
@@ -587,8 +1015,8 @@ export interface RouteViaPoint {
  * lines, like an OSRM outage. */
 export interface RouteProviderResult {
   coordinates: Array<[number, number]>; // [lat,lng] polyline of the whole route
-  distance: number;                     // metres, whole route
-  duration: number;                     // seconds, whole route
+  distance: number; // metres, whole route
+  duration: number; // seconds, whole route
   legs: RouteLeg[];
   viaPoints?: RouteViaPoint[];
 }
@@ -597,7 +1025,10 @@ export interface RouteProvider {
    * (`capabilities.routeProfiles`). Runs with the current user bound, on a 20 s
    * timeout (room for an external solver via declared egress); a failing call
    * falls back to straight lines. Needs `hook:route-provider`. */
-  getRoute(request: RouteRequest, ctx: PluginContext): Promise<RouteProviderResult>;
+  getRoute(
+    request: RouteRequest,
+    ctx: PluginContext,
+  ): Promise<RouteProviderResult>;
 }
 
 /** A time contribution the host renders into the day plan — "35 min charging at
@@ -605,20 +1036,23 @@ export interface RouteProvider {
  * reservation row (or the start/end of a day); `minutes` also counts into the
  * day's route-footer total. */
 export interface DayScheduleContribution {
-  id: string;              // stable per-item id (React key / dedupe)
-  dayId: number;           // must be a day of the requested trip
-  assignmentId?: number;   // anchor under this itinerary place row…
-  reservationId?: number;  // …or under this booking row…
-  position?: 'start' | 'end'; // …or at the start/end of the day (default 'end')
-  minutes?: number;        // planned time, 1..1440 — shown and totalled
-  label: string;           // short text (≤120 chars)
+  id: string; // stable per-item id (React key / dedupe)
+  dayId: number; // must be a day of the requested trip
+  assignmentId?: number; // anchor under this itinerary place row…
+  reservationId?: number; // …or under this booking row…
+  position?: "start" | "end"; // …or at the start/end of the day (default 'end')
+  minutes?: number; // planned time, 1..1440 — shown and totalled
+  label: string; // short text (≤120 chars)
   tone?: ContributionTone;
 }
 export interface DayScheduleProvider {
   /** Return schedule contributions for a trip's days. Runs with the current user
    * bound, on a short timeout; the host caps the item count (≤60/plugin) and
    * skips a failing call. Needs `hook:day-schedule-provider`. */
-  getSchedule(tripId: number, ctx: PluginContext): Promise<DayScheduleContribution[]>;
+  getSchedule(
+    tripId: number,
+    ctx: PluginContext,
+  ): Promise<DayScheduleContribution[]>;
 }
 
 /** A colour the host paints into one day card in the Plan sidebar (and into that day's
@@ -647,11 +1081,11 @@ export interface DayScheduleProvider {
  * dayScheduleProvider row where it matters) so the meaning survives for anyone who
  * cannot tell your legs apart by hue. */
 export interface DayTintContribution {
-  dayId: number;              // must be a day of the requested trip
+  dayId: number; // must be a day of the requested trip
   /** Shorthands: paint every region you do NOT name below. Omit both and only the
    *  regions you name are tinted. `color` wins over `tone` at the same level. */
   tone?: ContributionTone;
-  color?: string;             // your own colour, `#rrggbb` only
+  color?: string; // your own colour, `#rrggbb` only
   /** The day-number badge — the smallest, boldest mark. Also tints the mobile day chip. */
   badgeTone?: ContributionTone;
   badgeColor?: string;
@@ -662,7 +1096,7 @@ export interface DayTintContribution {
    *  largest surface and the one behind the densest text, so it is tinted faintest. */
   activityTone?: ContributionTone;
   activityColor?: string;
-  label?: string;             // optional tooltip on the day (≤60 chars)
+  label?: string; // optional tooltip on the day (≤60 chars)
 }
 export interface DayTintProvider {
   /** Return one tint per day you want coloured — the natural cap is the trip's day
@@ -675,14 +1109,17 @@ export interface DayTintProvider {
    * the first granted provider wins. Both are deterministic, so a day never flickers
    * between two colours, and two plugins can never each own part of one card.
    * Needs `hook:day-tint-provider`. */
-  getDayTints(tripId: number, ctx: PluginContext): Promise<DayTintContribution[]>;
+  getDayTints(
+    tripId: number,
+    ctx: PluginContext,
+  ): Promise<DayTintContribution[]>;
 }
 
 /** A text-only section the host appends to a trip's PDF export. Declarative only —
  * plain strings the host lays out and escapes; no markup ever reaches the document. */
 export interface PdfSection {
-  title: string;          // section heading (capped at 120 chars)
-  paragraphs?: string[];  // body text — ≤20 paragraphs of ≤2000 chars each
+  title: string; // section heading (capped at 120 chars)
+  paragraphs?: string[]; // body text — ≤20 paragraphs of ≤2000 chars each
   table?: { headers: string[]; rows: string[][] }; // simple table — ≤8 headers, ≤50 rows
 }
 export interface PdfSectionProvider {
@@ -694,11 +1131,15 @@ export interface PdfSectionProvider {
 }
 
 /** One country in an Atlas tint layer. `code` is ISO-3166 alpha-2 (uppercased by the host). */
-export interface AtlasLayerCountry { code: string; tone?: ContributionTone; label?: string; }
+export interface AtlasLayerCountry {
+  code: string;
+  tone?: ContributionTone;
+  label?: string;
+}
 /** A country tint layer the host draws over the Atlas world map (wishlists, advisories, …). */
 export interface AtlasLayer {
-  id: string;                    // stable per-layer id (React key / dedupe)
-  name?: string;                 // short layer name
+  id: string; // stable per-layer id (React key / dedupe)
+  name?: string; // short layer name
   countries: AtlasLayerCountry[]; // ≤300 countries per layer
 }
 export interface AtlasLayerProvider {
@@ -713,13 +1154,13 @@ export interface AtlasLayerProvider {
 /** One badge the host renders on a dashboard trip card. Declarative primitives only —
  * the host draws the badge; plugin JS never runs on the dashboard. */
 export interface TripCardContribution {
-  tripId: number;        // which of the passed-in trips this badge belongs to
-  id: string;            // stable per-badge id (React key / dedupe)
-  label: string;         // short label (e.g. "Visa ✓", "3 tasks")
-  value?: string;        // optional secondary text
-  icon?: string;         // a lucide icon name, resolved by the host
+  tripId: number; // which of the passed-in trips this badge belongs to
+  id: string; // stable per-badge id (React key / dedupe)
+  label: string; // short label (e.g. "Visa ✓", "3 tasks")
+  value?: string; // optional secondary text
+  icon?: string; // a lucide icon name, resolved by the host
   tone?: ContributionTone;
-  url?: string;          // http/https/mailto only — the host rejects any other scheme
+  url?: string; // http/https/mailto only — the host rejects any other scheme
 }
 export interface TripCardProvider {
   /** Return badges for the dashboard trip cards currently on screen. `tripIds` are
@@ -727,11 +1168,18 @@ export interface TripCardProvider {
    * the current user bound, on a short timeout; the host caps the badge count and
    * skips a failing call. Needs `hook:trip-card-provider`. The host caps results at
    * 4 badges per trip, 240 total per provider. */
-  getCards(tripIds: number[], ctx: PluginContext): Promise<TripCardContribution[]>;
+  getCards(
+    tripIds: number[],
+    ctx: PluginContext,
+  ): Promise<TripCardContribution[]>;
 }
 
 /** One row of extra info TREK renders under a journal entry (same shape as PlaceDetailItem). */
-export interface JournalEntryRow { label: string; value?: string; url?: string; }
+export interface JournalEntryRow {
+  label: string;
+  value?: string;
+  url?: string;
+}
 export interface JournalEntryProvider {
   /** Return rows for a journal entry. Runs with the current user bound, on a short
    * timeout; the host caps the row count and skips a failing call.
@@ -750,11 +1198,23 @@ export interface PluginEventSubscription {
   // only when the plugin also holds EVENT_SNAPSHOT_GRANT[family] — never user ids,
   // private packing items or secrets; delete/reorder/bulk events carry none. Still no
   // acting user: a trip read from the handler is refused.
-  handler(payload: { event: string; tripId: number; entity?: string; entityId?: number; snapshot?: Record<string, unknown> }, ctx: PluginContext): Promise<void> | void;
+  handler(
+    payload: {
+      event: string;
+      tripId: number;
+      entity?: string;
+      entityId?: number;
+      snapshot?: Record<string, unknown>;
+    },
+    ctx: PluginContext,
+  ): Promise<void> | void;
 }
 
 /** A function this plugin exposes to its dependents (declared in `capabilities.provides`). */
-export type PluginExport = (args: unknown, ctx: PluginContext) => Promise<unknown> | unknown;
+export type PluginExport = (
+  args: unknown,
+  ctx: PluginContext,
+) => Promise<unknown> | unknown;
 
 /** A subscription to another plugin's event. Authorized by declaring that plugin as a
  * `pluginDependency`; the handler runs with NO user and receives the emitter's payload. */
@@ -771,14 +1231,23 @@ export interface PluginDefinition {
   jobs?: PluginJob[];
   /** Handles a callback registered via ctx.scheduler (userless, like a job). The
    * `name` identifies which scheduled task fired; `payload` is what you passed. */
-  scheduled?(input: { name: string; payload: unknown }, ctx: PluginContext): Promise<void> | void;
+  scheduled?(
+    input: { name: string; payload: unknown },
+    ctx: PluginContext,
+  ): Promise<void> | void;
   /** GDPR erasure: a TREK account was deleted — remove everything you hold about it
    * from your OWN db. Userless (no acting user). Needs `hook:user-data`. The host
    * calls this durably (queued, retried until it succeeds), so make it idempotent. */
-  deleteUserData?(input: { userId: number }, ctx: PluginContext): Promise<void> | void;
+  deleteUserData?(
+    input: { userId: number },
+    ctx: PluginContext,
+  ): Promise<void> | void;
   /** GDPR portability: return the data you hold about a user (own db only), as a
    * JSON-serialisable value the host aggregates. Userless. Needs `hook:user-data`. */
-  exportUserData?(input: { userId: number }, ctx: PluginContext): Promise<unknown> | unknown;
+  exportUserData?(
+    input: { userId: number },
+    ctx: PluginContext,
+  ): Promise<unknown> | unknown;
   events?: PluginEventSubscription[];
   /**
    * Buttons on the plugin's own settings page ("Test connection", "Sync now"). The key
@@ -789,7 +1258,12 @@ export interface PluginDefinition {
    * membership-checked against them, which is what makes a "test my credentials" button
    * possible at all.
    */
-  actions?: Record<string, (ctx: PluginContext) => Promise<PluginActionResult | void> | PluginActionResult | void>;
+  actions?: Record<
+    string,
+    (
+      ctx: PluginContext,
+    ) => Promise<PluginActionResult | void> | PluginActionResult | void
+  >;
   hooks?: {
     photoProvider?: PhotoProvider;
     calendarSource?: CalendarSource;
@@ -827,22 +1301,31 @@ export {
   type ManifestSettingField,
   type ManifestAction,
   type ManifestCapabilities,
-} from './manifest.js';
-export { createMockHost, type MockHostOptions } from './mock-host.js';
+} from "./manifest.js";
+export { createMockHost, type MockHostOptions } from "./mock-host.js";
 // The permissions TREK enforces OUTSIDE ctx — hooks, events, jobs, egress. An entry
 // point you implement without its grant is never called in production, silently; these
 // are what `dev` and the mock driver use to make that loud.
 export {
-  PermissionDenied, HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, JOBS_PERMISSION,
-  grantGaps, grantedHosts, type GrantGap, type PluginEntryPoints,
-} from './permissions.js';
+  PermissionDenied,
+  HOOK_PERMISSION,
+  USER_DATA_PERMISSION,
+  EVENTS_PERMISSION,
+  JOBS_PERMISSION,
+  grantGaps,
+  grantedHosts,
+  type GrantGap,
+  type PluginEntryPoints,
+} from "./permissions.js";
 // The core-event catalog: families and the snapshot-delivery permission each family requires.
 export {
-  EVENT_FAMILIES, EVENT_SNAPSHOT_GRANT, KNOWN_PERMISSIONS,
-} from './generated/host-facts.js';
+  EVENT_FAMILIES,
+  EVENT_SNAPSHOT_GRANT,
+  KNOWN_PERMISSIONS,
+} from "./generated/host-facts.js";
 
 /** Scope for host-managed, per-user session state in a sandboxed plugin UI. */
-export type PluginSessionStorageScope = 'plugin' | 'trip';
+export type PluginSessionStorageScope = "plugin" | "trip";
 
 /** Limits enforced independently for the plugin scope and each trip scope. */
 export const PLUGIN_SESSION_MAX_KEYS = 32;
@@ -855,8 +1338,15 @@ export interface PluginSessionStorageOptions {
 
 /** The `window.trek.session` surface. Values must be JSON-serialisable. */
 export interface PluginSessionStorage {
-  get<T = unknown>(key: string, options?: PluginSessionStorageOptions): Promise<T | undefined>;
-  set(key: string, value: unknown, options?: PluginSessionStorageOptions): Promise<void>;
+  get<T = unknown>(
+    key: string,
+    options?: PluginSessionStorageOptions,
+  ): Promise<T | undefined>;
+  set(
+    key: string,
+    value: unknown,
+    options?: PluginSessionStorageOptions,
+  ): Promise<void>;
   remove(key: string, options?: PluginSessionStorageOptions): Promise<void>;
   clear(options?: PluginSessionStorageOptions): Promise<void>;
 }
@@ -864,4 +1354,9 @@ export interface PluginSessionStorage {
 // The design kit for page/widget UIs: inline these into your client/index.html
 // (or drop a `<!-- trek:ui -->` marker and let `dev`/`pack` expand it) to get the
 // native TREK look — glass, hover, buttons, inputs — plus a `window.trek` bridge.
-export { TREK_UI_CSS, TREK_THEME_JS, TREK_UI_MARKER, injectTrekUi } from './ui/kit.js';
+export {
+  TREK_UI_CSS,
+  TREK_THEME_JS,
+  TREK_UI_MARKER,
+  injectTrekUi,
+} from "./ui/kit.js";

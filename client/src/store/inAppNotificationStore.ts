@@ -1,36 +1,37 @@
-import { create } from 'zustand'
-import { inAppNotificationsApi } from '../api/client'
+import { create } from 'zustand';
+import { inAppNotificationsApi } from '../api/client';
+import { updateAppBadge } from '../services/webPush';
 
 // The server contract (@trek/shared `inAppListResultSchema`) deliberately keeps
 // each notification row as an open record — the registry-derived shape varies by
 // type. This is the client's structured view of that row; the list/unread-count
 // responses themselves are now typed + DEV-validated via inAppNotificationsApi.
 export interface InAppNotification {
-  id: number
-  type: 'simple' | 'boolean' | 'navigate'
-  scope: 'trip' | 'user' | 'admin'
-  target: number
-  sender_id: number | null
-  sender_username: string | null
-  sender_avatar: string | null
-  recipient_id: number
-  title_key: string
-  title_params: Record<string, string>
-  text_key: string
-  text_params: Record<string, string>
-  positive_text_key: string | null
-  negative_text_key: string | null
-  response: 'positive' | 'negative' | null
-  navigate_text_key: string | null
-  navigate_target: string | null
-  is_read: boolean
-  created_at: string
+  id: number;
+  type: 'simple' | 'boolean' | 'navigate';
+  scope: 'trip' | 'user' | 'admin';
+  target: number;
+  sender_id: number | null;
+  sender_username: string | null;
+  sender_avatar: string | null;
+  recipient_id: number;
+  title_key: string;
+  title_params: Record<string, string>;
+  text_key: string;
+  text_params: Record<string, string>;
+  positive_text_key: string | null;
+  negative_text_key: string | null;
+  response: 'positive' | 'negative' | null;
+  navigate_text_key: string | null;
+  navigate_target: string | null;
+  is_read: boolean;
+  created_at: string;
 }
 
 interface RawNotification extends Omit<InAppNotification, 'title_params' | 'text_params' | 'is_read'> {
-  title_params: string | Record<string, string>
-  text_params: string | Record<string, string>
-  is_read: number | boolean
+  title_params: string | Record<string, string>;
+  text_params: string | Record<string, string>;
+  is_read: number | boolean;
 }
 
 function normalizeNotification(raw: RawNotification): InAppNotification {
@@ -39,30 +40,30 @@ function normalizeNotification(raw: RawNotification): InAppNotification {
     title_params: typeof raw.title_params === 'string' ? JSON.parse(raw.title_params || '{}') : raw.title_params,
     text_params: typeof raw.text_params === 'string' ? JSON.parse(raw.text_params || '{}') : raw.text_params,
     is_read: Boolean(raw.is_read),
-  }
+  };
 }
 
 interface NotificationState {
-  notifications: InAppNotification[]
-  unreadCount: number
-  total: number
-  isLoading: boolean
-  hasMore: boolean
+  notifications: InAppNotification[];
+  unreadCount: number;
+  total: number;
+  isLoading: boolean;
+  hasMore: boolean;
 
-  fetchNotifications: (reset?: boolean) => Promise<void>
-  fetchUnreadCount: () => Promise<void>
-  markRead: (id: number) => Promise<void>
-  markUnread: (id: number) => Promise<void>
-  markAllRead: () => Promise<void>
-  deleteNotification: (id: number) => Promise<void>
-  deleteAll: () => Promise<void>
-  respondToBoolean: (id: number, response: 'positive' | 'negative') => Promise<void>
+  fetchNotifications: (reset?: boolean) => Promise<void>;
+  fetchUnreadCount: () => Promise<void>;
+  markRead: (id: number) => Promise<void>;
+  markUnread: (id: number) => Promise<void>;
+  markAllRead: () => Promise<void>;
+  deleteNotification: (id: number) => Promise<void>;
+  deleteAll: () => Promise<void>;
+  respondToBoolean: (id: number, response: 'positive' | 'negative') => Promise<void>;
 
-  handleNewNotification: (notification: RawNotification) => void
-  handleUpdatedNotification: (notification: RawNotification) => void
+  handleNewNotification: (notification: RawNotification) => void;
+  handleUpdatedNotification: (notification: RawNotification) => void;
 }
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 20;
 
 export const useInAppNotificationStore = create<NotificationState>((set, get) => ({
   notifications: [],
@@ -72,14 +73,14 @@ export const useInAppNotificationStore = create<NotificationState>((set, get) =>
   hasMore: false,
 
   fetchNotifications: async (reset = false) => {
-    const { notifications, isLoading } = get()
-    if (isLoading) return
+    const { notifications, isLoading } = get();
+    if (isLoading) return;
 
-    set({ isLoading: true })
+    set({ isLoading: true });
     try {
-      const offset = reset ? 0 : notifications.length
-      const data = await inAppNotificationsApi.list({ limit: PAGE_SIZE, offset })
-      const normalized = (data.notifications as unknown as RawNotification[]).map(normalizeNotification)
+      const offset = reset ? 0 : notifications.length;
+      const data = await inAppNotificationsApi.list({ limit: PAGE_SIZE, offset });
+      const normalized = (data.notifications as unknown as RawNotification[]).map(normalizeNotification);
 
       set({
         notifications: reset ? normalized : [...notifications, ...normalized],
@@ -87,16 +88,16 @@ export const useInAppNotificationStore = create<NotificationState>((set, get) =>
         unreadCount: data.unread_count,
         hasMore: (reset ? normalized.length : notifications.length + normalized.length) < data.total,
         isLoading: false,
-      })
+      });
     } catch {
-      set({ isLoading: false })
+      set({ isLoading: false });
     }
   },
 
   fetchUnreadCount: async () => {
     try {
-      const data = await inAppNotificationsApi.unreadCount()
-      set({ unreadCount: data.count })
+      const data = await inAppNotificationsApi.unreadCount();
+      set({ unreadCount: data.count });
     } catch {
       // best-effort
     }
@@ -104,11 +105,11 @@ export const useInAppNotificationStore = create<NotificationState>((set, get) =>
 
   markRead: async (id: number) => {
     try {
-      await inAppNotificationsApi.markRead(id)
-      set(state => ({
-        notifications: state.notifications.map(n => n.id === id ? { ...n, is_read: true } : n),
-        unreadCount: Math.max(0, state.unreadCount - (state.notifications.find(n => n.id === id)?.is_read ? 0 : 1)),
-      }))
+      await inAppNotificationsApi.markRead(id);
+      set((state) => ({
+        notifications: state.notifications.map((n) => (n.id === id ? { ...n, is_read: true } : n)),
+        unreadCount: Math.max(0, state.unreadCount - (state.notifications.find((n) => n.id === id)?.is_read ? 0 : 1)),
+      }));
     } catch {
       // best-effort
     }
@@ -116,11 +117,11 @@ export const useInAppNotificationStore = create<NotificationState>((set, get) =>
 
   markUnread: async (id: number) => {
     try {
-      await inAppNotificationsApi.markUnread(id)
-      set(state => ({
-        notifications: state.notifications.map(n => n.id === id ? { ...n, is_read: false } : n),
-        unreadCount: state.unreadCount + (state.notifications.find(n => n.id === id)?.is_read ? 1 : 0),
-      }))
+      await inAppNotificationsApi.markUnread(id);
+      set((state) => ({
+        notifications: state.notifications.map((n) => (n.id === id ? { ...n, is_read: false } : n)),
+        unreadCount: state.unreadCount + (state.notifications.find((n) => n.id === id)?.is_read ? 1 : 0),
+      }));
     } catch {
       // best-effort
     }
@@ -128,25 +129,25 @@ export const useInAppNotificationStore = create<NotificationState>((set, get) =>
 
   markAllRead: async () => {
     try {
-      await inAppNotificationsApi.markAllRead()
-      set(state => ({
-        notifications: state.notifications.map(n => ({ ...n, is_read: true })),
+      await inAppNotificationsApi.markAllRead();
+      set((state) => ({
+        notifications: state.notifications.map((n) => ({ ...n, is_read: true })),
         unreadCount: 0,
-      }))
+      }));
     } catch {
       // best-effort
     }
   },
 
   deleteNotification: async (id: number) => {
-    const notification = get().notifications.find(n => n.id === id)
+    const notification = get().notifications.find((n) => n.id === id);
     try {
-      await inAppNotificationsApi.delete(id)
-      set(state => ({
-        notifications: state.notifications.filter(n => n.id !== id),
+      await inAppNotificationsApi.delete(id);
+      set((state) => ({
+        notifications: state.notifications.filter((n) => n.id !== id),
         total: Math.max(0, state.total - 1),
         unreadCount: notification && !notification.is_read ? Math.max(0, state.unreadCount - 1) : state.unreadCount,
-      }))
+      }));
     } catch {
       // best-effort
     }
@@ -154,8 +155,8 @@ export const useInAppNotificationStore = create<NotificationState>((set, get) =>
 
   deleteAll: async () => {
     try {
-      await inAppNotificationsApi.deleteAll()
-      set({ notifications: [], total: 0, unreadCount: 0, hasMore: false })
+      await inAppNotificationsApi.deleteAll();
+      set({ notifications: [], total: 0, unreadCount: 0, hasMore: false });
     } catch {
       // best-effort
     }
@@ -163,15 +164,15 @@ export const useInAppNotificationStore = create<NotificationState>((set, get) =>
 
   respondToBoolean: async (id: number, response: 'positive' | 'negative') => {
     try {
-      const data = await inAppNotificationsApi.respond(id, response)
+      const data = await inAppNotificationsApi.respond(id, response);
       if (data.notification) {
-        const normalized = normalizeNotification(data.notification as RawNotification)
-        set(state => ({
-          notifications: state.notifications.map(n => n.id === id ? normalized : n),
-          unreadCount: !state.notifications.find(n => n.id === id)?.is_read
+        const normalized = normalizeNotification(data.notification as RawNotification);
+        set((state) => ({
+          notifications: state.notifications.map((n) => (n.id === id ? normalized : n)),
+          unreadCount: !state.notifications.find((n) => n.id === id)?.is_read
             ? Math.max(0, state.unreadCount - 1)
             : state.unreadCount,
-        }))
+        }));
       }
     } catch {
       // best-effort
@@ -179,18 +180,22 @@ export const useInAppNotificationStore = create<NotificationState>((set, get) =>
   },
 
   handleNewNotification: (raw: RawNotification) => {
-    const notification = normalizeNotification(raw)
-    set(state => ({
+    const notification = normalizeNotification(raw);
+    set((state) => ({
       notifications: [notification, ...state.notifications],
       total: state.total + 1,
       unreadCount: state.unreadCount + 1,
-    }))
+    }));
   },
 
   handleUpdatedNotification: (raw: RawNotification) => {
-    const notification = normalizeNotification(raw)
-    set(state => ({
-      notifications: state.notifications.map(n => n.id === notification.id ? notification : n),
-    }))
+    const notification = normalizeNotification(raw);
+    set((state) => ({
+      notifications: state.notifications.map((n) => (n.id === notification.id ? notification : n)),
+    }));
   },
-}))
+}));
+
+useInAppNotificationStore.subscribe((state, previous) => {
+  if (state.unreadCount !== previous.unreadCount) updateAppBadge(state.unreadCount).catch(() => {});
+});

@@ -186,5 +186,9 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashNoResults': 'Không tìm thấy ảnh nào',
   'dashboard.coverSearchError': 'Tìm kiếm trên Unsplash không thành công',
   'dashboard.useUnsplashPhoto': 'Dùng ảnh Unsplash của {photographer}',
+  'dashboard.hero.departureIn': 'Departure in',
+  'dashboard.hero.hourUnit': 'Hours',
+  'dashboard.hero.minuteUnit': 'Minutes',
+  'dashboard.hero.secondUnit': 'Seconds',
 };
 export default dashboard;

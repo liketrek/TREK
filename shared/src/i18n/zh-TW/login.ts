@@ -63,11 +63,11 @@ const login: TranslationStrings = {
   'login.oidcOnly': '密碼登入已關閉。請透過 SSO 提供商登入。',
   'login.oidcLoggedOut': '您已登出。請重新透過 SSO 提供商登入。',
   'login.demoHint': '試用演示——無需註冊',
-  'login.passkey.signIn': '使用 Passkey 登入',
-  'login.passkey.failed': 'Passkey 登入失敗，請重試。',
-  'login.insecureCookie.title': "Login won't stick over HTTP",
+  'login.passkey.signIn': '使用 通行密鑰 登入',
+  'login.passkey.failed': '通行密鑰 登入失敗，請重試。',
+  'login.insecureCookie.title': '透過 HTTP 無法保持登入狀態',
   'login.insecureCookie.body':
-    'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
-  'login.insecureCookie.link': 'Open the Troubleshooting guide',
+    '您正透過一般 HTTP 連線，因此瀏覽器會捨棄 TREK 的安全工作階段 Cookie，導致下一個請求出現「Access token required」錯誤。解決方法：改用 HTTPS；若是家用伺服器，請設定 COOKIE_SECURE=false。',
+  'login.insecureCookie.link': '開啟疑難排解指南',
 };
 export default login;

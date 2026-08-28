@@ -71,7 +71,15 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Försök igen',
   'common.errorReload': 'Ladda om sidan',
   'common.errorUpdateTitle': 'En ny version är tillgänglig',
-  'common.errorUpdateBody': 'TREK uppdaterades medan den här fliken var öppen. Ladda om för att hämta den nya versionen.',
+  'common.errorUpdateBody':
+    'TREK uppdaterades medan den här fliken var öppen. Ladda om för att hämta den nya versionen.',
   'common.errorPluginTitle': 'Det här tillägget kunde inte visas',
+  'legal.title': 'Legal & source',
+  'legal.description': 'License information and the exact source code for this deployed version.',
+  'legal.agpl':
+    'This application is licensed under the GNU Affero General Public License version 3. Remote users may obtain the corresponding source code at no charge.',
+  'legal.license': 'Read the license',
+  'legal.source': 'Corresponding source',
+  'legal.sourceDescription': 'Source code for this deployed build:',
 };
 export default common;

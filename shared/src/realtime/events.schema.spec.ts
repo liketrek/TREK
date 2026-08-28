@@ -54,6 +54,8 @@ const FIXTURES: Record<TrekWsEventName, Record<string, unknown>> = {
   'budget:settlement-created': { settlement: { id: 2 } },
   'budget:settlement-updated': { settlement: { id: 2 } },
   'budget:settlement-deleted': { settlementId: 2 },
+  'budget:exchange-rates-updated': { rate: { currency: 'USD', rate: 1.08 } },
+  'budget:exchange-rates-applied': { rate: { currency: 'USD', rate: 1.08 }, updated: [] },
   'reservation:created': { reservation: { id: 6 } },
   'reservation:updated': { reservation: { id: 6 } },
   'reservation:deleted': { reservationId: 6 },
@@ -66,6 +68,7 @@ const FIXTURES: Record<TrekWsEventName, Record<string, unknown>> = {
   'trip:deleted': { id: 1 },
   'member:added': { member: { user_id: 2 } },
   'member:removed': { userId: 2 },
+  'guest:identity-transferred': { guestUserId: 7, transferredByUserId: 2 },
   'file:created': { file: { id: 13 } },
   'file:updated': { file: { id: 13 } },
   'file:deleted': { fileId: 13 },
@@ -134,10 +137,10 @@ const DRIFT_VARIANTS: Partial<Record<TrekWsEventName, Record<string, unknown>[]>
 };
 
 describe('@trek/shared realtime event registry', () => {
-  it('WSEVT-REG-001: pins the authoritative inventory counts (65 trip + 32 user = 97)', () => {
-    expect(TREK_WS_TRIP_EVENT_NAMES).toHaveLength(65);
+  it('WSEVT-REG-001: pins the authoritative inventory counts (68 trip + 32 user = 100)', () => {
+    expect(TREK_WS_TRIP_EVENT_NAMES).toHaveLength(68);
     expect(TREK_WS_USER_EVENT_NAMES).toHaveLength(32);
-    expect(TREK_WS_EVENT_NAMES).toHaveLength(97);
+    expect(TREK_WS_EVENT_NAMES).toHaveLength(100);
   });
 
   it('WSEVT-REG-002: every name is domain:action shaped and outside the reserved plugin: namespace', () => {

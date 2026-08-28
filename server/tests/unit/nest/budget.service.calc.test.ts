@@ -38,7 +38,7 @@ const mockDb = vi.hoisted(() => {
 vi.mock('../../../src/db/database', () => mockDb);
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 
-const mockRates = { getRates: vi.fn() };
+const mockRates = { getRates: vi.fn(), freezeRateForWrite: vi.fn() };
 
 import { BudgetService } from '../../../src/nest/budget/budget.service';
 import { DatabaseService } from '../../../src/nest/database/database.service';
@@ -129,6 +129,18 @@ function setupDb(
 beforeEach(() => {
   vi.clearAllMocks();
   setupDb([], [], []);
+  mockRates.freezeRateForWrite.mockImplementation(async (tripId, data, _userId, existing) => {
+    if (data.exchange_rate !== undefined) return;
+    const currency = data.currency?.toUpperCase();
+    if (!currency || existing?.currency?.toUpperCase() === currency) return;
+    const trip = mockDb.db.prepare('SELECT currency FROM trips WHERE id = ?').get(tripId) as
+      | { currency?: string | null }
+      | undefined;
+    const base = (trip?.currency || 'EUR').toUpperCase();
+    if (currency === base) return;
+    const rates = await mockRates.getRates(base);
+    if (rates?.[currency] > 0) data.exchange_rate = rates[currency];
+  });
 });
 
 // ── calculateSettlement ──────────────────────────────────────────────────────
@@ -625,7 +637,11 @@ describe('applySettlementUpdate', () => {
     const res = budget.applySettlementUpdate(7, 1, { from_user_id: 2, to_user_id: 1, amount: 10.126 });
     // from, to, rounded amount, currency-flag(0)/value(null), rate-flag(null)/value(1), id.
     // No currency/exchange_rate passed → both CASE guards keep the existing columns.
-    expect(run).toHaveBeenCalledWith(2, 1, 10.13, 0, null, null, 1, 7);
+    expect(run).toHaveBeenCalledWith(
+      2, 1, 10.13, 0, null, null, 1,
+      null, null, null, null, 0, null, 0, null, 0, null, 0, null,
+      7,
+    );
     expect(res).toMatchObject({ id: 7, from_user_id: 2, to_user_id: 1, amount: 10.13 });
   });
 });

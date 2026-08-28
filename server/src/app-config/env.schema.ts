@@ -61,6 +61,10 @@ export const envSchema = z.object({
   LOG_LEVEL: oneOf(['error', 'warn', 'info', 'debug']),
   APP_VERSION: anyString,
   APP_URL: url,
+  SOURCE_CODE_URL: url,
+  WEB_PUSH_VAPID_PUBLIC_KEY: anyString,
+  WEB_PUSH_VAPID_PRIVATE_KEY: anyString,
+  WEB_PUSH_VAPID_SUBJECT: url,
   ALLOWED_ORIGINS: anyString,
   // Candidates lowercased so mixed-case codes (zh-TW) validate case-insensitively.
   DEFAULT_LANGUAGE: oneOf(SUPPORTED_LANGUAGE_CODES.map((c) => c.toLowerCase())),

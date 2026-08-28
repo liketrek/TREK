@@ -588,20 +588,6 @@ export default function LoginPage(): React.ReactElement {
                     >
                       <div style={{ fontWeight: 700, marginBottom: 4 }}>{t('login.insecureCookie.title')}</div>
                       <div style={{ lineHeight: 1.55 }}>{t('login.insecureCookie.body')}</div>
-                      <a
-                        href="https://github.com/liketrek/TREK/wiki/Troubleshooting"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          display: 'inline-block',
-                          marginTop: 6,
-                          fontWeight: 600,
-                          color: '#b45309',
-                          textDecoration: 'underline',
-                        }}
-                      >
-                        {t('login.insecureCookie.link')} ↗
-                      </a>
                     </div>
                   )}
 
@@ -1235,6 +1221,14 @@ export default function LoginPage(): React.ReactElement {
           )}
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => navigate('/legal')}
+        className="fixed bottom-3 right-4 z-20 text-xs text-white/60 underline"
+      >
+        {t('legal.title')}
+      </button>
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg) } }

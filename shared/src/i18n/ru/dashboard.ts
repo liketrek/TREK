@@ -185,5 +185,9 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': 'Добавить часовой пояс',
   'dashboard.aria.removeTimezone': 'Удалить {city}',
   'dashboard.dayCountRequired': 'Количество дней обязательно',
+  'dashboard.hero.departureIn': 'Departure in',
+  'dashboard.hero.hourUnit': 'Hours',
+  'dashboard.hero.minuteUnit': 'Minutes',
+  'dashboard.hero.secondUnit': 'Seconds',
 };
 export default dashboard;

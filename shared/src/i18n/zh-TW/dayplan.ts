@@ -76,8 +76,8 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': '所有地點已分配',
   'dayplan.mobile.noMatch': '無匹配',
   'dayplan.mobile.createNew': '建立新地點',
-  'dayplan.expandAll': 'Expand all days', // en-fallback
-  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.expandAll': '展開所有日期',
+  'dayplan.collapseAll': '收合所有日期',
   'dayplan.reorderDays': '重新排序日期',
   'dayplan.reorderTitle': '重新排序日期',
   'dayplan.reorderHint': '該日的地點、筆記和預訂都會一併移動。',

@@ -219,10 +219,10 @@ describe('JourneyPublicPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Tokyo 2026')).toBeInTheDocument();
     });
-    // Footer shows "TREK" brand and "Made with" text
+    // Footer keeps neutral product attribution and links to legal/source details.
     expect(screen.getByText('TREK')).toBeInTheDocument();
-    expect(screen.getByText(/Made with/)).toBeInTheDocument();
-    expect(screen.getByText('GitHub')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /legal & source/i })).toHaveAttribute('href', '/legal');
+    expect(screen.queryByText(/Made with/)).not.toBeInTheDocument();
   });
 
   it('FE-PAGE-PUBLICJOURNEY-008: gallery tab switches view', async () => {

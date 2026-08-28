@@ -9,6 +9,35 @@
  * integration tests don't exercise. VCJOB-001 pins the version-check cron path
  * (it replaced ADMIN-BR-001 when the old admin bridge died with the cron move).
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { AddonsService } from '../../../src/nest/addons/addons.service';
+import { __clearVersionCacheForTests } from '../../../src/nest/admin/admin.helpers';
+import { AdminService } from '../../../src/nest/admin/admin.service';
+import { VersionCheckJob } from '../../../src/nest/admin/version-check.job';
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { AtlasService } from '../../../src/nest/atlas/atlas.service';
+import { AuthService } from '../../../src/nest/auth/auth.service';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import { PasskeyService } from '../../../src/nest/auth/passkey.service';
+import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
+import { PackingService } from '../../../src/nest/packing/packing.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
+import { SettingsService } from '../../../src/nest/settings/settings.service';
+import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
+import { createUser, createUserWithMfa, createAdmin, createInviteToken } from '../../helpers/factories';
+import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
@@ -53,45 +82,28 @@ vi.mock('../../../src/demo/demo-reset', () => ({
   saveBaseline: vi.fn(),
 }));
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createUserWithMfa, createAdmin, createInviteToken } from '../../helpers/factories';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { AddonsService } from '../../../src/nest/addons/addons.service';
-import { SettingsService } from '../../../src/nest/settings/settings.service';
-import { AtlasService } from '../../../src/nest/atlas/atlas.service';
-import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
-import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
-import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
-import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
-import { AuthService } from '../../../src/nest/auth/auth.service';
-import { PasskeyService } from '../../../src/nest/auth/passkey.service';
-import { PackingService } from '../../../src/nest/packing/packing.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { BudgetService } from '../../../src/nest/budget/budget.service';
-import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
-import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
-import { AdminService } from '../../../src/nest/admin/admin.service';
-import { VersionCheckJob } from '../../../src/nest/admin/version-check.job';
-import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
-import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
-import { __clearVersionCacheForTests } from '../../../src/nest/admin/admin.helpers';
-import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
-import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
-import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
-
 const dbs = new DatabaseService(testDb);
 const realtime = new RealtimeService();
 const permissions = new PermissionsService(dbs);
 const webauthn = new WebauthnConfigService(dbs);
-const userCleanup = new UserCleanupService(dbs, new BudgetService(dbs, permissions, new ExchangeRatesService(), realtime));
+const userCleanup = new UserCleanupService(
+  dbs,
+  new BudgetService(dbs, permissions, new ExchangeRatesService(dbs), realtime),
+);
 // Positional and previously wrong: an AtlasService sat in the membership slot
 // and the mailer was missing entirely, so `auth` was built with its last four
 // collaborators shifted by one. Nothing failed, because none of the cases below
 // reach a path that uses them.
-const auth = new AuthService(dbs, permissions, new TripMembershipService(dbs), webauthn, userCleanup, new MailerService(dbs), new EphemeralTokenService(), new AllowedFileTypesService(dbs));
+const auth = new AuthService(
+  dbs,
+  permissions,
+  new TripMembershipService(dbs),
+  webauthn,
+  userCleanup,
+  new MailerService(dbs),
+  new EphemeralTokenService(),
+  new AllowedFileTypesService(dbs),
+);
 const svc = new AdminService(
   dbs,
   new AddonsService(dbs),
@@ -159,7 +171,12 @@ describe('createUser (service)', () => {
   });
 
   it('ADMIN-SVC-004 — returns 400 for invalid role', () => {
-    const result = svcCreateUser({ username: 'u1', email: 'u1@test.com', password: 'ValidPass1!', role: 'superuser' }) as any;
+    const result = svcCreateUser({
+      username: 'u1',
+      email: 'u1@test.com',
+      password: 'ValidPass1!',
+      role: 'superuser',
+    }) as any;
     expect(result.status).toBe(400);
     expect(result.error).toMatch(/invalid role/i);
   });
@@ -312,9 +329,9 @@ describe('getAuditLog', () => {
 describe('getAuditLog — JSON details', () => {
   it('ADMIN-SVC-045 — parses JSON details when present', () => {
     const { user } = createUser(testDb);
-    testDb.prepare('INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)').run(
-      user.id, 'test_action', JSON.stringify({ key: 'val' })
-    );
+    testDb
+      .prepare('INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)')
+      .run(user.id, 'test_action', JSON.stringify({ key: 'val' }));
     const result = getAuditLog({}) as any;
     expect(result.entries.length).toBeGreaterThanOrEqual(1);
     const entry = result.entries.find((e: any) => e.action === 'test_action');
@@ -324,9 +341,9 @@ describe('getAuditLog — JSON details', () => {
 
   it('ADMIN-SVC-046 — falls back to the raw string when details are not valid JSON', () => {
     const { user } = createUser(testDb);
-    testDb.prepare('INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)').run(
-      user.id, 'bad_json_action', 'not-valid-json{'
-    );
+    testDb
+      .prepare('INSERT INTO audit_log (user_id, action, details) VALUES (?, ?, ?)')
+      .run(user.id, 'bad_json_action', 'not-valid-json{');
     const result = getAuditLog({}) as any;
     const entry = result.entries.find((e: any) => e.action === 'bad_json_action');
     expect(entry).toBeDefined();
@@ -385,11 +402,14 @@ describe('getGithubReleases', () => {
       { id: 1, tag_name: 'v3.0.0', name: 'Release 3.0.0', html_url: 'https://github.com/example/releases/tag/v3.0.0' },
       { id: 2, tag_name: 'v2.9.9', name: 'Release 2.9.9', html_url: 'https://github.com/example/releases/tag/v2.9.9' },
     ];
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      text: async () => JSON.stringify(mockReleases),
-      json: async () => mockReleases,
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => JSON.stringify(mockReleases),
+        json: async () => mockReleases,
+      }),
+    );
     const result = await getGithubReleases();
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(2);
@@ -401,14 +421,10 @@ describe('getGithubReleases', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await getGithubReleases('9999', '0');
-    expect(fetchMock.mock.calls[0][0]).toBe(
-      'https://api.github.com/repos/liketrek/TREK/releases?per_page=100&page=1',
-    );
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.github.com/repos/liketrek/TREK/releases?per_page=100&page=1');
 
     await getGithubReleases('10&per_page=999', 'abc');
-    expect(fetchMock.mock.calls[1][0]).toBe(
-      'https://api.github.com/repos/liketrek/TREK/releases?per_page=10&page=1',
-    );
+    expect(fetchMock.mock.calls[1][0]).toBe('https://api.github.com/repos/liketrek/TREK/releases?per_page=10&page=1');
   });
 
   it('ADMIN-SVC-053b — round-trips the paging the admin UI actually sends', async () => {
@@ -416,9 +432,7 @@ describe('getGithubReleases', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await getGithubReleases('20', '2');
-    expect(fetchMock.mock.calls[0][0]).toBe(
-      'https://api.github.com/repos/liketrek/TREK/releases?per_page=20&page=2',
-    );
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.github.com/repos/liketrek/TREK/releases?per_page=20&page=2');
   });
 });
 
@@ -431,23 +445,29 @@ describe('checkVersion', () => {
 
   // Since the 2026-08 quirk fix, failures cache too (on a 60s TTL), so each case
   // clears the module-scoped cache rather than reading the previous one's result.
-  beforeEach(() => { __clearVersionCacheForTests(); });
+  beforeEach(() => {
+    __clearVersionCacheForTests();
+  });
 
   it('ADMIN-SVC-054 — returns update_available:false when fetch fails', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
-    const result = await checkVersion() as any;
+    const result = (await checkVersion()) as any;
     expect(result.update_available).toBe(false);
     expect(result.current).toBeDefined();
     expect(result.latest).toBeDefined();
   });
 
   it('ADMIN-SVC-055 — returns update_available:true when latest version is greater than current', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      text: async () => JSON.stringify({ tag_name: 'v999.0.0', html_url: 'https://github.com/example/releases/tag/v999.0.0' }),
-      json: async () => ({ tag_name: 'v999.0.0', html_url: 'https://github.com/example/releases/tag/v999.0.0' }),
-    }));
-    const result = await checkVersion() as any;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () =>
+          JSON.stringify({ tag_name: 'v999.0.0', html_url: 'https://github.com/example/releases/tag/v999.0.0' }),
+        json: async () => ({ tag_name: 'v999.0.0', html_url: 'https://github.com/example/releases/tag/v999.0.0' }),
+      }),
+    );
+    const result = (await checkVersion()) as any;
     expect(result.update_available).toBe(true);
     expect(result.latest).toBe('999.0.0');
     expect(result.release_url).toBe('https://github.com/example/releases/tag/v999.0.0');
@@ -511,7 +531,11 @@ describe('updateAddon', () => {
 // ── version-check cron ────────────────────────────────────────────────────────
 
 describe('version-check job', () => {
-  const registrarStub = { isEnabled: () => true, register: vi.fn(() => true), unregister: vi.fn() } as unknown as CronRegistrarService;
+  const registrarStub = {
+    isEnabled: () => true,
+    register: vi.fn(() => true),
+    unregister: vi.fn(),
+  } as unknown as CronRegistrarService;
   const envStub = { isManaged: () => false } as unknown as RuntimeEnvService;
 
   it('VCJOB-001 — the cron tick notifies and shares the module-scoped version cache with the route', async () => {
@@ -526,9 +550,9 @@ describe('version-check job', () => {
 
     await new VersionCheckJob(svc, registrarStub, envStub).tick();
 
-    const notified = testDb
-      .prepare('SELECT value FROM app_settings WHERE key = ?')
-      .get('last_notified_version') as { value: string } | undefined;
+    const notified = testDb.prepare('SELECT value FROM app_settings WHERE key = ?').get('last_notified_version') as
+      | { value: string }
+      | undefined;
     expect(notified?.value).toBe('99.9.9');
 
     // The version cache is module-scoped in admin.helpers, so the cron and
@@ -543,17 +567,20 @@ describe('version-check job', () => {
 // ── Quirk fixes landed after the 2026-08 fold ─────────────────────────────────
 
 describe('admin quirk fixes (post-fold)', () => {
-
   it('ADMIN-SVC-072 — updateUser rejects an empty username/email instead of silently no-opping', () => {
     const { user } = createUser(testDb);
-    expect(updateUser(String(user.id), { username: '' }) as any).toMatchObject({ status: 400, error: 'Username cannot be empty' });
-    expect(updateUser(String(user.id), { email: '  ' }) as any).toMatchObject({ status: 400, error: 'Email cannot be empty' });
+    expect(updateUser(String(user.id), { username: '' }) as any).toMatchObject({
+      status: 400,
+      error: 'Username cannot be empty',
+    });
+    expect(updateUser(String(user.id), { email: '  ' }) as any).toMatchObject({
+      status: 400,
+      error: 'Email cannot be empty',
+    });
     // The row is untouched.
     const row = testDb.prepare('SELECT username FROM users WHERE id = ?').get(user.id) as { username: string };
     expect(row.username).toBe(user.username);
   });
-
-
 });
 
 // ── What an admin password reset ends, and what an ordinary edit must not ─────
@@ -581,7 +608,9 @@ describe('admin password reset revokes what an intruder already holds', () => {
 
   it('ADMIN-SVC-081 — and clears the MCP tokens, which the version bump does not reach', () => {
     const { user } = createUser(testDb);
-    testDb.prepare("INSERT INTO mcp_tokens (user_id, token_hash, token_prefix, name) VALUES (?, 'hash', 'trek_ab', 'cli')").run(user.id);
+    testDb
+      .prepare("INSERT INTO mcp_tokens (user_id, token_hash, token_prefix, name) VALUES (?, 'hash', 'trek_ab', 'cli')")
+      .run(user.id);
 
     updateUser(String(user.id), { password: 'ANewStrongPass123!' });
 
@@ -591,7 +620,9 @@ describe('admin password reset revokes what an intruder already holds', () => {
   it('ADMIN-SVC-082 — renaming a user touches neither, so an ordinary edit stays ordinary', () => {
     const { user } = createUser(testDb);
     const before = pv(user.id);
-    testDb.prepare("INSERT INTO mcp_tokens (user_id, token_hash, token_prefix, name) VALUES (?, 'hash', 'trek_ab', 'cli')").run(user.id);
+    testDb
+      .prepare("INSERT INTO mcp_tokens (user_id, token_hash, token_prefix, name) VALUES (?, 'hash', 'trek_ab', 'cli')")
+      .run(user.id);
 
     updateUser(String(user.id), { username: 'renamed' });
 

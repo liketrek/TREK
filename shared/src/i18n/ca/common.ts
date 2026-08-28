@@ -66,13 +66,21 @@ const common: TranslationStrings = {
   'common.datepicker.dialog': 'Selector de data',
   'common.datepicker.clearDate': 'Netejar data',
   'common.errorTitle': 'Alguna cosa ha anat malament',
-  'common.errorBody': 'Aquesta part de l\'aplicació ha deixat de funcionar. Les teves dades estan segures.',
-  'common.errorPanelTitle': 'No s\'ha pogut mostrar aquesta secció',
+  'common.errorBody': "Aquesta part de l'aplicació ha deixat de funcionar. Les teves dades estan segures.",
+  'common.errorPanelTitle': "No s'ha pogut mostrar aquesta secció",
   'common.errorPanelBody': 'La resta de la pàgina continua funcionant.',
   'common.errorRetry': 'Torna-ho a provar',
   'common.errorReload': 'Torna a carregar la pàgina',
   'common.errorUpdateTitle': 'Hi ha una versió nova disponible',
-  'common.errorUpdateBody': 'TREK s\'ha actualitzat mentre aquesta pestanya era oberta. Torna a carregar per obtenir la versió nova.',
-  'common.errorPluginTitle': 'No s\'ha pogut mostrar aquest connector',
+  'common.errorUpdateBody':
+    "TREK s'ha actualitzat mentre aquesta pestanya era oberta. Torna a carregar per obtenir la versió nova.",
+  'common.errorPluginTitle': "No s'ha pogut mostrar aquest connector",
+  'legal.title': 'Legal & source',
+  'legal.description': 'License information and the exact source code for this deployed version.',
+  'legal.agpl':
+    'This application is licensed under the GNU Affero General Public License version 3. Remote users may obtain the corresponding source code at no charge.',
+  'legal.license': 'Read the license',
+  'legal.source': 'Corresponding source',
+  'legal.sourceDescription': 'Source code for this deployed build:',
 };
 export default common;

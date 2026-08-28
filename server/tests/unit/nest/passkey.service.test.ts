@@ -10,6 +10,25 @@
  * crypto is not under test, the service's handling of its verdicts is.
  * Constructed directly (no TestingModule, repo convention).
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { AuthService } from '../../../src/nest/auth/auth.service';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import { PasskeyService } from '../../../src/nest/auth/passkey.service';
+import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
+import { createUser } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+
+import jwtLib from 'jsonwebtoken';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
@@ -68,25 +87,6 @@ const { swMock } = vi.hoisted(() => ({
 }));
 vi.mock('@simplewebauthn/server', () => swMock);
 
-import jwtLib from 'jsonwebtoken';
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { BudgetService } from '../../../src/nest/budget/budget.service';
-import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
-import { AuthService } from '../../../src/nest/auth/auth.service';
-import { PasskeyService } from '../../../src/nest/auth/passkey.service';
-import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
-import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
-import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
-import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
-import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
-
 // MailerService is injected since the notifications fold — a stub instead of a
 // module mock. sendPasswordResetEmail is the only thing auth reaches for.
 const mailerStub = { sendPasswordResetEmail: vi.fn() } as unknown as MailerService;
@@ -111,7 +111,15 @@ const auth = new AuthService(
   new PermissionsService(new DatabaseService(testDb)),
   new TripMembershipService(new DatabaseService(testDb)),
   new WebauthnConfigService(new DatabaseService(testDb)),
-  new UserCleanupService(new DatabaseService(testDb), new BudgetService(new DatabaseService(testDb), new PermissionsService(new DatabaseService(testDb)), new ExchangeRatesService(), new RealtimeService())),
+  new UserCleanupService(
+    new DatabaseService(testDb),
+    new BudgetService(
+      new DatabaseService(testDb),
+      new PermissionsService(new DatabaseService(testDb)),
+      new ExchangeRatesService(new DatabaseService(testDb)),
+      new RealtimeService(),
+    ),
+  ),
   mailerStub,
   new EphemeralTokenService(),
   new AllowedFileTypesService(new DatabaseService(testDb)),
@@ -146,8 +154,14 @@ function ceremonyResponse(challenge: string, extra: Record<string, unknown> = {}
   };
 }
 
-function seedChallenge(challenge: string, userId: number | null, type: 'registration' | 'authentication', expiresAt = Date.now() + 60_000) {
-  testDb.prepare('INSERT INTO webauthn_challenges (challenge, user_id, type, expires_at) VALUES (?, ?, ?, ?)')
+function seedChallenge(
+  challenge: string,
+  userId: number | null,
+  type: 'registration' | 'authentication',
+  expiresAt = Date.now() + 60_000,
+) {
+  testDb
+    .prepare('INSERT INTO webauthn_challenges (challenge, user_id, type, expires_at) VALUES (?, ?, ?, ?)')
     .run(challenge, userId, type, expiresAt);
 }
 
@@ -169,15 +183,30 @@ function insertCredential(userId: number, overrides: Record<string, unknown> = {
     aaguid: null,
     ...overrides,
   };
-  const result = testDb.prepare(
-    `INSERT INTO webauthn_credentials
+  const result = testDb
+    .prepare(
+      `INSERT INTO webauthn_credentials
        (user_id, credential_id, public_key, counter, transports, device_type, backed_up, name, aaguid)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(userId, row.credential_id, row.public_key, row.counter, row.transports, row.device_type, row.backed_up, row.name, row.aaguid);
+    )
+    .run(
+      userId,
+      row.credential_id,
+      row.public_key,
+      row.counter,
+      row.transports,
+      row.device_type,
+      row.backed_up,
+      row.name,
+      row.aaguid,
+    );
   return { id: Number(result.lastInsertRowid), ...row };
 }
 
-function registrationVerdict(overrides: Record<string, unknown> = {}, credentialOverrides: Record<string, unknown> = {}) {
+function registrationVerdict(
+  overrides: Record<string, unknown> = {},
+  credentialOverrides: Record<string, unknown> = {},
+) {
   return {
     verified: true,
     registrationInfo: {
@@ -211,7 +240,10 @@ describe('passkeyRegisterOptions', () => {
   it('PASSKEY-SVC-003: requires the current password (missing and wrong both 401)', async () => {
     const { user, password } = createUser(testDb);
     expect(await svc.passkeyRegisterOptions(user.id, undefined)).toEqual({ error: 'Incorrect password', status: 401 });
-    expect(await svc.passkeyRegisterOptions(user.id, `${password}x`)).toEqual({ error: 'Incorrect password', status: 401 });
+    expect(await svc.passkeyRegisterOptions(user.id, `${password}x`)).toEqual({
+      error: 'Incorrect password',
+      status: 401,
+    });
   });
 
   it('PASSKEY-SVC-004: generates options excluding existing credentials and stores the challenge', async () => {
@@ -248,47 +280,64 @@ describe('passkeyRegisterOptions', () => {
 describe('passkeyRegisterVerify', () => {
   it('PASSKEY-SVC-005: returns the not-configured 400 when no RP config resolves', async () => {
     resolveWebauthnConfigMock.mockReturnValue(null);
-    expect(await svc.passkeyRegisterVerify(1, { attestationResponse: {} })).toEqual({ error: NOT_CONFIGURED_ERROR, status: 400 });
+    expect(await svc.passkeyRegisterVerify(1, { attestationResponse: {} })).toEqual({
+      error: NOT_CONFIGURED_ERROR,
+      status: 400,
+    });
   });
 
   it('PASSKEY-SVC-006: 400s on a missing or undecodable attestation response', async () => {
     expect(await svc.passkeyRegisterVerify(1, {})).toEqual({ error: 'Invalid registration response', status: 400 });
-    expect(await svc.passkeyRegisterVerify(1, { attestationResponse: { response: { clientDataJSON: '!!!not-base64-json' } } }))
-      .toEqual({ error: 'Invalid registration response', status: 400 });
+    expect(
+      await svc.passkeyRegisterVerify(1, {
+        attestationResponse: { response: { clientDataJSON: '!!!not-base64-json' } },
+      }),
+    ).toEqual({ error: 'Invalid registration response', status: 400 });
   });
 
   it('PASSKEY-SVC-007: 400s on an unknown or expired challenge', async () => {
     const { user } = createUser(testDb);
-    expect(await svc.passkeyRegisterVerify(user.id, { attestationResponse: ceremonyResponse('never-stored') }))
-      .toEqual({ error: 'Registration challenge expired. Please try again.', status: 400 });
+    expect(await svc.passkeyRegisterVerify(user.id, { attestationResponse: ceremonyResponse('never-stored') })).toEqual(
+      { error: 'Registration challenge expired. Please try again.', status: 400 },
+    );
     seedChallenge('expired', user.id, 'registration', Date.now() - 1);
-    expect(await svc.passkeyRegisterVerify(user.id, { attestationResponse: ceremonyResponse('expired') }))
-      .toEqual({ error: 'Registration challenge expired. Please try again.', status: 400 });
+    expect(await svc.passkeyRegisterVerify(user.id, { attestationResponse: ceremonyResponse('expired') })).toEqual({
+      error: 'Registration challenge expired. Please try again.',
+      status: 400,
+    });
   });
 
-  it("PASSKEY-SVC-008: a challenge claimed by a different user fails — and the claim is single-use", async () => {
+  it('PASSKEY-SVC-008: a challenge claimed by a different user fails — and the claim is single-use', async () => {
     const { user: alice } = createUser(testDb);
     const { user: bob } = createUser(testDb);
     seedChallenge('cross', alice.id, 'registration');
-    expect(await svc.passkeyRegisterVerify(bob.id, { attestationResponse: ceremonyResponse('cross') }))
-      .toEqual({ error: 'Registration challenge expired. Please try again.', status: 400 });
+    expect(await svc.passkeyRegisterVerify(bob.id, { attestationResponse: ceremonyResponse('cross') })).toEqual({
+      error: 'Registration challenge expired. Please try again.',
+      status: 400,
+    });
     // The mismatched claim still consumed the row: the rightful owner can't use it either.
     expect(challengeCount()).toBe(0);
-    expect(await svc.passkeyRegisterVerify(alice.id, { attestationResponse: ceremonyResponse('cross') }))
-      .toEqual({ error: 'Registration challenge expired. Please try again.', status: 400 });
+    expect(await svc.passkeyRegisterVerify(alice.id, { attestationResponse: ceremonyResponse('cross') })).toEqual({
+      error: 'Registration challenge expired. Please try again.',
+      status: 400,
+    });
   });
 
   it('PASSKEY-SVC-009: maps a throwing or unverified verifier to the generic 400', async () => {
     const { user } = createUser(testDb);
     seedChallenge('c1', user.id, 'registration');
     swMock.verifyRegistrationResponse.mockRejectedValue(new Error('boom'));
-    expect(await svc.passkeyRegisterVerify(user.id, { attestationResponse: ceremonyResponse('c1') }))
-      .toEqual({ error: 'Could not register this passkey.', status: 400 });
+    expect(await svc.passkeyRegisterVerify(user.id, { attestationResponse: ceremonyResponse('c1') })).toEqual({
+      error: 'Could not register this passkey.',
+      status: 400,
+    });
 
     seedChallenge('c2', user.id, 'registration');
     swMock.verifyRegistrationResponse.mockResolvedValue({ verified: false });
-    expect(await svc.passkeyRegisterVerify(user.id, { attestationResponse: ceremonyResponse('c2') }))
-      .toEqual({ error: 'Could not register this passkey.', status: 400 });
+    expect(await svc.passkeyRegisterVerify(user.id, { attestationResponse: ceremonyResponse('c2') })).toEqual({
+      error: 'Could not register this passkey.',
+      status: 400,
+    });
   });
 
   it('PASSKEY-SVC-010: 409s when the credential id is already registered', async () => {
@@ -296,8 +345,10 @@ describe('passkeyRegisterVerify', () => {
     insertCredential(user.id, { credential_id: 'dup-cred' });
     seedChallenge('c3', user.id, 'registration');
     swMock.verifyRegistrationResponse.mockResolvedValue(registrationVerdict({}, { id: 'dup-cred' }));
-    expect(await svc.passkeyRegisterVerify(user.id, { attestationResponse: ceremonyResponse('c3') }))
-      .toEqual({ error: 'This passkey is already registered.', status: 409 });
+    expect(await svc.passkeyRegisterVerify(user.id, { attestationResponse: ceremonyResponse('c3') })).toEqual({
+      error: 'This passkey is already registered.',
+      status: 409,
+    });
   });
 
   it('PASSKEY-SVC-011: persists the verifier-vouched credential and returns it re-selected', async () => {
@@ -305,12 +356,29 @@ describe('passkeyRegisterVerify', () => {
     seedChallenge('c4', user.id, 'registration');
     swMock.verifyRegistrationResponse.mockResolvedValue(registrationVerdict({}, { counter: 7 }));
 
-    const result = await svc.passkeyRegisterVerify(user.id, { attestationResponse: ceremonyResponse('c4'), name: '  My Key  ' });
+    const result = await svc.passkeyRegisterVerify(user.id, {
+      attestationResponse: ceremonyResponse('c4'),
+      name: '  My Key  ',
+    });
     expect(result.success).toBe(true);
-    expect(result.credential).toMatchObject({ name: 'My Key', device_type: 'singleDevice', backed_up: false, last_used_at: null });
+    expect(result.credential).toMatchObject({
+      name: 'My Key',
+      device_type: 'singleDevice',
+      backed_up: false,
+      last_used_at: null,
+    });
 
-    const row = testDb.prepare('SELECT * FROM webauthn_credentials WHERE credential_id = ?').get('new-cred') as Record<string, unknown>;
-    expect(row).toMatchObject({ user_id: user.id, counter: 7, transports: JSON.stringify(['internal']), backed_up: 0, aaguid: 'aaguid-1' });
+    const row = testDb.prepare('SELECT * FROM webauthn_credentials WHERE credential_id = ?').get('new-cred') as Record<
+      string,
+      unknown
+    >;
+    expect(row).toMatchObject({
+      user_id: user.id,
+      counter: 7,
+      transports: JSON.stringify(['internal']),
+      backed_up: 0,
+      aaguid: 'aaguid-1',
+    });
     expect(Buffer.from(row.public_key as Buffer)).toEqual(Buffer.from([9, 9, 9]));
   });
 
@@ -318,13 +386,21 @@ describe('passkeyRegisterVerify', () => {
     const { user } = createUser(testDb);
 
     seedChallenge('c5', user.id, 'registration');
-    swMock.verifyRegistrationResponse.mockResolvedValue(registrationVerdict({ credentialDeviceType: 'multiDevice', credentialBackedUp: true }, { id: 'synced-cred' }));
-    const synced = await svc.passkeyRegisterVerify(user.id, { attestationResponse: ceremonyResponse('c5'), name: '   ' });
+    swMock.verifyRegistrationResponse.mockResolvedValue(
+      registrationVerdict({ credentialDeviceType: 'multiDevice', credentialBackedUp: true }, { id: 'synced-cred' }),
+    );
+    const synced = await svc.passkeyRegisterVerify(user.id, {
+      attestationResponse: ceremonyResponse('c5'),
+      name: '   ',
+    });
     expect(synced.credential).toMatchObject({ name: 'Passkey (synced)', backed_up: true });
 
     seedChallenge('c6', user.id, 'registration');
     swMock.verifyRegistrationResponse.mockResolvedValue(registrationVerdict({}, { id: 'named-cred' }));
-    const long = await svc.passkeyRegisterVerify(user.id, { attestationResponse: ceremonyResponse('c6'), name: 'x'.repeat(80) });
+    const long = await svc.passkeyRegisterVerify(user.id, {
+      attestationResponse: ceremonyResponse('c6'),
+      name: 'x'.repeat(80),
+    });
     expect(long.credential).toMatchObject({ name: 'x'.repeat(60) });
   });
 
@@ -335,8 +411,10 @@ describe('passkeyRegisterVerify', () => {
     testDb.exec('PRAGMA foreign_keys = OFF');
     seedChallenge('c7', 999_999, 'registration');
     testDb.exec('PRAGMA foreign_keys = ON');
-    expect(await svc.passkeyRegisterVerify(999_999, { attestationResponse: ceremonyResponse('c7') }))
-      .toEqual({ error: 'Could not register this passkey.', status: 400 });
+    expect(await svc.passkeyRegisterVerify(999_999, { attestationResponse: ceremonyResponse('c7') })).toEqual({
+      error: 'Could not register this passkey.',
+      status: 400,
+    });
   });
 
   // 031/032 pin the post-fold quirk fix: the dup check + INSERT run in one
@@ -356,9 +434,12 @@ describe('passkeyRegisterVerify', () => {
     insertCredential(user.id, { credential_id: 'dup-cred-2', name: 'Original' });
     seedChallenge('c9', user.id, 'registration');
     swMock.verifyRegistrationResponse.mockResolvedValue(registrationVerdict({}, { id: 'dup-cred-2' }));
-    expect(await svc.passkeyRegisterVerify(user.id, { attestationResponse: ceremonyResponse('c9'), name: 'Impostor' }))
-      .toEqual({ error: 'This passkey is already registered.', status: 409 });
-    const row = testDb.prepare('SELECT name, user_id FROM webauthn_credentials WHERE credential_id = ?').get('dup-cred-2') as Record<string, unknown>;
+    expect(
+      await svc.passkeyRegisterVerify(user.id, { attestationResponse: ceremonyResponse('c9'), name: 'Impostor' }),
+    ).toEqual({ error: 'This passkey is already registered.', status: 409 });
+    const row = testDb
+      .prepare('SELECT name, user_id FROM webauthn_credentials WHERE credential_id = ?')
+      .get('dup-cred-2') as Record<string, unknown>;
     expect(row).toEqual({ name: 'Original', user_id: user.id });
     expect(testDb.prepare('SELECT COUNT(*) AS n FROM webauthn_credentials').get()).toEqual({ n: 1 });
   });
@@ -378,7 +459,10 @@ describe('passkeyLoginOptions', () => {
 
     expect(await svc.passkeyLoginOptions()).toEqual({ options: { challenge: 'auth-chal' } });
     // No allowCredentials → the endpoint can't enumerate accounts.
-    expect(swMock.generateAuthenticationOptions.mock.calls[0][0]).toEqual({ rpID: CFG.rpID, userVerification: 'required' });
+    expect(swMock.generateAuthenticationOptions.mock.calls[0][0]).toEqual({
+      rpID: CFG.rpID,
+      userVerification: 'required',
+    });
 
     const stored = testDb.prepare('SELECT * FROM webauthn_challenges').all() as Array<Record<string, unknown>>;
     expect(stored).toHaveLength(1); // the expired row was purged
@@ -391,20 +475,29 @@ describe('passkeyLoginOptions', () => {
 describe('passkeyLoginVerify', () => {
   it('PASSKEY-SVC-016: returns the not-configured 400, not the generic 401', async () => {
     resolveWebauthnConfigMock.mockReturnValue(null);
-    expect(await svc.passkeyLoginVerify({ assertionResponse: {} })).toEqual({ error: NOT_CONFIGURED_ERROR, status: 400 });
+    expect(await svc.passkeyLoginVerify({ assertionResponse: {} })).toEqual({
+      error: NOT_CONFIGURED_ERROR,
+      status: 400,
+    });
   });
 
   it('PASSKEY-SVC-017: every malformed-input path collapses into the uniform 401', async () => {
     expect(await svc.passkeyLoginVerify({})).toEqual({ error: 'Authentication failed', status: 401 });
-    expect(await svc.passkeyLoginVerify({ assertionResponse: { response: { clientDataJSON: 42 } } }))
-      .toEqual({ error: 'Authentication failed', status: 401 });
+    expect(await svc.passkeyLoginVerify({ assertionResponse: { response: { clientDataJSON: 42 } } })).toEqual({
+      error: 'Authentication failed',
+      status: 401,
+    });
     // Unknown challenge
-    expect(await svc.passkeyLoginVerify({ assertionResponse: ceremonyResponse('never-stored') }))
-      .toEqual({ error: 'Authentication failed', status: 401 });
+    expect(await svc.passkeyLoginVerify({ assertionResponse: ceremonyResponse('never-stored') })).toEqual({
+      error: 'Authentication failed',
+      status: 401,
+    });
     // Claimed challenge but no usable credential id
     seedChallenge('a1', null, 'authentication');
-    expect(await svc.passkeyLoginVerify({ assertionResponse: ceremonyResponse('a1', { id: 123 }) }))
-      .toEqual({ error: 'Authentication failed', status: 401 });
+    expect(await svc.passkeyLoginVerify({ assertionResponse: ceremonyResponse('a1', { id: 123 }) })).toEqual({
+      error: 'Authentication failed',
+      status: 401,
+    });
   });
 
   it('PASSKEY-SVC-018: the challenge is spent on first use, even when verification fails', async () => {
@@ -413,26 +506,33 @@ describe('passkeyLoginVerify', () => {
     seedChallenge('a2', null, 'authentication');
     swMock.verifyAuthenticationResponse.mockRejectedValue(new Error('bad signature'));
 
-    expect(await svc.passkeyLoginVerify({ assertionResponse: ceremonyResponse('a2', { id: 'known' }) }))
-      .toEqual({ error: 'Authentication failed', status: 401 });
+    expect(await svc.passkeyLoginVerify({ assertionResponse: ceremonyResponse('a2', { id: 'known' }) })).toEqual({
+      error: 'Authentication failed',
+      status: 401,
+    });
     expect(challengeCount()).toBe(0);
     // A double-submit of the same assertion cannot spend the challenge twice.
-    expect(await svc.passkeyLoginVerify({ assertionResponse: ceremonyResponse('a2', { id: 'known' }) }))
-      .toEqual({ error: 'Authentication failed', status: 401 });
+    expect(await svc.passkeyLoginVerify({ assertionResponse: ceremonyResponse('a2', { id: 'known' }) })).toEqual({
+      error: 'Authentication failed',
+      status: 401,
+    });
     expect(swMock.verifyAuthenticationResponse).toHaveBeenCalledTimes(1);
   });
 
   it('PASSKEY-SVC-019: unknown credential and unverified assertion both yield the uniform 401', async () => {
     seedChallenge('a3', null, 'authentication');
-    expect(await svc.passkeyLoginVerify({ assertionResponse: ceremonyResponse('a3', { id: 'no-such-cred' }) }))
-      .toEqual({ error: 'Authentication failed', status: 401 });
+    expect(await svc.passkeyLoginVerify({ assertionResponse: ceremonyResponse('a3', { id: 'no-such-cred' }) })).toEqual(
+      { error: 'Authentication failed', status: 401 },
+    );
 
     const { user } = createUser(testDb);
     insertCredential(user.id, { credential_id: 'known-2' });
     seedChallenge('a4', null, 'authentication');
     swMock.verifyAuthenticationResponse.mockResolvedValue({ verified: false });
-    expect(await svc.passkeyLoginVerify({ assertionResponse: ceremonyResponse('a4', { id: 'known-2' }) }))
-      .toEqual({ error: 'Authentication failed', status: 401 });
+    expect(await svc.passkeyLoginVerify({ assertionResponse: ceremonyResponse('a4', { id: 'known-2' }) })).toEqual({
+      error: 'Authentication failed',
+      status: 401,
+    });
   });
 
   it('PASSKEY-SVC-020: falls back to rawId when id is absent', async () => {
@@ -458,7 +558,9 @@ describe('passkeyLoginVerify', () => {
       auditAction: 'user.passkey_clone_suspected',
     });
     // Rejects THIS assertion only — the credential is not disabled or touched.
-    const row = testDb.prepare('SELECT counter, last_used_at FROM webauthn_credentials WHERE id = ?').get(cred.id) as Record<string, unknown>;
+    const row = testDb
+      .prepare('SELECT counter, last_used_at FROM webauthn_credentials WHERE id = ?')
+      .get(cred.id) as Record<string, unknown>;
     expect(row).toEqual({ counter: 10, last_used_at: null });
   });
 
@@ -481,8 +583,10 @@ describe('passkeyLoginVerify', () => {
     seedChallenge('a8', null, 'authentication');
     swMock.verifyAuthenticationResponse.mockResolvedValue({ verified: true, authenticationInfo: { newCounter: 1 } });
 
-    expect(await svc.passkeyLoginVerify({ assertionResponse: ceremonyResponse('a8', { id: 'orphan' }) }))
-      .toEqual({ error: 'Authentication failed', status: 401 });
+    expect(await svc.passkeyLoginVerify({ assertionResponse: ceremonyResponse('a8', { id: 'orphan' }) })).toEqual({
+      error: 'Authentication failed',
+      status: 401,
+    });
   });
 
   it('PASSKEY-SVC-024: success mints a real session, strips the user and bumps the bookkeeping', async () => {
@@ -501,10 +605,15 @@ describe('passkeyLoginVerify', () => {
     expect(decoded.id).toBe(user.id);
     expect(decoded).toHaveProperty('pv');
 
-    const credRow = testDb.prepare('SELECT counter, last_used_at FROM webauthn_credentials WHERE id = ?').get(cred.id) as Record<string, unknown>;
+    const credRow = testDb
+      .prepare('SELECT counter, last_used_at FROM webauthn_credentials WHERE id = ?')
+      .get(cred.id) as Record<string, unknown>;
     expect(credRow.counter).toBe(6);
     expect(credRow.last_used_at).not.toBeNull();
-    const userRow = testDb.prepare('SELECT last_login, login_count FROM users WHERE id = ?').get(user.id) as Record<string, unknown>;
+    const userRow = testDb.prepare('SELECT last_login, login_count FROM users WHERE id = ?').get(user.id) as Record<
+      string,
+      unknown
+    >;
     expect(userRow.last_login).not.toBeNull();
     expect(userRow.login_count).toBe(1);
   });
@@ -516,10 +625,12 @@ describe('listPasskeys', () => {
   it('PASSKEY-SVC-025: lists newest-first with backed_up remapped to a boolean', () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb);
-    testDb.prepare(
-      `INSERT INTO webauthn_credentials (user_id, credential_id, public_key, counter, backed_up, name, created_at)
+    testDb
+      .prepare(
+        `INSERT INTO webauthn_credentials (user_id, credential_id, public_key, counter, backed_up, name, created_at)
        VALUES (?, 'old', x'01', 0, 0, 'Old', '2026-01-01 00:00:00'), (?, 'new', x'02', 0, 1, 'New', '2026-02-01 00:00:00')`,
-    ).run(user.id, user.id);
+      )
+      .run(user.id, user.id);
     insertCredential(other.id);
 
     const list = svc.listPasskeys(user.id);
@@ -567,8 +678,14 @@ describe('deletePasskey', () => {
   it('PASSKEY-SVC-028: requires the current password (missing, wrong, or no hash all 401)', () => {
     const { user, password } = createUser(testDb);
     const cred = insertCredential(user.id);
-    expect(svc.deletePasskey(user.id, String(cred.id), undefined)).toEqual({ error: 'Incorrect password', status: 401 });
-    expect(svc.deletePasskey(user.id, String(cred.id), `${password}x`)).toEqual({ error: 'Incorrect password', status: 401 });
+    expect(svc.deletePasskey(user.id, String(cred.id), undefined)).toEqual({
+      error: 'Incorrect password',
+      status: 401,
+    });
+    expect(svc.deletePasskey(user.id, String(cred.id), `${password}x`)).toEqual({
+      error: 'Incorrect password',
+      status: 401,
+    });
     testDb.prepare("UPDATE users SET password_hash = '' WHERE id = ?").run(user.id);
     expect(svc.deletePasskey(user.id, String(cred.id), password)).toEqual({ error: 'Incorrect password', status: 401 });
   });
@@ -578,7 +695,10 @@ describe('deletePasskey', () => {
     const { user: other, password: otherPassword } = createUser(testDb);
     const cred = insertCredential(user.id);
 
-    expect(svc.deletePasskey(other.id, String(cred.id), otherPassword)).toEqual({ error: 'Passkey not found', status: 404 });
+    expect(svc.deletePasskey(other.id, String(cred.id), otherPassword)).toEqual({
+      error: 'Passkey not found',
+      status: 404,
+    });
     expect(svc.deletePasskey(user.id, String(cred.id), password)).toEqual({ success: true });
     expect(testDb.prepare('SELECT COUNT(*) AS n FROM webauthn_credentials').get()).toEqual({ n: 0 });
   });

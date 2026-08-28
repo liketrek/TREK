@@ -1,29 +1,30 @@
-import { vi } from 'vitest';
-import type { HostDeps } from '../../src/nest/plugins/host/rpc-host';
-import { TagsRpc } from '../../src/nest/tags/tags.rpc';
-import { CategoriesRpc } from '../../src/nest/categories/categories.rpc';
-import { WeatherRpc } from '../../src/nest/weather/weather.rpc';
-import { ExchangeRatesRpc } from '../../src/nest/budget/exchange-rates.rpc';
-import { TodoRpc } from '../../src/nest/todo/todo.rpc';
-import { DayNotesRpc } from '../../src/nest/day-notes/day-notes.rpc';
-import { PackingRpc } from '../../src/nest/packing/packing.rpc';
-import { FilesRpc } from '../../src/nest/files/files.rpc';
-import { PlacesRpc } from '../../src/nest/places/places.rpc';
-import { DaysRpc } from '../../src/nest/days/days.rpc';
-import { ItineraryRpc } from '../../src/nest/assignments/itinerary.rpc';
-import { TripsRpc } from '../../src/nest/trips/trips.rpc';
-import { CostsRpc } from '../../src/nest/budget/costs.rpc';
-import { ReservationsRpc } from '../../src/nest/reservations/reservations.rpc';
 import { AccommodationsRpc } from '../../src/nest/accommodations/accommodations.rpc';
-import { CollabRpc } from '../../src/nest/collab/collab.rpc';
+import { ItineraryRpc } from '../../src/nest/assignments/itinerary.rpc';
 import { AtlasRpc } from '../../src/nest/atlas/atlas.rpc';
-import { VacayRpc } from '../../src/nest/vacay/vacay.rpc';
-import { JournalRpc } from '../../src/nest/journey/journal.rpc';
+import { CostsRpc } from '../../src/nest/budget/costs.rpc';
+import { ExchangeRatesRpc } from '../../src/nest/budget/exchange-rates.rpc';
+import { CategoriesRpc } from '../../src/nest/categories/categories.rpc';
+import { CollabRpc } from '../../src/nest/collab/collab.rpc';
 import { CollectionsRpc } from '../../src/nest/collections/collections.rpc';
+import { DayNotesRpc } from '../../src/nest/day-notes/day-notes.rpc';
+import { DaysRpc } from '../../src/nest/days/days.rpc';
+import { FilesRpc } from '../../src/nest/files/files.rpc';
+import { JournalRpc } from '../../src/nest/journey/journal.rpc';
+import { PackingRpc } from '../../src/nest/packing/packing.rpc';
+import { PlacesRpc } from '../../src/nest/places/places.rpc';
+import type { HostDeps } from '../../src/nest/plugins/host/rpc-host';
 import { DbRpc } from '../../src/nest/plugins/host/rpc/db.rpc';
-import { MetaRpc } from '../../src/nest/plugins/host/rpc/meta.rpc';
 import { HostSurfaceRpc } from '../../src/nest/plugins/host/rpc/host-surface.rpc';
+import { MetaRpc } from '../../src/nest/plugins/host/rpc/meta.rpc';
 import { PluginHooks } from '../../src/nest/plugins/plugin-hooks.service';
+import { ReservationsRpc } from '../../src/nest/reservations/reservations.rpc';
+import { TagsRpc } from '../../src/nest/tags/tags.rpc';
+import { TodoRpc } from '../../src/nest/todo/todo.rpc';
+import { TripsRpc } from '../../src/nest/trips/trips.rpc';
+import { VacayRpc } from '../../src/nest/vacay/vacay.rpc';
+import { WeatherRpc } from '../../src/nest/weather/weather.rpc';
+
+import { vi } from 'vitest';
 
 /**
  * The stubbed HostDeps every plugin router test builds on.
@@ -57,8 +58,7 @@ export function makeDeps(): HostDeps {
  * them. Behaviour is asserted in each domain's own <domain>.rpc.test.ts.
  */
 export function allRpcControllers(): object[] {
-  const anyService = () =>
-    new Proxy({}, { get: () => vi.fn(() => undefined) }) as unknown as never;
+  const anyService = () => new Proxy({}, { get: () => vi.fn(() => undefined) }) as unknown as never;
   return [
     new TagsRpc(anyService()),
     new CategoriesRpc(anyService()),
@@ -71,8 +71,18 @@ export function allRpcControllers(): object[] {
     new PlacesRpc(anyService(), anyService(), anyService(), anyService()),
     new DaysRpc(anyService(), anyService(), anyService()),
     new ItineraryRpc(anyService(), anyService(), anyService()),
-    new TripsRpc(anyService(), anyService(), anyService(), anyService(), anyService(), anyService(), anyService(), anyService(), anyService()),
-    new CostsRpc(anyService(), anyService(), anyService(), anyService(), anyService()),
+    new TripsRpc(
+      anyService(),
+      anyService(),
+      anyService(),
+      anyService(),
+      anyService(),
+      anyService(),
+      anyService(),
+      anyService(),
+      anyService(),
+    ),
+    new CostsRpc(anyService(), anyService(), anyService(), anyService(), anyService(), anyService()),
     new ReservationsRpc(anyService(), anyService(), anyService()),
     new AccommodationsRpc(anyService(), anyService(), anyService()),
     new CollabRpc(anyService(), anyService(), anyService()),

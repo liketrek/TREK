@@ -1,11 +1,9 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import type { LucideIcon } from 'lucide-react';
 import {
   Bell,
   ChevronDown,
   ChevronLeft,
   CloudOff,
-  Info,
   Map,
   Palette,
   Plug,
@@ -13,26 +11,25 @@ import {
   Settings2,
   SlidersHorizontal,
   User,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
-import { useTranslation } from '../../../i18n'
-import { useSettings } from '../../../pages/settings/useSettings'
-import { useAuthStore } from '../../../store/authStore'
-import { usePluginStore } from '../../../store/pluginStore'
-import MSettingsPlugins from './MSettingsPlugins'
-import MSettingsOffline from './MSettingsOffline'
-import MSettingsGeneral from './MSettingsGeneral'
-import MSettingsAppearance from './MSettingsAppearance'
-import MSettingsMap from './MSettingsMap'
-import MSettingsNotifications from './MSettingsNotifications'
-import MSettingsIntegrations from './MSettingsIntegrations'
-import MSettingsAccount from './MSettingsAccount'
-import MSettingsAbout from './MSettingsAbout'
+} from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router';
+import { useTranslation } from '../../../i18n';
+import { useSettings } from '../../../pages/settings/useSettings';
+import { usePluginStore } from '../../../store/pluginStore';
+import MSettingsAccount from './MSettingsAccount';
+import MSettingsAppearance from './MSettingsAppearance';
+import MSettingsGeneral from './MSettingsGeneral';
+import MSettingsIntegrations from './MSettingsIntegrations';
+import MSettingsMap from './MSettingsMap';
+import MSettingsNotifications from './MSettingsNotifications';
+import MSettingsOffline from './MSettingsOffline';
+import MSettingsPlugins from './MSettingsPlugins';
 
 interface SectionTab {
-  id: string
-  label: string
-  icon: LucideIcon
+  id: string;
+  label: string;
+  icon: LucideIcon;
 }
 
 /**
@@ -42,12 +39,11 @@ interface SectionTab {
  * gating, app version).
  */
 export default function MSettings() {
-  const { t } = useTranslation()
-  const navigate = useNavigate()
-  const { hasIntegrations, appVersion, activeTab, setActiveTab } = useSettings()
-  const managed = useAuthStore((s) => s.managed)
-  const hasPlugins = usePluginStore((s) => s.plugins.length > 0)
-  const [dropOpen, setDropOpen] = useState(false)
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { hasIntegrations, appVersion, activeTab, setActiveTab } = useSettings();
+  const hasPlugins = usePluginStore((s) => s.plugins.length > 0);
+  const [dropOpen, setDropOpen] = useState(false);
 
   const tabs: SectionTab[] = [
     { id: 'display', label: t('settings.tabs.display'), icon: SlidersHorizontal },
@@ -58,15 +54,9 @@ export default function MSettings() {
     ...(hasPlugins ? [{ id: 'plugins', label: t('settings.tabs.plugins'), icon: Puzzle }] : []),
     { id: 'offline', label: t('settings.tabs.offline'), icon: CloudOff },
     { id: 'account', label: t('settings.tabs.account'), icon: User },
-    // Same call as the desktop page: About is about the project — what TREK is,
-    // where to file a bug, where to support it — and a customer of a hosted
-    // instance is the audience for none of it. The version and the source link
-    // move to the footer below, because AGPL §13 wants those offered wherever
-    // people reach the software over a network.
-    ...(appVersion && !managed ? [{ id: 'about', label: t('settings.tabs.about'), icon: Info }] : []),
-  ]
+  ];
 
-  const active = tabs.find((tab) => tab.id === activeTab) || tabs[0]
+  const active = tabs.find((tab) => tab.id === activeTab) || tabs[0];
 
   return (
     <div className="px-4 pb-[calc(var(--bottom-nav-h,84px)+16px)] pt-[var(--m-safe-top,12px)]">
@@ -100,8 +90,8 @@ export default function MSettings() {
               key={tab.id}
               type="button"
               onClick={() => {
-                setActiveTab(tab.id)
-                setDropOpen(false)
+                setActiveTab(tab.id);
+                setDropOpen(false);
               }}
               className={`flex w-full items-center gap-[10px] rounded-[11px] p-[10px] text-left text-[0.8125rem] font-semibold text-m-ink ${
                 tab.id === active.id ? 'bg-[color:var(--m-ic)]' : ''
@@ -123,20 +113,13 @@ export default function MSettings() {
       {active.id === 'plugins' && hasPlugins && <MSettingsPlugins />}
       {active.id === 'offline' && <MSettingsOffline />}
       {active.id === 'account' && <MSettingsAccount />}
-      {active.id === 'about' && appVersion && <MSettingsAbout appVersion={appVersion} />}
-
-      {managed && appVersion && (
+      {appVersion && (
         <p className="mt-8 text-center text-caption text-m-muted">
-          <a
-            href="https://github.com/liketrek/TREK"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="no-underline"
-          >
-            v{appVersion}
-          </a>
+          <button type="button" onClick={() => navigate('/legal')} className="underline">
+            {t('legal.title')} · v{appVersion}
+          </button>
         </p>
       )}
     </div>
-  )
+  );
 }

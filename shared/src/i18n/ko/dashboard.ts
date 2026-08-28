@@ -185,5 +185,9 @@ const dashboard: TranslationStrings = {
   'dashboard.aria.addTimezone': '시간대 추가',
   'dashboard.aria.removeTimezone': '{city} 제거',
   'dashboard.dayCountRequired': '일수는 필수입니다',
+  'dashboard.hero.departureIn': 'Departure in',
+  'dashboard.hero.hourUnit': 'Hours',
+  'dashboard.hero.minuteUnit': 'Minutes',
+  'dashboard.hero.secondUnit': 'Seconds',
 };
 export default dashboard;

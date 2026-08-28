@@ -9,7 +9,6 @@ import {
   ChevronLeft,
   Database,
   FileText,
-  Github,
   HardDrive,
   Map,
   Plug,
@@ -35,7 +34,6 @@ import MAdminBackupPanel from './MAdminBackupPanel'
 import MAdminCategoryManager from './MAdminCategoryManager'
 import MAdminDefaultUserSettings from './MAdminDefaultUserSettings'
 import MAdminDevNotificationsPanel from './MAdminDevNotificationsPanel'
-import MAdminGitHubPanel from './MAdminGitHubPanel'
 import MAdminPackingTemplateManager from './MAdminPackingTemplateManager'
 import MAdminNotificationsSection from './MAdminNotificationsSection'
 import MAdminSettingsSection from './MAdminSettingsSection'
@@ -91,9 +89,6 @@ export default function MAdmin() {
     ...(managed ? [] : [{ id: 'storage', label: t('admin.tabs.storage'), icon: HardDrive }]),
     { id: 'notifications', label: t('admin.tabs.notifications'), icon: Bell },
     ...(mcpEnabled ? [{ id: 'mcp-tokens', label: t('admin.tabs.mcpTokens'), icon: Plug }] : []),
-    // Same two the desktop list drops: releases and backup schedule belong to
-    // whoever operates the install.
-    ...(managed ? [] : [{ id: 'github', label: t('admin.tabs.github'), icon: Github }]),
     ...(managed ? [] : [{ id: 'backup', label: t('admin.tabs.backup'), icon: Database }]),
     { id: 'audit', label: t('admin.tabs.audit'), icon: ScrollText },
     ...(devMode ? [{ id: 'dev-notifications', label: 'Dev: Notifications', icon: Bug }] : []),
@@ -245,7 +240,6 @@ export default function MAdmin() {
       {activeTab === 'plugins' && <MAdminPluginsPanel />}
       {activeTab === 'storage' && <MAdminStoragePanel />}
       {activeTab === 'mcp-tokens' && <MAdminMcpTokensPanel />}
-      {activeTab === 'github' && <MAdminGitHubPanel isPrerelease={updateInfo?.is_prerelease ?? false} />}
       {activeTab === 'backup' && <MAdminBackupPanel />}
       {activeTab === 'audit' && <MAdminAuditLogPanel serverTimezone={serverTimezone} />}
       {activeTab === 'dev-notifications' && <MAdminDevNotificationsPanel />}

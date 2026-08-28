@@ -30,6 +30,11 @@ export const HANDLED_OUTSIDE_TRIP_STORE = [
   // In-app notifications — hooks/useInAppNotificationListener
   'notification:new',
   'notification:updated',
+  // Fork synchronization — hooks/useTripWebSocket refreshes budget/member state
+  // and notifies the open exchange-rate or identity-transfer surfaces.
+  'budget:exchange-rates-updated',
+  'budget:exchange-rates-applied',
+  'guest:identity-transferred',
   // Collections — pages/collections/useCollections ('collections:' prefix listener)
   'collections:updated',
   'collections:accepted',

@@ -5,6 +5,30 @@
  * diff shows a move rather than a rewrite, and the assertions still pin the
  * emitted ICS byte for byte. Uses a real in-memory SQLite DB so the SQL runs.
  */
+import { runMigrations } from '../../../src/db/migrations';
+import { createTables } from '../../../src/db/schema';
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import { CalendarModule } from '../../../src/nest/calendar/calendar.module';
+import { CalendarService, foldICS } from '../../../src/nest/calendar/calendar.service';
+import { DatabaseService } from '../../../src/nest/database/database.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { ReservationsReadRepository } from '../../../src/nest/reservations/reservations-read.repository';
+import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
+import {
+  createUser,
+  createTrip,
+  createReservation,
+  createPlace,
+  createDay,
+  createDayAssignment,
+  createDayNote,
+} from '../../helpers/factories';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
+import { notificationsStub } from '../../helpers/notifications';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────
@@ -21,11 +45,15 @@ const { testDb, dbMock } = vi.hoisted(() => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`
+      db
+        .prepare(
+          `
         SELECT t.id, t.user_id FROM trips t
         LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
         WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-      `).get(userId, tripId, userId),
+      `,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -41,29 +69,25 @@ vi.mock('../../../src/config', () => ({
 const { broadcast } = vi.hoisted(() => ({ broadcast: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast }));
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createReservation, createPlace, createDay, createDayAssignment, createDayNote } from '../../helpers/factories';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
-import { ReservationsReadRepository } from '../../../src/nest/reservations/reservations-read.repository';
-import { BudgetService } from '../../../src/nest/budget/budget.service';
-import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
-import { CalendarService, foldICS } from '../../../src/nest/calendar/calendar.service';
-import { CalendarModule } from '../../../src/nest/calendar/calendar.module';
-import { expectRegisteredProvider } from '../../helpers/module-providers';
-import { notificationsStub } from '../../helpers/notifications';
-
 const dbs = () => new DatabaseService(testDb);
-const budgetSvc = new BudgetService(dbs(), new PermissionsService(dbs()), new ExchangeRatesService(), new RealtimeService());
+const budgetSvc = new BudgetService(
+  dbs(),
+  new PermissionsService(dbs()),
+  new ExchangeRatesService(dbs()),
+  new RealtimeService(),
+);
 
 // Named `svc` so the moved cases below read exactly as they did on TripsService.
 const svc = new CalendarService(
   dbs(),
-  new ReservationsService(dbs(), new PermissionsService(dbs()), budgetSvc, new RealtimeService(), notificationsStub(), new ReservationsReadRepository(dbs())),
+  new ReservationsService(
+    dbs(),
+    new PermissionsService(dbs()),
+    budgetSvc,
+    new RealtimeService(),
+    notificationsStub(),
+    new ReservationsReadRepository(dbs()),
+  ),
 );
 
 beforeAll(() => {
@@ -159,9 +183,7 @@ describe('exportICS', () => {
       title: 'Morning Flight',
       type: 'flight',
     });
-    testDb
-      .prepare('UPDATE reservations SET reservation_time=? WHERE id=?')
-      .run('2025-06-02T09:00', reservation.id);
+    testDb.prepare('UPDATE reservations SET reservation_time=? WHERE id=?').run('2025-06-02T09:00', reservation.id);
 
     const { ics } = svc.exportICS(trip.id);
 
@@ -176,9 +198,7 @@ describe('exportICS', () => {
       title: 'Hotel Check-in',
       type: 'hotel',
     });
-    testDb
-      .prepare('UPDATE reservations SET reservation_time=? WHERE id=?')
-      .run('2025-06-02', reservation.id);
+    testDb.prepare('UPDATE reservations SET reservation_time=? WHERE id=?').run('2025-06-02', reservation.id);
 
     const { ics } = svc.exportICS(trip.id);
 
@@ -192,18 +212,16 @@ describe('exportICS', () => {
       title: 'CDG to JFK',
       type: 'flight',
     });
-    testDb
-      .prepare('UPDATE reservations SET reservation_time=?, metadata=? WHERE id=?')
-      .run(
-        '2025-06-02T09:00',
-        JSON.stringify({
-          airline: 'Air Test',
-          flight_number: 'AT100',
-          departure_airport: 'CDG',
-          arrival_airport: 'JFK',
-        }),
-        reservation.id
-      );
+    testDb.prepare('UPDATE reservations SET reservation_time=?, metadata=? WHERE id=?').run(
+      '2025-06-02T09:00',
+      JSON.stringify({
+        airline: 'Air Test',
+        flight_number: 'AT100',
+        departure_airport: 'CDG',
+        arrival_airport: 'JFK',
+      }),
+      reservation.id,
+    );
 
     const { ics } = svc.exportICS(trip.id);
 
@@ -257,12 +275,25 @@ describe('exportICS', () => {
       type: 'flight',
     });
     // Confirmed flights store times per endpoint, never as reservation_time.
-    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(reservation.id);
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?')
+      .run(reservation.id);
     const insertEp = testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     );
     insertEp.run(reservation.id, 'from', 0, 'Paris CDG', 'CDG', 49.0, 2.5, 'Europe/Paris', '09:00', '2025-06-02');
-    insertEp.run(reservation.id, 'to', 1, 'New York JFK', 'JFK', 40.6, -73.8, 'America/New_York', '12:00', '2025-06-02');
+    insertEp.run(
+      reservation.id,
+      'to',
+      1,
+      'New York JFK',
+      'JFK',
+      40.6,
+      -73.8,
+      'America/New_York',
+      '12:00',
+      '2025-06-02',
+    );
 
     const { ics } = svc.exportICS(trip.id);
 
@@ -288,13 +319,25 @@ describe('exportICS', () => {
     // TransportModal stamps reservation_time/_end_time (departure/arrival) alongside
     // the endpoints. That branch's only zone is the linked place — a flight has none —
     // so it floated both ends in the subscribed feed; endpoints must win (#1453).
-    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
       .run('2025-06-02T09:00', '2025-06-02T12:00', reservation.id);
     const insertEp = testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     );
     insertEp.run(reservation.id, 'from', 0, 'Paris CDG', 'CDG', 49.0, 2.5, 'Europe/Paris', '09:00', '2025-06-02');
-    insertEp.run(reservation.id, 'to', 1, 'New York JFK', 'JFK', 40.6, -73.8, 'America/New_York', '12:00', '2025-06-02');
+    insertEp.run(
+      reservation.id,
+      'to',
+      1,
+      'New York JFK',
+      'JFK',
+      40.6,
+      -73.8,
+      'America/New_York',
+      '12:00',
+      '2025-06-02',
+    );
 
     const { ics } = svc.exportICS(trip.id);
 
@@ -312,11 +355,14 @@ describe('exportICS', () => {
     // An imported rental geocodes the pickup only, so there is no second endpoint
     // to carry the return. Before the endpoint branch took precedence, the return
     // came from reservation_end_time; it still has to.
-    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
       .run('2025-06-02T10:00', '2025-06-09T10:00', reservation.id);
-    testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(reservation.id, 'from', 0, 'Berlin', null, 52.5, 13.4, 'Europe/Berlin', '10:00', '2025-06-02');
+    testDb
+      .prepare(
+        'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      )
+      .run(reservation.id, 'from', 0, 'Berlin', null, 52.5, 13.4, 'Europe/Berlin', '10:00', '2025-06-02');
 
     const { ics } = svc.exportICS(trip.id);
 
@@ -328,10 +374,11 @@ describe('exportICS', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Train Trip' });
     const reservation = createReservation(testDb, trip.id, { title: 'ICE 1234', type: 'train' });
-    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
       .run('2025-06-02T08:00', '2025-06-02T14:30', reservation.id);
     const insertEp = testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     );
     insertEp.run(reservation.id, 'from', 0, 'Berlin Hbf', null, 52.5, 13.4, 'Europe/Berlin', '08:00', '2025-06-02');
     // The destination was added without a clock — the arrival time only exists
@@ -348,11 +395,14 @@ describe('exportICS', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Ferry Trip' });
     const reservation = createReservation(testDb, trip.id, { title: 'Ferry', type: 'ferry' });
-    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=NULL WHERE id=?')
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=NULL WHERE id=?')
       .run('2025-06-02T07:00', reservation.id);
-    testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(reservation.id, 'from', 0, 'Dover', null, 51.1, 1.3, 'Europe/London', '07:00', '2025-06-02');
+    testDb
+      .prepare(
+        'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      )
+      .run(reservation.id, 'from', 0, 'Dover', null, 51.1, 1.3, 'Europe/London', '07:00', '2025-06-02');
 
     const { ics } = svc.exportICS(trip.id);
 
@@ -366,9 +416,11 @@ describe('exportICS', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Bad TZ Trip' });
     const reservation = createReservation(testDb, trip.id, { title: 'CDG → JFK', type: 'flight' });
-    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(reservation.id);
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?')
+      .run(reservation.id);
     const insertEp = testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     );
     // A stored/plugin-written timezone can be any string; it must never reach Intl.
     // The bogus zone takes precedence over the coordinates (first.timezone || resolveZone).
@@ -376,7 +428,9 @@ describe('exportICS', () => {
     insertEp.run(reservation.id, 'to', 1, 'New York JFK', 'JFK', 40.6, -73.8, 'garbage', '12:00', '2025-06-02');
 
     let ics = '';
-    expect(() => { ics = svc.exportICS(trip.id).ics; }).not.toThrow();
+    expect(() => {
+      ics = svc.exportICS(trip.id).ics;
+    }).not.toThrow();
     // Falls back to a floating local time (no TZID) and never emits a bogus VTIMEZONE.
     expect(ics).toContain('DTSTART:20250602T090000');
     expect(ics).not.toContain('TZID=Not/AZone');
@@ -391,9 +445,11 @@ describe('exportICS', () => {
       type: 'flight',
     });
     testDb.prepare('UPDATE reservations SET reservation_time=NULL WHERE id=?').run(reservation.id);
-    testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(reservation.id, 'from', 0, 'Origin', 'AAA', 1.0, 1.0, null, '09:00', null);
+    testDb
+      .prepare(
+        'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      )
+      .run(reservation.id, 'from', 0, 'Origin', 'AAA', 1.0, 1.0, null, '09:00', null);
 
     const { ics } = svc.exportICS(trip.id);
 
@@ -407,9 +463,7 @@ describe('exportICS', () => {
     // Tokyo coordinates → Asia/Tokyo via tz-lookup.
     const place = createPlace(testDb, trip.id, { name: 'Senso-ji', lat: 35.7148, lng: 139.7967 });
     const assignment = createDayAssignment(testDb, day.id, place.id);
-    testDb
-      .prepare('UPDATE day_assignments SET assignment_time=? WHERE id=?')
-      .run('09:00', assignment.id);
+    testDb.prepare('UPDATE day_assignments SET assignment_time=? WHERE id=?').run('09:00', assignment.id);
 
     const { ics } = svc.exportICS(trip.id);
 
@@ -464,7 +518,7 @@ describe('exportICS', () => {
     const reservation = createReservation(testDb, trip.id, { title: 'CDG to JFK', type: 'flight' });
     testDb.prepare('UPDATE reservations SET reservation_time=NULL WHERE id=?').run(reservation.id);
     const insertEp = testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     );
     // Endpoints created before the importer learned to store IANA zones have only
     // coordinates. Without the lookup fallback both ends would go floating and the
@@ -485,9 +539,11 @@ describe('exportICS', () => {
     testDb.prepare('UPDATE reservations SET reservation_time=NULL WHERE id=?').run(reservation.id);
     // Only the departure was imported. Using it for DTEND as well would emit a
     // zero-length event; leaving DTEND out lets clients apply their default duration.
-    testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(reservation.id, 'from', 0, 'Paris CDG', 'CDG', 49.0, 2.5, 'Europe/Paris', '09:00', '2025-06-02');
+    testDb
+      .prepare(
+        'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      )
+      .run(reservation.id, 'from', 0, 'Paris CDG', 'CDG', 49.0, 2.5, 'Europe/Paris', '09:00', '2025-06-02');
 
     const { ics } = svc.exportICS(trip.id);
 
@@ -576,12 +632,13 @@ describe('exportICS', () => {
     const legs = createReservation(testDb, trip.id, { title: 'Codeless Legs', type: 'flight' });
     // Multi-leg metadata whose legs carry no airports would otherwise render
     // "Route: " with nothing after it.
-    testDb.prepare('UPDATE reservations SET reservation_time=?, metadata=? WHERE id=?')
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=?, metadata=? WHERE id=?')
       .run('2025-06-02T09:00', JSON.stringify({ legs: [{}, {}] }), legs.id);
     const ferry = createReservation(testDb, trip.id, { title: 'Nameless Ferry', type: 'transport' });
     testDb.prepare('UPDATE reservations SET reservation_time=NULL WHERE id=?').run(ferry.id);
     const insertEp = testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     );
     // Same for endpoints with neither a code nor a name: the derived route would
     // collapse to a single arrow between two blanks.
@@ -600,19 +657,22 @@ describe('exportICS', () => {
     const trip = createTrip(testDb, user.id, { title: 'Layover' });
     const flight = createReservation(testDb, trip.id, { title: 'FRA to HND', type: 'flight' });
     testDb.prepare('UPDATE reservations SET reservation_time=?, confirmation_number=?, metadata=? WHERE id=?').run(
-      '2025-06-02T09:00', 'BOOK1',
-      JSON.stringify({ legs: [
-        { from: 'FRA', to: 'BER', confirmation_number: 'ABC123' },
-        { from: 'BER', to: 'HND', confirmation_number: 'XYZ789' },
-      ] }),
+      '2025-06-02T09:00',
+      'BOOK1',
+      JSON.stringify({
+        legs: [
+          { from: 'FRA', to: 'BER', confirmation_number: 'ABC123' },
+          { from: 'BER', to: 'HND', confirmation_number: 'XYZ789' },
+        ],
+      }),
       flight.id,
     );
 
     const ics = svc.exportICS(trip.id).ics.replace(/\r\n /g, '');
 
     expect(ics).toContain(
-      'DESCRIPTION:Type: flight\\nConfirmation: BOOK1\\nRoute: FRA → BER → HND'
-      + '\\nConfirmation FRA-BER: ABC123\\nConfirmation BER-HND: XYZ789\r\n'
+      'DESCRIPTION:Type: flight\\nConfirmation: BOOK1\\nRoute: FRA → BER → HND' +
+        '\\nConfirmation FRA-BER: ABC123\\nConfirmation BER-HND: XYZ789\r\n',
     );
   });
 
@@ -621,8 +681,14 @@ describe('exportICS', () => {
     const trip = createTrip(testDb, user.id, { title: 'Layover' });
     const flight = createReservation(testDb, trip.id, { title: 'FRA to HND', type: 'flight' });
     testDb.prepare('UPDATE reservations SET reservation_time=?, confirmation_number=?, metadata=? WHERE id=?').run(
-      '2025-06-02T09:00', 'BOOK1',
-      JSON.stringify({ legs: [{ from: 'FRA', to: 'BER' }, { from: 'BER', to: 'HND' }] }),
+      '2025-06-02T09:00',
+      'BOOK1',
+      JSON.stringify({
+        legs: [
+          { from: 'FRA', to: 'BER' },
+          { from: 'BER', to: 'HND' },
+        ],
+      }),
       flight.id,
     );
 
@@ -659,7 +725,9 @@ describe('exportICS', () => {
     testDb.prepare('UPDATE day_assignments SET assignment_time=? WHERE id=?').run('09:00', assignment.id);
 
     let ics = '';
-    expect(() => { ics = svc.exportICS(trip.id).ics; }).not.toThrow();
+    expect(() => {
+      ics = svc.exportICS(trip.id).ics;
+    }).not.toThrow();
 
     expect(ics).toContain('DTSTART;TZID=Asia/Tokyo:20251345T090000');
     expect(ics).toContain('BEGIN:VTIMEZONE\r\nTZID:Asia/Tokyo');
@@ -672,9 +740,11 @@ describe('exportICS', () => {
     const bulkTrip = createTrip(testDb, user.id, { title: 'Cache Filler' });
     const realTrip = createTrip(testDb, user.id, { title: 'After The Bound' });
 
-    const insertRes = testDb.prepare('INSERT INTO reservations (trip_id, title, type, reservation_time) VALUES (?, ?, ?, NULL)');
+    const insertRes = testDb.prepare(
+      'INSERT INTO reservations (trip_id, title, type, reservation_time) VALUES (?, ?, ?, NULL)',
+    );
     const insertEp = testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     );
     // Endpoint timezones are free-form strings written by importers and plugins, so
     // the validity cache is keyed by attacker-ish input and has to be bounded. Push
@@ -797,22 +867,33 @@ describe('accommodations', () => {
     });
     testDb.prepare('UPDATE places SET address = ? WHERE id = ?').run('1 Rue de Rivoli', place.id);
     const startDay = createDay(testDb, tripId, { date: opts.start ?? undefined });
-    const endDay = opts.end === undefined
-      ? startDay
-      : createDay(testDb, tripId, { date: opts.end ?? undefined });
-    const stayId = testDb.prepare(`
+    const endDay = opts.end === undefined ? startDay : createDay(testDb, tripId, { date: opts.end ?? undefined });
+    const stayId = testDb
+      .prepare(
+        `
       INSERT INTO day_accommodations (trip_id, place_id, start_day_id, end_day_id, check_in, check_in_end, check_out)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      tripId, place.id, startDay.id, endDay.id,
-      opts.check_in ?? null, opts.check_in_end ?? null, opts.check_out ?? null,
-    ).lastInsertRowid as number;
+    `,
+      )
+      .run(
+        tripId,
+        place.id,
+        startDay.id,
+        endDay.id,
+        opts.check_in ?? null,
+        opts.check_in_end ?? null,
+        opts.check_out ?? null,
+      ).lastInsertRowid as number;
 
     if (opts.withReservation !== false) {
-      testDb.prepare(`
+      testDb
+        .prepare(
+          `
         INSERT INTO reservations (trip_id, day_id, title, reservation_time, status, type, accommodation_id)
         VALUES (?, ?, ?, ?, 'confirmed', 'hotel', ?)
-      `).run(tripId, startDay.id, opts.title ?? 'Hotel Bellevue', opts.start, String(stayId));
+      `,
+        )
+        .run(tripId, startDay.id, opts.title ?? 'Hotel Bellevue', opts.start, String(stayId));
     }
     return { stayId, placeId: place.id };
   };
@@ -833,8 +914,11 @@ describe('accommodations', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Paris' });
     createStay(trip.id, {
-      start: '2026-07-07', end: '2026-07-12',
-      check_in: '15:00', check_in_end: '22:00', check_out: '11:00',
+      start: '2026-07-07',
+      end: '2026-07-12',
+      check_in: '15:00',
+      check_in_end: '22:00',
+      check_out: '11:00',
     });
 
     const { ics } = svc.exportICS(trip.id);
@@ -912,16 +996,23 @@ describe('accommodations', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Paris' });
     const { stayId } = createStay(trip.id, {
-      start: '2026-07-07', end: '2026-07-12', check_in: '15:00', check_out: '11:00',
+      start: '2026-07-07',
+      end: '2026-07-12',
+      check_in: '15:00',
+      check_out: '11:00',
     });
     // Nothing stops a second booking from pointing at the same accommodation. The
     // markers are keyed by the stay, so joining the reservations in fanned the stay
     // out into two VEVENTs carrying the same UID, and clients then show whichever
     // one they saw last (#1869).
-    testDb.prepare(`
+    testDb
+      .prepare(
+        `
       INSERT INTO reservations (trip_id, title, reservation_time, status, type, accommodation_id)
       VALUES (?, 'Bellevue second room', NULL, 'confirmed', 'hotel', ?)
-    `).run(trip.id, String(stayId));
+    `,
+      )
+      .run(trip.id, String(stayId));
 
     const { ics } = svc.exportICS(trip.id);
 
@@ -949,16 +1040,19 @@ describe('car rentals', () => {
     local_time: string | null,
     local_date: string | null,
   ) => {
-    testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(reservationId, role, sequence, name, null, lat, lng, timezone, local_time, local_date);
+    testDb
+      .prepare(
+        'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      )
+      .run(reservationId, role, sequence, name, null, lat, lng, timezone, local_time, local_date);
   };
 
   it('CAL-037: a rental with from/to endpoints produces a pickup and a drop-off event at the right local times and zones', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
     const reservation = createReservation(testDb, trip.id, { title: 'Hertz Rental', type: 'car' });
-    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL, location=? WHERE id=?')
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL, location=? WHERE id=?')
       .run('Hertz Downtown', reservation.id);
     insertEndpoint(reservation.id, 'from', 0, 'Paris Office', 48.8566, 2.3522, 'Europe/Paris', '09:00', '2026-07-07');
     insertEndpoint(reservation.id, 'to', 1, 'Berlin Office', 52.5, 13.4, 'Europe/Berlin', '10:30', '2026-07-14');
@@ -978,7 +1072,9 @@ describe('car rentals', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
     const reservation = createReservation(testDb, trip.id, { title: 'Avis Rental', type: 'car' });
-    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(reservation.id);
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?')
+      .run(reservation.id);
     // Neither endpoint carries a from/to role — an older import shape.
     insertEndpoint(reservation.id, 'stop', 0, 'Paris Office', 48.8566, 2.3522, 'Europe/Paris', '09:00', '2026-07-07');
     insertEndpoint(reservation.id, 'stop', 1, 'Berlin Office', 52.5, 13.4, 'Europe/Berlin', '10:30', '2026-07-14');
@@ -996,7 +1092,8 @@ describe('car rentals', () => {
     const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
     const place = createPlace(testDb, trip.id, { name: 'Rental Desk', lat: 48.8566, lng: 2.3522 });
     const reservation = createReservation(testDb, trip.id, { title: 'Budget Rental', type: 'car' });
-    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=?, place_id=? WHERE id=?')
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=?, place_id=? WHERE id=?')
       .run('2026-07-07T09:00', '2026-07-14T10:30', place.id, reservation.id);
 
     const { ics } = svc.exportICS(trip.id);
@@ -1011,7 +1108,9 @@ describe('car rentals', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
     const reservation = createReservation(testDb, trip.id, { title: 'Sixt Rental', type: 'car' });
-    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(reservation.id);
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?')
+      .run(reservation.id);
     // Only the pickup was geocoded — the common shape for a partially-imported
     // booking. The lone endpoint must not be reused as the drop-off too.
     insertEndpoint(reservation.id, 'from', 0, 'Paris Office', 48.8566, 2.3522, 'Europe/Paris', '09:00', '2026-07-07');
@@ -1026,7 +1125,9 @@ describe('car rentals', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
     const reservation = createReservation(testDb, trip.id, { title: 'Untimed Rental', type: 'car' });
-    testDb.prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?').run(reservation.id);
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=NULL, reservation_end_time=NULL WHERE id=?')
+      .run(reservation.id);
     // A date but no clock — the pre-existing "untimed transport" all-day
     // fallback still applies and must be unaffected by the new marker events.
     insertEndpoint(reservation.id, 'from', 0, 'Paris Office', 48.8566, 2.3522, 'Europe/Paris', null, '2026-07-07');
@@ -1047,9 +1148,20 @@ describe('car rentals', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
     const reservation = createReservation(testDb, trip.id, { title: 'Seconds Rental', type: 'car' });
-    testDb.prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
+    testDb
+      .prepare('UPDATE reservations SET reservation_time=?, reservation_end_time=? WHERE id=?')
       .run('2026-07-07T09:00:00', '18:30:00', reservation.id);
-    insertEndpoint(reservation.id, 'from', 0, 'Paris Office', 48.8566, 2.3522, 'Europe/Paris', '09:00:00', '2026-07-07');
+    insertEndpoint(
+      reservation.id,
+      'from',
+      0,
+      'Paris Office',
+      48.8566,
+      2.3522,
+      'Europe/Paris',
+      '09:00:00',
+      '2026-07-07',
+    );
     insertEndpoint(reservation.id, 'to', 1, 'Lyon Office', 45.764, 4.8357, 'Europe/Paris', '18:30:00', '2026-07-07');
 
     const { ics } = svc.exportICS(trip.id);
@@ -1075,16 +1187,23 @@ describe('folded quirk branches', () => {
 
     // Multi-leg flight metadata → Route: A → B → C, plus train + notes + location.
     const flight = createReservation(testDb, trip.id, { title: 'Legs', type: 'flight' });
-    testDb.prepare('UPDATE reservations SET reservation_time=?, metadata=?, notes=?, location=?, confirmation_number=? WHERE id=?').run(
-      '2025-06-02T09:00',
-      JSON.stringify({ legs: [{ from: 'FRA', to: 'BER' }, { to: 'HND' }], train_number: 'ICE 100' }),
-      'window seat', 'Gate 4', 'ABC123', flight.id,
-    );
+    testDb
+      .prepare(
+        'UPDATE reservations SET reservation_time=?, metadata=?, notes=?, location=?, confirmation_number=? WHERE id=?',
+      )
+      .run(
+        '2025-06-02T09:00',
+        JSON.stringify({ legs: [{ from: 'FRA', to: 'BER' }, { to: 'HND' }], train_number: 'ICE 100' }),
+        'window seat',
+        'Gate 4',
+        'ABC123',
+        flight.id,
+      );
     // Endpoint-derived route (no route metadata) with a date-only endpoint fallback.
     const transport = createReservation(testDb, trip.id, { title: 'Ferry', type: 'transport' });
     testDb.prepare('UPDATE reservations SET reservation_time=NULL WHERE id=?').run(transport.id);
     const insertEp = testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     );
     insertEp.run(transport.id, 'from', 0, 'Pier A', null, 1.0, 1.0, null, null, '2025-06-03');
     insertEp.run(transport.id, 'to', 1, 'Pier B', 'PB', 1.1, 1.1, null, null, '2025-06-03');
@@ -1105,7 +1224,6 @@ describe('folded quirk branches', () => {
     expect(ics).toContain('DTSTART;VALUE=DATE:20250603');
   });
 });
-
 
 // foldICS is the last thing that touches the bytes of both the download and the
 // feed, and it is exported, so it is pinned directly instead of through a trip.
@@ -1189,7 +1307,8 @@ describe('serialised output', () => {
     // placeable time.
     const place = createPlace(testDb, trip.id, { name: 'Tokyo Tower', lat: 35.6586, lng: 139.7454 });
     const assignment = createDayAssignment(testDb, day.id, place.id);
-    testDb.prepare('UPDATE day_assignments SET assignment_time=?, assignment_end_time=? WHERE id=?')
+    testDb
+      .prepare('UPDATE day_assignments SET assignment_time=?, assignment_end_time=? WHERE id=?')
       .run('09:00', '10:30', assignment.id);
     createDayNote(testDb, day.id, trip.id, { text: 'Bring the tickets', time: '08:00' });
     createReservation(testDb, trip.id, { title: 'NH 203', type: 'flight' });
@@ -1197,8 +1316,9 @@ describe('serialised output', () => {
     // DTSTAMP is the wall clock and the UID numbers are autoincrement state shared
     // with every case above, so both are normalised: this pins the document, not
     // the minute it ran in or its position in the file.
-    const ics = svc.exportICS(trip.id).ics
-      .replace(/DTSTAMP:\d{8}T\d{6}Z/g, 'DTSTAMP:<stamp>')
+    const ics = svc
+      .exportICS(trip.id)
+      .ics.replace(/DTSTAMP:\d{8}T\d{6}Z/g, 'DTSTAMP:<stamp>')
       .replace(/UID:trek-([a-z]+)-\d+@trek/g, 'UID:trek-$1-<n>@trek');
 
     expect(ics).toMatchInlineSnapshot(`

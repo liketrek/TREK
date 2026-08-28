@@ -71,7 +71,15 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Повторить',
   'common.errorReload': 'Обновить страницу',
   'common.errorUpdateTitle': 'Доступна новая версия',
-  'common.errorUpdateBody': 'TREK обновился, пока эта вкладка была открыта. Обновите страницу, чтобы получить новую версию.',
+  'common.errorUpdateBody':
+    'TREK обновился, пока эта вкладка была открыта. Обновите страницу, чтобы получить новую версию.',
   'common.errorPluginTitle': 'Не удалось показать этот плагин',
+  'legal.title': 'Legal & source',
+  'legal.description': 'License information and the exact source code for this deployed version.',
+  'legal.agpl':
+    'This application is licensed under the GNU Affero General Public License version 3. Remote users may obtain the corresponding source code at no charge.',
+  'legal.license': 'Read the license',
+  'legal.source': 'Corresponding source',
+  'legal.sourceDescription': 'Source code for this deployed build:',
 };
 export default common;

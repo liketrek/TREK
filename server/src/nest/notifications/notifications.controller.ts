@@ -1,3 +1,21 @@
+import type { User } from '../../types';
+import { AdminNotificationPreferencesDto } from '../admin/admin.dto';
+import { AdminGuard } from '../auth/admin.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ManagedForbidden } from '../common/managed';
+import { NotificationPreferencesService } from './notification-preferences.service';
+import {
+  PreferencesUpdateDto,
+  TestSmtpDto,
+  TestWebhookDto,
+  TestNtfyDto,
+  NotificationRespondDto,
+  WebPushCurrentDto,
+  WebPushRenameDto,
+} from './notifications.dto';
+import { NotificationsService } from './notifications.service';
+import { WebPushService, WebPushServiceError } from './web-push.service';
 import {
   Body,
   Controller,
@@ -5,28 +23,15 @@ import {
   Get,
   HttpCode,
   HttpException,
+  Optional,
   Param,
+  Patch,
   Post,
   Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
-import type { ChannelTestResult, UnreadCountResult } from '@trek/shared';
-import type { User } from '../../types';
-import { NotificationsService } from './notifications.service';
-import {
-  PreferencesUpdateDto,
-  TestSmtpDto,
-  TestWebhookDto,
-  TestNtfyDto,
-  NotificationRespondDto,
-} from './notifications.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AdminGuard } from '../auth/admin.guard';
-import { NotificationPreferencesService } from './notification-preferences.service';
-import { AdminNotificationPreferencesDto } from '../admin/admin.dto';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { ManagedForbidden } from '../common/managed';
+import { type ChannelTestResult, type UnreadCountResult } from '@trek/shared';
 
 // The masked placeholder the client sends instead of a stored secret (8× U+2022).
 const MASKED = '••••••••';
@@ -50,7 +55,67 @@ const MASKED = '••••••••';
 @Controller('api/notifications')
 @UseGuards(JwtAuthGuard)
 export class NotificationsController {
-  constructor(private readonly notifications: NotificationsService) {}
+  constructor(
+    private readonly notifications: NotificationsService,
+    @Optional() private readonly webPush?: WebPushService,
+  ) {}
+
+  private requireWebPush(): WebPushService {
+    if (!this.webPush) throw new HttpException({ error: 'Web Push is unavailable' }, 503);
+    return this.webPush;
+  }
+
+  private mapWebPushError(error: unknown): never {
+    if (error instanceof WebPushServiceError) {
+      throw new HttpException({ error: error.message, code: error.code }, error.status);
+    }
+    throw error;
+  }
+
+  @Get('web-push/config')
+  webPushConfig() {
+    return this.requireWebPush().config();
+  }
+
+  @Get('web-push/devices')
+  webPushDevices(@CurrentUser() user: User) {
+    try {
+      return { devices: this.requireWebPush().listDevices(user.id) };
+    } catch (error) {
+      return this.mapWebPushError(error);
+    }
+  }
+
+  @Put('web-push/current')
+  webPushCurrent(@CurrentUser() user: User, @Body() body: WebPushCurrentDto) {
+    try {
+      return this.requireWebPush().registerCurrent(user.id, body);
+    } catch (error) {
+      return this.mapWebPushError(error);
+    }
+  }
+
+  @Patch('web-push/devices/:id')
+  renameWebPushDevice(@CurrentUser() user: User, @Param('id') idParam: string, @Body() body: WebPushRenameDto) {
+    const id = this.parseId(idParam);
+    const device = this.requireWebPush().renameDevice(user.id, id, body.label);
+    if (!device) throw new HttpException({ error: 'Not found' }, 404);
+    return { device };
+  }
+
+  @Delete('web-push/devices/:id')
+  revokeWebPushDevice(@CurrentUser() user: User, @Param('id') idParam: string) {
+    if (!this.requireWebPush().revokeDevice(user.id, this.parseId(idParam))) {
+      throw new HttpException({ error: 'Not found' }, 404);
+    }
+    return { success: true };
+  }
+
+  @Post('web-push/devices/:id/test')
+  @HttpCode(200)
+  testWebPushDevice(@CurrentUser() user: User, @Param('id') idParam: string) {
+    return this.requireWebPush().testDevice(user.id, this.parseId(idParam));
+  }
 
   @Get('preferences')
   getPreferences(@CurrentUser() user: User) {
@@ -102,9 +167,7 @@ export class NotificationsController {
     const resolvedTopic = topic || userCfg?.topic || undefined;
     const resolvedServer = server || userCfg?.server || adminCfg.server || undefined;
     // Reuse the saved token when the request sends null, empty, or the masked placeholder.
-    const resolvedToken = (token && token !== MASKED)
-      ? token
-      : (userCfg?.token ?? adminCfg.token ?? null);
+    const resolvedToken = token && token !== MASKED ? token : (userCfg?.token ?? adminCfg.token ?? null);
 
     if (!resolvedTopic) {
       throw new HttpException({ error: 'No ntfy topic configured' }, 400);

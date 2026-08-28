@@ -14,15 +14,49 @@
  * The rate cache is deliberately MODULE-scoped, so it persists across tests in
  * this file — every case uses its own base currency to stay isolated.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import type { DatabaseService } from '../../../src/nest/database/database.service';
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const TTL_MS = 6 * 60 * 60 * 1000; // mirrors the service's 6h TTL
 
 // A minimal Frankfurter-shaped success response (array of { quote, rate }).
 const okResponse = (data: unknown) => ({ ok: true, text: async () => JSON.stringify(data) });
 
-const svc = new ExchangeRatesService();
+const snapshots = new Map<
+  string,
+  {
+    base_currency: string;
+    rates_json: string;
+    source_version: string;
+    effective_date: string | null;
+    fetched_at: string;
+  }
+>();
+const fakeDb = {
+  get(sql: string, base: string) {
+    if (sql.includes('global_exchange_rate_snapshots')) return snapshots.get(base);
+    return undefined;
+  },
+  run(sql: string, ...args: unknown[]) {
+    if (sql.includes('INSERT INTO global_exchange_rate_snapshots')) {
+      const [base_currency, rates_json, source_version, effective_date, fetched_at] = args as [
+        string,
+        string,
+        string,
+        string | null,
+        string,
+      ];
+      snapshots.set(base_currency, { base_currency, rates_json, source_version, effective_date, fetched_at });
+    }
+    return { changes: 1 };
+  },
+  all() {
+    return [];
+  },
+} as unknown as DatabaseService;
+const svc = new ExchangeRatesService(fakeDb);
 
 let fetchMock: ReturnType<typeof vi.fn>;
 let errorSpy: ReturnType<typeof vi.spyOn>;
@@ -54,13 +88,15 @@ describe('ExchangeRatesService.getRates', () => {
   });
 
   it('FX-SVC-003: seeds base = 1, indexes by quote and skips malformed entries', async () => {
-    fetchMock.mockResolvedValueOnce(okResponse([
-      { quote: 'USD', rate: 1.08 },
-      { quote: 'GBP', rate: 0.85 },
-      { quote: 42, rate: 1 }, // non-string quote → skipped
-      { quote: 'JPY' }, // missing rate → skipped
-      null, // null entry → skipped
-    ]));
+    fetchMock.mockResolvedValueOnce(
+      okResponse([
+        { quote: 'USD', rate: 1.08 },
+        { quote: 'GBP', rate: 0.85 },
+        { quote: 42, rate: 1 }, // non-string quote → skipped
+        { quote: 'JPY' }, // missing rate → skipped
+        null, // null entry → skipped
+      ]),
+    );
     const rates = await svc.getRates('CHF');
     expect(rates).toEqual({ CHF: 1, USD: 1.08, GBP: 0.85 });
   });
@@ -89,7 +125,7 @@ describe('ExchangeRatesService.getRates', () => {
   it('FX-SVC-008: serves the cached rates within the TTL without refetching', async () => {
     const first = await svc.getRates('PLN');
     const second = await svc.getRates('PLN');
-    expect(second).toBe(first);
+    expect(second).toEqual(first);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -108,12 +144,16 @@ describe('ExchangeRatesService.getRates', () => {
     const first = await svc.getRates('RON');
     vi.advanceTimersByTime(TTL_MS + 1);
     fetchMock.mockRejectedValueOnce(new Error('down'));
-    expect(await svc.getRates('RON')).toBe(first);
+    expect(await svc.getRates('RON')).toEqual(first);
   });
 
   it('FX-SVC-011: coalesces concurrent fetches for the same base into one request', async () => {
     let release!: (v: unknown) => void;
-    fetchMock.mockReturnValueOnce(new Promise((resolve) => { release = resolve; }));
+    fetchMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+    );
     const a = svc.getRates('ISK');
     const b = svc.getRates('ISK');
     release(okResponse([{ quote: 'USD', rate: 1.08 }]));
@@ -146,7 +186,7 @@ describe('cross-instance cache sharing', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     // …then a separately-constructed instance (as the trips/airtrail/auth
     // bridges new up) must serve the same cached feed instead of refetching.
-    expect(await new ExchangeRatesService().getRates('AUD')).toBe(primed);
+    expect(await new ExchangeRatesService(fakeDb).getRates('AUD')).toEqual(primed);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

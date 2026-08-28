@@ -171,7 +171,7 @@ describe('GET /api/system-notices/active', () => {
     }
   });
 
-  it('re-surfaces a per-version notice after an upgrade but hides it within the same version', async () => {
+  it('never re-surfaces the retired upstream support solicitation', async () => {
     const TY = 'thank-you-support';
     const { user } = createUser(testDb);
     testDb.prepare('UPDATE users SET login_count = 5, first_seen_version = ? WHERE id = ?').run('3.0.0', user.id);
@@ -184,14 +184,15 @@ describe('GET /api/system-notices/active', () => {
       return res.body.some((n: { id: string }) => n.id === TY);
     };
 
-    // Fresh user with no dismissal: the recurring thank-you shows.
-    expect(await shows()).toBe(true);
+    // Downstream debranding retires this promotional notice even for a user
+    // who has never dismissed it.
+    expect(await shows()).toBe(false);
 
-    // Dismissed at an old version → it returns once the running version is newer.
+    // An old-version dismissal cannot make a retired notice active again.
     testDb.prepare(
       'INSERT INTO user_notice_dismissals (user_id, notice_id, dismissed_at, dismissed_app_version) VALUES (?, ?, ?, ?)'
     ).run(user.id, TY, Date.now(), '0.0.1');
-    expect(await shows()).toBe(true);
+    expect(await shows()).toBe(false);
 
     // Dismissed at a version >= the running one → stays hidden until the next upgrade.
     testDb.prepare(
