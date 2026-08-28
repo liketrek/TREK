@@ -160,7 +160,7 @@ export function createMcpTestRegistry(): McpRegistry {
   return createTestRegistry(
     [
       new TagsMcp(new TagsService(dbService), authService),
-      new CategoriesMcp(new CategoriesService(dbService)),
+      new CategoriesMcp(new CategoriesService(dbService), authService, guards),
       // The weather and airport tools left the legacy mapsWeather registrar.
       new WeatherMcp(new WeatherService()),
       new AirportsMcp(),
