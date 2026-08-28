@@ -754,6 +754,26 @@ describe('folded trip CRUD', () => {
     expect((testDb.prepare('SELECT title FROM trips WHERE id = ?').get(secondCopy) as any).title).toBe('Origin');
   });
 
+  it('TRIP-SVC-060: copying a trip keeps a staged booking staged', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Origin', start_date: '2025-06-01', end_date: '2025-06-02' });
+    testDb.prepare(`INSERT INTO reservations (trip_id, title, type, status, ingest_state)
+      VALUES (?, 'Parked', 'flight', 'confirmed', 'staged')`).run(trip.id);
+    testDb.prepare(`INSERT INTO reservations (trip_id, title, type, status)
+      VALUES (?, 'Booked', 'flight', 'confirmed')`).run(trip.id);
+
+    const newTripId = svc.copy(trip.id, user.id, 'Clone');
+
+    // Without ingest_state on the duplicate INSERT the staged row falls back to
+    // the column default and shows up in the copy's public feed.
+    const rows = testDb.prepare('SELECT title, ingest_state FROM reservations WHERE trip_id = ? ORDER BY title')
+      .all(newTripId) as any[];
+    expect(rows).toEqual([
+      { title: 'Booked', ingest_state: 'live' },
+      { title: 'Parked', ingest_state: 'staged' },
+    ]);
+  });
+
   /**
    * Copying a trip used to take every packing row and re-insert it without
    * is_private/owner_id, so both fell back to the column defaults and another

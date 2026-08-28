@@ -5,6 +5,7 @@ import type { TripAccess } from '../database/database.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { QueryHelpersService } from '../query-helpers/query-helpers.service';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
+import { publicReservationSql, publicStaySql } from '../reservations/reservation-visibility';
 import { SettingsService } from '../settings/settings.service';
 import type { User } from '../../types';
 
@@ -241,13 +242,18 @@ export class ShareService {
         if (!posMap.has(dp.reservation_id)) posMap.set(dp.reservation_id, {});
         posMap.get(dp.reservation_id)![dp.day_id] = dp.position;
       }
-      reservations = this.dbs.all<any>('SELECT * FROM reservations WHERE trip_id = ? ORDER BY reservation_time ASC', tripId)
+      // The alias is not cosmetic: the visibility predicate qualifies its column,
+      // and this query had no alias to qualify against.
+      reservations = this.dbs.all<any>(
+        `SELECT r.* FROM reservations r
+         WHERE r.trip_id = ? AND ${publicReservationSql('r')}
+         ORDER BY r.reservation_time ASC`, tripId)
         .map((r) => ({ ...r, day_positions: posMap.get(r.id) ?? null }));
 
       accommodations = this.dbs.all(`
         SELECT a.*, p.name as place_name, p.address as place_address, p.lat as place_lat, p.lng as place_lng
         FROM day_accommodations a JOIN places p ON a.place_id = p.id
-        WHERE a.trip_id = ?
+        WHERE a.trip_id = ? AND ${publicStaySql('a')}
       `, tripId);
     }
 

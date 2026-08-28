@@ -1243,6 +1243,98 @@ describe('car rentals', () => {
   });
 });
 
+describe('staged bookings', () => {
+  /** A stay plus, optionally, the bookings that point at it. */
+  const stayWith = (tripId: number, states: Array<{ state: string; title: string }>) => {
+    const place = createPlace(testDb, tripId, { name: 'Hotel Bellevue', lat: 48.8566, lng: 2.3522 });
+    const startDay = createDay(testDb, tripId, { date: '2026-09-01' });
+    const endDay = createDay(testDb, tripId, { date: '2026-09-04' });
+    const stayId = testDb.prepare(`
+      INSERT INTO day_accommodations (trip_id, place_id, start_day_id, end_day_id, check_in, check_out)
+      VALUES (?, ?, ?, ?, '15:00', '11:00')
+    `).run(tripId, place.id, startDay.id, endDay.id).lastInsertRowid as number;
+
+    for (const s of states) {
+      testDb.prepare(`
+        INSERT INTO reservations (trip_id, day_id, title, reservation_time, status, type, accommodation_id, ingest_state)
+        VALUES (?, ?, ?, '2026-09-01T15:00', 'confirmed', 'hotel', ?, ?)
+      `).run(tripId, startDay.id, s.title, String(stayId), s.state);
+    }
+    return { stayId, placeId: place.id };
+  };
+
+  it('CAL-055: a staged booking is left out of the calendar, confirmation number included', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Kyoto' });
+    const day = createDay(testDb, trip.id, { date: '2026-09-01' });
+    const staged = createReservation(testDb, trip.id, { title: 'Parked Flight', type: 'flight', day_id: day.id });
+    testDb.prepare(`UPDATE reservations SET ingest_state='staged', reservation_time='2026-09-01T08:00',
+      confirmation_number='ABC123' WHERE id=?`).run(staged.id);
+    const live = createReservation(testDb, trip.id, { title: 'Booked Flight', type: 'flight', day_id: day.id });
+    testDb.prepare("UPDATE reservations SET reservation_time='2026-09-01T12:00' WHERE id=?").run(live.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Booked Flight');
+    expect(ics).not.toContain('Parked Flight');
+    // The number rides in the DESCRIPTION, not the SUMMARY, so search the whole document.
+    expect(ics).not.toContain('ABC123');
+  });
+
+  it('CAL-056: a booking created before the column existed still exports', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Lisbon' });
+    const day = createDay(testDb, trip.id, { date: '2026-09-02' });
+    // No ingest_state named on the insert: exactly what every writer does today,
+    // and what the ALTER backfilled onto every pre-existing row.
+    const old = createReservation(testDb, trip.id, { title: 'Legacy Booking', type: 'flight', day_id: day.id });
+    testDb.prepare("UPDATE reservations SET reservation_time='2026-09-02T09:00' WHERE id=?").run(old.id);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Legacy Booking');
+  });
+
+  it('CAL-057: an accommodation whose only booking is staged emits no stay, check-in or check-out', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Osaka' });
+    stayWith(trip.id, [{ state: 'staged', title: 'Parked Hotel' }]);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).not.toContain('Parked Hotel');
+    expect(ics).not.toMatch(/UID:trek-checkin-\d+@trek/);
+    expect(ics).not.toMatch(/UID:trek-checkout-\d+@trek/);
+  });
+
+  it('CAL-058: an accommodation with no linked booking at all still emits its stay', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Nara' });
+    // The regression this pins: a plain EXISTS(live) instead of
+    // NOT EXISTS(any) OR EXISTS(live) would drop every hand-added hotel out of
+    // trips that are shared today.
+    stayWith(trip.id, []);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('Hotel Bellevue');
+    expect(ics).toMatch(/UID:trek-checkin-\d+@trek/);
+  });
+
+  it('CAL-059: a stay with both a staged and a live booking takes its title from the live one', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Kobe' });
+    // The staged row gets the lower id, so the subquery's ORDER BY r.id ASC
+    // would pick it without the predicate.
+    stayWith(trip.id, [{ state: 'staged', title: 'Parked Name' }, { state: 'live', title: 'Real Name' }]);
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('Real Name');
+    expect(ics).not.toContain('Parked Name');
+  });
+});
+
 describe('folded quirk branches', () => {
   it('TRIP-SVC-048: exportICS renders untimed/notes all-day summaries, multi-leg routes, endpoint routes and train/location fields', () => {
     const { user } = createUser(testDb);

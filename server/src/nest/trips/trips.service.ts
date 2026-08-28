@@ -625,8 +625,8 @@ export class TripsService {
       const reservationMap = new Map<number, number | bigint>();
       const insertReservation = this.db.prepare(`
         INSERT INTO reservations (trip_id, day_id, end_day_id, place_id, assignment_id, accommodation_id, title, reservation_time, reservation_end_time,
-          location, confirmation_number, notes, url, status, type, metadata, day_plan_position, needs_review)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          location, confirmation_number, notes, url, status, type, metadata, day_plan_position, needs_review, ingest_state)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       for (const r of oldReservations) {
         const rr = insertReservation.run(newTripId,
@@ -641,7 +641,10 @@ export class TripsService {
           r.accommodation_id != null ? (accomMap.get(Number(r.accommodation_id)) ?? null) : null,
           r.title, r.reservation_time, r.reservation_end_time,
           r.location, r.confirmation_number, r.notes, r.url, r.status, r.type,
-          r.metadata, r.day_plan_position, r.needs_review ?? 0);
+          // ingest_state travels with the copy: a staged booking must not turn
+          // 'live' just because the trip was duplicated, or it lands in the
+          // duplicate's public feed.
+          r.metadata, r.day_plan_position, r.needs_review ?? 0, r.ingest_state ?? 'live');
         reservationMap.set(r.id, rr.lastInsertRowid);
       }
 

@@ -877,6 +877,18 @@ describe('ReservationsService — legacy branch parity (coverage of the folded c
     svc.syncBudgetOnUpdate(String(trip.id), '999999', 'X', 'flight', 'X', 'flight', { total_price: 0 }, undefined);
     expect(budget.deleteBudgetItem).not.toHaveBeenCalled();
   });
+
+  it('RESV-SVC-031: list returns staged bookings, the staging inbox has to see its own rows', () => {
+    const { trip } = ownerTrip();
+    createReservation(testDb, trip.id, { title: 'Live One' });
+    const staged = createReservation(testDb, trip.id, { title: 'Parked One' });
+    testDb.prepare("UPDATE reservations SET ingest_state = 'staged' WHERE id = ?").run(staged.id);
+
+    // The visibility predicate belongs to the anonymous exports (ICS feed,
+    // shared trip) and must never be pulled into the authenticated list, or
+    // nobody can confirm what the ingest parked.
+    expect(svc.list(String(trip.id)).map((r: any) => r.title).sort()).toEqual(['Live One', 'Parked One']);
+  });
 });
 
 describe('ReservationsService — quirk fixes (post-fold)', () => {

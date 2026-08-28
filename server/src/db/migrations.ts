@@ -4136,6 +4136,24 @@ function runMigrations(db: Database.Database): void {
         console.warn('[migrations] Non-fatal migration step failed:', err);
       }
     },
+
+    // Reservations an automated ingest parked for review are 'staged' and stay
+    // out of the two anonymous exports (ICS feed, shared trip) until a person
+    // confirms them. Nothing writes 'staged' yet; this is the gate the mail
+    // ingest writes through.
+    //
+    // 'live' as the default is what keeps this from being a breaking change:
+    // SQLite fills every existing row on the ALTER, and no current writer names
+    // the column, so every booking that is visible today stays visible.
+    // Appended LAST, the array is index-addressed against schema_version.
+    () => {
+      const hasColumn = db
+        .prepare("SELECT 1 FROM pragma_table_info('reservations') WHERE name = 'ingest_state'")
+        .get();
+      if (!hasColumn) {
+        db.exec("ALTER TABLE reservations ADD COLUMN ingest_state TEXT NOT NULL DEFAULT 'live'");
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

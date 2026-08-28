@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { ReservationsService } from '../reservations/reservations.service';
+import { publicReservationSql, publicStaySql } from '../reservations/reservation-visibility';
 import { addDays } from '../days/days.service';
 import { resolveTimeZone } from '../common/timezoneService';
 import { NotFoundError } from '../common/domain-errors';
@@ -163,7 +164,7 @@ export class CalendarService {
          LEFT JOIN days ed ON a.end_day_id = ed.id
          LEFT JOIN days rd ON r.day_id = rd.id
          LEFT JOIN days red ON r.end_day_id = red.id
-         WHERE r.trip_id = ?`,
+         WHERE r.trip_id = ? AND ${publicReservationSql('r')}`,
       )
       .all(tripId) as any[];
 
@@ -569,13 +570,13 @@ export class CalendarService {
              sd.date AS start_date, ed.date AS end_date,
              p.name AS place_name, p.address AS place_address, p.lat AS place_lat, p.lng AS place_lng,
              (SELECT r.title FROM reservations r
-               WHERE r.accommodation_id = a.id
+               WHERE r.accommodation_id = a.id AND ${publicReservationSql('r')}
                ORDER BY r.id ASC LIMIT 1) AS reservation_title
       FROM day_accommodations a
       LEFT JOIN days sd ON a.start_day_id = sd.id
       LEFT JOIN days ed ON a.end_day_id = ed.id
       LEFT JOIN places p ON a.place_id = p.id
-      WHERE a.trip_id = ?
+      WHERE a.trip_id = ? AND ${publicStaySql('a')}
       ORDER BY a.id ASC
     `).all(tripId) as any[];
 

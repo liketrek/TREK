@@ -384,6 +384,48 @@ describe('getSharedTripData', () => {
     testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'carto_api_key', ' owner-key ')").run(user.id);
     expect(svc.getSharedTripData(token)!.cartoApiKey).toBe('owner-key');
   });
+
+  it('SHARE-SVC-029: staged bookings stay out of the public payload, confirmation number included', () => {
+    const { trip, token } = seedSharedTrip();
+    testDb.prepare(`INSERT INTO reservations (trip_id, title, type, status, confirmation_number, ingest_state)
+      VALUES (?, 'Parked Flight', 'flight', 'confirmed', 'SECRET1', 'staged')`).run(trip.id);
+    testDb.prepare(`INSERT INTO reservations (trip_id, title, type, status, confirmation_number)
+      VALUES (?, 'Booked Flight', 'flight', 'confirmed', 'OPEN1')`).run(trip.id);
+
+    const data = svc.getSharedTripData(token)!;
+
+    expect((data.reservations as any[]).map((r) => r.title)).toEqual(['Booked Flight']);
+    // SELECT * hands out notes, url and metadata too, so check the whole payload.
+    expect(JSON.stringify(data)).not.toContain('SECRET1');
+  });
+
+  it('SHARE-SVC-030: every booking that predates the column stays in the payload', () => {
+    const { trip, token } = seedSharedTrip();
+    for (let i = 0; i < 5; i++) {
+      testDb.prepare(`INSERT INTO reservations (trip_id, title, type, status)
+        VALUES (?, ?, 'flight', 'confirmed')`).run(trip.id, `Booking ${i}`);
+    }
+
+    expect((svc.getSharedTripData(token)!.reservations as any[])).toHaveLength(5);
+  });
+
+  it('SHARE-SVC-031: accommodations backed only by a staged booking are withheld, unlinked ones are kept', () => {
+    const { trip, token } = seedSharedTrip();
+    const place = createPlace(testDb, trip.id, { name: 'Hotel Bellevue' });
+    const day = createDay(testDb, trip.id, { date: '2026-09-01' });
+    const stay = (): number => testDb.prepare(`
+      INSERT INTO day_accommodations (trip_id, place_id, start_day_id, end_day_id) VALUES (?, ?, ?, ?)
+    `).run(trip.id, place.id, day.id, day.id).lastInsertRowid as number;
+
+    const stagedStay = stay();
+    testDb.prepare(`INSERT INTO reservations (trip_id, title, type, status, accommodation_id, ingest_state)
+      VALUES (?, 'Parked Hotel', 'hotel', 'confirmed', ?, 'staged')`).run(trip.id, String(stagedStay));
+    const unlinkedStay = stay();
+
+    const rows = svc.getSharedTripData(token)!.accommodations as any[];
+
+    expect(rows.map((a) => a.id)).toEqual([unlinkedStay]);
+  });
 });
 
 // ── getSharedPlacePhotoKey ───────────────────────────────────────────────────

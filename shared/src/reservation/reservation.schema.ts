@@ -153,6 +153,9 @@ export const reservationSchema = z.object({
   accommodation_id: z.union([z.number(), z.string()]).nullable().optional(),
   metadata: z.string().nullable().optional(),
   needs_review: z.number().optional(),
+  // 'live' for anything a person put on the trip, 'staged' while an automated
+  // ingest waits for confirmation. Only the anonymous exports filter on it.
+  ingest_state: z.string().optional(),
   day_plan_position: z.number().nullable().optional(),
   created_at: z.string().optional(),
   // AirTrail (or future provider) linkage — drives the "synced" badge (#214).
@@ -309,6 +312,12 @@ const bookingImportAccommodationSchema = z.object({
 
 export const bookingImportPreviewItemSchema = z.object({
   type: z.string(),
+  /**
+   * The extractor could not read a type and filled one in, so the import UI
+   * should offer the form the user was importing into rather than trusting the
+   * placeholder (#2076).
+   */
+  type_guessed: z.boolean().optional(),
   title: z.string().min(1),
   reservation_time: z.string().nullable().optional(),
   reservation_end_time: z.string().nullable().optional(),
