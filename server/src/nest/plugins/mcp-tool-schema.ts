@@ -197,13 +197,18 @@ export function buildToolInputSchema(normalised: Record<string, unknown> | undef
   return (normalised ? base.meta(normalised) : base) as unknown as McpZodSchema;
 }
 
-/** The four hints the MCP spec defines. Anything else a plugin sends is dropped. */
-export interface McpToolAnnotations {
+/**
+ * The four hints the MCP spec defines. Anything else a plugin sends is dropped.
+ *
+ * A type alias rather than an interface so it keeps an implicit index signature
+ * and stays assignable to ToolOptions.annotations (Record<string, unknown>).
+ */
+export type McpToolAnnotations = {
   readOnlyHint: boolean;
   destructiveHint: boolean;
   idempotentHint: boolean;
   openWorldHint: boolean;
-}
+};
 
 /** Grants that mean the plugin can change something outside its own sandbox. */
 const SIDE_EFFECT_EXACT = new Set([
