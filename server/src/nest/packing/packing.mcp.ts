@@ -10,6 +10,13 @@ import { AuthService } from '../auth/auth.service';
 import { ADDON_IDS } from '../../addons';
 import { noAccess, permissionDenied, adminRequired } from '../../mcp/tools/_shared';
 import { PackingService } from './packing.service';
+import {
+  packingCreateItemRequestSchema,
+  packingSetSharingRequestSchema,
+  packingUpdateBagRequestSchema,
+  packingUpdateItemRequestSchema,
+  type PackingVisibility,
+} from '@trek/shared';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 
@@ -32,6 +39,10 @@ function parseId(value: string | string[]): number | null {
  * read/write access markers (the legacy `if (R)` / `if (W)` checks, resolved
  * by trekMcpAccessPolicy). The two template-management tools keep their inline
  * admin gate (isAdminUser), matching the REST routes.
+ *
+ * set_packing_item_sharing is the one tool with no legacy ancestor: PUT
+ * /:id/sharing had no counterpart here, so the whole three-tier sharing model
+ * (#858) was invisible to an assistant.
  */
 @McpController()
 export class PackingMcp {
@@ -46,24 +57,38 @@ export class PackingMcp {
 
   @Tool({
     name: 'create_packing_item',
-    description: 'Add an item to the packing checklist for a trip.',
+    description: 'Add an item to the packing checklist for a trip. It lands on the common list everyone shares unless visibility says otherwise; use set_packing_item_sharing to move an existing item between those tiers.',
     inputSchema: {
       tripId: z.number().int().positive(),
       name: z.string().min(1).max(200),
       category: z.string().max(100).optional().describe('Packing category (e.g. Clothes, Electronics)'),
+      checked: packingCreateItemRequestSchema.shape.checked.describe('Create the item already ticked off'),
+      is_private: packingCreateItemRequestSchema.shape.is_private.describe('Keep the item to yourself; visibility says the same thing with more nuance'),
+      visibility: packingCreateItemRequestSchema.shape.visibility.describe("Which list the item belongs to: 'common' (the group pool, the default), 'personal' (yours alone), or 'shared' (yours plus recipient_ids)"),
+      recipient_ids: packingCreateItemRequestSchema.shape.recipient_ids.describe("For visibility 'shared': the trip members the item is brought for. Ignored otherwise, and ids outside the trip roster are dropped"),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
-  async createPackingItem({ tripId, name, category }: { tripId: number; name: string; category?: string }, ctx: McpContext) {
+  async createPackingItem(
+    { tripId, name, category, checked, is_private, visibility, recipient_ids }: { tripId: number; name: string; category?: string; checked?: boolean | number; is_private?: boolean; visibility?: PackingVisibility; recipient_ids?: number[] },
+    ctx: McpContext,
+  ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.packing.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
-    const item = this.packing.createItem(tripId, { name, category: category || 'General' }, ctx.userId);
-    // A tool-made item is Common today, so this asks the room. Routed through
-    // viewersOf anyway, so the day createItem learns to make a restricted one
-    // this does not have to be remembered a second time.
+    const item = this.packing.createItem(tripId, {
+      name,
+      category: category || 'General',
+      // checked takes a boolean or the legacy 0/1, exactly as the REST body does.
+      checked: checked === undefined ? undefined : !!checked,
+      is_private,
+      visibility,
+      recipient_ids,
+    }, ctx.userId);
+    // A restricted item (#858) reaches its owner and recipients only; a Common
+    // one answers null here and goes to the whole room.
     this.guards.safeBroadcast(tripId, 'packing:created', { item }, this.packing.viewersOf(item));
     return ok({ item });
   }
@@ -119,25 +144,88 @@ export class PackingMcp {
 
   @Tool({
     name: 'update_packing_item',
-    description: 'Rename a packing item or change its category.',
+    description: 'Change a packing item: rename it, recategorise it, move it into a bag, set how many are needed, record its weight, or flip it between the common list and your own. Ticking it off is toggle_packing_item; choosing who a private item is shared with is set_packing_item_sharing.',
     inputSchema: {
       tripId: z.number().int().positive(),
       itemId: z.number().int().positive(),
       name: z.string().min(1).max(200).optional(),
       category: z.string().max(100).optional(),
+      bag_id: packingUpdateItemRequestSchema.shape.bag_id.describe('Bag to pack the item into (ids come from list_packing_bags); null takes it out of its bag'),
+      quantity: packingUpdateItemRequestSchema.shape.quantity.describe('How many to pack, clamped to 1-999'),
+      weight_grams: packingUpdateItemRequestSchema.shape.weight_grams.describe('Weight in grams, which feeds the bag fill bar; null clears it'),
+      is_private: packingUpdateItemRequestSchema.shape.is_private.describe('true takes the item off the common list and onto the caller\'s own'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
-  async updatePackingItem({ tripId, itemId, name, category }: { tripId: number; itemId: number; name?: string; category?: string }, ctx: McpContext) {
+  async updatePackingItem(
+    { tripId, itemId, name, category, bag_id, quantity, weight_grams, is_private }: { tripId: number; itemId: number; name?: string; category?: string; bag_id?: number | null; quantity?: number; weight_grams?: number | null; is_private?: boolean },
+    ctx: McpContext,
+  ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.packing.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
-    const bodyKeys = ['name', 'category'].filter(k => k === 'name' ? name !== undefined : category !== undefined);
-    const item = this.packing.updateItem(tripId, itemId, { name, category }, bodyKeys, undefined, ctx.userId);
+    const fields = { name, category, bag_id, quantity, weight_grams, is_private };
+    // The service reads presence from bodyKeys, so a field has to be named there
+    // for an explicit null to clear it rather than read as "leave it alone".
+    const bodyKeys = Object.keys(fields).filter(k => fields[k as keyof typeof fields] !== undefined);
+    // Privacy state before the write, so a public↔private flip routes the
+    // broadcast the way the REST route does instead of leaking a freshly
+    // privatized item (or leaving a stale copy on everyone else's screen).
+    const wasPrivate = !!this.packing.getItemPrivacy(tripId, itemId)?.is_private;
+    const item = this.packing.updateItem(tripId, itemId, fields, bodyKeys, undefined, ctx.userId);
     if (!item) return errorResult('Packing item not found.');
-    this.guards.safeBroadcast(tripId, 'packing:updated', { item }, this.packing.viewersOf(item));
+    this.broadcastItemUpdate(tripId, itemId, item, wasPrivate);
+    return ok({ item });
+  }
+
+  /**
+   * The four privacy transitions of an item update (#858), as
+   * PackingService.broadcastUpdate does them for REST, but over safeBroadcast so
+   * the events keep the MCP marker and the tool survives a broadcast failure.
+   */
+  private broadcastItemUpdate(tripId: number, itemId: number, item: { is_private?: number; owner_id?: number | null; recipients?: { user_id: number }[] }, wasPrivate: boolean) {
+    const viewers = this.packing.viewersOf(item);
+    if (item.is_private) {
+      // Newly restricted: take it off the room's screens first, then hand it
+      // back to the people who may still see it.
+      if (!wasPrivate) this.guards.safeBroadcast(tripId, 'packing:deleted', { itemId });
+      this.guards.safeBroadcast(tripId, wasPrivate ? 'packing:updated' : 'packing:created', { item }, viewers);
+      return;
+    }
+    // Newly common: the members who never had the row need it created, not updated.
+    if (wasPrivate) this.guards.safeBroadcast(tripId, 'packing:created', { item });
+    this.guards.safeBroadcast(tripId, 'packing:updated', { item });
+  }
+
+  @Tool({
+    name: 'set_packing_item_sharing',
+    description: 'Move an existing packing item between the three sharing tiers: the common list the whole trip pools into, the owner\'s own list, or shared with named trip members. Only the item\'s owner may change this. Everything else about an item is update_packing_item.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      itemId: z.number().int().positive(),
+      visibility: packingSetSharingRequestSchema.shape.visibility.describe("'common' puts the item in the group pool, 'personal' keeps it to the owner, 'shared' covers the people in recipient_ids"),
+      recipient_ids: packingSetSharingRequestSchema.shape.recipient_ids.describe("For 'shared': the trip members the item is brought for. Ids outside the trip roster are dropped, and any previous recipients are replaced"),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    when: packingAddonOn,
+    access: { group: 'packing', mode: 'write' },
+  })
+  async setPackingItemSharing(
+    { tripId, itemId, visibility, recipient_ids }: { tripId: number; itemId: number; visibility: PackingVisibility; recipient_ids?: number[] },
+    ctx: McpContext,
+  ) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.packing.verifyTripAccess(tripId, ctx.userId)) return noAccess();
+    if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
+    const item = this.packing.setItemSharing(tripId, itemId, ctx.userId, visibility, recipient_ids ?? []);
+    if (!item) return errorResult('Packing item not found.');
+    if ((item as { forbidden?: boolean }).forbidden) return errorResult('Only the owner can change sharing.');
+    // The viewer set just changed: drop the item from the whole room, then hand
+    // it back to whoever may see it now, as the REST route does.
+    this.guards.safeBroadcast(tripId, 'packing:deleted', { itemId });
+    this.guards.safeBroadcast(tripId, 'packing:created', { item }, this.packing.viewersOf(item));
     return ok({ item });
   }
 
@@ -204,25 +292,34 @@ export class PackingMcp {
 
   @Tool({
     name: 'update_packing_bag',
-    description: 'Rename or recolor a packing bag.',
+    description: 'Rename or recolor a packing bag, give it a weight limit, or hand it to one traveller. Who else packs into it is set_bag_members.',
     inputSchema: {
       tripId: z.number().int().positive(),
       bagId: z.number().int().positive(),
       name: z.string().optional(),
       color: z.string().optional(),
+      weight_limit_grams: packingUpdateBagRequestSchema.shape.weight_limit_grams.describe('Allowance in grams the bag is measured against (the fill bar); null lifts the limit'),
+      user_id: packingUpdateBagRequestSchema.shape.user_id.describe('Trip member the bag belongs to; null leaves it unassigned, and an id outside the trip roster unassigns it too'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
-  async updatePackingBag({ tripId, bagId, name, color }: { tripId: number; bagId: number; name?: string; color?: string }, ctx: McpContext) {
+  async updatePackingBag(
+    { tripId, bagId, name, color, weight_limit_grams, user_id }: { tripId: number; bagId: number; name?: string; color?: string; weight_limit_grams?: number | null; user_id?: number | null },
+    ctx: McpContext,
+  ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.packing.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
-    const fields: Record<string, unknown> = {};
+    const fields: { name?: string; color?: string; weight_limit_grams?: number | null; user_id?: number | null } = {};
     const bodyKeys: string[] = [];
     if (name !== undefined) { fields.name = name; bodyKeys.push('name'); }
     if (color !== undefined) { fields.color = color; bodyKeys.push('color'); }
+    // Both follow the presence protocol: an omitted key leaves the value alone,
+    // an explicit null clears it.
+    if (weight_limit_grams !== undefined) { fields.weight_limit_grams = weight_limit_grams; bodyKeys.push('weight_limit_grams'); }
+    if (user_id !== undefined) { fields.user_id = user_id; bodyKeys.push('user_id'); }
     const updated = this.packing.updateBag(tripId, bagId, fields, bodyKeys);
     if (!updated) return errorResult('Bag not found.');
     // Hydrate with the members array (matches create_packing_bag, listBags, and the schema).

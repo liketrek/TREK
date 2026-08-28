@@ -1,7 +1,8 @@
 /**
  * Unit tests for the packing MCP surface (PackingMcp, DI-discovered):
  * create_packing_item, update_packing_item, toggle_packing_item,
- * delete_packing_item, plus the registration-time scope/addon gating and the
+ * delete_packing_item, set_packing_item_sharing, plus the two bag fields that
+ * drive the fill bar, the registration-time scope/addon gating and the
  * trek://trips/{tripId}/packing + .../packing/bags resources (moved from the
  * legacy registerResources — see resources.test.ts). The advanced tools live
  * in tools-packing-advanced.test.ts.
@@ -44,7 +45,7 @@ vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createPackingItem } from '../../helpers/factories';
+import { createUser, createTrip, createPackingItem, addTripMember } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
 import { ADDON_IDS } from '../../../src/addons';
 
@@ -67,6 +68,11 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>)
   const h = await createMcpHarness({ userId, withResources: false });
   try { await fn(h); } finally { await h.cleanup(); }
 }
+
+/** The text of a failed call, including the SDK's own schema-validation refusals
+ *  (which come back as an error result, not a rejection). */
+const errorText = (result: unknown) =>
+  ((result as { content?: { text?: string }[] }).content ?? []).map((c) => c.text ?? '').join(' ');
 
 // ---------------------------------------------------------------------------
 // create_packing_item
@@ -132,6 +138,109 @@ describe('Tool: create_packing_item', () => {
 });
 
 // ---------------------------------------------------------------------------
+// create_packing_item: the sharing tiers and the pre-checked flag (#858)
+//
+// A tool-made item used to land on the Common list whatever was asked for:
+// there was no way to say "this is mine" or "I'm bringing it for these two",
+// which is the whole three-tier model the REST route has taken since #858.
+// ---------------------------------------------------------------------------
+
+const itemRow = (id: number) =>
+  testDb.prepare('SELECT * FROM packing_items WHERE id = ?').get(id) as
+    { id: number; checked: number; is_private: number; owner_id: number | null; bag_id: number | null; quantity: number; weight_grams: number | null };
+
+/** The id of the item a create call just made, typed rather than cast wide open. */
+const createdItemId = (result: Parameters<typeof parseToolResult>[0]) =>
+  (parseToolResult(result) as { item: { id: number } }).item.id;
+
+const recipientIds = (itemId: number) =>
+  (testDb.prepare('SELECT user_id FROM packing_item_recipients WHERE item_id = ? ORDER BY user_id').all(itemId) as { user_id: number }[])
+    .map((r) => r.user_id);
+
+describe('Tool: create_packing_item sharing', () => {
+  it('puts a personal item on the caller\'s own list', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_packing_item',
+        arguments: { tripId: trip.id, name: 'Insulin pens', visibility: 'personal' },
+      });
+      const row = itemRow(createdItemId(result));
+      expect(row.is_private).toBe(1);
+      expect(row.owner_id).toBe(user.id);
+    });
+  });
+
+  it('records the recipients of a shared item and drops ids off the trip roster', async () => {
+    const { user } = createUser(testDb);
+    const { user: mate } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    addTripMember(testDb, trip.id, mate.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_packing_item',
+        arguments: { tripId: trip.id, name: 'Sunscreen', visibility: 'shared', recipient_ids: [mate.id, stranger.id] },
+      });
+      const itemId = createdItemId(result);
+      expect(itemRow(itemId).is_private).toBe(1);
+      expect(recipientIds(itemId)).toEqual([mate.id]);
+    });
+  });
+
+  it('honours the legacy is_private flag', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_packing_item',
+        arguments: { tripId: trip.id, name: 'Gift', is_private: true },
+      });
+      expect(itemRow(createdItemId(result)).is_private).toBe(1);
+    });
+  });
+
+  it('creates an already-checked item', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_packing_item',
+        arguments: { tripId: trip.id, name: 'Charger', checked: true },
+      });
+      expect(itemRow(createdItemId(result)).checked).toBe(1);
+    });
+  });
+
+  it('keeps a personal item off the rest of the room', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'create_packing_item',
+        arguments: { tripId: trip.id, name: 'Insulin pens', visibility: 'personal' },
+      });
+    });
+    expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:created', expect.any(Object), undefined, user.id);
+    expect(broadcastMock).not.toHaveBeenCalledWith(trip.id, 'packing:created', expect.any(Object));
+  });
+
+  it('refuses a visibility tier that does not exist', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_packing_item',
+        arguments: { tripId: trip.id, name: 'X', visibility: 'secret' },
+      });
+      expect(result.isError).toBe(true);
+      expect(errorText(result)).toContain('visibility');
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // update_packing_item
 // ---------------------------------------------------------------------------
 
@@ -178,6 +287,383 @@ describe('Tool: update_packing_item', () => {
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'update_packing_item', arguments: { tripId: trip.id, itemId: item.id, name: 'X' } });
       expect(result.isError).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// update_packing_item: bag, quantity, weight and privacy
+//
+// The tool could only rename and recategorise, so an assistant could not put an
+// item in a bag at all once it existed: bag assignment was reachable only at
+// bulk_import_packing time, by bag name.
+// ---------------------------------------------------------------------------
+
+describe('Tool: update_packing_item bag, quantity, weight, privacy', () => {
+  const makeBag = (tripId: number, name = 'Carry-On') =>
+    Number(testDb.prepare('INSERT INTO packing_bags (trip_id, name) VALUES (?, ?)').run(tripId, name).lastInsertRowid);
+
+  it('moves an item into a bag', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createPackingItem(testDb, trip.id);
+    const bagId = makeBag(trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id, bag_id: bagId },
+      });
+      expect(result.isError).toBeFalsy();
+      expect(itemRow(item.id).bag_id).toBe(bagId);
+    });
+  });
+
+  it('takes an item out of its bag with an explicit null', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createPackingItem(testDb, trip.id);
+    const bagId = makeBag(trip.id);
+    testDb.prepare('UPDATE packing_items SET bag_id = ? WHERE id = ?').run(bagId, item.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'update_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id, bag_id: null },
+      });
+      expect(itemRow(item.id).bag_id).toBeNull();
+    });
+  });
+
+  it('sets the quantity', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createPackingItem(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'update_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id, quantity: 3 },
+      });
+      expect(itemRow(item.id).quantity).toBe(3);
+    });
+  });
+
+  it('sets and clears the weight', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createPackingItem(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'update_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id, weight_grams: 850 },
+      });
+      expect(itemRow(item.id).weight_grams).toBe(850);
+
+      await h.client.callTool({
+        name: 'update_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id, weight_grams: null },
+      });
+      expect(itemRow(item.id).weight_grams).toBeNull();
+    });
+  });
+
+  it('leaves the bag alone when the key is omitted', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createPackingItem(testDb, trip.id);
+    const bagId = makeBag(trip.id);
+    testDb.prepare('UPDATE packing_items SET bag_id = ? WHERE id = ?').run(bagId, item.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'update_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id, name: 'Renamed' },
+      });
+      expect(itemRow(item.id).bag_id).toBe(bagId);
+    });
+  });
+
+  it('takes a common item onto the caller\'s own list, and off everyone else\'s screen', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createPackingItem(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'update_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id, is_private: true },
+      });
+    });
+    const row = itemRow(item.id);
+    expect(row.is_private).toBe(1);
+    // An unowned item is claimed by whoever privatizes it, or the visibility
+    // filter would have nobody to match.
+    expect(row.owner_id).toBe(user.id);
+    expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:deleted', expect.any(Object));
+    expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:created', expect.any(Object), undefined, user.id);
+  });
+
+  it('hands a private item back to the room when it goes common again', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createPackingItem(testDb, trip.id);
+    testDb.prepare('UPDATE packing_items SET is_private = 1, owner_id = ? WHERE id = ?').run(user.id, item.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'update_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id, is_private: false },
+      });
+    });
+    expect(itemRow(item.id).is_private).toBe(0);
+    // Created first: the members who never had the row cannot apply an update to it.
+    expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:created', expect.any(Object));
+    expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:updated', expect.any(Object));
+  });
+
+  it('refuses a bag id that is not a number', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createPackingItem(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id, bag_id: 'carry-on' },
+      });
+      expect(result.isError).toBe(true);
+      expect(errorText(result)).toContain('bag_id');
+      expect(itemRow(item.id).bag_id).toBeNull();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// set_packing_item_sharing (#858): the tool the surface never had
+// ---------------------------------------------------------------------------
+
+describe('Tool: set_packing_item_sharing', () => {
+  it('moves a common item onto the caller\'s own list', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createPackingItem(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'set_packing_item_sharing',
+        arguments: { tripId: trip.id, itemId: item.id, visibility: 'personal' },
+      });
+      expect(result.isError).toBeFalsy();
+    });
+    const row = itemRow(item.id);
+    expect(row.is_private).toBe(1);
+    expect(row.owner_id).toBe(user.id);
+  });
+
+  it('shares an item with named members and drops ids off the trip roster', async () => {
+    const { user } = createUser(testDb);
+    const { user: mate } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    addTripMember(testDb, trip.id, mate.id);
+    const item = createPackingItem(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'set_packing_item_sharing',
+        arguments: { tripId: trip.id, itemId: item.id, visibility: 'shared', recipient_ids: [mate.id, stranger.id] },
+      });
+    });
+    expect(itemRow(item.id).is_private).toBe(1);
+    expect(recipientIds(item.id)).toEqual([mate.id]);
+  });
+
+  it('returns an item to the common list and forgets its recipients', async () => {
+    const { user } = createUser(testDb);
+    const { user: mate } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    addTripMember(testDb, trip.id, mate.id);
+    const item = createPackingItem(testDb, trip.id);
+    testDb.prepare('UPDATE packing_items SET is_private = 1, owner_id = ? WHERE id = ?').run(user.id, item.id);
+    testDb.prepare('INSERT INTO packing_item_recipients (item_id, user_id) VALUES (?, ?)').run(item.id, mate.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'set_packing_item_sharing',
+        arguments: { tripId: trip.id, itemId: item.id, visibility: 'common' },
+      });
+    });
+    expect(itemRow(item.id).is_private).toBe(0);
+    expect(recipientIds(item.id)).toEqual([]);
+  });
+
+  it('rebuilds the room\'s view: gone for everyone, back for the people who may see it', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createPackingItem(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'set_packing_item_sharing',
+        arguments: { tripId: trip.id, itemId: item.id, visibility: 'personal' },
+      });
+    });
+    expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:deleted', expect.any(Object));
+    expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:created', expect.any(Object), undefined, user.id);
+  });
+
+  it('lets only the owner change sharing', async () => {
+    const { user } = createUser(testDb);
+    const { user: mate } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    addTripMember(testDb, trip.id, mate.id);
+    const item = createPackingItem(testDb, trip.id);
+    testDb.prepare('UPDATE packing_items SET owner_id = ? WHERE id = ?').run(mate.id, item.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'set_packing_item_sharing',
+        arguments: { tripId: trip.id, itemId: item.id, visibility: 'personal' },
+      });
+      expect(result.isError).toBe(true);
+    });
+    expect(itemRow(item.id).is_private).toBe(0);
+  });
+
+  it('returns error for item not found', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'set_packing_item_sharing',
+        arguments: { tripId: trip.id, itemId: 99999, visibility: 'personal' },
+      });
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  it('returns access denied for non-member', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const trip = createTrip(testDb, other.id);
+    const item = createPackingItem(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'set_packing_item_sharing',
+        arguments: { tripId: trip.id, itemId: item.id, visibility: 'personal' },
+      });
+      expect(result.isError).toBe(true);
+    });
+    expect(itemRow(item.id).is_private).toBe(0);
+  });
+
+  it('blocks demo user', async () => {
+    process.env.DEMO_MODE = 'true';
+    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    const trip = createTrip(testDb, user.id);
+    const item = createPackingItem(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'set_packing_item_sharing',
+        arguments: { tripId: trip.id, itemId: item.id, visibility: 'personal' },
+      });
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  it('refuses a visibility tier that does not exist', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createPackingItem(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'set_packing_item_sharing',
+        arguments: { tripId: trip.id, itemId: item.id, visibility: 'nobody' },
+      });
+      expect(result.isError).toBe(true);
+      expect(errorText(result)).toContain('visibility');
+      expect(itemRow(item.id).is_private).toBe(0);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// update_packing_bag: weight limit and owner (the values behind the fill bar)
+// ---------------------------------------------------------------------------
+
+describe('Tool: update_packing_bag limit and owner', () => {
+  const bagRow = (id: number) =>
+    testDb.prepare('SELECT * FROM packing_bags WHERE id = ?').get(id) as
+      { id: number; name: string; weight_limit_grams: number | null; user_id: number | null };
+
+  const makeBag = (tripId: number) =>
+    Number(testDb.prepare('INSERT INTO packing_bags (trip_id, name) VALUES (?, ?)').run(tripId, 'Carry-On').lastInsertRowid);
+
+  it('sets a weight limit', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const bagId = makeBag(trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_packing_bag',
+        arguments: { tripId: trip.id, bagId, weight_limit_grams: 8000 },
+      });
+      expect(result.isError).toBeFalsy();
+      expect(bagRow(bagId).weight_limit_grams).toBe(8000);
+    });
+  });
+
+  it('lifts the limit with an explicit null', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const bagId = makeBag(trip.id);
+    testDb.prepare('UPDATE packing_bags SET weight_limit_grams = 8000 WHERE id = ?').run(bagId);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'update_packing_bag',
+        arguments: { tripId: trip.id, bagId, weight_limit_grams: null },
+      });
+      expect(bagRow(bagId).weight_limit_grams).toBeNull();
+    });
+  });
+
+  it('leaves the limit alone when the key is omitted', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const bagId = makeBag(trip.id);
+    testDb.prepare('UPDATE packing_bags SET weight_limit_grams = 8000 WHERE id = ?').run(bagId);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({ name: 'update_packing_bag', arguments: { tripId: trip.id, bagId, name: 'Backpack' } });
+      const row = bagRow(bagId);
+      expect(row.name).toBe('Backpack');
+      expect(row.weight_limit_grams).toBe(8000);
+    });
+  });
+
+  it('assigns the bag to a trip member', async () => {
+    const { user } = createUser(testDb);
+    const { user: mate } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    addTripMember(testDb, trip.id, mate.id);
+    const bagId = makeBag(trip.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({ name: 'update_packing_bag', arguments: { tripId: trip.id, bagId, user_id: mate.id } });
+      expect(bagRow(bagId).user_id).toBe(mate.id);
+    });
+  });
+
+  it('leaves the bag unassigned for an id off the trip roster', async () => {
+    const { user } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const bagId = makeBag(trip.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({ name: 'update_packing_bag', arguments: { tripId: trip.id, bagId, user_id: stranger.id } });
+      expect(bagRow(bagId).user_id).toBeNull();
+    });
+  });
+
+  it('refuses a weight limit that is not a number', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const bagId = makeBag(trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_packing_bag',
+        arguments: { tripId: trip.id, bagId, weight_limit_grams: '8kg' },
+      });
+      expect(result.isError).toBe(true);
+      expect(errorText(result)).toContain('weight_limit_grams');
+      expect(bagRow(bagId).weight_limit_grams).toBeNull();
     });
   });
 });
@@ -306,6 +792,7 @@ describe('Packing tools — scope gating', () => {
     'reorder_packing_items', 'create_packing_bag', 'update_packing_bag', 'delete_packing_bag',
     'set_bag_members', 'set_packing_category_assignees', 'apply_packing_template',
     'save_packing_template', 'delete_packing_template', 'bulk_import_packing',
+    'set_packing_item_sharing',
   ];
 
   async function listToolNames(userId: number, scopes: string[] | null): Promise<string[]> {
@@ -317,7 +804,7 @@ describe('Packing tools — scope gating', () => {
     }
   }
 
-  it('registers all seventeen tools with null scopes (full access)', async () => {
+  it('registers all eighteen tools with null scopes (full access)', async () => {
     const { user } = createUser(testDb);
     const names = await listToolNames(user.id, null);
     for (const tool of [...READ_TOOLS, ...WRITE_TOOLS]) expect(names).toContain(tool);
