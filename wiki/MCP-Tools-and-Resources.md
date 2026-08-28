@@ -132,6 +132,7 @@ Requires `reservations:read` or `reservations:write` scope.
 | `update_reservation` | Update any field including status (`pending` / `confirmed` / `cancelled`). |
 | `delete_reservation` | Delete a reservation and its linked accommodation record if applicable. |
 | `reorder_reservations` | Reorder reservations within a day. |
+| `set_reservation_travelers` | Set who is travelling on a booking, from the trip roster (members and guests). Replaces the list; an empty array clears it. |
 | `link_hotel_accommodation` | Set or update a hotel reservation's check-in/out day links and place. |
 
 ### Budget

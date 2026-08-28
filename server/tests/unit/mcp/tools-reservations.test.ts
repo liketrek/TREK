@@ -36,7 +36,7 @@ vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createReservation, createDayAssignment } from '../../helpers/factories';
+import { createUser, createTrip, createDay, createPlace, createReservation, createDayAssignment, addTripMember } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
 
 beforeAll(() => {
@@ -479,6 +479,179 @@ describe('Resource: trek://trips/{tripId}/reservations', () => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/reservations` });
       const data = parseResourceResult(result) as { error?: string };
       expect(data.error).toBeTruthy();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// set_reservation_travelers (#1517)
+//
+// Reads already hydrate a booking's travellers; there was no way to write them,
+// so an imported booking could not record who was on it. The roster filter lives
+// in the service, so the cases below pin that an off-trip id is dropped rather
+// than attached, and that a guest — the only representation of a companion
+// without an account — is assignable like any member.
+// ---------------------------------------------------------------------------
+
+describe('Tool: set_reservation_travelers', () => {
+  async function makeBooking(h: McpHarness, tripId: number): Promise<number> {
+    const created = await h.client.callTool({
+      name: 'create_reservation',
+      arguments: { tripId, type: 'event', title: 'Concert' },
+    });
+    return (parseToolResult(created) as any).reservation.id;
+  }
+
+  it('sets the travellers on a booking', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: friend } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, friend.id);
+    await withHarness(owner.id, async (h) => {
+      const reservationId = await makeBooking(h, trip.id);
+      const result = await h.client.callTool({
+        name: 'set_reservation_travelers',
+        arguments: { tripId: trip.id, reservationId, user_ids: [owner.id, friend.id] },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.travelers.map((t: any) => t.user_id).sort()).toEqual([owner.id, friend.id].sort());
+      const rows = testDb.prepare('SELECT user_id FROM reservation_travelers WHERE reservation_id = ?').all(reservationId) as any[];
+      expect(rows).toHaveLength(2);
+    });
+  });
+
+  it('assigns a guest, who has no account to look up', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    await withHarness(owner.id, async (h) => {
+      const guestResult = await h.client.callTool({
+        name: 'create_trip_guest',
+        arguments: { tripId: trip.id, name: 'Anna' },
+      });
+      const guestId = (parseToolResult(guestResult) as any).member.id;
+      const reservationId = await makeBooking(h, trip.id);
+
+      const result = await h.client.callTool({
+        name: 'set_reservation_travelers',
+        arguments: { tripId: trip.id, reservationId, user_ids: [guestId] },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.travelers).toHaveLength(1);
+      expect(data.travelers[0].username).toBe('Anna');
+      expect(data.travelers[0].is_guest).toBeTruthy();
+    });
+  });
+
+  it('replaces the previous list rather than adding to it', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: friend } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, friend.id);
+    await withHarness(owner.id, async (h) => {
+      const reservationId = await makeBooking(h, trip.id);
+      await h.client.callTool({
+        name: 'set_reservation_travelers',
+        arguments: { tripId: trip.id, reservationId, user_ids: [owner.id, friend.id] },
+      });
+      const result = await h.client.callTool({
+        name: 'set_reservation_travelers',
+        arguments: { tripId: trip.id, reservationId, user_ids: [friend.id] },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.travelers.map((t: any) => t.user_id)).toEqual([friend.id]);
+    });
+  });
+
+  it('clears the list on an empty array', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    await withHarness(owner.id, async (h) => {
+      const reservationId = await makeBooking(h, trip.id);
+      await h.client.callTool({
+        name: 'set_reservation_travelers',
+        arguments: { tripId: trip.id, reservationId, user_ids: [owner.id] },
+      });
+      const result = await h.client.callTool({
+        name: 'set_reservation_travelers',
+        arguments: { tripId: trip.id, reservationId, user_ids: [] },
+      });
+      expect((parseToolResult(result) as any).travelers).toEqual([]);
+      expect(testDb.prepare('SELECT user_id FROM reservation_travelers WHERE reservation_id = ?').all(reservationId)).toEqual([]);
+    });
+  });
+
+  it('drops a user who is not on the trip instead of attaching them', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: outsider } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    await withHarness(owner.id, async (h) => {
+      const reservationId = await makeBooking(h, trip.id);
+      const result = await h.client.callTool({
+        name: 'set_reservation_travelers',
+        arguments: { tripId: trip.id, reservationId, user_ids: [owner.id, outsider.id] },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.travelers.map((t: any) => t.user_id)).toEqual([owner.id]);
+    });
+  });
+
+  it('broadcasts reservation:travelers-updated', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    await withHarness(owner.id, async (h) => {
+      const reservationId = await makeBooking(h, trip.id);
+      broadcastMock.mockClear();
+      await h.client.callTool({
+        name: 'set_reservation_travelers',
+        arguments: { tripId: trip.id, reservationId, user_ids: [owner.id] },
+      });
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'reservation:travelers-updated',
+        expect.objectContaining({ reservationId }),
+      );
+    });
+  });
+
+  it('404s a booking of another trip', async () => {
+    const { user: owner } = createUser(testDb);
+    const ownTrip = createTrip(testDb, owner.id);
+    const otherTrip = createTrip(testDb, owner.id);
+    await withHarness(owner.id, async (h) => {
+      const reservationId = await makeBooking(h, otherTrip.id);
+      const result = await h.client.callTool({
+        name: 'set_reservation_travelers',
+        arguments: { tripId: ownTrip.id, reservationId, user_ids: [owner.id] },
+      });
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  it('returns access denied for a non-member', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: outsider } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    let reservationId = 0;
+    await withHarness(owner.id, async (h) => { reservationId = await makeBooking(h, trip.id); });
+    await withHarness(outsider.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'set_reservation_travelers',
+        arguments: { tripId: trip.id, reservationId, user_ids: [outsider.id] },
+      });
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  it('blocks demo user', async () => {
+    process.env.DEMO_MODE = 'true';
+    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'set_reservation_travelers',
+        arguments: { tripId: trip.id, reservationId: 1, user_ids: [] },
+      });
+      expect(result.isError).toBe(true);
     });
   });
 });

@@ -458,6 +458,34 @@ export class ReservationsMcp {
   }
 
   @Tool({
+    name: 'set_reservation_travelers',
+    description: 'Set who is travelling on a booking, replacing the current list. Pass the user IDs of trip members or guests from list_trip_members; an empty array clears the list. Somebody who is not on the trip is ignored rather than added — use add_trip_member for a person with a TREK account, or create_trip_guest for one without.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      reservationId: z.number().int().positive(),
+      user_ids: z.array(z.number().int().positive()).describe('User IDs of the travellers, from list_trip_members. Replaces the whole list; [] clears it.'),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    access: { group: 'reservations', mode: 'write' },
+  })
+  async setReservationTravelers(
+    { tripId, reservationId, user_ids }: { tripId: number; reservationId: number; user_ids: number[] },
+    ctx: McpContext,
+  ) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
+    if (!this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
+
+    // The service filters the ids against the trip roster on its own, so an
+    // off-trip id cannot be attached; a missing booking is the only failure.
+    const result = this.reservations.setTravelers(String(reservationId), String(tripId), user_ids);
+    if (!result) return errorResult('Reservation not found.');
+
+    this.guards.safeBroadcast(tripId, 'reservation:travelers-updated', { reservationId, travelers: result.travelers });
+    return ok({ travelers: result.travelers });
+  }
+
+  @Tool({
     name: 'reorder_reservations',
     description: 'Update the display order of reservations within a day.',
     inputSchema: {
