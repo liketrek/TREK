@@ -93,6 +93,9 @@ async function desktopLayout(page: Page): Promise<{
   controls: Box;
   pass: Box;
   units: Box[];
+  titleLines: number;
+  titleClamp: string;
+  titleOverflow: string;
 }> {
   return page.evaluate(() => {
     const rect = (selector: string) => {
@@ -105,6 +108,8 @@ async function desktopLayout(page: Page): Promise<{
         height: value.height,
       };
     };
+    const title = document.querySelector('.hero-title')!;
+    const titleStyle = getComputedStyle(title);
     return {
       hero: rect('.hero-trip'),
       board: rect('[data-testid="departure-countdown-board"]'),
@@ -121,6 +126,9 @@ async function desktopLayout(page: Page): Promise<{
           height: value.height,
         };
       }),
+      titleLines: Math.round(title.getBoundingClientRect().height / Number.parseFloat(titleStyle.lineHeight)),
+      titleClamp: titleStyle.webkitLineClamp,
+      titleOverflow: titleStyle.overflow,
     };
   });
 }
@@ -179,6 +187,9 @@ test('desktop countdown grows with its hero and follows light and dark dashboard
     expect(intersects(metrics.board, metrics.title)).toBe(false);
     expect(intersects(metrics.board, metrics.controls)).toBe(false);
     expect(intersects(metrics.board, metrics.pass)).toBe(false);
+    expect(metrics.titleLines).toBeLessThanOrEqual(2);
+    expect(metrics.titleClamp).toBe('2');
+    expect(metrics.titleOverflow).toBe('hidden');
     for (const unit of metrics.units) {
       expect(unit.left).toBeGreaterThanOrEqual(metrics.board.left);
       expect(unit.right).toBeLessThanOrEqual(metrics.board.right);
