@@ -11,25 +11,15 @@ import { DatabaseService } from '../database/database.service';
 import { readEnv } from '../../app-config';
 import { isDemoEmail } from '../common/demo';
 import { BLOCKED_EXTENSIONS } from './files.constants';
-import { FilesService } from './files.service';
+// The read cap is the same number on both byte paths, so the upload side of
+// this surface reads it off the service that owns the read side.
+import { FilesService, FileContentError, FILE_CONTENT_MAX as CONTENT_MAX } from './files.service';
 import { StorageService } from '../storage/storage.service';
-import { StorageNotFoundError, StorageInvalidKeyError, type ObjectStat } from '../storage/storage.types';
 
 /** Files use three separate rights, one per operation, unlike every other domain. */
 const UPLOAD_ACTION = 'file_upload';
 const EDIT_ACTION = 'file_edit';
 const DELETE_ACTION = 'file_delete';
-
-/** Decoded bytes a plugin may read or write in one call. */
-const CONTENT_MAX = 10 * 1024 * 1024;
-
-type FileRow = {
-  filename: string;
-  original_name: string;
-  mime_type: string | null;
-  file_size: number | null;
-  deleted_at: string | null;
-};
 
 type CreateInput = {
   name: string;
@@ -77,53 +67,22 @@ export class FilesRpc {
   }
 
   /**
-   * Size-capped BEFORE the read, so a 500MB video cannot be pulled through the IPC
-   * pipe as ~667MB of base64. The bytes come from the storage layer, so this read
-   * works on remote backends too. The read itself runs off the event loop: 10MB of
-   * readFile plus base64 on the host thread would stall every other plugin RPC and
-   * every HTTP request for its duration.
+   * The cap, the storage read and the off-thread buffering live on FilesService,
+   * because the MCP read tool has to obey exactly the same rules and a second
+   * copy of them would drift. What stays here is the IPC wire shape and the two
+   * error types the plugin boundary knows how to encode: a refusal the caller
+   * caused (too large) is BAD_PARAMS, everything else RESOURCE_FORBIDDEN.
    */
   private async readContent(tripId: number, fileId: number): Promise<unknown> {
-    const file = this.files.getFileById(fileId, tripId) as FileRow | undefined;
-    if (!file || file.deleted_at) throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
-    if ((file.file_size ?? 0) > CONTENT_MAX) {
-      throw new BadParams(`file too large to read (>${CONTENT_MAX} bytes); use the download UI`);
-    }
-    let stream: Readable;
-    let stat: ObjectStat;
     try {
-      ({ stream, stat } = await this.storage.getStream('files', pathMod.basename(file.filename)));
+      const { name, mimetype, bytes } = await this.files.readContent(tripId, fileId);
+      return { name, mimetype, size: bytes.length, content_base64: bytes.toString('base64') };
     } catch (err) {
-      if (err instanceof StorageNotFoundError || err instanceof StorageInvalidKeyError) {
-        throw new ForbiddenResource('file path is not accessible');
+      if (err instanceof FileContentError) {
+        throw err.reason === 'too-large' ? new BadParams(err.message) : new ForbiddenResource(err.message);
       }
       throw err;
     }
-    // Re-checked against the OBJECT, not the DB row: file_size can drift.
-    if (stat.size > CONTENT_MAX) {
-      stream.destroy();
-      throw new BadParams(`file too large to read (>${CONTENT_MAX} bytes); use the download UI`);
-    }
-    const chunks: Buffer[] = [];
-    let total = 0;
-    for await (const chunk of stream) {
-      const part = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as Uint8Array);
-      total += part.length;
-      // A driver whose stat under-reports must not push an oversized payload
-      // through the IPC pipe: abort as soon as the running total crosses the cap.
-      if (total > CONTENT_MAX) {
-        stream.destroy();
-        throw new BadParams('file too large to read');
-      }
-      chunks.push(part);
-    }
-    const buf = Buffer.concat(chunks);
-    return {
-      name: file.original_name,
-      mimetype: file.mime_type ?? 'application/octet-stream',
-      size: buf.length,
-      content_base64: buf.toString('base64'),
-    };
   }
 
   @PluginMethod('files.create', { permission: 'db:write:files' })

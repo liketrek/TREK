@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import path from 'path';
+import type { Readable } from 'node:stream';
 import type { Request } from 'express';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -11,6 +12,7 @@ import type { User, TripFile } from '../../types';
 import { DatabaseService, type TripAccess } from '../database/database.service';
 import { DEFAULT_ALLOWED_EXTENSIONS } from './files.constants';
 import { StorageService } from '../storage/storage.service';
+import { StorageNotFoundError, StorageInvalidKeyError, type ObjectStat } from '../storage/storage.types';
 
 type Trip = TripAccess;
 type FilePermission = 'file_upload' | 'file_edit' | 'file_delete';
@@ -35,6 +37,21 @@ export interface FileLink {
   file_id: number;
   reservation_id: number | null;
   place_id: number | null;
+}
+
+/**
+ * Decoded bytes one non-HTTP caller may pull out of a file in a single read.
+ * The browser download streams instead and is not bound by this.
+ */
+export const FILE_CONTENT_MAX = 10 * 1024 * 1024;
+
+/** Why a content read was refused. Each caller maps it onto its own error shape. */
+export type FileContentRefusal = 'not-found' | 'too-large' | 'not-accessible';
+
+export class FileContentError extends Error {
+  constructor(readonly reason: FileContentRefusal, message: string) {
+    super(message);
+  }
 }
 
 /**
@@ -144,6 +161,64 @@ export class FilesService {
 
   getDeletedFile(id: string | number, tripId: string | number): TripFile | undefined {
     return this.db.get<TripFile>('SELECT * FROM trip_files WHERE id = ? AND trip_id = ? AND deleted_at IS NOT NULL', id, tripId);
+  }
+
+  /**
+   * A file's bytes for a caller that is not the browser download.
+   *
+   * Shared by the plugin RPC (ctx.files.getContent) and the MCP read tool so the
+   * rules exist once. Three of them matter. The size is capped BEFORE the read,
+   * so a 500MB video is never pulled into memory just to be refused afterwards.
+   * The bytes come from the storage layer rather than from disk, so this keeps
+   * working on S3 or a mirrored pair. And the read runs off the event loop:
+   * 10MB of readFile on the host thread stalls every other request for its
+   * duration.
+   *
+   * Access is the caller's job. REST-side that is trip access plus the file
+   * row being on the trip, which the getFileById lookup below re-checks.
+   */
+  async readContent(
+    tripId: string | number,
+    fileId: string | number,
+  ): Promise<{ name: string; mimetype: string; bytes: Buffer }> {
+    const file = this.getFileById(fileId, tripId);
+    if (!file || file.deleted_at) throw new FileContentError('not-found', `no file ${fileId} on trip ${tripId}`);
+    if ((file.file_size ?? 0) > FILE_CONTENT_MAX) {
+      throw new FileContentError('too-large', `file too large to read (>${FILE_CONTENT_MAX} bytes); use the download UI`);
+    }
+    let stream: Readable;
+    let stat: ObjectStat;
+    try {
+      ({ stream, stat } = await this.storage.getStream('files', path.basename(file.filename)));
+    } catch (err) {
+      if (err instanceof StorageNotFoundError || err instanceof StorageInvalidKeyError) {
+        throw new FileContentError('not-accessible', 'file path is not accessible');
+      }
+      throw err;
+    }
+    // Re-checked against the OBJECT, not the DB row: file_size can drift.
+    if (stat.size > FILE_CONTENT_MAX) {
+      stream.destroy();
+      throw new FileContentError('too-large', `file too large to read (>${FILE_CONTENT_MAX} bytes); use the download UI`);
+    }
+    const chunks: Buffer[] = [];
+    let total = 0;
+    for await (const chunk of stream) {
+      const part = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as Uint8Array);
+      total += part.length;
+      // A driver whose stat under-reports must not hand back an oversized
+      // payload: abort as soon as the running total crosses the cap.
+      if (total > FILE_CONTENT_MAX) {
+        stream.destroy();
+        throw new FileContentError('too-large', 'file too large to read');
+      }
+      chunks.push(part);
+    }
+    return {
+      name: file.original_name,
+      mimetype: file.mime_type ?? 'application/octet-stream',
+      bytes: Buffer.concat(chunks),
+    };
   }
 
   listFiles(tripId: string | number, showTrash: boolean) {
