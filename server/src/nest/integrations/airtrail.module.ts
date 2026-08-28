@@ -4,6 +4,7 @@ import { AirtrailCoreModule } from './airtrail-core.module';
 import { AirtrailSyncService } from './airtrail-sync.service';
 import { AirtrailSyncJob } from './airtrail-sync.job';
 import { AirtrailImportService } from './airtrail-import.service';
+import { AirtrailMcp } from './airtrail.mcp';
 import { SchedulingModule } from '../scheduling/scheduling.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AddonsModule } from '../addons/addons.module';
@@ -26,7 +27,7 @@ import { ReservationsModule } from '../reservations/reservations.module';
 @Module({
   imports: [AirtrailCoreModule, PermissionsModule, AddonsModule, AuditModule, ReservationsModule, SchedulingModule],
   controllers: [AirtrailController],
-  providers: [AirtrailSyncService, AirtrailSyncJob, AirtrailImportService],
+  providers: [AirtrailSyncService, AirtrailSyncJob, AirtrailImportService, AirtrailMcp],
   exports: [AirtrailSyncService, AirtrailImportService],
 })
 export class AirtrailModule {}
