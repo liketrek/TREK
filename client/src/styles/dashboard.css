@@ -328,6 +328,40 @@
   grid-template-rows: auto 1fr auto;
   color: #fff;
 }
+
+/* Desktop heroes keep the original 520px presence, but long localized titles,
+   the boarding pass and the departure countdown must be allowed to establish a
+   taller intrinsic height instead of being clipped by the cover. */
+@media (min-width: 768px) {
+  .trek-dash .hero-trip {
+    height: auto;
+    min-height: 520px;
+  }
+
+  .trek-dash .hero-content {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    min-width: 0;
+    min-height: 520px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr auto auto;
+  }
+
+  .trek-dash .hero-title-block,
+  .trek-dash .hero-pass-wrap,
+  .trek-dash .departure-countdown-board {
+    min-width: 0;
+  }
+
+  .trek-dash .hero-title {
+    display: -webkit-box;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}
 .trek-dash .hero-top {
   display: flex;
   justify-content: space-between;
@@ -1987,6 +2021,7 @@
   border: 1px solid color-mix(in srgb, var(--border-primary) 75%, transparent);
   border-radius: 14px;
   background: color-mix(in srgb, var(--bg-primary) 86%, transparent);
+  color: var(--ink);
   padding: 12px 14px;
 }
 
@@ -2012,7 +2047,7 @@
 .departure-countdown-transport {
   min-width: 0;
   overflow: hidden;
-  color: var(--text-faint);
+  color: var(--ink-2);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2038,7 +2073,7 @@
 
 .departure-countdown-label {
   margin-top: 4px;
-  color: var(--text-faint);
+  color: var(--ink-2);
   font-size: 0.56rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
