@@ -672,3 +672,119 @@ describe('Tool: set_reservation_travelers', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// The booking link and the end time
+//
+// Both are persisted on create and update and rendered by the planner; neither
+// was in any tool schema, so an imported booking arrived without its
+// confirmation link and a dinner could only carry a start.
+// ---------------------------------------------------------------------------
+
+describe('Reservation tools: url and reservation_end_time', () => {
+  it('stores the booking link on create', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_reservation',
+        arguments: {
+          tripId: trip.id, type: 'restaurant', title: 'Dinner',
+          url: 'https://example.com/booking/abc123',
+        },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.reservation.url).toBe('https://example.com/booking/abc123');
+      const row = testDb.prepare('SELECT url FROM reservations WHERE id = ?').get(data.reservation.id) as any;
+      expect(row.url).toBe('https://example.com/booking/abc123');
+    });
+  });
+
+  it('stores an end time on a non-transport booking', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_reservation',
+        arguments: {
+          tripId: trip.id, type: 'restaurant', title: 'Dinner',
+          reservation_time: '2025-06-01T19:00:00', reservation_end_time: '2025-06-01T21:30:00',
+        },
+      });
+      const data = parseToolResult(result) as any;
+      const row = testDb.prepare('SELECT reservation_time, reservation_end_time FROM reservations WHERE id = ?').get(data.reservation.id) as any;
+      expect(row.reservation_time).toBe('2025-06-01T19:00:00');
+      expect(row.reservation_end_time).toBe('2025-06-01T21:30:00');
+    });
+  });
+
+  it('updates the link and the end time on an existing booking', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const created = await h.client.callTool({
+        name: 'create_reservation',
+        arguments: { tripId: trip.id, type: 'tour', title: 'Walking tour' },
+      });
+      const { reservation } = parseToolResult(created) as { reservation: { id: number } };
+
+      await h.client.callTool({
+        name: 'update_reservation',
+        arguments: {
+          tripId: trip.id, reservationId: reservation.id,
+          url: 'https://tours.example/booking/9', reservation_end_time: '2025-06-02T16:00:00',
+        },
+      });
+      const row = testDb.prepare('SELECT url, reservation_end_time FROM reservations WHERE id = ?').get(reservation.id) as any;
+      expect(row.url).toBe('https://tours.example/booking/9');
+      expect(row.reservation_end_time).toBe('2025-06-02T16:00:00');
+    });
+  });
+
+  it('refuses a javascript: link, like the REST contract does', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_reservation',
+        arguments: { tripId: trip.id, type: 'other', title: 'Nope', url: 'javascript:alert(1)' },
+      });
+      expect(result.isError).toBe(true);
+      expect(testDb.prepare('SELECT COUNT(*) AS n FROM reservations').get()).toEqual({ n: 0 });
+    });
+  });
+
+  it('refuses a javascript: link split by a control character', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_reservation',
+        arguments: { tripId: trip.id, type: 'other', title: 'Nope', url: 'java\tscript:alert(1)' },
+      });
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  it('stores the booking link on a transport booking too', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const created = await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id, type: 'bus', title: 'Zurich → Milan',
+          url: 'https://flix.example/booking/8891',
+        },
+      });
+      const { reservation } = parseToolResult(created) as { reservation: { id: number } };
+      expect(testDb.prepare('SELECT url FROM reservations WHERE id = ?').get(reservation.id)).toEqual({ url: 'https://flix.example/booking/8891' });
+
+      await h.client.callTool({
+        name: 'update_transport',
+        arguments: { tripId: trip.id, reservationId: reservation.id, url: 'https://flix.example/booking/8892' },
+      });
+      expect(testDb.prepare('SELECT url FROM reservations WHERE id = ?').get(reservation.id)).toEqual({ url: 'https://flix.example/booking/8892' });
+    });
+  });
+});

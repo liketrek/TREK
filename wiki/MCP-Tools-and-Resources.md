@@ -128,7 +128,7 @@ Requires `reservations:read` or `reservations:write` scope.
 
 | Tool | Description |
 |---|---|
-| `create_reservation` | Create a pending reservation — hotels, restaurants, events, tours, activities, and other types. |
+| `create_reservation` | Create a pending reservation — hotels, restaurants, events, tours, activities, and other types. Carries the booking link (`url`) and an end time. |
 | `update_reservation` | Update any field including status (`pending` / `confirmed` / `cancelled`). |
 | `delete_reservation` | Delete a reservation and its linked accommodation record if applicable. |
 | `reorder_reservations` | Reorder reservations within a day. |
