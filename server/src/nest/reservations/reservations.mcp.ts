@@ -15,9 +15,18 @@ import type { EndpointInput } from './reservations.service';
 import { AssignmentsService } from '../assignments/assignments.service';
 import { transportLegsInputSchema, type TransportLegInput } from '@trek/shared';
 
-const TRANSPORT_TYPES = ['flight', 'train', 'car', 'cruise'] as const;
-/** Only these two carry per-segment detail; a car or cruise has no legs. */
+// The type picker in the planner (client/src/components/Planner/TransportModal.tsx)
+// offers ten transport modes and ReservationsPanel renders all of them; the tools
+// below used to accept four, so a bus or a ferry could be planned in the UI and not
+// through an assistant. Both lists are the picker's, in the picker's order.
+const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other'] as const;
+/** Only these two carry per-segment detail: the transport form writes metadata.legs for a flight or a train and for nothing else. */
 const LEG_TRANSPORT_TYPES = ['flight', 'train'] as const;
+/** Everything the picker offers that is not a transport — create_reservation's half. */
+const BOOKING_TYPES = ['hotel', 'restaurant', 'event', 'tour', 'activity', 'parking', 'other'] as const;
+
+type TransportType = typeof TRANSPORT_TYPES[number];
+type BookingType = typeof BOOKING_TYPES[number];
 
 const endpointObjectSchema = z.object({
   role: z.enum(['from', 'to', 'stop']).describe('Endpoint role: "from" (origin), "to" (destination), or "stop" (intermediate)'),
@@ -300,11 +309,11 @@ export class ReservationsMcp {
 
   @Tool({
     name: 'create_reservation',
-    description: 'Recommend a reservation for a trip. Created as pending — the user must confirm it. For flights, trains, cars, and cruises, use create_transport instead. Linking: hotel → use place_id + start_day_id + end_day_id (all three required to create the accommodation link); restaurant/event/tour/activity/parking/other → use assignment_id. Set price to record the cost; it will appear on the booking and in the Budget tab.',
+    description: 'Recommend a reservation for a trip. Created as pending — the user must confirm it. For anything travelled ON — flight, train, bus, car, taxi, bicycle, cruise, ferry, transit, transport_other — use create_transport instead. Linking: hotel → use place_id + start_day_id + end_day_id (all three required to create the accommodation link); restaurant/event/tour/activity/parking/other → use assignment_id. Set price to record the cost; it will appear on the booking and in the Budget tab.',
     inputSchema: {
       tripId: z.number().int().positive(),
       title: z.string().min(1).max(200),
-      type: z.enum(['hotel', 'restaurant', 'event', 'tour', 'activity', 'parking', 'other']).describe('Reservation type: "hotel", "restaurant", "event", "tour", "activity", "parking", or "other"'),
+      type: z.enum(BOOKING_TYPES).describe('Reservation type: "hotel", "restaurant", "event", "tour", "activity", "parking", or "other"'),
       reservation_time: z.string().optional().describe('ISO 8601 datetime or time string'),
       location: z.string().max(500).optional(),
       confirmation_number: z.string().max(100).optional(),
@@ -324,7 +333,7 @@ export class ReservationsMcp {
   })
   async createReservation(
     { tripId, title, type, reservation_time, location, confirmation_number, notes, day_id, place_id, start_day_id, end_day_id, check_in, check_out, assignment_id, price, budget_category }: {
-      tripId: number; title: string; type: 'hotel' | 'restaurant' | 'event' | 'tour' | 'activity' | 'parking' | 'other';
+      tripId: number; title: string; type: BookingType;
       reservation_time?: string; location?: string; confirmation_number?: string; notes?: string;
       day_id?: number; place_id?: number; start_day_id?: number; end_day_id?: number;
       check_in?: string; check_out?: string; assignment_id?: number; price?: number; budget_category?: string;
@@ -379,12 +388,12 @@ export class ReservationsMcp {
 
   @Tool({
     name: 'update_reservation',
-    description: 'Update an existing reservation in a trip. Use status "confirmed" to confirm a pending recommendation, or "pending" to revert it. For flights, trains, cars, and cruises, use update_transport instead. Linking: hotel → use place_id to link to an accommodation place; restaurant/event/tour/activity/parking/other → use assignment_id to link to a day assignment.',
+    description: 'Update an existing reservation in a trip. Use status "confirmed" to confirm a pending recommendation, or "pending" to revert it. For anything travelled ON — flight, train, bus, car, taxi, bicycle, cruise, ferry, transit, transport_other — use update_transport instead. Linking: hotel → use place_id to link to an accommodation place; restaurant/event/tour/activity/parking/other → use assignment_id to link to a day assignment.',
     inputSchema: {
       tripId: z.number().int().positive(),
       reservationId: z.number().int().positive(),
       title: z.string().min(1).max(200).optional(),
-      type: z.enum(['hotel', 'restaurant', 'event', 'tour', 'activity', 'parking', 'other']).optional().describe('Reservation type: "hotel", "restaurant", "event", "tour", "activity", "parking", or "other"'),
+      type: z.enum(BOOKING_TYPES).optional().describe('Reservation type: "hotel", "restaurant", "event", "tour", "activity", "parking", or "other"'),
       reservation_time: z.string().optional().describe('ISO 8601 datetime or time string'),
       location: z.string().max(500).optional(),
       confirmation_number: z.string().max(100).optional(),
@@ -399,7 +408,7 @@ export class ReservationsMcp {
   async updateReservation(
     { tripId, reservationId, title, type, reservation_time, location, confirmation_number, notes, status, place_id, assignment_id }: {
       tripId: number; reservationId: number; title?: string;
-      type?: 'hotel' | 'restaurant' | 'event' | 'tour' | 'activity' | 'parking' | 'other';
+      type?: BookingType;
       reservation_time?: string; location?: string; confirmation_number?: string; notes?: string;
       status?: 'pending' | 'confirmed' | 'cancelled'; place_id?: number | null; assignment_id?: number | null;
     },
@@ -571,10 +580,10 @@ export class ReservationsMcp {
 
   @Tool({
     name: 'create_transport',
-    description: 'Create a transport booking (flight, train, car, or cruise) for a trip. Use endpoints[] to record origin/destination and intermediate stops — for flights, set code to the IATA airport code (use search_airports first). For a booking WITH STOPOVERS also pass legs[] (one entry per segment, one fewer than endpoints[]), otherwise every segment inherits the stop time as both its arrival and its departure. The top-level confirmation_number is the booking reference; when a single segment was booked under its own reference, put that one on the leg instead. Created as pending — confirm with update_transport. Set price to record the cost; it will appear on the booking and in the Budget tab.',
+    description: 'Create a transport booking for a trip — flight, train, bus, car, taxi, bicycle, cruise, ferry, transit or transport_other. Use endpoints[] to record origin/destination and intermediate stops — for flights, set code to the IATA airport code (use search_airports first). For a booking WITH STOPOVERS also pass legs[] (one entry per segment, one fewer than endpoints[]), otherwise every segment inherits the stop time as both its arrival and its departure. The top-level confirmation_number is the booking reference; when a single segment was booked under its own reference, put that one on the leg instead. Created as pending — confirm with update_transport. Set price to record the cost; it will appear on the booking and in the Budget tab.',
     inputSchema: {
       tripId: z.number().int().positive(),
-      type: z.enum(['flight', 'train', 'car', 'cruise']),
+      type: z.enum(TRANSPORT_TYPES),
       title: z.string().min(1).max(200),
       status: z.enum(['pending', 'confirmed', 'cancelled']).optional().default('pending'),
       start_day_id: z.number().int().positive().optional().describe('Departure day'),
@@ -595,7 +604,7 @@ export class ReservationsMcp {
   })
   async createTransport(
     { tripId, type, title, status, start_day_id, end_day_id, reservation_time, reservation_end_time, confirmation_number, notes, metadata, endpoints, legs, needs_review, price, budget_category }: {
-      tripId: number; type: 'flight' | 'train' | 'car' | 'cruise'; title: string;
+      tripId: number; type: TransportType; title: string;
       status?: 'pending' | 'confirmed' | 'cancelled'; start_day_id?: number; end_day_id?: number;
       reservation_time?: string; reservation_end_time?: string; confirmation_number?: string; notes?: string;
       metadata?: Record<string, string>; endpoints?: TransportEndpoint[]; legs?: TransportLegInput[]; needs_review?: boolean;
@@ -683,7 +692,7 @@ export class ReservationsMcp {
     inputSchema: {
       tripId: z.number().int().positive(),
       reservationId: z.number().int().positive(),
-      type: z.enum(['flight', 'train', 'car', 'cruise']).optional(),
+      type: z.enum(TRANSPORT_TYPES).optional(),
       title: z.string().min(1).max(200).optional(),
       status: z.enum(['pending', 'confirmed', 'cancelled']).optional(),
       start_day_id: z.number().int().positive().optional().describe('Departure day'),
@@ -702,7 +711,7 @@ export class ReservationsMcp {
   })
   async updateTransport(
     { tripId, reservationId, type, title, status, start_day_id, end_day_id, reservation_time, reservation_end_time, confirmation_number, notes, metadata, endpoints, legs, needs_review }: {
-      tripId: number; reservationId: number; type?: 'flight' | 'train' | 'car' | 'cruise'; title?: string;
+      tripId: number; reservationId: number; type?: TransportType; title?: string;
       status?: 'pending' | 'confirmed' | 'cancelled'; start_day_id?: number; end_day_id?: number;
       reservation_time?: string; reservation_end_time?: string; confirmation_number?: string; notes?: string;
       metadata?: Record<string, string>; endpoints?: TransportEndpoint[]; legs?: TransportLegInput[]; needs_review?: boolean;
