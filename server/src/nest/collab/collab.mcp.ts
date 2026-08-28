@@ -57,7 +57,9 @@ function jsonContent(uri: string, data: unknown) {
  * read/write access markers (the legacy `if (R)` / `if (W)` checks, resolved
  * by trekMcpAccessPolicy). The list tools check only trip access (as legacy);
  * vote_collab_poll gained the demo-user gate the legacy registrar was missing,
- * matching every other collab write tool.
+ * matching every other collab write tool. The two note write tools have since
+ * gained `website`, which the REST route has always accepted and the note card
+ * renders as a link preview.
  */
 @McpController()
 export class CollabMcp {
@@ -79,6 +81,7 @@ export class CollabMcp {
       content: z.string().max(10000).optional(),
       category: z.string().max(100).optional().describe('Note category (e.g. "Ideas", "To-do", "General")'),
       color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().describe('Hex color for the note card'),
+      website: z.string().max(500).nullable().optional().describe('Link to attach to the note; the card renders it as a preview thumbnail. Pass null to remove it'),
       pinned: z.boolean().optional().default(false).describe('Pin the note to the top'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -86,15 +89,15 @@ export class CollabMcp {
     access: { group: 'collab', mode: 'write' },
   })
   async createCollabNote(
-    { tripId, title, content, category, color, pinned }: {
-      tripId: number; title: string; content?: string; category?: string; color?: string; pinned?: boolean;
+    { tripId, title, content, category, color, website, pinned }: {
+      tripId: number; title: string; content?: string; category?: string; color?: string; website?: string | null; pinned?: boolean;
     },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.collab.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('collab_edit', tripId, ctx.userId)) return permissionDenied();
-    const note = this.collab.createNote(tripId, ctx.userId, { title, content, category, color, pinned });
+    const note = this.collab.createNote(tripId, ctx.userId, { title, content, category, color, website, pinned });
     this.guards.safeBroadcast(tripId, 'collab:note:created', { note });
     return ok({ note });
   }
@@ -109,6 +112,7 @@ export class CollabMcp {
       content: z.string().max(10000).optional(),
       category: z.string().max(100).optional(),
       color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().describe('Hex color for the note card'),
+      website: z.string().max(500).nullable().optional().describe('Link to attach to the note, or null to remove the one it has'),
       pinned: z.boolean().optional().describe('Pin the note to the top'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -116,15 +120,15 @@ export class CollabMcp {
     access: { group: 'collab', mode: 'write' },
   })
   async updateCollabNote(
-    { tripId, noteId, title, content, category, color, pinned }: {
-      tripId: number; noteId: number; title?: string; content?: string; category?: string; color?: string; pinned?: boolean;
+    { tripId, noteId, title, content, category, color, website, pinned }: {
+      tripId: number; noteId: number; title?: string; content?: string; category?: string; color?: string; website?: string | null; pinned?: boolean;
     },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.collab.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('collab_edit', tripId, ctx.userId)) return permissionDenied();
-    const note = this.collab.updateNote(tripId, noteId, { title, content, category, color, pinned });
+    const note = this.collab.updateNote(tripId, noteId, { title, content, category, color, website, pinned });
     if (!note) return errorResult('Note not found.');
     this.guards.safeBroadcast(tripId, 'collab:note:updated', { note });
     return ok({ note });
