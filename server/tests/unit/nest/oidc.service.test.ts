@@ -678,6 +678,54 @@ describe('findOrCreateUser', () => {
     expect(row.avatar).toBe('https://idp.example.com/u/new.png');
   });
 
+  // #2110 — the admin repoints the instance at a different IdP. The user still logs in,
+  // because the verified-email lookup finds the row, but everything the old provider put
+  // on it used to survive: an avatar URL on a host this instance no longer talks to, and
+  // a sub/issuer pair pinning the account to a provider that is gone.
+  it('OIDC-SVC-060: a provider without a picture claim clears the previous provider avatar', () => {
+    const { user } = createUser(testDb, { email: 'switch1@example.com' });
+    testDb.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ?, avatar = ? WHERE id = ?')
+      .run('sub-old-1', 'https://old-idp.example.com', 'https://old-idp.example.com/u/me.png', user.id);
+
+    svc.findOrCreateUser(
+      { sub: 'sub-new-1', email: 'switch1@example.com', name: 'Switcher', email_verified: true },
+      { ...MOCK_CONFIG, issuer: 'https://new-idp.example.com' },
+    );
+
+    const row = testDb.prepare('SELECT avatar FROM users WHERE id = ?').get(user.id) as any;
+    expect(row.avatar).toBeNull();
+  });
+
+  it('OIDC-SVC-061: an uploaded avatar survives the same switch', () => {
+    const { user } = createUser(testDb, { email: 'switch2@example.com' });
+    // A local upload is a bare filename, not a URL, and belongs to the user.
+    testDb.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ?, avatar = ? WHERE id = ?')
+      .run('sub-old-2', 'https://old-idp.example.com', 'uploaded-abc.jpg', user.id);
+
+    svc.findOrCreateUser(
+      { sub: 'sub-new-2', email: 'switch2@example.com', name: 'Switcher', email_verified: true },
+      { ...MOCK_CONFIG, issuer: 'https://new-idp.example.com' },
+    );
+
+    const row = testDb.prepare('SELECT avatar FROM users WHERE id = ?').get(user.id) as any;
+    expect(row.avatar).toBe('uploaded-abc.jpg');
+  });
+
+  it('OIDC-SVC-062: the account is relinked to the new provider sub and issuer', () => {
+    const { user } = createUser(testDb, { email: 'switch3@example.com' });
+    testDb.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?')
+      .run('sub-old-3', 'https://old-idp.example.com', user.id);
+
+    svc.findOrCreateUser(
+      { sub: 'sub-new-3', email: 'switch3@example.com', name: 'Switcher', email_verified: true },
+      { ...MOCK_CONFIG, issuer: 'https://new-idp.example.com' },
+    );
+
+    const row = testDb.prepare('SELECT oidc_sub, oidc_issuer FROM users WHERE id = ?').get(user.id) as any;
+    expect(row.oidc_sub).toBe('sub-new-3');
+    expect(row.oidc_issuer).toBe('https://new-idp.example.com');
+  });
+
   it('OIDC-SVC-053: returns no_email when the email claim is missing (no throw)', () => {
     const result = svc.findOrCreateUser({ sub: 'sub-no-email', name: 'No Email' }, MOCK_CONFIG);
     expect('error' in result).toBe(true);

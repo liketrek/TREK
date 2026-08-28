@@ -525,6 +525,14 @@ export class OidcService implements OnModuleDestroy {
           return { error: 'email_not_verified' };
         }
         this.db.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?').run(sub, config.issuer, user.id);
+        user = { ...user, oidc_sub: sub, oidc_issuer: config.issuer } as User;
+      } else if (user.oidc_issuer !== config.issuer || user.oidc_sub !== sub) {
+        // The admin pointed the instance at a different IdP. We got here through the
+        // verified-email lookup, so this is the same person arriving from the new
+        // provider; leaving the old sub and issuer on the row would keep the account
+        // pinned to a provider that no longer exists (#2110).
+        this.db.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?').run(sub, config.issuer, user.id);
+        user = { ...user, oidc_sub: sub, oidc_issuer: config.issuer } as User;
       }
       // Update role based on OIDC claims on every login (if claim mapping is configured)
       if (readEnv().oidc.adminValue) {
@@ -547,10 +555,16 @@ export class OidcService implements OnModuleDestroy {
         }
       }
       // Keep the avatar in sync with the OIDC picture, but never clobber a custom
-      // upload: only fill it when empty or when the current value is itself an OIDC
+      // upload: only touch it when empty or when the current value is itself an OIDC
       // picture URL, so the picture refreshes on each login without overriding an
       // uploaded one. #1399
-      if (picture && picture !== user.avatar && (!user.avatar || /^https:\/\//i.test(user.avatar))) {
+      //
+      // "In sync" includes the provider having no picture for this user any more. That
+      // is what a provider switch looks like from here, and the old value points at a
+      // host this instance no longer talks to, so it renders as a broken image forever
+      // (#2110). An uploaded avatar is a bare filename and stays untouched either way.
+      const avatarIsOidc = !!user.avatar && /^https:\/\//i.test(user.avatar);
+      if (picture ? picture !== user.avatar && (!user.avatar || avatarIsOidc) : avatarIsOidc) {
         this.db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(picture, user.id);
         user = { ...user, avatar: picture } as User;
       }
