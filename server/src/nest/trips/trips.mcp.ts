@@ -333,6 +333,92 @@ export class TripsMcp {
     return ok({ success: true });
   }
 
+  // --- GUESTS (#1362) ---
+  //
+  // add_trip_member resolves an existing account by username or email, so a
+  // travelling companion who has never signed up could be put on a trip in the
+  // planner and not through an assistant. These three mirror the owner-only
+  // /api/trips/:id/guests routes (trip-members.controller.ts): a guest is a
+  // credential-less users row assignable to budget splits, packing and day
+  // participants exactly like a member, so importing a past trip no longer has
+  // to drop who was on it.
+
+  @Tool({
+    name: 'create_trip_guest',
+    description: 'Add a travelling companion who has no TREK account to a trip. Use this when the person cannot be found by username or email — a guest can be assigned to budget splits, packing items, to-dos and day participants like any member, but never signs in and is never emailed. Only the trip owner can do this.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      name: z.string().min(1).max(50).describe('Display name of the guest, e.g. "Anna"'),
+    },
+    annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+    access: { group: 'trips', mode: 'write' },
+  })
+  async createTripGuest({ tripId, name }: { tripId: number; name: string }, ctx: McpContext) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.trips.canAccessTrip(tripId, ctx.userId)) return noAccess();
+    const ownerRow = this.trips.getOwner(tripId);
+    if (!ownerRow || ownerRow.user_id !== ctx.userId)
+      return { content: [{ type: 'text' as const, text: 'Only the trip owner can manage guests.' }], isError: true };
+    try {
+      // No notifyInvite: a guest has no inbox.
+      const { member } = this.members.createGuest(tripId, name, ctx.userId);
+      this.guards.safeBroadcast(tripId, 'member:added', { member });
+      return ok({ member });
+    } catch (err) {
+      const msg = err instanceof ValidationError ? err.message : 'Failed to create guest.';
+      return { content: [{ type: 'text' as const, text: msg }], isError: true };
+    }
+  }
+
+  @Tool({
+    name: 'rename_trip_guest',
+    description: 'Rename a guest on a trip. Only the trip owner can do this.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      guestId: z.number().int().positive().describe('User ID of the guest, from list_trip_members'),
+      name: z.string().min(1).max(50).describe('New display name'),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    access: { group: 'trips', mode: 'write' },
+  })
+  async renameTripGuest({ tripId, guestId, name }: { tripId: number; guestId: number; name: string }, ctx: McpContext) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.trips.canAccessTrip(tripId, ctx.userId)) return noAccess();
+    const ownerRow = this.trips.getOwner(tripId);
+    if (!ownerRow || ownerRow.user_id !== ctx.userId)
+      return { content: [{ type: 'text' as const, text: 'Only the trip owner can manage guests.' }], isError: true };
+    try {
+      if (!this.members.renameGuest(tripId, guestId, name))
+        return { content: [{ type: 'text' as const, text: 'Guest not found.' }], isError: true };
+    } catch (err) {
+      const msg = err instanceof ValidationError ? err.message : 'Failed to rename guest.';
+      return { content: [{ type: 'text' as const, text: msg }], isError: true };
+    }
+    return ok({ success: true });
+  }
+
+  @Tool({
+    name: 'delete_trip_guest',
+    description: 'Remove a guest from a trip. This deletes the guest outright — they exist only for this trip — and re-splits any expenses they were part of. Only the trip owner can do this.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      guestId: z.number().int().positive().describe('User ID of the guest, from list_trip_members'),
+    },
+    annotations: TOOL_ANNOTATIONS_DELETE,
+    access: { group: 'trips', mode: 'write' },
+  })
+  async deleteTripGuest({ tripId, guestId }: { tripId: number; guestId: number }, ctx: McpContext) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.trips.canAccessTrip(tripId, ctx.userId)) return noAccess();
+    const ownerRow = this.trips.getOwner(tripId);
+    if (!ownerRow || ownerRow.user_id !== ctx.userId)
+      return { content: [{ type: 'text' as const, text: 'Only the trip owner can manage guests.' }], isError: true };
+    if (!this.members.deleteGuest(tripId, guestId))
+      return { content: [{ type: 'text' as const, text: 'Guest not found.' }], isError: true };
+    this.guards.safeBroadcast(tripId, 'member:removed', { userId: guestId });
+    return ok({ success: true });
+  }
+
   @Tool({
     name: 'copy_trip',
     description: 'Duplicate a trip (all days, places, itinerary, packing, budget, reservations, day notes). Packing items and to-dos are reset to unchecked. Returns the new trip.',

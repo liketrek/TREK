@@ -37,6 +37,9 @@ Requires `trips:read` or `trips:write` scope.
 | `list_trip_members` | List the owner and all collaborators of a trip. |
 | `add_trip_member` | Add a user to a trip by username or email. Owner only. |
 | `remove_trip_member` | Remove a collaborator from a trip. Owner only. |
+| `create_trip_guest` | Add a travelling companion who has no TREK account. Assignable to budget splits, packing and day participants; never signs in, never emailed. Owner only. |
+| `rename_trip_guest` | Rename a guest on a trip. Owner only. |
+| `delete_trip_guest` | Delete a guest and re-split the expenses they were part of. Owner only. |
 | `copy_trip` | Duplicate a trip (days, places, itinerary, packing, budget, reservations). Packing items reset to unchecked. |
 | `export_trip_ics` | Export the trip itinerary and reservations as iCalendar (`.ics`) text. |
 | `get_share_link` | Get the current public share link for a trip and its permission flags. Requires `trips:share`. |
@@ -105,7 +108,7 @@ Requires `reservations:write` scope.
 
 | Tool | Description |
 |---|---|
-| `create_transport` | Create a transport booking (`flight`, `train`, `car`, `cruise`) with optional multi-stop endpoints, departure/arrival times, and confirmation details. |
+| `create_transport` | Create a transport booking (`flight`, `train`, `bus`, `car`, `taxi`, `bicycle`, `cruise`, `ferry`, `transit`, `transport_other`) with optional multi-stop endpoints, departure/arrival times, and confirmation details. |
 | `update_transport` | Update an existing transport booking. Pass `endpoints[]` to replace all stops. |
 | `delete_transport` | Delete a transport booking from a trip. |
 
