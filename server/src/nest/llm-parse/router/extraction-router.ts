@@ -18,7 +18,7 @@
  * existing `nuExtractToKiReservations` mapper, so nothing downstream changes.
  */
 
-import { normalizeLocalDateTime } from '@trek/shared';
+import { normalizeLocalDateTime, parseMeridiemClock } from '@trek/shared';
 import type { KiReservation } from '../../booking-import/kitinerary.types';
 import { nuExtractToKiReservations } from '../clients/nuextract';
 import { FLAT_SCHEMA_BY_TYPE, FLAT_TYPES, FLIGHTS_ARRAY_SCHEMA, UNION_SINGLE_SCHEMA, type FlatType, type FlatLike } from './flat-schemas';
@@ -151,17 +151,16 @@ export function extractTotalPrice(text: string): { price: string; currency?: str
  */
 export function fixArrivalDate(flat: FlatLike): FlatLike {
   if (!TRANSPORT_TYPES.includes(flat.type)) return flat;
-  // Both sides go through the 12-hour normalizer first. Reading the arrival
-  // with a bare /(\d{2}:\d{2})/ used to throw a trailing "PM" away, and the
-  // comparison below is lexicographic: "04:00" < "12:40" rolled a 13:11
-  // arrival onto the next day and turned a short hop into an overnight (#2094).
-  const depSource = normalizeLocalDateTime(String(flat.departure_time ?? ''));
-  const arrSource = normalizeLocalDateTime(String(flat.arrival_time ?? ''));
-  const dep = /(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(depSource);
-  const arr = /(\d{2}:\d{2})/.exec(arrSource.slice(10));
-  if (!dep || !arr) return flat;
+  const dep = /(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(normalizeLocalDateTime(String(flat.departure_time ?? '')));
+  // The arrival reaches us either as a bare clock ("13:00", "01:11 pm") or as a
+  // full date-time, so try the bare form first and fall back to the normalized
+  // string. Reading it with a plain /(\d{2}:\d{2})/ used to throw a trailing
+  // "PM" away, and the comparison below is lexicographic: "01:11" sorts before
+  // a 09:51 departure, so a short hop was rolled onto the next day (#2094).
+  const rawArr = String(flat.arrival_time ?? '').trim();
+  const arrTime = parseMeridiemClock(rawArr) ?? /(\d{2}:\d{2})/.exec(normalizeLocalDateTime(rawArr))?.[1];
+  if (!dep || !arrTime) return flat;
   const [, depDate, depTime] = dep;
-  const arrTime = arr[1];
   const d = new Date(`${depDate}T00:00:00Z`);
   if (arrTime < depTime) d.setUTCDate(d.getUTCDate() + 1);
   flat.arrival_time = `${d.toISOString().slice(0, 10)}T${arrTime}:00`;
