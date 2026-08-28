@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore, hasStoredLanguage } from '../../store/settingsStore'
 import { useTranslation, detectBrowserLanguage } from '../../i18n'
 import { startAuthentication } from '@simplewebauthn/browser'
+import { wasSignedOut } from '../../utils/signedOut'
 import { authApi, configApi } from '../../api/client'
 import { getApiErrorMessage } from '../../types'
 import { START_DESTINATION_ROUTE } from '../../utils/startDestination'
@@ -66,7 +67,10 @@ export function useLogin() {
   const { setLanguageLocal, setLanguageTransient, loadSettings } = useSettingsStore()
   const navigate = useNavigate()
   const location = useLocation()
-  const noRedirect = !!(location.state as { noRedirect?: boolean } | null)?.noRedirect
+  // Location state alone is not enough: a deliberate sign-out loses it to
+  // ProtectedRoute's stateless <Navigate replace>, and to any full document
+  // load. The per-tab marker survives both — see utils/signedOut (#2123).
+  const noRedirect = !!(location.state as { noRedirect?: boolean } | null)?.noRedirect || wasSignedOut()
 
   const redirectTarget = useMemo(() => {
     const params = new URLSearchParams(window.location.search)
@@ -99,6 +103,16 @@ export function useLogin() {
   }
 
   useEffect(() => {
+    // Hoisted out of the `oidcCode` branch below (#2126). An exchange in flight
+    // owns this page, but it strips `oidc_code` from the URL before it navigates
+    // away — so while it waits on /api/auth/me and IndexedDB, a re-run of this
+    // effect read an empty search, fell past the branch that used to hold the
+    // guard, and reached the auto-redirect at the bottom. That bounced to the
+    // IdP, which answered silently, which landed back here: the loop the
+    // reporter saw flashing. Guarding on the ref alone closes it whatever
+    // re-triggers the effect.
+    if (exchangeInitiated.current) return
+
     const params = new URLSearchParams(window.location.search)
 
     const invite = params.get('invite')
@@ -117,7 +131,6 @@ export function useLogin() {
     }
 
     if (oidcCode) {
-      if (exchangeInitiated.current) return
       exchangeInitiated.current = true
       setIsLoading(true)
       fetch('/api/auth/oidc/exchange?code=' + encodeURIComponent(oidcCode), { credentials: 'include' })

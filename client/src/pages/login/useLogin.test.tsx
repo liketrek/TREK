@@ -7,6 +7,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { buildAppConfig } from '../../../tests/helpers/factories';
+import { markSignedOut, clearSignedOut, wasSignedOut } from '../../utils/signedOut';
 import { TranslationProvider } from '../../i18n/TranslationContext';
 import { useAuthStore, type LoginResult } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -966,5 +967,88 @@ describe('useLogin — register visibility rules', () => {
     await ready(result);
 
     expect(result.current.showRegisterOption).toBe(true);
+  });
+});
+
+/*
+ * OIDC-only: the two ways the login page used to sign a user back in against
+ * their will. Both need `password_login: false`, because that is what arms the
+ * automatic bounce to the provider at useLogin's config probe.
+ */
+describe('OIDC-only auto-redirect suppression', () => {
+  function oidcOnly() {
+    server.use(
+      http.get('/api/auth/app-config', () =>
+        HttpResponse.json(buildAppConfig({ password_login: false, oidc_login: true, oidc_configured: true, has_users: true }))),
+    );
+  }
+
+  // #2126. The exchange strips oidc_code from the URL before it navigates away,
+  // so a re-run of the effect during that window used to read an empty search,
+  // miss the guard that sat inside the oidc_code branch, and reach the bounce.
+  it('FE-LOGIN-HOOK-200: an exchange in flight suppresses the bounce even after it stripped oidc_code', async () => {
+    oidcOnly();
+    let release: (v: unknown) => void = () => {};
+    server.use(
+      http.get('/api/auth/oidc/exchange', async () => {
+        await new Promise(r => { release = r; });
+        return HttpResponse.json({ token: 'tok' });
+      }),
+    );
+    setSearch('?oidc_code=CODE-1');
+    renderLogin();
+
+    // The exchange has not answered yet. Strip the parameter the way its own
+    // `.then` does, then re-run the effect the way the real page does: `t` is
+    // one of the effect's dependencies and changes identity whenever the
+    // language does, which happens on every non-English install (the login page
+    // sets a transient language, and the locale chunk resolves asynchronously).
+    setSearch('');
+    await act(async () => {
+      useSettingsStore.getState().setLanguageTransient('fr');
+      await new Promise(r => setTimeout(r, 20));
+    });
+
+    expect(window.location.href).not.toContain('/api/auth/oidc/login');
+    release(null);
+  });
+
+  // #2123. A deliberate sign-out loses its location state to ProtectedRoute's
+  // stateless <Navigate replace>, and to any full document load, so the brake
+  // has to live somewhere that survives both.
+  it('FE-LOGIN-HOOK-201: a tab that just signed out does not bounce to the provider', async () => {
+    oidcOnly();
+    markSignedOut();
+    const { result } = renderLogin();
+    await ready(result);
+    expect(window.location.href).not.toContain('/api/auth/oidc/login');
+  });
+
+  it('FE-LOGIN-HOOK-202: the marker is per tab, so a fresh tab still auto-SSOs', async () => {
+    oidcOnly();
+    clearSignedOut();
+    const { result } = renderLogin();
+    await ready(result);
+    expect(window.location.href).toContain('/api/auth/oidc/login');
+  });
+
+  it('FE-LOGIN-HOOK-203: signing back in clears the marker, so the next visit auto-SSOs again', async () => {
+    markSignedOut();
+    expect(wasSignedOut()).toBe(true);
+    clearSignedOut();
+    expect(wasSignedOut()).toBe(false);
+  });
+
+  it('FE-LOGIN-HOOK-204: password installs are untouched by the marker', async () => {
+    server.use(
+      http.get('/api/auth/app-config', () =>
+        HttpResponse.json(buildAppConfig({ password_login: true, oidc_login: true, oidc_configured: true, has_users: true }))),
+    );
+    markSignedOut();
+    const { result } = renderLogin();
+    await ready(result);
+    // Never redirected in the first place: the bounce requires password_login false.
+    expect(window.location.href).not.toContain('/api/auth/oidc/login');
+    expect(result.current.appConfig?.password_login).toBe(true);
   });
 });
