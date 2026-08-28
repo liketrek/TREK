@@ -108,7 +108,7 @@ Requires `reservations:write` scope.
 
 | Tool | Description |
 |---|---|
-| `create_transport` | Create a transport booking (`flight`, `train`, `bus`, `car`, `taxi`, `bicycle`, `cruise`, `ferry`, `transit`, `transport_other`) with optional multi-stop endpoints, departure/arrival times, and confirmation details. |
+| `create_transport` | Create a transport booking — the nine types the transport form offers (`flight`, `train`, `bus`, `car`, `taxi`, `bicycle`, `cruise`, `ferry`, `transport_other`) — with optional multi-stop endpoints, departure/arrival times, and confirmation details. Scheduled public transit goes through `create_transit_journey` instead. |
 | `update_transport` | Update an existing transport booking. Pass `endpoints[]` to replace all stops. |
 | `delete_transport` | Delete a transport booking from a trip. |
 
@@ -132,7 +132,7 @@ Requires `reservations:read` or `reservations:write` scope.
 | `update_reservation` | Update any field including status (`pending` / `confirmed` / `cancelled`). |
 | `delete_reservation` | Delete a reservation and its linked accommodation record if applicable. |
 | `reorder_reservations` | Reorder reservations within a day. |
-| `set_reservation_travelers` | Set who is travelling on a booking, from the trip roster (members and guests). Replaces the list; an empty array clears it. |
+| `set_reservation_travelers` | Set who is travelling on a booking, from the trip roster (members and guests). Replaces the list; an empty array clears it. Ids that are not on the trip come back under `ignored_user_ids` rather than being attached. |
 | `link_hotel_accommodation` | Set or update a hotel reservation's check-in/out day links and place. |
 
 ### Budget

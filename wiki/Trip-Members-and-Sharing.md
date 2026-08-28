@@ -79,6 +79,8 @@ In the owner's Guests section, each guest row has a **Rename** (pencil) and a **
 
 There is no limit on the number of guests per trip.
 
+> **AI / MCP:** an assistant can do all three — `create_trip_guest`, `rename_trip_guest`, `delete_trip_guest` — and is held to the same owner-only rule. See [MCP-Tools-and-Resources](MCP-Tools-and-Resources).
+
 ## Public Share Link
 
 The right column is only visible to users with the `share_manage` permission (default: trip owner).

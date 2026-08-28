@@ -592,6 +592,23 @@ describe('Tool: set_reservation_travelers', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.travelers.map((t: any) => t.user_id)).toEqual([owner.id]);
+      // A caller that guessed an id for a name it could not resolve is told so
+      // rather than getting a plain success with a shorter list.
+      expect(data.ignored_user_ids).toEqual([outsider.id]);
+    });
+  });
+
+  it('says nothing about ignored ids when every id was on the trip', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    await withHarness(owner.id, async (h) => {
+      const reservationId = await makeBooking(h, trip.id);
+      const result = await h.client.callTool({
+        name: 'set_reservation_travelers',
+        arguments: { tripId: trip.id, reservationId, user_ids: [owner.id] },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.ignored_user_ids).toBeUndefined();
     });
   });
 

@@ -1052,11 +1052,11 @@ describe('Tool: update_transport (multi-leg)', () => {
 
 /** client/src/components/Planner/TransportModal.tsx, in the picker's order. */
 const PICKER_TRANSPORT_TYPES = [
-  'flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other',
+  'flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other',
 ] as const;
 
-/** The six the tools used to reject outright. */
-const NEWLY_ACCEPTED = ['bus', 'taxi', 'bicycle', 'ferry', 'transit', 'transport_other'] as const;
+/** The five the tools used to reject outright. */
+const NEWLY_ACCEPTED = ['bus', 'taxi', 'bicycle', 'ferry', 'transport_other'] as const;
 
 describe('Transport tools: the full type list', () => {
   it.each(PICKER_TRANSPORT_TYPES)('create_transport accepts %s', async (type) => {
@@ -1169,6 +1169,36 @@ describe('Transport tools: the full type list', () => {
         arguments: { tripId: trip.id, type: 'teleport', title: 'Nope' },
       });
       expect((result as { isError?: boolean }).isError).toBe(true);
+    });
+  });
+
+  it('refuses to hand-make a transit booking, which create_transit_journey owns', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_transport',
+        arguments: { tripId: trip.id, type: 'transit', title: 'Tram 4' },
+      });
+      expect((result as { isError?: boolean }).isError).toBe(true);
+    });
+  });
+
+  it('still lets update_transport reach a stored transit booking', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    // As create_transit_journey leaves it: a transport row carrying an itinerary.
+    const reservationId = Number(testDb.prepare(
+      "INSERT INTO reservations (trip_id, title, type, status) VALUES (?, 'Tram 4', 'transit', 'pending')"
+    ).run(trip.id).lastInsertRowid);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_transport',
+        arguments: { tripId: trip.id, reservationId, status: 'confirmed' },
+      });
+      expect((result as { isError?: boolean }).isError).toBeFalsy();
+      const row = testDb.prepare('SELECT status, type FROM reservations WHERE id = ?').get(reservationId) as any;
+      expect(row).toMatchObject({ status: 'confirmed', type: 'transit' });
     });
   });
 
