@@ -40,6 +40,7 @@ import { ReservationsReadRepository } from '../../src/nest/reservations/reservat
 import { TagsMcp } from '../../src/nest/tags/tags.mcp';
 import { TagsService } from '../../src/nest/tags/tags.service';
 import { SettingsService } from '../../src/nest/settings/settings.service';
+import { SettingsMcp } from '../../src/nest/settings/settings.mcp';
 import { ShareMcp } from '../../src/nest/share/share.mcp';
 import { ShareService } from '../../src/nest/share/share.service';
 import { TodoMcp } from '../../src/nest/todo/todo.mcp';
@@ -47,6 +48,7 @@ import { TodoService } from '../../src/nest/todo/todo.service';
 import { TransitMcp } from '../../src/nest/transit/transit.mcp';
 import { TransitService } from '../../src/nest/transit/transit.service';
 import { FilesService } from '../../src/nest/files/files.service';
+import { FilesMcp } from '../../src/nest/files/files.mcp';
 import { TripsMcp } from '../../src/nest/trips/trips.mcp';
 import { TripsService } from '../../src/nest/trips/trips.service';
 import { VacayMcp } from '../../src/nest/vacay/vacay.mcp';
@@ -64,6 +66,10 @@ import { WebauthnConfigService } from '../../src/nest/auth/webauthn-config.servi
 import { TripMembershipService } from '../../src/nest/trip-membership/trip-membership.service';
 import { MailerService } from '../../src/nest/notifications/mailer/mailer.service';
 import { CalendarService } from '../../src/nest/calendar/calendar.service';
+import { FeedsMcp } from '../../src/nest/feeds/feeds.mcp';
+import { FeedsService } from '../../src/nest/feeds/feeds.service';
+import { TripInviteMcp } from '../../src/nest/trip-invite/trip-invite.mcp';
+import { TripInviteService } from '../../src/nest/trip-invite/trip-invite.service';
 import { AccommodationsService } from '../../src/nest/accommodations/accommodations.service';
 import { AccommodationsMcp } from '../../src/nest/accommodations/accommodations.mcp';
 import { TripMembersService } from '../../src/nest/trip-members/trip-members.service';
@@ -76,7 +82,32 @@ import { AddonsService } from '../../src/nest/addons/addons.service';
 import { notificationsStub } from './notifications';
 import { EphemeralTokenService } from '../../src/nest/auth/ephemeral-token.service';
 import { AllowedFileTypesService } from '../../src/nest/files/allowed-file-types.service';
+import { MemoriesMcp } from '../../src/nest/memories/memories.mcp';
+import { ImmichService } from '../../src/nest/memories/immich.service';
+import { SynologyService } from '../../src/nest/memories/synology.service';
+import { MemoriesAccessService } from '../../src/nest/memories/memories-access.service';
+import { PhotoCaptureBackfillService } from '../../src/nest/memories/photo-capture-backfill.service';
+import { PhotoResolverService } from '../../src/nest/memories/photo-resolver.service';
+import { ThumbnailService } from '../../src/nest/memories/thumbnail.service';
+import { TrekPhotoCacheService } from '../../src/nest/memories/trek-photo-cache.service';
+import { PhotoProviderRegistry } from '../../src/nest/memories/photo-provider.registry';
+import { ImmichPhotoProvider } from '../../src/nest/memories/providers/immich.provider';
+import { SynologyPhotoProvider } from '../../src/nest/memories/providers/synology.provider';
+import { AuditService } from '../../src/nest/audit/audit.service';
 import { makeStorageFixture } from './storage-fixture';
+// No plugin supervisor in this harness, so PluginHooks is built over an inert runtime
+// and the warnings tool answers empty by default; the trip-warnings suite spies on
+// PluginHooks.prototype to play the provider fan-out.
+import { TripWarningsMcp } from '../../src/nest/plugins/contributions/trip-warnings.mcp';
+import { PluginHooks } from '../../src/nest/plugins/plugin-hooks.service';
+import type { PluginRuntimeService } from '../../src/nest/plugins/plugin-runtime.service';
+import { AirtrailMcp } from '../../src/nest/integrations/airtrail.mcp';
+import { AirtrailService } from '../../src/nest/integrations/airtrail.service';
+import { AirtrailClient } from '../../src/nest/integrations/airtrail.client';
+import { AirtrailImportService } from '../../src/nest/integrations/airtrail-import.service';
+import { ReservationImportMcp } from '../../src/nest/reservation-import/reservation-import.mcp';
+import { HelpMcp } from '../../src/nest/help/help.mcp';
+import { AddonsMcp } from '../../src/nest/addons/addons.mcp';
 
 /**
  * Hand-wired counterpart of the boot-time discovery in McpRegistryService,
@@ -157,10 +188,19 @@ export function createMcpTestRegistry(): McpRegistry {
   const addonsService = new AddonsService(dbService);
   // One instance, three consumers: AssignmentsMcp, ReservationsMcp and PlacesMcp.
   const assignmentsService = new AssignmentsService(dbService, permissionsService, realtimeService, queryHelpersService, journeyDomain);
+  // The two photo providers, shared by MemoriesMcp (which browses them) and by
+  // the capture backfill JourneyMcp schedules after a provider photo is attached
+  // (which asks them when and where it was taken). Built for real rather than
+  // stubbed: an empty provider registry would make the backfill answer "unknown
+  // provider" for every id and hide a wiring mistake behind a caught error.
+  const immichService = new ImmichService(dbService, new AuditService(dbService), new MemoriesAccessService(dbService), generalStorage);
+  const synologyService = new SynologyService(dbService, new MemoriesAccessService(dbService), notificationsStub());
+  const trekPhotos = new TrekPhotosRepository(dbService);
+  const captureBackfill = new PhotoCaptureBackfillService(new PhotoResolverService(trekPhotos, new ThumbnailService(addonsService, generalStorage, dbService), new TrekPhotoCacheService(dbService, generalStorage), new PhotoProviderRegistry([new ImmichPhotoProvider(immichService), new SynologyPhotoProvider(synologyService)]), generalStorage), trekPhotos, generalStorage);
   return createTestRegistry(
     [
       new TagsMcp(new TagsService(dbService), authService),
-      new CategoriesMcp(new CategoriesService(dbService), authService, guards),
+      new CategoriesMcp(new CategoriesService(dbService), dbService, new RuntimeEnvService(), guards),
       // The weather and airport tools left the legacy mapsWeather registrar.
       new WeatherMcp(new WeatherService()),
       new AirportsMcp(),
@@ -171,6 +211,7 @@ export function createMcpTestRegistry(): McpRegistry {
       new ReservationsMcp(reservationsService, daysService, budgetService, authService, assignmentsService, guards),
       new DayNotesMcp(new DayNotesService(dbService, permissionsService, realtimeService), authService, guards),
       new DaysMcp(daysService, authService, guards),
+      new FilesMcp(new FilesService(dbService, permissionsService, realtimeService, new EphemeralTokenService(), generalStorage), authService, guards),
       new AccommodationsMcp(accommodationsService, dbService, placesService, authService, guards),
       new AssignmentsMcp(assignmentsService, daysService, authService, guards),
       new CollabMcp(collabService, authService, addonsService, guards),
@@ -178,13 +219,21 @@ export function createMcpTestRegistry(): McpRegistry {
       new TripsMcp(tripsService, todoService, collabService, authService, calendarService, membersService, readModelService, addonsService, guards),
       new TripPromptsMcp(tripsService, readModelService, packingService, addonsService),
       new ShareMcp(new ShareService(dbService, new SettingsService(dbService), permissionsService, queryHelpersService, placePhotoCache), authService, guards),
+      new FeedsMcp(new FeedsService(dbService, calendarService), dbService, new RuntimeEnvService(), guards),
+      new TripInviteMcp(new TripInviteService(dbService, permissionsService, new TripMembershipService(dbService)), dbService, new RuntimeEnvService(), guards, new AuditService(dbService)),
       new MapsMcp(mapsService),
       new PlacesMcp(placesService, mapsService, dbService, authService, journeyDomain, assignmentsService, guards),
       new CollectionsMcp(new CollectionsService(dbService, permissionsService, realtimeService, notificationsStub(), generalStorage), dbService, authService, addonsService),
       new TransitMcp(new TransitService(), daysService, reservationsService, dbService, authService, guards),
       new AtlasMcp(new AtlasService(dbService), addonsService, authService),
-      new JourneyMcp(journeyDomain, new JourneyShareService(dbService, journeyDomain, new SettingsService(dbService)), addonsService, authService),
+      new JourneyMcp(journeyDomain, new JourneyShareService(dbService, journeyDomain, new SettingsService(dbService)), addonsService, authService, captureBackfill),
+      new MemoriesMcp(immichService, synologyService, dbService),
       new NotificationsMcp(makeNotificationsService(dbService, realtimeService), authService),
+      new AirtrailMcp(new AirtrailService(dbService, new AuditService(dbService), new AirtrailClient()), addonsService),
+      new ReservationImportMcp(new AirtrailImportService(dbService, realtimeService, reservationsService, new AirtrailClient(), new AirtrailService(dbService, new AuditService(dbService), new AirtrailClient())), dbService, authService, guards, addonsService),
+      new SettingsMcp(new SettingsService(dbService), authService),
+      new HelpMcp(), new AddonsMcp(addonsService),
+      new TripWarningsMcp(new PluginHooks({ providersOf: () => [], invokeHook: async () => [] } as unknown as PluginRuntimeService), dbService),
     ],
     { accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess },
   );

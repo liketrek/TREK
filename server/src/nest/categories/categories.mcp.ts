@@ -6,7 +6,9 @@ import {
 } from '../../nest-mcp';
 import { z } from 'zod';
 import { createCategoryRequestSchema, updateCategoryRequestSchema } from '@trek/shared';
-import { AuthService } from '../auth/auth.service';
+import { DatabaseService } from '../database/database.service';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { isDemoUserId } from '../common/demo-write';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { adminRequired } from '../../mcp/tools/_shared';
 import { CategoriesService } from './categories.service';
@@ -31,9 +33,15 @@ import { CategoriesService } from './categories.service';
 export class CategoriesMcp {
   constructor(
     private readonly categories: CategoriesService,
-    private readonly auth: AuthService,
+    private readonly db: DatabaseService,
+    private readonly env: RuntimeEnvService,
     private readonly guards: McpToolGuardsService,
   ) {}
+
+  /** The AuthService.isDemoUser check without the auth graph (demo-write.ts). */
+  private isDemoUser(userId: number): boolean {
+    return isDemoUserId(this.env, this.db, userId);
+  }
 
   @Tool({
     name: 'list_categories',
@@ -59,7 +67,7 @@ export class CategoriesMcp {
     access: { group: 'places', mode: 'write' },
   })
   async createCategory({ name, color, icon }: { name: string; color?: string; icon?: string }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (this.isDemoUser(ctx.userId)) return demoDenied();
     // The palette is instance-wide; the REST route restricts management to admins. Match it.
     if (!this.guards.isAdminUser(ctx.userId)) return adminRequired();
     const category = this.categories.create(ctx.userId, name, color, icon);
@@ -79,7 +87,7 @@ export class CategoriesMcp {
     access: { group: 'places', mode: 'write' },
   })
   async updateCategory({ categoryId, name, color, icon }: { categoryId: number; name?: string; color?: string; icon?: string }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (this.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.guards.isAdminUser(ctx.userId)) return adminRequired();
     if (!this.categories.getById(categoryId)) return errorResult('Category not found');
     const category = this.categories.update(categoryId, name, color, icon);
@@ -96,7 +104,7 @@ export class CategoriesMcp {
     access: { group: 'places', mode: 'write' },
   })
   async deleteCategory({ categoryId }: { categoryId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (this.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.guards.isAdminUser(ctx.userId)) return adminRequired();
     if (!this.categories.getById(categoryId)) return errorResult('Category not found');
     this.categories.remove(categoryId);

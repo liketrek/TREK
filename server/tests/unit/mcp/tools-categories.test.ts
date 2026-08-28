@@ -46,18 +46,10 @@ import { trekMcpAccessPolicy, trekMcpValidateAccess } from '../../../src/mcp/nes
 import { CategoriesMcp } from '../../../src/nest/categories/categories.mcp';
 import { CategoriesService } from '../../../src/nest/categories/categories.service';
 import { DatabaseService } from '../../../src/nest/database/database.service';
+import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { McpToolGuardsService } from '../../../src/nest/mcp-shared/mcp-tool-guards.service';
-import { AuthService } from '../../../src/nest/auth/auth.service';
-import { BudgetService } from '../../../src/nest/budget/budget.service';
-import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
-import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
-import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
-import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
-import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
-import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
-import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
 
 beforeAll(() => {
   createTables(testDb);
@@ -82,23 +74,15 @@ async function withHarness(
   try { await fn(h); } finally { await h.cleanup(); }
 }
 
-// The write tools reach the auth and guard collaborators, so they run against a
-// controller wired here rather than through the shared harness. Everything
-// points at this file's DB, which is what lets the admin gate and the demo gate
-// be driven from the users table instead of from a stub.
+// The write tools reach the guard collaborator, so they run against a controller
+// wired here rather than through the shared harness. Everything points at this
+// file's DB, which is what lets the admin gate and the demo gate be driven from
+// the users table instead of from a stub.
 const categoriesDb = new DatabaseService(testDb);
 const categoriesMcp = new CategoriesMcp(
   new CategoriesService(categoriesDb),
-  new AuthService(
-    categoriesDb,
-    new PermissionsService(categoriesDb),
-    new TripMembershipService(categoriesDb),
-    new WebauthnConfigService(categoriesDb),
-    new UserCleanupService(categoriesDb, new BudgetService(categoriesDb, new PermissionsService(categoriesDb), new ExchangeRatesService(), new RealtimeService())),
-    new MailerService(categoriesDb),
-    new EphemeralTokenService(),
-    new AllowedFileTypesService(categoriesDb),
-  ),
+  categoriesDb,
+  new RuntimeEnvService(),
   new McpToolGuardsService(categoriesDb, new PermissionsService(categoriesDb), new RealtimeService()),
 );
 
