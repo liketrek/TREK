@@ -1,4 +1,5 @@
 import type { BookElement, BookPageSetup, BookSpread, JourneyStats } from '@trek/shared'
+import { MAX_TEXT_LENGTH } from '@trek/shared'
 import type { SpreadTemplate } from './bookTemplates.data'
 import { formatBookCoords, formatBookDate } from './entryText'
 import { coordValue } from './resolveBindings'
@@ -109,8 +110,10 @@ export function applyTemplate(
   const PH = page.pageHeight
 
   let nextPhoto = 0
-  const story = (entry.story || '').trim()
-  const heading = entry.title || entry.location || ''
+  // A journal entry has no length limit and a text element does — see the note
+  // in the contract. Poured in whole, one long day is a book that will not save.
+  const story = (entry.story || '').trim().slice(0, MAX_TEXT_LENGTH)
+  const heading = (entry.title || entry.location || '').slice(0, MAX_TEXT_LENGTH)
 
   const elements = template.elements.map(el => {
     const out = {

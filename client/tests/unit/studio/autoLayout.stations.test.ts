@@ -7,7 +7,7 @@ import { describe, it, expect, vi } from 'vitest'
  * in Studio — so the set is empty here on purpose.
  */
 vi.mock('../../../src/components/Studio/bookTemplates.data', () => ({ SPREAD_TEMPLATES: [] }))
-import { bookPageSetupSchema, type BookSpread } from '@trek/shared'
+import { bookDocumentSchema, bookPageSetupSchema, type BookSpread } from '@trek/shared'
 import { buildBook, type AutoEntry, type AutoInput } from '../../../src/components/Studio/autoLayout'
 
 /**
@@ -34,12 +34,13 @@ const rich = (id: number): AutoEntry => ({
   location: 'Berlin', date: '2026-07-08', photos: [],
 })
 
+const document = (entries: AutoEntry[]) => buildBook({
+  locale: 'en', title: 'T', subtitle: null, coverPhotoId: null,
+  entries, page, stats: null, stationsLabel: 'Stations', dayLabel: 'DAY', summaryLabel: 'Trip summary', countriesLabel: 'Countries',
+})
+
 function build(entries: AutoEntry[]): BookSpread[] {
-  const input: AutoInput = {
-    locale: 'en', title: 'T', subtitle: null, coverPhotoId: null,
-    entries, page, stats: null, stationsLabel: 'Stations', dayLabel: 'DAY', summaryLabel: 'Trip summary', countriesLabel: 'Countries',
-  }
-  return buildBook(input).spreads
+  return document(entries).spreads
 }
 
 /** The inner spreads, which is where entries land. */
@@ -73,6 +74,18 @@ describe('entries with nothing on them', () => {
   it('runs onto a second page when there are more than fit', () => {
     const many = Array.from({ length: 30 }, (_, i) => bare(i + 1))
     expect(inner(build(many))).toHaveLength(2)
+  })
+
+  /*
+   * And the list it runs onto is one the server will take (#2085).
+   *
+   * This fixture already built the document that could not be saved; it only
+   * ever counted the spreads. The save route parses against the contract, not
+   * against normalizeBookDocument, so that is what a layout has to satisfy.
+   */
+  it('produces a document the save route accepts, however long the run', () => {
+    const many = Array.from({ length: 200 }, (_, i) => bare(i + 1))
+    expect(bookDocumentSchema.safeParse(document(many)).success).toBe(true)
   })
 
   /*

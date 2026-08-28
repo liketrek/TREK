@@ -1,4 +1,5 @@
 import type { BookDocument } from '@trek/shared'
+import { MAX_TEXT_LENGTH } from '@trek/shared'
 import { formatBookCoords, formatBookDate } from './entryText'
 
 /**
@@ -73,16 +74,20 @@ export function resolveBindings(doc: BookDocument, src: BindingSource, locale: s
       if (el.kind !== 'text' || !el.binding || el.overridden) return el
 
       const next = resolveOne(el.binding, src, locale)
+      // A journal entry has no length limit and a text element does. Written
+      // back whole, a long story is a book the save route refuses — and the
+      // editor can only report that as a book that will not save.
+      const value = next?.text.slice(0, MAX_TEXT_LENGTH)
       // An empty answer is not an answer — see the first rule above. A journey
       // with no subtitle, an entry whose title has been cleared and a photo
       // that lost its caption all arrive here as an empty string, and none of
       // them is a reason to blank a line somebody has set.
-      if (!next || !next.text || next.text === el.text) return el
+      if (!next || !value || value === el.text) return el
 
       spreadChanged = true
       return next.value === undefined
-        ? { ...el, text: next.text }
-        : { ...el, text: next.text, binding: { ...el.binding, value: next.value } }
+        ? { ...el, text: value }
+        : { ...el, text: value, binding: { ...el.binding, value: next.value } }
     })
 
     if (!spreadChanged) return spread

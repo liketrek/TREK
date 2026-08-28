@@ -122,7 +122,7 @@ export async function buildApp(): Promise<INestApplication> {
    * it is the wrong one for a photo book. A Studio document is sent WHOLE on
    * every autosave — deliberately, see book-store.schema.ts, because a patch
    * protocol would need an ordering guarantee and a merge rule per field — and
-   * the contract already caps it at 150 spreads of 60 elements. A real book of
+   * the contract already caps it at 150 spreads of 90 elements. A real book of
    * a fortnight's journey is well past a hundred kilobytes before anybody asks
    * for road geometry, and what the ceiling produces is not an error message
    * but a save that quietly fails and an editor that says "not saved" without

@@ -171,9 +171,11 @@ describe('normalizeBookDocument', () => {
     expect(out.spreads[0]!.parked.map((el) => el.id)).toEqual(['parked-kept']);
   });
 
-  it('trims a spread of seventy elements to the cap rather than losing the spread', () => {
-    const seventy = Array.from({ length: 70 }, (_, i) => text({ id: `t${i}` }));
-    const out = normalizeBookDocument(doc(seventy));
+  it('trims a spread past the cap to it rather than losing the spread', () => {
+    // Counted off the cap, not written out: as a literal this fixture stopped
+    // being over the cap the moment the cap moved, and passed by not trimming.
+    const over = Array.from({ length: MAX_SPREAD_ELEMENTS + 10 }, (_, i) => text({ id: `t${i}` }));
+    const out = normalizeBookDocument(doc(over));
 
     expect(out.spreads[0]!.elements).toHaveLength(MAX_SPREAD_ELEMENTS);
     // Back to front, so the ones that go are the ones on top.

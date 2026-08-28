@@ -64,6 +64,7 @@ const { booksvc } = vi.hoisted(() => ({
   },
 }));
 import { JourneyBookService } from '../../src/nest/journey/journey-book.service';
+import { MAX_SPREAD_ELEMENTS } from '@trek/shared';
 
 import { JourneyModule } from '../../src/nest/journey/journey.module';
 import { AddonsService } from '../../src/nest/addons/addons.service';
@@ -296,6 +297,37 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
       .put('/api/journeys/9/book')
       .set('Cookie', sessionCookie(1))
       .send({ title: 'T' });
+    expect(res.status).toBe(400);
+    expect(booksvc.saveBook).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The refusal Studio hit on its own auto layout (#2085).
+   *
+   * A spread past MAX_SPREAD_ELEMENTS is refused whole, and the editor can only
+   * report that as "couldn't save" — for the rest of the session, because
+   * autosave keeps offering the same document. The layout is what was fixed;
+   * this pins the other half, that the route does refuse such a book, so the
+   * client-side guarantee is a guarantee about something.
+   */
+  it('400 for a spread carrying more elements than the contract allows', async () => {
+    const element = (i: number) => ({
+      id: 'e' + i, kind: 'shape', frame: { x: 0, y: 0, w: 10, h: 10 }, shape: 'rect',
+    });
+    const res = await request(server)
+      .put('/api/journeys/9/book')
+      .set('Cookie', sessionCookie(1))
+      .send({
+        title: 'T',
+        document: {
+          version: 1,
+          spreads: [{
+            id: 'sp1',
+            role: 'inner',
+            elements: Array.from({ length: MAX_SPREAD_ELEMENTS + 1 }, (_, i) => element(i)),
+          }],
+        },
+      });
     expect(res.status).toBe(400);
     expect(booksvc.saveBook).not.toHaveBeenCalled();
   });

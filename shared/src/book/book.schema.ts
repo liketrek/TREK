@@ -39,6 +39,31 @@ const mm = z.number().finite().min(-10000).max(10000).transform(v => Math.round(
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'expected #rrggbb');
 
 /**
+ * The limits a producer has to build to, named rather than written inline.
+ *
+ * Studio's auto layout is a producer: it pours journey data straight into a
+ * document, and a document over any one of these is refused whole by the save
+ * route — which the editor can only report as "couldn't save", for the rest of
+ * the session, because autosave keeps offering the same rejected book. So the
+ * caps are exported and the layout builds against them, instead of the two
+ * being written down twice and drifting apart.
+ *
+ * `MAX_SPREAD_ELEMENTS` belongs to this set and is declared with the spread it
+ * bounds, where the salvage pass reads it too.
+ */
+export const MAX_SPREADS = 150;
+export const MAX_BOOK_TITLE = 200;
+export const MAX_TEXT_LENGTH = 8000;
+/** Codes on a map or a country page, and the names printed beside them. */
+export const MAX_BOOK_COUNTRIES = 80;
+export const MAX_COUNTRY_NAME = 80;
+export const MAX_MAP_POINTS = 400;
+export const MAX_MAP_POINT_LABEL = 120;
+/** A recorded track: segments, and points within one segment. */
+export const MAX_PATH_SEGMENTS = 40;
+export const MAX_PATH_POINTS = 1200;
+
+/**
  * Every shape the book can draw — and, because a picture frame *is* a shape with
  * a photograph inside it, every mask a photo can be cut to.
  *
@@ -147,7 +172,7 @@ export const bookPhotoElementSchema = z.object({
 export const bookTextElementSchema = z.object({
   ...elementBase,
   kind: z.literal('text'),
-  text: z.string().max(8000).default(''),
+  text: z.string().max(MAX_TEXT_LENGTH).default(''),
   font: z.enum(BOOK_FONTS_IDS).default('sans'),
   /** Points. */
   size: z.number().min(4).max(200).default(11),
@@ -365,7 +390,7 @@ export const bookMapElementSchema = z.object({
    */
   pinStyle: z.enum(['dot', 'photo']).default('dot'),
   /** ISO-3166-1 alpha-2, the countries whose outlines to draw. */
-  countries: z.array(z.string().length(2)).max(80).default([]),
+  countries: z.array(z.string().length(2)).max(MAX_BOOK_COUNTRIES).default([]),
   /**
    * The route, in order. Capped where a printed line stops gaining from more
    * points — a book page cannot resolve four hundred stops anyway.
@@ -374,7 +399,7 @@ export const bookMapElementSchema = z.object({
     .array(z.object({
       lat: z.number().min(-90).max(90),
       lng: z.number().min(-180).max(180),
-      label: z.string().max(120).default(''),
+      label: z.string().max(MAX_MAP_POINT_LABEL).default(''),
       /**
        * One photograph from this stop, for a marker that shows it.
        *
@@ -384,7 +409,7 @@ export const bookMapElementSchema = z.object({
        */
       photoId: z.number().int().positive().nullable().default(null),
     }))
-    .max(400)
+    .max(MAX_MAP_POINTS)
     .default([]),
   /**
    * The way the trip was actually travelled, where the trip knows it.
@@ -405,8 +430,8 @@ export const bookMapElementSchema = z.object({
    * three-week trip is a document nobody can save.
    */
   path: z
-    .array(z.array(z.tuple([z.number().min(-90).max(90), z.number().min(-180).max(180)])).max(1200))
-    .max(40)
+    .array(z.array(z.tuple([z.number().min(-90).max(90), z.number().min(-180).max(180)])).max(MAX_PATH_POINTS))
+    .max(MAX_PATH_SEGMENTS)
     .default([]),
   /**
    * The roads each leg actually took, when somebody asked for them.
@@ -521,9 +546,9 @@ export const bookCountriesElementSchema = z.object({
   ...typeset,
   kind: z.literal('countries'),
   /** ISO-3166-1 alpha-2, in visit order. */
-  codes: z.array(z.string().length(2)).max(80).default([]),
+  codes: z.array(z.string().length(2)).max(MAX_BOOK_COUNTRIES).default([]),
   /** Names as resolved when placed, so the page does not depend on a lookup. */
-  names: z.array(z.string().max(80)).max(80).default([]),
+  names: z.array(z.string().max(MAX_COUNTRY_NAME)).max(MAX_BOOK_COUNTRIES).default([]),
   layout: z.enum(['list', 'grid', 'column']).default('list'),
   /** The silhouette behind each name — the thing that makes the page read as a map. */
   showOutline: z.boolean().default(true),
@@ -666,8 +691,19 @@ export const bookListElementSchema = z.object({
  *
  * A limit rather than a taste: the document is saved whole on every autosave,
  * and a page nobody could design is a page somebody's browser has to serialise.
+ *
+ * Sixty was below what this app's own layouts draw. A full itinerary list is
+ * two columns of thirteen stops, and a stop costs three elements — its date,
+ * its name and the rule under it — so the spread the auto layout produces is
+ * eighty, and it was refused every time (#2085). A limit the product cannot
+ * build to is not a limit, it is a bug with a constant in front of it.
+ *
+ * Ninety rather than eighty, so the next row of anything does not land here
+ * again. It stays a serialisation limit: an element of this kind measures a few
+ * hundred bytes, which puts the largest document the contract admits at under
+ * four megabytes against the book route's eight (server/src/bootstrap.ts).
  */
-export const MAX_SPREAD_ELEMENTS = 60;
+export const MAX_SPREAD_ELEMENTS = 90;
 
 export const bookElementSchema = z.discriminatedUnion('kind', [
   bookPhotoElementSchema,
@@ -770,9 +806,9 @@ export type BookPageSetup = z.infer<typeof bookPageSetupSchema>;
 export const bookDocumentSchema = z.object({
   /** In the document, not in a column: a format bump must not need a migration. */
   version: z.literal(1).catch(1).default(1),
-  title: z.string().max(200).default(''),
+  title: z.string().max(MAX_BOOK_TITLE).default(''),
   page: bookPageSetupSchema.default(() => bookPageSetupSchema.parse({})),
-  spreads: z.array(bookSpreadSchema).max(150).default([]),
+  spreads: z.array(bookSpreadSchema).max(MAX_SPREADS).default([]),
 });
 export type BookDocument = z.infer<typeof bookDocumentSchema>;
 

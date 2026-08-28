@@ -1,6 +1,11 @@
 import type {
   BookDocument, BookElement, BookMetric, BookPageSetup, BookSpread, JourneyStats,
 } from '@trek/shared'
+import {
+  MAX_BOOK_COUNTRIES, MAX_BOOK_TITLE, MAX_COUNTRY_NAME, MAX_MAP_POINTS,
+  MAX_MAP_POINT_LABEL, MAX_PATH_POINTS, MAX_PATH_SEGMENTS, MAX_SPREADS,
+  MAX_SPREAD_ELEMENTS, MAX_TEXT_LENGTH,
+} from '@trek/shared'
 import { SPREAD_TEMPLATES } from './bookTemplates.data'
 import { applyTemplate, templateFit } from './applyTemplate'
 import { formatBookCoords, formatBookDate } from './entryText'
@@ -119,7 +124,7 @@ function text(
     rotation: 0,
     opacity: 1,
     locked: false,
-    text: value,
+    text: value.slice(0, MAX_TEXT_LENGTH),
     font: 'sans',
     size: 11,
     weight: 400,
@@ -260,9 +265,12 @@ function mapEl(
     routeArc: 'bow',
     routeDash: 'arcs',
     pinStyle: 'photo',
-    countries: stats.countries.map(c => c.code),
-    points: stats.points.map(pt => ({
-      lat: pt.lat, lng: pt.lng, label: pt.label, photoId: pt.photoId ?? null,
+    countries: stats.countries.slice(0, MAX_BOOK_COUNTRIES).map(c => c.code),
+    points: stats.points.slice(0, MAX_MAP_POINTS).map(pt => ({
+      lat: pt.lat,
+      lng: pt.lng,
+      label: pt.label.slice(0, MAX_MAP_POINT_LABEL),
+      photoId: pt.photoId ?? null,
     })),
     /*
      * The fields the contract would default for a parsed element, spelled out
@@ -289,8 +297,8 @@ function countriesEl(
     id: uid('co'),
     kind: 'countries',
     frame,
-    codes: stats.countries.map(c => c.code),
-    names,
+    codes: stats.countries.slice(0, MAX_BOOK_COUNTRIES).map(c => c.code),
+    names: names.slice(0, MAX_BOOK_COUNTRIES).map(n => n.slice(0, MAX_COUNTRY_NAME)),
     layout: 'list',
     showOutline: true,
     showFlag: false,
@@ -550,8 +558,23 @@ function hasSubstance(entry: AutoEntry): boolean {
   return entry.photos.length > 0 || !!(entry.story || '').trim()
 }
 
-/** How many stations one page holds before the type gets too tight. */
-const STATIONS_PER_PAGE = 13
+/** What one station row costs: its date, its name, and the rule under it. */
+const STATION_ELEMENTS = 3
+/** And what the heading above the list costs: an accent rule and a word. */
+const STATIONS_HEADING = 2
+
+/**
+ * How many stations one page holds.
+ *
+ * Thirteen is where the type gets too tight — but the contract caps a spread at
+ * MAX_SPREAD_ELEMENTS, and a spread is two of these pages, so thirteen rows a
+ * page is eighty elements and a book the server refuses to store. Whichever
+ * limit runs out first is the answer.
+ */
+const STATIONS_PER_PAGE = Math.min(
+  13,
+  Math.floor((MAX_SPREAD_ELEMENTS - STATIONS_HEADING) / STATION_ELEMENTS / 2),
+)
 
 /**
  * The stops that had nothing to say, as a list.
@@ -1311,7 +1334,9 @@ function summarySpread(input: AutoInput): BookSpread | null {
   if (stats.points.length >= 2) {
     // With the recorded track, when the journey has one: the editor fetches it
     // and this was the line that threw it away.
-    els.push(mapEl({ x: m, y: m, w: W - m * 2, h: H - m * 2 }, stats, { path: input.path ?? [] }))
+    els.push(mapEl({ x: m, y: m, w: W - m * 2, h: H - m * 2 }, stats, {
+      path: (input.path ?? []).slice(0, MAX_PATH_SEGMENTS).map(seg => seg.slice(0, MAX_PATH_POINTS)),
+    }))
   }
 
   // Which figures are worth the space: everything the journey actually has.
@@ -1550,9 +1575,9 @@ export function buildBook(input: AutoInput): BookDocument {
   spreads.push(backSpread(input))
   return {
     version: 1,
-    title: input.title,
+    title: input.title.slice(0, MAX_BOOK_TITLE),
     page: input.page,
-    spreads: spreads.slice(0, 150),
+    spreads: spreads.slice(0, MAX_SPREADS),
   }
 }
 
@@ -1575,7 +1600,7 @@ export function emptyBook(input: AutoInput): BookDocument {
   })
   return {
     version: 1,
-    title: input.title,
+    title: input.title.slice(0, MAX_BOOK_TITLE),
     page: input.page,
     spreads: [blank('cover'), blank('inner'), blank('back')],
   }
