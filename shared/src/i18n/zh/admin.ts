@@ -492,6 +492,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': '标记已访问国家和旅行统计的世界地图',
   'admin.addons.catalog.collab.name': '协作',
   'admin.addons.catalog.collab.description': '备忘、投票、聊天和建议，方便一起规划',
+  'admin.addons.catalog.roadtrip.name': '公路旅行',
+  'admin.addons.catalog.roadtrip.description': '规划带停靠点的驾驶行程，驾驶时间和到达时间会自动重算',
   'admin.addons.subtitleBefore': '启用或禁用功能以自定义你的 ',
   'admin.addons.subtitleAfter': ' 体验。',
   'admin.addons.catalog.naver_list_import.name': 'Naver List Import',

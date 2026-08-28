@@ -535,6 +535,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'Bản đồ thế giới với các quốc gia đã ghé thăm và số liệu thống kê du lịch',
   'admin.addons.catalog.collab.name': 'Cộng tác',
   'admin.addons.catalog.collab.description': 'Ghi chú, bình chọn, trò chuyện và gợi ý để cùng lên kế hoạch',
+  'admin.addons.catalog.roadtrip.name': 'Chuyến đi đường bộ',
+  'admin.addons.catalog.roadtrip.description': 'Lên kế hoạch lái xe có điểm dừng; thời gian lái và giờ đến tự tính lại',
   'admin.addons.catalog.memories.name': 'Hình ảnh (Immich)',
   'admin.addons.catalog.memories.description': 'Chia sẻ ảnh chuyến đi qua phiên bản Immich của bạn',
   'admin.addons.catalog.mcp.name': 'MCP',

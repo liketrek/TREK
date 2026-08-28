@@ -8,6 +8,7 @@ import { MapViewAuto as MapView } from '../components/Map/MapViewAuto'
 import { MapCompassPill, type CompassMap } from '../components/Map/MapCompassPill'
 import { getCached, fetchPhoto } from '../services/photoService'
 import DayPlanSidebar from '../components/Planner/DayPlanSidebar'
+import RoadtripModeSwitch from '../components/Roadtrip/RoadtripModeSwitch'
 import TripLoadingSplash from '../components/shared/TripLoadingSplash'
 import PlacesSidebar from '../components/Planner/PlacesSidebar'
 import PlaceInspector from '../components/Planner/PlaceInspector'
@@ -67,6 +68,7 @@ const ExpenseModal = lazyWithRetry(() =>
   import('../components/Budget/CostsPanel').then(m => ({ default: m.ExpenseModal }))
 )
 const CollabPanel = lazyWithRetry(() => import('../components/Collab/CollabPanel'))
+const RoadtripSidebar = lazyWithRetry(() => import('../components/Roadtrip/RoadtripSidebar'))
 // Already rendered conditionally, so lazy bites immediately. Worth it beyond its
 // own 63 kB: it is the only path to TransitSearchPanel, which drags in tz-lookup
 // — about 200 kB of packed zone geometry that every trip used to load.
@@ -244,6 +246,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     selectedDayId, isLoading, tripActions, can, canUploadFiles,
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
     enabledAddons, collabFeatures, tripAccommodations, setTripAccommodations,
+    roadtripMode, toggleRoadtripMode, roadtripActive, roadtripRoutes,
     allowedFileTypes, tripMembers, setTripMembers, refreshMembers, loadAccommodations,
     TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange,
     leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed, startResizeLeft, startResizeRight,
@@ -364,14 +367,14 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
               tripId={tripId}
               places={mapPlaces}
               dayPlaces={dayPlaces}
-              route={route}
-              routeVias={routeVias}
+              route={roadtripActive ? roadtripRoutes.lines : route}
+              routeVias={roadtripActive ? [] : routeVias}
               showTransitRoutes={transitRoutesShown}
               // The route toggle belongs to one day, so the map needs that day to
               // know which automated transports may ride it (#2019).
               days={days}
               selectedDayId={selectedDayId}
-              routeSegments={routeSegments}
+              routeSegments={roadtripActive ? roadtripRoutes.segments : routeSegments}
               selectedPlaceId={selectedPlaceId}
               onMarkerClick={handleMarkerClick}
               onMapClick={handleMapClick}
@@ -450,6 +453,18 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 transition: 'width 0.25s ease',
                 opacity: leftCollapsed ? 0 : 1,
               }}>
+                {enabledAddons.roadtrip && (
+                  <RoadtripModeSwitch active={roadtripMode} onChange={(v) => { if (v !== roadtripMode) toggleRoadtripMode() }} />
+                )}
+                {enabledAddons.roadtrip && roadtripMode ? (
+                  <LazyPanel id="roadtrip-rail">
+                    <RoadtripSidebar
+                      routes={roadtripRoutes}
+                      selectedAssignmentId={selectedAssignmentId}
+                      onSelectStop={(placeId, assignmentId) => handlePlaceClick(placeId, assignmentId)}
+                    />
+                  </LazyPanel>
+                ) : (
                 <DayPlanSidebar
                   isMobile={isMobile}
                   tripId={tripId}
@@ -501,6 +516,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                   onRouteRefresh={() => { if (selectedDayId) updateRouteForDay(selectedDayId) }}
                   onAddBookingToAssignment={can('day_edit', trip) ? (dayId, assignmentId) => { tripActions.setSelectedDay(dayId); setBookingForAssignmentId(assignmentId); setEditingReservation(null); setShowReservationModal(true) } : undefined}
                 />
+                )}
                 {!leftCollapsed && (
                   <div
                     role="presentation"
@@ -818,6 +834,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
             </LazyPanel>
           </div>
         )}
+
 
         {activeTab.startsWith('plugin:') && (
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 'var(--bottom-nav-h)', overflow: 'hidden' }}>

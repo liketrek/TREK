@@ -536,6 +536,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'Mappa del mondo con paesi visitati e statistiche di viaggio',
   'admin.addons.catalog.collab.name': 'Collaborazione',
   'admin.addons.catalog.collab.description': 'Note, sondaggi, chat e suggerimenti per pianificare insieme',
+  'admin.addons.catalog.roadtrip.name': 'Viaggio su strada',
+  'admin.addons.catalog.roadtrip.description': 'Pianifica viaggi con soste: tempi di guida e orari di arrivo si ricalcolano da soli',
   'admin.addons.catalog.memories.name': 'Foto (Immich)',
   'admin.addons.catalog.memories.description': 'Condividi le foto del viaggio tramite la tua istanza Immich',
   'admin.addons.catalog.mcp.name': 'MCP',

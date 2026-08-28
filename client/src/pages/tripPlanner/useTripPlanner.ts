@@ -19,6 +19,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useResizablePanels } from '../../hooks/useResizablePanels'
 import { useTripWebSocket } from '../../hooks/useTripWebSocket'
 import { useRouteCalculation } from '../../hooks/useRouteCalculation'
+import { useRoadtripRoutes } from '../../components/Roadtrip/useRoadtripRoutes'
 import { usePlaceSelection } from '../../hooks/usePlaceSelection'
 import { usePlannerHistory } from '../../hooks/usePlannerHistory'
 import { useAirtrailConnection } from '../../hooks/useAirtrailConnection'
@@ -36,6 +37,9 @@ import {
   type StoredConnections,
 } from '../../utils/connectionsVisibility'
 import { plannedPlaceIds, plannedPlaceIdsForDay } from '../../utils/plannedPlaces'
+
+/** Stable empty list so the road trip hook stays inert while its mode is off. */
+const EMPTY_DAYS: Day[] = []
 
 /**
  * Trip planner page logic — the big one. Owns the trip store wiring, addon
@@ -83,11 +87,23 @@ export function useTripPlanner() {
     toast.info(t('undo.done', { action: label ?? '' }))
   }, [undo, lastActionLabel, toast])
 
-  const [enabledAddons, setEnabledAddons] = useState<Record<string, boolean>>({ packing: true, budget: true, documents: true, collab: false })
+  const [enabledAddons, setEnabledAddons] = useState<Record<string, boolean>>({ packing: true, budget: true, documents: true, collab: false, roadtrip: false })
   // The values above are an optimistic guess until the addon feed answers. The
   // tab guard below waits for this before evicting anything, so a tab we were
   // asked to open ('collab' in particular, guessed off) survives the gap.
   const [addonsLoaded, setAddonsLoaded] = useState<boolean>(false)
+  // Road trip mode swaps the plan view's left rail (and later its map layer) for the
+  // drive-first reading of the same trip. Per trip and per session, like the tab choice:
+  // someone planning a road trip stays in it across reloads without it leaking into
+  // their next, non-driving trip.
+  const [roadtripMode, setRoadtripMode] = useState<boolean>(() => sessionStorage.getItem(`trip-roadtrip-${tripId}`) === '1')
+  const toggleRoadtripMode = useCallback(() => {
+    setRoadtripMode(prev => {
+      const next = !prev
+      sessionStorage.setItem(`trip-roadtrip-${tripId}`, next ? '1' : '0')
+      return next
+    })
+  }, [tripId])
   const [collabFeatures, setCollabFeatures] = useState<{ chat: boolean; notes: boolean; polls: boolean; whatsnext: boolean }>({ chat: true, notes: true, polls: true, whatsnext: true })
   const [tripAccommodations, setTripAccommodations] = useState<Accommodation[]>([])
   const [allowedFileTypes, setAllowedFileTypes] = useState<string | null>(null)
@@ -114,7 +130,7 @@ export function useTripPlanner() {
     addonsApi.enabled().then(data => {
       const map: Record<string, boolean> = {}
       data.addons.forEach(a => { map[a.id] = true })
-      setEnabledAddons({ packing: !!map.packing, budget: !!map.budget, documents: !!map.documents, collab: !!map.collab })
+      setEnabledAddons({ packing: !!map.packing, budget: !!map.budget, documents: !!map.documents, collab: !!map.collab, roadtrip: !!map.roadtrip })
       if (data.collabFeatures) setCollabFeatures(data.collabFeatures)
     }).catch(() => {}).finally(() => setAddonsLoaded(true))
     authApi.getAppConfig().then(config => {
@@ -483,6 +499,11 @@ export function useTripPlanner() {
   }, [places, placesCategoryFilter, placesFilter, assignments, expandedDayIds, selectedDayId, days, tripAccommodations, reservations])
 
   const { route, routeSegments, routeVias, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId, routeShown, routeProfile, tripAccommodations)
+
+  // Road trip mode reads the whole trip, not the selected day, so it owns its own legs.
+  // Passing no days while the mode is off keeps it inert — no routing requests, no state.
+  const roadtripActive = !!enabledAddons.roadtrip && roadtripMode
+  const roadtripRoutes = useRoadtripRoutes(tripId, roadtripActive ? days : EMPTY_DAYS, assignments, routeProfile)
 
   const handleSelectDay = useCallback((dayId: number | null, skipFit?: boolean) => {
     tripActions.setSelectedDay(dayId)
@@ -1063,6 +1084,7 @@ export function useTripPlanner() {
     selectedDayId, isLoading, tripActions, can, canUploadFiles,
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
     enabledAddons, collabFeatures, tripAccommodations, setTripAccommodations,
+    roadtripMode, toggleRoadtripMode, roadtripActive, roadtripRoutes,
     allowedFileTypes, tripMembers, setTripMembers, refreshMembers, loadAccommodations,
     TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange,
     leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed, startResizeLeft, startResizeRight,

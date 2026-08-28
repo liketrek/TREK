@@ -546,6 +546,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': '방문한 나라와 여행 통계가 있는 세계 지도',
   'admin.addons.catalog.collab.name': 'Collab',
   'admin.addons.catalog.collab.description': '메모, 투표, 채팅, 제안으로 함께 계획하기',
+  'admin.addons.catalog.roadtrip.name': '로드트립',
+  'admin.addons.catalog.roadtrip.description': '경유지가 있는 주행을 계획하세요. 운전 시간과 도착 시간이 자동으로 다시 계산됩니다',
   'admin.addons.catalog.memories.name': '사진 (Immich)',
   'admin.addons.catalog.memories.description': 'Immich 인스턴스를 통해 여행 사진 공유',
   'admin.addons.catalog.mcp.name': 'MCP',

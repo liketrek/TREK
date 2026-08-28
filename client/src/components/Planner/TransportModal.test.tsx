@@ -1192,6 +1192,52 @@ describe('TransportModal', () => {
     expect(payload.endpoints.map((e: { role: string }) => e.role)).toEqual(['from', 'to']);
   });
 
+  it('FE-PLANNER-TRANSMODAL-058: a car booking keeps its stops in order between pick-up and return (#1797)', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<TransportModal {...defaultProps} days={routeDays} selectedDayId={10} onSave={onSave} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /^Car$/i }));
+    await userEvent.type(screen.getByPlaceholderText(/e.g. Lufthansa/i), 'Mietwagen Berlin → Prag');
+    // Pick-up and return are the rental frame; the stops sit between them.
+    expect(screen.getAllByTestId('location-select')).toHaveLength(2);
+    await userEvent.click(screen.getByRole('button', { name: /Add stop/i }));
+    await userEvent.click(screen.getByRole('button', { name: /Add stop/i }));
+    // Pick-up and return come first in the form, the stops follow — so the saved
+    // route is from · stop · stop · to even though the fields read in another order.
+    const fields = screen.getAllByTestId('location-select');
+    expect(fields).toHaveLength(4);
+    fireEvent.change(fields[0], { target: { value: 'Berlin' } });
+    fireEvent.change(fields[1], { target: { value: 'Prag' } });
+    fireEvent.change(fields[2], { target: { value: 'Dresden' } });
+    fireEvent.change(fields[3], { target: { value: 'Bastei' } });
+
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.endpoints.map((e: { role: string }) => e.role)).toEqual(['from', 'stop', 'stop', 'to']);
+    expect(payload.endpoints.map((e: { sequence: number }) => e.sequence)).toEqual([0, 1, 2, 3]);
+    expect(payload.endpoints.map((e: { name: string }) => e.name)).toEqual(['Berlin', 'Dresden', 'Bastei', 'Prag']);
+  });
+
+  it('FE-PLANNER-TRANSMODAL-059: a stop removed from a car booking is gone from the saved route', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<TransportModal {...defaultProps} days={routeDays} selectedDayId={10} onSave={onSave} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /^Car$/i }));
+    await userEvent.type(screen.getByPlaceholderText(/e.g. Lufthansa/i), 'Mietwagen');
+    await userEvent.click(screen.getByRole('button', { name: /Add stop/i }));
+    expect(screen.getAllByTestId('location-select')).toHaveLength(3);
+    await userEvent.click(screen.getByRole('button', { name: /Remove stop/i }));
+    expect(screen.getAllByTestId('location-select')).toHaveLength(2);
+
+    const fields = screen.getAllByTestId('location-select');
+    fireEvent.change(fields[0], { target: { value: 'Berlin' } });
+    fireEvent.change(fields[1], { target: { value: 'Prag' } });
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0].endpoints.map((e: { role: string }) => e.role)).toEqual(['from', 'to']);
+  });
+
   it('FE-PLANNER-TRANSMODAL-057: the open-file link on an attached document does not throw', async () => {
     const res = buildReservation({ id: 23, type: 'flight', title: 'LH 400' });
     const attached = buildTripFile({ id: 72, original_name: 'boarding.pdf' });

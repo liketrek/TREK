@@ -37,6 +37,7 @@ import photos from './photos';
 import places from './places';
 import planner from './planner';
 import register from './register';
+import roadtrip from './roadtrip';
 import reservations from './reservations';
 import settings from './settings';
 import share from './share';
@@ -56,6 +57,7 @@ const locale = {
   ...trips,
   ...nav,
   ...dashboard,
+  ...roadtrip,
   ...settings,
   ...admin,
   ...dayplan,
