@@ -946,6 +946,14 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   routesOf(id: string): PluginRouteInfo[] {
     return this.supervisor.routesOf(id);
   }
+  /** MCP tool names an active plugin reported implementing at load. */
+  mcpToolsOf(id: string): string[] {
+    return this.supervisor.mcpToolsOf(id);
+  }
+  /** The grants an active plugin holds, for clamping what its tools may claim. */
+  grantsOf(id: string): ReadonlySet<string> {
+    return this.supervisor.grantsOf(id);
+  }
   invoke(id: string, method: string, params: Record<string, unknown>, actingUserId?: number): Promise<unknown> {
     return this.supervisor.invoke(id, method, params, { actingUserId });
   }
