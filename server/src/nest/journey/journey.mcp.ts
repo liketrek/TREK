@@ -45,6 +45,28 @@ function jsonContent(uri: string, data: unknown) {
   };
 }
 
+/*
+ * The three entry fields with a fixed set of values. `journey_entries.type` and
+ * `.visibility` are plain TEXT columns and the REST route forwards whatever the
+ * client sent, but the row type (JourneyEntry in src/types) only ever models
+ * these, so the tools name them rather than take a free string: a model that
+ * invents "friends-only" would write a value nothing reads.
+ */
+const ENTRY_TYPE = z.enum(['entry', 'checkin', 'skeleton']);
+const ENTRY_VISIBILITY = z.enum(['private', 'shared', 'public']);
+type EntryType = z.infer<typeof ENTRY_TYPE>;
+type EntryVisibility = z.infer<typeof ENTRY_VISIBILITY>;
+
+/**
+ * The verdict on a place. Either side defaults to empty so a caller can send
+ * only the half it has, which is what the entry editor does when a place was
+ * all good or all bad. The service stores nothing when both come back empty.
+ */
+const PROS_CONS = z.object({
+  pros: z.array(z.string()).default([]),
+  cons: z.array(z.string()).default([]),
+});
+
 /**
  * Journey MCP surface — ported 1:1 from the legacy registrar
  * src/mcp/tools/journey.ts (23 tools): identical names, descriptions, zod input
@@ -55,6 +77,11 @@ function jsonContent(uri: string, data: unknown) {
  * marker could not express, and folding it into a predicate would have put it
  * out of reach of the boot-time scope gate. The registration-time addon
  * early-return becomes the `when:` gate.
+ *
+ * Since the port the surface has grown past the legacy 23: the two entry tools
+ * take the rest of the columns their REST routes always accepted (a place, its
+ * coordinates, weather, tags, the verdict), and get_journey_stats answers what
+ * GET /api/journeys/:id/stats answers.
  */
 @McpController()
 export class JourneyMcp {
@@ -91,6 +118,28 @@ export class JourneyMcp {
     const journey = this.journey.getJourneyFull(journeyId, ctx.userId);
     if (!journey) return notFound('Journey not found or access denied.');
     return ok({ journey });
+  }
+
+  @Tool({
+    name: 'get_journey_stats',
+    description: 'What a journey adds up to: distance travelled in metres, calendar days spanned, countries in visit order, the furthest point reached, and entry, photo and place counts. Prefer this over get_journey whenever the question is about totals, since the stats get_journey carries are three counts and nothing else.',
+    inputSchema: {
+      journeyId: z.number().int().positive(),
+      include_route: z.boolean().optional().describe('Also return the route itself, up to 400 stops with coordinates. Off by default: the totals and the country list do not need it.'),
+    },
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    when: journeyAddonOn,
+    access: { group: 'journey', mode: 'read' },
+  })
+  getJourneyStats({ journeyId, include_route }: { journeyId: number; include_route?: boolean }, ctx: McpContext) {
+    const stats = this.journey.journeyStats(journeyId, ctx.userId);
+    if (!stats) return notFound('Journey not found or access denied.');
+    // Same payload as GET /api/journeys/:id/stats. The route is left out unless
+    // it was asked for: 400 coordinate pairs answer a different question than
+    // the totals do, and Studio is the caller that actually draws them.
+    if (include_route) return ok({ stats });
+    const { points: _route, ...totals } = stats;
+    return ok({ stats: totals });
   }
 
   @Tool({
@@ -237,7 +286,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'create_journey_entry',
-    description: 'Create a new entry in a journey.',
+    description: 'Create a new entry in a journey. Give location_lat/location_lng whenever the place is known, otherwise the entry is text-only and never appears on the journey map or in its distance.',
     inputSchema: {
       journeyId: z.number().int().positive(),
       entry_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe('Entry date (YYYY-MM-DD)'),
@@ -245,7 +294,14 @@ export class JourneyMcp {
       story: z.string().optional(),
       entry_time: z.string().optional().describe('Time of day (e.g. "14:30")'),
       location_name: z.string().optional(),
+      location_lat: z.number().min(-90).max(90).optional().describe('Latitude; needed, with location_lng, to place the entry on the journey map'),
+      location_lng: z.number().min(-180).max(180).optional(),
       mood: z.string().optional(),
+      weather: z.string().max(100).optional().describe('Weather as the traveller recorded it (e.g. "sunny", "24C and windy")'),
+      tags: z.array(z.string()).optional(),
+      pros_cons: PROS_CONS.optional().describe('The verdict on the place: what was worth it and what was not'),
+      visibility: ENTRY_VISIBILITY.optional().describe('Defaults to private; "shared" and "public" expose the entry through the journey share link'),
+      type: ENTRY_TYPE.optional().describe('Defaults to "entry"; "skeleton" is the stub TREK derives from a trip place and hides behind the hide-skeletons preference'),
       sort_order: z.number().int().min(0).optional(),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -253,7 +309,12 @@ export class JourneyMcp {
     access: { group: 'journey', mode: 'write' },
   })
   createJourneyEntry(
-    { journeyId, ...data }: { journeyId: number; entry_date: string; title?: string; story?: string; entry_time?: string; location_name?: string; mood?: string; sort_order?: number },
+    { journeyId, ...data }: {
+      journeyId: number; entry_date: string; title?: string; story?: string; entry_time?: string;
+      location_name?: string; location_lat?: number; location_lng?: number; mood?: string; weather?: string;
+      tags?: string[]; pros_cons?: { pros: string[]; cons: string[] }; visibility?: EntryVisibility;
+      type?: EntryType; sort_order?: number;
+    },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
@@ -266,21 +327,36 @@ export class JourneyMcp {
 
   @Tool({
     name: 'update_journey_entry',
-    description: 'Update an existing journey entry.',
+    description: 'Update an existing journey entry: its text, date, place, coordinates, weather, tags, verdict or visibility. Fields left out keep their value; pass null to clear one. To move an entry within its day use reorder_journey_entries rather than setting sort_order here.',
     inputSchema: {
       entryId: z.number().int().positive(),
-      title: z.string().max(300).optional(),
-      story: z.string().optional(),
+      title: z.string().max(300).nullable().optional(),
+      story: z.string().nullable().optional(),
       entry_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-      entry_time: z.string().optional(),
-      mood: z.string().optional(),
+      entry_time: z.string().nullable().optional(),
+      location_name: z.string().nullable().optional(),
+      location_lat: z.number().min(-90).max(90).nullable().optional().describe('Latitude, or null to take the entry off the journey map'),
+      location_lng: z.number().min(-180).max(180).nullable().optional(),
+      mood: z.string().nullable().optional(),
+      weather: z.string().max(100).nullable().optional(),
+      tags: z.array(z.string()).nullable().optional(),
+      pros_cons: PROS_CONS.nullable().optional().describe('Replaces the whole verdict; null clears it'),
+      visibility: ENTRY_VISIBILITY.optional(),
+      type: ENTRY_TYPE.optional().describe('Promote a trip-derived "skeleton" to a real "entry" once it has been written up'),
+      sort_order: z.number().int().min(0).optional(),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
   })
   updateJourneyEntry(
-    { entryId, ...data }: { entryId: number; title?: string; story?: string; entry_date?: string; entry_time?: string; mood?: string },
+    { entryId, ...data }: {
+      entryId: number; title?: string | null; story?: string | null; entry_date?: string;
+      entry_time?: string | null; location_name?: string | null; location_lat?: number | null;
+      location_lng?: number | null; mood?: string | null; weather?: string | null;
+      tags?: string[] | null; pros_cons?: { pros: string[]; cons: string[] } | null;
+      visibility?: EntryVisibility; type?: EntryType; sort_order?: number;
+    },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();

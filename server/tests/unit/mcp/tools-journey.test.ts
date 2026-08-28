@@ -34,6 +34,23 @@ vi.mock('../../../src/config', () => ({
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock, broadcastToUser: broadcastMock }));
 
+/*
+ * get_journey_stats resolves a country per stop. The real lookup loads and
+ * indexes 4MB of gzipped admin-0 boundaries on first call, which is Atlas'
+ * work and has its own tests (journey-stats.service.test.ts stubs it for the
+ * same reason). Only this one export is replaced: AtlasService is constructed
+ * by the harness and imports the rest of the module for real.
+ */
+vi.mock('../../../src/nest/atlas/atlas-geo', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  // Rough boxes, enough to tell two countries apart in a fixture.
+  getCountryFromCoords: (lat: number, lng: number) => {
+    if (lat > 47 && lat < 55 && lng > 5 && lng < 15) return 'DE';
+    if (lat > 42 && lat < 51 && lng > -5 && lng < 8) return 'FR';
+    return null;
+  },
+}));
+
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
@@ -409,6 +426,277 @@ describe('journey write tools', () => {
         name: 'update_journey_preferences', arguments: { journeyId, hide_skeletons: true },
       });
       expect(result.isError).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The entry columns the REST route has always accepted. The INSERT writes a
+// place, its coordinates, weather, tags, the verdict, the visibility and the
+// type; the UPDATE allow-list carries all of them plus sort_order. The tools
+// took a location_name at create and nothing at all after that, so an entry
+// written through MCP never landed on the journey map and a wrong place name
+// could not be corrected. Asserted against the row, not the tool's echo.
+// ---------------------------------------------------------------------------
+
+function entryRow(id: number) {
+  return testDb.prepare('SELECT * FROM journey_entries WHERE id = ?').get(id) as any;
+}
+
+async function seedEntry(h: McpHarness, journeyId: number, args: Record<string, unknown> = {}) {
+  return (parseToolResult(await h.client.callTool({
+    name: 'create_journey_entry',
+    arguments: { journeyId, entry_date: '2026-07-01', ...args },
+  })) as any).entry;
+}
+
+describe('journey entry fields', () => {
+  it('create_journey_entry persists the place, coordinates, weather, tags, verdict, visibility and type', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const journey = await seedJourney(h);
+      const entry = await seedEntry(h, journey.id, {
+        title: 'Reykjavik',
+        location_name: 'Hallgrimskirkja',
+        location_lat: 64.1418,
+        location_lng: -21.9266,
+        weather: 'overcast, 9C',
+        tags: ['church', 'view'],
+        pros_cons: { pros: ['the tower'], cons: ['the queue'] },
+        visibility: 'public',
+        type: 'checkin',
+      });
+
+      const row = entryRow(entry.id);
+      expect(row.location_name).toBe('Hallgrimskirkja');
+      expect(row.location_lat).toBeCloseTo(64.1418, 4);
+      expect(row.location_lng).toBeCloseTo(-21.9266, 4);
+      expect(row.weather).toBe('overcast, 9C');
+      expect(JSON.parse(row.tags)).toEqual(['church', 'view']);
+      expect(JSON.parse(row.pros_cons)).toEqual({ pros: ['the tower'], cons: ['the queue'] });
+      expect(row.visibility).toBe('public');
+      expect(row.type).toBe('checkin');
+    });
+  });
+
+  it('create_journey_entry accepts a one-sided verdict and fills the other side in', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const journey = await seedJourney(h);
+      const entry = await seedEntry(h, journey.id, { pros_cons: { pros: ['cheap'] } });
+      expect(JSON.parse(entryRow(entry.id).pros_cons)).toEqual({ pros: ['cheap'], cons: [] });
+    });
+  });
+
+  it('create_journey_entry defaults to a private entry when neither is given', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const journey = await seedJourney(h);
+      const row = entryRow((await seedEntry(h, journey.id)).id);
+      expect(row.visibility).toBe('private');
+      expect(row.type).toBe('entry');
+    });
+  });
+
+  it('create_journey_entry refuses coordinates off the globe and an unknown visibility', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const journey = await seedJourney(h);
+      for (const bad of [{ location_lat: 91 }, { location_lng: -181 }, { visibility: 'friends' }]) {
+        expect((await h.client.callTool({
+          name: 'create_journey_entry',
+          arguments: { journeyId: journey.id, entry_date: '2026-07-01', ...bad },
+        })).isError).toBe(true);
+      }
+    });
+  });
+
+  it('update_journey_entry corrects the place and its coordinates', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const journey = await seedJourney(h);
+      const entry = await seedEntry(h, journey.id, {
+        location_name: 'Hallgrimskirja', location_lat: 64.0, location_lng: -21.0,
+      });
+
+      await h.client.callTool({
+        name: 'update_journey_entry',
+        arguments: {
+          entryId: entry.id,
+          location_name: 'Hallgrimskirkja',
+          location_lat: 64.1418,
+          location_lng: -21.9266,
+        },
+      });
+
+      const row = entryRow(entry.id);
+      expect(row.location_name).toBe('Hallgrimskirkja');
+      expect(row.location_lat).toBeCloseTo(64.1418, 4);
+      expect(row.location_lng).toBeCloseTo(-21.9266, 4);
+    });
+  });
+
+  it('update_journey_entry sets weather, tags, the verdict, visibility and sort_order', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const journey = await seedJourney(h);
+      const entry = await seedEntry(h, journey.id);
+
+      const data = parseToolResult(await h.client.callTool({
+        name: 'update_journey_entry',
+        arguments: {
+          entryId: entry.id,
+          weather: 'rain all day',
+          tags: ['museum'],
+          pros_cons: { pros: ['free on Sundays'], cons: ['packed'] },
+          visibility: 'shared',
+          sort_order: 3,
+        },
+      })) as any;
+
+      const row = entryRow(entry.id);
+      expect(row.weather).toBe('rain all day');
+      expect(JSON.parse(row.tags)).toEqual(['museum']);
+      expect(JSON.parse(row.pros_cons)).toEqual({ pros: ['free on Sundays'], cons: ['packed'] });
+      expect(row.visibility).toBe('shared');
+      expect(row.sort_order).toBe(3);
+      // The enrichment parses both back out, so the caller sees the objects.
+      expect(data.entry.tags).toEqual(['museum']);
+      expect(data.entry.pros_cons).toEqual({ pros: ['free on Sundays'], cons: ['packed'] });
+    });
+  });
+
+  it('update_journey_entry promotes a trip-derived skeleton to a real entry', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const journey = await seedJourney(h);
+      const entry = await seedEntry(h, journey.id, { type: 'skeleton', title: 'Blue Lagoon' });
+      expect(entryRow(entry.id).type).toBe('skeleton');
+
+      await h.client.callTool({ name: 'update_journey_entry', arguments: { entryId: entry.id, type: 'entry' } });
+      expect(entryRow(entry.id).type).toBe('entry');
+    });
+  });
+
+  it('update_journey_entry clears a field on null and leaves the omitted ones alone', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const journey = await seedJourney(h);
+      const entry = await seedEntry(h, journey.id, {
+        title: 'Vik',
+        entry_time: '14:30',
+        location_name: 'Reynisfjara',
+        location_lat: 63.4,
+        location_lng: -19.04,
+        weather: 'gale',
+        tags: ['beach'],
+        pros_cons: { pros: ['the stacks'], cons: ['sneaker waves'] },
+      });
+
+      await h.client.callTool({
+        name: 'update_journey_entry',
+        arguments: {
+          entryId: entry.id,
+          entry_time: null,
+          location_lat: null,
+          location_lng: null,
+          weather: null,
+          tags: null,
+          pros_cons: null,
+        },
+      });
+
+      const row = entryRow(entry.id);
+      expect(row.entry_time).toBeNull();
+      expect(row.location_lat).toBeNull();
+      expect(row.location_lng).toBeNull();
+      expect(row.weather).toBeNull();
+      expect(row.tags).toBeNull();
+      expect(row.pros_cons).toBeNull();
+      // Untouched: the service only writes the keys it was handed.
+      expect(row.title).toBe('Vik');
+      expect(row.location_name).toBe('Reynisfjara');
+    });
+  });
+
+  it('update_journey_entry refuses an unknown visibility and an out-of-range longitude', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const journey = await seedJourney(h);
+      const entry = await seedEntry(h, journey.id);
+      for (const bad of [{ visibility: 'friends' }, { location_lng: 181 }, { type: 'note' }]) {
+        expect((await h.client.callTool({
+          name: 'update_journey_entry', arguments: { entryId: entry.id, ...bad },
+        })).isError).toBe(true);
+      }
+      // And none of the refusals touched the row.
+      const row = entryRow(entry.id);
+      expect(row.visibility).toBe('private');
+      expect(row.location_lng).toBeNull();
+    });
+  });
+});
+
+describe('Tool: get_journey_stats', () => {
+  async function twoStopJourney(h: McpHarness) {
+    const journey = await seedJourney(h);
+    await seedEntry(h, journey.id, { title: 'Paris', entry_date: '2026-07-01', location_lat: 48.85, location_lng: 2.35 });
+    await seedEntry(h, journey.id, { title: 'Berlin', entry_date: '2026-07-04', location_lat: 52.52, location_lng: 13.4 });
+    return journey;
+  }
+
+  it('answers with the distance, days and countries get_journey does not carry', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const journey = await twoStopJourney(h);
+
+      const data = parseToolResult(await h.client.callTool({
+        name: 'get_journey_stats', arguments: { journeyId: journey.id },
+      })) as any;
+
+      // Paris to Berlin is about 880km great-circle, and the figure is metres.
+      expect(data.stats.distance).toBeGreaterThan(800_000);
+      expect(data.stats.distance).toBeLessThan(950_000);
+      expect(data.stats.days).toBe(4);
+      expect(data.stats.steps).toBe(2);
+      expect(data.stats.countries.map((c: any) => c.code)).toEqual(['FR', 'DE']);
+      expect(data.stats.start).toBe('2026-07-01');
+      expect(data.stats.end).toBe('2026-07-04');
+
+      // get_journey still answers with the three counts and nothing more.
+      const full = parseToolResult(await h.client.callTool({
+        name: 'get_journey', arguments: { journeyId: journey.id },
+      })) as any;
+      expect(Object.keys(full.journey.stats).sort()).toEqual(['entries', 'photos', 'places']);
+    });
+  });
+
+  it('leaves the route out unless include_route asks for it', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const journey = await twoStopJourney(h);
+
+      const lean = parseToolResult(await h.client.callTool({
+        name: 'get_journey_stats', arguments: { journeyId: journey.id },
+      })) as any;
+      expect(lean.stats.points).toBeUndefined();
+
+      const full = parseToolResult(await h.client.callTool({
+        name: 'get_journey_stats', arguments: { journeyId: journey.id, include_route: true },
+      })) as any;
+      expect(full.stats.points).toHaveLength(2);
+      expect(full.stats.points.map((p: any) => p.label)).toEqual(['Paris', 'Berlin']);
+      expect(full.stats.points[0].country).toBe('FR');
+    });
+  });
+
+  it('refuses a journey the caller cannot see', async () => {
+    const { user } = createUser(testDb);
+    const { journeyId } = foreignJourney();
+    await withHarness(user.id, async (h) => {
+      expect((await h.client.callTool({
+        name: 'get_journey_stats', arguments: { journeyId },
+      })).isError).toBe(true);
     });
   });
 });
