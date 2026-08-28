@@ -13,7 +13,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } 
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
-import { TRACK_COLORS } from '@trek/shared';
+import { TRACK_COLORS, COORD_DEDUP_TOLERANCE } from '@trek/shared';
 import { ADDRESS_BACKFILL_MAX_PLACES } from '../../../src/nest/places/places.helpers';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
@@ -1569,5 +1569,78 @@ describe('backfillMissingAddresses', () => {
       { id: 1, name: 'A', lat: null as unknown as number, lng: null as unknown as number },
     ]);
     expect(reverseGeocode).not.toHaveBeenCalled();
+  });
+});
+
+// ── findMatchingPlaceId ───────────────────────────────────────────────────────
+
+/**
+ * The public door onto the place-matching rule, for importers that need the
+ * matched row's id so they can link to it rather than merely knowing a duplicate
+ * exists. The rule itself lives in @trek/shared (place-match.ts); these cases pin
+ * that this service interprets it faithfully against real SQL.
+ */
+describe('findMatchingPlaceId', () => {
+  it('PLACES-SVC-008 — matches an existing place by name, ignoring case and surrounding space', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Eiffel Tower' });
+
+    expect(svc.findMatchingPlaceId(String(trip.id), { name: '  eiffel tower ' })).toBe(place.id);
+  });
+
+  it('PLACES-SVC-009 — matches on a provider id even after the place was renamed (#1550)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Original Name' });
+    testDb.prepare('UPDATE places SET google_place_id = ? WHERE id = ?').run('ChIJ_abc', place.id);
+
+    expect(
+      svc.findMatchingPlaceId(String(trip.id), { name: 'Renamed By User', google_place_id: 'ChIJ_abc' }),
+    ).toBe(place.id);
+  });
+
+  it('PLACES-SVC-010 — does NOT match a NAMED candidate to a different place at the same coordinates', () => {
+    // The restaurant and the bar in the same building are two places. This is the
+    // rule isPlaceDuplicate has always applied; the SQL copy used to disagree.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createPlace(testDb, trip.id, { name: 'Ground Floor Diner', lat: 52.52, lng: 13.405 });
+
+    expect(
+      svc.findMatchingPlaceId(String(trip.id), { name: 'Rooftop Bar', lat: 52.52, lng: 13.405 }),
+    ).toBeNull();
+  });
+
+  it('PLACES-SVC-011 — matches an UNNAMED candidate by coordinates within tolerance', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Anything', lat: 48.85, lng: 2.35 });
+
+    expect(
+      svc.findMatchingPlaceId(String(trip.id), {
+        name: null,
+        lat: 48.85 + COORD_DEDUP_TOLERANCE / 2,
+        lng: 2.35,
+      }),
+    ).toBe(place.id);
+  });
+
+  it('PLACES-SVC-012 — returns null when nothing recognises the candidate', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createPlace(testDb, trip.id, { name: 'Somewhere Else' });
+
+    expect(svc.findMatchingPlaceId(String(trip.id), { name: 'Unseen Place' })).toBeNull();
+    expect(svc.findMatchingPlaceId(String(trip.id), { name: null, lat: null, lng: null })).toBeNull();
+  });
+
+  it('PLACES-SVC-013 — never matches a place belonging to another trip', () => {
+    const { user } = createUser(testDb);
+    const mine = createTrip(testDb, user.id);
+    const theirs = createTrip(testDb, user.id);
+    createPlace(testDb, theirs.id, { name: 'Shared Name' });
+
+    expect(svc.findMatchingPlaceId(String(mine.id), { name: 'Shared Name' })).toBeNull();
   });
 });

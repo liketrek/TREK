@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { XMLValidator } from 'fast-xml-parser';
-import { TRACK_COLORS } from '@trek/shared';
+import { TRACK_COLORS, placeMatchStrategies, type PlaceMatchCandidate } from '@trek/shared';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { DatabaseService, type TripAccess } from '../database/database.service';
@@ -28,7 +28,6 @@ import { reclaimPlaceImage } from './place-image';
 import { JourneyDomainService } from '../journey/journey-domain.service';
 import { StorageService } from '../storage/storage.service';
 import {
-  COORD_DEDUP_TOLERANCE,
   ENRICH_CONCURRENCY,
   ADDRESS_BACKFILL_MAX_PLACES,
   escapeLikePattern,
@@ -515,36 +514,49 @@ export class PlacesService {
     return { names, coords, externalIds };
   }
 
+  /**
+   * The id of the place on this trip that `candidate` already is, or null.
+   *
+   * The public door onto the matching rule, for an importer that has to LINK to
+   * the existing place rather than merely skip the candidate — the booking
+   * importer needs the id so a hotel booking points at the hotel it already
+   * created. `findDuplicatePlace` stays private behind it: it also hands back
+   * `google_ftid` for the bulk importer's backfill, which is a detail of that
+   * caller and not part of the question "which place is this?".
+   */
+  findMatchingPlaceId(tripId: string, candidate: PlaceMatchCandidate): number | null {
+    return this.findDuplicatePlace(tripId, candidate)?.id ?? null;
+  }
+
+  /**
+   * Walks the shared match strategies (`@trek/shared`, place-match.ts) against
+   * the trip's rows, in order, first hit wins. The strategy list is the rule —
+   * notably it offers coordinates only for an unnamed candidate, so this can no
+   * longer disagree with `isPlaceDuplicate` about the restaurant and the bar at
+   * the same address.
+   */
   private findDuplicatePlace(
     tripId: string,
-    place: {
-      name: string | null | undefined; lat: number | null; lng: number | null;
-      google_place_id?: string | null; google_ftid?: string | null; osm_id?: string | null;
-    },
+    place: PlaceMatchCandidate,
   ): { id: number; google_ftid: string | null } | null {
-    // Same order as isPlaceDuplicate: the provider id wins, because it is what
-    // survives a rename (#1550).
-    for (const id of externalIdsOf(place)) {
-      const byId = this.dbs.get<{ id: number; google_ftid: string | null }>(`
+    for (const strategy of placeMatchStrategies(place)) {
+      let hit: { id: number; google_ftid: string | null } | undefined;
+      if (strategy.by === 'externalId') {
+        hit = this.dbs.get<{ id: number; google_ftid: string | null }>(`
       SELECT id, google_ftid FROM places
       WHERE trip_id = ? AND (google_place_id = ? OR google_ftid = ? OR osm_id = ?)
       ORDER BY id ASC
       LIMIT 1
-    `, tripId, id, id, id);
-      if (byId) return byId;
-    }
-    const normalizedName = place.name?.trim().toLowerCase();
-    if (normalizedName) {
-      const duplicate = this.dbs.get<{ id: number; google_ftid: string | null }>(`
+    `, tripId, strategy.id, strategy.id, strategy.id);
+      } else if (strategy.by === 'name') {
+        hit = this.dbs.get<{ id: number; google_ftid: string | null }>(`
       SELECT id, google_ftid FROM places
       WHERE trip_id = ? AND lower(trim(name)) = ?
       ORDER BY id ASC
       LIMIT 1
-    `, tripId, normalizedName);
-      if (duplicate) return duplicate;
-    }
-    if (place.lat != null && place.lng != null) {
-      return this.dbs.get<{ id: number; google_ftid: string | null }>(`
+    `, tripId, strategy.name);
+      } else {
+        hit = this.dbs.get<{ id: number; google_ftid: string | null }>(`
       SELECT id, google_ftid FROM places
       WHERE trip_id = ?
         AND lat IS NOT NULL AND lng IS NOT NULL
@@ -552,7 +564,9 @@ export class PlacesService {
         AND abs(lng - ?) <= ?
       ORDER BY id ASC
       LIMIT 1
-    `, tripId, place.lat, COORD_DEDUP_TOLERANCE, place.lng, COORD_DEDUP_TOLERANCE) || null;
+    `, tripId, strategy.lat, strategy.tolerance, strategy.lng, strategy.tolerance);
+      }
+      if (hit) return hit;
     }
     return null;
   }
