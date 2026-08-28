@@ -779,6 +779,42 @@ describe('getAvailableUsers', () => {
 
     expect(available.map(u => u.id)).not.toContain(alreadyFused.id);
   });
+
+  // #2112 — guests are trip-scoped accounts, and every other directory in the app
+  // already leaves them out. Vacay's two pickers did not, so a guest stayed
+  // selectable here even after being removed from the trip it was created for.
+  it('VACAY-SVC-073: guest accounts are not offered in the plan invite picker', () => {
+    const { user: owner, plan } = setupUserWithPlan();
+    const { user: guest } = createUser(testDb);
+    testDb.prepare('UPDATE users SET is_guest = 1 WHERE id = ?').run(guest.id);
+
+    const available = svc.getAvailableUsers(owner.id, plan.id) as { id: number }[];
+
+    expect(available.map(u => u.id)).not.toContain(guest.id);
+  });
+
+  it('VACAY-SVC-074: guest accounts are not offered in the shared-calendar picker', () => {
+    const { user: owner } = setupUserWithPlan();
+    const { user: guest } = createUser(testDb);
+    testDb.prepare('UPDATE users SET is_guest = 1 WHERE id = ?').run(guest.id);
+
+    const available = svc.getShareAvailableUsers(owner.id) as { id: number }[];
+
+    expect(available.map(u => u.id)).not.toContain(guest.id);
+  });
+
+  it('VACAY-SVC-075: a guest id sent straight to the write paths is refused', () => {
+    const { user: owner, plan } = setupUserWithPlan();
+    const { user: guest } = createUser(testDb);
+    testDb.prepare('UPDATE users SET is_guest = 1 WHERE id = ?').run(guest.id);
+
+    // The picker is only a list. The id comes back from the client, and the MCP
+    // tools reach the same two methods, so refusing has to happen here.
+    const invited = svc.sendInvite(plan.id, owner.id, 'owner', 'owner@example.test', guest.id);
+    expect(invited.error).toBe('User not found');
+    const shared = svc.shareCalendar(owner.id, 'owner@example.test', guest.id);
+    expect(shared.error).toBe('User not found');
+  });
 });
 
 // ── getStats ──────────────────────────────────────────────────────────────────

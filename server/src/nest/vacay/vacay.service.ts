@@ -639,7 +639,9 @@ export class VacayService {
   sendInvite(planId: number, inviterId: number, inviterUsername: string, inviterEmail: string, targetUserId: number): { error?: string; status?: number } {
     if (targetUserId === inviterId) return { error: 'Cannot invite yourself', status: 400 };
 
-    const targetUser = this.db.get('SELECT id, username FROM users WHERE id = ?', targetUserId);
+    // The picker no longer offers guests, but the id arrives from the client, so the
+    // write path has to refuse them too rather than trust the list it handed out.
+    const targetUser = this.db.get('SELECT id, username FROM users WHERE id = ? AND COALESCE(is_guest, 0) = 0', targetUserId);
     if (!targetUser) return { error: 'User not found', status: 404 };
 
     const existing = this.db.get<{ id: number; status: string }>('SELECT id, status FROM vacay_plan_members WHERE plan_id = ? AND user_id = ?', planId, targetUserId);
@@ -785,6 +787,7 @@ export class VacayService {
     return this.db.all(`
     SELECT u.id, u.username, u.email FROM users u
     WHERE u.id != ?
+    AND COALESCE(u.is_guest, 0) = 0
     AND u.id NOT IN (SELECT user_id FROM vacay_plan_members WHERE plan_id = ?)
     AND u.id NOT IN (SELECT user_id FROM vacay_plan_members WHERE status = 'accepted')
     AND u.id NOT IN (SELECT owner_id FROM vacay_plans WHERE id IN (
@@ -877,7 +880,7 @@ export class VacayService {
   shareCalendar(ownerId: number, ownerEmail: string, targetUserId: number, socketId?: string): { error?: string; status?: number } {
     if (targetUserId === ownerId) return { error: 'Cannot share with yourself', status: 400 };
 
-    const targetUser = this.db.get('SELECT id FROM users WHERE id = ?', targetUserId);
+    const targetUser = this.db.get('SELECT id FROM users WHERE id = ? AND COALESCE(is_guest, 0) = 0', targetUserId);
     if (!targetUser) return { error: 'User not found', status: 404 };
 
     const existing = this.db.get('SELECT id FROM vacay_shares WHERE owner_id = ? AND user_id = ?', ownerId, targetUserId);
@@ -931,6 +934,7 @@ export class VacayService {
     return this.db.all(`
     SELECT u.id, u.username FROM users u
     WHERE u.id != ?
+    AND COALESCE(u.is_guest, 0) = 0
     AND u.id NOT IN (SELECT user_id FROM vacay_shares WHERE owner_id = ?)
     AND u.id NOT IN (
       SELECT owner_id FROM vacay_plans WHERE id = ?
