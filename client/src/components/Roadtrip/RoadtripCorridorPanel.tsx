@@ -32,11 +32,39 @@ const CATEGORY_META: Record<string, { labelKey: string; Icon: LucideIcon }> = {
 
 const LABEL = 'text-caption font-medium text-content-faint uppercase tracking-wide'
 
+/**
+ * The brand's logo ahead of its name, falling back to the category icon.
+ *
+ * Same picture as the map pin: a corridor is mostly chains, and the logo is what the eye
+ * finds first. The image lies over the icon and only appears once it has loaded, so a
+ * brand without a logo — or a slow one — shows the icon rather than a hole in the row.
+ */
+function ResultBadge({ poi }: { poi: CorridorPoi }): React.ReactElement {
+  const meta = CATEGORY_META[poi.category]
+  const Icon = meta?.Icon ?? MapPin
+  const brand = poi.brand_wikidata && /^Q[1-9][0-9]{0,11}$/.test(poi.brand_wikidata) ? poi.brand_wikidata : null
+  return (
+    <span className="relative grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-lg bg-surface-tertiary">
+      <Icon size={14} className="text-content-faint" aria-hidden />
+      {brand ? (
+        <img
+          src={`/api/maps/brand-logo/${brand}`}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity"
+          onLoad={e => { e.currentTarget.style.opacity = '1' }}
+          onError={e => e.currentTarget.remove()}
+        />
+      ) : null}
+    </span>
+  )
+}
+
 function ResultRow({ poi, onAdd }: { poi: CorridorPoi; onAdd?: () => void }): React.ReactElement {
   const { t } = useTranslation()
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
   return (
     <li className="group flex items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-surface-hover">
+      <ResultBadge poi={poi} />
       <div className="min-w-0 flex-1">
         <div className="truncate text-body text-content">{poi.name}</div>
         <div className="text-caption text-content-faint tabular-nums">

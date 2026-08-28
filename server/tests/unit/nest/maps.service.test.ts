@@ -27,6 +27,7 @@ import {
 } from '../../../src/nest/maps/maps.helpers';
 
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { Jimp } from 'jimp';
 
 // The seams below stand in for real collaborators, so they are typed from those
 // collaborators' signatures rather than from their own default implementations.
@@ -2440,6 +2441,69 @@ describe('resolveOverpassTimeoutMs', () => {
   });
 });
 
+// ── searchOverpassPois with several categories at once (#1797) ────────────────
+
+describe('searchOverpassPois multi-category', () => {
+  const bbox = (n: number) => ({ south: 50 + n / 100, west: 8, north: 50.2 + n / 100, east: 8.2 });
+
+  it('MAPS-155: asks Overpass once for every category and labels each hit with its own', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        elements: [
+          { type: 'node', id: 1, lat: 50.1, lon: 8.1, tags: { name: 'Aral', amenity: 'fuel' } },
+          { type: 'node', id: 2, lat: 50.11, lon: 8.11, tags: { name: 'Ionity', amenity: 'charging_station' } },
+          { type: 'node', id: 3, lat: 50.12, lon: 8.12, tags: { name: 'Rasthof Taunus', highway: 'services' } },
+        ],
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    // One category first, to learn what a single box costs (the service races mirrors).
+    await svc.searchOverpassPois('fuel', bbox(9), 'en-US');
+    const single = fetchMock.mock.calls.length;
+    fetchMock.mockClear();
+
+    const { pois } = await svc.searchOverpassPois('fuel,charging,rest_area', bbox(1), 'en-US');
+
+    // Three categories cost exactly what one does — the whole point of the batching.
+    expect(fetchMock.mock.calls.length).toBe(single);
+    // The query goes out form-encoded, so read it back the way Overpass will.
+    const body = decodeURIComponent(String(fetchMock.mock.calls[0][1]?.body ?? ''));
+    expect(body).toContain('amenity"="fuel');
+    expect(body).toContain('amenity"="charging_station');
+    expect(body).toContain('highway"="services');
+    expect(pois.map(p => [p.name, p.category])).toEqual([
+      ['Aral', 'fuel'],
+      ['Ionity', 'charging'],
+      ['Rasthof Taunus', 'rest_area'],
+    ]);
+  });
+
+  it('MAPS-156: refuses the whole query when one of the categories is not a category', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(svc.searchOverpassPois('fuel,unicorns', bbox(2))).rejects.toMatchObject({ status: 400 });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('MAPS-157: a repeat of the same set is served from the cache whatever the order', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ elements: [{ type: 'node', id: 9, lat: 50.3, lon: 8.3, tags: { name: 'Shell', amenity: 'fuel' } }] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await svc.searchOverpassPois('fuel,campsite', bbox(3), 'en-US');
+    const asked = fetchMock.mock.calls.length;
+    await svc.searchOverpassPois('campsite,fuel', bbox(3), 'en-US');
+
+    // Same set, written the other way round: the second ask costs nothing.
+    expect(fetchMock.mock.calls.length).toBe(asked);
+  });
+});
+
 // ── searchOverpassPois error path (all endpoints down, #1309) ──────────────────
 
 describe('searchOverpassPois all-endpoints-down', () => {
@@ -3205,23 +3269,71 @@ describe('brandLogo', () => {
     arrayBuffer: async () => new ArrayBuffer(bytes),
   });
 
-  it('MAPS-147: reads the logo claim and serves the bytes Commons returns', async () => {
+  /** A real PNG — the flattening path decodes what it is given, so a fake buffer won't do. */
+  const pngBytes = async (width: number, height: number, color: number): Promise<ArrayBuffer> => {
+    const buf = await new Jimp({ width, height, color }).getBuffer('image/png');
+    return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+  };
+
+  const pngResponse = (bytes: ArrayBuffer) => ({
+    ok: true,
+    headers: new Headers({ 'content-type': 'image/png', 'content-length': String(bytes.byteLength) }),
+    arrayBuffer: async () => bytes,
+  });
+
+  it('MAPS-147: reads the logo claim and flattens the returned bytes onto a square', async () => {
+    // A wide, dark wordmark — the shape that used to arrive as a plain white pin.
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(claimResponse('Aral Logo.svg'))
-      .mockResolvedValueOnce(imageResponse(2278));
+      .mockResolvedValueOnce(pngResponse(await pngBytes(120, 40, 0x1a3d8fff)));
     vi.stubGlobal('fetch', fetchMock);
 
     const logo = await service().brandLogo('Q565734');
 
-    expect(logo?.bytes.byteLength).toBe(2278);
     expect(logo?.contentType).toBe('image/png');
+    const out = await Jimp.read(Buffer.from(logo!.bytes));
+    // Square, so the round pin can crop it without ever cutting the mark.
+    expect(out.bitmap.width).toBe(96);
+    expect(out.bitmap.height).toBe(96);
+    // A dark mark gets a light ground, and the padding stays clear of it: the whole
+    // wordmark is visible instead of the pin showing its middle.
+    expect(out.getPixelColor(2, 2)).toBe(0xffffffff);
+    expect(out.getPixelColor(4, 48)).toBe(0xffffffff);
+    expect(out.getPixelColor(48, 48)).toBe(0x1a3d8fff);
+
     const [claimUrl] = fetchMock.mock.calls[0];
     expect(claimUrl).toContain('wbgetclaims');
     expect(claimUrl).toContain('property=P154');
     const [fileUrl] = fetchMock.mock.calls[1];
     // Special:FilePath renders the thumbnail and redirects, so the width rides along.
     expect(fileUrl).toContain('Special:FilePath/Aral%20Logo.svg');
-    expect(fileUrl).toContain('width=96');
+    expect(fileUrl).toContain('width=128');
+  });
+
+  it('MAPS-153: a near-white logo gets a dark ground instead of vanishing', async () => {
+    // TotalEnergies, Esso and JET all read as white marks; on a white pin they were gone.
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(claimResponse('JET logo.svg'))
+      .mockResolvedValueOnce(pngResponse(await pngBytes(64, 64, 0xfafafaff)));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const out = await Jimp.read(Buffer.from((await service().brandLogo('Q568940'))!.bytes));
+
+    expect(out.getPixelColor(2, 2)).toBe(0x111827ff);
+    expect(out.getPixelColor(48, 48)).toBe(0xfafafaff);
+  });
+
+  it('MAPS-154: a logo smaller than the canvas is left at its own size, not blown up', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(claimResponse('Tiny.png'))
+      .mockResolvedValueOnce(pngResponse(await pngBytes(16, 16, 0x203040ff)));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const out = await Jimp.read(Buffer.from((await service().brandLogo('Q1'))!.bytes));
+
+    // Centred on the 96px canvas: the 16px mark occupies 40..56, the rest is ground.
+    expect(out.getPixelColor(48, 48)).toBe(0x203040ff);
+    expect(out.getPixelColor(30, 48)).toBe(0xffffffff);
   });
 
   it('MAPS-148: asks Wikidata nothing when the id is not one', async () => {

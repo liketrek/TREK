@@ -1855,4 +1855,33 @@ describe('MapViewGL', () => {
     expect(glMap.off).toHaveBeenCalledWith('moveend', expect.any(Function))
     expect(glMap.off).toHaveBeenCalledWith('zoomend', expect.any(Function))
   })
+
+  it('FE-COMP-MAPVIEWGL-071: POI suggestions ride the map render clock instead of the pointer', async () => {
+    // Same drift the planned-place pins had: a library Marker repositions on every
+    // `move` event — one per pointer sample — while the canvas draws once a frame, so
+    // the suggestions swam over the map during a drag and snapped back on release.
+    loadOnAttach()
+    glCanvasContainer.replaceChildren()
+    glMap.project.mockReturnValue({ x: 100, y: 80 })
+
+    render(
+      <MapViewGL
+        places={[]}
+        fitKey={1}
+        glProvider="maplibre-gl"
+        pois={[{ osm_id: 'node:1', name: 'Aral', lat: 48.1, lng: 2.1, category: 'fuel', source: 'openstreetmap' } as never]}
+      />,
+    )
+    await flushFrames()
+
+    const layer = glCanvasContainer.firstElementChild as HTMLElement
+    expect(layer.children.length).toBe(1)
+    const pin = layer.firstElementChild as HTMLElement
+    expect(pin.style.transform).toContain('translate(100px, 80px)')
+
+    glMap.project.mockReturnValue({ x: 140, y: 60 })
+    act(() => { mapHandler('render')() })
+
+    expect(pin.style.transform).toContain('translate(140px, 60px)')
+  })
 })

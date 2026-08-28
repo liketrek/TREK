@@ -210,6 +210,26 @@ export const CATEGORY_OSM_FILTERS: Record<string, string[]> = {
 
 export const POI_CATEGORY_KEYS = Object.keys(CATEGORY_OSM_FILTERS);
 
+/** How many categories one POI query may carry, so a caller can't fan out the mirrors. */
+export const MAX_POI_CATEGORIES = 8;
+
+/**
+ * Reads the `category` parameter, which is either one key or a comma-separated list.
+ *
+ * Asking for several kinds at once is one Overpass round-trip instead of one per kind —
+ * the road trip corridor searches four categories over a dozen boxes, and as separate
+ * requests that is four times the load on a shared mirror for the same answer.
+ */
+export function parsePoiCategories(raw: string): string[] {
+  const seen = new Set<string>();
+  for (const part of raw.split(',')) {
+    const key = part.trim();
+    if (key) seen.add(key);
+    if (seen.size >= MAX_POI_CATEGORIES) break;
+  }
+  return [...seen];
+}
+
 // Public Overpass mirrors, queried in PARALLEL (first valid response wins).
 // Reachability and load vary a lot by network/region — the canonical instance is
 // frequently overloaded (504s) and some community mirrors are unreachable from

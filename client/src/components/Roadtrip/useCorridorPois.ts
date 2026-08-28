@@ -31,9 +31,9 @@ export interface CorridorSearch {
  */
 const MAX_TILES = 16
 /** Gap after a request before the same worker starts the next — the mirrors are shared. */
-const REQUEST_SPACING_MS = 400
+const REQUEST_SPACING_MS = 250
 /** How many boxes are in flight at once. */
-const CONCURRENT_REQUESTS = 3
+const CONCURRENT_REQUESTS = 5
 
 const sleep = (ms: number, signal: AbortSignal): Promise<void> =>
   new Promise(resolve => {
@@ -98,10 +98,13 @@ export function useCorridorPois(line: LatLng[], categories: string[], widthKm: n
     setError(false)
     setResults([])
     setLoading(true)
-    setProgress({ done: 0, total: tiles.length * categories.length })
+    setProgress({ done: 0, total: tiles.length })
 
-    const jobs: { tile: Bbox; category: string }[] = []
-    for (const tile of tiles) for (const category of categories) jobs.push({ tile, category })
+    // All the wanted kinds in one query per box. Asking per kind was the same answer for
+    // four times the requests, and every extra request is another chance for a shared
+    // mirror to time out — which is what made a search both slow and patchy.
+    const wanted = categories.join(',')
+    const jobs = [...tiles]
 
     void (async () => {
       const seen = new Map<string, CorridorPoi>()
@@ -109,38 +112,57 @@ export function useCorridorPois(line: LatLng[], categories: string[], widthKm: n
       let done = 0
       let next = 0
 
-      // A few at a time, staggered. Following the real road rather than the line between
-      // stops means more boxes to cover the same drive, and asking for them strictly one
-      // after another turned a search into half a minute of waiting. The server races
-      // several Overpass mirrors and caches what comes back, so a small pool is fair use.
+      // Several at a time. Following the real road rather than the line between stops
+      // means more boxes to cover the same drive, and asking for them one after another
+      // made a search take the better part of a minute. The server races several
+      // Overpass mirrors per request and caches what comes back, so the boxes overlap
+      // cheaply; the small gap afterwards keeps one worker from queueing straight up.
+      const collect = async (tile: Bbox): Promise<boolean> => {
+        try {
+          const data = await mapsApi.pois(wanted, tile, locale, controller.signal)
+          for (const poi of data.pois) {
+            if (seen.has(poi.osm_id)) continue
+            const hit = projectOntoRoute({ lat: poi.lat, lng: poi.lng }, spine)
+            if (!hit || hit.offRouteKm > widthKm) continue
+            seen.set(poi.osm_id, { ...poi, offRouteKm: hit.offRouteKm, alongKm: hit.alongKm })
+          }
+          return true
+        } catch {
+          return false
+        }
+      }
+
+      const publish = (): void => {
+        setProgress({ done, total: jobs.length })
+        setResults([...seen.values()].sort((a, b) => a.alongKm - b.alongKm))
+      }
+
+      const retryable: Bbox[] = []
       const worker = async (): Promise<void> => {
         while (next < jobs.length) {
           if (controller.signal.aborted || runId !== runIdRef.current) return
-          const { tile, category } = jobs[next++]
-          try {
-            const data = await mapsApi.pois(category, tile, locale, controller.signal)
-            for (const poi of data.pois) {
-              if (seen.has(poi.osm_id)) continue
-              const hit = projectOntoRoute({ lat: poi.lat, lng: poi.lng }, spine)
-              if (!hit || hit.offRouteKm > widthKm) continue
-              seen.set(poi.osm_id, { ...poi, offRouteKm: hit.offRouteKm, alongKm: hit.alongKm })
-            }
-          } catch {
-            // One dead mirror or one clamped box must not empty the whole search; the run
-            // is only called a failure if every request failed.
-            failures++
-            setFailedAreas(failures)
-          }
+          const job = jobs[next++]
+          if (!(await collect(job))) retryable.push(job)
           done++
           if (controller.signal.aborted || runId !== runIdRef.current) return
-          setProgress({ done, total: jobs.length })
-          setResults([...seen.values()].sort((a, b) => a.alongKm - b.alongKm))
+          publish()
           await sleep(REQUEST_SPACING_MS, controller.signal)
         }
       }
 
       await Promise.all(Array.from({ length: Math.min(CONCURRENT_REQUESTS, jobs.length) }, worker))
       if (controller.signal.aborted || runId !== runIdRef.current) return
+
+      // One more pass over what did not answer. Overpass mirrors time out under load far
+      // more often than they are truly empty, and reporting "4 stretches went unsearched"
+      // when a second ask would have answered them is the wrong end of the trade.
+      for (const job of retryable) {
+        if (controller.signal.aborted || runId !== runIdRef.current) return
+        if (await collect(job)) continue
+        failures++
+        setFailedAreas(failures)
+      }
+      publish()
       setError(failures === jobs.length && failures > 0)
       setLoading(false)
     })()

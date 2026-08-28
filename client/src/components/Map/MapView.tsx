@@ -170,14 +170,15 @@ function createPoiIcon(category: string, brandWikidata?: string | null) {
   const cat = POI_CATEGORY_BY_KEY[category]
   const color = cat?.color || '#6b7280'
   const svg = cat ? renderIconMarkup(createElement(cat.Icon, { size: 13, color: 'white', strokeWidth: 2.5 })) : ''
-  // onerror empties the wrapper: the route answers 204 for a brand Wikidata has no
-  // logo for, and an empty circle in the category colour is the right fallback.
-  const inner = brand
-    ? `<img src="/api/maps/brand-logo/${brand}" alt="" width="18" height="18" style="display:block;object-fit:contain;" onerror="this.remove()" />`
-    : svg
+  // The logo lies over the category pin and only becomes visible once it has loaded, so
+  // a brand Wikidata has no logo for (the route answers 204), a failed request and one
+  // still in flight all leave the pin exactly as it would be without a brand.
+  const logo = brand
+    ? `<img src="/api/maps/brand-logo/${brand}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;" onload="this.style.opacity=1" onerror="this.remove()" />`
+    : ''
   const icon = L.divIcon({
     className: '',
-    html: `<div style="width:26px;height:26px;border-radius:50%;background:${brand ? '#fff' : color};border:2px solid ${brand ? color : 'white'};box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;">${inner}</div>`,
+    html: `<div style="position:relative;width:26px;height:26px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;">${svg}${logo}</div>`,
     iconSize: [26, 26],
     iconAnchor: [13, 13],
     tooltipAnchor: [0, -14],

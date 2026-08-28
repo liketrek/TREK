@@ -356,6 +356,20 @@ function makePlacePin(map: any, layer: HTMLElement, el: HTMLElement, lng: number
   }
 }
 
+/**
+ * Puts an element on the map as a pin.
+ *
+ * `layer` is only ever set under MapLibre (that is where it gets created), so passing it
+ * along is the whole provider decision: with a layer we position the element ourselves on
+ * the map's render clock, without one the library's own Marker does it.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function attachPin(map: any, gl: any, layer: HTMLElement | null, el: HTMLElement, lng: number, lat: number): PlacePin {
+  return layer
+    ? makePlacePin(map, layer, el, lng, lat)
+    : libraryPin(new gl.Marker({ element: el, anchor: 'center' }).setLngLat([lng, lat]).addTo(map))
+}
+
 // Tone dot for a plugin marker — visual twin of MapPluginMarkers' divIcon.
 function createPluginMarkerElement(tone: PluginMapMarker['tone']): HTMLDivElement {
   const color = PLUGIN_TONE_COLORS[tone] ?? PLUGIN_TONE_COLORS.default
@@ -404,22 +418,21 @@ function createPoiMarkerElement(category: string, brandWikidata?: string | null)
   const svg = cat ? renderIconMarkup(createElement(cat.Icon, { size: 13, color: 'white', strokeWidth: 2.5 })) : ''
   const el = document.createElement('div')
   el.style.cssText = 'width:26px;height:26px;cursor:pointer;will-change:transform;'
-  const inner = brandLogoMarkup(brandWikidata) || svg
-  const background = brandWikidata ? '#fff' : color
-  el.innerHTML = `<div style="width:26px;height:26px;border-radius:50%;background:${background};border:2px solid ${color};box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;box-sizing:border-box;overflow:hidden;">${inner}</div>`
+  el.innerHTML = `<div style="position:relative;width:26px;height:26px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;box-sizing:border-box;overflow:hidden;">${svg}${brandLogoMarkup(brandWikidata)}</div>`
   return el
 }
 
 /**
- * The <img> for a brand logo, or '' when there is no brand.
+ * The <img> for a brand logo, laid over the category pin, or '' when there is no brand.
  *
- * `onerror` empties the wrapper rather than leaving a broken-image glyph: the route
- * answers 204 for a brand Wikidata has no logo for, and an empty circle in the
- * category colour is the right fallback.
+ * It starts invisible and is only shown once it has loaded, so the pin underneath stays
+ * exactly as it would be without a brand until there is really something to show. That
+ * covers all three ways this can go: a brand Wikidata has no logo for (the route answers
+ * 204), a request that fails, and one that simply has not arrived yet.
  */
-function brandLogoMarkup(brandWikidata?: string | null): string {
+export function brandLogoMarkup(brandWikidata?: string | null): string {
   if (!brandWikidata || !/^Q[1-9][0-9]{0,11}$/.test(brandWikidata)) return ''
-  return `<img src="/api/maps/brand-logo/${brandWikidata}" alt="" width="18" height="18" style="display:block;object-fit:contain;" onerror="this.remove()" />`
+  return `<img src="/api/maps/brand-logo/${brandWikidata}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;" onload="this.style.opacity=1" onerror="this.remove()" />`
 }
 
 export function MapViewGL({
@@ -497,25 +510,27 @@ export function MapViewGL({
   const markersRef = useRef<Map<number, PlacePin>>(new Map())
   // Own layer for the hand-positioned place pins (MapLibre path, see makePlacePin).
   const pinLayerRef = useRef<HTMLDivElement | null>(null)
-  const repositionPins = useCallback(() => {
-    markersRef.current.forEach(pin => pin.reposition())
-  }, [])
   const locationMarkerRef = useRef<LocationMarkerHandle | null>(null)
   const reservationOverlayRef = useRef<ReservationMapboxOverlay | null>(null)
   // Refs so the reservation overlay always sees the latest callback /
   // options without forcing a full overlay rebuild on every prop change.
   const onReservationClickRef = useRef(onReservationClick)
   onReservationClickRef.current = onReservationClick
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const poiMarkersRef = useRef<any[]>([])
+  const poiMarkersRef = useRef<PlacePin[]>([])
   // Plugin map contributions — data fetched per trip, elements owned imperatively
   // like the POI markers so they survive the React render cycle.
   const [pluginMarkers, setPluginMarkers] = useState<PluginMapMarker[]>([])
   const [pluginLayers, setPluginLayers] = useState<PluginMapLayer[]>([])
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pluginMarkersRef = useRef<any[]>([])
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const routeViaMarkersRef = useRef<any[]>([])
+  const pluginMarkersRef = useRef<PlacePin[]>([])
+  const routeViaMarkersRef = useRef<PlacePin[]>([])
+  // Every hand-positioned pin, whichever set it belongs to. They all have to be written
+  // in the same frame the canvas draws, or the ones left out swim against the ones in.
+  const repositionPins = useCallback(() => {
+    markersRef.current.forEach(pin => pin.reposition())
+    poiMarkersRef.current.forEach(pin => pin.reposition())
+    pluginMarkersRef.current.forEach(pin => pin.reposition())
+    routeViaMarkersRef.current.forEach(pin => pin.reposition())
+  }, [])
   // Single reusable hover popup for POI markers. Planned places use the
   // cursor-following React tooltip below so they match the Leaflet map.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1185,12 +1200,7 @@ export function MapViewGL({
         // pitch. Tried `pitchAlignment: 'map'` to snap markers onto terrain,
         // but it rotates the element by the pitch angle and visually offsets
         // the anchor by ~100px at 45° tilt, which caused the observed drift.
-        const pin = isMapLibre && pinLayerRef.current
-          ? makePlacePin(map, pinLayerRef.current, el, place.lng, place.lat)
-          : libraryPin(new gl.Marker({ element: el, anchor: 'center' })
-            .setLngLat([place.lng, place.lat])
-            .addTo(map))
-        markersRef.current.set(place.id, pin)
+        markersRef.current.set(place.id, attachPin(map, gl, pinLayerRef.current, el, place.lng, place.lat))
       })
     }
 
@@ -1257,8 +1267,7 @@ export function MapViewGL({
       })
       el.addEventListener('mouseleave', () => { popupRef.current?.remove() })
       el.addEventListener('click', (ev) => { ev.stopPropagation(); onPoiClickRef.current?.(poi) })
-      const m = new gl.Marker({ element: el, anchor: 'center' }).setLngLat([poi.lng, poi.lat]).addTo(map)
-      poiMarkersRef.current.push(m)
+      poiMarkersRef.current.push(attachPin(map, gl, pinLayerRef.current, el, poi.lng, poi.lat))
     }
   }, [pois, mapReady, glProvider])
 
@@ -1304,8 +1313,7 @@ export function MapViewGL({
           popupRef.current?.setLngLat([v.lng, v.lat]).setText(text).addTo(map)
         })
       }
-      const m = new gl.Marker({ element: el, anchor: 'center' }).setLngLat([v.lng, v.lat]).addTo(map)
-      routeViaMarkersRef.current.push(m)
+      routeViaMarkersRef.current.push(attachPin(map, gl, pinLayerRef.current, el, v.lng, v.lat))
     }
   }, [routeVias, mapReady, glProvider])
 
@@ -1323,7 +1331,7 @@ export function MapViewGL({
           popupRef.current?.setLngLat([mk.lng, mk.lat]).setDOMContent(buildPluginMarkerPopup(mk)).addTo(map)
         })
       }
-      const m = new gl.Marker({ element: el, anchor: 'center' }).setLngLat([mk.lng, mk.lat]).addTo(map)
+      const m = attachPin(map, gl, pinLayerRef.current, el, mk.lng, mk.lat)
       pluginMarkersRef.current.push(m)
     }
   }, [pluginMarkers, mapReady, glProvider])

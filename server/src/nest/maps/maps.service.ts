@@ -7,6 +7,7 @@ import type {
   MapsReverseResult,
   MapsResolveUrlResult,
 } from '@trek/shared';
+import { Jimp } from 'jimp';
 import { readEnv, getAppUrl } from '../../app-config';
 import { safeFetchFollow, SsrfBlockedError } from '../../utils/ssrfGuard';
 import { discardBody, exceedsDeclaredLength, readCappedText } from '../../utils/cappedFetch';
@@ -26,6 +27,7 @@ import {
   isGooglePlaceId,
   OSM_PLACE_ID,
   CATEGORY_OSM_FILTERS,
+  parsePoiCategories,
   resolveOverpassEndpoints,
   resolveOverpassTimeoutMs,
   stripWikiMarkup,
@@ -376,12 +378,81 @@ const BRAND_LOGO_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const BRAND_LOGO_CACHE_MAX = 300;
 /** Well past any logo; a Commons original can be a multi-megabyte SVG or print-res PNG. */
 const BRAND_LOGO_MAX_BYTES = 512 * 1024;
-const BRAND_LOGO_WIDTH = 96;
+const BRAND_LOGO_WIDTH = 128;
+/** The square the logo is centred in, and the breathing room around it. */
+const BRAND_LOGO_CANVAS = 96;
+const BRAND_LOGO_PADDING = 8;
 const WIKIDATA_ID_RE = /^Q[1-9][0-9]{0,11}$/;
 
 export interface BrandLogo {
   bytes: Buffer;
   contentType: string;
+}
+
+/**
+ * Puts a logo on a background it can actually be seen against.
+ *
+ * Half the fuel brands ship a white wordmark with a transparent background —
+ * TotalEnergies, Esso and JET among them — and on the white pill the marker used to
+ * draw they were invisible. Which background is right is a property of the image, not
+ * of the brand, so it is measured: the mean brightness of the pixels that are actually
+ * opaque decides between a white and a near-black backdrop.
+ *
+ * Returns the flattened PNG, or null when the bytes cannot be read at all — the pin
+ * then keeps its category icon, which is a fine outcome.
+ */
+async function flattenBrandLogo(bytes: Buffer): Promise<BrandLogo | null> {
+  try {
+    const image = await Jimp.read(bytes);
+    const width = image.bitmap.width;
+    const height = image.bitmap.height;
+    if (!width || !height) return null;
+
+    let sum = 0;
+    let opaque = 0;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4;
+        const alpha = image.bitmap.data[idx + 3];
+        // Half-transparent pixels are anti-aliasing, not the mark itself.
+        if (alpha < 128) continue;
+        const r = image.bitmap.data[idx];
+        const g = image.bitmap.data[idx + 1];
+        const b = image.bitmap.data[idx + 2];
+        sum += 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        opaque++;
+      }
+    }
+    // A logo with nothing opaque in it is not a logo.
+    if (opaque === 0) return null;
+
+    // Square, with the logo scaled to fit inside it. Most brand marks are wide wordmarks
+    // — TotalEnergies is three times as wide as it is tall — and a round pin showing the
+    // middle of one is unreadable. Fitting it into a square means the pin can crop to a
+    // circle without ever cutting the mark itself.
+    const scale = Math.min(
+      (BRAND_LOGO_CANVAS - 2 * BRAND_LOGO_PADDING) / width,
+      (BRAND_LOGO_CANVAS - 2 * BRAND_LOGO_PADDING) / height,
+    );
+    // Never upscale: a 16-pixel favicon blown up to 96 looks worse than a small one.
+    if (scale < 1) image.scale(scale);
+
+    const light = sum / opaque > 150;
+    const canvas = new Jimp({
+      width: BRAND_LOGO_CANVAS,
+      height: BRAND_LOGO_CANVAS,
+      color: light ? 0x111827ff : 0xffffffff,
+    });
+    canvas.composite(
+      image,
+      Math.round((BRAND_LOGO_CANVAS - image.bitmap.width) / 2),
+      Math.round((BRAND_LOGO_CANVAS - image.bitmap.height) / 2),
+    );
+    const out = await canvas.getBuffer('image/png');
+    return { bytes: Buffer.from(out), contentType: 'image/png' };
+  } catch {
+    return null;
+  }
 }
 
 // Tighter than the wiki calls, because this one sits at the FRONT of a chain:
@@ -462,6 +533,12 @@ const POI_CACHE_TTL_MS = 5 * 60 * 1000;
 // Cap the number of cached areas so panning across the globe can't grow the map
 // without bound (entries are evicted oldest-first once the cap is reached).
 const POI_CACHE_MAX = 500;
+/**
+ * Hard ceiling on one POI answer, however many categories it carries. A corridor search
+ * asks for four kinds at once; without a ceiling a dense city box would return a payload
+ * nobody reads and every mirror pays for.
+ */
+const POI_RESULT_CAP = 240;
 
 // POST the query to all mirrors at once and return the first one that answers with
 // valid JSON. Throws {status:502} only if every mirror fails. Racing (rather than
@@ -661,7 +738,7 @@ export class MapsService {
       const contentType = imgRes.headers.get('content-type') ?? '';
       if (!contentType.startsWith('image/')) return remember(null);
 
-      return remember({ bytes, contentType });
+      return remember(await flattenBrandLogo(bytes));
     } catch (err) {
       if (err instanceof SsrfBlockedError) return remember(null);
       return remember(null);
@@ -912,8 +989,20 @@ export class MapsService {
     lang?: string,
     limit = 60,
   ): Promise<PoiSearchResult> {
-    const filters = CATEGORY_OSM_FILTERS[category];
-    if (!filters) throw Object.assign(new Error('Unknown POI category'), { status: 400 });
+    // One or several categories in one query. Each OSM selector belongs to exactly one
+    // category, so a hit can still be labelled with the category it answered.
+    const categories = parsePoiCategories(category);
+    if (!categories.length) throw Object.assign(new Error('Unknown POI category'), { status: 400 });
+    const categoryOfFilter = new Map<string, string>();
+    for (const key of categories) {
+      const own = CATEGORY_OSM_FILTERS[key];
+      if (!own) throw Object.assign(new Error('Unknown POI category'), { status: 400 });
+      for (const f of own) categoryOfFilter.set(f, key);
+    }
+    const filters = [...categoryOfFilter.keys()];
+    // Each category gets its own share of the cap, or a mixed search would spend the
+    // whole budget on whichever kind happens to be densest.
+    const cap = Math.min(limit * categories.length, POI_RESULT_CAP);
 
     // Clamp an oversized viewport to a centred window so the query stays cheap and
     // returns fast at any zoom, instead of timing out / 502-ing on a huge area.
@@ -940,7 +1029,7 @@ export class MapsService {
     const osmLang = toApiLang(lang).split('-')[0].toLowerCase();
 
     // Serve repeat pans/toggles of the same area straight from the cache.
-    const cacheKey = `${category}|${osmLang}|${south.toFixed(2)},${west.toFixed(2)},${north.toFixed(2)},${east.toFixed(2)}|${limit}`;
+    const cacheKey = `${[...categories].sort().join('+')}|${osmLang}|${south.toFixed(2)},${west.toFixed(2)},${north.toFixed(2)},${east.toFixed(2)}|${cap}`;
     const cached = POI_CACHE.get(cacheKey);
     if (cached && Date.now() - cached.at < POI_CACHE_TTL_MS) return cached.value;
     if (cached) POI_CACHE.delete(cacheKey); // expired — drop it before refetching
@@ -955,7 +1044,7 @@ export class MapsService {
       .join('\n');
     // `out center tags <n>` returns ways/relations with a computed center and caps
     // the result count in one round-trip.
-    const query = `[out:json][timeout:20];\n(\n${selectors}\n);\nout center tags ${limit + 25};`;
+    const query = `[out:json][timeout:20];\n(\n${selectors}\n);\nout center tags ${cap + 25};`;
 
     const elements = await overpassFetch(query);
 
@@ -992,7 +1081,7 @@ export class MapsService {
         name,
         lat,
         lng,
-        category,
+        category: categoryOfFilter.get(matched) ?? categories[0],
         poi_type: matched,
         address: addr,
         website: tags.website || tags['contact:website'] || null,
@@ -1006,8 +1095,8 @@ export class MapsService {
         source: 'openstreetmap',
       });
     }
-    const truncated = pois.length > limit;
-    const value: PoiSearchResult = { pois: pois.slice(0, limit), source: 'openstreetmap', truncated, clamped };
+    const truncated = pois.length > cap;
+    const value: PoiSearchResult = { pois: pois.slice(0, cap), source: 'openstreetmap', truncated, clamped };
     // FIFO eviction: a Map preserves insertion order, so the first key is the oldest.
     if (POI_CACHE.size >= POI_CACHE_MAX) POI_CACHE.delete(POI_CACHE.keys().next().value as string);
     POI_CACHE.set(cacheKey, { at: Date.now(), value });
