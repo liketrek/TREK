@@ -187,6 +187,83 @@ Requires `notifications:read` or `notifications:write` scope.
 | `mark_notification_unread` | Mark a notification as unread. |
 | `mark_all_notifications_read` | Mark all notifications as read. |
 
+### Files
+
+Requires `files:read` or `files:write`. Reading what is inside a document needs `files:content`, which is a **separate** scope and is not implied by `files:write`.
+
+| Tool | Description |
+|---|---|
+| `list_trip_files` | List a trip's documents: name, type, size, uploader, description, what they are linked to, starred and trash state. Pass `trash` to list the trash instead. |
+| `read_trip_file` | Read one document's contents. Text comes back as text, anything else base64, with an `encoding` field saying which. Files over 10 MB are refused; use the download link in the app. |
+| `update_trip_file` | Set a file's description and the booking or place it belongs to. Pass null to detach. |
+| `link_trip_file` | Link a file to one more booking, place or day assignment. |
+| `unlink_trip_file` | Remove one link. The file stays. |
+| `list_trip_file_links` | List everything a file is linked to. |
+
+### Settings
+
+Requires `settings:read` or `settings:write`.
+
+| Tool | Description |
+|---|---|
+| `get_display_settings` | Read the user's units, time format, language, default currency and start page. Read this before rendering a temperature, a distance or a clock time. |
+| `update_display_settings` | Change one or more of those preferences. Only display preferences: API keys, map tokens and LLM settings are refused, whatever is passed. |
+
+### Calendar feeds
+
+Requires `trips:share`, the same scope that manages public share links.
+
+| Tool | Description |
+|---|---|
+| `get_trip_calendar_feed` | Read the subscribable feed URL for one trip, and whether it is on. |
+| `enable_trip_calendar_feed` | Turn the trip feed on and mint its token. |
+| `rotate_trip_calendar_feed` | Issue a new token. Every existing subscription to that trip stops working. |
+| `disable_trip_calendar_feed` | Turn it off and revoke the token. |
+| `get_all_trips_calendar_feed` | The same, for the feed that carries every trip the user can see. |
+| `enable_all_trips_calendar_feed` | |
+| `rotate_all_trips_calendar_feed` | |
+| `disable_all_trips_calendar_feed` | |
+
+### Invite links
+
+Requires `trips:share`. This is the link that grants **membership**, not the read-only public view link that `create_share_link` makes.
+
+| Tool | Description |
+|---|---|
+| `get_trip_invite_link` | Read the current invite link and when it expires. |
+| `create_trip_invite_link` | Mint an invite link, optionally with an expiry. Rotating replaces the old one, which stops working. |
+| `delete_trip_invite_link` | Revoke it. |
+
+Accepting an invite has no tool on purpose: joining somebody's trip is a human act.
+
+### Imports
+
+| Tool | Description |
+|---|---|
+| `list_airtrail_flights` | List the flights available to import from a connected AirTrail account. Requires the AirTrail addon. |
+| `import_airtrail_flights` | Import chosen flights into a trip as transport bookings. |
+
+### Photos
+
+Requires `journey:read`, or `journey:write` to attach. Needs a configured Immich or Synology Photos provider.
+
+| Tool | Description |
+|---|---|
+| `search_provider_photos` | Search the connected photo library. |
+| `list_provider_albums` | List its albums. |
+| `list_provider_album_photos` | List one album's photos. |
+
+Photo bytes are never returned: those are image URLs the app renders.
+
+### Help and instance
+
+| Tool | Description |
+|---|---|
+| `list_help_topics` | List the bundled help pages. Answers "how do I do X in TREK?" without guessing. |
+| `get_help_page` | Read one help page. |
+| `list_addons` | Which addons and collaboration features this instance has enabled. Worth calling when a tool you expected is not in the list: an addon that is off removes its tools exactly the way a missing scope does. |
+| `get_trip_warnings` | Warnings plugins have raised about a trip. A plugin raising one is telling the user something is wrong, so it is worth reading before reviewing an itinerary. |
+
 ---
 
 ## Resources
