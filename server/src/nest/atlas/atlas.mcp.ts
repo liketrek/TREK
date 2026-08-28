@@ -44,6 +44,14 @@ function jsonContent(uri: string, data: unknown) {
  * get_country_atlas_places passed codes through un-uppercased) was fixed in
  * the trailing quirk commit — both sides now uppercase. The one input schema
  * that grew since is create_bucket_list_item's target_date (#1898).
+ *
+ * Three later additions answer REST rather than the legacy registrar:
+ * locate_atlas_region mirrors GET /locate, without which nothing on the MCP
+ * surface could produce the region code mark_region_visited demands;
+ * list_visited_regions and the atlas-regions resource report the derived and
+ * merged shape GET /regions has always returned instead of the raw manual
+ * rows; and get_atlas_stats carries the dashboard passport figures from
+ * GET /api/auth/travel-stats next to the atlas payload.
  */
 @McpController()
 export class AtlasMcp {
@@ -143,33 +151,68 @@ export class AtlasMcp {
 
   @Tool({
     name: 'get_atlas_stats',
-    description: 'Get atlas statistics — total visited countries, region counts, continent breakdown.',
-    inputSchema: {},
+    description:
+      'Get the full travel picture in one call: visited/planned countries with per-country place and trip counts, continent breakdown, trip and day totals, plus the passport figures the dashboard shows (the cities visited by name and the total distance flown). Prefer this over get_country_atlas_places, which answers for one country only.',
+    inputSchema: {
+      include_coords: z
+        .boolean()
+        .optional()
+        .describe('Also return the coordinate of every saved place, as the dashboard map plots them. Off by default: it is one entry per place.'),
+    },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: atlasAddonOn,
     access: { group: 'atlas', mode: 'read' },
   })
-  async getAtlasStats(_args: Record<string, never>, ctx: McpContext) {
+  async getAtlasStats({ include_coords }: { include_coords?: boolean }, ctx: McpContext) {
     const stats = await this.atlas.stats(ctx.userId);
-    return ok({ stats });
+    // stats() counts cities and knows nothing of flown distance, so the two
+    // figures the passport card is actually asked for (GET /api/auth/travel-stats)
+    // were unreachable here. Its coords array is one entry per place, which is
+    // rendering data rather than an answer, hence the opt-in.
+    const { coords, ...travel } = this.atlas.getTravelStats(ctx.userId);
+    return ok({ stats, travel: include_coords ? { ...travel, coords } : travel });
   }
 
   @Tool({
     name: 'list_visited_regions',
-    description: 'List all manually visited sub-country regions for the current user.',
+    description:
+      'List visited sub-country regions grouped by country, the way the Atlas map paints them: regions derived from the places on your trips, each with a place count and a visited/planned/idea status, merged with the ones marked by hand and minus the ones dismissed.',
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: atlasAddonOn,
     access: { group: 'atlas', mode: 'read' },
   })
   async listVisitedRegions(_args: Record<string, never>, ctx: McpContext) {
-    const regions = this.atlas.listManuallyVisitedRegions(ctx.userId);
-    return ok({ regions });
+    // The manual marks are a subset of what the user sees: GET /regions derives
+    // regions from trip places as well, so reporting the raw visited_regions rows
+    // made the tool contradict the map for anyone who never marked one by hand.
+    const regions = await this.atlas.visitedRegions(ctx.userId);
+    return ok(regions);
+  }
+
+  @Tool({
+    name: 'locate_atlas_region',
+    description:
+      'Resolve a coordinate to the country and admin1 region the Atlas map can highlight. This is where the regionCode/countryCode pair mark_region_visited expects comes from. Prefer reverse_geocode when you want a postal address instead of atlas codes.',
+    inputSchema: {
+      lat: z.number().min(-90).max(90).describe('Latitude in decimal degrees'),
+      lng: z.number().min(-180).max(180).describe('Longitude in decimal degrees'),
+    },
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    when: atlasAddonOn,
+    access: { group: 'atlas', mode: 'read' },
+  })
+  async locateAtlasRegion({ lat, lng }: { lat: number; lng: number }, _ctx: McpContext) {
+    // Null fields are an answer, not a failure: the point may sit outside every
+    // bundled polygon, and plenty of countries have no admin1 coverage at all
+    // (#1115). Same as the REST route.
+    const located = await this.atlas.locate(lat, lng);
+    return ok(located);
   }
 
   @Tool({
     name: 'mark_region_visited',
-    description: 'Mark a sub-country region as visited.',
+    description: 'Mark a sub-country region as visited. When you only know a place or a coordinate, get the codes from locate_atlas_region first.',
     inputSchema: {
       regionCode: z.string().describe('ISO region code e.g. US-CA'),
       regionName: z.string(),
@@ -317,13 +360,16 @@ export class AtlasMcp {
   @Resource({
     name: 'atlas-regions',
     uri: 'trek://atlas/regions',
-    description: 'List of manually visited regions for the current user',
+    description: 'Visited regions grouped by country, as the Atlas map paints them',
     mimeType: 'application/json',
     when: atlasAddonOn,
     access: { group: 'atlas', mode: 'read' },
   })
   async atlasRegionsResource(uri: URL, ctx: McpContext) {
-    const regions = this.atlas.listManuallyVisitedRegions(ctx.userId);
+    // Same source as list_visited_regions. Resources here carry the payload
+    // itself, so the { regions } envelope GET /regions sends is unwrapped, the
+    // way bucket-list drops REST's { items }.
+    const { regions } = await this.atlas.visitedRegions(ctx.userId);
     return jsonContent(uri.href, regions);
   }
 }
