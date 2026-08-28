@@ -1,4 +1,4 @@
-// FE-PLANNER-TRANSIT-001 to FE-PLANNER-TRANSIT-027 — the transit search panel
+// FE-PLANNER-TRANSIT-001 to FE-PLANNER-TRANSIT-030 — the transit search panel
 // (embedded as the TransportModal's Automated mode).
 import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
@@ -33,6 +33,27 @@ const ITINERARY = {
   legs: [
     { mode: 'WALK', from: { name: 'Start', lat: 52.52, lng: 13.4, time: '2025-06-01T06:30:00Z', scheduledTime: null, track: null }, to: { name: 'Alexanderplatz', lat: 52.521, lng: 13.41, time: '2025-06-01T06:34:00Z', scheduledTime: null, track: null }, duration: 240, distance: 300, headsign: null, line: null, lineColor: null, lineTextColor: null, agency: null, intermediateStops: 0 },
     { mode: 'SUBWAY', from: { name: 'Alexanderplatz', lat: 52.521, lng: 13.41, time: '2025-06-01T06:36:00Z', scheduledTime: null, track: '2' }, to: { name: 'Zoologischer Garten', lat: 52.507, lng: 13.332, time: '2025-06-01T07:00:00Z', scheduledTime: null, track: null }, duration: 1440, distance: null, headsign: 'Ruhleben', line: 'U2', lineColor: '#FF3300', lineTextColor: '#FFFFFF', agency: 'BVG', intermediateStops: 6 },
+  ],
+}
+
+const stop = (name: string, lat: number, lng: number, time: string, track: string | null = null) =>
+  ({ name, lat, lng, time, scheduledTime: null, track })
+
+// The shape MOTIS actually returns for the reported connection: every journey is
+// bracketed in walking legs, and a change between two stations adds one in the
+// middle (#2106).
+const WALK_BRACKETED = {
+  startTime: '2025-06-01T06:30:00Z',
+  endTime: '2025-06-01T09:10:00Z',
+  duration: 9600,
+  transfers: 1,
+  walkSeconds: 1080,
+  legs: [
+    { mode: 'WALK', from: stop('Aachen, Bushof', 50.777, 6.09, '2025-06-01T06:30:00Z'), to: stop('Aachen Hbf', 50.768, 6.091, '2025-06-01T06:34:00Z'), duration: 240, distance: 300, headsign: null, line: null, lineColor: null, lineTextColor: null, agency: null, intermediateStops: 0 },
+    { mode: 'HIGHSPEED_RAIL', from: stop('Aachen Hbf', 50.768, 6.091, '2025-06-01T06:40:00Z', '2'), to: stop('Koeln Hbf', 50.943, 6.959, '2025-06-01T07:30:00Z'), duration: 3000, distance: null, headsign: 'Koeln', line: 'ICE 10', lineColor: null, lineTextColor: null, agency: 'DB', intermediateStops: 1 },
+    { mode: 'WALK', from: stop('Koeln Hbf', 50.943, 6.959, '2025-06-01T07:32:00Z'), to: stop('Koeln Messe/Deutz', 50.941, 6.974, '2025-06-01T07:40:00Z'), duration: 480, distance: 600, headsign: null, line: null, lineColor: null, lineTextColor: null, agency: null, intermediateStops: 0 },
+    { mode: 'HIGHSPEED_RAIL', from: stop('Koeln Messe/Deutz', 50.941, 6.974, '2025-06-01T07:50:00Z', '11'), to: stop('Frankfurt(Main)Hbf', 50.107, 8.663, '2025-06-01T08:57:00Z'), duration: 4020, distance: null, headsign: 'Frankfurt', line: 'ICE 610', lineColor: null, lineTextColor: null, agency: 'DB', intermediateStops: 2 },
+    { mode: 'WALK', from: stop('Frankfurt(Main)Hbf', 50.107, 8.663, '2025-06-01T09:00:00Z'), to: stop('Frankfurt Flughafen Fernbf', 50.053, 8.57, '2025-06-01T09:10:00Z'), duration: 600, distance: 800, headsign: null, line: null, lineColor: null, lineTextColor: null, agency: null, intermediateStops: 0 },
   ],
 }
 
@@ -517,8 +538,59 @@ describe('TransitSearchPanel', () => {
     await user.click(await screen.findByText(/08:30 – 09:00/))
     expect(await screen.findByText('BVG')).toBeInTheDocument()
     expect(screen.getByText(/Platform 2/)).toBeInTheDocument()
-    expect(screen.getByText('Walk to Alexanderplatz')).toBeInTheDocument()
+    // Rows are anchored at the leg's start, so the access walk carries the picked
+    // origin and not the station the next row already names (#2106).
+    expect(screen.getByText('Start')).toBeInTheDocument()
+    expect(screen.queryByText('Walk to Alexanderplatz')).not.toBeInTheDocument()
     expect(screen.getByText('300 m')).toBeInTheDocument()
     expect(screen.getByText('6 stops')).toBeInTheDocument()
+  })
+
+  // #2106 — the walking legs printed their DESTINATION as the row heading, which is
+  // the stop the next row already names. The stop you actually get off at is a
+  // walking leg's origin, so it had no row at all and disappeared from the card.
+  it('FE-PLANNER-TRANSIT-028: the stop you get off at is listed, with the arrival time', async () => {
+    const user = userEvent.setup()
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [WALK_BRACKETED] })
+    render(<TransitSearchPanel {...makeProps()} />)
+    await pickFromAndTo(user)
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await user.click(await screen.findByText(/08:30 – 11:10/))
+
+    // The final train's arrival station, which is where the closing walk begins.
+    expect(await screen.findByText(/Frankfurt\(Main\)Hbf/)).toBeInTheDocument()
+    // Its arrival time, which the old WALK branch blanked. Not a time the card
+    // header already prints, or this would pass without the fix.
+    expect(screen.getByText('11:00')).toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-TRANSIT-029: a walk between two stations names the station it starts from', async () => {
+    const user = userEvent.setup()
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [WALK_BRACKETED] })
+    render(<TransitSearchPanel {...makeProps()} />)
+    await pickFromAndTo(user)
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await user.click(await screen.findByText(/08:30 – 11:10/))
+
+    // The change happens on foot between two different stations: the one you leave
+    // is its own row now, at the time the first train gets in.
+    expect(await screen.findByText('Koeln Hbf')).toBeInTheDocument()
+    expect(screen.getByText('09:32')).toBeInTheDocument()
+    // And the walk is still marked as one, in the badge row rather than the heading.
+    expect(screen.getAllByText('Walking').length).toBe(3)
+  })
+
+  it('FE-PLANNER-TRANSIT-030: no row is headed with the destination of its own walk', async () => {
+    const user = userEvent.setup()
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [WALK_BRACKETED] })
+    render(<TransitSearchPanel {...makeProps()} />)
+    await pickFromAndTo(user)
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await user.click(await screen.findByText(/08:30 – 11:10/))
+
+    await screen.findByText(/Frankfurt\(Main\)Hbf/)
+    expect(screen.queryByText(/^Walk to /)).not.toBeInTheDocument()
+    // The picked origin survives instead of being replaced by the first station.
+    expect(screen.getByText('Aachen, Bushof')).toBeInTheDocument()
   })
 })

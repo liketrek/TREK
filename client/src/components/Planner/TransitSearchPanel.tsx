@@ -234,12 +234,28 @@ function ItineraryCard({ it, tzFrom, tzTo, is12h, expanded, onToggle, onAdd, add
       {expanded && (
         <div style={{ borderTop: '1px solid var(--border-faint)', padding: '10px 14px 12px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {/*
+              Every row is anchored at the leg's START: its time, its stop name and its
+              platform. A leg's arrival shows up as the next row's heading, and the last
+              arrival gets the closing row below.
+
+              The walking legs used to break that and print leg.to.name, which is the stop
+              the NEXT row already names. The stop where you actually get off is a walking
+              leg's from.name, so it had no row of its own and vanished from the card
+              entirely, along with the train's arrival time, which the same branch blanked
+              (#2106). MOTIS brackets every journey in walking legs, so this hit the exit
+              of any real connection.
+
+              The time falls back to scheduledTime for the same reason the save path does
+              (see stopTime below): a feed without realtime data carries only the schedule,
+              and this row is now the one that shows the arrival.
+            */}
             {it.legs.map((leg, i) => {
               const color = leg.mode === 'WALK' ? 'var(--border-primary)' : (leg.lineColor || 'var(--text-muted)')
               return (
                 <div key={i} style={{ display: 'grid', gridTemplateColumns: '44px 18px 1fr', gap: 8, alignItems: 'stretch' }}>
                   <div className="text-content-muted" style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, paddingTop: 2, textAlign: 'right' }}>
-                    {leg.mode === 'WALK' ? '' : fmtTimeInTz(leg.from.time, tzAt(leg.from.lat, leg.from.lng), is12h)}
+                    {fmtTimeInTz(leg.from.time ?? leg.from.scheduledTime, tzAt(leg.from.lat, leg.from.lng), is12h)}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <span style={{ width: 10, height: 10, borderRadius: '50%', border: `2.5px solid ${color}`, background: 'var(--bg-card)', flexShrink: 0, marginTop: 4 }} />
@@ -247,13 +263,14 @@ function ItineraryCard({ it, tzFrom, tzTo, is12h, expanded, onToggle, onAdd, add
                   </div>
                   <div style={{ paddingBottom: 14, minWidth: 0 }}>
                     <div className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {leg.mode === 'WALK' ? t('transit.walkTo', { name: leg.to.name }) : leg.from.name}
-                      {leg.from.track && leg.mode !== 'WALK' && <span className="text-content-faint" style={{ fontWeight: 500 }}> · {t('transit.platform', { track: leg.from.track })}</span>}
+                      {leg.from.name}
+                      {leg.from.track && <span className="text-content-faint" style={{ fontWeight: 500 }}> · {t('transit.platform', { track: leg.from.track })}</span>}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
                       {leg.mode === 'WALK' ? (
                         <TransitMetaBadges size="sm" items={[
-                          { icon: Footprints, text: fmtDuration(leg.duration, t) },
+                          { icon: Footprints, text: t('transit.walkLabel') },
+                          { text: fmtDuration(leg.duration, t) },
                           { text: leg.distance ? (leg.distance >= 1000 ? `${(leg.distance / 1000).toFixed(1)} km` : `${leg.distance} m`) : '' },
                         ]} />
                       ) : (
