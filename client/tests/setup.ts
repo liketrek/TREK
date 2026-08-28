@@ -100,3 +100,25 @@ if (typeof URL.createObjectURL === 'undefined') {
 
 // Element.prototype.scrollIntoView — jsdom doesn't implement it
 Element.prototype.scrollIntoView = vi.fn();
+
+// maplibre-gl-leaflet — the vector basemap every Leaflet map draws since the move
+// off CARTO. jsdom has no WebGL, so the real layer can never work here; more to
+// the point, several map tests hand react-leaflet a partial `useMap()` stub, and
+// the real layer's addTo() reaches for map.addLayer and rejects into the void.
+// Stubbed globally for the same reason ResizeObserver is: the capability does not
+// exist in this environment. Tests that assert on the layer register their own
+// mock, which takes precedence over this one.
+vi.mock('@maplibre/maplibre-gl-leaflet', () => ({
+  maplibreGL: vi.fn(() => {
+    const gl = {
+      setStyle: vi.fn(),
+      on: vi.fn(),
+      isStyleLoaded: vi.fn(() => false),
+      getStyle: vi.fn(() => ({ layers: [] })),
+      setLayoutProperty: vi.fn(),
+    };
+    const layer: Record<string, unknown> = { remove: vi.fn(), getMaplibreMap: vi.fn(() => gl) };
+    layer.addTo = vi.fn(() => layer);
+    return layer;
+  }),
+}));
