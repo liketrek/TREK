@@ -24,7 +24,7 @@ async function mockCountdownTrip(page: Page): Promise<void> {
   const trip = {
     id: TRIP_ID,
     user_id: 1,
-    title: '藍男二十周年——這是一個刻意很長且不能碰到倒數板的沖繩旅行名稱',
+    title: 'TestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTest',
     description: null,
     start_date: departureDate,
     end_date: endDate,

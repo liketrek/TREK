@@ -332,7 +332,7 @@
 /* Desktop heroes keep the original 520px presence, but long localized titles,
    the boarding pass and the departure countdown must be allowed to establish a
    taller intrinsic height instead of being clipped by the cover. */
-@media (min-width: 721px) {
+@media (min-width: 768px) {
   .trek-dash .hero-trip {
     height: auto;
     min-height: 520px;
@@ -341,8 +341,21 @@
   .trek-dash .hero-content {
     position: relative;
     inset: auto;
+    width: 100%;
+    min-width: 0;
     min-height: 520px;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto 1fr auto auto;
+  }
+
+  .trek-dash .hero-title-block,
+  .trek-dash .hero-pass-wrap,
+  .trek-dash .departure-countdown-board {
+    min-width: 0;
+  }
+
+  .trek-dash .hero-title {
+    overflow-wrap: anywhere;
   }
 }
 .trek-dash .hero-top {
