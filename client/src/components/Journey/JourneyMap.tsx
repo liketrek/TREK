@@ -154,6 +154,13 @@ function JourneyMap(
   const mapTileUrl = useSettingsStore(s => s.settings.map_tile_url)
   const storedCartoKey = useCartoApiKey()
   const cartoKey = cartoApiKey || storedCartoKey
+  const tileUrl = resolveTileUrl(mapTileUrl, dark ? CARTO_DARK : CARTO_VOYAGER, cartoKey)
+  // Read through a ref by the map effect, retiled in place by its own effect below:
+  // the CARTO key reaches the store after the first render, and rebuilding the map
+  // for that raced with the markers and layers already on it (#2097).
+  const tileUrlRef = useRef(tileUrl)
+  tileUrlRef.current = tileUrl
+  const tileLayerRef = useRef<L.TileLayer | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const markersRef = useRef<Map<string, L.Marker>>(new Map())
@@ -232,7 +239,7 @@ function JourneyMap(
     })
     mapRef.current = map
 
-    L.tileLayer(resolveTileUrl(mapTileUrl, dark ? CARTO_DARK : CARTO_VOYAGER, cartoKey), {
+    const tiles = L.tileLayer(tileUrlRef.current, {
       maxZoom: 18,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       referrerPolicy: 'strict-origin-when-cross-origin',
@@ -242,7 +249,9 @@ function JourneyMap(
       // updates and keep a larger ring of off-screen tiles ready.
       updateWhenIdle: false,
       keepBuffer: 4,
-    } as any).addTo(map)
+    } as any)
+    tiles.addTo(map)
+    tileLayerRef.current = tiles
 
     const items = buildMarkerItems(entries)
     itemsRef.current = items
@@ -337,9 +346,16 @@ function JourneyMap(
     return () => {
       map.remove()
       mapRef.current = null
+      tileLayerRef.current = null
       markersRef.current.clear()
     }
-  }, [entries, stableTrail, stableTracks, dark, mapTileUrl, cartoKey, fullScreen, paddingBottom])
+  }, [entries, stableTrail, stableTracks, dark, fullScreen, paddingBottom])
+
+  // Retile in place rather than through the effect above, which would drop every
+  // marker and track it just drew.
+  useEffect(() => {
+    tileLayerRef.current?.setUrl(tileUrl)
+  }, [tileUrl])
 
   // Photo layer (#1614). Its own effect on purpose: photos arriving must not tear
   // down and rebuild the map the way the entry effect does. Redrawn on zoom and
@@ -382,7 +398,7 @@ function JourneyMap(
       photoLayerRef.current?.remove()
       photoLayerRef.current = null
     }
-  }, [photos, entries, stableTrail, stableTracks, dark, mapTileUrl, cartoKey, fullScreen, paddingBottom])
+  }, [photos, entries, stableTrail, stableTracks, dark, fullScreen, paddingBottom])
 
   // react to activeMarkerId prop changes — runs after map is built
   useEffect(() => {

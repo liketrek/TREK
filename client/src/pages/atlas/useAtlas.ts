@@ -84,6 +84,12 @@ export function useAtlas() {
   // Label-free tiles on purpose (the country fills carry the names here), so the
   // user's own template is deliberately not read, only their CARTO key.
   const tileUrl = useTileUrl(dark ? CARTO_DARK_NOLABELS : CARTO_LIGHT_NOLABELS, true)
+  // The template is read through a ref inside the map effect so a template change —
+  // the CARTO key arriving after the first render is the usual one — retiles the
+  // layers below instead of tearing the whole map down and building it again (#2097).
+  const tileUrlRef = useRef(tileUrl)
+  tileUrlRef.current = tileUrl
+  const tileLayersRef = useRef<L.TileLayer[]>([])
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<L.Map | null>(null)
   const geoLayerRef = useRef<L.GeoJSON | null>(null)
@@ -367,7 +373,7 @@ export function useAtlas() {
 
     L.control.zoom({ position: 'bottomright' }).addTo(map)
 
-    L.tileLayer(tileUrl, {
+    const baseTiles = L.tileLayer(tileUrlRef.current, {
       maxZoom: 10,
       keepBuffer: 25,
       updateWhenZooming: true,
@@ -376,17 +382,20 @@ export function useAtlas() {
       zoomOffset: 0,
       crossOrigin: true,
       referrerPolicy: 'strict-origin-when-cross-origin',
-    } as any).addTo(map)
+    } as any)
+    baseTiles.addTo(map)
 
     // Preload adjacent zoom level tiles
-    L.tileLayer(tileUrl, {
+    const preloadTiles = L.tileLayer(tileUrlRef.current, {
       maxZoom: 10,
       keepBuffer: 10,
       opacity: 0,
       tileSize: 256,
       crossOrigin: true,
       referrerPolicy: 'strict-origin-when-cross-origin',
-    }).addTo(map)
+    })
+    preloadTiles.addTo(map)
+    tileLayersRef.current = [baseTiles, preloadTiles]
 
     // Custom pane for region layer — above overlay (z-index 400)
     map.createPane('regionPane')
@@ -443,8 +452,17 @@ export function useAtlas() {
       // appending a second container to the pane.
       regionLayerRef.current = null
       renderedRegionSigRef.current = ''
+      tileLayersRef.current = []
     }
-  }, [dark, loading, tileUrl])
+  }, [dark, loading])
+
+  // Retile in place. A rebuild would drop every layer the effects below hold a ref
+  // to — the country layer is only re-rendered when its own data changes, so the map
+  // would come back bare — and Leaflet keeps redrawing the torn-down canvas renderer
+  // for a frame after the map goes (#2097).
+  useEffect(() => {
+    for (const layer of tileLayersRef.current) layer.setUrl(tileUrl)
+  }, [tileUrl])
 
   // Render GeoJSON countries
   useEffect(() => {

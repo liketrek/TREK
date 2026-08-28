@@ -71,7 +71,7 @@ vi.mock('leaflet', () => {
 
   const L = {
     map: vi.fn(() => mockMap),
-    tileLayer: vi.fn(() => ({ addTo: vi.fn().mockReturnThis() })),
+    tileLayer: vi.fn(() => ({ addTo: vi.fn().mockReturnThis(), setUrl: vi.fn() })),
     // Call onEachFeature and style callbacks for each feature so those paths are covered
     geoJSON: vi.fn((data: any, options: any) => {
       if (options?.onEachFeature && data?.features) {

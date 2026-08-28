@@ -105,7 +105,7 @@ vi.mock('leaflet', () => {
 
   const L = {
     map: vi.fn(() => { lf.mapsCreated += 1; return map; }),
-    tileLayer: vi.fn(() => ({ addTo: vi.fn() })),
+    tileLayer: vi.fn(() => ({ addTo: vi.fn(), setUrl: vi.fn() })),
     control: { zoom: vi.fn(() => ({ addTo: vi.fn() })) },
     canvas: vi.fn(() => ({})),
     svg: vi.fn(() => ({})),
@@ -706,6 +706,34 @@ describe('useAtlas', () => {
       act(() => { seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: true }) }); });
       await waitFor(() => expect(lf.geoJson.length).toBeGreaterThan(before));
       expect(lf.mapsRemoved).toBeGreaterThan(0);
+    });
+
+    it('FE-HOOK-ATLAS-043: a CARTO key arriving after mount retiles instead of rebuilding the map (#2097)', async () => {
+      // Sliced from here: L.tileLayer's mock results carry over from earlier tests.
+      const madeBefore = vi.mocked(L.tileLayer).mock.results.length;
+      await mountAtlas({ geo: geoCountries });
+      await waitFor(() => expect(lf.geoJson.length).toBeGreaterThan(0));
+
+      const tiles = vi.mocked(L.tileLayer).mock.results
+        .slice(madeBefore)
+        .map((r) => r.value as { setUrl: ReturnType<typeof vi.fn> });
+      expect(tiles.length).toBeGreaterThan(0);
+      const layersBefore = lf.geoJson.length;
+
+      act(() => {
+        seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: false, carto_api_key: 'k1' }) });
+      });
+
+      // The key reaches the tiles that are already on the map...
+      await waitFor(() => {
+        for (const t of tiles) expect(t.setUrl).toHaveBeenCalledWith(expect.stringContaining('key=k1'));
+      });
+      // ...and nothing else is torn down: rebuilding the map dropped the country layer
+      // (only redrawn when its own data changes) and left Leaflet redrawing a canvas
+      // renderer whose map had gone.
+      expect(lf.mapsCreated).toBe(1);
+      expect(lf.mapsRemoved).toBe(0);
+      expect(lf.geoJson.length).toBe(layersBefore);
     });
 
     it('FE-HOOK-ATLAS-027: a plugin layer naming no country in the map draws nothing', async () => {

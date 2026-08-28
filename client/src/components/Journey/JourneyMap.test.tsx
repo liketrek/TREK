@@ -37,7 +37,7 @@ vi.mock('leaflet', () => {
   return {
     default: {
       map: vi.fn(() => mockMap),
-      tileLayer: vi.fn(() => ({ addTo: vi.fn() })),
+      tileLayer: vi.fn(() => ({ addTo: vi.fn(), setUrl: vi.fn() })),
       marker: vi.fn(() => mockMarker),
       polyline: vi.fn(() => { const line: any = { addTo: vi.fn(() => line), bindTooltip: vi.fn(() => line) }; return line }),
       divIcon: vi.fn(() => ({})),
@@ -45,7 +45,7 @@ vi.mock('leaflet', () => {
       layerGroup: vi.fn(() => ({ addLayer: vi.fn(), addTo: vi.fn(), remove: vi.fn() })),
     },
     map: vi.fn(() => mockMap),
-    tileLayer: vi.fn(() => ({ addTo: vi.fn() })),
+    tileLayer: vi.fn(() => ({ addTo: vi.fn(), setUrl: vi.fn() })),
     marker: vi.fn(() => mockMarker),
     polyline: vi.fn(() => { const line: any = { addTo: vi.fn(() => line), bindTooltip: vi.fn(() => line) }; return line }),
     divIcon: vi.fn(() => ({})),
@@ -386,6 +386,22 @@ describe('JourneyMap', () => {
     seedStore(useSettingsStore, { settings: buildSettings({ map_tile_url: 'https://tiles.test/{z}/{x}/{y}.png' }) });
     render(<JourneyMap checkins={[]} entries={entriesWithCoords} />);
     expect(vi.mocked(L.tileLayer).mock.calls[0][0]).toBe('https://tiles.test/{z}/{x}/{y}.png');
+  });
+
+  it('FE-COMP-JOURNEYMAP-041: a CARTO key arriving after mount retiles instead of rebuilding the map (#2097)', () => {
+    render(<JourneyMap checkins={[]} entries={entriesWithCoords} />);
+    const tiles = vi.mocked(L.tileLayer).mock.results[0].value as { setUrl: ReturnType<typeof vi.fn> };
+    const mapsBefore = vi.mocked(L.map).mock.calls.length;
+
+    act(() => {
+      seedStore(useSettingsStore, { settings: buildSettings({ carto_api_key: 'k1' }) });
+    });
+
+    expect(tiles.setUrl).toHaveBeenCalledWith(expect.stringContaining('key=k1'));
+    // The markers and tracks the map already carries are drawn by the effect that
+    // builds it, so a rebuild here would tear them down mid-flight.
+    expect(vi.mocked(L.map).mock.calls.length).toBe(mapsBefore);
+    expect(mockedMap().remove).not.toHaveBeenCalled();
   });
 
   it('FE-COMP-JOURNEYMAP-028: the activeMarkerId prop flies to that marker after the settle delay', () => {
