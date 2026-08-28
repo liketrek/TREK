@@ -36,7 +36,7 @@ vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createReservation, createDayAssignment, addTripMember } from '../../helpers/factories';
+import { createUser, createTrip, createDay, createPlace, createReservation, createDayAssignment, createDayAccommodation, createCategory, addTripMember } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
 
 beforeAll(() => {
@@ -489,8 +489,8 @@ describe('Resource: trek://trips/{tripId}/reservations', () => {
 // Reads already hydrate a booking's travellers; there was no way to write them,
 // so an imported booking could not record who was on it. The roster filter lives
 // in the service, so the cases below pin that an off-trip id is dropped rather
-// than attached, and that a guest — the only representation of a companion
-// without an account — is assignable like any member.
+// than attached, and that a guest, the only representation of a companion
+// without an account, is assignable like any member.
 // ---------------------------------------------------------------------------
 
 describe('Tool: set_reservation_travelers', () => {
@@ -785,6 +785,111 @@ describe('Reservation tools: url and reservation_end_time', () => {
         arguments: { tripId: trip.id, reservationId: reservation.id, url: 'https://flix.example/booking/8892' },
       });
       expect(testDb.prepare('SELECT url FROM reservations WHERE id = ?').get(reservation.id)).toEqual({ url: 'https://flix.example/booking/8892' });
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// list_upcoming_reservations
+//
+// The one cross-trip read here. GET /api/reservations/upcoming scopes itself in
+// SQL (owned or joined, not archived) rather than through verifyTripAccess, so
+// the visibility cases below are the access test for this tool. The hotel arm is
+// the part no per-trip list can stand in for: a stay contributes a check-in and
+// a check-out moment that exist in day_accommodations, not in reservations.
+// ---------------------------------------------------------------------------
+
+describe('Tool: list_upcoming_reservations', () => {
+  function dateInDays(days: number): string {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function seedBooking(
+    tripId: number,
+    title: string,
+    time: string | null,
+    extra: Partial<{ type: string; status: string }> = {},
+  ): number {
+    return Number(testDb.prepare(
+      'INSERT INTO reservations (trip_id, title, type, status, reservation_time) VALUES (?, ?, ?, ?, ?)',
+    ).run(tripId, title, extra.type ?? 'restaurant', extra.status ?? 'pending', time).lastInsertRowid);
+  }
+
+  async function upcoming(userId: number, args: Record<string, unknown> = {}) {
+    let out: { title: string; type: string; trip_id: number }[] = [];
+    await withHarness(userId, async (h) => {
+      const data = parseToolResult(await h.client.callTool({ name: 'list_upcoming_reservations', arguments: args })) as {
+        reservations: { title: string; type: string; trip_id: number }[];
+      };
+      out = data.reservations;
+    });
+    return out;
+  }
+
+  it('spans every trip the user can see, soonest first, and stops at the trips they cannot', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const owned = createTrip(testDb, user.id);
+    const joined = createTrip(testDb, other.id);
+    const stranger = createTrip(testDb, other.id);
+    addTripMember(testDb, joined.id, user.id);
+
+    seedBooking(owned.id, 'Flight to Paris', `${dateInDays(4)}T08:00:00`, { type: 'flight' });
+    seedBooking(joined.id, 'Group dinner', `${dateInDays(2)}T19:00:00`);
+    seedBooking(stranger.id, 'Not mine', `${dateInDays(1)}T07:00:00`);
+
+    const rows = await upcoming(user.id);
+    expect(rows.map((r) => r.title)).toEqual(['Group dinner', 'Flight to Paris']);
+  });
+
+  it('reports a hotel stay as its check-in and check-out moments', async () => {
+    const { user } = createUser(testDb);
+    createCategory(testDb);
+    const trip = createTrip(testDb, user.id);
+    const arrival = createDay(testDb, trip.id, { date: dateInDays(3) });
+    const departure = createDay(testDb, trip.id, { date: dateInDays(6) });
+    const hotel = createPlace(testDb, trip.id, { name: 'Hotel Astoria' });
+    createDayAccommodation(testDb, trip.id, hotel.id, arrival.id, departure.id, { check_in: '15:00', check_out: '11:00' });
+
+    const rows = await upcoming(user.id);
+    expect(rows.map((r) => [r.type, r.title])).toEqual([
+      ['checkin', 'Hotel Astoria'],
+      ['checkout', 'Hotel Astoria'],
+    ]);
+  });
+
+  it('leaves out cancelled bookings and archived trips', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const archived = createTrip(testDb, user.id);
+    testDb.prepare('UPDATE trips SET is_archived = 1 WHERE id = ?').run(archived.id);
+
+    seedBooking(trip.id, 'Still on', `${dateInDays(2)}T12:00:00`);
+    seedBooking(trip.id, 'Called off', `${dateInDays(1)}T12:00:00`, { status: 'cancelled' });
+    seedBooking(archived.id, 'Last year', `${dateInDays(3)}T12:00:00`);
+
+    const rows = await upcoming(user.id);
+    expect(rows.map((r) => r.title)).toEqual(['Still on']);
+  });
+
+  it('returns the dashboard six by default and honours a limit', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    for (let i = 1; i <= 8; i++) seedBooking(trip.id, `Booking ${i}`, `${dateInDays(i)}T09:00:00`);
+
+    expect((await upcoming(user.id)).map((r) => r.title)).toEqual([
+      'Booking 1', 'Booking 2', 'Booking 3', 'Booking 4', 'Booking 5', 'Booking 6',
+    ]);
+    expect((await upcoming(user.id, { limit: 2 })).map((r) => r.title)).toEqual(['Booking 1', 'Booking 2']);
+  });
+
+  it('refuses a limit outside the allowed range', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'list_upcoming_reservations', arguments: { limit: 0 } });
+      expect(result.isError).toBe(true);
     });
   });
 });

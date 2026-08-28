@@ -1,7 +1,9 @@
 /**
  * Unit tests for the collections MCP surface (CollectionsMcp, DI-discovered):
  * the 25 tools ported 1:1 from the legacy src/mcp/tools/collections.ts
- * registrar. New with the DI fold — the legacy registrar had no tool-level
+ * registrar, plus the two later additions that closed the gap to REST
+ * (find_place_in_collections, set_collection_place_status_from_trip).
+ * New with the DI fold: the legacy registrar had no tool-level
  * suite — so this is a characterization of the ported behavior: payload
  * shapes, error texts (the service's thrown httpError messages surfaced via
  * fail()), the owner-only available-users gate, demo denial on writes, the
@@ -103,8 +105,17 @@ function addMember(colId: number, userId: number, role: 'viewer' | 'editor' | 'a
 
 function seedPlace(colId: number, ownerId: number, name: string, extra: Record<string, unknown> = {}): number {
   return Number(testDb.prepare(
-    'INSERT INTO collection_places (collection_id, owner_id, saved_by, name, lat, lng, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-  ).run(colId, ownerId, ownerId, name, extra.lat ?? null, extra.lng ?? null, extra.status ?? 'idea').lastInsertRowid);
+    `INSERT INTO collection_places (collection_id, owner_id, saved_by, name, lat, lng, status, google_place_id, source_trip_id, source_place_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    colId, ownerId, ownerId, name,
+    extra.lat ?? null, extra.lng ?? null, extra.status ?? 'idea',
+    extra.google_place_id ?? null, extra.source_trip_id ?? null, extra.source_place_id ?? null,
+  ).lastInsertRowid);
+}
+
+function statusOf(placeId: number): string | undefined {
+  return (testDb.prepare('SELECT status FROM collection_places WHERE id = ?').get(placeId) as { status: string } | undefined)?.status;
 }
 
 // ---------------------------------------------------------------------------
@@ -179,6 +190,79 @@ describe('Tool: available_collection_users', () => {
       const result = await h.client.callTool({ name: 'available_collection_users', arguments: { collectionId: col } });
       expect(result.isError).toBe(true);
       expect(errorText(result)).toBe('Collection not found');
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Library-wide membership rollup
+//
+// The inspector's "already saved" lookup (GET /addons/collections/membership)
+// had no tool behind it, and walking get_collection cannot stand in for it: the
+// match runs on provider ids and a coordinate tolerance, not on the names a
+// caller could compare itself. The cases below pin the signals, not just the
+// payload shape.
+// ---------------------------------------------------------------------------
+
+describe('Tool: find_place_in_collections', () => {
+  it('names every visible list holding the place, with its per-list status and edit right', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const mine = seedCollection(user.id, 'Paris');
+    const shared = seedCollection(other.id, 'Their museums');
+    const hidden = seedCollection(other.id, 'Not shared');
+    addMember(shared, user.id, 'viewer');
+    seedPlace(mine, user.id, 'Louvre', { google_place_id: 'g-louvre', status: 'want' });
+    seedPlace(shared, other.id, 'Louvre', { google_place_id: 'g-louvre' });
+    seedPlace(hidden, other.id, 'Louvre', { google_place_id: 'g-louvre' });
+
+    await withHarness(user.id, async (h) => {
+      const data = parseToolResult(await h.client.callTool({
+        name: 'find_place_in_collections',
+        arguments: { google_place_id: 'g-louvre' },
+      })) as { saved: boolean; lists: { collection_id: number; name: string; status: string; can_edit: boolean }[] };
+
+      expect(data.saved).toBe(true);
+      const byId = new Map(data.lists.map((l) => [l.collection_id, l]));
+      expect([...byId.keys()].sort((a, b) => a - b)).toEqual([mine, shared].sort((a, b) => a - b));
+      expect(byId.get(mine)).toMatchObject({ name: 'Paris', status: 'want', can_edit: true });
+      expect(byId.get(shared)).toMatchObject({ name: 'Their museums', status: 'idea', can_edit: false });
+    });
+  });
+
+  it('matches by coordinates within the dedup tolerance and not outside it', async () => {
+    const { user } = createUser(testDb);
+    const col = seedCollection(user.id, 'Rome');
+    seedPlace(col, user.id, 'Pantheon', { lat: 41.8986, lng: 12.4769 });
+
+    await withHarness(user.id, async (h) => {
+      const near = parseToolResult(await h.client.callTool({
+        name: 'find_place_in_collections',
+        arguments: { lat: 41.89865, lng: 12.4769 },
+      })) as { saved: boolean; lists: unknown[] };
+      expect(near.saved).toBe(true);
+      expect(near.lists).toHaveLength(1);
+
+      const far = parseToolResult(await h.client.callTool({
+        name: 'find_place_in_collections',
+        arguments: { lat: 41.899, lng: 12.4769 },
+      })) as { saved: boolean; lists: unknown[] };
+      expect(far.saved).toBe(false);
+      expect(far.lists).toEqual([]);
+    });
+  });
+
+  it('reports nothing for a name-only query, since a repeated name is not a match signal', async () => {
+    const { user } = createUser(testDb);
+    const col = seedCollection(user.id, 'Coffee');
+    seedPlace(col, user.id, 'Starbucks', { lat: 47.6062, lng: -122.3321 });
+
+    await withHarness(user.id, async (h) => {
+      const data = parseToolResult(await h.client.callTool({
+        name: 'find_place_in_collections',
+        arguments: { name: 'Starbucks' },
+      })) as { saved: boolean; lists: unknown[] };
+      expect(data).toEqual({ saved: false, lists: [] });
     });
   });
 });
@@ -294,6 +378,114 @@ describe('Tool: update_collection_place / set_collection_place_status / rate_col
       const cleared = parseToolResult(await h.client.callTool({ name: 'rate_collection_place', arguments: { placeId: pid } })) as { place: { rating_avg: number | null; rating_count: number } };
       expect(cleared.place.rating_avg).toBeNull();
       expect(cleared.place.rating_count).toBe(0);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Bulk status from the trip side
+//
+// set_collection_place_status takes one collection_places id, so "we went there
+// today" had to be repeated per list after finding the copies. This one names
+// TRIP place ids and resolves the copies the way the membership lookup does.
+// ---------------------------------------------------------------------------
+
+describe('Tool: set_collection_place_status_from_trip', () => {
+  it('marks every saved copy of a trip place across the lists holding it', async () => {
+    const { user } = createUser(testDb);
+    createCategory(testDb);
+    const trip = createTrip(testDb, user.id);
+    const louvre = createPlace(testDb, trip.id, { name: 'Louvre', lat: 48.8606, lng: 2.3376 });
+    const orsay = createPlace(testDb, trip.id, { name: "Musee d'Orsay", lat: 48.86, lng: 2.3266 });
+    const paris = seedCollection(user.id, 'Paris');
+    const museums = seedCollection(user.id, 'Museums');
+    // Two different match signals: coordinates in one list, the source link the
+    // saved-from-trip path writes in the other.
+    const byCoords = seedPlace(paris, user.id, 'Louvre', { lat: 48.8606, lng: 2.3376 });
+    const bySource = seedPlace(museums, user.id, 'Louvre', { source_trip_id: trip.id, source_place_id: louvre.id });
+    const untouched = seedPlace(paris, user.id, 'Eiffel Tower', { lat: 48.8584, lng: 2.2945 });
+
+    await withHarness(user.id, async (h) => {
+      const data = parseToolResult(await h.client.callTool({
+        name: 'set_collection_place_status_from_trip',
+        arguments: { trip_id: trip.id, place_ids: [louvre.id, orsay.id], status: 'visited' },
+      }));
+      // Orsay is saved nowhere, so it counts towards neither number.
+      expect(data).toEqual({ updated: 2, places: 1 });
+    });
+
+    expect(statusOf(byCoords)).toBe('visited');
+    expect(statusOf(bySource)).toBe('visited');
+    expect(statusOf(untouched)).toBe('idea');
+  });
+
+  it('skips a list the user may only read instead of refusing the batch', async () => {
+    const { user } = createUser(testDb);
+    const { user: owner } = createUser(testDb);
+    createCategory(testDb);
+    const trip = createTrip(testDb, user.id);
+    const prado = createPlace(testDb, trip.id, { name: 'Prado', lat: 40.4138, lng: -3.6921 });
+    const own = seedCollection(user.id, 'Madrid');
+    const readOnly = seedCollection(owner.id, 'Their list');
+    addMember(readOnly, user.id, 'viewer');
+    const mine = seedPlace(own, user.id, 'Prado', { lat: 40.4138, lng: -3.6921 });
+    const theirs = seedPlace(readOnly, owner.id, 'Prado', { lat: 40.4138, lng: -3.6921 });
+
+    await withHarness(user.id, async (h) => {
+      const data = parseToolResult(await h.client.callTool({
+        name: 'set_collection_place_status_from_trip',
+        arguments: { trip_id: trip.id, place_ids: [prado.id], status: 'visited' },
+      }));
+      expect(data).toEqual({ updated: 1, places: 1 });
+    });
+
+    expect(statusOf(mine)).toBe('visited');
+    expect(statusOf(theirs)).toBe('idea');
+  });
+
+  it('surfaces the 404 text for a trip the user cannot access, leaving statuses alone', async () => {
+    const { user } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    createCategory(testDb);
+    const trip = createTrip(testDb, stranger.id);
+    const place = createPlace(testDb, trip.id, { name: 'Alhambra', lat: 37.176, lng: -3.5881 });
+    const col = seedCollection(user.id, 'Spain');
+    const saved = seedPlace(col, user.id, 'Alhambra', { lat: 37.176, lng: -3.5881 });
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'set_collection_place_status_from_trip',
+        arguments: { trip_id: trip.id, place_ids: [place.id], status: 'visited' },
+      });
+      expect(result.isError).toBe(true);
+      expect(errorText(result)).toBe('Trip not found');
+    });
+    expect(statusOf(saved)).toBe('idea');
+  });
+
+  it('refuses an empty place_ids, and falls back to idea on an unknown status like the REST contract', async () => {
+    const { user } = createUser(testDb);
+    createCategory(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Sagrada Familia', lat: 41.4036, lng: 2.1744 });
+    const col = seedCollection(user.id, 'Barcelona');
+    const saved = seedPlace(col, user.id, 'Sagrada Familia', { lat: 41.4036, lng: 2.1744, status: 'want' });
+
+    await withHarness(user.id, async (h) => {
+      const empty = await h.client.callTool({
+        name: 'set_collection_place_status_from_trip',
+        arguments: { trip_id: trip.id, place_ids: [], status: 'visited' },
+      });
+      expect(empty.isError).toBe(true);
+      expect(statusOf(saved)).toBe('want');
+
+      // collectionStatusSchema carries .catch('idea'), so REST coerces rather
+      // than rejects; the tool shares the contract and behaves the same.
+      await h.client.callTool({
+        name: 'set_collection_place_status_from_trip',
+        arguments: { trip_id: trip.id, place_ids: [place.id], status: 'teleported' },
+      });
+      expect(statusOf(saved)).toBe('idea');
     });
   });
 });
@@ -466,11 +658,12 @@ describe('Sharing tools', () => {
 // Scope gating (collections read/write, registration-time)
 // ---------------------------------------------------------------------------
 
-const READ_TOOLS = ['list_collections', 'get_collection', 'available_collection_users'];
+const READ_TOOLS = ['list_collections', 'get_collection', 'available_collection_users', 'find_place_in_collections'];
 const WRITE_TOOLS = [
   'create_collection', 'update_collection', 'delete_collection', 'reorder_collections',
   'save_place_to_collection', 'save_trip_places_to_collection', 'update_collection_place',
-  'set_collection_place_status', 'rate_collection_place', 'delete_collection_place',
+  'set_collection_place_status', 'set_collection_place_status_from_trip',
+  'rate_collection_place', 'delete_collection_place',
   'copy_collection_places_to_trip', 'create_collection_label', 'update_collection_label',
   'delete_collection_label', 'assign_collection_labels', 'invite_to_collection',
   'set_collection_member_role', 'remove_collection_member', 'cancel_collection_invite',
@@ -487,7 +680,7 @@ describe('Collection tools — scope gating', () => {
     }
   }
 
-  it('registers all 25 tools with null scopes (full access)', async () => {
+  it('registers all 27 tools with null scopes (full access)', async () => {
     const { user } = createUser(testDb);
     const names = await listToolNames(user.id, null);
     for (const tool of [...READ_TOOLS, ...WRITE_TOOLS]) expect(names).toContain(tool);

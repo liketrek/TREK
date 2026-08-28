@@ -14,13 +14,14 @@ import {
   collectionSavePlaceRequestSchema, collectionPlaceUpdateRequestSchema,
   collectionCopyToTripRequestSchema, collectionLabelCreateRequestSchema,
   collectionLabelUpdateRequestSchema, collectionLabelAssignRequestSchema,
-  collectionInviteRequestSchema, COLLECTION_STATUSES, COLLECTION_ROLES,
+  collectionInviteRequestSchema, collectionSetStatusFromTripRequestSchema,
+  COLLECTION_STATUSES, COLLECTION_ROLES,
 } from '@trek/shared';
 import type {
   CollectionCreateRequest, CollectionUpdateRequest, CollectionSavePlaceRequest,
   CollectionPlaceUpdateRequest, CollectionCopyToTripRequest, CollectionInviteRequest,
   CollectionLabelCreateRequest, CollectionLabelUpdateRequest, CollectionLabelAssignRequest,
-  CollectionStatus, CollectionRole,
+  CollectionSetStatusFromTripRequest, CollectionStatus, CollectionRole,
 } from '@trek/shared';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
@@ -109,6 +110,27 @@ export class CollectionsMcp {
       }
       return ok({ users: this.collections.availableUsers(ctx.userId, collectionId) });
     } catch (err) { return fail(err); }
+  }
+
+  @Tool({
+    name: 'find_place_in_collections',
+    description: 'Answer "is this place already on one of my lists?" across the whole library in one call, and name the lists it is on with its status in each. Prefer this over walking get_collection list by list: it applies the same provider-id and coordinate-proximity match the app\'s own saved indicator uses, which a name comparison over the returned places cannot reproduce. Identify the place by google_place_id / google_ftid (from search_place) or by lat+lng; without one of those there is no signal strong enough to claim it is the same place and nothing is reported as saved.',
+    inputSchema: {
+      google_place_id: z.string().max(200).optional().describe('Google Places id of the place to look up'),
+      google_ftid: z.string().max(200).optional().describe('Google feature id (ftid) of the place to look up'),
+      name: z.string().max(200).optional().describe('Place name. Carried for parity with the REST lookup and never matched on alone, since every repeated name (any "Starbucks") would answer to it.'),
+      lat: z.number().min(-90).max(90).optional().describe('Latitude; pass together with lng to match by location'),
+      lng: z.number().min(-180).max(180).optional().describe('Longitude; pass together with lat to match by location'),
+    },
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    when: collectionsAddonOn,
+    access: { group: 'collections', mode: 'read' },
+  })
+  async findPlaceInCollections(
+    query: { google_place_id?: string; google_ftid?: string; name?: string; lat?: number; lng?: number },
+    ctx: McpContext,
+  ) {
+    try { return ok(this.collections.findMembership(ctx.userId, query)); } catch (err) { return fail(err); }
   }
 
   // ── Collections CRUD ─────────────────────────────────────────────────
@@ -225,6 +247,22 @@ export class CollectionsMcp {
   async setCollectionPlaceStatus({ placeId, status }: { placeId: number; status: CollectionStatus }, ctx: McpContext) {
     const demo = this.denyDemo(ctx.userId); if (demo) return demo;
     try { return ok({ place: this.collections.setStatus(ctx.userId, placeId, status) }); } catch (err) { return fail(err); }
+  }
+
+  @Tool({
+    name: 'set_collection_place_status_from_trip',
+    description: 'Set a status on every saved copy of the given TRIP places, in every list they are on. Use this after a day out to mark places visited: set_collection_place_status takes one collection_places id, so the same trip place saved to three lists would need three calls and a lookup to find them. Ids here are trip place ids. Lists the user may only read are skipped rather than refused. Returns how many saved places changed and how many of the trip places were found in at least one list.',
+    inputSchema: collectionSetStatusFromTripRequestSchema.shape,
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    when: collectionsAddonOn,
+    access: { group: 'collections', mode: 'write' },
+  })
+  async setCollectionPlaceStatusFromTrip(
+    { trip_id, place_ids, status }: CollectionSetStatusFromTripRequest,
+    ctx: McpContext,
+  ) {
+    const demo = this.denyDemo(ctx.userId); if (demo) return demo;
+    try { return ok(this.collections.setStatusFromTrip(ctx.userId, trip_id, place_ids, status)); } catch (err) { return fail(err); }
   }
 
   @Tool({
