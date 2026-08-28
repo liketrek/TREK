@@ -1,3 +1,4 @@
+import { normalizeLocalDateTime, splitLocalDateTime } from '@trek/shared';
 import { findByIata } from '../airports/airports.data';
 import type {
   KiReservation, KiFlight, KiTrainTrip, KiBusTrip, KiBoatTrip,
@@ -9,17 +10,31 @@ import type {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Extract a plain ISO string from either a string or a KDE QDateTime object. */
+/**
+ * Extract a plain ISO string from either a string or a KDE QDateTime object.
+ *
+ * The value passes through normalizeLocalDateTime so a printed 12-hour clock
+ * ("2026-06-11T02:30 PM") becomes 24-hour before anything downstream reads it.
+ * These two functions are the mapper's only exits for a date, so this covers
+ * every type and every emitted field at once, and it keeps `sameConnection`
+ * from comparing a NaN timestamp (#2094).
+ */
 function toIsoString(dt: KiDateTimeish): string | null {
   if (!dt) return null;
-  if (typeof dt === 'string') return dt || null;
-  if (typeof dt === 'object' && dt['@type'] === 'QDateTime') return dt['@value'] || null;
+  if (typeof dt === 'string') return dt ? normalizeLocalDateTime(dt) : null;
+  if (typeof dt === 'object' && dt['@type'] === 'QDateTime') {
+    return dt['@value'] ? normalizeLocalDateTime(dt['@value']) : null;
+  }
   return null;
 }
 
 function splitIso(dt: KiDateTimeish): { date: string | null; time: string | null } {
   const iso = toIsoString(dt);
   if (!iso) return { date: null, time: null };
+  const split = splitLocalDateTime(iso);
+  // The slice is the fallback for anything the normalizer does not recognise,
+  // so a shape that works today cannot start returning null.
+  if (split.date) return split;
   return { date: iso.slice(0, 10) || null, time: iso.length > 10 ? iso.slice(11, 16) || null : null };
 }
 
@@ -261,6 +276,9 @@ function mapLodging(r: KiReservation, source: ParsedBookingItem['source']): Pars
 
   return {
     type: 'hotel',
+    // Only the lodging path can carry this: it is the shape the extractor falls
+    // back to when it could not read a type at all (#2076).
+    ...(r.trekTypeGuessed === true ? { type_guessed: true } : {}),
     title: l.name,
     confirmation_number: r.reservationNumber ?? null,
     location: formatAddress(l.address),

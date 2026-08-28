@@ -68,3 +68,42 @@ describe('kitinerary mapper — multi-leg flight grouping', () => {
     expect((items[0].metadata as any).legs).toBeUndefined();
   });
 });
+
+describe('kitinerary mapper — printed 12-hour clocks (#2094)', () => {
+  it('reads a PM arrival as the afternoon instead of slicing the meridiem off', () => {
+    // Before the fix the endpoint carried '01:11', because splitIso sliced
+    // characters 11..16 out of '2026-06-11T01:11 PM'. The hour survived and the
+    // arrival landed twelve hours early.
+    const { items } = mapReservations([
+      flight('PM1', FRA, BER, '2026-06-11T09:51 am', '2026-06-11T01:11 pm', 'LH 300'),
+    ] as any, 'meridiem.json');
+
+    expect(items).toHaveLength(1);
+    const [dep, arr] = items[0].endpoints!;
+    expect(dep.local_time).toBe('09:51');
+    expect(arr.local_time).toBe('13:11');
+    expect(items[0].reservation_time).toBe('2026-06-11T09:51:00');
+    expect(items[0].reservation_end_time).toBe('2026-06-11T13:11:00');
+  });
+
+  it('leaves a 24-hour document byte for byte where it was', () => {
+    const { items } = mapReservations([
+      flight('H24', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 400'),
+    ] as any, 'plain.json');
+
+    expect(items[0].reservation_time).toBe('2026-06-11T10:00:00');
+    expect(items[0].endpoints![1].local_time).toBe('12:00');
+  });
+
+  it('keeps two legs apart that a NaN comparison used to merge', () => {
+    // sameConnection does `new Date(value).getTime()`, which is NaN for a
+    // printed meridiem, and both of its comparisons are false against NaN, so
+    // the guard fell through and merged unrelated legs into one booking.
+    const { items } = mapReservations([
+      flight('SAME', FRA, BER, '2026-06-11T09:00 am', '2026-06-11T10:00 am', 'LH 500'),
+      flight('SAME', HND, FRA, '2026-06-18T09:00 am', '2026-06-18T05:00 pm', 'LH 600'),
+    ] as any, 'two-legs.json');
+
+    expect(items).toHaveLength(2);
+  });
+});
