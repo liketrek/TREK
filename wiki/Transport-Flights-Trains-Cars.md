@@ -27,7 +27,7 @@ Self-hosters can point the `TRANSIT_API_URL` environment variable at their own M
 
 Nine types are available: **Flight**, **Train**, **Bus**, **Car**, **Taxi**, **Bicycle**, **Cruise**, **Ferry**, and **Other**.
 
-> **AI / MCP:** `create_transport` accepts the same nine. Scheduled public transit is its own thing — `create_transit_journey` attaches the provider itinerary. See [MCP-Tools-and-Resources](MCP-Tools-and-Resources).
+> **AI / MCP:** `create_transport` accepts the same nine. Scheduled public transit is its own thing: `create_transit_journey` attaches the provider itinerary. See [MCP-Tools-and-Resources](MCP-Tools-and-Resources).
 
 ## Common fields
 

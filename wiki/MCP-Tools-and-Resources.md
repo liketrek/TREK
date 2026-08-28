@@ -108,7 +108,7 @@ Requires `reservations:write` scope.
 
 | Tool | Description |
 |---|---|
-| `create_transport` | Create a transport booking — the nine types the transport form offers (`flight`, `train`, `bus`, `car`, `taxi`, `bicycle`, `cruise`, `ferry`, `transport_other`) — with optional multi-stop endpoints, departure/arrival times, and confirmation details. Scheduled public transit goes through `create_transit_journey` instead. |
+| `create_transport` | Create a transport booking in any of the nine types the transport form offers (`flight`, `train`, `bus`, `car`, `taxi`, `bicycle`, `cruise`, `ferry`, `transport_other`), with optional multi-stop endpoints, departure/arrival times, and confirmation details. Scheduled public transit goes through `create_transit_journey` instead. |
 | `update_transport` | Update an existing transport booking. Pass `endpoints[]` to replace all stops. |
 | `delete_transport` | Delete a transport booking from a trip. |
 
@@ -128,7 +128,7 @@ Requires `reservations:read` or `reservations:write` scope.
 
 | Tool | Description |
 |---|---|
-| `create_reservation` | Create a pending reservation — hotels, restaurants, events, tours, activities, and other types. Carries the booking link (`url`) and an end time. |
+| `create_reservation` | Create a pending reservation: hotels, restaurants, events, tours, activities, and other types. Carries the booking link (`url`) and an end time. |
 | `update_reservation` | Update any field including status (`pending` / `confirmed` / `cancelled`). |
 | `delete_reservation` | Delete a reservation and its linked accommodation record if applicable. |
 | `reorder_reservations` | Reorder reservations within a day. |
