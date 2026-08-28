@@ -12,6 +12,7 @@ import type { JourneyContributor } from '../../types';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { AuthService } from '../auth/auth.service';
+import { PhotoCaptureBackfillService } from '../memories/photo-capture-backfill.service';
 
 /** Legacy registrar gate: the whole journey surface rode the journey addon. */
 const journeyAddonOn = addonGate(ADDON_IDS.JOURNEY);
@@ -68,6 +69,20 @@ const PROS_CONS = z.object({
 });
 
 /**
+ * The photo backends a journey can reference. The REST route forwards whatever
+ * `provider` string the body carried straight into `trek_photos.provider`, which
+ * would let a model persist a row no resolver can ever match to a backend.
+ */
+const PHOTO_PROVIDER = z.enum(['immich', 'synologyphotos']);
+
+/**
+ * How many provider assets one call may attach. The REST route takes an
+ * unbounded array, but it is driven by a picker where every id was clicked;
+ * a tool call is not, and each id is a row plus a detached provider lookup.
+ */
+const MAX_PROVIDER_PHOTOS_PER_CALL = 100;
+
+/**
  * Journey MCP surface — ported 1:1 from the legacy registrar
  * src/mcp/tools/journey.ts (23 tools): identical names, descriptions, zod input
  * schemas, annotations, and error/payload shapes. The legacy `if (R)` / `if (W)`
@@ -82,6 +97,11 @@ const PROS_CONS = z.object({
  * take the rest of the columns their REST routes always accepted (a place, its
  * coordinates, weather, tags, the verdict), and get_journey_stats answers what
  * GET /api/journeys/:id/stats answers.
+ *
+ * So does add_journey_provider_photos, which brings across
+ * POST /api/journeys/entries/:entryId/provider-photos and its gallery twin
+ * POST /api/journeys/:id/gallery/provider-photos. Finding the asset ids it takes
+ * is the memories domain's half of the same job, in memories/memories.mcp.ts.
  */
 @McpController()
 export class JourneyMcp {
@@ -90,6 +110,7 @@ export class JourneyMcp {
     private readonly share: JourneyShareService,
     readonly addons: AddonsService,
     private readonly auth: AuthService,
+    private readonly captureBackfill: PhotoCaptureBackfillService,
   ) {}
 
   // ── Read ────────────────────────────────────────────────────────────────
@@ -478,6 +499,61 @@ export class JourneyMcp {
     if (!result) return notFound('Journey not found or access denied.');
     // Return the service result ({ hide_skeletons }), matching the REST route.
     return ok(result);
+  }
+
+  @Tool({
+    name: 'add_journey_provider_photos',
+    description: 'Attach photos from a connected library (Immich or Synology Photos) to a journey: to one entry when entryId is given, otherwise to the journey gallery only. Find the asset ids first with search_provider_photos or list_provider_album_photos. No image data passes through here, the journey stores a reference and the app fetches the picture, so this also works for photos far too large to hand to a model. An asset already attached is skipped rather than duplicated, which makes re-running the same call safe.',
+    inputSchema: {
+      journeyId: z.number().int().positive(),
+      entryId: z.number().int().positive().optional().describe('Attach to this entry, which must belong to journeyId. The photo lands in the journey gallery either way; omitting this adds it to the gallery alone'),
+      provider: PHOTO_PROVIDER.describe('The library the asset ids came from'),
+      asset_ids: z.array(z.string().min(1)).min(1).max(MAX_PROVIDER_PHOTOS_PER_CALL).describe('Provider asset ids, as returned by the search and album tools'),
+      media_types: z.array(z.enum(['image', 'video'])).optional().describe('Parallel to asset_ids; anything not named here counts as an image'),
+      caption: z.string().max(500).optional().describe('Stored only when entryId is given, matching the REST routes: the gallery add records no caption'),
+      passphrase: z.string().min(1).optional().describe('Only for a Synology Photos album shared with the user: the passphrase list_provider_albums returned for that album'),
+    },
+    annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+    when: journeyAddonOn,
+    access: { group: 'journey', mode: 'write' },
+  })
+  addJourneyProviderPhotos(
+    { journeyId, entryId, provider, asset_ids, media_types, caption, passphrase }: {
+      journeyId: number; entryId?: number; provider: z.infer<typeof PHOTO_PROVIDER>;
+      asset_ids: string[]; media_types?: Array<'image' | 'video'>; caption?: string; passphrase?: string;
+    },
+    ctx: McpContext,
+  ) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    // The REST routes derive the journey from the entry and let each per-asset
+    // add answer for itself, which in the array branch means a caller with no
+    // access gets an empty 200. Checking up front instead turns that silence
+    // into a sentence, and is what makes journeyId worth asking for: the entry
+    // has to be shown to belong to it before anything is written.
+    if (!this.journey.canEdit(journeyId, ctx.userId)) return notFound('Journey not found or access denied.');
+    if (entryId !== undefined && !this.journey.listEntries(journeyId, ctx.userId)?.some(e => e.id === entryId)) {
+      return notFound('Entry not found in this journey.');
+    }
+
+    const photos: unknown[] = [];
+    asset_ids.forEach((assetId, i) => {
+      const mediaType = media_types?.[i] === 'video' ? 'video' : 'image';
+      const photo = entryId === undefined
+        ? this.journey.addProviderPhotoToGallery(journeyId, ctx.userId, provider, assetId, undefined, passphrase, mediaType)
+        : this.journey.addProviderPhoto(entryId, ctx.userId, provider, assetId, caption, passphrase, mediaType);
+      if (photo) photos.push(photo);
+    });
+
+    // Detached, exactly as the REST routes schedule it: the provider is asked
+    // when and where each photo was taken, and without that answer an attached
+    // photo can never appear on the journey map (#1614).
+    this.captureBackfill.schedule(
+      photos.map(p => (p as { photo_id?: number }).photo_id).filter((id): id is number => typeof id === 'number'),
+      ctx.userId,
+    );
+    // `skipped` is what tells a caller that a shortfall was duplicates rather
+    // than a failure; the REST body carries only photos and added.
+    return ok({ photos, added: photos.length, skipped: asset_ids.length - photos.length });
   }
 
   // ── Share links (journey:share, not implied by journey:write) ────────────
