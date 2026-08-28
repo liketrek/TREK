@@ -14,6 +14,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { Client } from '@modelcontextprotocol/sdk/client/index';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
 import { registerTools } from '../../src/mcp/tools';
+import type { McpAttachOptions } from '../../src/nest-mcp';
 import { createMcpTestRegistry } from './mcp-test-controllers';
 
 export interface McpHarness {
@@ -39,10 +40,17 @@ export interface McpHarnessOptions {
   isStaticToken?: boolean;
   /** Fire-once deprecation-notice closure (default: registerTools' () => null) */
   getDeprecationNotice?: () => string | null;
+  /**
+   * Host-contributed tools for this session. Passed explicitly so a suite never
+   * has to install the process-level plugin source to exercise the path; left
+   * undefined, registerTools resolves it to that source, which is unset in
+   * every suite that does not register one.
+   */
+  dynamicTools?: McpAttachOptions['dynamicTools'];
 }
 
 export async function createMcpHarness(options: McpHarnessOptions): Promise<McpHarness> {
-  const { userId, withTools = true, scopes = null, isStaticToken = false, getDeprecationNotice } = options;
+  const { userId, withTools = true, scopes = null, isStaticToken = false, getDeprecationNotice, dynamicTools } = options;
 
   const server = new McpServer({ name: 'trek-test', version: '1.0.0' });
 
@@ -51,7 +59,7 @@ export async function createMcpHarness(options: McpHarnessOptions): Promise<McpH
     // McpRegistryService to registerTools; the harness has no Nest app, so it
     // builds the same registry by hand (see mcp-test-controllers.ts).
     // registerTools' own ctx construction stays exercised.
-    registerTools(createMcpTestRegistry(), server, userId, scopes ?? null, isStaticToken, getDeprecationNotice);
+    registerTools(createMcpTestRegistry(), server, userId, scopes ?? null, isStaticToken, getDeprecationNotice, undefined, dynamicTools);
   }
 
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
