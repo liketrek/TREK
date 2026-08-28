@@ -1,9 +1,10 @@
 /**
- * Unit tests for MCP sessionManager — SESS-001 to SESS-016.
- * Covers revokeUserSessions, revokeUserSessionsForClient and evictOldestSessionForUser.
+ * Unit tests for MCP sessionManager — SESS-001 to SESS-020.
+ * Covers revokeUserSessions, revokeUserSessionsForClient, evictOldestSessionForUser
+ * and invalidateMcpSessions.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { sessions, revokeUserSessions, revokeUserSessionsForClient, evictOldestSessionForUser, McpSession } from '../../../src/mcp/sessionManager';
+import { sessions, revokeUserSessions, revokeUserSessionsForClient, evictOldestSessionForUser, invalidateMcpSessions, McpSession } from '../../../src/mcp/sessionManager';
 
 function makeSession(overrides: Partial<McpSession> = {}): McpSession {
   return {
@@ -177,5 +178,44 @@ describe('evictOldestSessionForUser', () => {
 
     expect(evictOldestSessionForUser(1)).toBe('sid-1');
     expect(sessions.has('sid-1')).toBe(false);
+  });
+});
+
+describe('invalidateMcpSessions', () => {
+  it('SESS-017: drops every session regardless of user or client', () => {
+    sessions.set('sid-1', makeSession({ userId: 1, clientId: 'client-a' }));
+    sessions.set('sid-2', makeSession({ userId: 2, clientId: null }));
+
+    invalidateMcpSessions();
+
+    expect(sessions.size).toBe(0);
+  });
+
+  it('SESS-018: closes both halves of every session', () => {
+    const a = makeSession({ userId: 1 });
+    const b = makeSession({ userId: 2 });
+    sessions.set('sid-1', a);
+    sessions.set('sid-2', b);
+
+    invalidateMcpSessions();
+
+    expect(a.server.close).toHaveBeenCalledOnce();
+    expect(a.transport.close).toHaveBeenCalledOnce();
+    expect(b.server.close).toHaveBeenCalledOnce();
+    expect(b.transport.close).toHaveBeenCalledOnce();
+  });
+
+  it('SESS-019: still empties the map when close() throws', () => {
+    const s = makeSession({ userId: 1 });
+    (s.server.close as ReturnType<typeof vi.fn>).mockImplementation(() => { throw new Error('close failed'); });
+    sessions.set('sid-1', s);
+
+    expect(() => invalidateMcpSessions()).not.toThrow();
+    expect(sessions.size).toBe(0);
+  });
+
+  it('SESS-020: is a no-op on an empty map', () => {
+    expect(() => invalidateMcpSessions()).not.toThrow();
+    expect(sessions.size).toBe(0);
   });
 });

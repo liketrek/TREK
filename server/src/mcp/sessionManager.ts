@@ -43,6 +43,26 @@ export function revokeUserSessionsForClient(userId: number, clientId: string): v
 }
 
 /**
+ * Terminate every active MCP session, so the next request re-initializes and
+ * picks up a changed tool surface.
+ *
+ * Lives here rather than in the barrel because callers outside src/mcp/ need
+ * it: index.ts evaluates readEnv().mcp at module scope and installs the sweep
+ * interval, so importing the barrel from a domain module drags both into every
+ * test file that mocks app-config with a partial export set. This module has
+ * no module-scope side effects.
+ *
+ * Unconditional by design. The advertised surface is per-session (it depends on
+ * the caller's scopes and grants), so there is no ctx-free set to diff, and
+ * tools/list_changed is not an alternative: no event store is configured and
+ * the surface is frozen at initialize anyway.
+ */
+export function invalidateMcpSessions(): void {
+  for (const [sid, session] of sessions) closeSession(sid, session);
+  console.log('[MCP] All sessions invalidated after a tool-surface change');
+}
+
+/**
  * Close the least-recently-active session for a user so a new one can take its slot,
  * and return its id (null when the user has no sessions).
  *

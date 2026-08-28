@@ -1,8 +1,8 @@
 import { readEnv } from '../app-config';
 import { sessions } from './sessionManager';
-import { revokeUserSessions, revokeUserSessionsForClient } from './sessionManager';
+import { invalidateMcpSessions, revokeUserSessions, revokeUserSessionsForClient } from './sessionManager';
 
-export { revokeUserSessions, revokeUserSessionsForClient };
+export { invalidateMcpSessions, revokeUserSessions, revokeUserSessionsForClient };
 
 /**
  * Process-wide MCP state: the tuning knobs, the per-user rate-limit window,
@@ -63,16 +63,6 @@ const sessionSweepInterval = setInterval(() => {
 
 // Prevent the interval from keeping the process alive if nothing else is running
 sessionSweepInterval.unref();
-
-/** Invalidate all active MCP sessions (call when addon state changes so sessions re-create with updated tools). */
-export function invalidateMcpSessions(): void {
-  for (const [sid, session] of sessions) {
-    try { session.server.close(); } catch { /* ignore */ }
-    try { session.transport.close(); } catch { /* ignore */ }
-    sessions.delete(sid);
-  }
-  console.log('[MCP] All sessions invalidated due to addon state change');
-}
 
 /** Close all active MCP sessions (call during graceful shutdown). */
 export function closeMcpSessions(): void {
