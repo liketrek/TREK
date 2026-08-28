@@ -4,7 +4,12 @@ import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyC
 import { MASKED_SETTING_VALUE, normalizeAppearance } from '@trek/shared';
 import { readEnv } from '../../app-config';
 
-const ENCRYPTED_SETTING_KEYS = new Set([
+/**
+ * Exported so a caller that hands settings to somebody else can assert its own
+ * allow-list against the live values rather than a copy: a sixth key added here
+ * has to fail that assertion, which a hand-typed list would not.
+ */
+export const ENCRYPTED_SETTING_KEYS = new Set([
   'webhook_url',
   'ntfy_token',
   'mapbox_access_token',
@@ -13,7 +18,7 @@ const ENCRYPTED_SETTING_KEYS = new Set([
 ]);
 // Encrypted keys that are masked (••••••••) when returned to the client.
 // Keys not in this set but in ENCRYPTED_SETTING_KEYS are decrypted and returned.
-const MASKED_SETTING_KEYS = new Set(['webhook_url', 'ntfy_token', 'llm_api_key']);
+export const MASKED_SETTING_KEYS = new Set(['webhook_url', 'ntfy_token', 'llm_api_key']);
 
 export const DEFAULTABLE_USER_SETTING_KEYS = [
   'temperature_unit',
