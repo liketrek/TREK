@@ -11,7 +11,6 @@ const roadtrip: TranslationStrings = {
   'roadtrip.stops.label': 'Điểm dừng dọc đường',
   'roadtrip.stops.remove': 'Xóa điểm dừng',
   'roadtrip.poi.title': 'Dọc theo lộ trình',
-  'roadtrip.poi.hint': 'Tìm dọc chặng đường trong ngày những thứ bạn cần.',
   'roadtrip.poi.scope': 'Ngày',
   'roadtrip.poi.looking': 'Đang tìm',
   'roadtrip.poi.searchingHint': 'Đang tìm dọc lộ trình…',

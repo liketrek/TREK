@@ -7,7 +7,6 @@ import { useTranslation } from '../../i18n/TranslationContext'
 import { useSettingsStore } from '../../store/settingsStore'
 import { formatDistance } from '../../utils/units'
 import CustomSelect from '../shared/CustomSelect'
-import { formatDurationShort } from './roadtripModel'
 import { CORRIDOR_CATEGORY_KEYS, CORRIDOR_WIDTHS_KM, type RoadtripCorridor } from './useRoadtripCorridor'
 import type { CorridorPoi } from './useCorridorPois'
 import type { RoadtripRoutes } from './useRoadtripRoutes'
@@ -119,18 +118,8 @@ export default function RoadtripCorridorPanel({ corridor, routes, onAddPoi }: Ro
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Header — the rhythm of the places sidebar this replaces. */}
-      <div className="flex-shrink-0 border-b border-edge-faint px-4 pb-3 pt-3.5">
+      <div className="flex-shrink-0 border-b border-edge-faint px-4 pb-2.5 pt-3.5">
         <h2 className="text-subtitle font-semibold text-content">{t('roadtrip.poi.title')}</h2>
-        <p className="mt-0.5 text-caption text-content-muted">{t('roadtrip.poi.hint')}</p>
-        {corridor.day ? (
-          // Under the title rather than beside it: the rail is narrow enough that a
-          // second element on the heading line pushes the heading into two.
-          <p className="mt-1.5 text-caption text-content-faint tabular-nums">
-            {formatDistance(corridor.day.distance / 1000, distanceUnit)}
-            <span className="mx-1">·</span>
-            {formatDurationShort(corridor.day.duration)}
-          </p>
-        ) : null}
       </div>
 
       {/* Search controls */}

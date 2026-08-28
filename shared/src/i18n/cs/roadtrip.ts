@@ -11,7 +11,6 @@ const roadtrip: TranslationStrings = {
   'roadtrip.stops.label': 'Zastávky po cestě',
   'roadtrip.stops.remove': 'Odebrat zastávku',
   'roadtrip.poi.title': 'Podél trasy',
-  'roadtrip.poi.hint': 'Prohledejte denní jízdu podle toho, co po cestě potřebujete.',
   'roadtrip.poi.scope': 'Den',
   'roadtrip.poi.looking': 'Hledá se',
   'roadtrip.poi.searchingHint': 'Prohledávám trasu…',

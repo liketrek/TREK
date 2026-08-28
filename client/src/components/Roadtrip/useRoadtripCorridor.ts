@@ -37,12 +37,15 @@ export function useRoadtripCorridor(routes: RoadtripRoutes): RoadtripCorridor {
   // has picked anything — and follows along when that day disappears.
   const day = routes.days.find(d => String(d.dayId) === dayId) ?? routes.days[0]
 
-  const line = useMemo<LatLng[]>(
-    // The stops are spine enough: the corridor is kilometres wide, and the routed
-    // geometry per leg is not kept once its numbers have been read.
-    () => (day ? day.stops.map(s => ({ lat: s.lat, lng: s.lng })) : []),
-    [day],
-  )
+  const line = useMemo<LatLng[]>(() => {
+    if (!day) return []
+    // The roads driven, not the straight lines between stops. A corridor built from the
+    // stops searches beside a line the car never takes — between two cities that is open
+    // country, which is why everything it found sat at the stops themselves.
+    if (day.geometry.length > 1) return day.geometry.map(([lat, lng]) => ({ lat, lng }))
+    // Until the day has routed there is nothing else to go on.
+    return day.stops.map(s => ({ lat: s.lat, lng: s.lng }))
+  }, [day])
 
   const search = useCorridorPois(line, categories, widthKm)
 

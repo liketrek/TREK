@@ -11,7 +11,6 @@ const roadtrip: TranslationStrings = {
   'roadtrip.stops.label': '沿途停靠點',
   'roadtrip.stops.remove': '移除停靠點',
   'roadtrip.poi.title': '沿線',
-  'roadtrip.poi.hint': '沿某一天的行程搜尋路上需要的東西。',
   'roadtrip.poi.scope': '日期',
   'roadtrip.poi.looking': '尋找',
   'roadtrip.poi.searchingHint': '正在沿路線搜尋…',

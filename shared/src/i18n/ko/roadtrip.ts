@@ -11,7 +11,6 @@ const roadtrip: TranslationStrings = {
   'roadtrip.stops.label': '가는 길의 경유지',
   'roadtrip.stops.remove': '경유지 삭제',
   'roadtrip.poi.title': '경로 주변',
-  'roadtrip.poi.hint': '하루 주행 경로를 따라 필요한 것을 찾습니다.',
   'roadtrip.poi.scope': '날짜',
   'roadtrip.poi.looking': '찾는 항목',
   'roadtrip.poi.searchingHint': '경로를 검색하는 중…',

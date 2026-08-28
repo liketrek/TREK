@@ -31,6 +31,13 @@ export interface RoadtripDay {
   legs: (RouteSegment | undefined)[]
   /** Arrival and departure per stop, walked forward from the day's first pinned time. */
   schedule: Schedule
+  /**
+   * The roads actually driven that day, as [lat, lng] — not the straight lines between
+   * stops. Anything asking "what is along this day" has to use this: between Hamburg and
+   * Berlin the straight line runs across open country while the motorway swings north of
+   * it, so a corridor built from the stops finds the wrong side of the map.
+   */
+  geometry: [number, number][]
   distance: number
   duration: number
 }
@@ -136,6 +143,7 @@ export function useRoadtripRoutes(
           stops,
           legs: [],
           schedule: { entries: [], warnings: [] },
+          geometry: [],
           distance: 0,
           duration: 0,
         }
@@ -244,6 +252,9 @@ export function useRoadtripRoutes(
         if (leg.line.length > 1) lines.push(leg.line)
         segments.push(leg.seg)
       }
+      // The run polylines end to end: leg 0 of a run carries its whole geometry, the
+      // rest carry none, so concatenating what is there gives the day as driven.
+      const geometry = routed.flatMap(l => l?.line ?? [])
       const legs = routed.map(l => l?.seg)
       const distance = legs.reduce((sum, l) => sum + (l?.distance ?? 0), 0)
       const duration = legs.reduce((sum, l) => sum + (l?.duration ?? 0), 0)
@@ -251,7 +262,7 @@ export function useRoadtripRoutes(
         day.stops.map(s => ({ anchor: s.time, dwellMinutes: s.dwellMinutes })),
         legs.map(l => l?.duration),
       )
-      return { ...day, legs, schedule, distance, duration }
+      return { ...day, legs, schedule, geometry, distance, duration }
     })
     return {
       days: out,

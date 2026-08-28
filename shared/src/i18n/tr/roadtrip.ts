@@ -11,7 +11,6 @@ const roadtrip: TranslationStrings = {
   'roadtrip.stops.label': 'Yol üzerindeki duraklar',
   'roadtrip.stops.remove': 'Durağı kaldır',
   'roadtrip.poi.title': 'Rota boyunca',
-  'roadtrip.poi.hint': 'Bir günün sürüşü boyunca yolda ihtiyacın olanı ara.',
   'roadtrip.poi.scope': 'Gün',
   'roadtrip.poi.looking': 'Aranan',
   'roadtrip.poi.searchingHint': 'Rota aranıyor…',

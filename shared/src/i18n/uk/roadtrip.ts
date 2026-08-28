@@ -11,7 +11,6 @@ const roadtrip: TranslationStrings = {
   'roadtrip.stops.label': 'Зупинки в дорозі',
   'roadtrip.stops.remove': 'Видалити зупинку',
   'roadtrip.poi.title': 'Уздовж маршруту',
-  'roadtrip.poi.hint': 'Шукайте вздовж денного перегону те, що потрібно в дорозі.',
   'roadtrip.poi.scope': 'День',
   'roadtrip.poi.looking': 'Шукаємо',
   'roadtrip.poi.searchingHint': 'Триває пошук уздовж маршруту…',

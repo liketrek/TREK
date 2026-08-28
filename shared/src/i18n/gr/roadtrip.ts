@@ -11,7 +11,6 @@ const roadtrip: TranslationStrings = {
   'roadtrip.stops.label': 'Στάσεις στη διαδρομή',
   'roadtrip.stops.remove': 'Αφαίρεση στάσης',
   'roadtrip.poi.title': 'Κατά μήκος της διαδρομής',
-  'roadtrip.poi.hint': 'Αναζητήστε κατά μήκος της διαδρομής μιας ημέρας ό,τι χρειάζεστε.',
   'roadtrip.poi.scope': 'Ημέρα',
   'roadtrip.poi.looking': 'Αναζητείται',
   'roadtrip.poi.searchingHint': 'Αναζήτηση κατά μήκος της διαδρομής…',

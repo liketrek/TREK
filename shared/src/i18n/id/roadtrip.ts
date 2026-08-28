@@ -11,7 +11,6 @@ const roadtrip: TranslationStrings = {
   'roadtrip.stops.label': 'Perhentian di sepanjang jalan',
   'roadtrip.stops.remove': 'Hapus perhentian',
   'roadtrip.poi.title': 'Sepanjang rute',
-  'roadtrip.poi.hint': 'Cari di sepanjang perjalanan satu hari apa yang Anda butuhkan.',
   'roadtrip.poi.scope': 'Hari',
   'roadtrip.poi.looking': 'Mencari',
   'roadtrip.poi.searchingHint': 'Mencari di sepanjang rute…',

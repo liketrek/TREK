@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { mapsApi } from '../../api/client'
 import { useTranslation } from '../../i18n'
-import { corridorTiles, projectOntoRoute, simplifyLine, type LatLng } from './corridor'
+import { corridorTiles, projectOntoRoute, simplifyLine, type Bbox, type LatLng } from './corridor'
 import type { Poi } from '../Map/poiCategories'
 
 /** A POI that is actually on the way, with the two numbers that make it one. */
@@ -27,9 +27,11 @@ export interface CorridorSearch {
  * would otherwise be dozens of requests against a shared public mirror; past this the
  * search stops and says so rather than quietly covering half the route.
  */
-const MAX_TILES = 10
-/** Gap between Overpass requests — the public mirrors are a shared resource. */
-const REQUEST_SPACING_MS = 700
+const MAX_TILES = 16
+/** Gap after a request before the same worker starts the next — the mirrors are shared. */
+const REQUEST_SPACING_MS = 400
+/** How many boxes are in flight at once. */
+const CONCURRENT_REQUESTS = 3
 
 const sleep = (ms: number, signal: AbortSignal): Promise<void> =>
   new Promise(resolve => {
@@ -93,13 +95,23 @@ export function useCorridorPois(line: LatLng[], categories: string[], widthKm: n
     setLoading(true)
     setProgress({ done: 0, total: tiles.length * categories.length })
 
+    const jobs: { tile: Bbox; category: string }[] = []
+    for (const tile of tiles) for (const category of categories) jobs.push({ tile, category })
+
     void (async () => {
       const seen = new Map<string, CorridorPoi>()
       let failures = 0
       let done = 0
-      for (const tile of tiles) {
-        for (const category of categories) {
+      let next = 0
+
+      // A few at a time, staggered. Following the real road rather than the line between
+      // stops means more boxes to cover the same drive, and asking for them strictly one
+      // after another turned a search into half a minute of waiting. The server races
+      // several Overpass mirrors and caches what comes back, so a small pool is fair use.
+      const worker = async (): Promise<void> => {
+        while (next < jobs.length) {
           if (controller.signal.aborted || runId !== runIdRef.current) return
+          const { tile, category } = jobs[next++]
           try {
             const data = await mapsApi.pois(category, tile, locale, controller.signal)
             for (const poi of data.pois) {
@@ -109,19 +121,21 @@ export function useCorridorPois(line: LatLng[], categories: string[], widthKm: n
               seen.set(poi.osm_id, { ...poi, offRouteKm: hit.offRouteKm, alongKm: hit.alongKm })
             }
           } catch {
-            // One dead mirror or one clamped box must not empty the whole search; the
-            // run is only called a failure if every request failed.
+            // One dead mirror or one clamped box must not empty the whole search; the run
+            // is only called a failure if every request failed.
             failures++
           }
           done++
           if (controller.signal.aborted || runId !== runIdRef.current) return
-          setProgress({ done, total: tiles.length * categories.length })
+          setProgress({ done, total: jobs.length })
           setResults([...seen.values()].sort((a, b) => a.alongKm - b.alongKm))
           await sleep(REQUEST_SPACING_MS, controller.signal)
         }
       }
+
+      await Promise.all(Array.from({ length: Math.min(CONCURRENT_REQUESTS, jobs.length) }, worker))
       if (controller.signal.aborted || runId !== runIdRef.current) return
-      setError(failures === tiles.length * categories.length && failures > 0)
+      setError(failures === jobs.length && failures > 0)
       setLoading(false)
     })()
   }, [line, categories, widthKm, locale])

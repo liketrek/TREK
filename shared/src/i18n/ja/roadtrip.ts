@@ -11,7 +11,6 @@ const roadtrip: TranslationStrings = {
   'roadtrip.stops.label': '途中の立ち寄り先',
   'roadtrip.stops.remove': '立ち寄り先を削除',
   'roadtrip.poi.title': 'ルート沿い',
-  'roadtrip.poi.hint': 'その日のドライブ沿いに必要なものを探します。',
   'roadtrip.poi.scope': '日',
   'roadtrip.poi.looking': '探すもの',
   'roadtrip.poi.searchingHint': 'ルートを検索しています…',

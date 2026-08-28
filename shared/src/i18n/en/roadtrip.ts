@@ -11,7 +11,6 @@ const roadtrip: TranslationStrings = {
   'roadtrip.stops.label': 'Stops along the way',
   'roadtrip.stops.remove': 'Remove stop',
   'roadtrip.poi.title': 'Along the route',
-  'roadtrip.poi.hint': 'Search a day’s drive for what you need along it.',
   'roadtrip.poi.scope': 'Day',
   'roadtrip.poi.looking': 'Looking for',
   'roadtrip.poi.searchingHint': 'Searching the route…',
