@@ -604,6 +604,20 @@ describe('getCountryFromAddress', () => {
   it('ATLAS-SVC-012: returns null for unrecognized country name', () => {
     expect(getCountryFromAddress('Unknown City, Unknown Country')).toBeNull();
   });
+
+  // #2111 — the bare-code branch is a guess, and it is only allowed where the caller
+  // can check it against coordinates.
+  it('ATLAS-SVC-046: a bare trailing code is refused when the caller cannot verify it', () => {
+    expect(getCountryFromAddress('11 W 53rd St, New York, NY', false)).toBeNull();
+    // Half of these abbreviations are real ISO codes, so a list of valid country
+    // codes would not have caught them: CA is California here, not Canada.
+    expect(getCountryFromAddress('1 Market St, San Francisco, CA', false)).toBeNull();
+    expect(getCountryFromAddress('100 King St, Toronto, ON', false)).toBeNull();
+  });
+
+  it('ATLAS-SVC-047: a spelled-out country still resolves without coordinates', () => {
+    expect(getCountryFromAddress('Eiffel Tower, Paris, France', false)).toBe('FR');
+  });
 });
 
 // ── reverseGeocodeCountry ───────────────────────────────────────────────────

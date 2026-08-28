@@ -725,7 +725,17 @@ export function getCountryFromCoords(lat: number, lng: number): string | null {
   return looseBoxFallback ?? candidates[0].code;
 }
 
-export function getCountryFromAddress(address: string | null): string | null {
+/**
+ * `allowBareCode` decides whether a trailing two-letter uppercase segment counts as
+ * a country. It only does when the caller can sanity-check the answer against
+ * coordinates, because that segment is far more often a state or province than a
+ * country: "…, New York, NY", "…, Toronto, ON". Half of those abbreviations are
+ * real ISO codes as well (CA, DE, LA, IN, MD, GA, PA, VA), so a list of valid
+ * country codes does not separate them, and the other half are codes for nothing
+ * at all, which used to inflate the Atlas country count with places that could
+ * never appear on the map or in the continent bars (#2111).
+ */
+export function getCountryFromAddress(address: string | null, allowBareCode = true): string | null {
   if (!address) return null;
   const parts = address
     .split(',')
@@ -736,7 +746,7 @@ export function getCountryFromAddress(address: string | null): string | null {
   const normalized = last.toLowerCase();
   if (NAME_TO_CODE[normalized]) return NAME_TO_CODE[normalized];
   if (NAME_TO_CODE[last]) return NAME_TO_CODE[last];
-  if (last.length === 2 && last === last.toUpperCase()) return last;
+  if (allowBareCode && last.length === 2 && last === last.toUpperCase()) return last;
   return null;
 }
 
@@ -752,14 +762,16 @@ export function getCountryFromAddress(address: string | null): string | null {
 // to any country, the address result is sanity-gated against that country's own admin0
 // bounding box (isPointInCountryBox) before being trusted — the same guard the region-level
 // address fallback uses. A place with no coordinates at all has nothing to gate against, so
-// the address is trusted directly there, as before.
+// it does not get the bare-code branch at all (#2111): a spelled-out country name still
+// resolves there, a lone "NY" or "CA" no longer does. Guessing produced both phantom
+// countries that nothing downstream could draw and confidently wrong ones.
 async function resolveCountryCode(place: Place): Promise<string | null> {
   const hasCoords = !!(place.lat && place.lng);
   if (hasCoords) {
     const fromCoords = getCountryFromCoords(place.lat!, place.lng!);
     if (fromCoords) return fromCoords;
   }
-  const fromAddress = getCountryFromAddress(place.address);
+  const fromAddress = getCountryFromAddress(place.address, hasCoords);
   if (fromAddress && (!hasCoords || isPointInCountryBox(fromAddress, place.lat!, place.lng!))) {
     return fromAddress;
   }
@@ -775,7 +787,7 @@ export function resolveCountryCodeSync(place: Place): string | null {
     const fromCoords = getCountryFromCoords(place.lat!, place.lng!);
     if (fromCoords) return fromCoords;
   }
-  const fromAddress = getCountryFromAddress(place.address);
+  const fromAddress = getCountryFromAddress(place.address, hasCoords);
   if (fromAddress && (!hasCoords || isPointInCountryBox(fromAddress, place.lat!, place.lng!))) {
     return fromAddress;
   }
