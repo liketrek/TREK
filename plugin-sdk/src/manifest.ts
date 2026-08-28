@@ -207,6 +207,7 @@ export function validateManifest(raw: unknown): ValidationResult {
     tripPage?: { replaces?: unknown; position?: unknown };
     notificationChannel?: { title?: unknown; events?: unknown };
     routeProfiles?: unknown;
+    mcpTools?: unknown;
     provides?: unknown;
     emits?: unknown;
     settingsUi?: unknown;
@@ -284,6 +285,46 @@ export function validateManifest(raw: unknown): ValidationResult {
       }
     }
   }
+  // MCP tools go into every user's assistant context, so the declaration is
+  // checked here too rather than only at install: an author should hear about a
+  // malformed one from `trek-plugin validate`, not from a tool that never shows up.
+  const mcpTools = capabilities?.mcpTools;
+  if (mcpTools !== undefined) {
+    if (!permissions.includes('mcp:tools')) {
+      errors.push('capabilities.mcpTools requires the "mcp:tools" permission');
+    }
+    if (!Array.isArray(mcpTools)) errors.push('capabilities.mcpTools must be an array');
+    else {
+      if (mcpTools.length > 8) errors.push('capabilities.mcpTools: at most 8 tools');
+      const seenTools = new Set<string>();
+      for (const v of mcpTools) {
+        if (!v || typeof v !== 'object' || Array.isArray(v)) {
+          errors.push('capabilities.mcpTools entries must be objects');
+          continue;
+        }
+        const t = v as Record<string, unknown>;
+        const name = typeof t.name === 'string' ? t.name : '';
+        if (!/^[a-z0-9_]{1,48}$/.test(name)) {
+          errors.push('capabilities.mcpTools: name must be lowercase [a-z0-9_], max 48 chars');
+          continue;
+        }
+        if (seenTools.has(name)) errors.push(`capabilities.mcpTools: duplicate name "${name}"`);
+        seenTools.add(name);
+        if (typeof t.description !== 'string' || !t.description.trim()) {
+          errors.push(`capabilities.mcpTools["${name}"]: description is required`);
+        }
+        if (t.inputSchema !== undefined) {
+          const schema = t.inputSchema as Record<string, unknown> | null;
+          if (!schema || typeof schema !== 'object' || Array.isArray(schema)) {
+            errors.push(`capabilities.mcpTools["${name}"]: inputSchema must be an object`);
+          } else if (schema.type !== undefined && schema.type !== 'object') {
+            errors.push(`capabilities.mcpTools["${name}"]: inputSchema root type must be "object"`);
+          }
+        }
+      }
+    }
+  }
+
   // Settings keys become JSON object keys in the plugin's stored config, so they are
   // constrained (mirrors the server's SETTING_KEY_RE). `__proto__`/`constructor` would
   // resolve off Object.prototype on read and make a required field look configured for
