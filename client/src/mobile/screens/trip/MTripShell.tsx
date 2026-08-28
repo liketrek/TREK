@@ -198,20 +198,16 @@ export default function MTripShell({
   const [uploadFilesSignal, setUploadFilesSignal] = useState(0)
   const [openFilesTrashSignal, setOpenFilesTrashSignal] = useState(0)
 
-  // The mobile plan is single-day: make sure a day is active once days arrive.
-  // Only seed once so an intentional deselect elsewhere is not fought. Open on
-  // today while the trip is running, otherwise on the next day that is still
-  // ahead — a gap in the dates should not throw you back to day 1 — and fall
-  // back to the first day once the whole trip is behind us.
-  const seededDayRef = useRef(false)
+  // The mobile plan is single-day: make sure a valid day is active once days
+  // arrive. loadTrip() resets the shared selection while fetching, and this
+  // shell can briefly render the previous trip's id before that reset lands.
+  // Revalidate against the current days instead of using a one-shot guard, or
+  // returning to a trip can permanently strand the timeline with no active day.
+  // Open on today while the trip is running, otherwise on the next day that is
+  // still ahead, and fall back to day one once the whole trip is behind us.
   useEffect(() => {
-    if (seededDayRef.current) return
-    // A day that is already active counts as seeded: a later deselect is the
-    // user's, and re-seeding it here would be exactly the fight this guard
-    // exists to avoid.
-    if (planner.selectedDayId != null) { seededDayRef.current = true; return }
     if (days.length === 0) return
-    seededDayRef.current = true
+    if (planner.selectedDayId != null && days.some(day => day.id === planner.selectedDayId)) return
     // Off the same helper file as the desktop day plan (#1567), so the two
     // cannot drift on what "today" means.
     planner.tripActions.setSelectedDay(findFocusDayId(days) ?? days[0].id)
