@@ -90,3 +90,42 @@ describe('settings tile template hygiene', () => {
     expect(clearTileCache).not.toHaveBeenCalled()
   })
 })
+
+// The account's language lives on the server; the store boots from localStorage. Without a
+// mirror of the server value, a cold start with no network (PWA in airplane mode) booted in
+// English even though every online session ran in the user's language — the same stranding
+// #1618 fixed for currency and units. 'app_language' stays reserved for an explicit in-app
+// choice (the login page's detection chain keys off it), so the mirror gets its own key.
+describe('offline language fallback', () => {
+  beforeEach(() => {
+    localStorage.removeItem('app_language')
+    localStorage.removeItem('app_language_server')
+  })
+
+  it('SETTINGS-LANG-001: loadSettings mirrors the account language for the next launch', async () => {
+    vi.mocked(settingsApi.get).mockResolvedValue({ settings: { language: 'fr' } } as never)
+    await useSettingsStore.getState().loadSettings()
+    expect(localStorage.getItem('app_language_server')).toBe('fr')
+  })
+
+  it('SETTINGS-LANG-002: the mirror never claims to be an explicit choice', async () => {
+    vi.mocked(settingsApi.get).mockResolvedValue({ settings: { language: 'fr' } } as never)
+    await useSettingsStore.getState().loadSettings()
+    expect(localStorage.getItem('app_language')).toBeNull()
+  })
+
+  it('SETTINGS-LANG-003: a cold start with no explicit choice boots in the mirrored language', async () => {
+    localStorage.setItem('app_language_server', 'fr')
+    vi.resetModules()
+    const fresh = await import('./settingsStore')
+    expect(fresh.DEFAULT_SETTINGS.language).toBe('fr')
+  })
+
+  it('SETTINGS-LANG-004: an explicit in-app choice outranks the mirror', async () => {
+    localStorage.setItem('app_language', 'de')
+    localStorage.setItem('app_language_server', 'fr')
+    vi.resetModules()
+    const fresh = await import('./settingsStore')
+    expect(fresh.DEFAULT_SETTINGS.language).toBe('de')
+  })
+})

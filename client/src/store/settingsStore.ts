@@ -35,7 +35,11 @@ export const DEFAULT_SETTINGS: Settings = {
   dark_mode: false,
   // Empty = no personal display currency, so Costs falls back to the trip's own.
   default_currency: '',
-  language: localStorage.getItem('app_language') || 'en',
+  // Explicit in-app choice first, then the mirror of the account's server-side
+  // language (written by loadSettings below), then English. Without the mirror
+  // an offline cold start boots in English: the account's language lives on the
+  // server, and the fetch that would apply it cannot happen.
+  language: localStorage.getItem('app_language') || localStorage.getItem('app_language_server') || 'en',
   temperature_unit: 'celsius',
   distance_unit: 'metric',
   time_format: '24h',
@@ -99,6 +103,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         // The startup redirect runs before this ever resolves, so keep a mirror
         // it can read synchronously on the next launch.
         rememberStartDestination(incoming)
+        // Same trick for the language: mirror the account's value so the next
+        // launch — including an offline one, where this fetch fails — boots in
+        // it instead of English (#1618 fixed the same stranding for currency
+        // and units, but the language never made it into that fix). Its own
+        // key rather than 'app_language': that one means an explicit in-app
+        // choice, and the login page's detection chain must keep running for
+        // users who never made one.
+        try {
+          if (incoming.language) localStorage.setItem('app_language_server', incoming.language)
+        } catch { /* private mode — the session still has the value in the store */ }
       } catch (err: unknown) {
         // Leave isLoaded false so a transient failure — offline at launch, or a
         // (docker) server cold-start racing the first request — is retried on
