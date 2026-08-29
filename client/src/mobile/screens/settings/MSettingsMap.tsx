@@ -17,6 +17,7 @@ import {
   normalizeStyleForProvider,
   type GlMapProvider,
 } from '../../../components/Map/glProviders'
+import { withTileApiKey } from '../../../utils/tileUrl'
 import MToggle from '../../components/MToggle'
 import { MSetCard, MSetEyebrow, MSetSelectRow, MSetInput, MSetButton, MSetHint, MSetRow } from './MSettingsUi'
 import MSetPickerSheet from './MSetPickerSheet'
@@ -318,7 +319,9 @@ export default function MSettingsMap() {
             onMarkerClick: null,
             onMapClick: null,
             onMapContextMenu: null,
-            tileUrl: mapTileUrl,
+            // As on the desktop tab: the field holds what is being edited, so the
+            // key goes back on before the preview resolves the template.
+            tileUrl: withTileApiKey(mapTileUrl, cartoKey),
             fitKey: null,
             dayOrderMap: [],
             leftWidth: 0,
