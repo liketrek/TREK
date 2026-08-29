@@ -610,8 +610,10 @@ export class CollectionsService {
     const rows = this.db.all<{
       place_id: number; name: string; address: string | null; lat: number | null; lng: number | null;
       category_id: number | null; image_url: string | null; day_number: number | null; date: string | null;
+      google_place_id: string | null; google_ftid: string | null; osm_id: string | null;
     }>(`
       SELECT p.id AS place_id, p.name, p.address, p.lat, p.lng, p.category_id, p.image_url,
+             p.google_place_id, p.google_ftid, p.osm_id,
              (SELECT MIN(d.day_number) FROM day_assignments da
                 JOIN days d ON d.id = da.day_id
                WHERE da.place_id = p.id AND d.trip_id = p.trip_id) AS day_number,
@@ -627,7 +629,9 @@ export class CollectionsService {
     return {
       places: rows.map(r => ({
         ...r,
-        already_in_list: this.findDuplicateCollectionPlace(collectionId, { name: r.name, lat: r.lat, lng: r.lng }) != null,
+        // Asked with the same candidate the save will use, or the picker marks a
+        // place as new and the save then refuses it as a duplicate.
+        already_in_list: this.findDuplicateCollectionPlace(collectionId, r) != null,
         scheduled: r.day_number != null,
       })),
     };
@@ -660,7 +664,16 @@ export class CollectionsService {
         const name = p.name as string;
         const lat = (p.lat as number | null) ?? null;
         const lng = (p.lng as number | null) ?? null;
-        if (!force && this.findDuplicateCollectionPlace(collectionId, { name, lat, lng })) {
+        // The provider ids go with it: they are already carried into the insert
+        // below, so leaving them out here would recognise less than the row that
+        // gets written knows about.
+        const candidate = {
+          name, lat, lng,
+          google_place_id: (p.google_place_id as string | null) ?? null,
+          google_ftid: (p.google_ftid as string | null) ?? null,
+          osm_id: (p.osm_id as string | null) ?? null,
+        };
+        if (!force && this.findDuplicateCollectionPlace(collectionId, candidate)) {
           skipped.push({ id: placeId, name });
           continue;
         }

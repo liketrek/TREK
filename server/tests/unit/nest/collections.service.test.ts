@@ -220,6 +220,38 @@ describe('saved places + dedup', () => {
     expect(result.duplicate).toBe(true);
     expect(result.duplicateOf?.name).toBe('Original Name');
   });
+
+  it('COLLECTIONS-SVC-102: the bulk import recognises a renamed place by its provider id too', () => {
+    // savePlace was not the only caller. The bulk copy carries the provider ids
+    // into the row it writes, so asking without them would recognise less than
+    // the row it just wrote already knows.
+    const u = createUser(testDb).user;
+    const col = svc.createCollection(u.id, { name: 'Rome' });
+    const trip = createTrip(testDb, u.id);
+    const place = createPlace(testDb, trip.id, { name: 'Trattoria da Enzo' });
+    testDb.prepare('UPDATE places SET google_ftid = ? WHERE id = ?').run('0x1:0x2', place.id);
+    svc.savePlace(u.id, { collection_id: col.id, name: 'Dinner Tuesday', lat: 41.88, lng: 12.47, google_ftid: '0x1:0x2' });
+
+    const out = svc.saveFromTripPlaces(u.id, col.id, trip.id, [place.id]);
+
+    expect(out.copied).toBe(0);
+    expect(out.skipped.map(s => s.name)).toEqual(['Trattoria da Enzo']);
+  });
+
+  it('COLLECTIONS-SVC-103: the import picker marks that same place as already saved', () => {
+    // The dialog and the import have to agree: a row shown as new that the import
+    // then refuses is the drift this method exists to prevent.
+    const u = createUser(testDb).user;
+    const col = svc.createCollection(u.id, { name: 'Rome' });
+    const trip = createTrip(testDb, u.id);
+    const place = createPlace(testDb, trip.id, { name: 'Trattoria da Enzo' });
+    testDb.prepare('UPDATE places SET google_ftid = ? WHERE id = ?').run('0x1:0x2', place.id);
+    svc.savePlace(u.id, { collection_id: col.id, name: 'Dinner Tuesday', lat: 41.88, lng: 12.47, google_ftid: '0x1:0x2' });
+
+    const listed = svc.importablePlaces(u.id, col.id, trip.id).places.find(p => p.place_id === place.id);
+
+    expect(listed?.already_in_list).toBe(true);
+  });
 });
 
 // ── save-from-trip provenance + IDOR ─────────────────────────────────────────
