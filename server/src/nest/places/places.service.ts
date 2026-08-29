@@ -534,6 +534,23 @@ export class PlacesService {
    * notably it offers coordinates only for an unnamed candidate, so this can no
    * longer disagree with `isPlaceDuplicate` about the restaurant and the bar at
    * the same address.
+   *
+   * What is shared is the ORDER, not the comparison. Two differences remain, both
+   * of them older than this method and neither worth widening its scope for:
+   *
+   *  - The name is matched with SQLite `lower()`, which is ASCII-only, against a
+   *    parameter `normalizePlaceName` lowercased in JavaScript, which is not. A
+   *    row stored as `CAFÉ CENTRAL` therefore does not match the candidate
+   *    `Café Central` here, while `isPlaceDuplicate` does match it in memory.
+   *    Before the strategies, the coordinate fallback quietly covered that gap
+   *    for a named candidate — sometimes with the wrong row, since it matched on
+   *    position alone. The cost today is a `google_ftid` backfill that does not
+   *    happen; the benefit is that it can no longer happen to a different place.
+   *  - `buildDedupSet` collects coordinates only for UNNAMED rows, while the
+   *    coordinate query below considers every row. An unnamed candidate can
+   *    therefore match a named row here and not there. That is the behaviour
+   *    `findMatchingPlaceId` wants — a booking with no place name should link to
+   *    the hotel that has one — so it is stated rather than removed.
    */
   private findDuplicatePlace(
     tripId: string,
@@ -1013,8 +1030,14 @@ export class PlacesService {
     let skipped = 0;
     this.dbs.transaction(() => {
       for (const p of places) {
-        if (isPlaceDuplicate({ name: p.name, lat: p.lat, lng: p.lng, google_ftid: p.googleFtid }, dedup)) {
-          const duplicate = this.findDuplicatePlace(tripId, p);
+        // One candidate for both halves. Passing the raw parser object to the SQL
+        // half used to mean its provider id never arrived — the field is
+        // `googleFtid` there and `google_ftid` here — so the id strategy was
+        // always empty and the name could match a different row, which then took
+        // this candidate's ftid on the backfill below.
+        const candidate = { name: p.name, lat: p.lat, lng: p.lng, google_ftid: p.googleFtid };
+        if (isPlaceDuplicate(candidate, dedup)) {
+          const duplicate = this.findDuplicatePlace(tripId, candidate);
           if (duplicate && !duplicate.google_ftid && p.googleFtid) {
             updateGoogleFtidStmt.run(p.googleFtid, duplicate.id);
           }
@@ -1024,7 +1047,7 @@ export class PlacesService {
         const result = insertStmt.run(tripId, p.name, p.lat, p.lng, p.notes, p.googleFtid);
         const place = this.dbs.getPlaceWithTags(Number(result.lastInsertRowid))!;
         created.push(place);
-        trackInsertedInDedupSet({ name: p.name, lat: p.lat, lng: p.lng, google_ftid: p.googleFtid }, dedup);
+        trackInsertedInDedupSet(candidate, dedup);
       }
     });
 

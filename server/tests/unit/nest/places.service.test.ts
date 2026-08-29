@@ -741,6 +741,43 @@ describe('importGoogleList', () => {
     expect(row.google_ftid).toBe('0x882bf179e806d471:0x8591dde29c821a93');
   });
 
+  it('PLACE-SVC-028e — the backfill lands on the row the provider id names, not on a namesake', async () => {
+    // The importer's parsed item spells the id `googleFtid`, the match rule reads
+    // `google_ftid`, so the raw object used to reach findDuplicatePlace with no id
+    // at all. The name then decided, and a second place sharing the name took the
+    // ftid that belonged to the renamed one.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const renamed = createPlace(testDb, trip.id, {
+      name: 'Saturday market run',
+      lat: 43.5118527,
+      lng: -80.5542617,
+    }) as any;
+    testDb.prepare('UPDATE places SET google_ftid = ? WHERE id = ?')
+      .run('0x882bf179e806d471:0x8591dde29c821a93', renamed.id);
+    const namesake = createPlace(testDb, trip.id, {
+      name: "St. Jacobs Farmers' Market",
+      lat: 40.0,
+      lng: -80.0,
+    }) as any;
+
+    const listPayload = [
+      [null, null, null, null, 'My Test List', null, null, null, [
+        [null, [null, null, null, null, '878 Weber St N', [null, null, 43.5118527, -80.5542617], ['-8634542354666695567', '-8822026229683971437']], "St. Jacobs Farmers' Market"],
+      ]],
+    ];
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => 'prefix\n' + JSON.stringify(listPayload),
+    }));
+
+    const result = await svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456') as any;
+    const other = testDb.prepare('SELECT google_ftid FROM places WHERE id = ?').get(namesake.id) as any;
+
+    expect(result.skipped).toBe(1);
+    expect(other.google_ftid).toBeNull();
+  });
+
   it('PLACE-SVC-028d — a renamed place is not re-imported as a twin (#1550)', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
@@ -1642,5 +1679,67 @@ describe('findMatchingPlaceId', () => {
     createPlace(testDb, theirs.id, { name: 'Shared Name' });
 
     expect(svc.findMatchingPlaceId(String(mine.id), { name: 'Shared Name' })).toBeNull();
+  });
+
+  it('PLACES-SVC-014 — a provider id still wins over a name that points elsewhere', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    // The place the user renamed, carrying the id the importer knows it by.
+    const renamed = createPlace(testDb, trip.id, { name: 'Dinner Tuesday', lat: 41.88, lng: 12.47 });
+    testDb.prepare('UPDATE places SET google_ftid = ? WHERE id = ?').run('0x1:0x2', renamed.id);
+    // A different place that happens to carry the name the list still uses.
+    createPlace(testDb, trip.id, { name: 'Trattoria da Enzo', lat: 41.9, lng: 12.5 });
+
+    expect(
+      svc.findMatchingPlaceId(String(trip.id), { name: 'Trattoria da Enzo', google_ftid: '0x1:0x2' }),
+    ).toBe(renamed.id);
+  });
+
+  it('PLACES-SVC-015 — the name comparison is ASCII-only, so an accented capital does not match', () => {
+    // Not a wish, a boundary: `lower(trim(name))` is SQLite's ASCII lowercase,
+    // while normalizePlaceName uses JavaScript's Unicode one. isPlaceDuplicate
+    // does match this pair in memory. Before the shared strategies, the
+    // coordinate fallback covered the gap for a named candidate — sometimes with
+    // the wrong row. This pins where the two halves still answer differently.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createPlace(testDb, trip.id, { name: 'CAFÉ CENTRAL', lat: 48.85, lng: 2.35 });
+
+    expect(svc.findMatchingPlaceId(String(trip.id), { name: 'Café Central', lat: 48.85, lng: 2.35 })).toBeNull();
+    // The all-ASCII spelling of the same shape does match.
+    createPlace(testDb, trip.id, { name: 'CAFE CENTRAL', lat: 48.86, lng: 2.36 });
+    expect(svc.findMatchingPlaceId(String(trip.id), { name: 'Cafe Central' })).not.toBeNull();
+  });
+
+  it('PLACES-SVC-016 — an unnamed candidate can match a NAMED row on coordinates', () => {
+    // The other place the two halves differ: buildDedupSet collects coordinates
+    // only for unnamed rows, so isPlaceDuplicate would say no here. This is the
+    // answer findMatchingPlaceId wants — a booking with no place name should
+    // link to the hotel that has one — so it is pinned rather than removed.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const hotel = createPlace(testDb, trip.id, { name: 'Hotel Lutetia', lat: 48.851, lng: 2.326 });
+
+    expect(svc.findMatchingPlaceId(String(trip.id), { name: null, lat: 48.851, lng: 2.326 })).toBe(hotel.id);
+  });
+
+  it('PLACES-SVC-017 — the coordinate tolerance is a box roughly 11 m wide, and it closes', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: null, lat: 48.85, lng: 2.35 });
+
+    // Pinned as a number, not against the constant: every other reference is
+    // relative to it, so widening it from 11 m to 111 m would keep them all green.
+    expect(COORD_DEDUP_TOLERANCE).toBe(0.0001);
+
+    const inside = { name: null, lat: 48.85 + COORD_DEDUP_TOLERANCE * 0.9, lng: 2.35 };
+    const outside = { name: null, lat: 48.85 + COORD_DEDUP_TOLERANCE * 1.5, lng: 2.35 };
+    expect(svc.findMatchingPlaceId(String(trip.id), inside)).toBe(place.id);
+    expect(svc.findMatchingPlaceId(String(trip.id), outside)).toBeNull();
+    // Exactly one tolerance away is NOT a match: 48.85 + 0.0001 lands on
+    // 48.850100000000004 in binary floating point, a hair over the bound. The
+    // edge is fuzzy by design of the arithmetic, so nothing should lean on it.
+    const edge = { name: null, lat: 48.85 + COORD_DEDUP_TOLERANCE, lng: 2.35 };
+    expect(svc.findMatchingPlaceId(String(trip.id), edge)).toBeNull();
   });
 });

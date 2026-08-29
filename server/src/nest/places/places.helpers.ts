@@ -135,9 +135,13 @@ export interface DedupSet {
  *
  * The in-memory half of the matching rule; `PlacesService.findMatchingPlaceId` is
  * the SQL half. Both walk the same strategy list from @trek/shared, so neither can
- * drift into recognising a place the other would not — which is exactly what had
- * happened: the SQL copy reached for coordinates on a named candidate, and this
+ * reach for a KIND of match the other would not — which is exactly what had
+ * happened: the SQL copy fell back to coordinates on a named candidate, and this
  * one deliberately never does (see place-match.ts for why).
+ *
+ * Shared order, not shared comparison: SQLite `lower()` is ASCII-only where
+ * JavaScript's is not, and only unnamed rows contribute coordinates to a dedup
+ * set. `findDuplicatePlace` spells out where the two still answer differently.
  */
 export function isPlaceDuplicate(candidate: PlaceMatchCandidate, dedup: DedupSet): boolean {
   for (const strategy of placeMatchStrategies(candidate)) {
