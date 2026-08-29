@@ -8,10 +8,11 @@ import { buildUser, buildSettings } from '../../../tests/helpers/factories';
 import { ToastContainer } from '../shared/Toast';
 import MapSettingsTab from './MapSettingsTab';
 
-// Mock MapView to avoid Leaflet DOM issues in jsdom
+// Mock MapView to avoid Leaflet DOM issues in jsdom. tileUrl is surfaced because
+// the preview has to draw the basemap being configured, key included.
 vi.mock('../Map/MapView', () => ({
-  MapView: ({ onMapClick }: { onMapClick?: (info: { latlng: { lat: number; lng: number } }) => void }) => (
-    <div data-testid="map-view" onClick={() => onMapClick?.({ latlng: { lat: 51.5, lng: -0.1 } })} />
+  MapView: ({ onMapClick, tileUrl }: { onMapClick?: (info: { latlng: { lat: number; lng: number } }) => void; tileUrl?: string }) => (
+    <div data-testid="map-view" data-tile-url={tileUrl} onClick={() => onMapClick?.({ latlng: { lat: 51.5, lng: -0.1 } })} />
   ),
 }));
 
@@ -392,6 +393,27 @@ describe('MapSettingsTab – CARTO key', () => {
     await user.click(screen.getByText('Save Map'));
 
     expect(updateSettings).toHaveBeenCalledWith(expect.objectContaining({ carto_api_key: 'demo-key' }));
+  });
+
+  it('FE-COMP-MAP-033b: the preview draws the CARTO basemap being configured, not the app default', async () => {
+    // The fields hold what the user is editing, not what useTileUrl resolved, so
+    // the key has to be put back on before the preview reads the template.
+    // Without it the preview resolves a keyless CARTO url, silently falls back to
+    // the default vector style, and shows a basemap nobody chose.
+    const user = userEvent.setup();
+    seedStore(useSettingsStore, {
+      settings: buildSettings({ map_tile_url: CARTO_DARK_TILES, carto_api_key: 'demo-key' }),
+    });
+    render(<MapSettingsTab />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('map-view').getAttribute('data-tile-url')).toContain('key=demo-key');
+    });
+
+    await user.clear(cartoInput());
+    await waitFor(() => {
+      expect(screen.getByTestId('map-view').getAttribute('data-tile-url')).not.toContain('key=');
+    });
   });
 
   it('FE-COMP-MAP-034: a CARTO template without a key explains the watermark until one is typed', async () => {
